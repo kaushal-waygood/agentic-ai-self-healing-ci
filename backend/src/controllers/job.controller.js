@@ -7,6 +7,8 @@ import axios from 'axios';
 import {
   extractExperience,
   extractQualifications,
+  extractQualificationsFromDescription,
+  extractResponsibilitiesFromDescription,
 } from '../utils/exprienceExtractor.js';
 
 export const postManualJob = async (req, res) => {
@@ -312,7 +314,17 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
     for (const job of jobs) {
       const existing = await Job.findOne({ jobId: job.job_id });
       const experience = extractExperience(job.job_description);
-      const qualifications = extractQualifications(job.job_description);
+      // const qualifications = extractQualifications(job.job_description);
+
+      const qualifications = extractQualificationsFromDescription(
+        job.job_description,
+      );
+
+      const responsibilities = extractResponsibilitiesFromDescription(
+        job.job_description,
+      );
+
+      console.log(responsibilities);
 
       if (!existing) {
         const newJob = new Job({
@@ -320,9 +332,13 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
           origin: 'EXTERNAL',
           logo: job.employer_logo,
           experience: experience,
-          qualifications: qualifications,
+          qualification: qualifications,
           title: job.job_title,
           description: job.job_description,
+          responsibilities,
+          qualifications,
+          jobTypes: job.job_employment_types,
+
           company: job.employer_name,
           applyMethod: {
             method: 'URL',

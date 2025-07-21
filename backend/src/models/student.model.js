@@ -70,8 +70,7 @@ const studentSchema = new Schema(
 
     // Job-Related Preferences
     jobRole: {
-      type: Schema.Types.ObjectId,
-      ref: 'JobRole',
+      type: String,
     },
 
     skills: [

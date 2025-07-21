@@ -17,14 +17,12 @@ export const studentDetails = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Ensure user is a student
     if (user.role !== 'student') {
       return res
         .status(403)
         .json({ message: 'Only students can create student profile' });
     }
 
-    // Check if student profile already exists
     const existingStudent = await Student.findOne({ email: user.email });
     if (existingStudent) {
       return res.status(200).json({ studentDetails: existingStudent });
@@ -35,8 +33,7 @@ export const studentDetails = async (req, res) => {
       _id: user._id,
       fullName: user.fullName,
       email: user.email,
-      jobRole: '', // You might want to set this or allow frontend to update it later
-      organizationId: user.organizationId || null, // Optional if applicable
+      jobRole: user.jobRole,
     });
 
     return res.status(201).json({ studentDetails });

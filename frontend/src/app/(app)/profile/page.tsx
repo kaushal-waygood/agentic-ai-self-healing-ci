@@ -1,7 +1,6 @@
-
-import { PageHeader } from "@/components/common/page-header";
-import { ProfileForm } from "@/components/profile/profile-form";
-import { UserCircle } from "lucide-react";
+import { PageHeader } from '@/components/common/page-header';
+import { ProfileForm } from '@/components/profile/profile-form';
+import { UserCircle } from 'lucide-react';
 
 export default function ProfilePage() {
   return (
@@ -12,7 +11,7 @@ export default function ProfilePage() {
         icon={UserCircle}
       />
       <div className="max-w-4xl mx-auto">
-         <ProfileForm />
+        <ProfileForm />
       </div>
     </>
   );

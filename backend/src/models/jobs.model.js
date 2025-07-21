@@ -8,6 +8,9 @@ const jobSchema = new Schema(
 
     title: { type: String },
     description: { type: String },
+    responsibilities: [String],
+    qualifications: [String],
+    jobTypes: [String],
     logo: { type: String },
     company: { type: String },
     organizationId: {
@@ -102,7 +105,7 @@ const jobSchema = new Schema(
 
     queries: [{ type: String }],
     experience: { type: Number },
-    qualifications: [String],
+    qualification: [String],
 
     slug: { type: String, unique: true },
     isActive: { type: Boolean, default: true },
