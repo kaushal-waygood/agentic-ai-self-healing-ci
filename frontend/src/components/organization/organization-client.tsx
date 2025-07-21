@@ -109,7 +109,6 @@ import {
 } from '@/redux/reducers/organizationsReducer';
 import { RootState } from '@/redux/rootReducer';
 import UpdateMemberForm, { UpdateJobStatus } from './UpdateMemberForm';
-import apiInstance from '@/services/api';
 import { useRouter } from 'next/navigation';
 import {
   getAllJobPostsByOrgAdminRequest,

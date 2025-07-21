@@ -23,6 +23,10 @@ interface JobCardProps {
       lat: number;
       lng: number;
     };
+    logo: string;
+    description: string;
+    url: string;
+    status: string;
     type: string;
     postedDate: string;
     companyLogo?: string;
@@ -52,9 +56,9 @@ export function JobCard({ job, isSelected, onClick }: JobCardProps) {
     >
       <CardHeader>
         <div className="flex items-start gap-4">
-          {job.companyLogo ? (
+          {job.logo ? (
             <Image
-              src={job.companyLogo}
+              src={job.logo}
               alt={`${job.company} logo`}
               width={48}
               height={48}

@@ -318,6 +318,7 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
         const newJob = new Job({
           jobId: job.job_id,
           origin: 'EXTERNAL',
+          logo: job.employer_logo,
           experience: experience,
           qualifications: qualifications,
           title: job.job_title,

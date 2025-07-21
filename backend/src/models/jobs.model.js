@@ -8,6 +8,7 @@ const jobSchema = new Schema(
 
     title: { type: String },
     description: { type: String },
+    logo: { type: String },
     company: { type: String },
     organizationId: {
       type: Schema.Types.ObjectId,
