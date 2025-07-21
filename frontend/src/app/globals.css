@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'PT Sans', sans-serif; /* Default body font */
+}
+
+@layer base {
+  :root {
+    --background: 210 29% 96%; /* #F0F4F8 Light Gray */
+    --foreground: 210 10% 23%; /* Dark Gray-Blue Text */
+
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 210 10% 23%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 10% 23%;
+
+    --primary: 207 88% 68%; /* #64B5F6 Soft Blue */
+    --primary-foreground: 210 60% 98%; /* White/Very Light Blue for text on primary */
+
+    --secondary: 210 25% 90%; /* Lighter gray for secondary elements */
+    --secondary-foreground: 210 10% 30%; /* Slightly lighter dark text */
+
+    --muted: 210 25% 93%; /* Muted background elements */
+    --muted-foreground: 210 10% 45%; /* Muted text */
+
+    --accent: 174 43% 51%; /* #4DB6AC Teal */
+    --accent-foreground: 0 0% 98%; /* White/Very Light for text on accent */
+
+    --destructive: 0 84.2% 60.2%; /* Default red */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 20% 88%; /* Slightly darker border */
+    --input: 210 20% 92%; /* Input background, slightly off-white/light gray */
+    --ring: 207 88% 68%; /* Primary color for focus rings */
+    --radius: 0.5rem;
+
+    --chart-1: 207 88% 68%;
+    --chart-2: 174 43% 51%;
+    --chart-3: 210 30% 50%;
+    --chart-4: 25 80% 60%;
+    --chart-5: 300 70% 65%;
+
+    /* Sidebar specific theme variables */
+    --sidebar-background: 0 0% 100%; /* White sidebar */
+    --sidebar-foreground: 210 10% 30%; /* Dark text for sidebar */
+    --sidebar-primary: 207 88% 68%; /* Primary color for active/hover items */
+    --sidebar-primary-foreground: 210 60% 98%;
+    --sidebar-accent: 210 29% 93%; /* Accent for hover, slightly lighter than page bg */
+    --sidebar-accent-foreground: 210 10% 23%;
+    --sidebar-border: 210 20% 88%;
+    --sidebar-ring: 207 88% 68%;
+  }
+
+  .dark {
+    --background: 210 10% 15%;
+    --foreground: 210 20% 95%;
+
+    --card: 210 10% 20%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 210 10% 20%;
+    --popover-foreground: 210 20% 95%;
+
+    --primary: 207 80% 65%;
+    --primary-foreground: 210 10% 5%;
+
+    --secondary: 210 10% 25%;
+    --secondary-foreground: 210 20% 95%;
+
+    --muted: 210 10% 25%;
+    --muted-foreground: 210 15% 65%;
+
+    --accent: 174 40% 48%;
+    --accent-foreground: 210 10% 5%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 10% 30%;
+    --input: 210 10% 30%;
+    --ring: 207 80% 65%;
+
+    --chart-1: 207 80% 65%;
+    --chart-2: 174 40% 48%;
+    --chart-3: 210 25% 45%;
+    --chart-4: 25 70% 55%;
+    --chart-5: 300 60% 60%;
+    
+    --sidebar-background: 210 10% 12%;
+    --sidebar-foreground: 210 20% 93%;
+    --sidebar-primary: 207 80% 65%;
+    --sidebar-primary-foreground: 210 10% 5%;
+    --sidebar-accent: 210 10% 20%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 210 10% 25%;
+    --sidebar-ring: 207 80% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+}
+
+@layer utilities {
+  .printable-a4 {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm;
+    margin: 0 auto;
+    background: white !important;
+    color: black !important;
+  }
+  .printable-a4 h1, .printable-a4 h2, .printable-a4 h3, .printable-a4 p, .printable-a4 li, .printable-a4 strong {
+    color: black !important;
+  }
+}

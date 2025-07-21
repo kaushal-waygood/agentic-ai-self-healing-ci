@@ -1,0 +1,399 @@
+import slugify from 'slugify';
+import { Job } from '../models/jobs.model.js';
+import { Student } from '../models/student.model.js';
+import { User } from '../models/user.model.js';
+import { cloudinary } from '../config/cloudinary.js';
+import fs from 'fs';
+import path from 'path';
+import { safeUnlink, __dirname } from '../utils/fileUploadingManaging.js';
+
+export const studentDetails = async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    // Get the user
+    const user = await User.findById(_id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Ensure user is a student
+    if (user.role !== 'student') {
+      return res
+        .status(403)
+        .json({ message: 'Only students can create student profile' });
+    }
+
+    // Check if student profile already exists
+    const existingStudent = await Student.findOne({ email: user.email });
+    if (existingStudent) {
+      return res.status(200).json({ studentDetails: existingStudent });
+    }
+
+    // Create new student profile
+    const studentDetails = await Student.create({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      jobRole: '', // You might want to set this or allow frontend to update it later
+      organizationId: user.organizationId || null, // Optional if applicable
+    });
+
+    return res.status(201).json({ studentDetails });
+  } catch (error) {
+    console.error('Error creating student details:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const addStudentSkills = async (req, res) => {
+  const { skill, level } = req.body;
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    const skillId = slugify(`${skill}-${level}`, { lower: true });
+    const existingSkill = student.skills.find((s) => s.skillId === skillId);
+    if (existingSkill) {
+      return res.status(400).json({ message: 'Skill already exists' });
+    }
+
+    student.skills.push({ skill, level, skillId });
+    await student.save();
+    res
+      .status(200)
+      .json({ message: 'Skills added successfully', student: student.skills });
+  } catch (error) {
+    console.error('Error adding skills:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const removeStudentSkills = async (req, res) => {
+  const { skillId } = req.params;
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    student.skills = student.skills.filter((s) => s.skillId !== skillId);
+    await student.save();
+    res.status(200).json({ message: 'Skills removed successfully' });
+  } catch (error) {
+    console.error('Error removing skills:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const addExperience = async (req, res) => {
+  const { company, title, startDate, endDate, description, currentlyWorking } =
+    req.body;
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const experienceId = slugify(`${company}-${title}`, { lower: true });
+
+    if (student.experience.find((exp) => exp.experienceId === experienceId)) {
+      return res.status(400).json({ message: 'Experience already exists' });
+    }
+
+    student.experience.push({
+      experienceId,
+      company,
+      title,
+      startDate,
+      endDate,
+      description,
+      currentlyWorking,
+    });
+
+    await student.save();
+    res.status(200).json({
+      message: 'Experience added successfully',
+      experience: student.experience,
+    });
+  } catch (error) {
+    console.error('Error adding experience:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const removeExperience = async (req, res) => {
+  const { expId: experienceId } = req.params;
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.experience = student.experience.filter(
+      (exp) => exp.experienceId !== experienceId,
+    );
+
+    await student.save();
+    res.status(200).json({ message: 'Experience removed successfully' });
+  } catch (error) {
+    console.error('Error removing experience:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const addEducations = async (req, res) => {
+  const {
+    degree,
+    fieldOfStudy,
+    startDate,
+    endDate,
+    grade,
+    institute,
+    isCurrentlyStudying,
+  } = req.body;
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const educationId = slugify(`${degree}-${fieldOfStudy}`, { lower: true });
+
+    if (student.education.find((edu) => edu.educationId === educationId)) {
+      return res.status(400).json({ message: 'Education already exists' });
+    }
+
+    student.education.push({
+      educationId,
+      degree,
+      fieldOfStudy,
+      startDate,
+      endDate,
+      grade,
+      institute,
+      isCurrentlyStudying,
+    });
+
+    await student.save();
+    res.status(200).json({
+      message: 'Education added successfully',
+      education: student.education,
+    });
+  } catch (error) {
+    console.error('Error adding education:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const removeEducation = async (req, res) => {
+  const { eduId: educationId } = req.params;
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.education = student.education.filter(
+      (edu) => edu.educationId !== educationId,
+    );
+
+    await student.save();
+    res.status(200).json({ message: 'Education removed successfully' });
+  } catch (error) {
+    console.error('Error removing education:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const addProfileImage = async (req, res) => {
+  const { _id } = req.user;
+
+  // If no file was uploaded
+  if (!req.file) {
+    return res.status(400).json({ message: 'No image file uploaded' });
+  }
+
+  const localFilePath = path.join(
+    __dirname,
+    '..',
+    '..',
+    'public',
+    'profileImage',
+    req.file.filename,
+  );
+
+  try {
+    // Find student
+    const student = await Student.findById(_id);
+    if (!student) {
+      fs.unlinkSync(localFilePath); // Cleanup if user not found
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(localFilePath, {
+      folder: 'student-profile-images',
+    });
+
+    // Save Cloudinary URL to DB
+    student.profileImage = result.secure_url;
+    await student.save();
+
+    // Delete from local storage
+    safeUnlink(localFilePath);
+
+    res.status(200).json({
+      message: 'Profile image uploaded successfully',
+      profileImage: result.secure_url,
+    });
+  } catch (error) {
+    console.error('Error uploading profile image:', error);
+    safeUnlink(localFilePath);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const updateProfileImage = async (req, res) => {
+  const { _id } = req.user;
+
+  if (!req.file) {
+    return res.status(400).json({ message: 'No image file uploaded' });
+  }
+
+  const localFilePath = path.join(
+    __dirname,
+    '..',
+    '..',
+    'public',
+    'profileImage',
+    req.file.filename,
+  );
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      safeUnlink(localFilePath);
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // 1. Delete previous image from Cloudinary
+    if (student.profileImagePublicId) {
+      await cloudinary.uploader.destroy(student.profileImagePublicId);
+    }
+
+    // 2. Upload new image to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(localFilePath, {
+      folder: 'student-profile-images',
+    });
+
+    // 3. Save new image URL & public_id
+    student.profileImage = uploadResult.secure_url;
+    student.profileImagePublicId = uploadResult.public_id;
+    await student.save();
+
+    // 4. Delete from local
+    safeUnlink(localFilePath);
+
+    return res.status(200).json({
+      message: 'Profile image updated successfully',
+      profileImage: student.profileImage,
+    });
+  } catch (error) {
+    console.error('Error updating profile image:', error);
+    safeUnlink(localFilePath);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const addResume = async (req, res) => {
+  const { _id } = req.user;
+
+  if (!req.file) {
+    return res.status(400).json({ message: 'No resume file uploaded' });
+  }
+
+  const localFilePath = path.join(
+    __dirname,
+    '..',
+    '..',
+    'public',
+    'resume',
+    req.file.filename,
+  );
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      safeUnlink(localFilePath);
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // 1. Delete previous resume from Cloudinary
+    if (student.resumePublicId) {
+      await cloudinary.uploader.destroy(student.resumePublicId);
+    }
+
+    // 2. Upload new resume to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(localFilePath, {
+      folder: 'student-resumes',
+    });
+
+    // 3. Save new resume URL & public_id
+    student.resumeUrl = uploadResult.secure_url;
+    student.resumePublicId = uploadResult.public_id;
+    await student.save();
+
+    // 4. Delete from local
+    safeUnlink(localFilePath);
+
+    return res.status(200).json({
+      message: 'Resume uploaded successfully',
+      resumeUrl: student.resumeUrl,
+    });
+  } catch (error) {
+    console.error('Error uploading resume:', error);
+    safeUnlink(localFilePath);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const appliedJob = async (req, res) => {
+  const { jobId } = req.params;
+
+  try {
+    const student = await Student.findById(req.user._id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    if (student.appliedJobs.includes(jobId)) {
+      return res
+        .status(400)
+        .json({ message: 'You have already applied for this job' });
+    }
+
+    student.appliedJobs.push(jobId);
+
+    job.appliedStudents.push(student._id);
+    await student.save();
+
+    return res.status(200).json({ message: 'Job applied successfully' });
+  } catch (error) {
+    console.error('Error applying for job:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};

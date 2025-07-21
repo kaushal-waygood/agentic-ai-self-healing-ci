@@ -1,0 +1,180 @@
+/** @format */
+
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { Job } from '../types/jobType';
+
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+interface JobState {
+  jobs: Job[];
+  job: Job | null;
+  loading: boolean;
+  error: string | null;
+  pagination: Pagination;
+  filters: {
+    query: string;
+    country: string;
+    city: string;
+    datePosted: string;
+    employmentType: string[];
+    experience: string[];
+  };
+}
+
+const initialState: JobState = {
+  jobs: [],
+  job: null,
+  loading: false,
+  error: null,
+  pagination: {
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  },
+  filters: {
+    query: '',
+    country: '',
+    city: '',
+    datePosted: '',
+    employmentType: [],
+    experience: [],
+  },
+};
+
+const jobSlice = createSlice({
+  name: 'job',
+  initialState,
+  reducers: {
+    getAllJobsRequest: (
+      state,
+      action: PayloadAction<{
+        page: number;
+        query?: string;
+        country?: string;
+        city?: string;
+        datePosted?: string;
+        employmentType?: string[];
+        experience?: string[];
+      }>,
+    ) => {
+      state.loading = true;
+      state.error = null;
+      state.pagination.page = action.payload.page;
+
+      // Update filters in state if provided
+      if (action.payload.query !== undefined)
+        state.filters.query = action.payload.query;
+      if (action.payload.country !== undefined)
+        state.filters.country = action.payload.country;
+      if (action.payload.city !== undefined)
+        state.filters.city = action.payload.city;
+      if (action.payload.datePosted !== undefined)
+        state.filters.datePosted = action.payload.datePosted;
+      if (action.payload.employmentType !== undefined)
+        state.filters.employmentType = action.payload.employmentType;
+      if (action.payload.experience !== undefined)
+        state.filters.experience = action.payload.experience;
+    },
+    getAllJobsSuccess: (
+      state,
+      action: PayloadAction<{ jobs: Job[]; pagination: Pagination }>,
+    ) => {
+      state.loading = false;
+      state.jobs = action.payload.jobs;
+      state.pagination = action.payload.pagination;
+    },
+    getAllJobsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    setCurrentPage: (state, action: PayloadAction<number>) => {
+      state.pagination.page = action.payload;
+    },
+
+    getJobBySlugRequest: (state, action: PayloadAction<string>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getJobBySlugSuccess: (state, action: PayloadAction<Job>) => {
+      state.loading = false;
+      state.job = action.payload;
+    },
+    getJobBySlugFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    postJobMannalByOrgAdminRequest: (state, action: PayloadAction<Job>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    postJobMannalByOrgAdminSuccess: (state, action: PayloadAction<Job>) => {
+      state.loading = false;
+      state.job = action.payload;
+    },
+    postJobMannalByOrgAdminFailiure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    getAllJobPostsByOrgAdminRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getAllJobPostsByOrgAdminSuccess: (state, action: PayloadAction<Job[]>) => {
+      state.loading = false;
+      state.jobs = action.payload;
+    },
+    getAllJobPostsByOrgAdminFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    updateJobStatusRequest: (state, action: PayloadAction<string>) => {
+      console.log('action.payload', action.payload);
+      state.loading = true;
+      state.error = null;
+    },
+    updateJobStatusSuccess: (state, action: PayloadAction<Job>) => {
+      console.log('action.payload', action.payload);
+      state.loading = false;
+      state.job = action.payload;
+    },
+    updateJobStatusFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+  },
+});
+
+export const {
+  getAllJobsRequest,
+  getAllJobsSuccess,
+  getAllJobsFailure,
+  setCurrentPage,
+
+  getJobBySlugRequest,
+  getJobBySlugSuccess,
+  getJobBySlugFailure,
+
+  postJobMannalByOrgAdminRequest,
+  postJobMannalByOrgAdminSuccess,
+  postJobMannalByOrgAdminFailiure,
+
+  getAllJobPostsByOrgAdminRequest,
+  getAllJobPostsByOrgAdminSuccess,
+  getAllJobPostsByOrgAdminFailure,
+
+  updateJobStatusRequest,
+  updateJobStatusSuccess,
+  updateJobStatusFailure,
+} = jobSlice.actions;
+
+export default jobSlice.reducer;
