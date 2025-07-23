@@ -1,7 +1,7 @@
 /** @format */
 
 import { Organization } from '../models/Organization.model.js';
-import { User } from '../models/user.model.js';
+import { User } from '../models/User.model.js';
 import { generateReferralCode } from '../utils/generateReferralCode.js';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';

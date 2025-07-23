@@ -1,7 +1,7 @@
 import slugify from 'slugify';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/student.model.js';
-import { User } from '../models/user.model.js';
+import { User } from '../models/User.model.js';
 import { cloudinary } from '../config/cloudinary.js';
 import fs from 'fs';
 import path from 'path';
