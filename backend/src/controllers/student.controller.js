@@ -394,3 +394,59 @@ export const appliedJob = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+export const addProjects = async (req, res) => {
+  const {
+    projectName,
+    description,
+    startDate,
+    endDate,
+    technologies,
+    link,
+    isWorkingActive,
+  } = req.body;
+
+  try {
+    const student = await Student.findById(req.user._id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.projects.push({
+      projectName,
+      description,
+      startDate,
+      endDate,
+      technologies,
+      link,
+      isWorkingActive,
+    });
+    await student.save();
+
+    return res.status(200).json({ message: 'Project added successfully' });
+  } catch (error) {
+    console.error('Error adding project:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const removeProject = async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const student = await Student.findById(req.user._id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.projects = student.projects.filter(
+      (project) => project._id.toString() !== projectId,
+    );
+    await student.save();
+
+    return res.status(200).json({ message: 'Project removed successfully' });
+  } catch (error) {
+    console.error('Error removing project:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};

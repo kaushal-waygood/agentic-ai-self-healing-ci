@@ -13,8 +13,6 @@ export default function JobDetailPage() {
   const { jobId } = useParams();
   const [job, setJob] = useState<any>(null);
 
-  console.log('jobid', jobId);
-
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {

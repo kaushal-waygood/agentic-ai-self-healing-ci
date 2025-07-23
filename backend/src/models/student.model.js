@@ -58,6 +58,14 @@ const studentSchema = new Schema(
         },
         company: String,
         title: String,
+        employmentType: {
+          type: String,
+          enum: ['FULL_TIME', 'PART_TIME', 'CONTRACT'],
+          default: 'FULL_TIME',
+        },
+        location: {
+          type: String,
+        },
         startDate: Date,
         endDate: Date,
         description: String,
@@ -86,6 +94,29 @@ const studentSchema = new Schema(
       },
     ],
 
+    projects: [
+      {
+        projectName: String,
+        description: String,
+        startDate: Date,
+        endDate: Date,
+        technologies: [String],
+        link: String,
+        isWorkingActive: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
+
+    // Location Preferences
+    preferredCities: [String],
+    preferredStates: [String],
+    preferredCountries: [String],
+    preferredPostalCodes: [String],
+    preferredAddress: {
+      type: String,
+    },
     preferredLocations: [String],
 
     // Application Info

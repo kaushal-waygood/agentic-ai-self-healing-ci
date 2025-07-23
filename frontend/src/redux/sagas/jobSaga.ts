@@ -116,7 +116,6 @@ function* updateJobStatusSaga(action: PayloadAction<any>) {
 }
 
 export function* jobsWatcher() {
-  console.log('jobsWatcher');
   yield takeLatest(getAllJobsRequest.type, getAllJobsSaga);
   yield takeLatest(getJobBySlugRequest.type, getJobBySlugSaga);
   yield takeLatest(
