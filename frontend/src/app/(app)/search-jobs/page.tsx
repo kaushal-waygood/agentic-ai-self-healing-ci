@@ -159,7 +159,7 @@ export default function JobsPage() {
                 className="cursor-pointer"
                 onClick={() => handleCardClick(job.slug)}
               >
-                <JobCard job={job} isSelected={job.slug === selectedSlug} />
+                <JobCard job={job} isActive={job.slug === selectedSlug} />
               </div>
             ))}
           </div>

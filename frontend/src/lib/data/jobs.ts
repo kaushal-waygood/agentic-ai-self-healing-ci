@@ -1,13 +1,24 @@
-
 import { z } from 'zod';
 
-export type JobStatus = 'draft' | 'pending_review' | 'published' | 'rejected' | 'archived';
+export type JobStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'published'
+  | 'rejected'
+  | 'archived';
+
+interface Location {
+  city: string;
+  postalCode: string;
+  lat?: number;
+  lng?: number;
+}
 
 export type JobListing = {
   id: string;
   title: string;
   company: string;
-  location: string;
+  location: Location;
   type: string | null;
   postedDate: string;
   description: string;
@@ -53,14 +64,15 @@ if (process.env.NODE_ENV === 'production') {
   mockJobListings = globalThis.__mockJobListings;
 }
 
-
 // Zod schema for JobListing - useful for validating API responses or flow outputs
-export const JobListingHighlightsSchema = z.object({
-  Qualifications: z.array(z.string()).optional(),
-  Responsibilities: z.array(z.string()).optional(),
-  Benefits: z.array(z.string()).optional(),
-}).nullable().optional();
-
+export const JobListingHighlightsSchema = z
+  .object({
+    Qualifications: z.array(z.string()).optional(),
+    Responsibilities: z.array(z.string()).optional(),
+    Benefits: z.array(z.string()).optional(),
+  })
+  .nullable()
+  .optional();
 
 export const JobListingSchema = z.object({
   id: z.string(),
@@ -70,7 +82,13 @@ export const JobListingSchema = z.object({
   type: z.string().nullable(),
   postedDate: z.string(),
   description: z.string(),
-  status: z.enum(['draft', 'pending_review', 'published', 'rejected', 'archived']),
+  status: z.enum([
+    'draft',
+    'pending_review',
+    'published',
+    'rejected',
+    'archived',
+  ]),
   postedByOrgId: z.string().optional(),
   salary: z.string().nullable().optional(),
   aiMatchScore: z.number().optional(),
@@ -80,7 +98,7 @@ export const JobListingSchema = z.object({
   earlyApplicant: z.boolean(),
   jobUrl: z.string().url().nullable().optional(),
   publisher: z.string().nullable().optional(),
-  highlights: JobListingHighlightsSchema, 
+  highlights: JobListingHighlightsSchema,
   countryCode: z.string().nullable().optional(),
 });
 

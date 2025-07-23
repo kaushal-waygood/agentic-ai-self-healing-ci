@@ -1,20 +1,29 @@
-
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { ApplicationWizardClient } from '@/components/application/application-wizard-client';
+import apiInstance from '@/services/api';
 
 function ApplyPageContent() {
-  return (
-      <ApplicationWizardClient />
-  );
+  return <ApplicationWizardClient />;
 }
 
 export default function ApplyPage() {
+  useEffect(() => {
+    const fetchJob = async () => {
+      try {
+        const response = await apiInstance.get('/jobs/apply');
+        console.log(response.data);
+      } catch (error) {
+        console.error('Error fetching job:', error);
+      }
+    };
+
+    fetchJob();
+  }, []);
   return (
-    // Suspense is required because the wizard client uses useSearchParams
     <Suspense fallback={<div>Loading Wizard...</div>}>
       <ApplyPageContent />
     </Suspense>
-  )
+  );
 }

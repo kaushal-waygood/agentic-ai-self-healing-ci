@@ -46,3 +46,65 @@ export function extractQualifications(text) {
 
   return [...found];
 }
+
+export function extractQualificationsFromDescription(description) {
+  if (!description) return [];
+
+  const lines = description.split('\n');
+  const qualifications = [];
+
+  let inQualificationsSection = false;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Start when we find "Required Qualifications"
+    if (/^required qualifications[:]?$/i.test(trimmedLine)) {
+      inQualificationsSection = true;
+      continue;
+    }
+
+    // Stop when we reach a new section
+    if (inQualificationsSection && /^[A-Z][a-z]+.*[:]/.test(trimmedLine)) {
+      break;
+    }
+
+    // Collect bullet points (starts with • or dash)
+    if (inQualificationsSection && /^[•\-]/.test(trimmedLine)) {
+      qualifications.push(trimmedLine.replace(/^[•\-]\s*/, ''));
+    }
+  }
+
+  return qualifications;
+}
+
+export function extractResponsibilitiesFromDescription(description) {
+  if (!description) return [];
+
+  const lines = description.split('\n');
+  const responsibilities = [];
+
+  let inResponsibilities = false;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Look for the header
+    if (/responsibilities (include|:)?$/i.test(trimmedLine)) {
+      inResponsibilities = true;
+      continue;
+    }
+
+    // Exit on reaching another section
+    if (inResponsibilities && /^[A-Z][a-z]+.*[:]/.test(trimmedLine)) {
+      break;
+    }
+
+    // Extract bullet points
+    if (inResponsibilities && /^[•\-]/.test(trimmedLine)) {
+      responsibilities.push(trimmedLine.replace(/^[•\-]\s*/, ''));
+    }
+  }
+
+  return responsibilities;
+}

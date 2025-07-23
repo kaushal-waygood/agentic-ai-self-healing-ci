@@ -1,133 +1,65 @@
-import { MouseEvent } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
 import {
   Card,
-  CardContent as ShadcnCardContent, // Renamed import
+  CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { JobListing } from '@/lib/data/jobs';
 import { MapPin, Briefcase, Clock, Building } from 'lucide-react';
-import { formatDate } from '@/utils/formatDate';
-import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { truncate } from '@/utils/formatTitle';
 
 interface JobCardProps {
-  job: {
-    _id: string;
-    title: string;
-    company: string;
-    location: {
-      city: string;
-      lat: number;
-      lng: number;
-    };
-    logo: string;
-    description: string;
-    url: string;
-    status: string;
-    type: string;
-    postedDate: string;
-    companyLogo?: string;
-    aiMatchScore?: number;
-    earlyApplicant?: boolean;
-    activelyHiring?: boolean;
-    createdAt?: string;
-    slug: string;
-  };
-  isSelected: boolean;
-  onClick?: (slug: string) => void;
+  job: JobListing;
+  isActive?: boolean;
 }
 
-export function JobCard({ job, isSelected, onClick }: JobCardProps) {
-  const handleClick = (e: MouseEvent) => {
-    if (onClick) {
-      e.preventDefault();
-      onClick(job.slug);
-    }
-  };
-
-  const CardContentComponent = (
+export function JobCard({ job, isActive = false }: JobCardProps) {
+  return (
     <Card
-      className={`h-full flex flex-col transition-all duration-200 ease-in-out group-hover:shadow-xl group-hover:-translate-y-1 ${
-        isSelected ? 'border-primary border-2' : ''
-      }`}
+      className={cn(
+        'cursor-pointer transition-all duration-200 ease-in-out hover:shadow-md hover:border-primary/50',
+        isActive && 'border-primary bg-primary/10 shadow-md',
+      )}
     >
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-start gap-4">
-          {job.logo ? (
+          {job.companyLogo ? (
             <Image
-              src={job.logo}
+              src={job.companyLogo}
               alt={`${job.company} logo`}
-              width={48}
-              height={48}
-              className="rounded-md border object-contain w-12 h-12"
+              width={40}
+              height={40}
+              className="rounded-md border object-contain w-10 h-10"
             />
           ) : (
-            <div className="w-12 h-12 flex items-center justify-center bg-muted rounded-md">
-              <Building className="w-6 h-6 text-muted-foreground" />
+            <div className="w-10 h-10 flex items-center justify-center bg-muted rounded-md">
+              <Building className="w-5 h-5 text-muted-foreground" />
             </div>
           )}
           <div>
-            <CardTitle className="text-lg font-headline leading-tight">
-              {job.title}
+            <CardTitle className="text-base font-semibold leading-tight">
+              {truncate(job.title, 30)}
             </CardTitle>
             <CardDescription className="text-sm">{job.company}</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <ShadcnCardContent className="flex-grow space-y-2 text-sm text-muted-foreground">
-        {job.location && (
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            <span>{job.location.city}</span>
-          </div>
-        )}
+      <CardContent className="space-y-1 text-xs text-muted-foreground pb-3">
         <div className="flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-primary" />
-          <span>{job.type || 'Not specified'}</span>
+          <MapPin className="h-3 w-3" />
+          <span>
+            {job.location.city}, {job.location.postalCode}
+          </span>
         </div>
         <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-primary" />
-          <span>{formatDate(job.createdAt)}</span>
+          <Clock className="h-3 w-3" />
+          <span>{job.postedDate}</span>
         </div>
-      </ShadcnCardContent>
-      <CardFooter>
-        <div className="flex flex-wrap gap-2">
-          {job.aiMatchScore && (
-            <Badge variant="secondary">Match: {job.aiMatchScore}%</Badge>
-          )}
-          {job.earlyApplicant && (
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              Early Applicant
-            </Badge>
-          )}
-          {job.activelyHiring && (
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              Actively Hiring
-            </Badge>
-          )}
-        </div>
-      </CardFooter>
+      </CardContent>
     </Card>
-  );
-
-  return onClick ? (
-    <button
-      className="block group w-full text-left"
-      onClick={handleClick}
-      aria-label={`View ${job.title} at ${job.company}`}
-    >
-      {CardContentComponent}
-    </button>
-  ) : (
-    <Link
-      href={`/jobs/${job.slug}`}
-      className="block group"
-      aria-label={`View ${job.title} at ${job.company}`}
-    >
-      {CardContentComponent}
-    </Link>
   );
 }

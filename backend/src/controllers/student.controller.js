@@ -17,14 +17,12 @@ export const studentDetails = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Ensure user is a student
     if (user.role !== 'student') {
       return res
         .status(403)
         .json({ message: 'Only students can create student profile' });
     }
 
-    // Check if student profile already exists
     const existingStudent = await Student.findOne({ email: user.email });
     if (existingStudent) {
       return res.status(200).json({ studentDetails: existingStudent });
@@ -35,8 +33,7 @@ export const studentDetails = async (req, res) => {
       _id: user._id,
       fullName: user.fullName,
       email: user.email,
-      jobRole: '', // You might want to set this or allow frontend to update it later
-      organizationId: user.organizationId || null, // Optional if applicable
+      jobRole: user.jobRole,
     });
 
     return res.status(201).json({ studentDetails });
@@ -394,6 +391,62 @@ export const appliedJob = async (req, res) => {
     return res.status(200).json({ message: 'Job applied successfully' });
   } catch (error) {
     console.error('Error applying for job:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const addProjects = async (req, res) => {
+  const {
+    projectName,
+    description,
+    startDate,
+    endDate,
+    technologies,
+    link,
+    isWorkingActive,
+  } = req.body;
+
+  try {
+    const student = await Student.findById(req.user._id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.projects.push({
+      projectName,
+      description,
+      startDate,
+      endDate,
+      technologies,
+      link,
+      isWorkingActive,
+    });
+    await student.save();
+
+    return res.status(200).json({ message: 'Project added successfully' });
+  } catch (error) {
+    console.error('Error adding project:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const removeProject = async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const student = await Student.findById(req.user._id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.projects = student.projects.filter(
+      (project) => project._id.toString() !== projectId,
+    );
+    await student.save();
+
+    return res.status(200).json({ message: 'Project removed successfully' });
+  } catch (error) {
+    console.error('Error removing project:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
