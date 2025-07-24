@@ -15,6 +15,8 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@google/genai": "^1.10.0",
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
@@ -25,10 +27,17 @@
     "helmet": "^8.1.0",
     "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.2",
+    "langchain": "^0.3.30",
     "mongoose": "^8.16.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
+    "pdf-poppler": "^0.2.1",
+    "pdf2image": "^1.2.3",
+    "puppeteer": "^24.14.0",
     "slugify": "^1.6.6",
+    "tesseract.js": "^6.0.1",
     "uuid": "^11.1.0"
   }
 }

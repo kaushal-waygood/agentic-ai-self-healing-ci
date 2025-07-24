@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mockOrganizations, mockUsers } from '@/lib/data/user';
@@ -12,7 +11,9 @@ const postJobSchema = z.object({
   location: z.string().min(1, 'Location is required'),
   description: z.string().min(1, 'Description is required'),
   jobUrl: z.string().url('A valid job URL is required'),
-  employmentType: z.enum(['FULLTIME', 'PARTTIME', 'CONTRACT', 'INTERN']).optional(),
+  employmentType: z
+    .enum(['FULLTIME', 'PARTTIME', 'CONTRACT', 'INTERN'])
+    .optional(),
   salary: z.string().optional(),
 });
 
@@ -20,14 +21,20 @@ export async function POST(request: Request) {
   // 1. Authentication
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized: Missing or invalid API key.' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Unauthorized: Missing or invalid API key.' },
+      { status: 401 },
+    );
   }
   const apiKey = authHeader.split(' ')[1];
 
-  const organization = mockOrganizations.find(org => org.apiKey === apiKey);
+  const organization = mockOrganizations.find((org) => org.apiKey === apiKey);
 
   if (!organization) {
-    return NextResponse.json({ error: 'Unauthorized: Invalid API key.' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Unauthorized: Invalid API key.' },
+      { status: 401 },
+    );
   }
 
   // 2. Validation
@@ -35,12 +42,18 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid request body. Must be valid JSON.' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid request body. Must be valid JSON.' },
+      { status: 400 },
+    );
   }
-  
+
   const validation = postJobSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json({ error: 'Invalid job data.', details: validation.error.format() }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid job data.', details: validation.error.format() },
+      { status: 400 },
+    );
   }
 
   const jobData = validation.data;
@@ -65,5 +78,11 @@ export async function POST(request: Request) {
 
   mockJobListings.unshift(newJob);
 
-  return NextResponse.json({ message: 'Job posted successfully and is pending review.', jobId: newJob.id }, { status: 201 });
+  return NextResponse.json(
+    {
+      message: 'Job posted successfully and is pending review.',
+      jobId: newJob.id,
+    },
+    { status: 201 },
+  );
 }

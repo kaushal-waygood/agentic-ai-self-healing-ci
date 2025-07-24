@@ -6,6 +6,11 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     if (file.fieldname === 'profileImage') cb(null, 'public/profileImage');
     else if (file.fieldname === 'resume') cb(null, 'public/resume');
+    else if (file.fieldname === 'cv') {
+      cb(null, 'public/pdf');
+    } else {
+      cb(new Error('Invalid field name for file upload'));
+    }
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
@@ -30,7 +35,7 @@ const fileFilter = (req, file, cb) => {
         ),
       );
     }
-  } else if (file.fieldname === 'resume') {
+  } else if (file.fieldname === 'resume' || file.fieldname === 'cv') {
     if (pdfType.test(extname) && mimetype === 'application/pdf') {
       cb(null, true);
     } else {
