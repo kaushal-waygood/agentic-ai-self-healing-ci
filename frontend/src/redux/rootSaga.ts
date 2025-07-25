@@ -1,8 +1,9 @@
-import { all, call } from 'redux-saga/effects';
+import { all } from 'redux-saga/effects';
 import { watchAuth } from './sagas/authSaga';
 import { organizationWatcher } from './sagas/organizationSaga';
 import { jobsWatcher } from './sagas/jobSaga';
 import { studentWatcher } from './sagas/studentSaga';
+import { watchAI } from './sagas/aiSaga';
 
 export function* rootSaga() {
   try {
@@ -11,6 +12,7 @@ export function* rootSaga() {
       organizationWatcher(),
       jobsWatcher(),
       studentWatcher(),
+      watchAI(),
     ]);
   } catch (error) {
     console.error('Saga error:', error);

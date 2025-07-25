@@ -52,6 +52,16 @@ import { mockSubscriptionPlans } from '@/lib/data/subscriptions';
 import Link from 'next/link';
 import { ToastAction } from '../ui/toast';
 import { Separator } from '../ui/separator';
+import { add } from 'date-fns';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { useDispatch } from 'react-redux';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
+import apiInstance from '@/services/api';
+import {
+  generateCVByJobDescriptionRequest,
+  savedStudentResumeRequest,
+} from '@/redux/reducers/aiReducer';
 
 // --- Types and Schemas ---
 
@@ -60,7 +70,7 @@ type JobContext = {
   mode: 'select' | 'paste' | 'title';
   value: string; // job ID, pasted text, or job title
   title: string;
-  description?: string;
+  description: string;
 };
 type CvSource = {
   mode: 'upload' | 'profile' | 'form' | 'saved';
@@ -76,6 +86,7 @@ export function CvGeneratorClient() {
   const [jobContext, setJobContext] = useState<JobContext | null>(null);
   const [cvSource, setCvSource] = useState<CvSource | null>(null);
   const [additionalNarratives, setAdditionalNarratives] = useState('');
+  const [isJobDiscription, setIsJobDiscription] = useState('');
 
   // UI & Result State
   const [generatedCvOutput, setGeneratedCvOutput] =
@@ -84,10 +95,7 @@ export function CvGeneratorClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
 
-  // Saved CVs State
-  const [savedCvsList, setSavedCvsList] = useState<SavedCv[]>(
-    mockUserProfile.savedCvs,
-  );
+  const [savedCvsList, setSavedCvsList] = useState<SavedCv[]>([]);
   const [isNamingDialogDisplayed, setIsNamingDialogDisplayed] = useState(false);
   const [cvNameForSavingInput, setCvNameForSavingInput] = useState('');
   const [activeCvToSave, setActiveCvToSave] =
@@ -101,6 +109,35 @@ export function CvGeneratorClient() {
   // State for CV Source Step
   const [selectedSavedCvId, setSelectedSavedCvId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    students: student,
+    loading: studentLoading,
+    error: studentError,
+  } = useSelector((state: RootState) => state.student);
+
+  const {
+    resume,
+    loading: generatedCvLoading,
+    error: generatedCvError,
+  } = useSelector((state: RootState) => state.ai);
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(getStudentDetailsRequest());
+    dispatch(savedStudentResumeRequest());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (studentError) {
+      toast({
+        variant: 'destructive',
+        title: 'Error loading profile',
+        description: studentError.message || 'Failed to load student data',
+      });
+    }
+  }, [studentError, toast]);
 
   const handleSetJobContext = async (mode: 'select' | 'paste' | 'title') => {
     let context: JobContext | null = null;
@@ -117,17 +154,19 @@ export function CvGeneratorClient() {
             description: job.description,
           };
       } else if (mode === 'paste' && pastedJobDescription) {
-        const extracted = await extractJobDetails({
-          jobDescription: pastedJobDescription,
-        });
         context = {
           mode,
           value: pastedJobDescription,
-          title: extracted.jobTitle,
+          title: 'Pasted Job Description',
           description: pastedJobDescription,
         };
       } else if (mode === 'title' && enteredJobTitle) {
-        context = { mode, value: enteredJobTitle, title: enteredJobTitle };
+        context = {
+          mode,
+          value: enteredJobTitle,
+          title: enteredJobTitle,
+          description: '', // No description available for title mode
+        };
       }
 
       if (context) {
@@ -141,6 +180,7 @@ export function CvGeneratorClient() {
         });
       }
     } catch (error) {
+      console.log('error', error);
       toast({
         variant: 'destructive',
         title: 'Error Processing Job',
@@ -162,23 +202,94 @@ export function CvGeneratorClient() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    console.log('Selected file:', file); // Debugging
+
+    if (!file) {
+      console.error('No file selected');
+      return;
+    }
+
+    // Basic file validation
+    const validTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    // const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!validTypes.includes(file.type)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid File Type',
+        description: 'Please upload a PDF, PNG, JPG, or Word document',
+      });
+      return;
+    }
 
     setIsLoading(true);
-    setLoadingMessage('Uploading and processing file...');
+    setLoadingMessage(`Processing ${file.name}...`);
+
     const reader = new FileReader();
-    reader.readAsDataURL(file);
+
     reader.onloadend = () => {
+      console.log('File read completed');
       handleSetCvSource('upload', {
         value: reader.result as string,
         name: file.name,
       });
       setIsLoading(false);
+
+      // Reset file input to allow selecting same file again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     };
+
     reader.onerror = () => {
-      toast({ variant: 'destructive', title: 'File Read Error' });
+      console.error('File read error:', reader.error);
+      toast({
+        variant: 'destructive',
+        title: 'File Read Error',
+        description: 'Could not read the file. Please try another file.',
+      });
       setIsLoading(false);
     };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    } else {
+      console.error('File input ref is not attached yet');
+    }
+  };
+
+  const handleUseProfile = () => {
+    if (studentLoading) {
+      toast({
+        title: 'Loading Profile',
+        description: 'Please wait while we load your profile data...',
+      });
+      return;
+    }
+
+    if (!student) {
+      toast({
+        variant: 'destructive',
+        title: 'Profile Not Available',
+        description: 'Could not load your profile data.',
+      });
+      return;
+    }
+
+    handleSetCvSource('profile', {
+      value: JSON.stringify(student),
+      name: 'User Profile Data',
+    });
   };
 
   const handleGenerate = async () => {
@@ -191,30 +302,12 @@ export function CvGeneratorClient() {
       return;
     }
 
-    // Enforcement logic
-    const user = mockUserProfile;
-    const plan = mockSubscriptionPlans.find((p) => p.id === user.currentPlanId);
-    if (!plan) {
+    // Check if student data is available
+    if (!student) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not find your subscription plan.',
-      });
-      return;
-    }
-    if (
-      plan.limits.aiCvGenerator !== -1 &&
-      user.usage.aiCvGenerator >= plan.limits.aiCvGenerator
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'CV Generation Limit Reached',
-        description: "You've used all your AI CV generations for this month.",
-        action: (
-          <ToastAction altText="Upgrade Now" asChild>
-            <Link href="/subscriptions">Upgrade Plan</Link>
-          </ToastAction>
-        ),
+        description: 'Could not find your user profile.',
       });
       return;
     }
@@ -225,24 +318,89 @@ export function CvGeneratorClient() {
     setCurrentCvContent('');
 
     try {
-      const response = await generateCv({
-        cvData: cvSource.value,
-        jobTitle: jobContext.title,
-        jobDescription: jobContext.description,
-        userNarratives: additionalNarratives,
-      });
+      let response;
 
-      // Increment usage count on success
-      user.usage.aiCvGenerator += 1;
-      toast({
-        title: 'AI CV Generation Used',
-        description: `${user.usage.aiCvGenerator} / ${
-          plan.limits.aiCvGenerator === -1
-            ? 'Unlimited'
-            : plan.limits.aiCvGenerator
-        } used this month.`,
-      });
+      // Handle different job context modes
+      if (jobContext.mode === 'paste') {
+        // JD-based CV generation
+        const formData = new FormData();
 
+        formData.append('jobDescription', jobContext.description);
+
+        if (cvSource.mode === 'profile') {
+          formData.append('useProfile', 'true');
+        } else if (cvSource.mode === 'upload') {
+          // Convert data URI to blob if needed
+          const blob = await fetch(cvSource.value).then((r) => r.blob());
+          formData.append('cv', blob, cvSource.name);
+        } else if (cvSource.mode === 'saved') {
+          // Create a blob from saved CV content
+          const blob = new Blob([cvSource.value], { type: 'text/html' });
+          formData.append('cv', blob, 'saved_cv.html');
+        }
+
+        // Add additional narratives if provided
+        if (additionalNarratives) {
+          formData.append('finalTouch', additionalNarratives);
+        }
+
+        const apiResponse = await apiInstance.post(
+          'students/resume/generate/jd',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          },
+        );
+
+        // Handle HTML response
+        response = {
+          cv: apiResponse.data,
+          atsScore: 0, // You might want to calculate this from the API
+          atsScoreReasoning: 'ATS score not calculated for JD-based generation',
+        };
+      } else if (jobContext.mode === 'title') {
+        const formData = new FormData();
+
+        formData.append('title', jobContext.title);
+
+        if (cvSource.mode === 'profile') {
+          formData.append('useProfile', 'true');
+        } else if (cvSource.mode === 'upload') {
+          // Convert data URI to blob if needed
+          const blob = await fetch(cvSource.value).then((r) => r.blob());
+          formData.append('cv', blob, cvSource.name);
+        } else if (cvSource.mode === 'saved') {
+          // Create a blob from saved CV content
+          const blob = new Blob([cvSource.value], { type: 'text/html' });
+          formData.append('cv', blob, 'saved_cv.html');
+        }
+
+        // Add additional narratives if provided
+        if (additionalNarratives) {
+          formData.append('finalTouch', additionalNarratives);
+        }
+
+        const apiResponse = await apiInstance.post(
+          'students/resume/generate/jobtitle',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          },
+        );
+
+        // Handle HTML response
+        response = {
+          cv: apiResponse.data,
+          atsScore: 0, // You might want to calculate this from the API
+          atsScoreReasoning: 'ATS score not calculated for JD-based generation',
+        };
+      }
+
+      // Save the generated CV
       const newAutoSavedCv: SavedCv = {
         id: `auto-${Date.now()}`,
         name: `Draft for '${jobContext.title.substring(
@@ -250,18 +408,19 @@ export function CvGeneratorClient() {
           25,
         )}...' - ${new Date().toLocaleString()}`,
         htmlContent: response.cv,
-        atsScore: response.atsScore,
-        atsScoreReasoning: response.atsScoreReasoning,
+        atsScore: response.atsScore ?? 0,
+        atsScoreReasoning:
+          response.atsScoreReasoning ?? 'ATS score not available',
         createdAt: new Date().toISOString(),
         jobTitle: jobContext.title,
       };
 
       const updatedSavedCvs = [newAutoSavedCv, ...savedCvsList];
-      mockUserProfile.savedCvs = updatedSavedCvs;
       setSavedCvsList(updatedSavedCvs);
 
       setGeneratedCvOutput(response);
       setCurrentCvContent(response.cv);
+
       toast({
         title: 'CV Generated & Auto-saved!',
         description:
@@ -269,10 +428,14 @@ export function CvGeneratorClient() {
       });
       setWizardStep('result');
     } catch (error) {
+      console.error('Generation error:', error);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: (error as Error).message,
+        description:
+          error.response?.data?.error ||
+          error.message ||
+          'Failed to generate CV',
       });
       setWizardStep('context');
     } finally {
@@ -288,48 +451,46 @@ export function CvGeneratorClient() {
     setActiveCvToSave({ ...generatedCvOutput, cv: currentCvContent });
     setCvNameForSavingInput(`CV for ${jobContext?.title || 'Job'}`);
     setIsNamingDialogDisplayed(true);
+
+    console.log('activeCvToSave', activeCvToSave.cv);
+    console.log('cvNameForSavingInput', cvNameForSavingInput);
+    console.log('isNamingDialogDisplayed', isNamingDialogDisplayed);
   };
 
-  const confirmSaveNamedCv = () => {
-    if (!cvNameForSavingInput.trim() || !activeCvToSave) return;
+  const confirmSaveNamedCv = async () => {
+    const response = await apiInstance.post('students/resume/save/html', {
+      title: cvNameForSavingInput,
+      html: activeCvToSave.cv,
+    });
 
-    const newSavedCv: SavedCv = {
-      id: Date.now().toString(),
-      name: cvNameForSavingInput.trim(),
-      htmlContent: activeCvToSave.cv,
-      atsScore: activeCvToSave.atsScore,
-      atsScoreReasoning: activeCvToSave.atsScoreReasoning,
-      createdAt: new Date().toISOString(),
-      jobTitle: jobContext?.title || 'General',
-    };
-
-    const updatedList = [newSavedCv, ...savedCvsList];
-    mockUserProfile.savedCvs = updatedList;
-    setSavedCvsList(updatedList);
     toast({ title: 'CV Saved!' });
     setIsNamingDialogDisplayed(false);
   };
 
-  const loadSavedCv = (savedCv: SavedCv) => {
-    setCurrentCvContent(savedCv.htmlContent);
+  const loadSavedCv = async (savedCv: SavedCv) => {
+    const repsonse = await apiInstance.get(
+      `students/resume/saved/${savedCv._id}`,
+    );
+
+    console.log('repsonse', repsonse.data.html);
+    setCurrentCvContent(repsonse.data.html);
     setGeneratedCvOutput({
-      cv: savedCv.htmlContent,
+      cv: savedCv.html,
       atsScore: savedCv.atsScore ?? 0,
       atsScoreReasoning:
         savedCv.atsScoreReasoning ??
         'ATS score not available for this saved version.',
     });
 
-    const matchingJob = mockJobListings.find(
-      (job) => job.title === savedCv.jobTitle,
-    );
+    console.log('generatedCvOutput', generatedCvOutput);
 
     setJobContext({
       mode: 'title',
-      value: savedCv.jobTitle,
-      title: savedCv.jobTitle,
-      description: matchingJob?.description,
+      value: savedCv.htmlCVTitle,
+      title: savedCv.htmlCVTitle,
     });
+
+    console.log('currentCvContent', jobContext);
 
     setWizardStep('result');
     toast({
@@ -460,7 +621,7 @@ export function CvGeneratorClient() {
               <Button
                 variant="outline"
                 className="w-full h-20 text-base flex-col gap-2"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handleFileInputUploadClick}
                 disabled={isLoading}
               >
                 {isLoading && loadingMessage ? (
@@ -482,12 +643,7 @@ export function CvGeneratorClient() {
               <Button
                 variant="outline"
                 className="w-full h-20 text-base"
-                onClick={() =>
-                  handleSetCvSource('profile', {
-                    value: JSON.stringify(mockUserProfile),
-                    name: 'User Profile Data',
-                  })
-                }
+                onClick={handleUseProfile}
               >
                 <User />
                 Use My Profile
@@ -658,7 +814,7 @@ export function CvGeneratorClient() {
             <EditableMaterial
               editorId="cv-live-editor"
               title="CV"
-              content={currentCvContent}
+              content={generatedCvOutput.cv}
               setContent={setCurrentCvContent}
               isHtml
             />
@@ -678,15 +834,15 @@ export function CvGeneratorClient() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {savedCvsList.length > 0 ? (
+          {resume?.html?.length > 0 ? (
             <ul className="space-y-3">
-              {savedCvsList.map((savedCv) => (
+              {resume?.html.map((savedCv, i) => (
                 <li
-                  key={savedCv.id}
+                  key={i}
                   className="p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 hover:bg-muted/50"
                 >
                   <div>
-                    <p className="font-medium">{savedCv.name}</p>
+                    <p className="font-medium">{savedCv.htmlCVTitle}</p>
                     <p className="text-xs text-muted-foreground">
                       Generated for: {savedCv.jobTitle} | Created:{' '}
                       {new Date(savedCv.createdAt).toLocaleString()}

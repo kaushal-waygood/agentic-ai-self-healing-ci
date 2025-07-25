@@ -12,14 +12,6 @@ import {
   addProfileImage,
   updateProfileImage,
   addResume,
-  extractStudentDataFromCV,
-  convertDataIntoHTML,
-  generateCVByJD,
-  generateCVByJobId,
-  generateCVByTitle,
-  generateCoverLetterByJD,
-  generateCoverLetterByJobId,
-  generateCoverLetterByTitle,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import pdfParse from 'pdf-parse';
@@ -80,59 +72,6 @@ router.post(
   addResume,
 );
 
-router.post(
-  '/resume/extract',
-  authMiddleware,
-  isStudent,
-  upload.single('cv'),
-  extractStudentDataFromCV,
-);
 
-router.get('/resume/convert', authMiddleware, isStudent, convertDataIntoHTML);
-router.post(
-  '/resume/generate/jd',
-  authMiddleware,
-  isStudent,
-  upload.single('cv'),
-  generateCVByJD,
-);
-
-router.post(
-  '/resume/generate/jobid',
-  authMiddleware,
-  isStudent,
-  upload.single('cv'),
-  generateCVByJobId,
-);
-
-router.post(
-  '/resume/generate/title',
-  authMiddleware,
-  isStudent,
-  upload.single('cv'),
-  generateCVByTitle,
-);
-
-router.post(
-  '/coverletter/generate/jd',
-  authMiddleware,
-  isStudent,
-  upload.single('cv'),
-  generateCoverLetterByJD,
-);
-router.post(
-  '/coverletter/generate/jobid',
-  authMiddleware,
-  isStudent,
-  upload.single('cv'),
-  generateCoverLetterByJobId,
-);
-router.post(
-  '/coverletter/generate/title',
-  authMiddleware,
-  isStudent,
-  upload.single('cv'),
-  generateCoverLetterByTitle,
-);
 
 export default router;

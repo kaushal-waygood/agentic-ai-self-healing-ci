@@ -148,6 +148,24 @@ const studentSchema = new Schema(
       enum: ['public', 'private'],
       default: 'public',
     },
+    htmlCV: [
+      {
+        html: {
+          type: String,
+        },
+        htmlCVTitle: {
+          type: String,
+        },
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   { timestamps: true },
 );

@@ -76,6 +76,11 @@ import { EditableMaterial } from '../application/editable-material';
 import { mockSubscriptionPlans } from '@/lib/data/subscriptions';
 import Link from 'next/link';
 import { ToastAction } from '../ui/toast';
+import apiInstance from '@/services/api';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 
 // Wizard related types
 type WizardStep = 'job' | 'cv' | 'customize' | 'generating' | 'result';
@@ -97,6 +102,12 @@ const customizationSchema = z.object({
   personalStory: z.string().optional(),
 });
 type CustomizationValues = z.infer<typeof customizationSchema>;
+
+type CvSource = {
+  mode: 'upload' | 'profile' | 'form' | 'saved';
+  value: string; // dataURI, 'profile', saved CV ID, or a serialized form object
+  name: string;
+};
 
 export function CoverLetterGeneratorClient() {
   const { toast } = useToast();
@@ -122,6 +133,10 @@ export function CoverLetterGeneratorClient() {
     null,
   );
 
+  const [additionalNarratives, setAdditionalNarratives] = useState('');
+  const [currentCvContent, setCurrentCvContent] = useState<string>('');
+  const [cvSource, setCvSource] = useState<CvSource | null>(null);
+
   // Form for step 3
   const customizationForm = useForm<CustomizationValues>({
     resolver: zodResolver(customizationSchema),
@@ -135,6 +150,26 @@ export function CoverLetterGeneratorClient() {
 
   // State for CV Step
   const [selectedSavedCvId, setSelectedSavedCvId] = useState('');
+  const [generatedCvOutput, setGeneratedCvOutput] =
+    useState<CVGenerationOutput | null>(null);
+
+  const {
+    students: student,
+    loading: studentLoading,
+    error: studentError,
+  } = useSelector((state: RootState) => state.student);
+
+  const {
+    resume,
+    loading: generatedCvLoading,
+    error: generatedCvError,
+  } = useSelector((state: RootState) => state.ai);
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(getStudentDetailsRequest());
+  }, [generatedCvOutput]);
 
   const handleSetJobContext = async (mode: 'paste' | 'select' | 'title') => {
     setIsLoading(true);
@@ -151,15 +186,13 @@ export function CoverLetterGeneratorClient() {
             description: job.description,
           };
       } else if (mode === 'paste' && pastedJobDesc) {
-        const extracted = await extractJobDetails({
-          jobDescription: pastedJobDesc,
-        });
         context = {
           mode,
           value: pastedJobDesc,
-          title: extracted.jobTitle,
+          title: 'Pasted Job Description',
           description: pastedJobDesc,
         };
+        console.log(context);
       } else if (mode === 'title' && enteredJobTitle) {
         context = {
           mode,
@@ -195,151 +228,241 @@ export function CoverLetterGeneratorClient() {
     mode: 'saved' | 'profile' | 'upload',
     data: { value: string; name: string },
   ) => {
+    console.log('data', data);
     setCvContext({ mode, value: data.value, name: data.name });
     setWizardStep('customize');
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsLoading(true);
-    setLoadingMessage('Parsing uploaded CV...');
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onloadend = async () => {
-      try {
-        const base64data = reader.result as string;
-        // Pass the data URI, which the cover letter flow can handle as media context.
-        handleSetCvContext('upload', {
-          value: base64data,
-          name: `Uploaded: ${file.name}`,
-        });
-        toast({
-          title: 'CV Uploaded!',
-          description: 'The uploaded CV will be used for context.',
-        });
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'CV Processing Failed',
-          description: (error as Error).message,
-        });
-      } finally {
-        setIsLoading(false);
-        setLoadingMessage('');
-      }
-    };
-    reader.onerror = () => {
-      toast({ variant: 'destructive', title: 'File Read Error' });
-      setIsLoading(false);
-    };
+  const handleSetCvSource = (
+    mode: CvSource['mode'],
+    data: { value: string; name: string },
+  ) => {
+    setCvSource({ mode, ...data });
+    setWizardStep('context');
   };
 
-  const handleGenerate = async (customizationData: CustomizationValues) => {
-    if (!jobContext || !cvContext) {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    console.log('Selected file:', file); // Debugging
+
+    if (!file) {
+      console.error('No file selected');
+      return;
+    }
+
+    // Basic file validation
+    const validTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    // const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!validTypes.includes(file.type)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid File Type',
+        description: 'Please upload a PDF, PNG, JPG, or Word document',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage(`Processing ${file.name}...`);
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      console.log('File read completed');
+      handleSetCvSource('upload', {
+        value: reader.result as string,
+        name: file.name,
+      });
+      setIsLoading(false);
+
+      // Reset file input to allow selecting same file again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+
+    reader.onerror = () => {
+      console.error('File read error:', reader.error);
+      toast({
+        variant: 'destructive',
+        title: 'File Read Error',
+        description: 'Could not read the file. Please try another file.',
+      });
+      setIsLoading(false);
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleUseActiveProfileCv = () => {
+    console.log('student', student);
+    if (student) {
+      handleSetCvContext('profile', {
+        value: JSON.stringify(student),
+        name: 'User Profile Data',
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Profile Not Available',
+        description: 'Could not load your profile data.',
+      });
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!jobContext || !cvSource) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
-        description: 'Please complete all previous steps.',
+        description: 'Job and CV context are required.',
       });
       return;
     }
 
-    // Enforcement logic
-    const user = mockUserProfile;
-    const plan = mockSubscriptionPlans.find((p) => p.id === user.currentPlanId);
-    if (!plan) {
+    // Check if student data is available
+    if (!student) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not find your subscription plan.',
-      });
-      return;
-    }
-    if (
-      plan.limits.aiCoverLetterGenerator !== -1 &&
-      user.usage.aiCoverLetterGenerator >= plan.limits.aiCoverLetterGenerator
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Cover Letter Limit Reached',
-        description:
-          "You've used all your AI cover letter generations for this month.",
-        action: (
-          <ToastAction altText="Upgrade Now" asChild>
-            <Link href="/subscriptions">Upgrade Plan</Link>
-          </ToastAction>
-        ),
+        description: 'Could not find your user profile.',
       });
       return;
     }
 
     setIsLoading(true);
     setWizardStep('generating');
-    setGeneratedCoverLetter('');
-
-    const generationInput: Partial<CoverLetterGenerationInput> = {
-      jobDescription: jobContext.description,
-      userName: mockUserProfile.fullName,
-      tone: customizationData.tone,
-      style: customizationData.style,
-      personalStory: customizationData.personalStory,
-    };
-
-    if (cvContext.mode === 'upload') {
-      generationInput.userProfileDataUri = cvContext.value;
-    } else {
-      generationInput.userProfileContext = cvContext.value;
-    }
+    setGeneratedCvOutput(null);
+    setCurrentCvContent('');
 
     try {
-      const result = await generateCoverLetter(
-        generationInput as CoverLetterGenerationInput,
-      );
-      setGeneratedCoverLetter(result.coverLetter);
+      let response;
 
-      // Increment usage
-      user.usage.aiCoverLetterGenerator += 1;
-      toast({
-        title: 'AI Cover Letter Used',
-        description: `${user.usage.aiCoverLetterGenerator} / ${
-          plan.limits.aiCoverLetterGenerator === -1
-            ? 'Unlimited'
-            : plan.limits.aiCoverLetterGenerator
-        } used this month.`,
-      });
+      // Handle different job context modes
+      if (jobContext.mode === 'paste') {
+        // JD-based CV generation
+        const formData = new FormData();
 
-      const newAutoSavedLetter: SavedCoverLetter = {
+        formData.append('jobDescription', jobContext.description);
+
+        if (cvSource.mode === 'profile') {
+          formData.append('useProfile', 'true');
+        } else if (cvSource.mode === 'upload') {
+          // Convert data URI to blob if needed
+          const blob = await fetch(cvSource.value).then((r) => r.blob());
+          formData.append('cv', blob, cvSource.name);
+        } else if (cvSource.mode === 'saved') {
+          // Create a blob from saved CV content
+          const blob = new Blob([cvSource.value], { type: 'text/html' });
+          formData.append('cv', blob, 'saved_cv.html');
+        }
+
+        // Add additional narratives if provided
+        if (additionalNarratives) {
+          formData.append('finalTouch', additionalNarratives);
+        }
+
+        const apiResponse = await apiInstance.post(
+          'students/resume/generate/jd',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          },
+        );
+
+        // Handle HTML response
+        response = {
+          cv: apiResponse.data,
+          atsScore: 0, // You might want to calculate this from the API
+          atsScoreReasoning: 'ATS score not calculated for JD-based generation',
+        };
+      } else if (jobContext.mode === 'title') {
+        const formData = new FormData();
+
+        formData.append('title', jobContext.title);
+
+        if (cvSource.mode === 'profile') {
+          formData.append('useProfile', 'true');
+        } else if (cvSource.mode === 'upload') {
+          // Convert data URI to blob if needed
+          const blob = await fetch(cvSource.value).then((r) => r.blob());
+          formData.append('cv', blob, cvSource.name);
+        } else if (cvSource.mode === 'saved') {
+          // Create a blob from saved CV content
+          const blob = new Blob([cvSource.value], { type: 'text/html' });
+          formData.append('cv', blob, 'saved_cv.html');
+        }
+
+        // Add additional narratives if provided
+        if (additionalNarratives) {
+          formData.append('finalTouch', additionalNarratives);
+        }
+
+        const apiResponse = await apiInstance.post(
+          'students/resume/generate/jobtitle',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          },
+        );
+
+        // Handle HTML response
+        response = {
+          cv: apiResponse.data,
+          atsScore: 0, // You might want to calculate this from the API
+          atsScoreReasoning: 'ATS score not calculated for JD-based generation',
+        };
+      }
+
+      // Save the generated CV
+      const newAutoSavedCv: SavedCv = {
         id: `auto-${Date.now()}`,
-        name: `Draft for ${jobContext.title.substring(
+        name: `Draft for '${jobContext.title.substring(
           0,
-          30,
-        )}... - ${new Date().toLocaleString()}`,
-        htmlContent: result.coverLetter,
+          25,
+        )}...' - ${new Date().toLocaleString()}`,
+        htmlContent: response.cv,
+        atsScore: response.atsScore ?? 0,
+        atsScoreReasoning:
+          response.atsScoreReasoning ?? 'ATS score not available',
         createdAt: new Date().toISOString(),
-        jobDescription: jobContext.description,
-        tone: customizationData.tone,
-        style: customizationData.style,
-        personalStory: customizationData.personalStory,
+        jobTitle: jobContext.title,
       };
 
-      const updatedList = [newAutoSavedLetter, ...savedLettersList];
-      mockUserProfile.savedCoverLetters = updatedList;
-      setSavedLettersList(updatedList);
+      const updatedSavedCvs = [newAutoSavedCv, ...savedCvsList];
+      setSavedCvsList(updatedSavedCvs);
+
+      setGeneratedCvOutput(response);
+      setCurrentCvContent(response.cv);
 
       toast({
-        title: 'Draft Generated & Auto-saved!',
-        description: 'Your new cover letter is ready.',
+        title: 'CV Generated & Auto-saved!',
+        description:
+          'Your new CV draft has been added to your saved list below.',
       });
       setWizardStep('result');
     } catch (error) {
+      console.error('Generation error:', error);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: (error as Error).message,
+        description:
+          error.response?.data?.error ||
+          error.message ||
+          'Failed to generate CV',
       });
-      setWizardStep('customize');
+      setWizardStep('context');
     } finally {
       setIsLoading(false);
     }
@@ -562,14 +685,7 @@ export function CoverLetterGeneratorClient() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() =>
-                  handleSetCvContext('profile', {
-                    value:
-                      mockUserProfile.generatedCvContent ||
-                      JSON.stringify(mockUserProfile),
-                    name: 'Active Profile CV',
-                  })
-                }
+                onClick={handleUseActiveProfileCv}
               >
                 Use Active Profile CV
               </Button>

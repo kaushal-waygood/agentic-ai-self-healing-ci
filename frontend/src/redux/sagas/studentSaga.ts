@@ -41,7 +41,7 @@ import { PayloadAction } from '@reduxjs/toolkit';
 function* getStudentDetailsSaga() {
   try {
     const response: AxiosResponse = yield call(getStudentDetails);
-    console.log(response.data);
+    // console.log(response.data);
     yield put(getStudentDetailsSuccess(response.data.studentDetails));
   } catch (error: unknown | Error) {
     yield put(getStudentDetailsFailure((error as Error).message));
