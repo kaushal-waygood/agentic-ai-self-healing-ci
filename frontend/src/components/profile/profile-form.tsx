@@ -14,7 +14,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import {
   Save,
@@ -25,6 +24,7 @@ import {
   PlusCircle,
   Trash2,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import { mockUserProfile } from '@/lib/data/user';
 import Link from 'next/link';
@@ -49,9 +49,13 @@ import { countries } from '@/lib/data/countries';
 import { languages } from '@/lib/data/languages';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
-import { useEffect, useState } from 'react';
+import { experimental_taintUniqueValue, useEffect, useState } from 'react';
 import { getProfileRequest } from '@/redux/reducers/authReducer';
-import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
+import {
+  getStudentDetailsRequest,
+  removeStudentEducationRequest,
+  updateStudentSkillRequest,
+} from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
 import {
   AddEducation,
@@ -193,15 +197,17 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     email: students.email,
     jobPreference: students.jobRole,
     education: (students.education || []).map((edu) => ({
-      institution: edu.institution || '',
+      institution: edu.institute || '',
       degree: edu.degree || '',
       fieldOfStudy: edu.fieldOfStudy || '',
-      // country: edu.country || '',
+      country: edu.country || '',
       gpa: edu.grade || '',
       startDate: edu.startDate || '',
       endDate: edu.endDate || '',
+      _id: edu._id || '',
+      educationId: edu.educationId || '',
     })),
-    experience: (mockUserProfile.experience || []).map((exp) => ({
+    experience: (students.experience || []).map((exp) => ({
       company: exp.company || '',
       jobTitle: exp.jobTitle || '',
       employmentType: exp.employmentType,
@@ -210,8 +216,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       startDate: exp.startDate || '',
       endDate: exp.endDate || '',
       isCurrent: exp.endDate?.toLowerCase() === 'present',
+      _id: exp._id || '',
     })),
-    projects: (mockUserProfile.projects || []).map((proj) => ({
+    projects: (students.projects || []).map((proj) => ({
       name: proj.name || '',
       description: proj.description || '',
       technologies: proj.technologies || '',
@@ -219,8 +226,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       startDate: proj.startDate || '',
       endDate: proj.endDate || '',
       isCurrent: proj.isCurrent || false,
+      _id: proj._id || '',
     })),
-    skills: (mockUserProfile.skills || []).join(', '),
+    skills: students.skills || [],
     // Narratives
     narrativeChallenges: mockUserProfile.narratives.challenges,
     narrativeAchievements: mockUserProfile.narratives.achievements,
@@ -243,6 +251,26 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
   const [addProj, setAddProj] = useState(false);
   const [addEdu, setAddEdu] = useState(false);
   const [addSkill, setAddSkill] = useState(false);
+
+  const [editEdu, setEditEdu] = useState(false);
+  const [editExp, setEditExp] = useState(false);
+  const [editProj, setEditProj] = useState(false);
+  const [editSkill, setEditSkill] = useState(false);
+
+  const [editEduIndex, setEditEduIndex] = useState(0);
+  const [editExpIndex, setEditExpIndex] = useState(0);
+  const [editProjIndex, setEditProjIndex] = useState(0);
+  const [editSkillIndex, setEditSkillIndex] = useState(0);
+
+  const [deleteEdu, setDeleteEdu] = useState(false);
+  const [deleteExp, setDeleteExp] = useState(false);
+  const [deleteProj, setDeleteProj] = useState(false);
+  const [deleteSkill, setDeleteSkill] = useState(false);
+
+  const [deleteEduIndex, setDeleteEduIndex] = useState(0);
+  const [deleteExpIndex, setDeleteExpIndex] = useState(0);
+  const [deleteProjIndex, setDeleteProjIndex] = useState(0);
+  const [deleteSkillIndex, setDeleteSkillIndex] = useState(0);
 
   // Personal Info Form
   const personalInfoForm = useForm<
@@ -373,7 +401,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     >,
   ) => {
     // Call API for narratives update
-    console.log('Narratives:', data);
     toast({
       title: 'Narratives Updated',
       description: 'Your narratives have been saved successfully.',
@@ -394,7 +421,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     >,
   ) => {
     // Call API for job search preferences update
-    console.log('Job Search Preferences:', data);
     toast({
       title: 'Job Search Preferences Updated',
       description: 'Your job search preferences have been saved successfully.',
@@ -415,6 +441,15 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
 
   const onCancel = () => {
     setAddEdu(false);
+  };
+
+  const deleteEducation = (index: number) => {
+    console.log('index', index);
+    dispatch(removeStudentEducationRequest(index));
+  };
+
+  const handleLevelChange = (index: number, level: string) => {
+    dispatch(updateStudentSkillRequest({ index, level }));
   };
 
   return (
@@ -524,19 +559,84 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
 
           {/* Experience section */}
           <div id="education">
-            <h3 className="text-lg font-medium mb-2">Educations</h3>
+            <h3 className="text-lg font-medium mb-4">Education</h3>
 
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAddEdu(true)}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAddEdu(true)}
+                className="mb-4"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Education
+              </Button>
+
+              {defaultValues.education?.map((edu, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add Educations
-                </Button>
-              </div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-lg font-semibold">{edu.degree}</h4>
+                      <p className="text-muted-foreground">{edu.institution}</p>
+                      {edu.fieldOfStudy && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Field of Study: {edu.fieldOfStudy}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditEdu(true);
+                          setEditEduIndex(index);
+                        }}
+                        className="h-8 px-3"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDeleteEdu(true);
+                          setDeleteEduIndex(edu.educationId);
+                        }}
+                        className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Dates</p>
+                      <p>
+                        {edu.startDate} - {edu.endDate || 'Present'}
+                      </p>
+                    </div>
+                    {edu.gpa && (
+                      <div>
+                        <p className="text-muted-foreground">GPA</p>
+                        <p>{edu.gpa}</p>
+                      </div>
+                    )}
+                    {edu.country && (
+                      <div>
+                        <p className="text-muted-foreground">Location</p>
+                        <p>{edu.country}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -592,6 +692,62 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Skills
                 </Button>
               </div>
+
+              {defaultValues.skills?.map((skill, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-lg font-semibold">{skill.skill}</h4>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditSkill(true);
+                          setEditSkillIndex(index);
+                        }}
+                        className="h-8 px-3"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDeleteSkill(true);
+                          setDeleteSkillIndex(index);
+                        }}
+                        className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <label className="text-muted-foreground">Level</label>
+                      <select
+                        value={skill.level}
+                        onChange={(e) =>
+                          handleLevelChange(skill.skillId, e.target.value)
+                        }
+                        className="mt-1 block w-full rounded border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring focus:border-blue-300"
+                      >
+                        <option value="BEGINNER">BEGINNER</option>
+                        <option value="INTERMEDIATE">INTERMEDIATE</option>
+                        <option value="EXPERT">EXPERT</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </CardContent>
@@ -690,6 +846,40 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           <div className="w-full max-w-3xl overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
             <AddSkill onCancel={() => setAddSkill(false)} />
+          </div>
+        </div>
+      )}
+
+      {editEdu && (
+        <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <AddEducation
+              onCancel={() => setEditEdu(false)}
+              data={defaultValues.education[editEduIndex]}
+              index={editEduIndex}
+              isEdit={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {deleteEdu && (
+        <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <p>Are you sure you want to delete this education entry?</p>
+            <p className="text-red-500">This action cannot be undone. </p>
+            <div className="flex justify-end gap-4 mt-4">
+              <Button onClick={() => setDeleteEdu(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  deleteEducation(deleteEduIndex);
+                  setDeleteEdu(false);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -9,24 +8,25 @@
  * - CoverLetterGenerationOutput - The return type for the generateCoverLetter function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import { 
-    type CoverLetterGenerationInput,
-    CoverLetterGenerationInputSchema,
-    type CoverLetterGenerationOutput,
-    CoverLetterGenerationOutputSchema 
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import {
+  type CoverLetterGenerationInput,
+  CoverLetterGenerationInputSchema,
+  type CoverLetterGenerationOutput,
+  CoverLetterGenerationOutputSchema,
 } from '@/lib/schemas/cover-letter-schema';
 
-
-export async function generateCoverLetter(input: CoverLetterGenerationInput): Promise<CoverLetterGenerationOutput> {
+export async function generateCoverLetter(
+  input: CoverLetterGenerationInput,
+): Promise<CoverLetterGenerationOutput> {
   return generateCoverLetterFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'coverLetterGenerationPrompt',
-  input: {schema: CoverLetterGenerationInputSchema}, 
-  output: {schema: CoverLetterGenerationOutputSchema},
+  input: { schema: CoverLetterGenerationInputSchema },
+  output: { schema: CoverLetterGenerationOutputSchema },
   prompt: `You are an expert career coach writing a professional cover letter for a user named {{{userName}}}.
 
 Your task is to analyze the user's profile and the provided job description to create a compelling cover letter.
@@ -66,12 +66,16 @@ const generateCoverLetterFlow = ai.defineFlow(
     outputSchema: CoverLetterGenerationOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
-    
+    const { output } = await prompt(input);
+
     if (!output) {
-      console.error('Cover letter generation failed: AI model returned no output.');
-      throw new Error('Cover letter generation failed: AI model returned no output. Please try again.');
+      console.error(
+        'Cover letter generation failed: AI model returned no output.',
+      );
+      throw new Error(
+        'Cover letter generation failed: AI model returned no output. Please try again.',
+      );
     }
     return output;
-  }
+  },
 );

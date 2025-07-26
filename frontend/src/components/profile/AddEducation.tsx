@@ -27,6 +27,7 @@ import {
   addStudentEducationRequest,
   addStudentExperienceRequest,
   addStudentSkillRequest,
+  updateStudentEducationRequest,
 } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
@@ -81,11 +82,23 @@ interface SkillFormData {
 
 interface closeProps {
   onCancel: () => void;
+  data?: any;
+  isEdit?: boolean;
 }
 
-export const AddEducation = ({ onCancel }: closeProps) => {
+interface education {
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  country: string;
+  gpa: string;
+  startDate: string;
+  endDate: string;
+}
+
+export const AddEducation = ({ onCancel, isEdit, data, index }: closeProps) => {
   const form = useForm<EducationFormData>({
-    defaultValues: {
+    defaultValues: data || {
       institution: '',
       degree: '',
       fieldOfStudy: '',
@@ -104,8 +117,21 @@ export const AddEducation = ({ onCancel }: closeProps) => {
 
   const { handleSubmit, control, reset } = form;
 
-  const handleFormSubmit = (data: void | EducationFormData) => {
-    dispatch(addStudentEducationRequest(data));
+  const handleFormSubmit = (eduData: void | EducationFormData) => {
+    console.log(eduData);
+    if (!eduData) return;
+
+    if (isEdit) {
+      dispatch(
+        updateStudentEducationRequest({
+          educationId: data.educationId,
+          eduData,
+        }),
+      );
+    } else {
+      dispatch(addStudentEducationRequest(eduData));
+    }
+
     reset();
     onCancel();
   };
@@ -242,7 +268,7 @@ export const AddEducation = ({ onCancel }: closeProps) => {
           <Button type="button" variant="outline" onClick={handleFormCancel}>
             Cancel
           </Button>
-          <Button type="submit">Save Education</Button>
+          <Button type="submit">{isEdit ? 'Edit' : 'Save'} Education</Button>
         </div>
       </form>
     </Form>

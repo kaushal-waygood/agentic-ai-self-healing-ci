@@ -168,9 +168,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground leading-relaxed text-sm">
-            {job.description}
-          </p>
+          {console.log(job.description)}
+          <p
+            className="text-muted-foreground leading-relaxed text-sm"
+            dangerouslySetInnerHTML={{ __html: job.description }}
+          ></p>
         </CardContent>
       </Card>
 

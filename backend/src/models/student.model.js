@@ -39,9 +39,10 @@ const studentSchema = new Schema(
         institute: String,
         degree: String,
         fieldOfStudy: String,
-        startYear: Number,
-        endYear: Number,
+        startDate: String,
+        endDate: String,
         grade: String,
+        country: String,
         isCurrentlyStudying: {
           type: Boolean,
           default: false,
@@ -89,7 +90,7 @@ const studentSchema = new Schema(
         },
         level: {
           type: String,
-          enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'],
+          enum: ['BEGINNER', 'INTERMEDIATE', 'EXPERT'],
         },
       },
     ],
@@ -148,6 +149,42 @@ const studentSchema = new Schema(
       enum: ['public', 'private'],
       default: 'public',
     },
+    htmlCV: [
+      {
+        html: {
+          type: String,
+        },
+        htmlCVTitle: {
+          type: String,
+        },
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    coverLetter: [
+      {
+        coverLetter: {
+          type: String,
+        },
+        coverLetterTitle: {
+          type: String,
+        },
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   { timestamps: true },
 );

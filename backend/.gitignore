@@ -13,8 +13,7 @@ logs/
 
 # dotenv environment variables
 .env
-.env.*.local
-.env.local
+# .env.*.local
 
 # OS-specific
 .DS_Store
@@ -46,3 +45,4 @@ pids/
 *.pid
 *.seed
 *.pid.lock
+public
