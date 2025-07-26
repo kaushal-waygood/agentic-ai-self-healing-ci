@@ -399,17 +399,26 @@ export const generateCoverLetterByJD = async (req, res) => {
     }
 
     // Prompt generation
-    const prompt = generateCoverLetterPrompt(
+    let prompt = generateCoverLetterPrompt(
       jobDescription,
       studentData,
       finalTouch,
     );
 
     // Generate cover letter
-    const coverLetter = await genAI(prompt);
+    let coverLetter = await genAI(prompt);
 
-    // Return plain text (not parsed as JSON)
-    return res.json({ success: true, coverLetter: coverLetter.trim() });
+    console.log(coverLetter);
+
+    prompt = `${coverLetter} 
+
+    Please format the cover letter in HTML format.`;
+
+    coverLetter = await genAI(prompt);
+
+    res.setHeader('Content-Type', 'text/html');
+
+    return res.send(coverLetter.replace(/```html|```/g, '').trim());
   } catch (error) {
     console.error('Error generating cover letter:', error);
     return res.status(500).json({ error: 'Failed to generate cover letter' });
@@ -422,7 +431,7 @@ export const generateCoverLetterByJobId = async (req, res) => {
 
   try {
     if (!jobId) {
-      return res.status(400).json({ error: 'Job description is required' });
+      return res.status(400).json({ error: 'Job ID is required' });
     }
 
     // Fetch job description
@@ -430,6 +439,7 @@ export const generateCoverLetterByJobId = async (req, res) => {
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
     }
+
     const jobDescription = job.description;
 
     let studentData;
@@ -440,7 +450,7 @@ export const generateCoverLetterByJobId = async (req, res) => {
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
       }
-      studentData = student; // You can structure this better if needed
+      studentData = student;
     } else {
       if (!req.file) {
         return res.status(400).json({ error: 'CV PDF file is required' });
@@ -462,17 +472,24 @@ export const generateCoverLetterByJobId = async (req, res) => {
     }
 
     // Prompt generation
-    const prompt = generateCoverLetterPrompt(
+    let prompt = generateCoverLetterPrompt(
       jobDescription,
       studentData,
       finalTouch,
     );
 
     // Generate cover letter
-    const coverLetter = await genAI(prompt);
+    let coverLetter = await genAI(prompt);
 
-    // Return plain text (not parsed as JSON)
-    return res.json({ success: true, coverLetter: coverLetter.trim() });
+    console.log(coverLetter);
+
+    prompt = `${coverLetter} 
+
+    Please format the cover letter in HTML format.`;
+
+    coverLetter = await genAI(prompt);
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(coverLetter.replace(/```html|```/g, '').trim());
   } catch (error) {
     console.error('Error generating cover letter:', error);
     return res.status(500).json({ error: 'Failed to generate cover letter' });
@@ -524,7 +541,14 @@ export const generateCoverLetterByTitle = async (req, res) => {
     const coverLetter = await genAI(prompt);
 
     // Return plain text (not parsed as JSON)
-    return res.json({ success: true, coverLetter: coverLetter.trim() });
+
+    const prompt2 = `${coverLetter} 
+
+    Please format the cover letter in HTML format.`;
+
+    const coverLetter2 = await genAI(prompt2);
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(coverLetter2.replace(/```html|```/g, '').trim());
   } catch (error) {
     console.error('Error generating cover letter:', error);
     return res.status(500).json({ error: 'Failed to generate cover letter' });
@@ -619,5 +643,100 @@ export const getSingleStudentHTMLCV = async (req, res) => {
   } catch (error) {
     console.error('Error getting HTML CV:', error);
     return res.status(500).json({ error: 'Failed to get HTML CV' });
+  }
+};
+
+export const savedStudentHTMLLetter = async (req, res) => {
+  const { _id } = req.user;
+  const { html, title } = req.body;
+
+  try {
+    // Validate input
+    if (!html || typeof html !== 'string') {
+      return res.status(400).json({ error: 'Invalid HTML content' });
+    }
+
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({ error: 'Invalid title' });
+    }
+
+    const student = await Student.findByIdAndUpdate(
+      _id,
+      {
+        $push: {
+          coverLetter: {
+            coverLetter: html,
+            coverLetterTitle: title,
+            updatedAt: new Date(),
+          },
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Defensive fallback if htmlLetter is undefined or null
+    const htmlLetters = Array.isArray(student.htmlLetter)
+      ? student.htmlLetter
+      : [];
+
+    return res.json({
+      success: true,
+      message: 'HTML Letter saved successfully',
+    });
+  } catch (error) {
+    console.error('Error saving HTML Letter:', error);
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: error.errors,
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Failed to save HTML Letter',
+      message: error.message,
+    });
+  }
+};
+
+export const getStudentHTMLLetter = async (req, res) => {
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    // console.log(student.coverLetter);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    return res.json({ success: true, html: student.coverLetter });
+  } catch (error) {
+    console.error('Error getting HTML Letter:', error);
+    return res.status(500).json({ error: 'Failed to get HTML Letter' });
+  }
+};
+
+export const getSingleStudentHTMLLetter = async (req, res) => {
+  const { _id } = req.user;
+  const { letterId } = req.params;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    const letter = student.htmlLetter.find(
+      (letter) => letter._id.toString() === letterId,
+    );
+    if (!letter) {
+      return res.status(404).json({ error: 'HTML Letter not found' });
+    }
+    return res.json({ success: true, html: letter });
+  } catch (error) {
+    console.error('Error getting HTML Letter:', error);
+    return res.status(500).json({ error: 'Failed to get HTML Letter' });
   }
 };

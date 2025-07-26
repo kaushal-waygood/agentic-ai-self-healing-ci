@@ -83,7 +83,13 @@ import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 
 // Wizard related types
-type WizardStep = 'job' | 'cv' | 'customize' | 'generating' | 'result';
+type WizardStep =
+  | 'job'
+  | 'cv'
+  | 'customize'
+  | 'generating'
+  | 'result'
+  | 'context';
 type JobContext = {
   mode: 'paste' | 'select' | 'title';
   value: string;
@@ -192,7 +198,6 @@ export function CoverLetterGeneratorClient() {
           title: 'Pasted Job Description',
           description: pastedJobDesc,
         };
-        console.log(context);
       } else if (mode === 'title' && enteredJobTitle) {
         context = {
           mode,
@@ -228,7 +233,6 @@ export function CoverLetterGeneratorClient() {
     mode: 'saved' | 'profile' | 'upload',
     data: { value: string; name: string },
   ) => {
-    console.log('data', data);
     setCvContext({ mode, value: data.value, name: data.name });
     setWizardStep('customize');
   };
@@ -238,12 +242,11 @@ export function CoverLetterGeneratorClient() {
     data: { value: string; name: string },
   ) => {
     setCvSource({ mode, ...data });
-    setWizardStep('context');
+    setWizardStep('customize');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log('Selected file:', file); // Debugging
 
     if (!file) {
       console.error('No file selected');
@@ -275,7 +278,6 @@ export function CoverLetterGeneratorClient() {
     const reader = new FileReader();
 
     reader.onloadend = () => {
-      console.log('File read completed');
       handleSetCvSource('upload', {
         value: reader.result as string,
         name: file.name,
@@ -302,12 +304,13 @@ export function CoverLetterGeneratorClient() {
   };
 
   const handleUseActiveProfileCv = () => {
-    console.log('student', student);
     if (student) {
       handleSetCvContext('profile', {
         value: JSON.stringify(student),
         name: 'User Profile Data',
       });
+      setCvSource({ mode: 'profile', ...student });
+      setWizardStep('customize');
     } else {
       toast({
         variant: 'destructive',
@@ -370,7 +373,7 @@ export function CoverLetterGeneratorClient() {
         }
 
         const apiResponse = await apiInstance.post(
-          'students/resume/generate/jd',
+          'students/coverletter/generate/jd',
           formData,
           {
             headers: {
@@ -381,10 +384,11 @@ export function CoverLetterGeneratorClient() {
 
         // Handle HTML response
         response = {
-          cv: apiResponse.data,
-          atsScore: 0, // You might want to calculate this from the API
-          atsScoreReasoning: 'ATS score not calculated for JD-based generation',
+          letter: apiResponse.data,
         };
+
+        setGeneratedCvOutput(response.letter);
+        setCurrentCvContent(response.letter);
       } else if (jobContext.mode === 'title') {
         const formData = new FormData();
 
@@ -408,7 +412,7 @@ export function CoverLetterGeneratorClient() {
         }
 
         const apiResponse = await apiInstance.post(
-          'students/resume/generate/jobtitle',
+          'students/coverletter/generate/jobtitle',
           formData,
           {
             headers: {
@@ -419,32 +423,12 @@ export function CoverLetterGeneratorClient() {
 
         // Handle HTML response
         response = {
-          cv: apiResponse.data,
-          atsScore: 0, // You might want to calculate this from the API
-          atsScoreReasoning: 'ATS score not calculated for JD-based generation',
+          letter: apiResponse.data,
         };
       }
 
-      // Save the generated CV
-      const newAutoSavedCv: SavedCv = {
-        id: `auto-${Date.now()}`,
-        name: `Draft for '${jobContext.title.substring(
-          0,
-          25,
-        )}...' - ${new Date().toLocaleString()}`,
-        htmlContent: response.cv,
-        atsScore: response.atsScore ?? 0,
-        atsScoreReasoning:
-          response.atsScoreReasoning ?? 'ATS score not available',
-        createdAt: new Date().toISOString(),
-        jobTitle: jobContext.title,
-      };
-
-      const updatedSavedCvs = [newAutoSavedCv, ...savedCvsList];
-      setSavedCvsList(updatedSavedCvs);
-
-      setGeneratedCvOutput(response);
-      setCurrentCvContent(response.cv);
+      setGeneratedCvOutput(response.letter);
+      setCurrentCvContent(response.letter);
 
       toast({
         title: 'CV Generated & Auto-saved!',
@@ -468,31 +452,28 @@ export function CoverLetterGeneratorClient() {
     }
   };
 
-  const handleInitiateSave = () => {
-    let contentToSave = generatedCoverLetter;
+  const handleInitiateSave = async () => {
+    let contentToSave = generatedCvOutput;
 
     if (!contentToSave) {
       toast({ variant: 'destructive', title: 'No Letter to Save' });
       return;
     }
+
     setActiveLetterToSave(contentToSave);
     setLetterNameForSavingInput(`Letter for ${jobContext?.title || 'Job'}`);
     setIsNamingDialogDisplayed(true);
   };
 
-  const confirmSaveNamedLetter = () => {
+  const confirmSaveNamedLetter = async () => {
     if (!letterNameForSavingInput.trim() || !activeLetterToSave) return;
     const formValues = customizationForm.getValues();
-    const newSavedLetter: SavedCoverLetter = {
-      id: Date.now().toString(),
-      name: letterNameForSavingInput.trim(),
-      htmlContent: activeLetterToSave,
-      createdAt: new Date().toISOString(),
-      jobDescription: jobContext?.description || '',
-      tone: formValues.tone,
-      style: formValues.style,
-      personalStory: formValues.personalStory,
-    };
+    const response = await apiInstance.post('/students/letter/save/html', {
+      title: letterNameForSavingInput,
+      html: generatedCvOutput,
+    });
+
+    const newSavedLetter = response.data;
     const updatedList = [newSavedLetter, ...savedLettersList];
     mockUserProfile.savedCoverLetters = updatedList;
     setSavedLettersList(updatedList);
@@ -503,12 +484,13 @@ export function CoverLetterGeneratorClient() {
   };
 
   const loadSavedLetter = (savedLetter: SavedCoverLetter) => {
-    setGeneratedCoverLetter(savedLetter.htmlContent);
-    customizationForm.reset({
-      tone: savedLetter.tone,
-      style: savedLetter.style,
-      personalStory: savedLetter.personalStory,
-    });
+    setGeneratedCvOutput(savedLetter.coverLetter);
+
+    // customizationForm.reset({
+    //   tone: savedLetter.tone,
+    //   style: savedLetter.style,
+    //   personalStory: savedLetter.personalStory,
+    // });
     setJobContext({
       mode: 'paste',
       value: savedLetter.jobDescription,
@@ -867,7 +849,7 @@ export function CoverLetterGeneratorClient() {
                 variant="secondary"
                 size="sm"
                 onClick={handleInitiateSave}
-                disabled={!generatedCoverLetter || isLoading}
+                disabled={!generatedCvOutput || isLoading}
               >
                 <Archive className="mr-2 h-4 w-4" /> Save Final Version
               </Button>
@@ -878,6 +860,19 @@ export function CoverLetterGeneratorClient() {
         return null;
     }
   };
+
+  useEffect(() => {
+    const fetchSavedLetters = async () => {
+      try {
+        const response = await apiInstance.get('/students/letter/saved');
+        setSavedLettersList(response.data.html);
+      } catch (error) {
+        console.error('Error fetching saved letters:', error);
+      }
+    };
+
+    fetchSavedLetters();
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -902,7 +897,7 @@ export function CoverLetterGeneratorClient() {
           <EditableMaterial
             editorId="cover-letter-editor"
             title="Cover Letter"
-            content={generatedCoverLetter}
+            content={generatedCvOutput}
             setContent={setGeneratedCoverLetter}
             isHtml
           />
@@ -925,11 +920,13 @@ export function CoverLetterGeneratorClient() {
             <ul className="space-y-3">
               {savedLettersList.map((savedLetter) => (
                 <li
-                  key={savedLetter.id}
+                  key={savedLetter._id}
                   className="p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 hover:bg-muted/50"
                 >
                   <div>
-                    <p className="font-medium">{savedLetter.name}</p>
+                    <p className="font-medium">
+                      {savedLetter.coverLetterTitle}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       Saved: {new Date(savedLetter.createdAt).toLocaleString()}
                     </p>

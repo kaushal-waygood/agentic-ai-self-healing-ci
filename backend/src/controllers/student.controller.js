@@ -85,6 +85,31 @@ export const removeStudentSkills = async (req, res) => {
   }
 };
 
+export const updateStudentSkills = async (req, res) => {
+  const { skillId } = req.params;
+  const { level } = req.body;
+  const { _id } = req.user;
+
+  console.log(skillId, level);
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    const skill = student.skills.find((s) => s.skillId === skillId);
+    if (!skill) {
+      return res.status(404).json({ message: 'Skill not found' });
+    }
+    console.log(skill.level);
+    skill.level = level;
+    await student.save();
+    res.status(200).json({ message: 'Skills updated successfully' });
+  } catch (error) {
+    console.error('Error updating skills:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const addExperience = async (req, res) => {
   const { company, title, startDate, endDate, description, currentlyWorking } =
     req.body;
@@ -144,14 +169,48 @@ export const removeExperience = async (req, res) => {
   }
 };
 
+export const updateExperience = async (req, res) => {
+  const { expId: experienceId } = req.params;
+  const { company, title, startDate, endDate, description, currentlyWorking } =
+    req.body;
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const experience = student.experience.find(
+      (exp) => exp.experienceId === experienceId,
+    );
+    if (!experience) {
+      return res.status(404).json({ message: 'Experience not found' });
+    }
+
+    experience.company = company;
+    experience.title = title;
+    experience.startDate = startDate;
+    experience.endDate = endDate;
+    experience.description = description;
+    experience.currentlyWorking = currentlyWorking;
+
+    await student.save();
+    res.status(200).json({ message: 'Experience updated successfully' });
+  } catch (error) {
+    console.error('Error updating experience:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const addEducations = async (req, res) => {
   const {
     degree,
     fieldOfStudy,
     startDate,
     endDate,
-    grade,
-    institute,
+    gpa: grade,
+    country,
+    institution: institute,
     isCurrentlyStudying,
   } = req.body;
   const { _id } = req.user;
@@ -176,6 +235,7 @@ export const addEducations = async (req, res) => {
       endDate,
       grade,
       institute,
+      country,
       isCurrentlyStudying,
     });
 
@@ -207,6 +267,62 @@ export const removeEducation = async (req, res) => {
     res.status(200).json({ message: 'Education removed successfully' });
   } catch (error) {
     console.error('Error removing education:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const updateEducation = async (req, res) => {
+  const { eduId: educationId } = req.params;
+  const {
+    degree,
+    fieldOfStudy,
+    startDate,
+    endDate,
+    country,
+    gpa: grade,
+    institution: institute,
+    isCurrentlyStudying,
+  } = req.body;
+  const { _id } = req.user;
+  console.log(req.body);
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const education = student.education.find((edu) => {
+      return edu.educationId === educationId;
+    });
+
+    if (!education) {
+      return res.status(404).json({ message: 'Education not found' });
+    }
+
+    if (degree) education.degree = degree;
+    if (fieldOfStudy) education.fieldOfStudy = fieldOfStudy;
+    if (startDate) education.startDate = startDate;
+    if (endDate) education.endDate = endDate;
+    if (grade) education.grade = grade;
+    if (institute) education.institute = institute;
+    if (isCurrentlyStudying !== undefined)
+      education.isCurrentlyStudying = isCurrentlyStudying;
+    if (isCurrentlyStudying === false) education.endDate = null;
+    if (country) education.country = country;
+
+    student.education = student.education.filter((edu) => {
+      return edu.educationId !== educationId;
+    });
+    student.education.push(education);
+
+    student.education.sort((a, b) => {
+      return new Date(b.startDate) - new Date(a.startDate);
+    });
+
+    await student.save();
+    res.status(200).json({ message: 'Education updated successfully' });
+  } catch (error) {
+    console.error('Error updating education:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

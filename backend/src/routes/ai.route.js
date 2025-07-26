@@ -13,6 +13,9 @@ import {
   saveStudentHTMLCV,
   getStudentHTMLCV,
   getSingleStudentHTMLCV,
+  savedStudentHTMLLetter,
+  getStudentHTMLLetter,
+  getSingleStudentHTMLLetter,
 } from '../controllers/ai.controller.js';
 
 const router = Router();
@@ -68,7 +71,7 @@ router.post(
 );
 
 router.post(
-  '/coverletter/generate/title',
+  '/coverletter/generate/jobtitle',
   authMiddleware,
   isStudent,
   upload.single('cv'),
@@ -82,6 +85,21 @@ router.get(
   authMiddleware,
   isStudent,
   getSingleStudentHTMLCV,
+);
+
+router.post(
+  '/letter/save/html',
+  authMiddleware,
+  isStudent,
+  savedStudentHTMLLetter,
+);
+router.get('/letter/saved', authMiddleware, isStudent, getStudentHTMLLetter);
+
+router.get(
+  '/letter/saved/:letterId',
+  authMiddleware,
+  isStudent,
+  getSingleStudentHTMLLetter,
 );
 
 export default router;

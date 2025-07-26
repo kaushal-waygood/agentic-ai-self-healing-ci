@@ -22,6 +22,15 @@ Instructions:
 - Focus on why the applicant is a good fit for the company and the role.
 ${finalTouch ? `- Final Touch: ${finalTouch}` : ''}
 
+Please write the cover letter in markdown format.
+- Greeting: "Dear Hiring Manager,"
+- Body: "..."
+- Signature: "Sincerely,"
+- Closing: "Best regards,"
+- Name: "John Doe"
+
+Do not include markdown, JSON, or any code formatting.
+
 Return only the cover letter text. Do not include markdown, JSON, or any code formatting.
 `;
 };

@@ -12,6 +12,16 @@ type Student = {
   error: string | null;
 };
 
+type EducationFormData = {
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  country: string;
+  gpa: string;
+  startDate: string;
+  endDate: string;
+};
+
 const initialState: Student = {
   students: [],
   skills: [],
@@ -26,6 +36,7 @@ const studentSlice = createSlice({
   name: 'student',
   initialState,
   reducers: {
+    // student Details
     getStudentDetailsRequest: (state) => {
       state.loading = true;
       state.error = null;
@@ -39,6 +50,7 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
+    // student Education add
     addStudentEducationRequest: (state) => {
       state.loading = true;
       state.error = null;
@@ -52,7 +64,8 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
-    removeStudentEducationRequest: (state) => {
+    // student Education remove
+    removeStudentEducationRequest: (state, action: PayloadAction<string>) => {
       state.loading = true;
       state.error = null;
     },
@@ -61,6 +74,29 @@ const studentSlice = createSlice({
       state.educations = action.payload;
     },
     removeStudentEducationFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    // student Education update
+    updateStudentEducationRequest: (
+      state,
+      action: PayloadAction<{
+        educationId: string;
+        eduData: EducationFormData;
+      }>,
+    ) => {
+      state.loading = true;
+      state.error = null;
+    },
+    updateStudentEducationSuccess: (
+      state,
+      action: PayloadAction<EducationFormData[]>,
+    ) => {
+      state.loading = false;
+      state.educations = action.payload;
+    },
+    updateStudentEducationFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
@@ -117,6 +153,7 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
+    // student Skills add
     addStudentSkillRequest: (state) => {
       state.loading = true;
       state.error = null;
@@ -130,6 +167,7 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
+    // student Skills remove
     removeStudentSkillRequest: (state) => {
       state.loading = true;
       state.error = null;
@@ -142,6 +180,22 @@ const studentSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    // student Skills update
+    updateStudentSkillRequest: (state, action: PayloadAction<string>) => {
+      console.log('action.payload', action.payload);
+      state.loading = true;
+      state.error = null;
+    },
+    updateStudentSkillSuccess: (state, action: PayloadAction<any[]>) => {
+      console.log('action.payload', action.payload);
+      state.loading = false;
+      state.skills = action.payload;
+    },
+    updateStudentSkillFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -150,36 +204,42 @@ export const {
   getStudentDetailsSuccess,
   getStudentDetailsFailure,
 
+  // student Education
   addStudentEducationRequest,
   addStudentEducationSuccess,
   addStudentEducationFailure,
-
   removeStudentEducationRequest,
   removeStudentEducationSuccess,
   removeStudentEducationFailure,
+  updateStudentEducationRequest,
+  updateStudentEducationSuccess,
+  updateStudentEducationFailure,
 
+  // student Experience
   addStudentExperienceRequest,
   addStudentExperienceSuccess,
   addStudentExperienceFailure,
-
   removeStudentExperienceRequest,
   removeStudentExperienceSuccess,
   removeStudentExperienceFailure,
 
+  // student Projects
   addStudentProjectRequest,
   addStudentProjectSuccess,
   addStudentProjectFailure,
-
   removeStudentProjectRequest,
   removeStudentProjectSuccess,
   removeStudentProjectFailure,
 
+  // student Skills
   addStudentSkillRequest,
   addStudentSkillSuccess,
   addStudentSkillFailure,
-
   removeStudentSkillRequest,
   removeStudentSkillSuccess,
   removeStudentSkillFailure,
+  updateStudentSkillRequest,
+  updateStudentSkillSuccess,
+  updateStudentSkillFailure,
 } = studentSlice.actions;
 export default studentSlice.reducer;

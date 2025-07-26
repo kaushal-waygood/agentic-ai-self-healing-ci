@@ -12,6 +12,8 @@ import {
   addProfileImage,
   updateProfileImage,
   addResume,
+  updateEducation,
+  updateStudentSkills,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import pdfParse from 'pdf-parse';
@@ -24,6 +26,7 @@ const router = Router();
 router.get('/details', authMiddleware, isStudent, studentDetails);
 router.post('/apply/:jobId', authMiddleware, isStudent, appliedJob);
 
+// Skills
 router.post('/skill/add', authMiddleware, isStudent, addStudentSkills);
 router.post(
   '/skill/remove/:skillId',
@@ -31,7 +34,14 @@ router.post(
   isStudent,
   removeStudentSkills,
 );
+router.patch(
+  '/skill/update/:skillId',
+  authMiddleware,
+  isStudent,
+  updateStudentSkills,
+);
 
+// Experience
 router.post('/experience/add', authMiddleware, isStudent, addExperience);
 router.post(
   '/experience/remove/:expId',
@@ -39,13 +49,25 @@ router.post(
   isStudent,
   removeExperience,
 );
-router.post('/education/add', authMiddleware, isStudent, addEducations);
+router.patch(
+  '/experience/update/:expId',
+  authMiddleware,
+  isStudent,
+  addExperience,
+);
 
+router.post('/education/add', authMiddleware, isStudent, addEducations);
 router.post(
   '/education/remove/:eduId',
   authMiddleware,
   isStudent,
   removeEducation,
+);
+router.patch(
+  '/education/update/:eduId',
+  authMiddleware,
+  isStudent,
+  updateEducation,
 );
 
 router.post(
@@ -71,7 +93,5 @@ router.post(
   upload.single('resume'),
   addResume,
 );
-
-
 
 export default router;
