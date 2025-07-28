@@ -6,6 +6,7 @@ import { cloudinary } from '../config/cloudinary.js';
 import fs from 'fs';
 import path from 'path';
 import { safeUnlink, __dirname } from '../utils/fileUploadingManaging.js';
+import calculateExperience from '../utils/calculateExperience.js';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
@@ -90,7 +91,6 @@ export const updateStudentSkills = async (req, res) => {
   const { level } = req.body;
   const { _id } = req.user;
 
-  console.log(skillId, level);
   try {
     const student = await Student.findById(_id);
     if (!student) {
@@ -127,6 +127,12 @@ export const addExperience = async (req, res) => {
       return res.status(400).json({ message: 'Experience already exists' });
     }
 
+    const experienceYrs = calculateExperience(
+      startDate,
+      endDate,
+      currentlyWorking,
+    );
+
     student.experience.push({
       experienceId,
       company,
@@ -135,6 +141,7 @@ export const addExperience = async (req, res) => {
       endDate,
       description,
       currentlyWorking,
+      experienceYrs,
     });
 
     await student.save();
@@ -563,6 +570,143 @@ export const removeProject = async (req, res) => {
     return res.status(200).json({ message: 'Project removed successfully' });
   } catch (error) {
     console.error('Error removing project:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const createJobPreference = async (req, res) => {
+  try {
+    const {
+      // Location
+      preferedCountries,
+      preferedCities,
+      isRemote,
+      relocationWillingness,
+
+      // Job Details
+      preferedJobTitles,
+      preferedJobTypes,
+      preferedIndustries,
+      preferedExperienceLevel,
+
+      // Compensation
+      preferedSalary,
+
+      // Skills
+      mustHaveSkills,
+      niceToHaveSkills,
+      preferedCertifications,
+      preferedEducationLevel,
+
+      // Company
+      preferedCompanySizes,
+      preferedCompanyCultures,
+
+      // Additional
+      visaSponsorshipRequired,
+      immediateAvailability,
+    } = req.body;
+
+    // Validate must-have skills structure
+    if (mustHaveSkills && Array.isArray(mustHaveSkills)) {
+      for (const skill of mustHaveSkills) {
+        if (!skill.skill || !skill.level) {
+          return res.status(400).json({
+            message: 'Must-have skills must have both skill name and level',
+          });
+        }
+      }
+    }
+
+    // Build update object
+    const update = {};
+    const fields = [
+      'preferedCountries',
+      'preferedCities',
+      'isRemote',
+      'relocationWillingness',
+      'preferedJobTitles',
+      'preferedJobTypes',
+      'preferedIndustries',
+      'preferedExperienceLevel',
+      'preferedSalary',
+      'mustHaveSkills',
+      'niceToHaveSkills',
+      'preferedCertifications',
+      'preferedEducationLevel',
+      'preferedCompanySizes',
+      'preferedCompanyCultures',
+      'visaSponsorshipRequired',
+      'immediateAvailability',
+    ];
+
+    fields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        update[`jobPreferences.${field}`] = req.body[field];
+      }
+    });
+
+    // Update student with validation
+    const student = await Student.findByIdAndUpdate(
+      req.user._id,
+      { $set: update },
+      {
+        new: true,
+        runValidators: true,
+        select: 'jobPreferences', // Only return jobPreferences in response
+      },
+    );
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Job preferences updated successfully',
+      preferences: student.jobPreferences,
+    });
+  } catch (error) {
+    console.error('Error updating job preferences:', error);
+
+    // Handle specific error types
+    if (error.name === 'ValidationError') {
+      const errors = {};
+      Object.keys(error.errors).forEach((key) => {
+        errors[key] = error.errors[key].message;
+      });
+      return res.status(400).json({
+        message: 'Validation error',
+        errors,
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: 'Invalid data type provided',
+        field: error.path,
+        expectedType: error.kind,
+      });
+    }
+
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getJobPreferences = async (req, res) => {
+  try {
+    const student = await Student.findById(req.user._id).select(
+      'jobPreferences',
+    );
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(200).json({
+      preferences: student.jobPreferences || {},
+    });
+  } catch (error) {
+    console.error('Error getting job preferences:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };

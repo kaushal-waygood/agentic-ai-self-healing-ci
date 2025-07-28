@@ -324,8 +324,6 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
         job.job_description,
       );
 
-      console.log(responsibilities);
-
       if (!existing) {
         const newJob = new Job({
           jobId: job.job_id,
@@ -397,8 +395,6 @@ export const getAllJobs = async (req, res) => {
       page = 1,
       limit = 10,
     } = req.query;
-
-    console.log('Query:', experience);
 
     const filter = {};
 
@@ -539,8 +535,6 @@ export const getJobDetailBySlug = async (req, res) => {
 export const getAllEmploymentTypes = async (req, res) => {
   try {
     const result = await Job.distinct('jobTypes');
-
-    console.log(result);
 
     res.status(200).json({
       success: true,

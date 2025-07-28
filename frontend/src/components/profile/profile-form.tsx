@@ -1,8 +1,5 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useFieldArray } from 'react-hook-form';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -14,19 +11,20 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import {
   Save,
   DollarSign,
-  History,
   Settings as SettingsIcon,
   Briefcase,
   PlusCircle,
   Trash2,
-  Loader2,
   Pencil,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Edit,
+  History,
 } from 'lucide-react';
-import { mockUserProfile } from '@/lib/data/user';
 import Link from 'next/link';
 import {
   Card,
@@ -36,27 +34,7 @@ import {
   CardTitle,
 } from '../ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { countries } from '@/lib/data/countries';
-import { languages } from '@/lib/data/languages';
-import { useDispatch } from 'react-redux';
-import { useSelector } from 'react-redux';
-import { experimental_taintUniqueValue, useEffect, useState } from 'react';
-import { getProfileRequest } from '@/redux/reducers/authReducer';
-import {
-  getStudentDetailsRequest,
-  removeStudentEducationRequest,
-  updateStudentSkillRequest,
-} from '@/redux/reducers/studentReducer';
-import { RootState } from '@/redux/rootReducer';
+
 import {
   AddEducation,
   AddExperience,
@@ -64,393 +42,83 @@ import {
   AddSkill,
 } from './AddEducation';
 import { JobPref, Narratives } from './AddProject';
-
-const employmentTypes = [
-  'Full-time',
-  'Part-time',
-  'Contract',
-  'Internship',
-] as const;
-
-const employmentTypeOptions = [
-  { id: 'FULLTIME', label: 'Full-time' },
-  { id: 'CONTRACTOR', label: 'Contractor' },
-  { id: 'PARTTIME', label: 'Part-time' },
-  { id: 'INTERN', label: 'Internship' },
-];
-
-const jobRequirementOptions = [
-  { id: 'under_3_years_experience', label: 'Under 3 years experience' },
-  { id: 'more_than_3_years_experience', label: 'More than 3 years experience' },
-  { id: 'no_experience', label: 'No experience required' },
-  { id: 'no_degree', label: 'No degree required' },
-];
-
-const educationEntrySchema = z.object({
-  institution: z.string().min(1, 'Institution name is required'),
-  degree: z.string().min(1, 'Degree is required'),
-  fieldOfStudy: z.string().optional(),
-  country: z.string().min(1, 'Country is required'),
-  gpa: z.string().optional(),
-  startDate: z.string().min(1, 'Start date is required'),
-  endDate: z.string().min(1, 'End date is required'),
-});
-
-const experienceEntrySchema = z
-  .object({
-    company: z.string().min(1, 'Company name is required'),
-    jobTitle: z.string().min(1, 'Job title is required'),
-    employmentType: z.enum(employmentTypes).optional(),
-    location: z.string().optional(),
-    isCurrent: z.boolean().default(false).optional(),
-    startDate: z.string().min(1, 'Start date is required'),
-    endDate: z.string().optional(),
-    responsibilities: z.string().optional(),
-  })
-  .refine(
-    (data) => data.isCurrent || (!!data.endDate && data.endDate.length > 0),
-    {
-      message: 'End date is required for past jobs.',
-      path: ['endDate'],
-    },
-  );
-
-const projectEntrySchema = z
-  .object({
-    name: z.string().min(1, 'Project name is required'),
-    description: z.string().min(1, 'Project description is required'),
-    technologies: z.string().optional(),
-    link: z
-      .string()
-      .url({ message: 'Please enter a valid URL.' })
-      .or(z.literal(''))
-      .optional(),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
-    isCurrent: z.boolean().default(false).optional(),
-  })
-  .refine(
-    (data) => data.isCurrent || (!!data.endDate && data.endDate.length > 0),
-    {
-      message: 'End date is required for past projects.',
-      path: ['endDate'],
-    },
-  );
-
-const profileFormSchema = z.object({
-  fullName: z.string().min(2, {
-    message: 'Full name must be at least 2 characters.',
-  }),
-  email: z.string().email(),
-  jobPreference: z.string().min(2, {
-    message: 'Job preference must be at least 2 characters.',
-  }),
-
-  // Rich profile data
-  education: z.array(educationEntrySchema).optional(),
-  experience: z.array(experienceEntrySchema).optional(),
-  projects: z.array(projectEntrySchema).optional(),
-  skills: z.string().optional(),
-
-  // Narratives
-  narrativeChallenges: z.string().optional(),
-  narrativeAchievements: z.string().optional(),
-  narrativeAppreciation: z.string().optional(),
-
-  // Job Search Preferences
-  preferredCountry: z.string().optional(),
-  preferredLanguage: z.string().optional(),
-  preferredDatePosted: z
-    .enum(['all', 'today', '3days', 'week', 'month'])
-    .optional(),
-  prefersWorkFromHome: z.boolean().optional(),
-  preferredEmploymentTypes: z.array(z.string()).optional(),
-  preferredJobRequirements: z.array(z.string()).optional(),
-  preferredSearchRadius: z.preprocess(
-    (val) =>
-      val === '' ||
-      val === null ||
-      val === undefined ||
-      Number.isNaN(Number(val))
-        ? undefined
-        : Number(val),
-    z.number().min(0, 'Radius must be positive').optional(),
-  ),
-  excludedJobPublishers: z.string().optional(),
-});
-
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
-
-interface ProfileFormProps {
-  isOnboarding?: boolean;
-}
+import { ProfileFormProps, useProfile } from '@/hooks/useProfile';
 
 export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
-  const { toast } = useToast();
-  const dispatch = useDispatch();
-  const { students, loading, error } = useSelector(
-    (state: RootState) => state.student,
-  );
+  const {
+    //state
+    isNameEditable,
+    isEmailEditable,
+    addEdu,
+    addExp,
+    addProj,
+    addSkill,
+    editProjIndex,
+    expandedIndex,
+    deleteEdu,
+    deleteExp,
+    deleteProj,
+    deleteSkill,
+    deleteEduIndex,
+    deleteExpIndex,
+    deleteProjIndex,
+    deleteSkillIndex,
+    editEdu,
+    editExp,
+    editProj,
+    editSkill,
+    editEduIndex,
+    editExpIndex,
+    editSkillIndex,
+    setEditEdu,
+    setEditExp,
+    setEditProj,
+    setEditSkill,
+    setDeleteEdu,
+    setDeleteExp,
+    setDeleteProj,
+    setDeleteSkill,
+    setAddEdu,
+    setAddExp,
+    setAddProj,
+    setAddSkill,
+    setExpandedIndex,
+    setDeleteEduIndex,
+    setDeleteExpIndex,
+    setDeleteProjIndex,
+    setDeleteSkillIndex,
+    setEditEduIndex,
+    setEditExpIndex,
+    setEditProjIndex,
+    setEditSkillIndex,
+    handleName,
+    setHandleName,
+    handleEmail,
+    setHandleEmail,
 
-  const defaultValues: ProfileFormValues = {
-    fullName: students.fullName,
-    email: students.email,
-    jobPreference: students.jobRole,
-    education: (students.education || []).map((edu) => ({
-      institution: edu.institute || '',
-      degree: edu.degree || '',
-      fieldOfStudy: edu.fieldOfStudy || '',
-      country: edu.country || '',
-      gpa: edu.grade || '',
-      startDate: edu.startDate || '',
-      endDate: edu.endDate || '',
-      _id: edu._id || '',
-      educationId: edu.educationId || '',
-    })),
-    experience: (students.experience || []).map((exp) => ({
-      company: exp.company || '',
-      jobTitle: exp.jobTitle || '',
-      employmentType: exp.employmentType,
-      location: exp.location || '',
-      responsibilities: (exp.responsibilities || []).join('\n'),
-      startDate: exp.startDate || '',
-      endDate: exp.endDate || '',
-      isCurrent: exp.endDate?.toLowerCase() === 'present',
-      _id: exp._id || '',
-    })),
-    projects: (students.projects || []).map((proj) => ({
-      name: proj.name || '',
-      description: proj.description || '',
-      technologies: proj.technologies || '',
-      link: proj.link || '',
-      startDate: proj.startDate || '',
-      endDate: proj.endDate || '',
-      isCurrent: proj.isCurrent || false,
-      _id: proj._id || '',
-    })),
-    skills: students.skills || [],
-    // Narratives
-    narrativeChallenges: mockUserProfile.narratives.challenges,
-    narrativeAchievements: mockUserProfile.narratives.achievements,
-    narrativeAppreciation: mockUserProfile.narratives.appreciation,
-    // Job Search Preferences
-    preferredCountry: mockUserProfile.preferredCountry || 'US',
-    preferredLanguage: mockUserProfile.preferredLanguage || 'en',
-    preferredDatePosted: mockUserProfile.preferredDatePosted || 'all',
-    prefersWorkFromHome: mockUserProfile.prefersWorkFromHome || false,
-    preferredEmploymentTypes: mockUserProfile.preferredEmploymentTypes || [],
-    preferredJobRequirements: mockUserProfile.preferredJobRequirements || [],
-    preferredSearchRadius:
-      mockUserProfile.preferredSearchRadius === undefined
-        ? undefined
-        : mockUserProfile.preferredSearchRadius,
-    excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
-  };
+    //form
+    personalInfoForm,
+    careerDetailsForm,
+    narrativesForm,
+    jobSearchForm,
+    educationForm,
 
-  const [addExp, setAddExp] = useState(false);
-  const [addProj, setAddProj] = useState(false);
-  const [addEdu, setAddEdu] = useState(false);
-  const [addSkill, setAddSkill] = useState(false);
-
-  const [editEdu, setEditEdu] = useState(false);
-  const [editExp, setEditExp] = useState(false);
-  const [editProj, setEditProj] = useState(false);
-  const [editSkill, setEditSkill] = useState(false);
-
-  const [editEduIndex, setEditEduIndex] = useState(0);
-  const [editExpIndex, setEditExpIndex] = useState(0);
-  const [editProjIndex, setEditProjIndex] = useState(0);
-  const [editSkillIndex, setEditSkillIndex] = useState(0);
-
-  const [deleteEdu, setDeleteEdu] = useState(false);
-  const [deleteExp, setDeleteExp] = useState(false);
-  const [deleteProj, setDeleteProj] = useState(false);
-  const [deleteSkill, setDeleteSkill] = useState(false);
-
-  const [deleteEduIndex, setDeleteEduIndex] = useState(0);
-  const [deleteExpIndex, setDeleteExpIndex] = useState(0);
-  const [deleteProjIndex, setDeleteProjIndex] = useState(0);
-  const [deleteSkillIndex, setDeleteSkillIndex] = useState(0);
-
-  // Personal Info Form
-  const personalInfoForm = useForm<
-    Pick<ProfileFormValues, 'fullName' | 'email'>
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({ fullName: true, email: true }),
-    ),
-    defaultValues: {
-      fullName: defaultValues.fullName,
-      email: defaultValues.email,
-    },
-    mode: 'onChange',
-  });
-
-  // Career Details Form
-  const careerDetailsForm = useForm<
-    Pick<ProfileFormValues, 'jobPreference' | 'skills'>
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({ jobPreference: true, skills: true }),
-    ),
-    defaultValues: {
-      jobPreference: defaultValues.jobPreference,
-      skills: defaultValues.skills,
-    },
-    mode: 'onChange',
-  });
-
-  const educationForm = useForm<{ education: ProfileFormValues['education'] }>({
-    resolver: zodResolver(
-      z.object({ education: z.array(educationEntrySchema) }),
-    ),
-    defaultValues: {
-      education: defaultValues.education || [],
-    },
-    mode: 'onChange',
-  });
-
-  // Narratives Form
-  const narrativesForm = useForm<
-    Pick<
-      ProfileFormValues,
-      'narrativeChallenges' | 'narrativeAchievements' | 'narrativeAppreciation'
-    >
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({
-        narrativeChallenges: true,
-        narrativeAchievements: true,
-        narrativeAppreciation: true,
-      }),
-    ),
-    defaultValues: {
-      narrativeChallenges: defaultValues.narrativeChallenges,
-      narrativeAchievements: defaultValues.narrativeAchievements,
-      narrativeAppreciation: defaultValues.narrativeAppreciation,
-    },
-    mode: 'onChange',
-  });
-
-  // Job Search Preferences Form
-  const jobSearchForm = useForm<
-    Pick<
-      ProfileFormValues,
-      | 'preferredCountry'
-      | 'preferredLanguage'
-      | 'preferredDatePosted'
-      | 'prefersWorkFromHome'
-      | 'preferredEmploymentTypes'
-      | 'preferredJobRequirements'
-      | 'preferredSearchRadius'
-      | 'excludedJobPublishers'
-    >
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({
-        preferredCountry: true,
-        preferredLanguage: true,
-        preferredDatePosted: true,
-        prefersWorkFromHome: true,
-        preferredEmploymentTypes: true,
-        preferredJobRequirements: true,
-        preferredSearchRadius: true,
-        excludedJobPublishers: true,
-      }),
-    ),
-    defaultValues: {
-      preferredCountry: defaultValues.preferredCountry,
-      preferredLanguage: defaultValues.preferredLanguage,
-      preferredDatePosted: defaultValues.preferredDatePosted,
-      prefersWorkFromHome: defaultValues.prefersWorkFromHome,
-      preferredEmploymentTypes: defaultValues.preferredEmploymentTypes,
-      preferredJobRequirements: defaultValues.preferredJobRequirements,
-      preferredSearchRadius: defaultValues.preferredSearchRadius,
-      excludedJobPublishers: defaultValues.excludedJobPublishers,
-    },
-    mode: 'onChange',
-  });
-
-  // Handlers for each form submission
-  const handlePersonalInfoSubmit = (
-    data: Pick<ProfileFormValues, 'fullName' | 'email'>,
-  ) => {
-    // Call API for personal info update
-    console.log('Personal Info:', data);
-    toast({
-      title: 'Personal Information Updated',
-      description: 'Your personal information has been saved successfully.',
-    });
-  };
-
-  const handleCareerDetailsSubmit = (
-    data: Pick<ProfileFormValues, 'jobPreference' | 'skills'>,
-  ) => {
-    // Call API for career details update
-    console.log('Career Details:', data);
-    toast({
-      title: 'Career Details Updated',
-      description: 'Your career details have been saved successfully.',
-    });
-  };
-
-  const handleNarrativesSubmit = (
-    data: Pick<
-      ProfileFormValues,
-      'narrativeChallenges' | 'narrativeAchievements' | 'narrativeAppreciation'
-    >,
-  ) => {
-    // Call API for narratives update
-    toast({
-      title: 'Narratives Updated',
-      description: 'Your narratives have been saved successfully.',
-    });
-  };
-
-  const handleJobSearchSubmit = (
-    data: Pick<
-      ProfileFormValues,
-      | 'preferredCountry'
-      | 'preferredLanguage'
-      | 'preferredDatePosted'
-      | 'prefersWorkFromHome'
-      | 'preferredEmploymentTypes'
-      | 'preferredJobRequirements'
-      | 'preferredSearchRadius'
-      | 'excludedJobPublishers'
-    >,
-  ) => {
-    // Call API for job search preferences update
-    toast({
-      title: 'Job Search Preferences Updated',
-      description: 'Your job search preferences have been saved successfully.',
-    });
-  };
-
-  useEffect(() => {
-    const fetchStudentDetails = async () => {
-      try {
-        dispatch(getStudentDetailsRequest());
-      } catch (error) {
-        console.error('Error fetching student details:', error);
-      }
-    };
-
-    fetchStudentDetails();
-  }, [dispatch]);
-
-  const onCancel = () => {
-    setAddEdu(false);
-  };
-
-  const deleteEducation = (index: number) => {
-    console.log('index', index);
-    dispatch(removeStudentEducationRequest(index));
-  };
-
-  const handleLevelChange = (index: number, level: string) => {
-    dispatch(updateStudentSkillRequest({ index, level }));
-  };
+    //handlers
+    handlePersonalInfoSubmit,
+    handleCareerDetailsSubmit,
+    handleNarrativesSubmit,
+    handleJobSearchSubmit,
+    onCancel,
+    deleteEducation,
+    handleLevelChange,
+    toggleExpand,
+    handleEdit,
+    handleDelete,
+    toggleNameEdit,
+    toggleEmailEdit,
+    defaultValues,
+    handlePersonalInfoEdit,
+  } = useProfile();
 
   return (
     <div className="space-y-6">
@@ -473,34 +141,77 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Your full name"
-                          value={defaultValues.fullName}
-                          readOnly
-                        />
-                      </FormControl>
+                      <div className="flex items-center gap-2">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Your full name"
+                            readOnly={!isNameEditable}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              setHandleName(e.target.value);
+                            }}
+                          />
+                        </FormControl>
+
+                        {isNameEditable ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            onClick={handlePersonalInfoEdit}
+                            variant="outline"
+                          >
+                            <Check size={16} />
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="icon"
+                            onClick={toggleNameEdit}
+                            variant="outline"
+                          >
+                            <Edit size={16} />
+                          </Button>
+                        )}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Email Field */}
                 <FormField
                   control={personalInfoForm.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="your.email@example.com"
-                          value={defaultValues.email}
-                          readOnly
-                        />
-                      </FormControl>
+                      <div className="flex items-center gap-2">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="your.email@example.com"
+                            readOnly={!isEmailEditable}
+                            value={defaultValues.email}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          size="icon"
+                          onClick={toggleEmailEdit}
+                          variant="outline"
+                        >
+                          {isEmailEditable ? (
+                            <Check size={16} />
+                          ) : (
+                            <Edit size={16} />
+                          )}
+                        </Button>
+                      </div>
                       <FormDescription>
-                        Your email address is used for login and cannot be
-                        changed here.
+                        Your email address is used for login and may not be
+                        changed frequently.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -645,17 +356,94 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
           {/* Project / Research Work section */}
           <div id="projects">
             <h3 className="text-lg font-medium mb-2">Projects</h3>
+            <div className="mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAddProj(true)}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Project
+              </Button>
+            </div>
+
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAddProj(true)}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add Project
-                </Button>
-              </div>
+              {defaultValues.projects?.map((proj, index) => {
+                const isExpanded = expandedIndex === index;
+
+                return (
+                  <div
+                    key={index}
+                    className="border rounded-md p-4 shadow-sm hover:shadow transition duration-200"
+                  >
+                    <div
+                      className="flex justify-between items-center cursor-pointer"
+                      onClick={() => toggleExpand(index)}
+                    >
+                      <div>
+                        <h4 className="text-lg font-semibold">{proj.name}</h4>
+                        <p className="text-muted-foreground text-sm line-clamp-2">
+                          {proj.description}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(index);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(index);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expandable Content */}
+                    {isExpanded && (
+                      <div className="mt-4 text-sm grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <p className="text-muted-foreground">Dates</p>
+                          <p>
+                            {proj.startDate} - {proj.endDate || 'Present'}
+                          </p>
+                        </div>
+                        {proj.country && (
+                          <div>
+                            <p className="text-muted-foreground">Location</p>
+                            <p>{proj.country}</p>
+                          </div>
+                        )}
+                        {proj.technologies && (
+                          <div className="sm:col-span-2">
+                            <p className="text-muted-foreground">
+                              Technologies Used
+                            </p>
+                            <p>{proj.technologies.join(', ')}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -675,6 +463,89 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 </Button>
               </div>
             </div>
+
+            <div className="space-y-4 mt-4">
+              {defaultValues.experience?.map((exp, index) => {
+                const isExpanded = expandedIndex === index;
+
+                return (
+                  <div
+                    key={index}
+                    className="border rounded-md p-4 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div
+                      className="flex justify-between items-center cursor-pointer"
+                      onClick={() => toggleExpand(index)}
+                    >
+                      <div>
+                        <p className="text-lg font-semibold">{exp.company}</p>
+                      </div>
+
+                      <div className="flex gap-2 items-center">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(index);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(index);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="mt-4 text-sm grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <p className="text-muted-foreground">Dates</p>
+                          <p>
+                            {exp.startDate} - {exp.endDate || 'Present'}
+                          </p>
+                        </div>
+                        {exp.location && (
+                          <div>
+                            <p className="text-muted-foreground">Location</p>
+                            <p>{exp.location}</p>
+                          </div>
+                        )}
+                        {exp.technologies && (
+                          <div className="sm:col-span-2">
+                            <p className="text-muted-foreground">
+                              Technologies Used
+                            </p>
+                            <p>{exp.technologies.join(', ')}</p>
+                          </div>
+                        )}
+                        {exp.description && (
+                          <div className="sm:col-span-2">
+                            <p className="text-muted-foreground">Description</p>
+                            <p>{exp.description}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <Separator />
@@ -693,61 +564,47 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 </Button>
               </div>
 
-              {defaultValues.skills?.map((skill, index) => (
-                <div
-                  key={index}
-                  className="rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-lg font-semibold">{skill.skill}</h4>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditSkill(true);
-                          setEditSkillIndex(index);
-                        }}
-                        className="h-8 px-3"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setDeleteSkill(true);
-                          setDeleteSkillIndex(index);
-                        }}
-                        className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <label className="text-muted-foreground">Level</label>
-                      <select
-                        value={skill.level}
-                        onChange={(e) =>
-                          handleLevelChange(skill.skillId, e.target.value)
-                        }
-                        className="mt-1 block w-full rounded border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring focus:border-blue-300"
-                      >
-                        <option value="BEGINNER">BEGINNER</option>
-                        <option value="INTERMEDIATE">INTERMEDIATE</option>
-                        <option value="EXPERT">EXPERT</option>
-                      </select>
+              <div className="grid grid-cols-2 gap-4">
+                {defaultValues.skills?.map((skill, index) => (
+                  <div
+                    key={index}
+                    className="rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="text-lg font-semibold">{skill.skill}</h4>
+                      </div>
+                      <div>
+                        <select
+                          value={skill.level}
+                          onChange={(e) =>
+                            handleLevelChange(skill.skillId, e.target.value)
+                          }
+                          className="mt-1 block w-full rounded border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring focus:border-blue-300"
+                        >
+                          <option value="BEGINNER">BEGINNER</option>
+                          <option value="INTERMEDIATE">INTERMEDIATE</option>
+                          <option value="EXPERT">EXPERT</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDeleteSkill(true);
+                            setDeleteSkillIndex(index);
+                          }}
+                          className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -864,7 +721,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       )}
 
       {deleteEdu && (
-        <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
+        <div className="w-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
             <p>Are you sure you want to delete this education entry?</p>
             <p className="text-red-500">This action cannot be undone. </p>

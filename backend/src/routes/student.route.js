@@ -14,6 +14,8 @@ import {
   addResume,
   updateEducation,
   updateStudentSkills,
+  createJobPreference,
+  getJobPreferences,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import pdfParse from 'pdf-parse';
@@ -93,5 +95,14 @@ router.post(
   upload.single('resume'),
   addResume,
 );
+
+router.post(
+  '/prefered-job/add',
+  authMiddleware,
+  isStudent,
+  createJobPreference,
+);
+
+router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);
 
 export default router;

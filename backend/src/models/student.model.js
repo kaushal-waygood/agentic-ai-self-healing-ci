@@ -1,5 +1,115 @@
 import { Schema, model } from 'mongoose';
 
+const jobPreferenceSchema = new Schema({
+  // Location Preferences
+  preferedCountries: {
+    type: [String],
+    default: [],
+  },
+  preferedCities: {
+    type: [String],
+    default: [],
+  },
+  isRemote: {
+    type: Boolean,
+    default: false,
+  },
+  relocationWillingness: {
+    type: Boolean,
+    default: false,
+  },
+
+  // Job Details
+  preferedJobTitles: {
+    type: [String],
+    default: [],
+  },
+  preferedJobTypes: {
+    type: [String],
+    default: ['FULL_TIME'],
+  },
+  preferedIndustries: {
+    type: [String],
+    default: [],
+  },
+  preferedExperienceLevel: {
+    type: String,
+    enum: ['ENTRY_LEVEL', 'MID_LEVEL', 'SENIOR', 'EXECUTIVE', null],
+    default: null,
+  },
+
+  // Compensation
+  preferedSalary: {
+    min: {
+      type: Number,
+      default: null,
+    },
+    max: {
+      type: Number,
+      default: null,
+    },
+    currency: {
+      type: String,
+      default: 'USD',
+    },
+    period: {
+      type: String,
+      enum: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR', null],
+      default: 'YEAR',
+    },
+  },
+
+  // Skills & Qualifications
+  mustHaveSkills: [
+    {
+      skill: String,
+      level: {
+        type: String,
+        enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'],
+      },
+    },
+  ],
+  niceToHaveSkills: [
+    {
+      skill: String,
+      level: {
+        type: String,
+        enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'],
+      },
+    },
+  ],
+  preferedCertifications: {
+    type: [String],
+    default: [],
+  },
+  preferedEducationLevel: {
+    type: String,
+    enum: ['HIGHSCHOOL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'PHD', null],
+    default: null,
+  },
+
+  // Company Preferences
+  preferedCompanySizes: {
+    type: [String],
+    enum: ['STARTUP', 'SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE', null],
+    default: [],
+  },
+  preferedCompanyCultures: {
+    type: [String],
+    default: [],
+  },
+
+  // Additional Preferences
+  visaSponsorshipRequired: {
+    type: Boolean,
+    default: false,
+  },
+  immediateAvailability: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const studentSchema = new Schema(
   {
     fullName: {
@@ -14,10 +124,6 @@ const studentSchema = new Schema(
       lowercase: true,
       trim: true,
     },
-    // password: {
-    //   type: String,
-    //   required: true,
-    // },
 
     // Basic Info
     phone: {
@@ -50,7 +156,6 @@ const studentSchema = new Schema(
       },
     ],
 
-    // Work Experience (if any)
     experience: [
       {
         experienceId: {
@@ -67,6 +172,9 @@ const studentSchema = new Schema(
         location: {
           type: String,
         },
+        experienceYrs: {
+          type: Number,
+        },
         startDate: Date,
         endDate: Date,
         description: String,
@@ -77,7 +185,6 @@ const studentSchema = new Schema(
       },
     ],
 
-    // Job-Related Preferences
     jobRole: {
       type: String,
     },
@@ -110,15 +217,10 @@ const studentSchema = new Schema(
       },
     ],
 
-    // Location Preferences
-    preferredCities: [String],
-    preferredStates: [String],
-    preferredCountries: [String],
-    preferredPostalCodes: [String],
-    preferredAddress: {
-      type: String,
+    jobPreferences: {
+      type: jobPreferenceSchema,
+      default: {},
     },
-    preferredLocations: [String],
 
     // Application Info
     appliedJobs: [

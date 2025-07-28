@@ -12,7 +12,10 @@ export default function OrganizationsDashboardPage() {
         description="View, create, and manage all partner organizations on the platform."
         icon={Building}
       />
-      <OrganizationClient initialOrganizations={organizations} users={users} />
+      <OrganizationClient
+        initialOrganizations={mockOrganizations}
+        users={mockUsers}
+      />
     </>
   );
 }

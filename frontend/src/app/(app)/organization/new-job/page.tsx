@@ -29,12 +29,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import QuillJs from '@/components/rich-text/QuillJs';
+// import QuillJs from '@/components/rich-text/QuillJs';
 import { useDispatch } from 'react-redux';
 import { postJobMannalByOrgAdminRequest } from '@/redux/reducers/jobReducer';
 
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-
+const QuillJs = dynamic(() => import('@/components/rich-text/QuillJs'), {
+  ssr: false,
+});
 const jobSchema = z.object({
   title: z.string().min(1, 'Job title is required'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
