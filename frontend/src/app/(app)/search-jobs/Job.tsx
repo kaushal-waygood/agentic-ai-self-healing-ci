@@ -3,8 +3,7 @@ import { JobCard } from '@/components/jobs/job-card';
 import { Search } from 'lucide-react';
 import { searchJobsFlow } from '@/ai/flows/search-jobs-flow';
 import { JobSearchFlowInput } from '@/lib/schemas/job-search-schema';
-import axios from 'axios';
-import apiInstance from '@/services/api';
+import Link from 'next/link';
 
 async function fetchJobs(searchParams: JobSearchFlowInput) {
   // Process params safely
@@ -23,7 +22,14 @@ async function fetchJobs(searchParams: JobSearchFlowInput) {
     radius: searchParams.radius ? Number(searchParams.radius) : undefined,
   };
 
-  return await searchJobsFlow(processedParams);
+  // Assuming searchJobsFlow returns the jobs or throws an error
+  try {
+    const jobs = await searchJobsFlow(processedParams);
+    return jobs || []; // Ensure it returns an array
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    return []; // Return an empty array on error
+  }
 }
 
 export default async function SearchJobsPage({
@@ -31,17 +37,8 @@ export default async function SearchJobsPage({
 }: {
   searchParams: JobSearchFlowInput;
 }) {
-  const hasQuery = searchParams?.query;
-  let jobs = [];
-
-  if (hasQuery) {
-    try {
-      const response = await apiInstance.post('/job');
-      console.log(response.data);
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
-    }
-  }
+  const hasQuery = !!searchParams?.query;
+  const jobs = hasQuery ? await fetchJobs(searchParams) : [];
 
   return (
     <>
@@ -52,9 +49,8 @@ export default async function SearchJobsPage({
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8 items-start">
-        {/* Filters section - simplified */}
+        {/* Filters section */}
         <aside className="sticky top-6">
-          {/* Your filter component would go here */}
           <div>Filters will go here</div>
         </aside>
 
@@ -77,7 +73,9 @@ export default async function SearchJobsPage({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {jobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <Link href={`/jobs/${job.id}`} key={job.id}>
+                  <JobCard job={job} />
+                </Link>
               ))}
             </div>
           )}

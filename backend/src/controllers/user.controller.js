@@ -124,13 +124,13 @@ export const signInUser = async (req, res) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
-        maxAge: 60 * 60 * 60 * 1000,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       })
       .cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
     res.status(200).json({ accessToken, user });
@@ -161,7 +161,7 @@ export const refreshAccessToken = async (req, res) => {
       httpOnly: true,
       // secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
-      maxAge: 15 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
       path: '/', // Explicitly set path
       domain: process.env.COOKIE_DOMAIN || 'localhost', // Set domain
     });

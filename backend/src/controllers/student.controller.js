@@ -6,6 +6,8 @@ import { cloudinary } from '../config/cloudinary.js';
 import fs from 'fs';
 import path from 'path';
 import { safeUnlink, __dirname } from '../utils/fileUploadingManaging.js';
+import calculateExperience from '../utils/calculateExperience.js';
+import mongoose from 'mongoose';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
@@ -68,6 +70,40 @@ export const addStudentSkills = async (req, res) => {
   }
 };
 
+export const updateFullName = async (req, res) => {
+  const { fullName } = req.body;
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    student.fullName = fullName;
+    await student.save();
+    res.status(200).json({ message: 'Full name updated successfully' });
+  } catch (error) {
+    console.error('Error updating full name:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const updateJobRole = async (req, res) => {
+  const { jobRole } = req.body;
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    student.jobRole = jobRole;
+    await student.save();
+    res.status(200).json({ message: 'Job role updated successfully' });
+  } catch (error) {
+    console.error('Error updating job role:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const removeStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { _id } = req.user;
@@ -90,7 +126,6 @@ export const updateStudentSkills = async (req, res) => {
   const { level } = req.body;
   const { _id } = req.user;
 
-  console.log(skillId, level);
   try {
     const student = await Student.findById(_id);
     if (!student) {
@@ -127,6 +162,12 @@ export const addExperience = async (req, res) => {
       return res.status(400).json({ message: 'Experience already exists' });
     }
 
+    const experienceYrs = calculateExperience(
+      startDate,
+      endDate,
+      currentlyWorking,
+    );
+
     student.experience.push({
       experienceId,
       company,
@@ -135,6 +176,7 @@ export const addExperience = async (req, res) => {
       endDate,
       description,
       currentlyWorking,
+      experienceYrs,
     });
 
     await student.save();
@@ -481,33 +523,95 @@ export const addResume = async (req, res) => {
 
 export const appliedJob = async (req, res) => {
   const { jobId } = req.params;
+  const { _id } = req.user;
 
   try {
-    const student = await Student.findById(req.user._id);
+    // Validate jobId format if using MongoDB
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({ message: 'Invalid job ID format' });
+    }
+
+    // Find student and job in parallel for better performance
+    const [student, job] = await Promise.all([
+      Student.findById(_id),
+      Job.findById(jobId),
+    ]);
+
     if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    const job = await Job.findById(jobId);
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
-
-    if (student.appliedJobs.includes(jobId)) {
       return res
-        .status(400)
-        .json({ message: 'You have already applied for this job' });
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
     }
 
-    student.appliedJobs.push(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
 
-    job.appliedStudents.push(student._id);
-    await student.save();
+    // Check if already applied
+    if (student.appliedJobs.some((id) => id.toString() === jobId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already applied for this job',
+      });
+    }
 
-    return res.status(200).json({ message: 'Job applied successfully' });
+    // Handle potential validation errors
+    try {
+      student.appliedJobs.push(jobId);
+      job.appliedStudents.push(student._id);
+
+      // Save both in parallel
+      await Promise.all([student.save(), job.save()]);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Job applied successfully',
+      });
+    } catch (saveError) {
+      // Handle validation errors specifically
+      if (saveError.name === 'ValidationError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          error: saveError.message,
+        });
+      }
+      throw saveError; // Re-throw other errors
+    }
   } catch (error) {
     console.error('Error applying for job:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const isAppliedOrNot = async (req, res) => {
+  const { jobId } = req.query;
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
+    }
+
+    const isApplied = student.appliedJobs.some((id) => id.toString() === jobId);
+
+    return res.status(200).json({
+      success: true,
+      isApplied,
+    });
+  } catch (error) {
+    console.error('Error checking if applied:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
@@ -564,5 +668,280 @@ export const removeProject = async (req, res) => {
   } catch (error) {
     console.error('Error removing project:', error);
     return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const createJobPreference = async (req, res) => {
+  try {
+    const {
+      // Location
+      preferedCountries,
+      preferedCities,
+      isRemote,
+      relocationWillingness,
+
+      // Job Details
+      preferedJobTitles,
+      preferedJobTypes,
+      preferedIndustries,
+      preferedExperienceLevel,
+
+      // Compensation
+      preferedSalary,
+
+      // Skills
+      mustHaveSkills,
+      niceToHaveSkills,
+      preferedCertifications,
+      preferedEducationLevel,
+
+      // Company
+      preferedCompanySizes,
+      preferedCompanyCultures,
+
+      // Additional
+      visaSponsorshipRequired,
+      immediateAvailability,
+    } = req.body;
+
+    console.log(req.body);
+
+    // Validate must-have skills structure
+    if (mustHaveSkills && Array.isArray(mustHaveSkills)) {
+      for (const skill of mustHaveSkills) {
+        if (!skill.skill || !skill.level) {
+          return res.status(400).json({
+            message: 'Must-have skills must have both skill name and level',
+          });
+        }
+      }
+    }
+
+    // Build update object
+    const update = {};
+    const fields = [
+      'preferedCountries',
+      'preferedCities',
+      'isRemote',
+      'relocationWillingness',
+      'preferedJobTitles',
+      'preferedJobTypes',
+      'preferedIndustries',
+      'preferedExperienceLevel',
+      'preferedSalary',
+      'mustHaveSkills',
+      'niceToHaveSkills',
+      'preferedCertifications',
+      'preferedEducationLevel',
+      'preferedCompanySizes',
+      'preferedCompanyCultures',
+      'visaSponsorshipRequired',
+      'immediateAvailability',
+    ];
+
+    fields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        update[`jobPreferences.${field}`] = req.body[field];
+      }
+    });
+
+    // Update student with validation
+    const student = await Student.findByIdAndUpdate(
+      req.user._id,
+      { $set: update },
+      {
+        new: true,
+        runValidators: true,
+        select: 'jobPreferences',
+      },
+    );
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Job preferences updated successfully',
+      preferences: student.jobPreferences,
+    });
+  } catch (error) {
+    console.error('Error updating job preferences:', error);
+
+    // Handle specific error types
+    if (error.name === 'ValidationError') {
+      const errors = {};
+      Object.keys(error.errors).forEach((key) => {
+        errors[key] = error.errors[key].message;
+      });
+      return res.status(400).json({
+        message: 'Validation error',
+        errors,
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: 'Invalid data type provided',
+        field: error.path,
+        expectedType: error.kind,
+      });
+    }
+
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getJobPreferences = async (req, res) => {
+  try {
+    // Explicitly select the jobPreferences field
+    const student = await Student.findById(req.user._id).select(
+      'jobPreferences',
+    );
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Return empty object if no preferences exist yet
+    const preferences = student.jobPreferences || {};
+
+    return res.status(200).json({
+      success: true,
+      preferences,
+    });
+  } catch (error) {
+    console.error('Error getting job preferences:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const savedJobs = async (req, res) => {
+  const { _id } = req.user;
+  const { jobId } = req.body;
+
+  try {
+    // Atomically update only the savedJobs array
+    const updatedStudent = await Student.findByIdAndUpdate(
+      _id,
+      { $addToSet: { savedJobs: jobId } }, // Adds jobId only if it's not already there
+      { new: true, runValidators: false }, // `new: true` returns the updated doc
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      savedJobs: updatedStudent.savedJobs,
+    });
+  } catch (error) {
+    // The console error name is more accurate now
+    console.error('Error saving job:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const getSavedJobs = async (req, res) => {
+  try {
+    const { _id } = req.user;
+
+    // Validate user ID
+    if (!_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required',
+      });
+    }
+
+    // Find student with populated savedJobs
+    const student = await Student.findById(_id).populate({
+      path: 'savedJobs',
+      select: '-__v', // Exclude version key
+      options: { lean: true }, // Return plain JavaScript objects
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    // If you want to transform the data before sending
+    const savedJobs = student.savedJobs.map((job) => ({
+      ...(job.toObject ? job.toObject() : job), // Handle both mongoose docs and lean objects
+      // Add any transformations here
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: savedJobs, // Better to wrap in a 'data' property
+      count: savedJobs.length, // Useful metadata
+    });
+  } catch (error) {
+    console.error('Error getting saved jobs:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const isSavedOrNot = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const { jobId } = req.query;
+
+    console.log(_id, jobId);
+
+    // Validate inputs
+    if (!_id || !jobId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Both user ID and job ID are required',
+      });
+    }
+
+    // Check if jobId is a valid ObjectId if you're using MongoDB
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid job ID format',
+      });
+    }
+
+    const student = await Student.findById(_id).select('savedJobs');
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    // Convert to string for comparison (MongoDB ObjectIds need special handling)
+    const isSaved = student.savedJobs.some(
+      (savedJob) => savedJob.toString() === jobId,
+    );
+
+    return res.status(200).json({
+      success: true,
+      isSaved,
+    });
+  } catch (error) {
+    console.error('Error checking saved status:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while checking saved status',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };

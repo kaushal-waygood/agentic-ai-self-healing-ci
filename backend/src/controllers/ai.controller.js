@@ -72,6 +72,9 @@ export const extractStudentDataFromCV = async (req, res) => {
       startDate: item.startDate ? new Date(item.startDate) : null,
       endDate: item.endDate ? new Date(item.endDate) : null,
       description: item.description || '',
+      experienceYrs: item.experienceYrs || 0,
+      currentlyWorking: item.currentlyWorking || false,
+      technologies: item.technologies || [],
     }));
 
     const skills = (parsedJson.skills || []).map((item) => {
@@ -110,6 +113,7 @@ export const extractStudentDataFromCV = async (req, res) => {
         education,
         experience,
         projects,
+        jobPreferences: parsedJson.jobPreferences || student.jobPreferences,
         // resumeUrl: `/pdf/${req.file.filename}`,
       },
       { new: true, runValidators: true },
@@ -118,7 +122,6 @@ export const extractStudentDataFromCV = async (req, res) => {
     return res.json({
       success: true,
       data: updatedStudent,
-      parsedJson,
     });
   } catch (error) {
     console.error('Error updating student from CV:', error);

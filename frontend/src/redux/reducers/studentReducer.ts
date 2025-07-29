@@ -196,6 +196,23 @@ const studentSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    updateStudentJobPreferenceRequest: (state, action: PayloadAction<any>) => {
+      console.log('action.payload', action.payload);
+      state.loading = true;
+      state.error = null;
+    },
+    updateStudentJobPreferenceSuccess: (state) => {
+      state.loading = false;
+      state.error = null;
+    },
+    updateStudentJobPreferenceFailure: (
+      state,
+      action: PayloadAction<string>,
+    ) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -241,5 +258,10 @@ export const {
   updateStudentSkillRequest,
   updateStudentSkillSuccess,
   updateStudentSkillFailure,
+
+  //job preference
+  updateStudentJobPreferenceRequest,
+  updateStudentJobPreferenceSuccess,
+  updateStudentJobPreferenceFailure,
 } = studentSlice.actions;
 export default studentSlice.reducer;

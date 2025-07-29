@@ -14,6 +14,13 @@ import {
   addResume,
   updateEducation,
   updateStudentSkills,
+  createJobPreference,
+  getJobPreferences,
+  updateFullName,
+  savedJobs,
+  getSavedJobs,
+  isSavedOrNot,
+  isAppliedOrNot,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import pdfParse from 'pdf-parse';
@@ -24,7 +31,10 @@ import { __dirname } from '../utils/fileUploadingManaging.js';
 const router = Router();
 
 router.get('/details', authMiddleware, isStudent, studentDetails);
-router.post('/apply/:jobId', authMiddleware, isStudent, appliedJob);
+router.post('/job/apply/:jobId', authMiddleware, isStudent, appliedJob);
+router.get('/job/isapplied', authMiddleware, isStudent, isAppliedOrNot);
+
+router.patch('/fullname/update', authMiddleware, isStudent, updateFullName);
 
 // Skills
 router.post('/skill/add', authMiddleware, isStudent, addStudentSkills);
@@ -93,5 +103,18 @@ router.post(
   upload.single('resume'),
   addResume,
 );
+
+router.post(
+  '/prefered-job/add',
+  authMiddleware,
+  isStudent,
+  createJobPreference,
+);
+
+router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);
+
+router.post('/jobs/saved', authMiddleware, isStudent, savedJobs);
+router.get('/jobs/saved', authMiddleware, isStudent, getSavedJobs);
+router.get('/jobs/issaved', authMiddleware, isStudent, isSavedOrNot);
 
 export default router;

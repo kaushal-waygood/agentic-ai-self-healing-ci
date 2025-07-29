@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -9,40 +8,86 @@
  * - CVGenerationOutput - The return type for the generateCv function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const CVGenerationInputSchema = z.object({
-  cvData: z.string().describe('The CV data, either as a data URI for a file (PDF, DOC, DOCX) or as a structured JSON string.'),
+  cvData: z
+    .string()
+    .describe(
+      'The CV data, either as a data URI for a file (PDF, DOC, DOCX) or as a structured JSON string.',
+    ),
   jobTitle: z.string().describe('The target job title for the CV.'),
-  jobDescription: z.string().optional().describe('The full job description, if available. This provides more context for tailoring.'),
-  userNarratives: z.string().optional().describe('Optional user narratives about challenges, achievements, and appreciation.'),
+  jobDescription: z
+    .string()
+    .optional()
+    .describe(
+      'The full job description, if available. This provides more context for tailoring.',
+    ),
+  userNarratives: z
+    .string()
+    .optional()
+    .describe(
+      'Optional user narratives about challenges, achievements, and appreciation.',
+    ),
 });
 export type CVGenerationInput = z.infer<typeof CVGenerationInputSchema>;
 
 const CVGenerationOutputSchema = z.object({
-  cv: z.string().describe('The generated CV as an HTML string, formatted with Tailwind CSS classes according to Harvard CV guidelines.'),
-  atsScore: z.number().min(0).max(100).describe('An ATS (Applicant Tracking System) compatibility score from 0 to 100, based on keyword relevance, formatting, and clarity for the target job title. Integer value.'),
-  atsScoreReasoning: z.string().describe('A brief explanation for the ATS score provided, highlighting key factors.'),
+  cv: z
+    .string()
+    .describe(
+      'The generated CV as an HTML string, formatted with Tailwind CSS classes according to Harvard CV guidelines.',
+    ),
+  atsScore: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe(
+      'An ATS (Applicant Tracking System) compatibility score from 0 to 100, based on keyword relevance, formatting, and clarity for the target job title. Integer value.',
+    ),
+  atsScoreReasoning: z
+    .string()
+    .describe(
+      'A brief explanation for the ATS score provided, highlighting key factors.',
+    ),
 });
 export type CVGenerationOutput = z.infer<typeof CVGenerationOutputSchema>;
 
 const CvPromptInputSchema = z.object({
   jobTitle: z.string().describe('The job title the CV is being generated for.'),
-  jobDescription: z.string().optional().describe('The full job description for more detailed context.'),
-  jsonData: z.string().optional().describe('The CV data as a structured JSON string.'),
-  fileDataUri: z.string().optional().describe("A CV file (PDF, DOCX) as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
-  userNarratives: z.string().optional().describe('User narratives about challenges, achievements, and appreciation. Integrate these naturally into the CV, perhaps in the summary or experience descriptions if relevant and appropriate for a Harvard style CV.'),
+  jobDescription: z
+    .string()
+    .optional()
+    .describe('The full job description for more detailed context.'),
+  jsonData: z
+    .string()
+    .optional()
+    .describe('The CV data as a structured JSON string.'),
+  fileDataUri: z
+    .string()
+    .optional()
+    .describe(
+      "A CV file (PDF, DOCX) as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'.",
+    ),
+  userNarratives: z
+    .string()
+    .optional()
+    .describe(
+      'User narratives about challenges, achievements, and appreciation. Integrate these naturally into the CV, perhaps in the summary or experience descriptions if relevant and appropriate for a Harvard style CV.',
+    ),
 });
 
-export async function generateCv(input: CVGenerationInput): Promise<CVGenerationOutput> {
+export async function generateCv(
+  input: CVGenerationInput,
+): Promise<CVGenerationOutput> {
   return generateCvFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'cvGenerationPrompt',
-  input: {schema: CvPromptInputSchema}, 
-  output: {schema: CVGenerationOutputSchema},
+  input: { schema: CvPromptInputSchema },
+  output: { schema: CVGenerationOutputSchema },
   prompt: `You are an expert CV writer generating a world-class CV meticulously based on the Harvard CV template design, but using Tailwind CSS classes for all styling.
 **CRITICAL INSTRUCTIONS:**
 1.  **Use Tailwind CSS Classes ONLY:** You MUST use Tailwind CSS utility classes for all styling. Do NOT use inline \`style\` attributes. The final output must be a single block of HTML, starting with a container div like \`<div class="bg-white p-10 font-sans">\`.
@@ -150,23 +195,28 @@ const generateCvFlow = ai.defineFlow(
     const promptPayload: z.infer<typeof CvPromptInputSchema> = {
       jobTitle: originalInput.jobTitle,
       jobDescription: originalInput.jobDescription,
-      userNarratives: originalInput.userNarratives, 
+      userNarratives: originalInput.userNarratives,
     };
 
-    if (originalInput.cvData.startsWith('data:') && originalInput.cvData.includes(';base64,')) {
+    if (
+      originalInput.cvData.startsWith('data:') &&
+      originalInput.cvData.includes(';base64,')
+    ) {
       promptPayload.fileDataUri = originalInput.cvData;
     } else {
       promptPayload.jsonData = originalInput.cvData;
     }
 
-    const {output} = await prompt(promptPayload);
-    
+    const { output } = await prompt(promptPayload);
+
     if (!output) {
       console.error('CV generation failed: AI model returned no output.');
-      throw new Error('CV generation failed: AI model returned no output. Please try again.');
+      throw new Error(
+        'CV generation failed: AI model returned no output. Please try again.',
+      );
     }
     // Ensure ATS score is an integer
     output.atsScore = Math.round(output.atsScore);
     return output;
-  }
+  },
 );

@@ -86,7 +86,7 @@ userSchema.methods.generateAccessToken = function () {
     },
     config.accessTokenSecret,
     {
-      expiresIn: config.accessTokenExpiry || '7d', // Optional default
+      expiresIn: '7d', // Optional default
     },
   );
 };
@@ -101,7 +101,7 @@ userSchema.methods.generateRefreshToken = function () {
     },
     config.refreshTokenSecret,
     {
-      expiresIn: config.refreshTokenExpiry || '7d',
+      expiresIn: '7d',
     },
   );
 };

@@ -1,19 +1,48 @@
-
 import { z } from 'zod';
 
-// Define and export the input schema. This is the single source of truth.
-export const JobSearchFlowInputSchema = z.object({
-  query: z.string().min(1, "Search query is required."),
-  country: z.string().optional(),
-  language: z.string().optional(),
-  datePosted: z.enum(['all', 'today', '3days', 'week', 'month']).optional().default('all'),
-  workFromHome: z.boolean().optional().default(false),
-  employmentTypes: z.array(z.string()).optional().default([]), // e.g., ['FULLTIME', 'CONTRACTOR']
-  jobRequirements: z.array(z.string()).optional().default([]), // e.g., ['no_degree', 'under_3_years_experience']
-  radius: z.number().min(0).optional(),
-  excludeJobPublishers: z.string().optional(), // Comma-separated string
-  page: z.number().optional(),
+export const JobPreferencesSchema = z.object({
+  // Location Preferences
+  preferedCountries: z.array(z.string()).optional().default([]),
+  preferedCities: z.array(z.string()).optional().default([]),
+  isRemote: z.boolean().optional().default(false),
+  relocationWillingness: z
+    .enum(['not-willing', 'open', 'very-willing', 'seeking'])
+    .optional(),
+
+  // Job Details
+  preferedJobTitles: z.array(z.string()).optional().default([]),
+  preferedJobTypes: z.array(z.string()).optional().default([]),
+  preferedIndustries: z.array(z.string()).optional().default([]),
+  preferedExperienceLevel: z
+    .enum(['ENTRY_LEVEL', 'MID_LEVEL', 'SENIOR', 'EXECUTIVE', 'NONE'])
+    .optional(),
+
+  // Compensation
+  preferedSalary: z.string().optional(),
+
+  // Skills & Education
+  mustHaveSkills: z
+    .array(
+      z.object({
+        skill: z.string().optional(),
+        level: z.string().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
+  niceToHaveSkills: z.array(z.string()).optional().default([]),
+  preferedCertifications: z.array(z.string()).optional().default([]),
+  preferedEducationLevel: z
+    .enum(['high_school', 'associate', 'bachelor', 'master', 'phd', 'none'])
+    .optional(),
+
+  // Company Preferences
+  preferedCompanySizes: z.array(z.string()).optional().default([]),
+  preferedCompanyCultures: z.array(z.string()).optional().default([]),
+
+  // Additional Preferences
+  visaSponsorshipRequired: z.boolean().optional().default(false),
+  immediateAvailability: z.boolean().optional().default(false),
 });
 
-// Export the type derived from the schema
-export type JobSearchFlowInput = z.infer<typeof JobSearchFlowInputSchema>;
+export type JobPreferences = z.infer<typeof JobPreferencesSchema>;
