@@ -12,6 +12,8 @@ import {
 } from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useToast } from '@/hooks/use-toast';
+import apiInstance from '@/services/api';
+import { AxiosResponse } from 'axios';
 
 const employmentTypes = [
   'Full-time',
@@ -365,26 +367,6 @@ export const useProfile = () => {
     });
   };
 
-  const handleJobSearchSubmit = (
-    data: Pick<
-      ProfileFormValues,
-      | 'preferredCountry'
-      | 'preferredLanguage'
-      | 'preferredDatePosted'
-      | 'prefersWorkFromHome'
-      | 'preferredEmploymentTypes'
-      | 'preferredJobRequirements'
-      | 'preferredSearchRadius'
-      | 'excludedJobPublishers'
-    >,
-  ) => {
-    // Call API for job search preferences update
-    toast({
-      title: 'Job Search Preferences Updated',
-      description: 'Your job search preferences have been saved successfully.',
-    });
-  };
-
   useEffect(() => {
     const fetchStudentDetails = async () => {
       try {
@@ -433,10 +415,32 @@ export const useProfile = () => {
   };
   const toggleEmailEdit = () => setIsEmailEditable((prev) => !prev);
 
-  const handlePersonalInfoEdit = (handle: string) => {
-    console.log(handleName);
-    setIsNameEditable(true);
-    setIsEmailEditable(true);
+  const handlePersonalInfoEdit = async (handle: string) => {
+    if (handle === 'fullName') {
+      const response: AxiosResponse = await apiInstance.patch(
+        '/students/fullname/update',
+        {
+          fullName: handleName,
+        },
+      );
+
+      setIsNameEditable(false);
+      setHandleName('');
+      toast({
+        title: 'Personal Information Updated',
+        description: 'Your personal information has been saved successfully.',
+      });
+    } else if (handle === 'email') {
+      const response: AxiosResponse = await apiInstance.patch(
+        '/students/email/update',
+        {
+          email: handleEmail,
+        },
+      );
+
+      setIsEmailEditable(false);
+      setHandleEmail('');
+    }
   };
 
   return {
@@ -501,7 +505,7 @@ export const useProfile = () => {
     handlePersonalInfoSubmit,
     handleCareerDetailsSubmit,
     handleNarrativesSubmit,
-    handleJobSearchSubmit,
+
     onCancel,
     deleteEducation,
     handleLevelChange,

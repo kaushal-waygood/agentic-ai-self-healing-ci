@@ -27,6 +27,7 @@ export default function JobsPage() {
     filterModal,
     applyFilters,
     resetFilters,
+    applySearchFilters,
   } = useJobs();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -122,9 +123,8 @@ export default function JobsPage() {
   return (
     <div>
       <SearchFilters
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onSearchInput={handleSearchInput} // Now passes just the value
+        onApply={applySearchFilters}
+        initialFilters={filters}
         onOpenFilterModal={() => setFilterModal(true)}
       />
       <FilterModal

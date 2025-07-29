@@ -10,7 +10,6 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   MapPin,
@@ -24,6 +23,7 @@ import {
   CheckCircle,
   Mail,
   ExternalLink,
+  Save,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -45,6 +45,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
+import { FormattedText } from '@/utils/FormatText';
+import apiInstance from '@/services/api';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -56,6 +58,61 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [isLoadingScore, setIsLoadingScore] = useState(false);
   const { toast } = useToast();
   const [canUseProFeatures, setCanUseProFeatures] = useState(false);
+  const [isSaved, setIsSaved] = useState();
+  const [isApplying, setIsApplying] = useState(false);
+
+  // In your handleSavedJob function
+  const handleSavedJob = async () => {
+    try {
+      const response = await apiInstance.post('students/jobs/saved', {
+        jobId: job._id,
+      });
+
+      // ✅ ADD THIS LINE: Update the state after a successful save
+      setIsSaved(true);
+
+      toast({
+        title: 'Job Saved!',
+        description: 'You have successfully saved this job.',
+      });
+    } catch (error) {
+      console.error('Failed to save job:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not save the job.',
+      });
+    }
+  };
+
+  const fetchSavedJob = async () => {
+    const resposne = await apiInstance.get('students/jobs/issaved', {
+      params: {
+        jobId: job._id,
+      },
+    });
+    setIsSaved(resposne.data.isSaved);
+  };
+
+  useEffect(() => {
+    const handleIsJobApplied = async () => {
+      try {
+        console.log('job._id', job._id);
+        const response = await apiInstance.get('/students/job/isapplied', {
+          params: job._id,
+        });
+        setIsApplying(response.data.isApplied);
+        console.log('isApplied', response.data.isApplied);
+      } catch (error) {
+        console.error('Failed to check if job is applied:', error);
+      }
+    };
+    handleIsJobApplied();
+  }, []);
+
+  useEffect(() => {
+    fetchSavedJob();
+  }, [job]);
 
   useEffect(() => {
     // Determine the user's effective plan
@@ -128,6 +185,22 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     }
   };
 
+  const handleApplyOnSite = async () => {
+    try {
+      const response = await apiInstance.post(`/students/job/apply/${job._id}`);
+      if (response.status === 200) {
+        window.open(job.applyMethod.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Failed to apply:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to apply for the job',
+      });
+    }
+  };
+
   if (!job) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -157,22 +230,27 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <FilePlus2 className="mr-2 h-4 w-4" /> Tailor & Apply
               </Link>
             </Button>
-            {job.jobUrl && (
-              <Button asChild variant="outline">
-                <a href={job.jobUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" /> Apply on Company
-                  Site
-                </a>
+            {job.applyMethod.url && (
+              <Button variant="outline" onClick={handleApplyOnSite}>
+                <ExternalLink className="mr-2 h-4 w-4" /> Apply on Company Site
               </Button>
             )}
+            <Button
+              variant="outline"
+              onClick={handleSavedJob}
+              disabled={isSaved}
+            >
+              <Save
+                className="mr-2 h-4 w-4"
+                // Fill the icon if the job is saved
+                fill={isSaved ? 'currentColor' : 'none'}
+              />
+              {isSaved ? 'Saved' : 'Save Job'}
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {console.log(job.description)}
-          <p
-            className="text-muted-foreground leading-relaxed text-sm"
-            dangerouslySetInnerHTML={{ __html: job.description }}
-          ></p>
+          <FormattedText text={job.description} />
         </CardContent>
       </Card>
 

@@ -61,3 +61,9 @@ export const updateSkill = async (data: any) => {
   );
   return response;
 };
+
+export const updateJobPreference = async (data: any) => {
+  console.log('data', data);
+  const response = await apiInstance.post('/students/prefered-job/add', data);
+  return response;
+};

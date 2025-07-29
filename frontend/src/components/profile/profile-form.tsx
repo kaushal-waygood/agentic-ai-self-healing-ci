@@ -107,7 +107,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handlePersonalInfoSubmit,
     handleCareerDetailsSubmit,
     handleNarrativesSubmit,
-    handleJobSearchSubmit,
+    // handleJobSearchSubmit,
     onCancel,
     deleteEducation,
     handleLevelChange,
@@ -158,7 +158,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           <Button
                             type="button"
                             size="icon"
-                            onClick={handlePersonalInfoEdit}
+                            onClick={() => handlePersonalInfoEdit('fullName')}
                             variant="outline"
                           >
                             <Check size={16} />
@@ -217,9 +217,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" size="sm">
-                  <Save className="mr-2 h-4 w-4" /> Save Personal Info
-                </Button>
               </div>
             </form>
           </Form>
@@ -640,10 +637,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         </CardHeader>
 
         <CardContent>
-          <JobPref
-            jobSearchForm={jobSearchForm}
-            handleJobSearchSubmit={handleJobSearchSubmit}
-          />
+          <JobPref />
         </CardContent>
       </Card>
 

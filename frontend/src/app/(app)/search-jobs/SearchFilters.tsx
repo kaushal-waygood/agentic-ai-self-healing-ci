@@ -1,8 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Filter } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -10,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useEffect, useState } from 'react';
+import { Filter } from 'lucide-react';
+
+// --- Types and Options ---
 
 export const datePostedOptions = [
   { id: '1', label: 'Last 24 hours' },
@@ -19,93 +21,99 @@ export const datePostedOptions = [
   { id: '30', label: 'Last month' },
 ];
 
+interface FilterState {
+  query: string;
+  country: string;
+  city: string;
+  datePosted: string;
+}
+
 interface SearchFiltersProps {
-  filters: {
-    query: string;
-    country: string;
-    city: string;
-    datePosted: string;
-  };
-  onFilterChange: (name: string, value: string) => void;
-  onSearchInput: (value: string) => void; // Changed to accept string directly
+  initialFilters: FilterState;
+  onApply: (newFilters: FilterState) => void;
   onOpenFilterModal: () => void;
 }
 
+// --- Component ---
+
 export const SearchFilters = ({
-  filters,
-  onFilterChange,
-  onSearchInput,
+  initialFilters,
+  onApply,
   onOpenFilterModal,
 }: SearchFiltersProps) => {
-  const [localQuery, setLocalQuery] = useState(filters.query);
+  const [localFilters, setLocalFilters] = useState<FilterState>(initialFilters);
 
-  // Debounce effect
+  const handleInputChange = (name: keyof FilterState, value: string) => {
+    setLocalFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearchInput(localQuery);
-    }, 500); // 500ms delay
+    setLocalFilters(initialFilters);
+  }, [initialFilters]);
 
-    return () => clearTimeout(timer);
-  }, [localQuery, onSearchInput]);
+  const handleApplyClick = () => {
+    onApply(localFilters);
+  };
 
   return (
-    <div className="flex justify-between items-center mb-6 gap-3">
-      <div className="w-full flex gap-2">
-        <div className="w-full">
-          <Input
-            placeholder="Search jobs..."
-            value={localQuery}
-            onChange={(e) => setLocalQuery(e.target.value)}
-            className="outline-none bg-white"
-          />
-        </div>
+    <div className="flex flex-wrap items-center justify-between mb-6 gap-3">
+      <div className="flex flex-1 items-center gap-2 min-w-[300px]">
+        {/* Search Query Input */}
+        <Input
+          placeholder="Job title, keywords, or company"
+          value={localFilters.query}
+          onChange={(e) => handleInputChange('query', e.target.value)}
+          className="outline-none bg-white"
+        />
 
-        <div className="w-full">
-          <Input
-            id="country"
-            placeholder="Country"
-            value={filters.country}
-            onChange={(e) => onFilterChange('country', e.target.value)}
-            className="outline-none bg-white"
-          />
-        </div>
-        <div className="w-full">
-          <Input
-            id="city"
-            placeholder="City"
-            value={filters.city}
-            onChange={(e) => onFilterChange('city', e.target.value)}
-            className="outline-none bg-white"
-          />
-        </div>
+        {/* Country Input */}
+        <Input
+          placeholder="Country"
+          value={localFilters.country}
+          onChange={(e) => handleInputChange('country', e.target.value)}
+          className="outline-none bg-white"
+        />
 
-        <div className="w-full">
-          <Select
-            value={filters.datePosted}
-            onValueChange={(value) => onFilterChange('datePosted', value)}
-          >
-            <SelectTrigger className="outline-none bg-white">
-              <SelectValue placeholder="Select date posted" />
-            </SelectTrigger>
-            <SelectContent className="outline-none bg-white">
-              {datePostedOptions.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* City Input */}
+        <Input
+          placeholder="City"
+          value={localFilters.city}
+          onChange={(e) => handleInputChange('city', e.target.value)}
+          className="outline-none bg-white"
+        />
+
+        {/* Date Posted Select */}
+        <Select
+          value={localFilters.datePosted}
+          onValueChange={(value) => handleInputChange('datePosted', value)}
+        >
+          <SelectTrigger className="outline-none bg-white">
+            <SelectValue placeholder="Date Posted" />
+          </SelectTrigger>
+          <SelectContent className="outline-none bg-white">
+            {datePostedOptions.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <Button
-        variant="outline"
-        onClick={onOpenFilterModal}
-        className="flex items-center gap-2 bg-white"
-      >
-        <Filter className="h-4 w-4" />
-        Filters
-      </Button>
+      <div className="flex items-center gap-2">
+        {/* The button to apply all selected filters at once */}
+        <Button onClick={handleApplyClick}>Search</Button>
+
+        {/* Button to open the more advanced filter modal */}
+        <Button
+          variant="outline"
+          onClick={onOpenFilterModal}
+          className="flex items-center gap-2 bg-white"
+        >
+          <Filter className="h-4 w-4" />
+          More Filters
+        </Button>
+      </div>
     </div>
   );
 };

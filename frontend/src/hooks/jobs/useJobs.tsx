@@ -98,6 +98,8 @@ export const useJobs = () => {
       params.set('query', value);
       params.set('page', '1');
       router.push(`?${params.toString()}`, { scroll: false });
+
+      console.log('value', value);
     },
     [router, searchParams],
   );
@@ -117,6 +119,24 @@ export const useJobs = () => {
       router.push(`?${params.toString()}`, { scroll: false });
     },
     [router, searchParams],
+  );
+
+  const applySearchFilters = useCallback(
+    (newFilters: { [key: string]: string | string[] }) => {
+      const params = new URLSearchParams(); // Start fresh or use existing
+      params.set('page', '1'); // Always reset to page 1
+
+      // Set all new filter values
+      Object.entries(newFilters).forEach(([key, value]) => {
+        if (value) {
+          // Ensure value is not empty
+          params.set(key, Array.isArray(value) ? value.join(',') : value);
+        }
+      });
+
+      router.push(`?${params.toString()}`, { scroll: false });
+    },
+    [router],
   );
 
   // Apply filters
@@ -178,5 +198,7 @@ export const useJobs = () => {
     applyFilters,
     resetFilters: resetAllFilters,
     handleCardClick,
+
+    applySearchFilters,
   };
 };

@@ -139,6 +139,8 @@ export const fetchAndSaveRapidJobsUseLater = async (req, res) => {
           continue; // Skip to next job
         }
 
+        console.log(`Processing job: ${job.job_highlights.Qualifications}`);
+
         // Extract job details
         const experience = extractExperience(job.job_description);
         const qualifications = extractQualifications(job.job_description);
@@ -309,6 +311,10 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
 
     const jobs = response.data.data;
 
+    jobs.forEach((job) => {
+      console.log(job.job_highlights);
+    });
+
     let savedCount = 0;
 
     for (const job of jobs) {
@@ -376,6 +382,7 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
       message: `Jobs fetched and saved successfully`,
       savedCount,
       totalReceived: jobs.length,
+      jobs: jobs,
     });
   } catch (err) {
     console.error('Error fetching/saving RapidAPI jobs:', err.message);

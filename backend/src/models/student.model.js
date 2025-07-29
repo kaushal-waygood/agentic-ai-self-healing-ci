@@ -15,7 +15,7 @@ const jobPreferenceSchema = new Schema({
     default: false,
   },
   relocationWillingness: {
-    type: Boolean,
+    type: String,
     default: false,
   },
 
@@ -34,7 +34,7 @@ const jobPreferenceSchema = new Schema({
   },
   preferedExperienceLevel: {
     type: String,
-    enum: ['ENTRY_LEVEL', 'MID_LEVEL', 'SENIOR', 'EXECUTIVE', null],
+    // enum: ['ENTRY_LEVEL', 'MID_LEVEL', 'SENIOR', 'EXECUTIVE', null],
     default: null,
   },
 
@@ -84,14 +84,14 @@ const jobPreferenceSchema = new Schema({
   },
   preferedEducationLevel: {
     type: String,
-    enum: ['HIGHSCHOOL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'PHD', null],
+    // enum: ['HIGHSCHOOL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'PHD', null],
     default: null,
   },
 
   // Company Preferences
   preferedCompanySizes: {
     type: [String],
-    enum: ['STARTUP', 'SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE', null],
+    // enum: ['STARTUP', 'SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE', null],
     default: [],
   },
   preferedCompanyCultures: {
@@ -219,9 +219,9 @@ const studentSchema = new Schema(
 
     jobPreferences: {
       type: jobPreferenceSchema,
-      default: {},
+      default: () => ({}), // Use a function to ensure new objects
+      select: true, // Explicitly include in queries
     },
-
     // Application Info
     appliedJobs: [
       {

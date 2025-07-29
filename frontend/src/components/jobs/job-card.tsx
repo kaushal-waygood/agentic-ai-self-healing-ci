@@ -21,7 +21,7 @@ export function JobCard({ job, isActive = false }: JobCardProps) {
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all duration-200 ease-in-out hover:shadow-md hover:border-primary/50',
+        'cursor-pointer transition-all duration-200 ease-in-out hover:shadow-md hover:border-primary/50 h-full',
         isActive && 'border-primary bg-primary/10 shadow-md',
       )}
     >
