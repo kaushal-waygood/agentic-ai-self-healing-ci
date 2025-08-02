@@ -13,6 +13,7 @@ interface Pagination {
 interface JobState {
   jobs: Job[];
   job: Job | null;
+  preferedJob: Job[];
   loading: boolean;
   error: string | null;
   pagination: Pagination;
@@ -28,6 +29,7 @@ interface JobState {
 
 const initialState: JobState = {
   jobs: [],
+  preferedJob: [],
   job: null,
   loading: false,
   error: null,
@@ -151,6 +153,19 @@ const jobSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    getJobPreferenceRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getJobPreferenceSuccess: (state, action: PayloadAction<any[]>) => {
+      state.loading = false;
+      state.preferedJob = action.payload;
+    },
+    getJobPreferenceFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -175,6 +190,10 @@ export const {
   updateJobStatusRequest,
   updateJobStatusSuccess,
   updateJobStatusFailure,
+
+  getJobPreferenceRequest,
+  getJobPreferenceSuccess,
+  getJobPreferenceFailure,
 } = jobSlice.actions;
 
 export default jobSlice.reducer;

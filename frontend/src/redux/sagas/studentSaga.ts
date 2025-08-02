@@ -45,6 +45,9 @@ import {
   updateStudentJobPreferenceRequest,
   updateStudentJobPreferenceSuccess,
   updateStudentJobPreferenceFailure,
+  getStudentJobPreferenceRequest,
+  getStudentJobPreferenceSuccess,
+  getStudentJobPreferenceFailure,
 } from '../reducers/studentReducer';
 
 import { call, put, takeLatest } from 'redux-saga/effects';
@@ -59,6 +62,7 @@ import {
   updateSkill,
   removeSkill,
   updateJobPreference,
+  recommendProfileJob,
 } from '@/services/api/student';
 import { PayloadAction } from '@reduxjs/toolkit';
 
@@ -159,6 +163,16 @@ function* updateStudentJobPreferenceSaga(action: PayloadAction<any>) {
   }
 }
 
+function* getStudentJobPreferenceSaga() {
+  try {
+    console.log('saga calling');
+    const response: AxiosResponse = yield call(recommendProfileJob);
+    yield put(getStudentJobPreferenceSuccess(response.data.preferences));
+  } catch (error: unknown | Error) {
+    yield put(getStudentJobPreferenceFailure((error as Error).message));
+  }
+}
+
 export function* studentWatcher() {
   yield takeLatest(getStudentDetailsRequest.type, getStudentDetailsSaga);
 
@@ -180,5 +194,10 @@ export function* studentWatcher() {
   yield takeLatest(
     updateStudentJobPreferenceRequest.type,
     updateStudentJobPreferenceSaga,
+  );
+
+  yield takeLatest(
+    getStudentJobPreferenceRequest.type,
+    getStudentJobPreferenceSaga,
   );
 }

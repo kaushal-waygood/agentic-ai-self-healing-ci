@@ -54,7 +54,6 @@ export const removeSkill = async (data: any) => {
 };
 
 export const updateSkill = async (data: any) => {
-  console.log('data', data);
   const response = await apiInstance.patch(
     `/students/skill/update/${data.index}`,
     { level: data.level },
@@ -63,7 +62,13 @@ export const updateSkill = async (data: any) => {
 };
 
 export const updateJobPreference = async (data: any) => {
-  console.log('data', data);
   const response = await apiInstance.post('/students/prefered-job/add', data);
+  return response;
+};
+
+export const recommendProfileJob = async () => {
+  console.log('recommendProfileJob');
+  const response = await apiInstance.get('/students/prefered-job/get');
+  console.log('response', response);
   return response;
 };

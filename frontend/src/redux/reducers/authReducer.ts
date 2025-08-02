@@ -1,13 +1,13 @@
 /** @format */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { AuthState, User } from '../types/authType';
-import { getProfile } from '@/services/api/auth';
+import { AuthState } from '../types/authType';
 
 const initialState: AuthState = {
   isAuthenticated: false,
   user: null,
   token: null,
+  message: '',
   loading: false,
   error: null,
 };
@@ -69,6 +69,21 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
     },
 
+    changePasswordRequest: (state, action: PayloadAction<any>) => {
+      console.log('action.payload', action.payload);
+      state.loading = true;
+      state.error = null;
+    },
+    changePasswordSuccess: (state) => {
+      state.loading = false;
+      state.message = 'Password changed successfully';
+      state.error = null;
+    },
+    changePasswordFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     logout: (state) => {
       state.isAuthenticated = false;
       state.user = null;
@@ -90,6 +105,10 @@ export const {
   getProfileRequest,
   getProfileSuccess,
   getProfileFailure,
+
+  changePasswordRequest,
+  changePasswordSuccess,
+  changePasswordFailure,
   logout,
 } = authSlice.actions;
 export default authSlice.reducer;

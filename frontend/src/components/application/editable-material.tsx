@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas'; // 👈 Import html2canvas
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +16,6 @@ import {
   planTierOrder,
 } from '@/lib/data/user';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 
 interface EditableMaterialProps {
   content: string;
@@ -101,70 +101,54 @@ export function EditableMaterial({
     });
   };
 
-  const handleDownloadPdf = () => {
-    if (!editorRef.current) return;
-
-    // if (!canUsePremiumFeatures) {
-    //   toast({
-    //     title: 'Upgrade to Download PDF',
-    //     description: 'PDF downloads are a Plus feature.',
-    //     action: (
-    //       <Button size="sm" asChild>
-    //         <Link href="/subscriptions">Upgrade Plan</Link>
-    //       </Button>
-    //     ),
-    //   });
-    //   return;
-    // }
+  const handleDownloadPdf = async () => {
+    const contentToPrint = editorRef.current;
+    if (!contentToPrint) return;
 
     setIsLoading(true);
     toast({ title: 'Generating PDF...' });
 
-    const printableContainer = document.createElement('div');
-    // Hide it off-screen
-    printableContainer.style.position = 'absolute';
-    printableContainer.style.left = '-9999px';
-    printableContainer.style.top = '0';
+    try {
+      const response = await fetch(
+        'http://localhost:8080/api/v1/students/pdf/generate-pdf',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            // Send the full HTML of the editor
+            html: contentToPrint.innerHTML,
+            // Also send the title for the filename
+            title: title,
+          }),
+        },
+      );
 
-    // This is our A4 page container, which will get its styles from globals.css
-    const a4Page = document.createElement('div');
-    a4Page.className = 'printable-a4'; // Use the CSS class for A4 sizing and padding
-    a4Page.innerHTML = editorRef.current.innerHTML; // Put the CV content inside
+      if (!response.ok) {
+        throw new Error(`PDF generation failed: ${response.statusText}`);
+      }
 
-    printableContainer.appendChild(a4Page);
-    document.body.appendChild(printableContainer);
+      // Get the PDF data as a blob
+      const blob = await response.blob();
 
-    html2canvas(a4Page, { scale: 2, useCORS: true })
-      .then((canvas) => {
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4',
-        });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
+      // Create a temporary URL and link to trigger the download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CareerPilot_${title.replace(/ /g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
 
-        pdf.addImage(
-          imgData,
-          'PNG',
-          0,
-          0,
-          pdfWidth,
-          pdfHeight,
-          undefined,
-          'FAST',
-        );
-        pdf.save(`CareerPilot_${title.replace(/ /g, '_')}.pdf`);
-      })
-      .catch((err) => {
-        console.error('PDF Generation Error:', err);
-        toast({ variant: 'destructive', title: 'PDF Generation Failed' });
-      })
-      .finally(() => {
-        document.body.removeChild(printableContainer);
-        setIsLoading(false);
-      });
+      // Clean up the temporary link and URL
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF Download Error:', error);
+      toast({ variant: 'destructive', title: 'PDF Download Failed' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -182,7 +166,7 @@ export function EditableMaterial({
             contentEditable={isEditing}
             suppressContentEditableWarning={true}
             className={cn(
-              'flex-grow border rounded-md bg-white h-full min-h-[300px] overflow-y-auto focus-visible:outline-none',
+              'flex-grow border rounded-md bg-white p-4 h-full min-h-[300px] overflow-y-auto focus-visible:outline-none printable-a4',
               isEditing && 'ring-2 ring-primary shadow-inner',
             )}
             onInput={handleInput}

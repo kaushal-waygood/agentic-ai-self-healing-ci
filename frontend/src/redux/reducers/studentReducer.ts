@@ -10,6 +10,7 @@ type Student = {
   experiences: any[];
   loading: boolean;
   error: string | null;
+  jobPreference: any;
 };
 
 type EducationFormData = {
@@ -28,6 +29,7 @@ const initialState: Student = {
   educations: [],
   projects: [],
   experiences: [],
+  jobPreference: null,
   loading: false,
   error: null,
 };
@@ -213,6 +215,20 @@ const studentSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    getStudentJobPreferenceRequest: (state, action: PayloadAction<string>) => {
+      console.log('Reducer calling');
+      state.loading = true;
+      state.error = null;
+    },
+    getStudentJobPreferenceSuccess: (state, action: PayloadAction<any>) => {
+      state.loading = false;
+      state.jobPreference = action.payload;
+    },
+    getStudentJobPreferenceFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -263,5 +279,9 @@ export const {
   updateStudentJobPreferenceRequest,
   updateStudentJobPreferenceSuccess,
   updateStudentJobPreferenceFailure,
+
+  getStudentJobPreferenceRequest,
+  getStudentJobPreferenceSuccess,
+  getStudentJobPreferenceFailure,
 } = studentSlice.actions;
 export default studentSlice.reducer;
