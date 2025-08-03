@@ -1,5 +1,4 @@
 /** @format */
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 type Student = {
@@ -57,9 +56,9 @@ const studentSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    addStudentEducationSuccess: (state, action: PayloadAction<any[]>) => {
+    addStudentEducationSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
-      state.educations = action.payload;
+      state.educations = [...state.educations, action.payload];
     },
     addStudentEducationFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -71,9 +70,11 @@ const studentSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    removeStudentEducationSuccess: (state, action: PayloadAction<any[]>) => {
+    removeStudentEducationSuccess: (state, action: PayloadAction<string>) => {
       state.loading = false;
-      state.educations = action.payload;
+      state.educations = state.educations.filter(
+        (edu) => edu._id !== action.payload,
+      );
     },
     removeStudentEducationFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -93,49 +94,75 @@ const studentSlice = createSlice({
     },
     updateStudentEducationSuccess: (
       state,
-      action: PayloadAction<EducationFormData[]>,
+      action: PayloadAction<{ id: string; updatedEducation: any }>,
     ) => {
       state.loading = false;
-      state.educations = action.payload;
+      state.educations = state.educations.map((edu) =>
+        edu._id === action.payload.id ? action.payload.updatedEducation : edu,
+      );
     },
     updateStudentEducationFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
+    // student Experience
     addStudentExperienceRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    addStudentExperienceSuccess: (state, action: PayloadAction<any[]>) => {
+    addStudentExperienceSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
-      state.experiences = action.payload;
+      state.experiences = [...state.experiences, action.payload];
     },
     addStudentExperienceFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    removeStudentExperienceRequest: (state) => {
+    updateStudentExperienceRequest: (state, action: PayloadAction<any>) => {
+      console.log('action.payload', action.payload);
       state.loading = true;
       state.error = null;
     },
-    removeStudentExperienceSuccess: (state, action: PayloadAction<any[]>) => {
+    updateStudentExperienceSuccess: (
+      state,
+      action: PayloadAction<{ id: string; updatedExperience: any }>,
+    ) => {
       state.loading = false;
-      state.experiences = action.payload;
+      state.experiences = state.experiences.map((exp) =>
+        exp._id === action.payload.id ? action.payload.updatedExperience : exp,
+      );
+    },
+    updateStudentExperienceFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    removeStudentExperienceRequest: (state) => {
+      console.log('removeStudentExperienceRequest');
+      state.loading = true;
+      state.error = null;
+    },
+    removeStudentExperienceSuccess: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.experiences = state.experiences.filter(
+        (exp) => exp._id !== action.payload,
+      );
     },
     removeStudentExperienceFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
+    // student Projects
     addStudentProjectRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    addStudentProjectSuccess: (state, action: PayloadAction<any[]>) => {
+    addStudentProjectSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
-      state.projects = action.payload;
+      state.projects = [...state.projects, action.payload];
     },
     addStudentProjectFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -146,66 +173,72 @@ const studentSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    removeStudentProjectSuccess: (state, action: PayloadAction<any[]>) => {
+    removeStudentProjectSuccess: (state, action: PayloadAction<string>) => {
       state.loading = false;
-      state.projects = action.payload;
+      state.projects = state.projects.filter(
+        (proj) => proj._id !== action.payload,
+      );
     },
     removeStudentProjectFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    // student Skills add
+    // student Skills
     addStudentSkillRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    addStudentSkillSuccess: (state, action: PayloadAction<any[]>) => {
+    addStudentSkillSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
-      state.skills = action.payload;
+      state.skills = [...state.skills, action.payload];
     },
     addStudentSkillFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    // student Skills remove
-    removeStudentSkillRequest: (state) => {
+    removeStudentSkillRequest: (state, action: PayloadAction<string>) => {
       state.loading = true;
       state.error = null;
     },
-    removeStudentSkillSuccess: (state, action: PayloadAction<any[]>) => {
+    removeStudentSkillSuccess: (state, action: PayloadAction<string>) => {
       state.loading = false;
-      state.skills = action.payload;
+      state.skills = state.skills.filter(
+        (skill) => skill._id !== action.payload,
+      );
     },
     removeStudentSkillFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    // student Skills update
     updateStudentSkillRequest: (state, action: PayloadAction<string>) => {
-      console.log('action.payload', action.payload);
       state.loading = true;
       state.error = null;
     },
-    updateStudentSkillSuccess: (state, action: PayloadAction<any[]>) => {
-      console.log('action.payload', action.payload);
+    updateStudentSkillSuccess: (
+      state,
+      action: PayloadAction<{ id: string; updatedSkill: any }>,
+    ) => {
       state.loading = false;
-      state.skills = action.payload;
+      state.skills = state.skills.map((skill) =>
+        skill._id === action.payload.id ? action.payload.updatedSkill : skill,
+      );
     },
     updateStudentSkillFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
+    // job preference
     updateStudentJobPreferenceRequest: (state, action: PayloadAction<any>) => {
-      console.log('action.payload', action.payload);
       state.loading = true;
       state.error = null;
     },
-    updateStudentJobPreferenceSuccess: (state) => {
+    updateStudentJobPreferenceSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
+      state.jobPreference = action.payload;
       state.error = null;
     },
     updateStudentJobPreferenceFailure: (
@@ -217,7 +250,6 @@ const studentSlice = createSlice({
     },
 
     getStudentJobPreferenceRequest: (state, action: PayloadAction<string>) => {
-      console.log('Reducer calling');
       state.loading = true;
       state.error = null;
     },
@@ -255,6 +287,9 @@ export const {
   removeStudentExperienceRequest,
   removeStudentExperienceSuccess,
   removeStudentExperienceFailure,
+  updateStudentExperienceRequest,
+  updateStudentExperienceSuccess,
+  updateStudentExperienceFailure,
 
   // student Projects
   addStudentProjectRequest,

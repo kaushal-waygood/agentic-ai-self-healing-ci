@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas'; // 👈 Import html2canvas
-import Link from 'next/link';
+import htmlDocx from 'html-docx-js/dist/html-docx';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -151,6 +149,23 @@ export function EditableMaterial({
     }
   };
 
+  const handleDownloadDocx = () => {
+    const contentToExport = editorRef.current;
+    if (!contentToExport) return;
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${contentToExport.innerHTML}</body></html>`;
+    const docxBlob = htmlDocx.asBlob(html);
+
+    const url = window.URL.createObjectURL(docxBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CareerPilot_${title.replace(/ /g, '_')}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <Card className={`shadow-sm border h-full flex flex-col ${className}`}>
       <CardContent className="p-4 pt-2 flex-grow flex flex-col">
@@ -213,6 +228,19 @@ export function EditableMaterial({
               <Download className="mr-2 h-4 w-4" />
             )}
             Download PDF
+            {!canUsePremiumFeatures && (
+              <ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />
+            )}
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleDownloadDocx}
+            disabled={!isHtml || !content || isLoading}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download DOCX
             {!canUsePremiumFeatures && (
               <ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />
             )}

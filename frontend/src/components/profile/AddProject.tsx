@@ -490,8 +490,6 @@ export const JobPref = () => {
             name="mustHaveSkills"
             render={({ field }) => (
               <FormItem>
-                {console.log('field.value', field.value)}
-
                 <FormLabel>Must-have Skills</FormLabel>
                 <FormControl>
                   <Textarea
@@ -574,7 +572,6 @@ export const JobPref = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Preferred Education Level</FormLabel>
-                {console.log('field.value', field)}
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>

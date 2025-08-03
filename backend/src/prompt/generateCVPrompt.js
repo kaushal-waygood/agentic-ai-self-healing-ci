@@ -51,9 +51,6 @@ The user's information is provided either as an uploaded file or as a JSON objec
 3.  **ATS Scoring and Reasoning:**
     *   **Score:** Based on the content's quality, keyword relevance to the '{{{targetRole}}}', and structure, provide an ATS score from 0-100 in the 'atsScore' field. A well-structured CV with relevant keywords should score high.
     *   **Reasoning:** In the 'atsScoreReasoning' field, provide a concise 2-3 sentence explanation for the score. Give one specific, actionable tip for improvement (e.g., "It could be improved by adding more keywords related to '[Keyword]' and quantifying achievements further.").
-
-Return the final structured JSON object.
-
 ${finalTouch}
 `;
 };

@@ -21,6 +21,9 @@ import {
   removeStudentExperienceRequest,
   removeStudentExperienceSuccess,
   removeStudentExperienceFailure,
+  updateStudentExperienceRequest,
+  updateStudentExperienceSuccess,
+  updateStudentExperienceFailure,
 
   // student Projects
   addStudentProjectRequest,
@@ -63,6 +66,8 @@ import {
   removeSkill,
   updateJobPreference,
   recommendProfileJob,
+  updateExperience,
+  removeExperience,
 } from '@/services/api/student';
 import { PayloadAction } from '@reduxjs/toolkit';
 
@@ -115,6 +120,20 @@ function* addStudentExperienceSaga(action: PayloadAction<any>) {
   }
 }
 
+function* updateStudentExperienceSaga(action: PayloadAction<any>) {
+  console.log('updateStudentExperienceSaga', action.payload);
+  try {
+    const response: AxiosResponse = yield call(
+      updateExperience,
+      action.payload.data,
+      action.payload.index,
+    );
+    yield put(updateStudentExperienceRequest(response.data));
+  } catch (error: unknown | Error) {
+    yield put(updateStudentExperienceFailure((error as Error).message));
+  }
+}
+
 function* addStudentSkillsSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(addSkill, action.payload);
@@ -153,6 +172,7 @@ function* addStudentProjectsSaga() {
 
 function* updateStudentJobPreferenceSaga(action: PayloadAction<any>) {
   try {
+    console.log(action.payload);
     const response: AxiosResponse = yield call(
       updateJobPreference,
       action.payload,
@@ -170,6 +190,18 @@ function* getStudentJobPreferenceSaga() {
     yield put(getStudentJobPreferenceSuccess(response.data.preferences));
   } catch (error: unknown | Error) {
     yield put(getStudentJobPreferenceFailure((error as Error).message));
+  }
+}
+
+function* removeStudentExperienceSaga(action: PayloadAction<any>) {
+  try {
+    const response: AxiosResponse = yield call(
+      removeExperience,
+      action.payload,
+    );
+    yield put(removeStudentExperienceSuccess(response.data));
+  } catch (error: unknown | Error) {
+    yield put(removeStudentExperienceFailure((error as Error).message));
   }
 }
 
@@ -199,5 +231,14 @@ export function* studentWatcher() {
   yield takeLatest(
     getStudentJobPreferenceRequest.type,
     getStudentJobPreferenceSaga,
+  );
+
+  yield takeLatest(
+    updateStudentExperienceRequest.type,
+    updateStudentExperienceSaga,
+  );
+  yield takeLatest(
+    removeStudentExperienceRequest.type,
+    removeStudentExperienceSaga,
   );
 }

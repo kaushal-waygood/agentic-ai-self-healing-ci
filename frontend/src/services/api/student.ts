@@ -29,7 +29,19 @@ export const addExperience = async (data: any) => {
 };
 
 export const removeExperience = async (data: any) => {
-  const response = await apiInstance.post('/students/experience/remove', data);
+  console.log('data', data);
+  const response = await apiInstance.delete(
+    '/students/experience/remove/' + data,
+  );
+  return response;
+};
+
+export const updateExperience = async (data: any, index: any) => {
+  console.log('data', data, 'index', data._id);
+  const response = await apiInstance.patch(
+    `/students/experience/update/${index}`,
+    data,
+  );
   return response;
 };
 
@@ -49,7 +61,7 @@ export const addSkill = async (data: any) => {
 };
 
 export const removeSkill = async (data: any) => {
-  const response = await apiInstance.post('/students/skill/remove', data);
+  const response = await apiInstance.delete(`/students/skill/remove/${data}`);
   return response;
 };
 

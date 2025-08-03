@@ -106,12 +106,14 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     narrativesForm,
     jobSearchForm,
     educationForm,
+    handleDeleteExp,
 
     //handlers
     handlePersonalInfoSubmit,
     handleCareerDetailsSubmit,
     handleNarrativesSubmit,
     // handleJobSearchSubmit,
+    handleDeleteSkills,
     onCancel,
     deleteEducation,
     handleLevelChange,
@@ -384,71 +386,76 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Education
               </Button>
 
-              {defaultValues.education?.map((edu, index) => (
-                <div
-                  key={index}
-                  className="rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-lg font-semibold">{edu.degree}</h4>
-                      <p className="text-muted-foreground">{edu.institution}</p>
-                      {edu.fieldOfStudy && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Field of Study: {edu.fieldOfStudy}
+              <div>
+                {defaultValues.education?.map((edu, index) => (
+                  <div
+                    key={edu._id}
+                    className="rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-lg font-semibold">{edu.degree}</h4>
+                        <p className="text-muted-foreground">
+                          {edu.institution}
                         </p>
+                        {edu.fieldOfStudy && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Field of Study: {edu.fieldOfStudy}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditEdu(true);
+                            console.log('edu', edu);
+                            setEditEduIndex(index);
+                          }}
+                          className="h-8 px-3"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDeleteEdu(true);
+                            setDeleteEduIndex(edu.educationId);
+                          }}
+                          className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Dates</p>
+                        <p>
+                          {edu.startDate} - {edu.endDate || 'Present'}
+                        </p>
+                      </div>
+                      {edu.gpa && (
+                        <div>
+                          <p className="text-muted-foreground">GPA</p>
+                          <p>{edu.gpa}</p>
+                        </div>
+                      )}
+                      {edu.country && (
+                        <div>
+                          <p className="text-muted-foreground">Location</p>
+                          <p>{edu.country}</p>
+                        </div>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditEdu(true);
-                          setEditEduIndex(index);
-                        }}
-                        className="h-8 px-3"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setDeleteEdu(true);
-                          setDeleteEduIndex(edu.educationId);
-                        }}
-                        className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </div>
                   </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Dates</p>
-                      <p>
-                        {edu.startDate} - {edu.endDate || 'Present'}
-                      </p>
-                    </div>
-                    {edu.gpa && (
-                      <div>
-                        <p className="text-muted-foreground">GPA</p>
-                        <p>{edu.gpa}</p>
-                      </div>
-                    )}
-                    {edu.country && (
-                      <div>
-                        <p className="text-muted-foreground">Location</p>
-                        <p>{edu.country}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
@@ -502,7 +509,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(index);
+                            setDeleteProj(true);
+                            setDeleteProjIndex(index);
+                            // handleDelete(index);
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -588,7 +597,8 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEdit(index);
+                            setEditExp(true);
+                            setEditExpIndex(index); // use index instead of _id
                           }}
                         >
                           <Pencil className="h-4 w-4" />
@@ -598,7 +608,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(index);
+                            // handleDelete(index);
+                            setDeleteExp(true);
+                            setDeleteExpIndex(exp._id);
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -694,7 +706,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           size="sm"
                           onClick={() => {
                             setDeleteSkill(true);
-                            setDeleteSkillIndex(index);
+                            setDeleteSkillIndex(skill._id);
                           }}
                           className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
@@ -776,7 +788,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       {addEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
-            <AddEducation onCancel={() => setAddEdu(false)} />
+            <AddEducation onCancel={() => setAddEdu(false)} isEdit={false} />
           </div>
         </div>
       )}
@@ -807,11 +819,24 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
 
       {editEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
+          {console.log('editEdu', defaultValues.education)}
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
             <AddEducation
               onCancel={() => setEditEdu(false)}
               data={defaultValues.education[editEduIndex]}
-              index={editEduIndex}
+              isEdit={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {editExp && (
+        <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <AddExperience
+              onCancel={() => setEditExp(false)}
+              data={defaultValues.experience[editExpIndex]}
+              index={editExpIndex}
               isEdit={true}
             />
           </div>
@@ -829,6 +854,46 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 onClick={() => {
                   deleteEducation(deleteEduIndex);
                   setDeleteEdu(false);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteExp && (
+        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black bg-opacity-50">
+          <div className="w-full max-w-3xl  overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <p>Are you sure you want to delete this experience entry?</p>
+            <div className="flex justify-end gap-4 mt-4">
+              <Button onClick={() => setDeleteExp(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleDeleteExp(deleteExpIndex);
+                  setDeleteExp(true);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteSkill && (
+        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black bg-opacity-50">
+          <div className="w-full max-w-3xl  overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <p>Are you sure you want to delete this skill entry?</p>
+            <div className="flex justify-end gap-4 mt-4">
+              <Button onClick={() => setDeleteSkill(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleDeleteSkills(deleteSkillIndex);
+                  setDeleteSkill(false);
                 }}
               >
                 Delete

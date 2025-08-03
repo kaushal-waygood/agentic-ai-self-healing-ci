@@ -139,8 +139,6 @@ export const fetchAndSaveRapidJobsUseLater = async (req, res) => {
           continue; // Skip to next job
         }
 
-        console.log(`Processing job: ${job.job_highlights.Qualifications}`);
-
         // Extract job details
         const experience = extractExperience(job.job_description);
         const qualifications = extractQualifications(job.job_description);

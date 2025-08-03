@@ -195,7 +195,6 @@ export const generateCVByJD = async (req, res) => {
 
     let rawText;
     rawText = await genAI(prompt);
-    console.log(rawText);
     const cleaned = rawText.replace(/```json|```/g, '').trim();
 
     let parsedJson;

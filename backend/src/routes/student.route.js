@@ -23,6 +23,7 @@ import {
   isAppliedOrNot,
   getAppliedJobs,
   getRecommendedJobs,
+  updateExperience,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import pdfParse from 'pdf-parse';
@@ -43,7 +44,7 @@ router.patch('/fullname/update', authMiddleware, isStudent, updateFullName);
 
 // Skills
 router.post('/skill/add', authMiddleware, isStudent, addStudentSkills);
-router.post(
+router.delete(
   '/skill/remove/:skillId',
   authMiddleware,
   isStudent,
@@ -58,7 +59,7 @@ router.patch(
 
 // Experience
 router.post('/experience/add', authMiddleware, isStudent, addExperience);
-router.post(
+router.delete(
   '/experience/remove/:expId',
   authMiddleware,
   isStudent,
@@ -68,7 +69,7 @@ router.patch(
   '/experience/update/:expId',
   authMiddleware,
   isStudent,
-  addExperience,
+  updateExperience,
 );
 
 router.post('/education/add', authMiddleware, isStudent, addEducations);

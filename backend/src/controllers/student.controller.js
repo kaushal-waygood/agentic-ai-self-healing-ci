@@ -32,7 +32,6 @@ export const studentDetails = async (req, res) => {
     }
 
     const existingStudent = await Student.findOne({ _id: user._id });
-    console.log(existingStudent);
     if (existingStudent) {
       return res.status(200).json({ studentDetails: existingStudent });
     }
@@ -114,14 +113,27 @@ export const updateJobRole = async (req, res) => {
 export const removeStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { _id } = req.user;
+
   try {
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
-    student.skills = student.skills.filter((s) => s.skillId !== skillId);
+
+    // Convert skillId to string for comparison
+    const skill = student.skills.find((s) => s._id.toString() === skillId);
+
+    if (!skill) {
+      return res.status(404).json({ message: 'Skill not found' });
+    }
+
+    // Update the filter to compare string representations
+    student.skills = student.skills.filter((s) => s._id.toString() !== skillId);
+
     await student.save();
-    res.status(200).json({ message: 'Skills removed successfully' });
+    res
+      .status(200)
+      .json({ message: 'Skill removed successfully', skills: student.skills });
   } catch (error) {
     console.error('Error removing skills:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -142,7 +154,6 @@ export const updateStudentSkills = async (req, res) => {
     if (!skill) {
       return res.status(404).json({ message: 'Skill not found' });
     }
-    console.log(skill.level);
     skill.level = level;
     await student.save();
     res.status(200).json({ message: 'Skills updated successfully' });
@@ -207,7 +218,7 @@ export const removeExperience = async (req, res) => {
     }
 
     student.experience = student.experience.filter(
-      (exp) => exp.experienceId !== experienceId,
+      (exp) => exp._id.toString() !== experienceId,
     );
 
     await student.save();
@@ -220,8 +231,19 @@ export const removeExperience = async (req, res) => {
 
 export const updateExperience = async (req, res) => {
   const { expId: experienceId } = req.params;
-  const { company, title, startDate, endDate, description, currentlyWorking } =
-    req.body;
+  const {
+    company,
+    title,
+    employmentType,
+    designation: jobType,
+    startDate,
+    endDate,
+    description,
+    experienceYrs,
+    location,
+    currentlyWorking,
+  } = req.body;
+
   const { _id } = req.user;
   try {
     const student = await Student.findById(_id);
@@ -229,9 +251,12 @@ export const updateExperience = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    const experience = student.experience.find(
-      (exp) => exp.experienceId === experienceId,
-    );
+    const experience = student.experience.find((exp) => {
+      return exp._id.toString() === experienceId;
+    });
+
+    console.log(experience);
+
     if (!experience) {
       return res.status(404).json({ message: 'Experience not found' });
     }
@@ -242,7 +267,23 @@ export const updateExperience = async (req, res) => {
     experience.endDate = endDate;
     experience.description = description;
     experience.currentlyWorking = currentlyWorking;
+    experience.experienceYrs = experienceYrs;
+    experience.location = location;
+    experience.designation = jobType;
 
+    if (employmentType) {
+      experience.employmentType = employmentType;
+    }
+    if (currentlyWorking === false) {
+      experience.endDate = null;
+    }
+
+    student.experience = student.experience.map((exp) => {
+      if (exp._id.toString() === experienceId) {
+        return experience;
+      }
+      return exp;
+    });
     await student.save();
     res.status(200).json({ message: 'Experience updated successfully' });
   } catch (error) {
@@ -333,7 +374,6 @@ export const updateEducation = async (req, res) => {
     isCurrentlyStudying,
   } = req.body;
   const { _id } = req.user;
-  console.log(req.body);
   try {
     const student = await Student.findById(_id);
     if (!student) {
@@ -790,8 +830,6 @@ export const createJobPreference = async (req, res) => {
       immediateAvailability,
     } = req.body;
 
-    console.log(req.body);
-
     // Validate must-have skills structure
     if (mustHaveSkills && Array.isArray(mustHaveSkills)) {
       for (const skill of mustHaveSkills) {
@@ -986,8 +1024,6 @@ export const isSavedOrNot = async (req, res) => {
     const { _id } = req.user;
     const { jobId } = req.query;
 
-    console.log(_id, jobId);
-
     // Validate inputs
     if (!_id || !jobId) {
       return res.status(400).json({
@@ -1141,8 +1177,6 @@ export const isSavedOrNot = async (req, res) => {
 //     if (preferences.visaSponsorshipRequired) {
 //       filter.visaSponsorshipAvailable = true;
 //     }
-
-//     console.log(preferences);
 
 //     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -1460,7 +1494,6 @@ export const getRecommendedJobs = async (req, res) => {
 
 async function getFallbackJobsFromRapidAPI(req, res, preferences) {
   try {
-    console.log('Fetching jobs from RapidAPI...');
     let queryParts = [];
 
     // Build query based on preferences

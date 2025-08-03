@@ -166,7 +166,6 @@ const studentSchema = new Schema(
         title: String,
         employmentType: {
           type: String,
-          enum: ['FULL_TIME', 'PART_TIME', 'CONTRACT'],
           default: 'FULL_TIME',
         },
         location: {
@@ -175,8 +174,9 @@ const studentSchema = new Schema(
         experienceYrs: {
           type: Number,
         },
-        startDate: Date,
-        endDate: Date,
+        designation: String,
+        startDate: String,
+        endDate: String,
         description: String,
         currentlyWorking: {
           type: Boolean,

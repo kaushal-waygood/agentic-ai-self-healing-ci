@@ -1,7 +1,6 @@
-
-import { PageHeader } from "@/components/common/page-header";
-import { CoverLetterGeneratorClient } from "@/components/cover-letter/cover-letter-client";
-import { Newspaper } from "lucide-react";
+import { PageHeader } from '@/components/common/page-header';
+import { CoverLetterGeneratorClient } from '@/components/cover-letter/cover-letter-client';
+import { Newspaper } from 'lucide-react';
 
 export default function CoverLetterGeneratorPage() {
   return (
