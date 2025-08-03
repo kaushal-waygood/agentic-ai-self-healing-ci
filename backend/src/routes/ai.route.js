@@ -16,6 +16,7 @@ import {
   savedStudentHTMLLetter,
   getStudentHTMLLetter,
   getSingleStudentHTMLLetter,
+  createTailoredApply,
 } from '../controllers/ai.controller.js';
 
 const router = Router();
@@ -100,6 +101,13 @@ router.get(
   authMiddleware,
   isStudent,
   getSingleStudentHTMLLetter,
+);
+
+router.post(
+  '/applications/tailor',
+  authMiddleware,
+  isStudent,
+  createTailoredApply,
 );
 
 export default router;

@@ -39,12 +39,12 @@ const experienceLevels = [
 ];
 
 const jobTypes = [
-  { id: 'full-time', label: 'Full-time' },
-  { id: 'part-time', label: 'Part-time' },
-  { id: 'contract', label: 'Contract' },
-  { id: 'temporary', label: 'Temporary' },
-  { id: 'internship', label: 'Internship' },
-  { id: 'freelance', label: 'Freelance' },
+  { id: 'FULL_TIME', label: 'Full-time' },
+  { id: 'PART_TIME', label: 'Part-time' },
+  { id: 'CONTRACT', label: 'Contract' },
+  { id: 'TEMPORARY', label: 'Temporary' },
+  { id: 'INTERNSHIP', label: 'Internship' },
+  { id: 'FREELANCE', label: 'Freelance' },
 ];
 
 const companySizes = [
@@ -109,8 +109,6 @@ export const JobPref = () => {
     dispatch(getStudentDetailsRequest());
   }, [dispatch]);
 
-  console.log(form.formState);
-
   useEffect(() => {
     if (student?.jobPreferences) {
       const { jobPreferences } = student;
@@ -138,10 +136,8 @@ export const JobPref = () => {
   }, [student, form]);
 
   const onSubmit = (data: any) => {
-    console.log('FORM SUBMISSION STARTED', data);
     try {
       dispatch(updateStudentJobPreferenceRequest(data));
-      console.log('FORM SUBMITTED SUCCESSFULLY');
     } catch (error) {
       console.error('SUBMISSION FAILED:', error);
     }
@@ -180,15 +176,8 @@ export const JobPref = () => {
                   <Textarea
                     placeholder="Enter comma-separated country names"
                     className="resize-y min-h-[60px]"
-                    value={field.value?.join(', ') || ''}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value
-                          .split(',')
-                          .map((item) => item.trim())
-                          .filter((item) => item),
-                      )
-                    }
+                    value={field.value || ''}
+                    onChange={(e) => field.onChange(e.target.value)}
                   />
                 </FormControl>
                 <FormDescription>
@@ -418,19 +407,77 @@ export const JobPref = () => {
 
           <FormField
             control={form.control}
-            name="preferedSalary"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Expected Salary Range</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., 50000-70000" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Your expected salary range (in local currency)
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+            name="preferredSalary"
+            render={({ field }) => {
+              const { value, onChange } = field;
+
+              const updateField = (key: string, newValue: any) => {
+                onChange({ ...value, [key]: newValue });
+              };
+
+              return (
+                <FormItem className="space-y-2">
+                  <FormLabel>Expected Salary Range (MIN.)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., 50000"
+                      value={value?.min || ''}
+                      onChange={(e) =>
+                        updateField('min', Number(e.target.value))
+                      }
+                      type="number"
+                    />
+                  </FormControl>
+
+                  <FormLabel>Expected Salary Range (MAX.)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., 60000"
+                      value={value?.max || ''}
+                      onChange={(e) =>
+                        updateField('max', Number(e.target.value))
+                      }
+                      type="number"
+                    />
+                  </FormControl>
+
+                  <FormLabel>Currency</FormLabel>
+                  <FormControl>
+                    <select
+                      className="input"
+                      value={value?.currency || ''}
+                      onChange={(e) => updateField('currency', e.target.value)}
+                    >
+                      <option value="">Select currency</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="INR">INR</option>
+                      {/* Add more as needed */}
+                    </select>
+                  </FormControl>
+
+                  <FormLabel>Salary Period</FormLabel>
+                  <FormControl>
+                    <select
+                      className="input"
+                      value={value?.period || ''}
+                      onChange={(e) => updateField('period', e.target.value)}
+                    >
+                      <option value="">Select period</option>
+                      <option value="YEAR">Yearly</option>
+                      <option value="MONTH">Monthly</option>
+                      <option value="WEEK">Weekly</option>
+                    </select>
+                  </FormControl>
+
+                  <FormDescription>
+                    Your expected salary range (in local currency per selected
+                    period)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
         </div>
 
@@ -448,23 +495,8 @@ export const JobPref = () => {
                   <Textarea
                     placeholder="Enter comma-separated skills with level (e.g., 'JavaScript:expert, Python:intermediate')"
                     className="resize-y min-h-[80px]"
-                    value={
-                      field.value
-                        ?.map((skill) => `${skill.skill}:${skill.level}`)
-                        .join(', ') || ''
-                    }
                     onChange={(e) => {
-                      const skills = e.target.value
-                        .split(',')
-                        .map((item) => {
-                          const [skill, level] = item.trim().split(':');
-                          return {
-                            skill: skill?.trim(),
-                            level: level?.trim() || 'intermediate',
-                          };
-                        })
-                        .filter((item) => item.skill);
-                      field.onChange(skills);
+                      field.onChange(e.target.value);
                     }}
                   />
                 </FormControl>

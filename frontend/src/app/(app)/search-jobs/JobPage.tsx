@@ -10,6 +10,9 @@ import apiInstance from '@/services/api';
 import { Pagination } from '@/components/utils/Pagination';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { getStudentJobPreferenceRequest } from '@/redux/reducers/studentReducer';
 
 export default function JobsPage() {
   const {
@@ -117,8 +120,20 @@ export default function JobsPage() {
     }
   };
 
+  const dispatch = useDispatch();
+  const {
+    jobPreference,
+    loading: studentLoading,
+    error: studentError,
+  } = useSelector((state: any) => state.student);
+
+  useEffect(() => {
+    dispatch(getStudentJobPreferenceRequest());
+  }, [dispatch]);
+
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="text-red-500 p-4">{error}</div>;
+  console.log('jobPreference', jobPreference);
 
   return (
     <div>

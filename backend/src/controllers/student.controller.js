@@ -8,6 +8,12 @@ import path from 'path';
 import { safeUnlink, __dirname } from '../utils/fileUploadingManaging.js';
 import calculateExperience from '../utils/calculateExperience.js';
 import mongoose from 'mongoose';
+import axios from 'axios';
+import {
+  extractExperience,
+  extractQualificationsFromDescription,
+  extractResponsibilitiesFromDescription,
+} from '../utils/exprienceExtractor.js';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
@@ -25,7 +31,7 @@ export const studentDetails = async (req, res) => {
         .json({ message: 'Only students can create student profile' });
     }
 
-    const existingStudent = await Student.findOne({ email: user.email });
+    const existingStudent = await Student.findOne({ _id: user._id });
     if (existingStudent) {
       return res.status(200).json({ studentDetails: existingStudent });
     }
@@ -41,7 +47,7 @@ export const studentDetails = async (req, res) => {
     return res.status(201).json({ studentDetails });
   } catch (error) {
     console.error('Error creating student details:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error', error });
   }
 };
 
@@ -107,14 +113,27 @@ export const updateJobRole = async (req, res) => {
 export const removeStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { _id } = req.user;
+
   try {
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
-    student.skills = student.skills.filter((s) => s.skillId !== skillId);
+
+    // Convert skillId to string for comparison
+    const skill = student.skills.find((s) => s._id.toString() === skillId);
+
+    if (!skill) {
+      return res.status(404).json({ message: 'Skill not found' });
+    }
+
+    // Update the filter to compare string representations
+    student.skills = student.skills.filter((s) => s._id.toString() !== skillId);
+
     await student.save();
-    res.status(200).json({ message: 'Skills removed successfully' });
+    res
+      .status(200)
+      .json({ message: 'Skill removed successfully', skills: student.skills });
   } catch (error) {
     console.error('Error removing skills:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -135,7 +154,6 @@ export const updateStudentSkills = async (req, res) => {
     if (!skill) {
       return res.status(404).json({ message: 'Skill not found' });
     }
-    console.log(skill.level);
     skill.level = level;
     await student.save();
     res.status(200).json({ message: 'Skills updated successfully' });
@@ -200,7 +218,7 @@ export const removeExperience = async (req, res) => {
     }
 
     student.experience = student.experience.filter(
-      (exp) => exp.experienceId !== experienceId,
+      (exp) => exp._id.toString() !== experienceId,
     );
 
     await student.save();
@@ -213,8 +231,19 @@ export const removeExperience = async (req, res) => {
 
 export const updateExperience = async (req, res) => {
   const { expId: experienceId } = req.params;
-  const { company, title, startDate, endDate, description, currentlyWorking } =
-    req.body;
+  const {
+    company,
+    title,
+    employmentType,
+    designation: jobType,
+    startDate,
+    endDate,
+    description,
+    experienceYrs,
+    location,
+    currentlyWorking,
+  } = req.body;
+
   const { _id } = req.user;
   try {
     const student = await Student.findById(_id);
@@ -222,9 +251,12 @@ export const updateExperience = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    const experience = student.experience.find(
-      (exp) => exp.experienceId === experienceId,
-    );
+    const experience = student.experience.find((exp) => {
+      return exp._id.toString() === experienceId;
+    });
+
+    console.log(experience);
+
     if (!experience) {
       return res.status(404).json({ message: 'Experience not found' });
     }
@@ -235,7 +267,23 @@ export const updateExperience = async (req, res) => {
     experience.endDate = endDate;
     experience.description = description;
     experience.currentlyWorking = currentlyWorking;
+    experience.experienceYrs = experienceYrs;
+    experience.location = location;
+    experience.designation = jobType;
 
+    if (employmentType) {
+      experience.employmentType = employmentType;
+    }
+    if (currentlyWorking === false) {
+      experience.endDate = null;
+    }
+
+    student.experience = student.experience.map((exp) => {
+      if (exp._id.toString() === experienceId) {
+        return experience;
+      }
+      return exp;
+    });
     await student.save();
     res.status(200).json({ message: 'Experience updated successfully' });
   } catch (error) {
@@ -326,7 +374,6 @@ export const updateEducation = async (req, res) => {
     isCurrentlyStudying,
   } = req.body;
   const { _id } = req.user;
-  console.log(req.body);
   try {
     const student = await Student.findById(_id);
     if (!student) {
@@ -547,8 +594,8 @@ export const appliedJob = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Job not found' });
     }
 
-    // Check if already applied
-    if (student.appliedJobs.some((id) => id.toString() === jobId)) {
+    // Check if already applied - now checking the job field of each object
+    if (student.appliedJobs.some((appliedJob) => appliedJob.job === jobId)) {
       return res.status(400).json({
         success: false,
         message: 'You have already applied for this job',
@@ -557,7 +604,8 @@ export const appliedJob = async (req, res) => {
 
     // Handle potential validation errors
     try {
-      student.appliedJobs.push(jobId);
+      // Push an object with job field instead of just the ID
+      student.appliedJobs.push({ job: jobId });
       job.appliedStudents.push(student._id);
 
       // Save both in parallel
@@ -588,6 +636,55 @@ export const appliedJob = async (req, res) => {
   }
 };
 
+export const updateStatus = async (req, res) => {
+  const { jobId } = req.params;
+  const { status } = req.body;
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
+    }
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // Check if already applied - now checking the job field of each object
+    if (!student.appliedJobs.some((appliedJob) => appliedJob.job === jobId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have not applied for this job',
+      });
+    }
+
+    // Update status
+    student.appliedJobs.forEach((appliedJob) => {
+      if (appliedJob.job === jobId) {
+        appliedJob.status = status;
+      }
+    });
+
+    await student.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Status updated successfully',
+    });
+  } catch (error) {
+    console.error('Error updating status:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
 export const isAppliedOrNot = async (req, res) => {
   const { jobId } = req.query;
   const { _id } = req.user;
@@ -608,6 +705,35 @@ export const isAppliedOrNot = async (req, res) => {
     });
   } catch (error) {
     console.error('Error checking if applied:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const getAppliedJobs = async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id).populate({
+      path: 'appliedJobs.job',
+      select: '-__v',
+      options: { lean: true },
+    });
+
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      appliedJobs: student.appliedJobs,
+    });
+  } catch (error) {
+    console.error('Error getting applied jobs:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -703,8 +829,6 @@ export const createJobPreference = async (req, res) => {
       visaSponsorshipRequired,
       immediateAvailability,
     } = req.body;
-
-    console.log(req.body);
 
     // Validate must-have skills structure
     if (mustHaveSkills && Array.isArray(mustHaveSkills)) {
@@ -900,8 +1024,6 @@ export const isSavedOrNot = async (req, res) => {
     const { _id } = req.user;
     const { jobId } = req.query;
 
-    console.log(_id, jobId);
-
     // Validate inputs
     if (!_id || !jobId) {
       return res.status(400).json({
@@ -945,3 +1067,712 @@ export const isSavedOrNot = async (req, res) => {
     });
   }
 };
+
+// export const getRecommendedJobs = async (req, res) => {
+//   try {
+//     const studentId = req.user._id;
+//     const { page = 1, limit = 10 } = req.query;
+
+//     // Get student preferences
+//     const student = await Student.findById(studentId).select('jobPreferences');
+//     if (!student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Student not found',
+//       });
+//     }
+
+//     const preferences = student.jobPreferences;
+
+//     // Build the filter based on preferences
+//     const filter = { isActive: true };
+
+//     // Location filters
+//     if (preferences.isRemote) {
+//       filter.isRemote = true;
+//     } else {
+//       if (
+//         preferences.preferedCountries &&
+//         preferences.preferedCountries.length > 0
+//       ) {
+//         filter.country = {
+//           $in: preferences.preferedCountries.map((c) => new RegExp(c, 'i')),
+//         };
+//       }
+//       if (preferences.preferedCities && preferences.preferedCities.length > 0) {
+//         filter['location.city'] = {
+//           $in: preferences.preferedCities.map((c) => new RegExp(c, 'i')),
+//         };
+//       }
+//     }
+
+//     // Job type filters
+//     if (
+//       preferences.preferedJobTypes &&
+//       preferences.preferedJobTypes.length > 0
+//     ) {
+//       filter.jobTypes = { $in: preferences.preferedJobTypes };
+//     }
+
+//     // Job title filters
+//     if (
+//       preferences.preferedJobTitles &&
+//       preferences.preferedJobTitles.length > 0
+//     ) {
+//       filter.$or = preferences.preferedJobTitles.map((title) => ({
+//         title: { $regex: title, $options: 'i' },
+//       }));
+//     }
+
+//     // Salary filter
+//     if (preferences.preferedSalary && preferences.preferedSalary.min) {
+//       // Convert to yearly if needed for comparison
+//       const minSalary = convertSalaryToYearly(
+//         preferences.preferedSalary.min,
+//         preferences.preferedSalary.period,
+//       );
+
+//       filter['salary.min'] = { $gte: minSalary };
+//     }
+
+//     // Experience level filter
+//     if (preferences.preferedExperienceLevel) {
+//       let experienceValue;
+//       switch (preferences.preferedExperienceLevel) {
+//         case 'ENTRY_LEVEL':
+//           experienceValue = 0;
+//           break;
+//         case 'MID_LEVEL':
+//           experienceValue = 3;
+//           break;
+//         case 'SENIOR':
+//           experienceValue = 5;
+//           break;
+//         default:
+//           experienceValue = 0;
+//       }
+//       filter.experience = { $lte: experienceValue };
+//     }
+
+//     // Company size filter
+//     if (
+//       preferences.preferedCompanySizes &&
+//       preferences.preferedCompanySizes.length > 0
+//     ) {
+//       filter['company.size'] = { $in: preferences.preferedCompanySizes };
+//     }
+
+//     // Must-have skills filter
+//     if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
+//       filter.$and = preferences.mustHaveSkills.map((skill) => ({
+//         $or: [
+//           { qualifications: { $regex: skill.skill, $options: 'i' } },
+//           { description: { $regex: skill.skill, $options: 'i' } },
+//           { tags: { $regex: skill.skill, $options: 'i' } },
+//         ],
+//       }));
+//     }
+
+//     // Visa sponsorship filter
+//     if (preferences.visaSponsorshipRequired) {
+//       filter.visaSponsorshipAvailable = true;
+//     }
+
+//     const skip = (parseInt(page) - 1) * parseInt(limit);
+
+//     const [jobs, total] = await Promise.all([
+//       Job.find(filter)
+//         .sort({ createdAt: -1 })
+//         .skip(skip)
+//         .limit(parseInt(limit)),
+//       Job.countDocuments(filter),
+//     ]);
+
+//     // Calculate match score for each job
+//     const jobsWithScores = jobs.map((job) => ({
+//       ...job.toObject(),
+//       matchScore: calculateMatchScore(job, preferences),
+//     }));
+
+//     // Sort by match score
+//     jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
+
+//     res.status(200).json({
+//       success: true,
+//       jobs: jobsWithScores,
+//       pagination: {
+//         total,
+//         page: parseInt(page),
+//         limit: parseInt(limit),
+//         totalPages: Math.ceil(total / limit),
+//       },
+//     });
+//   } catch (error) {
+//     console.error('Error fetching recommended jobs:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Internal server error',
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // Helper function to convert salary to yearly for comparison
+// function convertSalaryToYearly(amount, period) {
+//   switch (period) {
+//     case 'HOUR':
+//       return amount * 40 * 52; // 40 hours/week * 52 weeks
+//     case 'DAY':
+//       return amount * 5 * 52; // 5 days/week * 52 weeks
+//     case 'WEEK':
+//       return amount * 52;
+//     case 'MONTH':
+//       return amount * 12;
+//     case 'YEAR':
+//     default:
+//       return amount;
+//   }
+// }
+
+// // Helper function to calculate match score (0-100)
+// function calculateMatchScore(job, preferences) {
+//   let score = 0;
+//   const totalPossible = 100;
+//   let points = 0;
+
+//   // Location match (20 points)
+//   if (preferences.isRemote && job.isRemote) {
+//     points += 20;
+//   } else if (
+//     preferences.preferedCountries &&
+//     preferences.preferedCountries.length > 0
+//   ) {
+//     if (
+//       preferences.preferedCountries.some((c) =>
+//         job.country.toLowerCase().includes(c.toLowerCase()),
+//       )
+//     ) {
+//       points += 10;
+//       if (preferences.preferedCities && preferences.preferedCities.length > 0) {
+//         if (
+//           preferences.preferedCities.some((c) =>
+//             job.location.city.toLowerCase().includes(c.toLowerCase()),
+//           )
+//         ) {
+//           points += 10;
+//         }
+//       }
+//     }
+//   }
+
+//   // Job type match (15 points)
+//   if (preferences.preferedJobTypes && job.jobTypes) {
+//     const matchingTypes = job.jobTypes.filter((type) =>
+//       preferences.preferedJobTypes.includes(type),
+//     );
+//     if (matchingTypes.length > 0) {
+//       points += 15;
+//     }
+//   }
+
+//   // Title match (15 points)
+//   if (
+//     preferences.preferedJobTitles &&
+//     preferences.preferedJobTitles.length > 0
+//   ) {
+//     if (
+//       preferences.preferedJobTitles.some((title) =>
+//         job.title.toLowerCase().includes(title.toLowerCase()),
+//       )
+//     ) {
+//       points += 15;
+//     }
+//   }
+
+//   // Salary match (15 points)
+//   if (preferences.preferedSalary && job.salary) {
+//     const prefMinYearly = convertSalaryToYearly(
+//       preferences.preferedSalary.min,
+//       preferences.preferedSalary.period,
+//     );
+//     const jobMinYearly = convertSalaryToYearly(
+//       job.salary.min || 0,
+//       job.salary.period || 'YEAR',
+//     );
+
+//     if (jobMinYearly >= prefMinYearly) {
+//       points += 15;
+//     } else if (jobMinYearly >= prefMinYearly * 0.8) {
+//       points += 10;
+//     } else if (jobMinYearly >= prefMinYearly * 0.6) {
+//       points += 5;
+//     }
+//   }
+
+//   // Skills match (20 points)
+//   if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
+//     const jobText = `${job.description} ${job.qualifications.join(
+//       ' ',
+//     )} ${job.tags.join(' ')}`.toLowerCase();
+//     const matchedSkills = preferences.mustHaveSkills.filter((skill) =>
+//       jobText.includes(skill.skill.toLowerCase()),
+//     );
+//     points += (matchedSkills.length / preferences.mustHaveSkills.length) * 20;
+//   }
+
+//   // Experience match (10 points)
+//   if (preferences.preferedExperienceLevel) {
+//     let prefExpLevel;
+//     switch (preferences.preferedExperienceLevel) {
+//       case 'ENTRY_LEVEL':
+//         prefExpLevel = 0;
+//         break;
+//       case 'MID_LEVEL':
+//         prefExpLevel = 3;
+//         break;
+//       case 'SENIOR':
+//         prefExpLevel = 5;
+//         break;
+//       default:
+//         prefExpLevel = 0;
+//     }
+
+//     if (job.experience <= prefExpLevel) {
+//       points += 10;
+//     } else if (job.experience <= prefExpLevel + 2) {
+//       points += 5;
+//     }
+//   }
+
+//   // Visa sponsorship (5 points)
+//   if (preferences.visaSponsorshipRequired && job.visaSponsorshipAvailable) {
+//     points += 5;
+//   }
+
+//   return Math.min(Math.round((points / totalPossible) * 100), 100);
+// }
+
+export const getRecommendedJobs = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const { page = 1, limit = 10 } = req.query;
+
+    // Get student preferences
+    const student = await Student.findById(studentId).select('jobPreferences');
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    const preferences = student.jobPreferences;
+
+    // Build the filter based on preferences
+    const filter = { isActive: true };
+
+    // Location filters
+    if (preferences.isRemote) {
+      filter.isRemote = true;
+    } else {
+      if (
+        preferences.preferedCountries &&
+        preferences.preferedCountries.length > 0
+      ) {
+        filter.country = {
+          $in: preferences.preferedCountries.map((c) => new RegExp(c, 'i')),
+        };
+      }
+      if (preferences.preferedCities && preferences.preferedCities.length > 0) {
+        filter['location.city'] = {
+          $in: preferences.preferedCities.map((c) => new RegExp(c, 'i')),
+        };
+      }
+    }
+
+    // Job type filters
+    if (
+      preferences.preferedJobTypes &&
+      preferences.preferedJobTypes.length > 0
+    ) {
+      filter.jobTypes = { $in: preferences.preferedJobTypes };
+    }
+
+    // Job title filters
+    if (
+      preferences.preferedJobTitles &&
+      preferences.preferedJobTitles.length > 0
+    ) {
+      filter.$or = preferences.preferedJobTitles.map((title) => ({
+        title: { $regex: title, $options: 'i' },
+      }));
+    }
+
+    // Salary filter
+    if (preferences.preferedSalary && preferences.preferedSalary.min) {
+      const minSalary = convertSalaryToYearly(
+        preferences.preferedSalary.min,
+        preferences.preferedSalary.period,
+      );
+      filter['salary.min'] = { $gte: minSalary };
+    }
+
+    // Experience level filter
+    if (preferences.preferedExperienceLevel) {
+      let experienceValue;
+      switch (preferences.preferedExperienceLevel) {
+        case 'ENTRY_LEVEL':
+          experienceValue = 0;
+          break;
+        case 'MID_LEVEL':
+          experienceValue = 3;
+          break;
+        case 'SENIOR':
+          experienceValue = 5;
+          break;
+        default:
+          experienceValue = 0;
+      }
+      filter.experience = { $lte: experienceValue };
+    }
+
+    // Must-have skills filter
+    if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
+      filter.$and = preferences.mustHaveSkills.map((skill) => ({
+        $or: [
+          { qualifications: { $regex: skill.skill, $options: 'i' } },
+          { description: { $regex: skill.skill, $options: 'i' } },
+          { tags: { $regex: skill.skill, $options: 'i' } },
+        ],
+      }));
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [jobs, total] = await Promise.all([
+      Job.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Job.countDocuments(filter),
+    ]);
+
+    // If no jobs found in our database, try to fetch from RapidAPI
+    if (jobs.length === 0) {
+      return await getFallbackJobsFromRapidAPI(req, res, preferences);
+    }
+
+    // Calculate match score for each job
+    const jobsWithScores = jobs.map((job) => ({
+      ...job.toObject(),
+      matchScore: calculateMatchScore(job, preferences),
+    }));
+
+    // Sort by match score
+    jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
+
+    res.status(200).json({
+      success: true,
+      jobs: jobsWithScores,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+      source: 'internal',
+    });
+  } catch (error) {
+    console.error('Error fetching recommended jobs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+};
+
+async function getFallbackJobsFromRapidAPI(req, res, preferences) {
+  try {
+    let queryParts = [];
+
+    // Build query based on preferences
+    if (preferences.preferedJobTitles?.length > 0) {
+      queryParts.push(`(${preferences.preferedJobTitles.join(' OR ')})`);
+    }
+
+    if (preferences.mustHaveSkills?.length > 0) {
+      queryParts.push(
+        `(${preferences.mustHaveSkills.map((s) => s.skill).join(' OR ')})`,
+      );
+    }
+
+    if (!preferences.isRemote && preferences.preferedCountries?.length > 0) {
+      queryParts.push(
+        `location:(${preferences.preferedCountries.join(' OR ')})`,
+      );
+    }
+
+    const query = queryParts.join(' AND ') || 'Software Engineer';
+
+    const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
+      params: {
+        query,
+        page: req.query.page || 1,
+        num_pages: 20,
+      },
+      headers: {
+        'X-RapidAPI-Key': '0d3678f4demsh0fdb835e7b93d0cp15bf60jsnd8ee05c7fc47',
+        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+      },
+    });
+
+    const externalJobs = response.data.data || [];
+    const processedJobs = [];
+
+    for (const job of externalJobs) {
+      const existing = await Job.findOne({ jobId: job.job_id });
+      const experience = extractExperience(job.job_description);
+      const qualifications = extractQualificationsFromDescription(
+        job.job_description,
+      );
+      const responsibilities = extractResponsibilitiesFromDescription(
+        job.job_description,
+      );
+
+      if (!existing) {
+        const newJob = new Job({
+          jobId: job.job_id,
+          origin: 'EXTERNAL',
+          logo: job.employer_logo,
+          experience,
+          qualification: qualifications,
+          responsibilities,
+          title: job.job_title,
+          description: job.job_description,
+          jobTypes: job.job_employment_types || [],
+          company: job.employer_name,
+          applyMethod: {
+            method: 'URL',
+            url: job.job_apply_link,
+          },
+          salary: {
+            min: job.job_min_salary || 0,
+            max: job.job_max_salary || 0,
+            period: job.job_salary_period || 'YEAR',
+          },
+          location: {
+            city: job.job_city,
+            postalCode: job.job_postal_code || '',
+            lat: job.job_latitude,
+            lng: job.job_longitude,
+          },
+          jobAddress: job.job_location,
+          country: job.job_country,
+          tags: job.job_benefits || [],
+          queries: [query],
+        });
+
+        const savedJob = await newJob.save();
+        processedJobs.push(savedJob);
+      } else {
+        await Job.updateOne(
+          { jobId: job.job_id },
+          { $addToSet: { queries: query } },
+        );
+        processedJobs.push(existing); // Include existing one for scoring
+      }
+    }
+
+    // Add match scores and sort
+    const jobsWithScores = processedJobs.map((job) => ({
+      ...job.toObject(),
+      matchScore: calculateMatchScore(job, preferences),
+    }));
+
+    jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
+
+    // Pagination
+    const page = parseInt(req.query.page || 1);
+    const limit = parseInt(req.query.limit || 10);
+    const paginatedJobs = jobsWithScores.slice(
+      (page - 1) * limit,
+      page * limit,
+    );
+
+    return res.status(200).json({
+      success: true,
+      jobs: paginatedJobs,
+      pagination: {
+        total: jobsWithScores.length,
+        page,
+        limit,
+        totalPages: Math.ceil(jobsWithScores.length / limit),
+      },
+      source: 'external',
+      message:
+        jobsWithScores.length > 0
+          ? 'Showing external job listings that match your preferences'
+          : 'No matching jobs found in our database or external sources',
+    });
+  } catch (error) {
+    console.error('Error fetching fallback jobs from RapidAPI:', error.message);
+    return res.status(200).json({
+      success: true,
+      jobs: [],
+      pagination: {
+        total: 0,
+        page: parseInt(req.query.page || 1),
+        limit: parseInt(req.query.limit || 10),
+        totalPages: 0,
+      },
+      source: 'none',
+      message:
+        'No matching jobs found. Try adjusting your preferences or check back later.',
+    });
+  }
+}
+
+// Helper function to convert salary to yearly for comparison
+function convertSalaryToYearly(amount, period) {
+  switch (period) {
+    case 'HOUR':
+      return amount * 40 * 52;
+    case 'DAY':
+      return amount * 5 * 52;
+    case 'WEEK':
+      return amount * 52;
+    case 'MONTH':
+      return amount * 12;
+    case 'YEAR':
+    default:
+      return amount;
+  }
+}
+
+// Helper function to calculate match score (0-100)
+function calculateMatchScore(job, preferences) {
+  let score = 0;
+  const totalPossible = 100;
+  let points = 0;
+
+  // Location match (20 points)
+  if (preferences.isRemote && job.isRemote) {
+    points += 20;
+  } else if (
+    preferences.preferedCountries &&
+    preferences.preferedCountries.length > 0
+  ) {
+    if (
+      preferences.preferedCountries.some(
+        (c) =>
+          job.country && job.country.toLowerCase().includes(c.toLowerCase()),
+      )
+    ) {
+      points += 10;
+      if (preferences.preferedCities && preferences.preferedCities.length > 0) {
+        if (
+          preferences.preferedCities.some(
+            (c) =>
+              job.location?.city &&
+              job.location.city.toLowerCase().includes(c.toLowerCase()),
+          )
+        ) {
+          points += 10;
+        }
+      }
+    }
+  }
+
+  // Job type match (15 points)
+  if (preferences.preferedJobTypes && job.jobTypes) {
+    const matchingTypes = job.jobTypes.filter((type) =>
+      preferences.preferedJobTypes.includes(type),
+    );
+    if (matchingTypes.length > 0) {
+      points += 15;
+    }
+  }
+
+  // Title match (15 points)
+  if (
+    preferences.preferedJobTitles &&
+    preferences.preferedJobTitles.length > 0
+  ) {
+    if (
+      preferences.preferedJobTitles.some(
+        (title) =>
+          job.title && job.title.toLowerCase().includes(title.toLowerCase()),
+      )
+    ) {
+      points += 15;
+    }
+  }
+
+  // Salary match (15 points)
+  if (preferences.preferedSalary && job.salary) {
+    const prefMinYearly = convertSalaryToYearly(
+      preferences.preferedSalary.min,
+      preferences.preferedSalary.period,
+    );
+    const jobMinYearly = convertSalaryToYearly(
+      job.salary.min || 0,
+      job.salary.period || 'YEAR',
+    );
+
+    if (jobMinYearly >= prefMinYearly) {
+      points += 15;
+    } else if (jobMinYearly >= prefMinYearly * 0.8) {
+      points += 10;
+    } else if (jobMinYearly >= prefMinYearly * 0.6) {
+      points += 5;
+    }
+  }
+
+  // Skills match (20 points)
+  if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
+    const jobText = [
+      job.description || '',
+      ...(job.qualifications || []),
+      ...(job.tags || []),
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    const matchedSkills = preferences.mustHaveSkills.filter((skill) =>
+      jobText.includes(skill.skill.toLowerCase()),
+    );
+    points += (matchedSkills.length / preferences.mustHaveSkills.length) * 20;
+  }
+
+  // Experience match (10 points)
+  if (preferences.preferedExperienceLevel) {
+    let prefExpLevel;
+    switch (preferences.preferedExperienceLevel) {
+      case 'ENTRY_LEVEL':
+        prefExpLevel = 0;
+        break;
+      case 'MID_LEVEL':
+        prefExpLevel = 3;
+        break;
+      case 'SENIOR':
+        prefExpLevel = 5;
+        break;
+      default:
+        prefExpLevel = 0;
+    }
+
+    if (job.experience <= prefExpLevel) {
+      points += 10;
+    } else if (job.experience <= prefExpLevel + 2) {
+      points += 5;
+    }
+  }
+
+  // Visa sponsorship (5 points)
+  if (preferences.visaSponsorshipRequired && job.visaSponsorshipAvailable) {
+    points += 5;
+  }
+
+  return Math.min(Math.round((points / totalPossible) * 100), 100);
+}

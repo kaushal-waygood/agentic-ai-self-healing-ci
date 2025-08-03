@@ -18,7 +18,12 @@ export const JobPreferencesSchema = z.object({
     .optional(),
 
   // Compensation
-  preferedSalary: z.string().optional(),
+  preferedSalary: z.object({
+    min: z.number().optional(),
+    max: z.number().optional(),
+    currency: z.string().optional(),
+    period: z.enum(['YEAR', 'MONTH', 'WEEK']).optional(),
+  }),
 
   // Skills & Education
   mustHaveSkills: z

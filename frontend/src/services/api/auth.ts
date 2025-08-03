@@ -28,3 +28,13 @@ export const getProfile = async () => {
   const response = await apiInstance.get('/user/me');
   return response;
 };
+
+export const changePassword = async (payload: {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) => {
+  console.log('payload', payload);
+  const response = await apiInstance.patch('/user/me/password/change', payload);
+  return response;
+};

@@ -71,6 +71,15 @@ import { PageHeader } from '../common/page-header';
 import { mockSubscriptionPlans } from '@/lib/data/subscriptions';
 import { ToastAction } from '../ui/toast';
 import Link from 'next/link';
+import { useJobs } from '@/hooks/jobs/useJobs';
+import { useProfile } from '@/hooks/useProfile';
+import { current } from '@reduxjs/toolkit';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { useDispatch } from 'react-redux';
+import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
+import apiInstance from '@/services/api';
 
 // Types for Wizard State
 type WizardStep =
@@ -238,6 +247,30 @@ export function ApplicationWizardClient() {
     savedClId: string;
   }>({ defaultValues: { clSource: 'skip', pastedCl: '', savedClId: '' } });
 
+  const { jobs, loading, selectedJob } = useJobs({ searchParams });
+  const { defaultValues } = useProfile();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    students: student,
+    loading: studentLoading,
+    error: studentError,
+  } = useSelector((state: RootState) => state.student);
+
+  const {
+    resume,
+    loading: generatedCvLoading,
+    error: generatedCvError,
+  } = useSelector((state: RootState) => state.ai);
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(getStudentDetailsRequest());
+    dispatch(savedStudentResumeRequest());
+  }, [dispatch]);
+
   const createCvForm = useForm<CvDetailsValues>({
     resolver: zodResolver(cvDetailsSchema),
     defaultValues: {
@@ -372,110 +405,22 @@ export function ApplicationWizardClient() {
   }, [saveApplicationState]);
 
   useEffect(() => {
-    const applicationId = searchParams.get('applicationId');
-    const jobId = searchParams.get('jobId');
-
     const initialize = async () => {
-      // Resume has highest priority
-      if (applicationId) {
-        const existingApp = mockApplications.find(
-          (a) => a.id === applicationId,
-        );
-        if (existingApp?.wizardState) {
-          // Restore state from a previously started wizard session
-          setCurrentApplication(existingApp);
-          const state = existingApp.wizardState;
-          setJobContext(state.jobContext);
-          setCvContext(state.cvContext);
-          setClContext(state.clContext);
-          setRefinedCv(state.refinedCv || '');
-          setTailoredCl(state.tailoredCl || '');
-          setEmailDraft(state.emailDraft || '');
-          setWizardStep(state.step || 'job');
-        } else if (existingApp) {
-          // Resume an application that was saved but not from a wizard (e.g., from agent)
-          toast({
-            title: 'Resuming application...',
-            description: 'Loading application details.',
-          });
-          const job = await getJobDetails({ jobId: existingApp.jobId });
-          if (job) {
-            const jobCtx = {
-              mode: 'select',
-              jobId: job.id,
-              jobTitle: job.title,
-              companyName: job.company,
-              jobDescription: job.description,
-            } as JobContext;
-            setJobContext(jobCtx);
-            setCurrentApplication(existingApp);
-            setWizardStep('cv'); // Assume they want to pick a CV next
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Job details not found for this application.',
-            });
-            router.push('/applications');
-          }
-        } else {
-          toast({ variant: 'destructive', title: 'Application not found.' });
-          router.push('/applications');
-        }
-        return;
+      setCurrentApplication(selectedJob);
+      if (selectedJob) {
+        setJobContext({
+          mode: 'select',
+          jobId: selectedJob._id,
+          jobTitle: selectedJob.title,
+          companyName: selectedJob.company,
+          jobDescription: selectedJob.description,
+        });
       }
-
-      // Start a new application from a job listing
-      if (jobId) {
-        const existingDraft = mockApplications.find(
-          (app) =>
-            app.jobId === jobId &&
-            (app.status === 'Draft' || app.status === 'Error'),
-        );
-        if (existingDraft?.id) {
-          router.replace(`/apply?applicationId=${existingDraft.id}`);
-          return;
-        }
-
-        setIsLoading(true);
-        setLoadingMessage('Fetching job details...');
-        const job = await getJobDetails({ jobId });
-        if (job) {
-          const newApplicationId = `app-${job.id}`;
-          const jobCtx = {
-            mode: 'select',
-            jobId: job.id,
-            jobTitle: job.title,
-            companyName: job.company,
-            jobDescription: job.description,
-          } as JobContext;
-          const newApp: MockApplication = {
-            id: newApplicationId,
-            jobId: job.id,
-            jobTitle: job.title,
-            company: job.company,
-            dateApplied: new Date().toISOString().split('T')[0],
-            status: 'Draft',
-            wizardState: { step: 'cv', jobContext: jobCtx },
-          };
-          mockApplications.unshift(newApp);
-          router.replace(`/apply?applicationId=${newApplicationId}`);
-        } else {
-          toast({ variant: 'destructive', title: 'Job not found.' });
-          setWizardStep('job');
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      // Start a completely new application without any context
-      const newAppId = `app-new-${Date.now()}`;
-      setCurrentApplication({ id: newAppId } as MockApplication);
-      setWizardStep('job');
+      setWizardStep('cv');
     };
 
     initialize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, selectedJob]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -542,6 +487,7 @@ export function ApplicationWizardClient() {
       } else {
         throw new Error('Invalid job context submission.');
       }
+      // Fix: Set the entire context object, not just the title
       setJobContext(context);
       // Reset subsequent steps whenever a new job context is set
       setCvContext(null);
@@ -566,58 +512,14 @@ export function ApplicationWizardClient() {
     mode: CvContext['mode'],
     value?: string | File,
   ) => {
-    setIsLoading(true);
-    setLoadingMessage('Processing CV...');
-    try {
-      let context: CvContext;
-      if (mode === 'upload' && value instanceof File) {
-        const dataUri = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(value);
-        });
-        const parsed = await parseCv({ cvDataUri: dataUri });
-        context = { mode, value: JSON.stringify(parsed), name: value.name };
-      } else if (mode === 'profile') {
-        // Construct a clean object for the AI instead of sending the whole profile
-        const cleanProfileData = {
-          fullName: mockUserProfile.fullName,
-          contact: {
-            email: mockUserProfile.email,
-            phone: mockUserProfile.phone,
-            linkedin: mockUserProfile.linkedin,
-          },
-          summary: mockUserProfile.narratives.achievements,
-          education: mockUserProfile.education,
-          experience: mockUserProfile.experience,
-          projects: mockUserProfile.projects,
-          skills: mockUserProfile.skills,
-        };
-        context = {
-          mode,
-          value: JSON.stringify(cleanProfileData),
-          name: 'My Profile',
-        };
-      } else if (mode === 'saved' && typeof value === 'string') {
-        const savedCv = mockUserProfile.savedCvs.find((c) => c.id === value);
-        if (!savedCv) throw new Error('Saved CV not found.');
-        context = { mode, value: savedCv.htmlContent, name: savedCv.name };
-      } else {
-        throw new Error('Invalid CV context submission.');
-      }
-      setCvContext(context);
-      setWizardStep('cl');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Processing CV',
-        description: (error as Error).message,
-      });
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
+    console.log('handleCvContextSubmit');
+    setCvContext({ mode, value: student, name: '' });
+    console.log('student', student);
+    console.log(cvContext);
+    if (mode === 'profile') {
+      console.log(cvContext);
     }
+    setWizardStep('cl');
   };
 
   const handleCreateCvFormSubmit = async (data: CvDetailsValues) => {
@@ -709,33 +611,12 @@ export function ApplicationWizardClient() {
   };
 
   const handleGenerate = async () => {
-    if (!jobContext || !cvContext) return;
-
-    // Enforcement logic
-    const user = mockUserProfile;
-    const plan = mockSubscriptionPlans.find((p) => p.id === user.currentPlanId);
-    if (!plan) {
+    console.log('cvContext', cvContext?.value);
+    if (!cvContext) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Could not find your subscription plan.',
-      });
-      return;
-    }
-    if (
-      plan.limits.aiJobApply !== -1 &&
-      user.usage.aiJobApply >= plan.limits.aiJobApply
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Application Limit Reached',
-        description:
-          "You've used all your AI application generations for this month.",
-        action: (
-          <ToastAction altText="Upgrade Now" asChild>
-            <Link href="/subscriptions">Upgrade Plan</Link>
-          </ToastAction>
-        ),
+        title: 'Missing CV',
+        description: 'Please provide your CV before generating',
       });
       return;
     }
@@ -744,111 +625,124 @@ export function ApplicationWizardClient() {
     setWizardStep('generate');
 
     try {
-      const result = await generateTailoredApplication({
-        jobTitle: jobContext.jobTitle,
-        companyName: jobContext.companyName,
-        jobDescription: jobContext.jobDescription,
-        userCv: cvContext.value,
-        userName: mockUserProfile.fullName,
-      });
+      const formData = new FormData();
 
-      // Increment usage upon successful generation
-      user.usage.aiJobApply += 1;
-      user.careerXp = (user.careerXp || 0) + 20;
-      toast({
-        title: '+20 Career XP!',
-        description: 'For generating tailored documents.',
-      });
+      formData.append('jobId', selectedJob._id);
 
-      setRefinedCv(result.tailoredCv);
-      setTailoredCl(result.coverLetter);
-      setEmailDraft(result.emailDraft);
+      if (cvContext.mode === 'profile') {
+        formData.append('useProfile', 'true');
+      } else if (cvContext.mode === 'saved' && cvContext.value) {
+        formData.append('savedCVId', cvContext.value);
+      } else if (cvContext.mode === 'upload' && cvContext.value) {
+        // If value is a File object, append directly
+        if (cvContext?.value) {
+          console.log('cvContext.value', cvContext.value);
+          formData.append('cv', cvContext.value);
+          formData.append('useProfile', 'false');
+        }
+        // If value is a data URL string (for backward compatibility)
+        else if (typeof cvContext.value === 'string') {
+          const blob = await fetch(cvContext.value).then((r) => r.blob());
+          const file = new File([blob], cvContext.name || 'cv.pdf', {
+            type: blob.type,
+          });
+          formData.append('cv', file);
+        }
+      }
+
+      if (clContext) {
+        if (clContext.mode === 'saved' && clContext.value) {
+          formData.append('savedCoverLetterId', clContext.value);
+        } else if (clContext.mode === 'paste' && clContext.value) {
+          formData.append('coverLetterText', clContext.value);
+        }
+      }
+
+      formData.append('finalTouch', 'Tailor for ATS optimization');
+
+      // PROPER DEBUGGING - Convert FormData to inspectable object
+      const formDataObj = {};
+      for (const [key, value] of formData.entries()) {
+        formDataObj[key] =
+          value instanceof File
+            ? `File: ${value.name} (${value.size} bytes)`
+            : value;
+      }
+      console.log('FormData contents:', formDataObj);
+
+      // 4. Make API call with proper headers
+      const response = await apiInstance.post(
+        '/students/applications/tailor',
+        formDataObj,
+      );
+
+      const result = response.data;
+      setRefinedCv(result.data.tailoredCV);
+      setTailoredCl(result.data.tailoredCoverLetter);
+      setEmailDraft(result.data.applicationEmail);
 
       toast({
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
+
       setWizardStep('result');
     } catch (error) {
+      console.error('Full error:', {
+        message: error.message,
+        response: error.response?.data,
+        config: error.config,
+      });
+
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: (error as Error).message,
+        description:
+          error.response?.data?.message ||
+          'Failed to generate application. Please try again.',
       });
-      setWizardStep('cl'); // Go back to prev step on failure
+      setWizardStep('cl');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleCVContext = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      console.error('No file selected');
+      return;
+    }
+
+    const validTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'application/msword',
+    ];
+
+    if (!validTypes.includes(file.type)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid File Type',
+        description: 'Please upload a PDF, PNG, JPG, or Word document',
+      });
+      return;
+    }
+
+    // Store the File object directly instead of converting to data URL
+    setCvContext({ mode: 'upload', value: file, name: file.name });
+    setWizardStep('cl');
+  };
+
   const handleSaveAndFinish = () => {
     if (!currentApplication || !jobContext) return;
 
-    const isNewApplication = !mockApplications.some(
-      (app) => app.id === currentApplication.id,
-    );
-
-    // Persist final edits
-    const appToSave: MockApplication = {
-      ...currentApplication,
-      jobId: jobContext.jobId || currentApplication.jobId,
-      jobTitle: jobContext.jobTitle,
-      company: jobContext.companyName,
-      dateApplied: new Date().toISOString().split('T')[0],
-      status: 'AI-Drafted',
-      emailDraft: emailDraft,
-      wizardState: {
-        jobContext,
-        cvContext,
-        clContext,
-        refinedCv,
-        tailoredCl,
-        emailDraft,
-        step: 'result',
-      },
-    };
-
-    // Save generated docs to user profile
-    const newCv: SavedCv = {
-      id: `cv-${currentApplication.id}`,
-      name: `CV for ${jobContext.jobTitle}`,
-      htmlContent: refinedCv,
-      createdAt: new Date().toISOString(),
-      jobTitle: jobContext.jobTitle,
-    };
-    const newCl: SavedCoverLetter = {
-      id: `cl-${currentApplication.id}`,
-      name: `CL for ${jobContext.jobTitle}`,
-      htmlContent: tailoredCl,
-      createdAt: new Date().toISOString(),
-      jobDescription: jobContext.jobDescription,
-      tone: 'Formal',
-      style: 'Concise',
-    };
-
-    if (!mockUserProfile.savedCvs) mockUserProfile.savedCvs = [];
-    if (!mockUserProfile.savedCoverLetters)
-      mockUserProfile.savedCoverLetters = [];
-    mockUserProfile.savedCvs.unshift(newCv);
-    mockUserProfile.savedCoverLetters.unshift(newCl);
-    appToSave.savedCvId = newCv.id;
-    appToSave.savedCoverLetterId = newCl.id;
-
-    if (isNewApplication) {
-      mockApplications.unshift(appToSave);
-      mockUserProfile.careerXp = (mockUserProfile.careerXp || 0) + 10;
-      toast({
-        title: '+10 Career XP!',
-        description: 'For tracking a new application.',
-      });
-    } else {
-      const appIndex = mockApplications.findIndex(
-        (a) => a.id === currentApplication.id,
-      );
-      if (appIndex > -1) {
-        mockApplications[appIndex] = appToSave;
-      }
-    }
+    console.log('currentApplication', currentApplication);
+    console.log('jobContext', jobContext);
+    console.log('refinedCv', refinedCv);
+    console.log('tailoredCl', tailoredCl);
+    console.log('emailDraft', emailDraft);
 
     toast({
       title: 'Application Saved!',
@@ -1077,10 +971,7 @@ export function ApplicationWizardClient() {
           <input
             type="file"
             ref={cvFileInputRef}
-            onChange={(e) =>
-              e.target.files?.[0] &&
-              handleCvContextSubmit('upload', e.target.files[0])
-            }
+            onChange={handleCVContext}
             className="hidden"
             accept=".pdf,.doc,.docx"
           />
@@ -1938,7 +1829,7 @@ export function ApplicationWizardClient() {
           <PageHeader
             title={
               wizardStep === 'result'
-                ? `Reviewing for: ${jobContext?.jobTitle}`
+                ? `Your Tailored Application`
                 : 'Application Wizard'
             }
             description={

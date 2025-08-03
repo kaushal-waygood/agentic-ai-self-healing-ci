@@ -139,8 +139,6 @@ export const fetchAndSaveRapidJobsUseLater = async (req, res) => {
           continue; // Skip to next job
         }
 
-        console.log(`Processing job: ${job.job_highlights.Qualifications}`);
-
         // Extract job details
         const experience = extractExperience(job.job_description);
         const qualifications = extractQualifications(job.job_description);
@@ -304,16 +302,12 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
         num_pages: 20,
       },
       headers: {
-        'X-RapidAPI-Key': 'c7ba6ca0c9mshc1e7b4827328e98p1be463jsn88e70a3f4bcc',
+        'X-RapidAPI-Key': '0d3678f4demsh0fdb835e7b93d0cp15bf60jsnd8ee05c7fc47',
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
       },
     });
 
     const jobs = response.data.data;
-
-    jobs.forEach((job) => {
-      console.log(job.job_highlights);
-    });
 
     let savedCount = 0;
 

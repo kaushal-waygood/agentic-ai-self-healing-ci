@@ -13,8 +13,11 @@ import {
   getProfileSuccess,
   getProfileFailure,
   getProfileRequest,
+  changePasswordRequest,
+  changePasswordSuccess,
+  changePasswordFailure,
 } from '../reducers/authReducer';
-import { getProfile, login, signup } from '@/services/api/auth';
+import { changePassword, getProfile, login, signup } from '@/services/api/auth';
 
 function* loginSaga(
   action: PayloadAction<{ email: string; password: string }>,
@@ -71,8 +74,22 @@ function* getUserProfileSaga(): SagaIterator {
   }
 }
 
+function* changePasswordSaga(action: PayloadAction<any>): SagaIterator {
+  try {
+    console.log(action.payload);
+    const response = yield call(changePassword, action.payload);
+    yield put(changePasswordSuccess(response.data));
+  } catch (error: unknown) {
+    console.log('Error changing password:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to change password';
+    yield put(changePasswordFailure(errorMessage));
+  }
+}
+
 export function* watchAuth(): SagaIterator {
   yield takeLatest(loginRequest.type, loginSaga);
   yield takeLatest(signupRequest.type, signupSaga);
   yield takeLatest(getProfileRequest.type, getUserProfileSaga);
+  yield takeLatest(changePasswordRequest.type, changePasswordSaga);
 }

@@ -4,62 +4,53 @@ export const generateCVPrompt = (
   finalTouch = '',
 ) => {
   return `
-You are an expert resume parser and formatter. 
+  this is the job description where i want to apply for job:
+  ${jobDescription}
 
-Use the following job description to tailor the extracted resume data and return it in clean, valid **JSON format only** (without any markdown or code fences). 
+  this is the resume text:
+  ${resumeText}
 
-Job Description:
-${jobDescription}
+  this is the final touch:
+  ${finalTouch}
 
-Resume:
-${resumeText}
+You are a world-class career coach and CV writer specializing in crafting ATS-friendly, Harvard-style academic and professional CVs.
+  
+Your task is to take the user's career information and a target role, and from it, generate a complete, polished, single-file HTML CV. You must also provide an ATS score and reasoning.
 
-Instructions:
-- Extract the following fields: fullName, email, phone, skills, education, experience, and projects.
-- For each skill, include a "level" field with one of: "BEGINNER", "INTERMEDIATE", or "ADVANCED". If not mentioned, default to "BEGINNER".
-- For all date fields, maintain the format as it appears in the resume.
-- Use the job description context to prioritize or enrich extracted data when possible.
-${finalTouch ? `- Final Touch: ${finalTouch}` : ''}
+The user's information is provided either as an uploaded file or as a JSON object. Prioritize the uploaded file if present.
 
-Return only valid JSON in the structure below:
+{{#if fileDataUri}}
+**USER'S UPLOADED CV FILE:**
+{{media url=fileDataUri}}
+{{/if}}
+{{#if jsonData}}
+**USER'S PROVIDED DETAILS (JSON):**
+\`\`\`json
+{{{jsonData}}}
+\`\`\`
+{{/if}}
 
-{
-  "fullName": "John Doe",
-  "email": "johndoe@example.com",
-  "phone": "+91 1234567890",
-  "skills": [
-    { "skill": "JavaScript", "level": "ADVANCED" },
-    { "skill": "React", "level": "INTERMEDIATE" },
-    { "skill": "Node.js", "level": "BEGINNER" }
-  ],
-  "education": [
-    {
-      "institute": "XYZ University",
-      "degree": "B.Tech",
-      "startYear": 2018,
-      "endYear": 2022
-    }
-  ],
-  "experience": [
-    {
-      "company": "ABC Corp",
-      "title": "Frontend Developer",
-      "startDate": "Jan 2023",
-      "endDate": "Present",
-      "description": "Worked on React apps"
-    }
-  ],
-  "projects": [
-    {
-      "projectName": "Project A",
-      "startDate": "Jan 2023",
-      "endDate": "Present",
-      "description": "Worked on React apps",
-      "technologies": ["React", "Node.js"],
-      "link": "https://example.com/project-a",
-      "isWorkingActive": true
-    }
-  ]
-}
+**TARGET COURSE/PROGRAM/JOB:**
+{{{targetRole}}}
+
+**YOUR TASKS:**
+
+1.  **Parse and Understand:** Analyze the provided data. Extract all relevant information like name, contact details, professional summary, education history, work experience, and skills.
+
+2.  **Generate CV HTML:**
+    *   Create a clean, professional, single-column CV using standard HTML tags (e.g., \`h1\`, \`h2\`, \`p\`, \`ul\`, \`li\`).
+    *   Follow the **Harvard CV Style**:
+        *   Start with the full name in a large heading.
+        *   Follow with a line of contact information (Address | Phone | Email).
+        *   Use clear section headings (e.g., "PROFILE", "EDUCATION", "EXPERIENCE", "SKILLS"), styled with a bottom border.
+        *   For each experience and education entry, list the title/degree and institution/company, followed by dates.
+        *   Use bullet points (\`ul\` and \`li\`) for responsibilities and achievements. Rewrite them to be action-oriented and impactful, tailored towards the '{{{targetRole}}}'. Quantify achievements where possible.
+    *   The entire output for the CV must be a single block of HTML code in the 'cv' field of the JSON output. Do NOT include \`<html>\` or \`<body>\` tags.
+    *   The entire output for the CV must be a single block of HTML code and trying to avoid nested HTML tags in the 'cv' field of the JSON output some tags like \`<ul>\` and \`<li>\` are allowed.
+    *   **Note:** borders in resume container are not allowed.
+3.  **ATS Scoring and Reasoning:**
+    *   **Score:** Based on the content's quality, keyword relevance to the '{{{targetRole}}}', and structure, provide an ATS score from 0-100 in the 'atsScore' field. A well-structured CV with relevant keywords should score high.
+    *   **Reasoning:** In the 'atsScoreReasoning' field, provide a concise 2-3 sentence explanation for the score. Give one specific, actionable tip for improvement (e.g., "It could be improved by adding more keywords related to '[Keyword]' and quantifying achievements further.").
+${finalTouch}
 `;
 };

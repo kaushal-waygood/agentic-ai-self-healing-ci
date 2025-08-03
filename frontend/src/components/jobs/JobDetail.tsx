@@ -226,7 +226,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           </CardDescription>
           <div className="flex gap-2 pt-2">
             <Button asChild>
-              <Link href={`/apply?jobId=${encodeURIComponent(job.slug)}`}>
+              <Link href={`/apply?slug=${encodeURIComponent(job.slug)}`}>
                 <FilePlus2 className="mr-2 h-4 w-4" /> Tailor & Apply
               </Link>
             </Button>

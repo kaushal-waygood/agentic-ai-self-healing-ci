@@ -34,7 +34,7 @@ const jobPreferenceSchema = new Schema({
   },
   preferedExperienceLevel: {
     type: String,
-    // enum: ['ENTRY_LEVEL', 'MID_LEVEL', 'SENIOR', 'EXECUTIVE', null],
+
     default: null,
   },
 
@@ -74,7 +74,7 @@ const jobPreferenceSchema = new Schema({
       skill: String,
       level: {
         type: String,
-        enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'],
+        // enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'],
       },
     },
   ],
@@ -166,7 +166,6 @@ const studentSchema = new Schema(
         title: String,
         employmentType: {
           type: String,
-          enum: ['FULL_TIME', 'PART_TIME', 'CONTRACT'],
           default: 'FULL_TIME',
         },
         location: {
@@ -175,8 +174,9 @@ const studentSchema = new Schema(
         experienceYrs: {
           type: Number,
         },
-        startDate: Date,
-        endDate: Date,
+        designation: String,
+        startDate: String,
+        endDate: String,
         description: String,
         currentlyWorking: {
           type: Boolean,
@@ -191,7 +191,7 @@ const studentSchema = new Schema(
 
     skills: [
       {
-        skillId: { type: String, required: true, unique: true },
+        skillId: { type: String, unique: true, index: true },
         skill: {
           type: String,
         },
@@ -225,14 +225,32 @@ const studentSchema = new Schema(
     // Application Info
     appliedJobs: [
       {
-        type: Schema.Types.ObjectId,
-        ref: 'Job',
+        job: {
+          type: Schema.Types.ObjectId,
+          ref: 'Job',
+        },
+
+        status: {
+          type: String,
+          default: 'applied',
+        },
+
+        appliedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
     savedJobs: [
       {
-        type: Schema.Types.ObjectId,
-        ref: 'Job',
+        job: {
+          type: Schema.Types.ObjectId,
+          ref: 'Job',
+        },
+        savedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
 
@@ -290,5 +308,7 @@ const studentSchema = new Schema(
   },
   { timestamps: true },
 );
+
+studentSchema.index({ 'skills.skillId': 1 }, { unique: false });
 
 export const Student = model('Student', studentSchema);

@@ -8,6 +8,9 @@ import { useEffect, useState } from 'react';
 import {
   getStudentDetailsRequest,
   removeStudentEducationRequest,
+  removeStudentExperienceRequest,
+  removeStudentSkillRequest,
+  updateStudentExperienceRequest,
   updateStudentSkillRequest,
 } from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
@@ -157,18 +160,7 @@ export const useProfile = () => {
       _id: edu._id || '',
       educationId: edu.educationId || '',
     })),
-    experience: (students.experience || []).map((exp) => ({
-      company: exp.company || '',
-      jobTitle: exp.jobTitle || '',
-      employmentType: exp.employmentType,
-      location: exp.location || '',
-      responsibilities: (exp.responsibilities || []).join('\n'),
-      startDate: exp.startDate || '',
-      endDate: exp.endDate || '',
-      isCurrent: exp.endDate?.toLowerCase() === 'present',
-      description: exp.description || '',
-      _id: exp._id || '',
-    })),
+    experience: students.experience,
     projects: (students.projects || []).map((proj) => ({
       name: proj.projectName || '',
       description: proj.description || '',
@@ -238,6 +230,15 @@ export const useProfile = () => {
     },
     mode: 'onChange',
   });
+
+  const handleDeleteSkills = (index: number) => {
+    dispatch(removeStudentSkillRequest(index));
+  };
+
+  const handleDeleteExp = (index: number) => {
+    console.log('index', index);
+    dispatch(removeStudentExperienceRequest(index));
+  };
 
   useEffect(() => {
     if (students.fullName) {
@@ -493,6 +494,8 @@ export const useProfile = () => {
     setHandleName,
     handleEmail,
     setHandleEmail,
+    handleDeleteSkills,
+    handleDeleteExp,
 
     //form
     personalInfoForm,

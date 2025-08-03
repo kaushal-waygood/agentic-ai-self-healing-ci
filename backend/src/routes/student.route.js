@@ -21,16 +21,22 @@ import {
   getSavedJobs,
   isSavedOrNot,
   isAppliedOrNot,
+  getAppliedJobs,
+  getRecommendedJobs,
+  updateExperience,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import pdfParse from 'pdf-parse';
 import fs from 'fs';
 import path from 'path';
 import { __dirname } from '../utils/fileUploadingManaging.js';
+import puppeteer from 'puppeteer';
 
 const router = Router();
 
 router.get('/details', authMiddleware, isStudent, studentDetails);
+router.get('/job/applications', authMiddleware, isStudent, getAppliedJobs);
+
 router.post('/job/apply/:jobId', authMiddleware, isStudent, appliedJob);
 router.get('/job/isapplied', authMiddleware, isStudent, isAppliedOrNot);
 
@@ -38,7 +44,7 @@ router.patch('/fullname/update', authMiddleware, isStudent, updateFullName);
 
 // Skills
 router.post('/skill/add', authMiddleware, isStudent, addStudentSkills);
-router.post(
+router.delete(
   '/skill/remove/:skillId',
   authMiddleware,
   isStudent,
@@ -53,7 +59,7 @@ router.patch(
 
 // Experience
 router.post('/experience/add', authMiddleware, isStudent, addExperience);
-router.post(
+router.delete(
   '/experience/remove/:expId',
   authMiddleware,
   isStudent,
@@ -63,7 +69,7 @@ router.patch(
   '/experience/update/:expId',
   authMiddleware,
   isStudent,
-  addExperience,
+  updateExperience,
 );
 
 router.post('/education/add', authMiddleware, isStudent, addEducations);
@@ -116,5 +122,51 @@ router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);
 router.post('/jobs/saved', authMiddleware, isStudent, savedJobs);
 router.get('/jobs/saved', authMiddleware, isStudent, getSavedJobs);
 router.get('/jobs/issaved', authMiddleware, isStudent, isSavedOrNot);
+router.get('/jobs/recommended', authMiddleware, isStudent, getRecommendedJobs);
+
+router.post('/pdf/generate-pdf', async (req, res) => {
+  console.log('Received request to generate PDF...');
+
+  const { html, title } = req.body;
+
+  if (!html) {
+    return res.status(400).json({ message: 'HTML content is required.' });
+  }
+
+  try {
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox'],
+    });
+    const page = await browser.newPage();
+
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '15mm',
+        right: '15mm',
+        bottom: '15mm',
+        left: '15mm',
+      },
+    });
+
+    await browser.close();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.pdf"`,
+    );
+
+    console.log('Successfully generated and sent PDF.');
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
+    res.status(500).json({ message: 'Failed to generate PDF.' });
+  }
+});
 
 export default router;

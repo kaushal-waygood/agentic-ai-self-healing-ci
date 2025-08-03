@@ -831,7 +831,7 @@ export function CoverLetterGeneratorClient() {
         );
       case 'result':
         return (
-          <Card className="flex flex-col items-center justify-center text-center p-12 min-h-[400px]">
+          <Card className="flex flex-col items-center justify-center text-center p-12 w-full min-h-[400px]">
             <ChevronsRight className="h-16 w-16 text-primary mb-4" />
             <h2 className="text-2xl font-headline font-semibold">
               Letter Generated!

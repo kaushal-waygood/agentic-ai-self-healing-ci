@@ -28,6 +28,7 @@ import {
   addStudentExperienceRequest,
   addStudentSkillRequest,
   updateStudentEducationRequest,
+  updateStudentExperienceRequest,
 } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
@@ -82,8 +83,9 @@ interface SkillFormData {
 
 interface closeProps {
   onCancel: () => void;
-  data?: any;
+  data?: any | null;
   isEdit?: boolean;
+  index?: string;
 }
 
 interface education {
@@ -108,6 +110,8 @@ export const AddEducation = ({ onCancel, isEdit, data, index }: closeProps) => {
       endDate: '',
     },
   });
+
+  console.log('data', data);
 
   const { educations, loading, error } = useSelector(
     (state: RootState) => state.student,
@@ -440,17 +444,24 @@ export const AddProject = ({ onCancel }: closeProps) => {
   );
 };
 
-export const AddExperience = ({ onCancel }: closeProps) => {
+export const AddExperience = ({
+  onCancel,
+  data,
+  index,
+  isEdit,
+}: closeProps) => {
+  console.log('data AddExperience', data);
   const form = useForm<ExperienceFormData>({
     defaultValues: {
-      company: '',
-      jobTitle: '',
-      employmentType: '',
-      location: '',
-      isCurrent: false,
-      startDate: '',
-      endDate: '',
-      responsibilities: '',
+      company: data?.company || '',
+      designation: data?.designation || '',
+      employmentType: data?.employmentType || '',
+      location: data?.location || '',
+      isCurrent: data?.isCurrent || false,
+      startDate: data?.startDate || '',
+      endDate: data?.endDate || '',
+      responsibilities: data?.responsibilities || '',
+      _id: data?._id || '',
     },
   });
 
@@ -463,7 +474,11 @@ export const AddExperience = ({ onCancel }: closeProps) => {
   const isCurrent = watch('isCurrent');
 
   const handleFormSubmit = (data: ExperienceFormData) => {
-    dispatch(addStudentExperienceRequest(data));
+    if (isEdit) {
+      dispatch(updateStudentExperienceRequest({ data, index: data._id }));
+    } else {
+      dispatch(addStudentExperienceRequest(data));
+    }
     onCancel();
   };
 
@@ -491,10 +506,10 @@ export const AddExperience = ({ onCancel }: closeProps) => {
 
           <FormField
             control={control}
-            name="jobTitle"
+            name="designation"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Job Title*</FormLabel>
+                <FormLabel>Designation*</FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="Your position" required />
                 </FormControl>

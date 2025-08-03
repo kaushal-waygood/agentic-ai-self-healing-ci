@@ -22,9 +22,13 @@ import {
   updateJobStatusRequest,
   updateJobStatusSuccess,
   updateJobStatusFailure,
+  getJobPreferenceRequest,
+  getJobPreferenceSuccess,
+  getJobPreferenceFailure,
 } from '../reducers/jobReducer';
 import { AxiosResponse } from 'axios';
 import { PayloadAction } from '@reduxjs/toolkit';
+import { recommendProfileJob } from '@/services/api/student';
 
 function* getAllJobsSaga(
   action: PayloadAction<{
@@ -115,6 +119,15 @@ function* updateJobStatusSaga(action: PayloadAction<any>) {
   }
 }
 
+function* preferedJobs() {
+  try {
+    const response: AxiosResponse = yield call(recommendProfileJob);
+    yield put(getJobPreferenceFailure(response.data.jobs));
+  } catch (error: unknown | Error) {
+    yield put(getJobPreferenceFailure((error as Error).message));
+  }
+}
+
 export function* jobsWatcher() {
   yield takeLatest(getAllJobsRequest.type, getAllJobsSaga);
   yield takeLatest(getJobBySlugRequest.type, getJobBySlugSaga);
@@ -127,4 +140,5 @@ export function* jobsWatcher() {
     getAllJobPostsByOrgAdminSaga,
   );
   yield takeLatest(updateJobStatusRequest.type, updateJobStatusSaga);
+  yield takeLatest(getJobPreferenceRequest.type, preferedJobs);
 }

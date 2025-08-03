@@ -211,7 +211,7 @@ export const generateCVByJD = async (req, res) => {
 
     res.setHeader('Content-Type', 'text/html');
 
-    return res.send(htmlContent);
+    return res.send(rawText);
   } catch (error) {
     console.error('Error generating CV:', error);
     return res.status(500).json({ error: 'Failed to generate CV' });
@@ -410,8 +410,6 @@ export const generateCoverLetterByJD = async (req, res) => {
 
     // Generate cover letter
     let coverLetter = await genAI(prompt);
-
-    console.log(coverLetter);
 
     prompt = `${coverLetter} 
 
@@ -742,4 +740,212 @@ export const getSingleStudentHTMLLetter = async (req, res) => {
     console.error('Error getting HTML Letter:', error);
     return res.status(500).json({ error: 'Failed to get HTML Letter' });
   }
+};
+
+export const createTailoredApply = async (req, res) => {
+  const { _id } = req.user;
+  const {
+    jobId,
+    useProfile,
+    savedCVId,
+    savedCoverLetterId,
+    coverLetterText,
+    finalTouch,
+  } = req.body;
+
+  try {
+    // Step 1: Validate required inputs
+    if (!jobId) {
+      return res.status(400).json({ error: 'Job ID is required' });
+    }
+
+    // Step 2: Fetch job details
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    let studentData;
+    let cvContent;
+    let coverLetterContent;
+
+    // Step 3: Determine CV source
+    if (useProfile) {
+      const student = await Student.findById(_id);
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+      studentData = student;
+    } else if (savedCVId) {
+      const savedCV = await SavedCV.findOne({ _id: savedCVId, user: _id });
+      if (!savedCV) {
+        return res.status(404).json({ error: 'Saved CV not found' });
+      }
+      cvContent = savedCV.content;
+    } else if (req.file) {
+      const filePath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'public',
+        'pdf',
+        req.file.filename,
+      );
+
+      try {
+        const dataBuffer = fs.readFileSync(filePath);
+        const parsedPDF = await pdfParse(dataBuffer);
+        cvContent = parsedPDF.text;
+      } finally {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+    } else {
+      return res.status(400).json({
+        error: 'Either useProfile, savedCVId, or CV file must be provided',
+      });
+    }
+
+    // Step 4: Determine cover letter source
+    if (savedCoverLetterId) {
+      const savedCL = await Student.findOne({
+        _id,
+      }).coverLetter.find((cl) => cl._id.toString() === savedCoverLetterId);
+      if (!savedCL) {
+        return res.status(404).json({ error: 'Saved cover letter not found' });
+      }
+      coverLetterContent = savedCL.content;
+    } else if (coverLetterText) {
+      coverLetterContent = coverLetterText;
+    }
+
+    // Step 5: Prepare data for AI
+    const applicationData = {
+      job: {
+        title: job.title,
+        company: job.company,
+        description: job.description,
+      },
+      candidate: studentData || {
+        cv: cvContent,
+      },
+      coverLetter: coverLetterContent,
+      preferences: finalTouch,
+    };
+
+    // Step 6: Generate each component with separate prompts
+    const [cvResponse, coverLetterResponse, emailResponse] = await Promise.all([
+      genAI(generateCVPrompts(applicationData)),
+      genAI(generateCoverLetterPrompt(applicationData)),
+      genAI(generateEmailPrompt(applicationData)),
+    ]);
+
+    // Step 7: Process AI responses
+    let tailoredCV, tailoredCoverLetter, applicationEmail;
+
+    try {
+      tailoredCV = processCVResponse(cvResponse);
+      tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
+      applicationEmail = processEmailResponse(emailResponse);
+    } catch (err) {
+      console.error('Error processing AI responses:', err);
+      return res.status(500).json({ error: 'Failed to process AI responses' });
+    }
+
+    // Step 8: Return results
+    res.json({
+      success: true,
+      data: {
+        tailoredCV,
+        tailoredCoverLetter,
+        applicationEmail,
+      },
+    });
+  } catch (error) {
+    console.error('Error in createTailoredApply:', error);
+    res.status(500).json({
+      error: 'Failed to create tailored application',
+      details: error.message,
+    });
+  }
+};
+
+// Separate prompt generators
+const generateCVPrompts = (data) => {
+  return `
+  Generate a professional CV based on the following information:
+  
+  Job Title: ${data.job.title}
+  Company: ${data.job.company}
+  Job Description: ${data.job.description}
+  
+  Candidate Information:
+  ${JSON.stringify(data.candidate, null, 2)}
+  
+  Additional Preferences: ${data.preferences || 'None provided'}
+  
+  Please return the CV in HTML format without any markdown formatting.
+  Focus on tailoring the CV to highlight relevant skills and experiences for this specific job.
+  `;
+};
+
+const generateCoverLetterPrompts = (data) => {
+  return `
+  Write a compelling cover letter for the following job application:
+  
+  Position: ${data.job.title}
+  Company: ${data.job.company}
+  Job Description: ${data.job.description}
+  
+  Candidate Information:
+  ${JSON.stringify(data.candidate, null, 2)}
+  
+  ${
+    data.coverLetter
+      ? `Existing Cover Letter Content (use as reference):\n${data.coverLetter}`
+      : 'No existing cover letter provided'
+  }
+  
+  Additional Preferences: ${data.preferences || 'None provided'}
+  
+  Please return the cover letter in HTML format without any markdown formatting.
+  The tone should be professional but not overly formal, and specifically address how the candidate's skills match the job requirements.
+  `;
+};
+
+const generateEmailPrompt = (data) => {
+  return `
+  Compose a professional application email to submit the CV and cover letter for this job:
+  
+  Position: ${data.job.title}
+  Company: ${data.job.company}
+  
+  Candidate Information:
+  ${JSON.stringify(data.candidate, null, 2)}
+  
+  The email should:
+  - Be concise (3-4 paragraphs max)
+  - Include a clear subject line
+  - Introduce the candidate
+  - Briefly mention why they're a good fit
+  - Reference the attached documents
+  - Include a professional closing
+  
+  Please return the email in HTML format without any markdown formatting.
+  `;
+};
+
+// Response processors
+const processCVResponse = (response) => {
+  // Clean up AI response and ensure proper HTML formatting
+  return response.replace(/```html|```/g, '').trim();
+};
+
+const processCoverLetterResponse = (response) => {
+  return response.replace(/```html|```/g, '').trim();
+};
+
+const processEmailResponse = (response) => {
+  return response.replace(/```html|```/g, '').trim();
 };
