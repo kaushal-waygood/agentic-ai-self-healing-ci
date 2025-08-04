@@ -14,7 +14,7 @@ import { Job } from '../models/jobs.model.js'; // Import Application model
 import { User } from '../models/User.model.js'; // Import User model
 import { google } from 'googleapis';
 import { sendApplicationEmail } from '../utils/sendApplicationEmail.js';
-import { authMiddlewares } from '../middlewares/authMiddleware.js';
+// import { authMiddlewares } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 

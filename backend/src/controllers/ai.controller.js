@@ -834,18 +834,21 @@ export const createTailoredApply = async (req, res) => {
       preferences: finalTouch,
     };
 
+    console.log(applicationData);
+
     // Step 6: Generate each component with separate prompts
     const [cvResponse, coverLetterResponse, emailResponse] = await Promise.all([
-      genAI(generateCVPrompts(applicationData)),
+      genAI(generateCVPrompt(applicationData)),
       genAI(generateCoverLetterPrompt(applicationData)),
       genAI(generateEmailPrompt(applicationData)),
     ]);
+    console.log(cvResponse);
 
     // Step 7: Process AI responses
     let tailoredCV, tailoredCoverLetter, applicationEmail;
 
     try {
-      tailoredCV = processCVResponse(cvResponse);
+      tailoredCV = convertToHTMLPrompt(cvResponse);
       tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
       applicationEmail = processEmailResponse(emailResponse);
     } catch (err) {
