@@ -5,7 +5,7 @@ import { JobCard } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
 import { useJobs } from '@/hooks/jobs/useJobs';
 import { useMediaQuery } from '@/hooks/jobs/useMediaQuery';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { Pagination } from '@/components/utils/Pagination';
 import { FilterModal } from './FilterModal';
@@ -22,32 +22,22 @@ export default function JobsPage() {
     pagination,
     handlePageChange,
     filters,
-    handleFilterChange,
-    handleSearchInput,
     setFilterModal,
     employmentTypes,
     experienceLevels,
     filterModal,
-    applyFilters,
-    resetFilters,
-    applySearchFilters,
+    handleSearchChange, // Handles search input changes
+    resetFilters, // Make sure this is destructured from useJobs
   } = useJobs();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
 
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const jobListRef = useRef<HTMLDivElement>(null);
   const jobDetailRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const slug = searchParams.get('slug');
-    if (slug) {
-      setSelectedSlug(slug);
-      fetchJobDetails(slug);
-    }
-  }, [searchParams]);
+  // Remove all URL parameter related code
+  // No longer need to read from searchParams or set URL parameters
 
   useEffect(() => {
     const jobList = jobListRef.current;
@@ -111,12 +101,11 @@ export default function JobsPage() {
   };
 
   const handleCardClick = async (slug: string) => {
-    console.log(isMobile);
     if (isMobile) {
       router.push(`/jobs/${slug}`);
     } else {
       await fetchJobDetails(slug);
-      router.push(`?slug=${slug}`, { scroll: false });
+      // Remove the URL parameter setting
     }
   };
 
@@ -133,12 +122,11 @@ export default function JobsPage() {
 
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="text-red-500 p-4">{error}</div>;
-  console.log('jobPreference', jobPreference);
 
   return (
     <div>
       <SearchFilters
-        onApply={applySearchFilters}
+        onSearchChange={handleSearchChange} // Changed from onApply
         initialFilters={filters}
         onOpenFilterModal={() => setFilterModal(true)}
       />
@@ -148,9 +136,9 @@ export default function JobsPage() {
         employmentTypes={employmentTypes}
         experienceLevels={experienceLevels}
         filters={filters}
-        onFilterChange={handleFilterChange}
-        onReset={resetFilters}
-        onApply={applyFilters}
+        onFilterChange={handleSearchChange}
+        onReset={resetFilters} // Now properly defined
+        onApply={handleSearchChange}
       />
       <div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 h-full">
@@ -174,7 +162,10 @@ export default function JobsPage() {
                 className="cursor-pointer"
                 onClick={() => handleCardClick(job.slug)}
               >
-                <JobCard job={job} isActive={job.slug === selectedSlug} />
+                <JobCard
+                  job={job}
+                  isActive={selectedJob ? job.slug === selectedJob.slug : false}
+                />
               </div>
             ))}
           </div>
@@ -188,7 +179,6 @@ export default function JobsPage() {
               msOverflowStyle: 'none', // For IE/Edge
             }}
           >
-            {' '}
             <style jsx>{`
               div::-webkit-scrollbar {
                 display: none;

@@ -9,6 +9,7 @@ import {
   getStudentDetailsRequest,
   removeStudentEducationRequest,
   removeStudentExperienceRequest,
+  removeStudentProjectRequest,
   removeStudentSkillRequest,
   updateStudentExperienceRequest,
   updateStudentSkillRequest,
@@ -217,6 +218,11 @@ export const useProfile = () => {
   const [deleteProjIndex, setDeleteProjIndex] = useState(0);
   const [deleteSkillIndex, setDeleteSkillIndex] = useState(0);
 
+  const [isNameEditable, setIsNameEditable] = useState(false);
+  const [isEmailEditable, setIsEmailEditable] = useState(false);
+  const [handleName, setHandleName] = useState('');
+  const [handleEmail, setHandleEmail] = useState('');
+
   // Personal Info Form
   const personalInfoForm = useForm<
     Pick<ProfileFormValues, 'fullName' | 'email'>
@@ -233,11 +239,22 @@ export const useProfile = () => {
 
   const handleDeleteSkills = (index: number) => {
     dispatch(removeStudentSkillRequest(index));
+    setDeleteSkill(false);
   };
 
   const handleDeleteExp = (index: number) => {
-    console.log('index', index);
     dispatch(removeStudentExperienceRequest(index));
+    setDeleteExp(false);
+  };
+
+  const handleDeleteProject = (index) => {
+    dispatch(removeStudentProjectRequest(index));
+    setDeleteProj(false);
+  };
+
+  const deleteEducation = (index: number) => {
+    dispatch(removeStudentEducationRequest(index));
+    setDeleteEdu(false);
   };
 
   useEffect(() => {
@@ -384,11 +401,6 @@ export const useProfile = () => {
     setAddEdu(false);
   };
 
-  const deleteEducation = (index: number) => {
-    console.log('index', index);
-    dispatch(removeStudentEducationRequest(index));
-  };
-
   const handleLevelChange = (index: number, level: string) => {
     dispatch(updateStudentSkillRequest({ index, level }));
   };
@@ -400,15 +412,6 @@ export const useProfile = () => {
   const handleEdit = (index) => {
     setEditProjIndex(index);
   };
-
-  const handleDelete = (index) => {
-    console.log('Delete project at index', index);
-  };
-
-  const [isNameEditable, setIsNameEditable] = useState(false);
-  const [isEmailEditable, setIsEmailEditable] = useState(false);
-  const [handleName, setHandleName] = useState('');
-  const [handleEmail, setHandleEmail] = useState('');
 
   const toggleNameEdit = () => {
     setIsNameEditable((prev) => !prev);
@@ -496,6 +499,7 @@ export const useProfile = () => {
     setHandleEmail,
     handleDeleteSkills,
     handleDeleteExp,
+    handleDeleteProject,
 
     //form
     personalInfoForm,
@@ -514,7 +518,6 @@ export const useProfile = () => {
     handleLevelChange,
     toggleExpand,
     handleEdit,
-    handleDelete,
     toggleNameEdit,
     toggleEmailEdit,
     handlePersonalInfoEdit,

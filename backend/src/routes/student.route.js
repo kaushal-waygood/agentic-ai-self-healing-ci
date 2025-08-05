@@ -23,12 +23,12 @@ import {
   isAppliedOrNot,
   getAppliedJobs,
   getRecommendedJobs,
+  updateProjects,
   updateExperience,
+  addProjects,
+  removeProject,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
-import pdfParse from 'pdf-parse';
-import fs from 'fs';
-import path from 'path';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import puppeteer from 'puppeteer';
 
@@ -84,6 +84,26 @@ router.patch(
   authMiddleware,
   isStudent,
   updateEducation,
+);
+
+router.post('/project/add', authMiddleware, isStudent, addProjects);
+router.delete(
+  '/project/remove/:projectId',
+  authMiddleware,
+  isStudent,
+  removeProject,
+);
+router.patch(
+  '/project/update/:projectId',
+  authMiddleware,
+  isStudent,
+  updateProjects,
+);
+router.delete(
+  '/project/remove/:projectId',
+  authMiddleware,
+  isStudent,
+  removeEducation,
 );
 
 router.post(

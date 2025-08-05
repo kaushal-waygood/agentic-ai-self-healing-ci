@@ -99,6 +99,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     setHandleName,
     handleEmail,
     setHandleEmail,
+    handleDeleteProject,
 
     //form
     personalInfoForm,
@@ -119,7 +120,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handleLevelChange,
     toggleExpand,
     handleEdit,
-    handleDelete,
     toggleNameEdit,
     toggleEmailEdit,
     defaultValues,
@@ -499,7 +499,8 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEdit(index);
+                            setEditProj(true);
+                            setEditProjIndex(index);
                           }}
                         >
                           <Pencil className="h-4 w-4" />
@@ -510,8 +511,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteProj(true);
-                            setDeleteProjIndex(index);
-                            // handleDelete(index);
+                            setDeleteProjIndex(proj._id);
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -785,6 +785,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         </>
       )}
 
+      {/* add education, project, experience, skill */}
       {addEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
@@ -817,6 +818,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         </div>
       )}
 
+      {/* edit education, project, experience */}
       {editEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           {console.log('editEdu', defaultValues.education)}
@@ -837,6 +839,20 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
               onCancel={() => setEditExp(false)}
               data={defaultValues.experience[editExpIndex]}
               index={editExpIndex}
+              isEdit={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {editProj && (
+        <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
+          {console.log('editProj', defaultValues.projects)}
+
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <AddProject
+              onCancel={() => setEditProj(false)}
+              data={defaultValues.projects[editProjIndex]}
               isEdit={true}
             />
           </div>
@@ -894,6 +910,26 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 onClick={() => {
                   handleDeleteSkills(deleteSkillIndex);
                   setDeleteSkill(false);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteProj && (
+        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black bg-opacity-50">
+          <div className="w-full max-w-3xl  overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <p>Are you sure you want to delete this project entry?</p>
+            <div className="flex justify-end gap-4 mt-4">
+              <Button onClick={() => setDeleteProj(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleDeleteProject(deleteProjIndex);
+                  setDeleteProj(false);
                 }}
               >
                 Delete

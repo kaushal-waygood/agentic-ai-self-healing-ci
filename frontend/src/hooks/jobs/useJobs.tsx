@@ -5,8 +5,9 @@ import apiInstance from '@/services/api';
 import {
   getAllJobsRequest,
   setCurrentPage,
-  resetFilters as resetReduxFilters,
+  // resetFilters as resetReduxFilters,
 } from '@/redux/reducers/jobReducer';
+import debounce from 'debounce';
 import { Job } from '@/redux/types/jobType';
 
 export const useJobs = () => {
@@ -14,7 +15,9 @@ export const useJobs = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Get state from Redux
+  console.log('searchParams use Jobs', searchParams);
+
+  // Redux state
   const {
     jobs,
     loading,
@@ -30,48 +33,6 @@ export const useJobs = () => {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const jobListRef = useRef<HTMLDivElement>(null);
   const jobDetailRef = useRef<HTMLDivElement>(null);
-
-  // Fetch job details
-  const fetchJobDetails = useCallback(async (slug: string) => {
-    try {
-      const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
-      setSelectedJob(response.data.singleJob);
-    } catch (err) {
-      console.error('Failed to fetch job details:', err);
-    }
-  }, []);
-
-  // Handle URL changes
-  useEffect(() => {
-    const slug = searchParams.get('slug');
-    if (slug) {
-      fetchJobDetails(slug);
-    }
-  }, [searchParams, fetchJobDetails]);
-
-  // Initialize filters from URL
-  useEffect(() => {
-    const page = searchParams.get('page') || '1';
-    const query = searchParams.get('query') || '';
-    const country = searchParams.get('country') || '';
-    const city = searchParams.get('city') || '';
-    const datePosted = searchParams.get('datePosted') || '';
-    const employmentType = searchParams.get('employmentType')?.split(',') || [];
-    const experience = searchParams.get('experience')?.split(',') || [];
-
-    dispatch(setCurrentPage(Number(page)));
-    dispatch(
-      getAllJobsRequest({
-        page: Number(page),
-        query,
-        country,
-        city,
-        datePosted,
-        employmentType,
-        experience,
-      }),
-    );
-  }, [dispatch, searchParams]);
 
   // Fetch metadata
   useEffect(() => {
@@ -91,87 +52,122 @@ export const useJobs = () => {
     fetchJobMetadata();
   }, []);
 
-  // Handle search input with debouncing
-  const handleSearchInput = useCallback(
-    (value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('query', value);
-      params.set('page', '1');
-      router.push(`?${params.toString()}`, { scroll: false });
+  // Fetch jobs on initial mount or when page changes
+  useEffect(() => {
+    const page = Number(searchParams.get('page') || '1');
+    dispatch(setCurrentPage(page));
+    dispatch(
+      getAllJobsRequest({
+        page,
+        query: '', // Clean search
+        country: '',
+        city: '',
+        datePosted: '',
+        employmentType: [],
+        experience: [],
+      }),
+    );
+  }, [dispatch, searchParams]);
 
-      console.log('value', value);
-    },
-    [router, searchParams],
-  );
-
-  // Handle filter changes
-  const handleFilterChange = useCallback(
-    (name: string, value: string | string[]) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      if (Array.isArray(value)) {
-        params.set(name, value.join(','));
-      } else {
-        params.set(name, value);
-      }
-
-      params.set('page', '1');
-      router.push(`?${params.toString()}`, { scroll: false });
-    },
-    [router, searchParams],
-  );
-
-  const applySearchFilters = useCallback(
-    (newFilters: { [key: string]: string | string[] }) => {
-      const params = new URLSearchParams(); // Start fresh or use existing
-      params.set('page', '1'); // Always reset to page 1
-
-      // Set all new filter values
-      Object.entries(newFilters).forEach(([key, value]) => {
-        if (value) {
-          // Ensure value is not empty
-          params.set(key, Array.isArray(value) ? value.join(',') : value);
+  useEffect(() => {
+    const fetchSingleJob = async () => {
+      try {
+        const jobId = searchParams.get('slug');
+        if (jobId) {
+          const response = await apiInstance.get(`/jobs/find?slug=${jobId}`);
+          setSelectedJob(response.data.singleJob);
+          console.log('selectedJob', selectedJob);
         }
-      });
+      } catch (err) {
+        console.error('Failed to fetch single job:', err);
+      }
+    };
 
+    if (searchParams.has('slug')) {
+      fetchSingleJob();
+    }
+  }, []);
+
+  // Search input (does not update URL)
+  const handleSearchInput = useCallback(
+    async (value: string) => {
+      // Just call API or dispatch if needed — avoid query param
+      dispatch(
+        getAllJobsRequest({
+          page: 1,
+          query: value,
+          country: '',
+          city: '',
+          datePosted: '',
+          employmentType: [],
+          experience: [],
+        }),
+      );
+    },
+    [dispatch],
+  );
+
+  // Page change — only modify `page` in URL
+  const handlePageChange = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
       router.push(`?${params.toString()}`, { scroll: false });
     },
     [router],
   );
 
-  // Apply filters
-  const applyFilters = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', '1');
-    router.push(`?${params.toString()}`);
-    setFilterModal(false);
-  }, [router, searchParams]);
+  // Filter change — does not touch URL
+  const applySearchFilters = useCallback(
+    (newFilters: { [key: string]: string | string[] }) => {
+      dispatch(
+        getAllJobsRequest({
+          page: 1,
+          query: '',
+          country: '',
+          city: '',
+          datePosted: '',
+          employmentType: newFilters.employmentType || [],
+          experience: newFilters.experience || [],
+        }),
+      );
+      setFilterModal(false);
+    },
+    [dispatch],
+  );
 
-  // Reset filters
+  // Reset all filters
   const resetAllFilters = useCallback(() => {
-    dispatch(resetReduxFilters());
+    // dispatch(resetReduxFilters());
     router.push('?page=1');
     setFilterModal(false);
   }, [dispatch, router]);
 
-  // Pagination
-  const handlePageChange = useCallback(
-    (page: number) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('page', page.toString());
-      router.push(`?${params.toString()}`);
-    },
-    [router, searchParams],
-  );
+  // On job card click, just load the details without modifying URL
+  const handleCardClick = useCallback(async (slug: string) => {
+    try {
+      const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
+      setSelectedJob(response.data.singleJob);
+    } catch (err) {
+      console.error('Failed to fetch job details:', err);
+    }
+  }, []);
 
-  // Handle job card click
-  const handleCardClick = useCallback(
-    async (slug: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('slug', slug);
-      router.push(`?${params.toString()}`, { scroll: false });
-    },
-    [router, searchParams],
+  const handleSearchChange = useCallback(
+    debounce((filters: FilterState) => {
+      dispatch(
+        getAllJobsRequest({
+          page: 1,
+          query: filters.query,
+          country: filters.country,
+          city: filters.city,
+          datePosted: filters.datePosted,
+          employmentType: [],
+          experience: [],
+        }),
+      );
+    }, 500),
+    [dispatch],
   );
 
   return {
@@ -189,16 +185,14 @@ export const useJobs = () => {
     // Refs
     jobListRef,
     jobDetailRef,
+    handleSearchChange,
 
     // Handlers
     setFilterModal,
-    handleFilterChange,
     handleSearchInput,
     handlePageChange,
-    applyFilters,
+    applySearchFilters,
     resetFilters: resetAllFilters,
     handleCardClick,
-
-    applySearchFilters,
   };
 };

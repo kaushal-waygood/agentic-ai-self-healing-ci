@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,8 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Filter } from 'lucide-react';
-
-// --- Types and Options ---
+import { debounce } from 'lodash';
 
 export const datePostedOptions = [
   { id: '1', label: 'Last 24 hours' },
@@ -30,35 +29,38 @@ interface FilterState {
 
 interface SearchFiltersProps {
   initialFilters: FilterState;
-  onApply: (newFilters: FilterState) => void;
+  onSearchChange: (newFilters: FilterState) => void;
   onOpenFilterModal: () => void;
 }
 
-// --- Component ---
-
 export const SearchFilters = ({
   initialFilters,
-  onApply,
+  onSearchChange,
   onOpenFilterModal,
 }: SearchFiltersProps) => {
   const [localFilters, setLocalFilters] = useState<FilterState>(initialFilters);
 
+  // Debounced search change handler
+  const debouncedSearch = useCallback(
+    debounce((filters: FilterState) => {
+      onSearchChange(filters);
+    }, 500),
+    [],
+  );
+
   const handleInputChange = (name: keyof FilterState, value: string) => {
-    setLocalFilters((prev) => ({ ...prev, [name]: value }));
+    const newFilters = { ...localFilters, [name]: value };
+    setLocalFilters(newFilters);
+    debouncedSearch(newFilters);
   };
 
   useEffect(() => {
     setLocalFilters(initialFilters);
   }, [initialFilters]);
 
-  const handleApplyClick = () => {
-    onApply(localFilters);
-  };
-
   return (
     <div className="flex flex-wrap items-center justify-between mb-6 gap-3">
       <div className="flex flex-1 items-center gap-2 min-w-[300px]">
-        {/* Search Query Input */}
         <Input
           placeholder="Job title, keywords, or company"
           value={localFilters.query}
@@ -66,7 +68,6 @@ export const SearchFilters = ({
           className="outline-none bg-white"
         />
 
-        {/* Country Input */}
         <Input
           placeholder="Country"
           value={localFilters.country}
@@ -74,7 +75,6 @@ export const SearchFilters = ({
           className="outline-none bg-white"
         />
 
-        {/* City Input */}
         <Input
           placeholder="City"
           value={localFilters.city}
@@ -82,7 +82,6 @@ export const SearchFilters = ({
           className="outline-none bg-white"
         />
 
-        {/* Date Posted Select */}
         <Select
           value={localFilters.datePosted}
           onValueChange={(value) => handleInputChange('datePosted', value)}
@@ -101,10 +100,7 @@ export const SearchFilters = ({
       </div>
 
       <div className="flex items-center gap-2">
-        {/* The button to apply all selected filters at once */}
-        <Button onClick={handleApplyClick}>Search</Button>
-
-        {/* Button to open the more advanced filter modal */}
+        {/* Only show the "More Filters" button now */}
         <Button
           variant="outline"
           onClick={onOpenFilterModal}

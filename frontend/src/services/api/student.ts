@@ -37,7 +37,6 @@ export const removeExperience = async (data: any) => {
 };
 
 export const updateExperience = async (data: any, index: any) => {
-  console.log('data', data, 'index', data._id);
   const response = await apiInstance.patch(
     `/students/experience/update/${index}`,
     data,
@@ -50,8 +49,19 @@ export const addProject = async (data: any) => {
   return response;
 };
 
-export const removeProject = async (data: any) => {
-  const response = await apiInstance.post('/students/project/remove', data);
+export const updateProject = async (data: any, index: any) => {
+  console.log('data', index);
+  const response = await apiInstance.patch(
+    `/students/project/update/${data._id}`,
+    data,
+  );
+  return response;
+};
+
+export const removeProject = async (index: any) => {
+  const response = await apiInstance.delete(
+    '/students/project/remove/' + index,
+  );
   return response;
 };
 
@@ -79,8 +89,6 @@ export const updateJobPreference = async (data: any) => {
 };
 
 export const recommendProfileJob = async () => {
-  console.log('recommendProfileJob');
   const response = await apiInstance.get('/students/prefered-job/get');
-  console.log('response', response);
   return response;
 };

@@ -8,6 +8,8 @@ import {
   signUpUser,
   refreshAccessToken,
   changePassword,
+  verifyEmail,
+  firebaseAuth,
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 import { Job } from '../models/jobs.model.js'; // Import Application model
@@ -125,7 +127,10 @@ const router = Router();
 // });
 
 // Existing routes
+
+router.post('/google/auth', firebaseAuth);
 router.post('/signup', signUpUser);
+router.post('/verify', verifyEmail);
 router.post('/signin', signInUser);
 router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, getUserProfile);

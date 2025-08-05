@@ -15,6 +15,7 @@ import {
   extractResponsibilitiesFromDescription,
 } from '../utils/exprienceExtractor.js';
 
+// Get student details
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
 
@@ -51,48 +52,56 @@ export const studentDetails = async (req, res) => {
   }
 };
 
-export const addStudentSkills = async (req, res) => {
-  const { skill, level } = req.body;
-  const { _id } = req.user;
-  try {
-    const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-    const skillId = slugify(`${skill}-${level}`, { lower: true });
-    const existingSkill = student.skills.find((s) => s.skillId === skillId);
-    if (existingSkill) {
-      return res.status(400).json({ message: 'Skill already exists' });
-    }
-
-    student.skills.push({ skill, level, skillId });
-    await student.save();
-    res
-      .status(200)
-      .json({ message: 'Skills added successfully', student: student.skills });
-  } catch (error) {
-    console.error('Error adding skills:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
+// update Full Name
 export const updateFullName = async (req, res) => {
   const { fullName } = req.body;
   const { _id } = req.user;
+
+  // Validation
+  if (!fullName || typeof fullName !== 'string') {
+    return res.status(400).json({ message: 'Valid full name is required' });
+  }
+
   try {
-    const student = await Student.findById(_id);
-    if (!student) {
+    // Atomic update operation
+    const result = await Student.findByIdAndUpdate(
+      _id,
+      {
+        $set: {
+          fullName: fullName,
+          updatedAt: new Date(), // Optional: add update timestamp
+        },
+      },
+      { new: true }, // Return the updated document
+    );
+
+    if (!result) {
       return res.status(404).json({ message: 'Student not found' });
     }
-    student.fullName = fullName;
-    await student.save();
-    res.status(200).json({ message: 'Full name updated successfully' });
+
+    return res.status(200).json({
+      message: 'Full name updated successfully',
+      updatedStudent: {
+        fullName: result.fullName,
+        // Include other fields you want to return
+      },
+    });
   } catch (error) {
     console.error('Error updating full name:', error);
-    res.status(500).json({ message: 'Internal server error' });
+
+    // Handle specific errors
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid student ID format' });
+    }
+
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
+// update Job Role
 export const updateJobRole = async (req, res) => {
   const { jobRole } = req.body;
   const { _id } = req.user;
@@ -110,33 +119,80 @@ export const updateJobRole = async (req, res) => {
   }
 };
 
+//Skills controller
+export const addStudentSkills = async (req, res) => {
+  const { skill, level } = req.body;
+  const { _id } = req.user;
+
+  if (!skill || !level) {
+    return res.status(400).json({ message: 'Skill and level are required' });
+  }
+
+  try {
+    const skillId = slugify(`${skill}-${level}`, { lower: true });
+    const newSkill = { skill, level, skillId };
+
+    const result = await Student.findByIdAndUpdate(
+      _id,
+      {
+        $addToSet: { skills: newSkill }, // Only adds if not already exists
+      },
+      { new: true },
+    );
+
+    if (!result) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Skill added successfully',
+      skills: result.skills,
+    });
+  } catch (error) {
+    console.error('Error adding skills:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
 export const removeStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { _id } = req.user;
 
+  if (!skillId) {
+    return res.status(400).json({ message: 'Skill ID is required' });
+  }
+
   try {
-    const student = await Student.findById(_id);
-    if (!student) {
+    const result = await Student.findByIdAndUpdate(
+      _id,
+      {
+        $pull: { skills: { _id: skillId } },
+      },
+      { new: true },
+    );
+
+    if (!result) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Convert skillId to string for comparison
-    const skill = student.skills.find((s) => s._id.toString() === skillId);
+    return res.status(200).json({
+      message: 'Skill removed successfully',
+      skills: result.skills,
+    });
+  } catch (error) {
+    console.error('Error removing skill:', error);
 
-    if (!skill) {
-      return res.status(404).json({ message: 'Skill not found' });
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid skill ID format' });
     }
 
-    // Update the filter to compare string representations
-    student.skills = student.skills.filter((s) => s._id.toString() !== skillId);
-
-    await student.save();
-    res
-      .status(200)
-      .json({ message: 'Skill removed successfully', skills: student.skills });
-  } catch (error) {
-    console.error('Error removing skills:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
@@ -144,6 +200,8 @@ export const updateStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { level } = req.body;
   const { _id } = req.user;
+
+  console.log(skillId, level, _id);
 
   try {
     const student = await Student.findById(_id);
@@ -163,6 +221,7 @@ export const updateStudentSkills = async (req, res) => {
   }
 };
 
+// Experience controller
 export const addExperience = async (req, res) => {
   const { company, title, startDate, endDate, description, currentlyWorking } =
     req.body;
@@ -292,6 +351,7 @@ export const updateExperience = async (req, res) => {
   }
 };
 
+// Education controller
 export const addEducations = async (req, res) => {
   const {
     degree,
@@ -416,6 +476,151 @@ export const updateEducation = async (req, res) => {
   }
 };
 
+export const addProjects = async (req, res) => {
+  const {
+    projectName,
+    description,
+    startDate,
+    endDate,
+    technologies,
+    link,
+    isWorkingActive,
+  } = req.body;
+
+  try {
+    const student = await Student.findById(req.user._id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.projects.push({
+      projectName,
+      description,
+      startDate,
+      endDate,
+      technologies,
+      link,
+      isWorkingActive,
+    });
+    await student.save();
+
+    return res.status(200).json({ message: 'Project added successfully' });
+  } catch (error) {
+    console.error('Error adding project:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const updateProjects = async (req, res) => {
+  const { projectId } = req.params;
+  const {
+    projectName,
+    description,
+    startDate,
+    endDate,
+    technologies,
+    link,
+    isWorkingActive,
+  } = req.body;
+
+  // Basic validation
+  if (!projectId) {
+    return res.status(400).json({ message: 'Project ID is required' });
+  }
+
+  try {
+    // Find the student and update the specific project in one operation
+    const result = await Student.findOneAndUpdate(
+      {
+        _id: req.user._id,
+        'projects._id': projectId,
+      },
+      {
+        $set: {
+          'projects.$.projectName': projectName,
+          'projects.$.description': description,
+          'projects.$.startDate': startDate,
+          'projects.$.endDate': endDate,
+          'projects.$.technologies': technologies,
+          'projects.$.link': link,
+          'projects.$.isWorkingActive': isWorkingActive,
+          'projects.$.updatedAt': new Date(), // Add update timestamp
+        },
+      },
+      { new: true }, // Return the updated document
+    );
+
+    if (!result) {
+      return res.status(404).json({
+        message: 'Student or project not found',
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Project updated successfully',
+      project: result.projects.find((p) => p._id.toString() === projectId),
+    });
+  } catch (error) {
+    console.error('Error updating project:', error);
+
+    // Handle specific errors
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid project ID format' });
+    }
+
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const removeProject = async (req, res) => {
+  const { projectId } = req.params;
+
+  // Validate projectId
+  if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+    return res.status(400).json({ message: 'Invalid project ID' });
+  }
+
+  try {
+    // Atomic operation to pull the project from the array
+    const updatedStudent = await Student.findByIdAndUpdate(
+      req.user._id,
+      { $pull: { projects: { _id: projectId } } },
+      { new: true },
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Verify the project was actually removed
+    const projectExists = updatedStudent.projects.some(
+      (p) => p._id.toString() === projectId,
+    );
+
+    if (projectExists) {
+      return res
+        .status(404)
+        .json({ message: 'Project not found in your profile' });
+    }
+
+    return res.status(200).json({
+      message: 'Project removed successfully',
+      remainingProjects: updatedStudent.projects,
+    });
+  } catch (error) {
+    console.error('Error removing project:', error);
+
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+// Profile image
 export const addProfileImage = async (req, res) => {
   const { _id } = req.user;
 
@@ -516,6 +721,7 @@ export const updateProfileImage = async (req, res) => {
   }
 };
 
+// Resume
 export const addResume = async (req, res) => {
   const { _id } = req.user;
 
@@ -738,62 +944,6 @@ export const getAppliedJobs = async (req, res) => {
       success: false,
       message: 'Internal server error',
     });
-  }
-};
-
-export const addProjects = async (req, res) => {
-  const {
-    projectName,
-    description,
-    startDate,
-    endDate,
-    technologies,
-    link,
-    isWorkingActive,
-  } = req.body;
-
-  try {
-    const student = await Student.findById(req.user._id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    student.projects.push({
-      projectName,
-      description,
-      startDate,
-      endDate,
-      technologies,
-      link,
-      isWorkingActive,
-    });
-    await student.save();
-
-    return res.status(200).json({ message: 'Project added successfully' });
-  } catch (error) {
-    console.error('Error adding project:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-export const removeProject = async (req, res) => {
-  const { projectId } = req.params;
-
-  try {
-    const student = await Student.findById(req.user._id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    student.projects = student.projects.filter(
-      (project) => project._id.toString() !== projectId,
-    );
-    await student.save();
-
-    return res.status(200).json({ message: 'Project removed successfully' });
-  } catch (error) {
-    console.error('Error removing project:', error);
-    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 

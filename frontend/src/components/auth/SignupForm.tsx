@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card';
-import { Building, Rocket, UserPlus } from 'lucide-react';
+import { Building, MailCheck, Rocket, UserPlus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
 import { z } from 'zod';
@@ -39,12 +39,27 @@ import apiInstance from '@/services/api';
 import { toast } from '@/hooks/use-toast';
 import { signupFormSchema } from '@/lib/schemas/signupFormSchema';
 import { errorToast, successToast } from '@/utils/toasts';
+import { GoogleSignInButton } from './GoogleSingupButton';
 
 type SignupFormValues = z.infer<typeof signupFormSchema>;
 type JobRole = { _id: string; name: string };
 
 const SignupForm = () => {
-  const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
+  const [jobRoles, setJobRoles] = useState<any[]>(['Software Developer']);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [storedEmail, setStoredEmail] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Check localStorage for pending verification on component mount
+  useEffect(() => {
+    const pendingEmail = localStorage.getItem('pendingVerificationEmail');
+    if (pendingEmail) {
+      setStoredEmail(pendingEmail);
+      setSignupSuccess(true);
+    }
+  }, []);
+
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
@@ -61,24 +76,17 @@ const SignupForm = () => {
 
   const accountType = form.watch('accountType');
 
-  const fetchJobRoles = async () => {
-    try {
-      const response = await apiInstance.get('/job-role');
-      setJobRoles(response.data || []);
-    } catch (error) {
-      console.error('Error fetching job roles:', error);
-    }
-  };
-  useEffect(() => {
-    fetchJobRoles();
-  }, []);
-
   async function onSubmit(data: SignupFormValues) {
     try {
       await apiInstance.post('/user/signup', data);
       successToast(
         'Your account has been created successfully! Please check your email for verification instructions.',
       );
+
+      // Store email in localStorage and state
+      localStorage.setItem('pendingVerificationEmail', data.email);
+      setStoredEmail(data.email);
+      setSignupSuccess(true);
     } catch (error) {
       console.error('Error creating user:', error);
       errorToast(
@@ -86,6 +94,102 @@ const SignupForm = () => {
       );
     }
   }
+
+  const handleVerification = async () => {
+    if (!verificationCode || !storedEmail) return;
+
+    setIsVerifying(true);
+    try {
+      await apiInstance.post('/user/verify', {
+        email: storedEmail,
+        otp: verificationCode,
+      });
+
+      successToast('Your account has been verified successfully!');
+      localStorage.removeItem('pendingVerificationEmail');
+      setSignupSuccess(false);
+      setStoredEmail('');
+      setVerificationCode('');
+    } catch (error) {
+      errorToast('Invalid verification code. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!storedEmail) return;
+
+    try {
+      await apiInstance.post('/user/resend-verification', {
+        email: storedEmail,
+      });
+      successToast('Verification code has been resent to your email.');
+    } catch (error) {
+      errorToast('Failed to resend verification code. Please try again.');
+    }
+  };
+
+  if (signupSuccess) {
+    return (
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center items-center mb-4">
+            <MailCheck className="h-10 w-10 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-headline">
+            Verify Your Email
+          </CardTitle>
+          <CardDescription>
+            We've sent a verification code to {storedEmail}. Please enter it
+            below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="space-y-4">
+            <Input
+              placeholder="Enter verification code"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              disabled={isVerifying}
+            />
+            <Button
+              onClick={handleVerification}
+              className="w-full"
+              disabled={!verificationCode || isVerifying}
+            >
+              {isVerifying ? 'Verifying...' : 'Verify Account'}
+            </Button>
+            <div className="text-center text-sm">
+              <button
+                onClick={handleResendCode}
+                className="text-primary hover:underline"
+                disabled={isVerifying}
+              >
+                Didn't receive a code? Resend
+              </button>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-center text-sm">
+          <p>
+            Want to use a different email?{' '}
+            <button
+              onClick={() => {
+                localStorage.removeItem('pendingVerificationEmail');
+                setSignupSuccess(false);
+                setStoredEmail('');
+              }}
+              className="font-medium text-primary hover:underline"
+            >
+              Sign up again
+            </button>
+          </p>
+        </CardFooter>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-md shadow-xl">
       <CardHeader className="space-y-1 text-center">
@@ -203,36 +307,7 @@ const SignupForm = () => {
                 </FormItem>
               )}
             />
-            {accountType === 'individual' && (
-              <FormField
-                control={form.control}
-                name="jobPreference"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Primary Job Role You're Seeking</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={form.formState.isSubmitting}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a job role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {jobRoles.map((role) => (
-                          <SelectItem key={role._id} value={role.name}>
-                            {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+
             <FormField
               control={form.control}
               name="password"
@@ -287,6 +362,9 @@ const SignupForm = () => {
           </form>
         </Form>
       </CardContent>
+
+      <GoogleSignInButton form={form} />
+
       <CardFooter className="flex justify-center text-sm">
         <p>
           Already have an account?&nbsp;

@@ -34,6 +34,7 @@ import { useEffect } from 'react';
 import Cookie from 'js-cookie';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginRequest } from '@/redux/reducers/authReducer';
+import { GoogleSignInButton } from './GoogleSingupButton';
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -148,36 +149,7 @@ export function LoginForm() {
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={form.formState.isSubmitting}
-            onClick={() => handleOAuthLogin('Google')}
-          >
-            <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
-              <path
-                fill="currentColor"
-                d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.01zM12.04 22c-3.04 0-5.7-1.25-7.63-3.39L7.5 15.91c.89 1.14 2.28 1.9 3.98 1.9 2.7 0 4.92-1.95 5.36-4.47H12.48V10.9h9.48.16c0 .43.06 1.1.06 1.52 0 5.03-3.05 9.58-9.64 9.58zM12 3.45c1.62 0 3.05.51 4.18 1.49l2.94-2.96C16.88 .71 14.64 0 12 0 7.31 0 3.25 2.64 1.07 6.63l3.1 2.47C5.03 6.18 8.17 3.45 12 3.45z"
-              ></path>
-            </svg>
-            Google
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={form.formState.isSubmitting}
-            onClick={() => handleOAuthLogin('Microsoft')}
-          >
-            <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
-              <path fill="#F25022" d="M1 1h10.5v10.5H1z" />
-              <path fill="#7FBA00" d="M12.5 1h10.5v10.5H12.5z" />
-              <path fill="#00A4EF" d="M1 12.5h10.5v10.5H1z" />
-              <path fill="#FFB900" d="M12.5 12.5h10.5v10.5H12.5z" />
-            </svg>
-            Microsoft
-          </Button>
-        </div>
+        <GoogleSignInButton form={form} />
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p>

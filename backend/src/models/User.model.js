@@ -7,10 +7,23 @@ import { config } from '../config/config.js';
 
 const userSchema = new Schema(
   {
+    firebaseUid: {
+      type: String,
+    },
+    authMethod: {
+      type: String,
+      enum: ['firebase', 'local'],
+      default: 'local',
+    },
+    avatar: {
+      type: String,
+    },
     accountType: {
       type: String,
       enum: ['individual', 'institution'],
-      required: true,
+      required: function () {
+        return this.authMethod === 'local'; // Only required for local auth
+      },
     },
     fullName: {
       type: String,
@@ -24,7 +37,9 @@ const userSchema = new Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return this.authMethod === 'local'; // Only required for local auth
+      },
     },
     jobRole: {
       type: String,
@@ -39,6 +54,12 @@ const userSchema = new Schema(
     },
     referredBy: {
       type: String,
+    },
+    otp: {
+      type: String,
+    },
+    otpExpires: {
+      type: Date,
     },
     isEmailVerified: {
       type: Boolean,
@@ -72,10 +93,12 @@ userSchema.pre('save', function (next) {
   next();
 });
 
-userSchema.methods.isPasswordCorrect = async function (password) {
-  console.log('password', password);
-  return await bcrypt.compare(password, this.password);
-};
+userSchema.pre('save', function (next) {
+  if (this.isModified('password') && this.authMethod === 'local') {
+    this.password = bcrypt.hashSync(this.password, 10);
+  }
+  next();
+});
 
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
