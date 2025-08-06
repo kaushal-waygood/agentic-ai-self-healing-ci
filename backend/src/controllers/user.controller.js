@@ -167,7 +167,6 @@ export const signUpUser = async (req, res) => {
       }
     }
 
-
     // Create user (unverified)
     const user = new User({
       accountType,
@@ -376,13 +375,14 @@ export const signInUser = async (req, res) => {
 
     // Check if user has password (for social login users)
     if (!user.password) {
-      return res.status(401).json({ 
-        message: 'Account created with social login. Please use that method to sign in.'
+      return res.status(401).json({
+        message:
+          'Account created with social login. Please use that method to sign in.',
       });
     }
 
     // Now this will work since we added the method to the schema
-    const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+    const isPasswordCorrect = bcrypt.compare(password, user.password);
     console.log('Password comparison result:', isPasswordCorrect);
     if (!isPasswordCorrect) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -409,10 +409,10 @@ export const signInUser = async (req, res) => {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-    res.status(200).json({ 
-      accessToken, 
+    res.status(200).json({
+      accessToken,
       user: userObject,
-      refreshToken // Optionally include in response if needed
+      refreshToken, // Optionally include in response if needed
     });
   } catch (error) {
     console.error('Sign in error:', error);
