@@ -44,6 +44,7 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { changePasswordRequest } from '@/redux/reducers/authReducer';
+import GoogleLoginButton from './GoogleLoginButton';
 
 export default function SettingsPage() {
   const [notifications, setNotifications] = React.useState({
@@ -267,9 +268,7 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               ) : (
-                <Button variant="outline" onClick={handleLinkAccount}>
-                  <LinkIcon className="mr-2 h-4 w-4" /> Link Email Account
-                </Button>
+                <GoogleLoginButton />
               )}
               <p className="text-xs text-muted-foreground mt-1">
                 Connect your Gmail or Outlook to send applications directly from

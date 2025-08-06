@@ -8,13 +8,18 @@ import {
   signUpUser,
   refreshAccessToken,
   changePassword,
+  verifyEmail,
+  firebaseAuth,
+  resendOtp,
+  forgotPassword,
+  resetPassword,
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 import { Job } from '../models/jobs.model.js'; // Import Application model
 import { User } from '../models/User.model.js'; // Import User model
 import { google } from 'googleapis';
 import { sendApplicationEmail } from '../utils/sendApplicationEmail.js';
-import { authMiddlewares } from '../middlewares/authMiddleware.js';
+// import { authMiddlewares } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -125,11 +130,17 @@ const router = Router();
 // });
 
 // Existing routes
+
+router.post('/google/auth', firebaseAuth);
 router.post('/signup', signUpUser);
+router.post('/verify', verifyEmail);
 router.post('/signin', signInUser);
 router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, getUserProfile);
 router.get('/refresh-token', authMiddleware, refreshAccessToken);
 router.patch('/me/password/change', authMiddleware, changePassword);
+router.post('/resend-otp', authMiddleware, resendOtp);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 export default router;

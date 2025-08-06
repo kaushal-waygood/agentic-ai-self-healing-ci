@@ -1,3 +1,5 @@
+// src/components/dashboard/UtilsComp.tsx
+
 import {
   Card,
   CardContent,
@@ -9,11 +11,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
-import { BarChart3, CheckCircle, LucideIcon, Star, Target } from 'lucide-react';
-import { Label } from 'recharts';
+import { BarChart3, CheckCircle, Star, Target } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SidebarMenuSkeleton } from '@/components/ui/sidebar';
 import { AuthState } from '@/redux/types/authType';
+
+import useProfileCompletion from '@/hooks/useProfileCompletion';
+
+// This is a placeholder for your API instance. Ensure it's correctly configured.
+// import apiInstance from '@/services/api';
 
 interface StatCardProps {
   title: string;
@@ -24,6 +30,16 @@ interface StatCardProps {
   actionText?: string;
 }
 
+type ChecklistItemProps = {
+  isComplete: boolean;
+  text: string;
+  link: string;
+};
+
+// =========================================================
+// Utility Components
+// =========================================================
+
 export function StatCard({
   title,
   value,
@@ -33,23 +49,28 @@ export function StatCard({
   actionText,
 }: StatCardProps) {
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-5 w-5 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold font-headline">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        )}
-        {actionLink && actionText && (
-          <Button variant="link" size="sm" className="px-0 pt-2" asChild>
-            <Link href={actionLink}>{actionText}</Link>
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col justify-between rounded-xl p-6 border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between space-x-4">
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
+          <p className="text-3xl font-bold mt-2 font-headline">{value}</p>
+        </div>
+        <Icon className="h-6 w-6 text-primary" />
+      </div>
+      {description && (
+        <p className="text-xs text-muted-foreground mt-2">{description}</p>
+      )}
+      {actionLink && actionText && (
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0 pt-2 text-primary"
+          asChild
+        >
+          <Link href={actionLink}>{actionText}</Link>
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -68,13 +89,13 @@ export function ToolkitButton({
     <Button
       asChild
       variant="outline"
-      className="h-auto p-4 text-left justify-start items-start space-x-4 hover:bg-primary/5 hover:border-primary/50 transition-all hover:text-foreground"
+      className="h-auto p-5 text-left justify-start items-start space-x-4 border-0 hover:bg-primary/5 hover:border-primary/20 transition-all hover:text-foreground"
     >
       <Link href={href}>
-        <Icon className="h-8 w-8 text-primary shrink-0 mt-1" />
+        <Icon className="h-7 w-7 text-primary shrink-0 mt-1" />
         <div>
-          <p className="font-semibold text-base">{title}</p>
-          <p className="text-xs text-muted-foreground font-normal">
+          <p className="font-semibold text-lg">{title}</p>
+          <p className="text-sm text-muted-foreground font-normal">
             {description}
           </p>
         </div>
@@ -98,7 +119,7 @@ export function UsageTracker({
   return (
     <div className="space-y-1">
       <div className="flex justify-between items-baseline">
-        <Label className="text-sm">{label}</Label>
+        <Label className="text-sm font-medium">{label}</Label>
         <p className="text-sm text-muted-foreground">
           {isUnlimited ? 'Unlimited' : `${used} / ${limit}`}
         </p>
@@ -117,12 +138,12 @@ export function UsageAndLimitsCard({
 }) {
   if (!plan || !user)
     return (
-      <Card className="shadow-sm">
+      <Card className="shadow-none border-dashed border-2">
         <CardHeader>
           <Skeleton className="h-6 w-1/2" />
         </CardHeader>
         <CardContent className="space-y-4">
-          <SidebarMenuSkeleton className="h-6 w-full" />
+          <Skeleton className="h-6 w-full" />
           <Skeleton className="h-6 w-full" />
           <Skeleton className="h-6 w-full" />
         </CardContent>
@@ -130,55 +151,35 @@ export function UsageAndLimitsCard({
     );
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-primary" />
-          Usage & Limits
-        </CardTitle>
-        <CardDescription>
-          Your current usage for this billing cycle on the{' '}
-          <span className="font-semibold text-primary">{plan.name}</span> plan.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* <UsageTracker
-          label="AI Job Applications"
-          used={user.usage.aiJobApply}
-          limit={plan.limits.aiJobApply}
-        /> */}
-        {/* <UsageTracker
-          label="AI CV Generations"
-          used={user.usage.aiCvGenerator}
-          limit={plan.limits.aiCvGenerator}
-        /> */}
-        {/* <UsageTracker
-          label="AI Cover Letters"
-          used={user.usage.aiCoverLetterGenerator}
-          limit={plan.limits.aiCoverLetterGenerator}
-        />
-        <UsageTracker
-          label="Total Applications Tracked"
-          used={user.usage.applications}
-          limit={plan.limits.applicationLimit}
-        /> */}
-      </CardContent>
-      <CardFooter>
-        <Button variant="outline" className="w-full" asChild>
+    <Card className="shadow-none border-dashed border-2 p-6">
+      <div className="flex items-center gap-4 border-b pb-4 mb-4">
+        <BarChart3 className="h-8 w-8 text-primary" />
+        <div>
+          <CardTitle className="font-semibold text-xl font-headline">
+            Usage & Limits
+          </CardTitle>
+          <CardDescription>
+            Your current usage on the{' '}
+            <span className="font-semibold text-primary">{plan.name}</span>{' '}
+            plan.
+          </CardDescription>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <Button
+          variant="outline"
+          className="w-full h-12 text-md font-semibold"
+          asChild
+        >
           <Link href="/subscriptions">
             <Star className="mr-2 h-4 w-4" /> View & Upgrade Plans
           </Link>
         </Button>
-      </CardFooter>
+      </div>
     </Card>
   );
 }
-
-type ChecklistItemProps = {
-  isComplete: boolean;
-  text: string;
-  link: string;
-};
 
 export const ChecklistItem = ({
   isComplete,
@@ -194,7 +195,7 @@ export const ChecklistItem = ({
         isComplete ? 'bg-green-500' : 'bg-muted-foreground/30'
       }`}
     >
-      {isComplete && <CheckCircle className="h-5 w-5 text-white" />}
+      {isComplete && <CheckCircle className="h-4 w-4 text-white" />}
     </div>
     <span
       className={`text-sm ${
@@ -206,24 +207,12 @@ export const ChecklistItem = ({
   </Link>
 );
 
-type ProfileReadinessChecks = {
-  core: boolean;
-  experience: boolean;
-  education: boolean;
-  skills: boolean;
-  narratives: boolean;
-};
+export function ProfileReadinessCard() {
+  const { data, isLoading, error } = useProfileCompletion();
 
-export function ProfileReadinessCard({
-  score,
-  checks,
-}: {
-  score: number | null;
-  checks: ProfileReadinessChecks | null;
-}) {
-  if (score === null || checks === null) {
+  if (isLoading) {
     return (
-      <Card className="shadow-sm">
+      <Card className="shadow-none border-dashed border-2">
         <CardHeader>
           <Skeleton className="h-6 w-1/2" />
           <Skeleton className="h-4 w-3/4" />
@@ -235,20 +224,95 @@ export function ProfileReadinessCard({
     );
   }
 
+  if (error) {
+    return (
+      <Card className="shadow-none border-dashed border-2">
+        <CardHeader>
+          <CardTitle>Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Failed to load profile readiness data. Please try again later.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Card className="shadow-none border-dashed border-2">
+        <CardHeader>
+          <CardTitle>No Profile Data</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>We couldn't find your profile data. Please try refreshing.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const score = data.percentage;
+  const categories = data.categories;
+  const breakdown = data.breakdown;
+
+  const profileChecks = [
+    {
+      text: 'Complete core profile',
+      link: '/profile#personal-info',
+      isComplete: categories.coreProfile,
+    },
+    {
+      text: 'Add work experience',
+      link: '/profile#experience',
+      isComplete: categories.workExperience,
+    },
+    {
+      text: 'Add education history',
+      link: '/profile#education',
+      isComplete: categories.education,
+    },
+    {
+      text: 'Add at least 10 skills',
+      link: '/profile#skills-section',
+      isComplete: categories.skills,
+    },
+    {
+      text: 'Fill out personal narratives',
+      link: '/profile#narratives',
+      isComplete: categories.coverLetter,
+    },
+    {
+      text: 'Upload a resume',
+      link: '/profile#resume',
+      isComplete: categories.resume,
+    },
+    {
+      text: 'Set job preferences',
+      link: '/profile#job-preferences',
+      isComplete: categories.jobPreferences,
+    },
+    {
+      text: 'Add project experience',
+      link: '/profile#projects',
+      isComplete: categories.projects,
+    },
+  ];
+
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2">
-          <Target className="h-6 w-6 text-primary" />
-          Profile Readiness
-        </CardTitle>
-        <CardDescription>
-          Complete your profile to unlock the full power of CareerPilot's AI.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="relative h-20 w-20">
+    <Card className="shadow-none border-dashed border-2 p-6">
+      <div className="flex items-center gap-4 border-b pb-4 mb-4">
+        <Target className="h-8 w-8 text-primary" />
+        <div>
+          <CardTitle className="font-semibold text-xl font-headline">
+            Profile Readiness
+          </CardTitle>
+          <CardDescription>
+            Complete your profile to unlock the full power of CareerPilot's AI.
+          </CardDescription>
+        </div>
+      </div>
+      <div className="space-y-6">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative h-28 w-28">
             <svg className="h-full w-full" viewBox="0 0 36 36">
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
@@ -265,54 +329,30 @@ export function ProfileReadinessCard({
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-bold font-headline">{score}%</span>
+              <span className="text-4xl font-bold font-headline">{score}%</span>
             </div>
           </div>
-          <div className="flex-grow space-y-2">
-            <h4 className="font-semibold">Next Steps:</h4>
-            {!checks.core && (
+          <div className="w-full space-y-2">
+            <h4 className="font-semibold">
+              Your Progress: {breakdown.completed}/{breakdown.total}
+            </h4>
+            {profileChecks.map((item, index) => (
               <ChecklistItem
-                isComplete={false}
-                text="Complete core profile"
-                link="/profile#personal-info"
+                key={index}
+                isComplete={item.isComplete}
+                text={item.text}
+                link={item.link}
               />
-            )}
-            {!checks.experience && (
-              <ChecklistItem
-                isComplete={false}
-                text="Add work experience"
-                link="/profile#experience"
-              />
-            )}
-            {!checks.education && (
-              <ChecklistItem
-                isComplete={false}
-                text="Add education history"
-                link="/profile#education"
-              />
-            )}
-            {!checks.skills && (
-              <ChecklistItem
-                isComplete={false}
-                text="Add at least 10 skills"
-                link="/profile#skills-section"
-              />
-            )}
-            {!checks.narratives && (
-              <ChecklistItem
-                isComplete={false}
-                text="Fill out personal narratives"
-                link="/profile#narratives"
-              />
-            )}
+            ))}
             {score === 100 && (
-              <div className="text-sm font-medium text-green-600 flex items-center gap-2">
-                <CheckCircle /> Your profile is ready for AI!
+              <div className="text-sm font-medium text-green-600 flex items-center gap-2 mt-4">
+                <CheckCircle className="h-4 w-4" /> Your profile is ready for
+                AI!
               </div>
             )}
           </div>
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }

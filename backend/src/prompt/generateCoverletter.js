@@ -15,22 +15,28 @@ Applicant Resume:
 ${resumeText}
 
 Instructions:
-- Address the cover letter to the hiring manager or a general greeting like "Dear Hiring Manager".
-- Highlight the applicant’s most relevant experience and skills as they relate to the job description.
+- Address the letter to the hiring manager or use a general greeting like "Dear Hiring Manager,"
+- Highlight the applicant’s most relevant experience and skills that align with the job description.
 - Keep the tone professional, concise, and confident.
-- The letter should be no more than 3–4 paragraphs.
-- Focus on why the applicant is a good fit for the company and the role.
+- Limit the cover letter to 3–4 paragraphs.
+- Emphasize why the applicant is a strong fit for both the company and the role.
 ${finalTouch ? `- Final Touch: ${finalTouch}` : ''}
 
-Please write the cover letter in markdown format.
+Output Format:
 - Greeting: "Dear Hiring Manager,"
-- Body: "..."
+- Body: [write the main content of the letter]
 - Signature: "Sincerely,"
 - Closing: "Best regards,"
 - Name: "John Doe"
 
-Do not include markdown, JSON, or any code formatting.
+Strict Formatting Requirements:
+- Output must be **plain text only**
+- Absolutely do NOT include any HTML tags (e.g. <body>, <div>, <p>, etc.)
+- Do NOT use any CSS, inline styles, class names, or IDs
+- Do NOT add borders, shadows, colors, or any visual styles
+- Do NOT wrap text in markdown, code blocks, or use special formatting
+- The response must be clean, readable plain text suitable for pasting into a form or webpage
 
-Return only the cover letter text. Do not include markdown, JSON, or any code formatting.
+Only return the final cover letter text. Nothing else.
 `;
 };

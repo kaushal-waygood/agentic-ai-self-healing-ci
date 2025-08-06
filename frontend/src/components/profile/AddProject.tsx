@@ -121,7 +121,12 @@ export const JobPref = () => {
         preferedJobTypes: jobPreferences.preferedJobTypes || [],
         preferedIndustries: jobPreferences.preferedIndustries || [],
         preferedExperienceLevel: jobPreferences.preferedExperienceLevel || '',
-        preferedSalary: jobPreferences.preferedSalary || '',
+        preferedSalary: student?.jobPreferences?.preferedSalary || {
+          min: undefined,
+          max: undefined,
+          currency: undefined,
+          period: undefined,
+        },
         mustHaveSkills: jobPreferences.mustHaveSkills || [],
         niceToHaveSkills: jobPreferences.niceToHaveSkills || [],
         preferedCertifications: jobPreferences.preferedCertifications || [],
@@ -402,8 +407,11 @@ export const JobPref = () => {
         </div>
 
         {/* Compensation */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Compensation</h3>
+        {/* Compensation */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            Compensation
+          </h3>
 
           <FormField
             control={form.control}
@@ -416,61 +424,86 @@ export const JobPref = () => {
               };
 
               return (
-                <FormItem className="space-y-2">
-                  <FormLabel>Expected Salary Range (MIN.)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., 50000"
-                      value={value?.min || ''}
-                      onChange={(e) =>
-                        updateField('min', Number(e.target.value))
-                      }
-                      type="number"
-                    />
-                  </FormControl>
+                <FormItem className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <FormLabel className="text-gray-700 dark:text-gray-300">
+                        Expected Salary Range (MIN)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 50000"
+                          value={value?.min || ''}
+                          onChange={(e) =>
+                            updateField('min', Number(e.target.value))
+                          }
+                          type="number"
+                          className="w-full"
+                        />
+                      </FormControl>
+                    </div>
 
-                  <FormLabel>Expected Salary Range (MAX.)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., 60000"
-                      value={value?.max || ''}
-                      onChange={(e) =>
-                        updateField('max', Number(e.target.value))
-                      }
-                      type="number"
-                    />
-                  </FormControl>
+                    <div className="space-y-2">
+                      <FormLabel className="text-gray-700 dark:text-gray-300">
+                        Expected Salary Range (MAX)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 60000"
+                          value={value?.max || ''}
+                          onChange={(e) =>
+                            updateField('max', Number(e.target.value))
+                          }
+                          type="number"
+                          className="w-full"
+                        />
+                      </FormControl>
+                    </div>
+                  </div>
 
-                  <FormLabel>Currency</FormLabel>
-                  <FormControl>
-                    <select
-                      className="input"
-                      value={value?.currency || ''}
-                      onChange={(e) => updateField('currency', e.target.value)}
-                    >
-                      <option value="">Select currency</option>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="INR">INR</option>
-                      {/* Add more as needed */}
-                    </select>
-                  </FormControl>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <FormLabel className="text-gray-700 dark:text-gray-300">
+                        Currency
+                      </FormLabel>
+                      <FormControl>
+                        <select
+                          className="input w-full p-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={value?.currency || ''}
+                          onChange={(e) =>
+                            updateField('currency', e.target.value)
+                          }
+                        >
+                          <option value="">Select currency</option>
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="INR">INR</option>
+                        </select>
+                      </FormControl>
+                    </div>
 
-                  <FormLabel>Salary Period</FormLabel>
-                  <FormControl>
-                    <select
-                      className="input"
-                      value={value?.period || ''}
-                      onChange={(e) => updateField('period', e.target.value)}
-                    >
-                      <option value="">Select period</option>
-                      <option value="YEAR">Yearly</option>
-                      <option value="MONTH">Monthly</option>
-                      <option value="WEEK">Weekly</option>
-                    </select>
-                  </FormControl>
+                    <div className="space-y-2">
+                      <FormLabel className="text-gray-700 dark:text-gray-300">
+                        Salary Period
+                      </FormLabel>
+                      <FormControl>
+                        <select
+                          className="input w-full p-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={value?.period || ''}
+                          onChange={(e) =>
+                            updateField('period', e.target.value)
+                          }
+                        >
+                          <option value="">Select period</option>
+                          <option value="YEAR">Yearly</option>
+                          <option value="MONTH">Monthly</option>
+                          <option value="WEEK">Weekly</option>
+                        </select>
+                      </FormControl>
+                    </div>
+                  </div>
 
-                  <FormDescription>
+                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400">
                     Your expected salary range (in local currency per selected
                     period)
                   </FormDescription>

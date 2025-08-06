@@ -184,6 +184,25 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
+    updateStudentProjectRequest: (state, action: PayloadAction<any>) => {
+      console.log('action.payload', action.payload);
+      state.loading = true;
+      state.error = null;
+    },
+    updateStudentProjectSuccess: (
+      state,
+      action: PayloadAction<{ id: string; updatedProject: any }>,
+    ) => {
+      state.loading = false;
+      state.projects = state.projects.map((proj) =>
+        proj._id === action.payload.id ? action.payload.updatedProject : proj,
+      );
+    },
+    updateStudentProjectFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     // student Skills
     addStudentSkillRequest: (state) => {
       state.loading = true;
@@ -298,6 +317,9 @@ export const {
   removeStudentProjectRequest,
   removeStudentProjectSuccess,
   removeStudentProjectFailure,
+  updateStudentProjectRequest,
+  updateStudentProjectSuccess,
+  updateStudentProjectFailure,
 
   // student Skills
   addStudentSkillRequest,

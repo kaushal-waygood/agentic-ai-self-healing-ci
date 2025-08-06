@@ -250,6 +250,8 @@ export function ApplicationWizardClient() {
   const { jobs, loading, selectedJob } = useJobs({ searchParams });
   const { defaultValues } = useProfile();
 
+  console.log('selectedJob', selectedJob);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -588,6 +590,7 @@ export function ApplicationWizardClient() {
 
   const handleClContextSubmit = async () => {
     const { clSource, pastedCl, savedClId } = clForm.getValues();
+    console.log('handleClContextSubmit', { clSource, pastedCl, savedClId });
 
     let context: ClContext = { mode: 'skip' };
 

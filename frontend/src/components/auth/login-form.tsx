@@ -27,25 +27,43 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Rocket, LogIn } from 'lucide-react';
+import { Rocket, LogIn, Mail } from 'lucide-react';
 import apiInstance from '@/services/api';
 import { successToast } from '@/utils/toasts';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Cookie from 'js-cookie';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginRequest } from '@/redux/reducers/authReducer';
+import { GoogleSignInButton } from './GoogleSingupButton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email.' }),
+});
+
 type LoginFormValues = z.infer<typeof loginFormSchema>;
+type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const form = useForm<LoginFormValues>({
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [isForgotPasswordSubmitting, setIsForgotPasswordSubmitting] =
+    useState(false);
+
+  const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
       email: '',
@@ -53,10 +71,16 @@ export function LoginForm() {
     },
   });
 
+  const forgotPasswordForm = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: '',
+    },
+  });
+
   const dispatch = useDispatch();
 
   async function onSubmit(data: LoginFormValues) {
-    console.log(data);
     try {
       dispatch(loginRequest(data));
       successToast('Login successful! Redirecting to your dashboard...');
@@ -72,6 +96,36 @@ export function LoginForm() {
     }
   }
 
+  async function onForgotPasswordSubmit(data: ForgotPasswordValues) {
+    console.log('Forgot password data:', data);
+    setIsForgotPasswordSubmitting(true);
+    try {
+      await apiInstance.post('/user/forgot-password', data);
+      toast({
+        title: 'Password reset email sent',
+        description:
+          'Check your email for instructions to reset your password.',
+      });
+      setForgotPasswordOpen(false);
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send password reset email. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsForgotPasswordSubmitting(false);
+    }
+  }
+
+  useEffect(() => {
+    const token = Cookie.get('accessToken');
+    if (token) {
+      router.push('/dashboard');
+    }
+  }, [router]);
+
   return (
     <Card className="w-full max-w-md shadow-xl">
       <CardHeader className="space-y-1 text-center">
@@ -85,10 +139,13 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Form {...loginForm}>
+          <form
+            onSubmit={loginForm.handleSubmit(onSubmit)}
+            className="space-y-6"
+          >
             <FormField
-              control={form.control}
+              control={loginForm.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
@@ -97,7 +154,7 @@ export function LoginForm() {
                     <Input
                       placeholder="name@example.com"
                       {...field}
-                      disabled={form.formState.isSubmitting}
+                      disabled={loginForm.formState.isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -105,7 +162,7 @@ export function LoginForm() {
               )}
             />
             <FormField
-              control={form.control}
+              control={loginForm.control}
               name="password"
               render={({ field }) => (
                 <FormItem>
@@ -115,19 +172,82 @@ export function LoginForm() {
                       type="password"
                       placeholder="••••••••"
                       {...field}
-                      disabled={form.formState.isSubmitting}
+                      disabled={loginForm.formState.isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <div className="flex justify-end">
+              <Dialog
+                open={forgotPasswordOpen}
+                onOpenChange={setForgotPasswordOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0 text-sm text-muted-foreground hover:text-primary"
+                  >
+                    Forgot password?
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Reset your password</DialogTitle>
+                    <DialogDescription>
+                      Enter your email address and we'll send you a link to
+                      reset your password.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...forgotPasswordForm}>
+                    <form
+                      onSubmit={forgotPasswordForm.handleSubmit(
+                        onForgotPasswordSubmit,
+                      )}
+                    >
+                      <FormField
+                        control={forgotPasswordForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem className="mb-4">
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="name@example.com"
+                                {...field}
+                                disabled={isForgotPasswordSubmitting}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isForgotPasswordSubmitting}
+                      >
+                        {isForgotPasswordSubmitting ? (
+                          'Sending...'
+                        ) : (
+                          <>
+                            <Mail className="mr-2 h-4 w-4" /> Send Reset Link
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </div>
             <Button
               type="submit"
               className="w-full"
-              disabled={form.formState.isSubmitting}
+              disabled={loginForm.formState.isSubmitting}
             >
-              {form.formState.isSubmitting ? (
+              {loginForm.formState.isSubmitting ? (
                 'Logging in...'
               ) : (
                 <>
@@ -148,36 +268,7 @@ export function LoginForm() {
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={form.formState.isSubmitting}
-            onClick={() => handleOAuthLogin('Google')}
-          >
-            <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
-              <path
-                fill="currentColor"
-                d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.01zM12.04 22c-3.04 0-5.7-1.25-7.63-3.39L7.5 15.91c.89 1.14 2.28 1.9 3.98 1.9 2.7 0 4.92-1.95 5.36-4.47H12.48V10.9h9.48.16c0 .43.06 1.1.06 1.52 0 5.03-3.05 9.58-9.64 9.58zM12 3.45c1.62 0 3.05.51 4.18 1.49l2.94-2.96C16.88 .71 14.64 0 12 0 7.31 0 3.25 2.64 1.07 6.63l3.1 2.47C5.03 6.18 8.17 3.45 12 3.45z"
-              ></path>
-            </svg>
-            Google
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={form.formState.isSubmitting}
-            onClick={() => handleOAuthLogin('Microsoft')}
-          >
-            <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
-              <path fill="#F25022" d="M1 1h10.5v10.5H1z" />
-              <path fill="#7FBA00" d="M12.5 1h10.5v10.5H12.5z" />
-              <path fill="#00A4EF" d="M1 12.5h10.5v10.5H1z" />
-              <path fill="#FFB900" d="M12.5 12.5h10.5v10.5H12.5z" />
-            </svg>
-            Microsoft
-          </Button>
-        </div>
+        <GoogleSignInButton form={loginForm} />
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p>

@@ -11,7 +11,7 @@ export const signupFormSchema = z
       .string()
       .min(8, { message: 'Password must be at least 8 characters.' }),
     confirmPassword: z.string(),
-    jobPreference: z.string().optional(),
+    jobPreference: z.string().optional(), // Now truly optional for all cases
     organizationName: z.string().optional(),
     referralCode: z.string().optional(),
   })
@@ -19,18 +19,6 @@ export const signupFormSchema = z
     message: "Passwords don't match",
     path: ['confirmPassword'],
   })
-  .refine(
-    (data) => {
-      if (data.accountType === 'individual') {
-        return !!data.jobPreference && data.jobPreference.length > 0;
-      }
-      return true;
-    },
-    {
-      message: 'Please specify your job preference.',
-      path: ['jobPreference'],
-    },
-  )
   .refine(
     (data) => {
       if (data.accountType === 'institution') {

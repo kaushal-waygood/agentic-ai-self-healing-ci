@@ -1,4 +1,3 @@
-/** @format */
 'use client';
 
 import Link from 'next/link';
@@ -11,9 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card';
-import { Building, Rocket, UserPlus } from 'lucide-react';
+import { Building, MailCheck, Rocket, UserPlus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -26,25 +24,67 @@ import {
 } from '../ui/form';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Input } from '../ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
 import { Button } from '../ui/button';
-import axios from 'axios';
 import apiInstance from '@/services/api';
-import { toast } from '@/hooks/use-toast';
-import { signupFormSchema } from '@/lib/schemas/signupFormSchema';
 import { errorToast, successToast } from '@/utils/toasts';
+import { GoogleSignInButton } from './GoogleSingupButton';
+import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
+
+const signupFormSchema = z
+  .object({
+    accountType: z.enum(['individual', 'institution'], {
+      required_error: 'You need to select an account type.',
+    }),
+    fullName: z
+      .string()
+      .min(2, { message: 'Full name must be at least 2 characters.' })
+      .max(50, { message: 'Full name must be at most 50 characters.' }),
+    email: z.string().email({ message: 'Invalid email address.' }),
+    password: z
+      .string()
+      .min(8, { message: 'Password must be at least 8 characters.' })
+      .regex(/[a-z]/, {
+        message: 'Password must contain at least one lowercase letter.',
+      })
+      .regex(/[A-Z]/, {
+        message: 'Password must contain at least one uppercase letter.',
+      })
+      .regex(/[0-9]/, { message: 'Password must contain at least one number.' })
+      .regex(/[^a-zA-Z0-9]/, {
+        message: 'Password must contain at least one special character.',
+      }),
+    confirmPassword: z.string().min(1, { message: 'Passwords do not match.' }),
+    organizationName: z.string().optional(),
+    jobPreference: z.string().optional(),
+    referredBy: z.string().optional(), // New optional referral field
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match.',
+    path: ['confirmPassword'],
+  });
 
 type SignupFormValues = z.infer<typeof signupFormSchema>;
 type JobRole = { _id: string; name: string };
 
 const SignupForm = () => {
-  const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
+  const [jobRoles, setJobRoles] = useState<any[]>(['Software Developer']);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [storedEmail, setStoredEmail] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const router = useRouter();
+
+  // Check localStorage for pending verification on component mount
+  useEffect(() => {
+    const pendingEmail = localStorage.getItem('pendingVerificationEmail');
+    if (pendingEmail) {
+      setStoredEmail(pendingEmail);
+      setSignupSuccess(true);
+    }
+  }, []);
+
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
@@ -55,23 +95,11 @@ const SignupForm = () => {
       confirmPassword: '',
       jobPreference: '',
       organizationName: '',
-      referralCode: '',
+      referredBy: '', // Set default value for the new field
     },
   });
 
   const accountType = form.watch('accountType');
-
-  const fetchJobRoles = async () => {
-    try {
-      const response = await apiInstance.get('/job-role');
-      setJobRoles(response.data || []);
-    } catch (error) {
-      console.error('Error fetching job roles:', error);
-    }
-  };
-  useEffect(() => {
-    fetchJobRoles();
-  }, []);
 
   async function onSubmit(data: SignupFormValues) {
     try {
@@ -79,6 +107,11 @@ const SignupForm = () => {
       successToast(
         'Your account has been created successfully! Please check your email for verification instructions.',
       );
+
+      // Store email in localStorage and state
+      localStorage.setItem('pendingVerificationEmail', data.email);
+      setStoredEmail(data.email);
+      setSignupSuccess(true);
     } catch (error) {
       console.error('Error creating user:', error);
       errorToast(
@@ -86,6 +119,109 @@ const SignupForm = () => {
       );
     }
   }
+
+  const handleVerification = async () => {
+    if (!verificationCode || !storedEmail) return;
+
+    setIsVerifying(true);
+    try {
+      await apiInstance.post('/user/verify', {
+        email: storedEmail,
+        otp: verificationCode,
+      });
+
+      successToast('Your account has been verified successfully!');
+      localStorage.removeItem('pendingVerificationEmail');
+      setSignupSuccess(false);
+      setStoredEmail('');
+      setVerificationCode('');
+    } catch (error) {
+      errorToast('Invalid verification code. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!storedEmail) return;
+
+    try {
+      await apiInstance.post('/user/resend-otp', {
+        email: storedEmail,
+      });
+      successToast('Verification code has been resent to your email.');
+    } catch (error) {
+      errorToast('Failed to resend verification code. Please try again.');
+    }
+  };
+
+  if (signupSuccess) {
+    return (
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center items-center mb-4">
+            <MailCheck className="h-10 w-10 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-headline">
+            Verify Your Email
+          </CardTitle>
+          <CardDescription>
+            We've sent a verification code to {storedEmail}. Please enter it
+            below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="space-y-4">
+            <Input
+              placeholder="Enter verification code"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              disabled={isVerifying}
+            />
+            <Button
+              onClick={handleVerification}
+              className="w-full"
+              disabled={!verificationCode || isVerifying}
+            >
+              {isVerifying ? 'Verifying...' : 'Verify Account'}
+            </Button>
+            <div className="text-center text-sm">
+              <button
+                onClick={handleResendCode}
+                className="text-primary hover:underline"
+                disabled={isVerifying}
+              >
+                Didn't receive a code? Resend
+              </button>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-center text-sm">
+          <p>
+            Want to use a different email?{' '}
+            <button
+              onClick={() => {
+                localStorage.removeItem('pendingVerificationEmail');
+                setSignupSuccess(false);
+                setStoredEmail('');
+              }}
+              className="font-medium text-primary hover:underline"
+            >
+              Sign up again
+            </button>
+          </p>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  useEffect(() => {
+    const token = Cookies.get('accessToken');
+    if (token) {
+      router.push('/dashboard');
+    }
+  }, [router]);
+
   return (
     <Card className="w-full max-w-md shadow-xl">
       <CardHeader className="space-y-1 text-center">
@@ -203,36 +339,7 @@ const SignupForm = () => {
                 </FormItem>
               )}
             />
-            {accountType === 'individual' && (
-              <FormField
-                control={form.control}
-                name="jobPreference"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Primary Job Role You're Seeking</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={form.formState.isSubmitting}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a job role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {jobRoles.map((role) => (
-                          <SelectItem key={role._id} value={role.name}>
-                            {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+
             <FormField
               control={form.control}
               name="password"
@@ -270,6 +377,25 @@ const SignupForm = () => {
               )}
             />
 
+            {/* 2. Add the new form field for the referral code */}
+            <FormField
+              control={form.control}
+              name="referredBy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Referral Code (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter code here"
+                      {...field}
+                      disabled={form.formState.isSubmitting}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <Button
               type="submit"
               className="w-full"
@@ -287,6 +413,9 @@ const SignupForm = () => {
           </form>
         </Form>
       </CardContent>
+
+      <GoogleSignInButton form={form} />
+
       <CardFooter className="flex justify-center text-sm">
         <p>
           Already have an account?&nbsp;

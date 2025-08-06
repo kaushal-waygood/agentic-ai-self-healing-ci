@@ -4,6 +4,8 @@
 
 body {
   font-family: 'PT Sans', sans-serif; /* Default body font */
+  max-width: 100% !important;
+  margin: 0 0 !important;
 }
 
 @layer base {
@@ -88,7 +90,7 @@ body {
     --chart-3: 210 25% 45%;
     --chart-4: 25 70% 55%;
     --chart-5: 300 60% 60%;
-    
+
     --sidebar-background: 210 10% 12%;
     --sidebar-foreground: 210 20% 93%;
     --sidebar-primary: 207 80% 65%;
@@ -107,21 +109,31 @@ body {
   body {
     @apply bg-background text-foreground;
   }
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-headline;
   }
 }
 
 @layer utilities {
   .printable-a4 {
-    width: 210mm;
+    /* width: 210mm; */
     min-height: 297mm;
-    padding: 20mm;
+    /* padding: 20mm; */
     margin: 0 auto;
     background: white !important;
     color: black !important;
   }
-  .printable-a4 h1, .printable-a4 h2, .printable-a4 h3, .printable-a4 p, .printable-a4 li, .printable-a4 strong {
+  .printable-a4 h1,
+  .printable-a4 h2,
+  .printable-a4 h3,
+  .printable-a4 p,
+  .printable-a4 li,
+  .printable-a4 strong {
     color: black !important;
   }
 }

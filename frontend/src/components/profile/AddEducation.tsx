@@ -26,9 +26,11 @@ import { addEducation } from '@/services/api/student';
 import {
   addStudentEducationRequest,
   addStudentExperienceRequest,
+  addStudentProjectRequest,
   addStudentSkillRequest,
   updateStudentEducationRequest,
   updateStudentExperienceRequest,
+  updateStudentProjectRequest,
 } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
@@ -279,25 +281,33 @@ export const AddEducation = ({ onCancel, isEdit, data, index }: closeProps) => {
   );
 };
 
-export const AddProject = ({ onCancel }: closeProps) => {
+export const AddProject = ({ onCancel, data, isEdit, index }: closeProps) => {
   const form = useForm<ProjectFormData>({
     defaultValues: {
-      name: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-      isCurrent: false,
-      technologies: '',
-      link: '',
+      name: data?.name || '',
+      description: data?.description || '',
+      startDate: data?.startDate || '',
+      endDate: data?.endDate || '',
+      isCurrent: data?.isCurrent || false,
+      technologies: data?.technologies || '',
+      link: data?.link || '',
+      _id: data?._id || '',
     },
   });
+
+  const dispatch = useDispatch();
 
   const { handleSubmit, control, reset, watch, setValue } = form;
 
   const isCurrent = watch('isCurrent');
 
   const handleFormSubmit = (data: ProjectFormData) => {
-    console.log(data);
+    console.log('data', data._id);
+    if (isEdit) {
+      dispatch(updateStudentProjectRequest({ data, index: data._id }));
+    } else {
+      dispatch(addStudentProjectRequest(data));
+    }
     reset();
     onCancel();
   };

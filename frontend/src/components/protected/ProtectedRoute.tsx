@@ -1,7 +1,8 @@
 'use client';
 
-import Cookie from 'js-cookie';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Cookie from 'js-cookie';
 
 export default function ProtectedRoute({
   children,
@@ -9,12 +10,29 @@ export default function ProtectedRoute({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const token = Cookie.get('accessToken');
+  const [authStatus, setAuthStatus] = useState<
+    'loading' | 'authenticated' | 'unauthenticated'
+  >('loading');
 
-  if (!token) {
-    Cookie.remove('accessToken');
-    Cookie.remove('refreshToken');
-    router.push('/login');
+  useEffect(() => {
+    const token = Cookie.get('accessToken');
+
+    if (!token) {
+      console.warn('Authentication failed - no token found');
+      setAuthStatus('unauthenticated');
+      router.push('/login');
+    } else {
+      console.log('Authentication successful - token found');
+      setAuthStatus('authenticated');
+    }
+  }, [router]);
+
+  if (authStatus === 'loading') {
+    return <div>Checking authentication...</div>;
+  }
+
+  if (authStatus === 'unauthenticated') {
+    return null; // The redirect is already handled in useEffect.
   }
 
   return <>{children}</>;

@@ -26,6 +26,7 @@ import {
   History,
   UploadCloud,
   File,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -53,6 +54,8 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     //state
     isNameEditable,
     isEmailEditable,
+    isJobPrefEditable,
+    setIsJobPrefEditable,
     addEdu,
     addExp,
     addProj,
@@ -99,6 +102,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     setHandleName,
     handleEmail,
     setHandleEmail,
+    handleDeleteProject,
 
     //form
     personalInfoForm,
@@ -119,7 +123,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handleLevelChange,
     toggleExpand,
     handleEdit,
-    handleDelete,
     toggleNameEdit,
     toggleEmailEdit,
     defaultValues,
@@ -129,30 +132,46 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = async (selectedFile) => {
     if (selectedFile) {
       setFile(selectedFile);
-      // Here you can add your file upload logic
       console.log('Selected file:', selectedFile);
+    }
+  };
 
-      const formData = new FormData();
-      formData.append('cv', selectedFile);
+  const handleUpload = async () => {
+    if (!file) return;
 
-      try {
-        const response = await apiInstance.post(
-          '/students/resume/extract',
-          formData,
-        );
-        console.log('File uploaded successfully:', response.data);
-      } catch (error) {
-        console.error('Error uploading file:', error);
-      }
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('cv', file);
+
+    try {
+      const response = await apiInstance.post(
+        '/students/resume/extract',
+        formData,
+      );
+      console.log('File uploaded successfully:', response.data);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   const handleButtonClick = () => {
-    fileInputRef.current.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handleDragEnter = useCallback((e) => {
@@ -209,13 +228,13 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                             {...field}
                             placeholder="Your full name"
                             readOnly={!isNameEditable}
+                            value={field.value || ''} // Ensure value is never undefined
                             onChange={(e) => {
                               field.onChange(e);
                               setHandleName(e.target.value);
                             }}
                           />
                         </FormControl>
-
                         {isNameEditable ? (
                           <Button
                             type="button"
@@ -234,14 +253,12 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           >
                             <Edit size={16} />
                           </Button>
-                        )}
+                        )}{' '}
                       </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                {/* Email Field */}
                 <FormField
                   control={personalInfoForm.control}
                   name="email"
@@ -255,7 +272,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                             type="email"
                             placeholder="your.email@example.com"
                             readOnly={!isEmailEditable}
-                            value={defaultValues.email}
+                            value={field.value || ''} // Ensure value is never undefined
                           />
                         </FormControl>
                         <Button
@@ -269,13 +286,8 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           ) : (
                             <Edit size={16} />
                           )}
-                        </Button>
+                        </Button>{' '}
                       </div>
-                      <FormDescription>
-                        Your email address is used for login and may not be
-                        changed frequently.
-                      </FormDescription>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -292,7 +304,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
           <input
             type="file"
             ref={fileInputRef}
-            onChange={(e) => handleFileChange(e.target.files[0])}
+            onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             className="hidden"
             accept=".pdf,.doc,.docx,.txt"
           />
@@ -317,17 +329,59 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                   ? 'Drop your file here'
                   : 'Drag & drop your file here'}
               </p>
-              {/* <p className="text-xs text-gray-500">or</p> */}
+              <p className="text-xs text-gray-500">or click to browse</p>
             </div>
           </div>
 
-          {/* Selected file preview */}
+          {/* Selected file preview and actions */}
           {file && (
-            <div className="mt-2 flex items-center gap-2 p-2 bg-gray-100 rounded-md">
-              <File className="w-5 h-5 text-gray-600" />
-              <span className="text-sm text-gray-800 truncate max-w-xs">
-                {file.name}
-              </span>
+            <div className="mt-2 flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2 p-2 bg-gray-100 rounded-md">
+                <File className="w-5 h-5 text-gray-600" />
+                <span className="text-sm text-gray-800 truncate max-w-xs">
+                  {file.name}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRemoveFile}
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4 text-gray-500" />
+                </Button>
+              </div>
+
+              <Button
+                onClick={handleUpload}
+                disabled={isUploading}
+                className="gap-2"
+              >
+                {isUploading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="h-4 w-4" />
+                    Process CV
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </div>
@@ -350,13 +404,35 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Primary Job Role You're Seeking</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., Software Engineer, Product Manager"
-                          value={defaultValues.jobPreference}
-                          readOnly
-                        />
-                      </FormControl>
+                      <div className="flex items-center gap-2">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="e.g., Software Engineer, Product Manager"
+                            readOnly={!isJobPrefEditable} // Add this state variable
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          size="icon"
+                          onClick={() => {
+                            if (isJobPrefEditable) {
+                              // Save logic here if needed
+                              careerDetailsForm.handleSubmit(
+                                handleCareerDetailsSubmit,
+                              )();
+                            }
+                            setIsJobPrefEditable(!isJobPrefEditable);
+                          }}
+                          variant="outline"
+                        >
+                          {isJobPrefEditable ? (
+                            <Check size={16} />
+                          ) : (
+                            <Edit size={16} />
+                          )}
+                        </Button>
+                      </div>
                       <FormDescription>
                         This helps us tailor job recommendations and AI
                         assistance.
@@ -499,7 +575,8 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEdit(index);
+                            setEditProj(true);
+                            setEditProjIndex(index);
                           }}
                         >
                           <Pencil className="h-4 w-4" />
@@ -510,8 +587,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteProj(true);
-                            setDeleteProjIndex(index);
-                            // handleDelete(index);
+                            setDeleteProjIndex(proj._id);
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -785,6 +861,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         </>
       )}
 
+      {/* add education, project, experience, skill */}
       {addEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
@@ -817,6 +894,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         </div>
       )}
 
+      {/* edit education, project, experience */}
       {editEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           {console.log('editEdu', defaultValues.education)}
@@ -837,6 +915,20 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
               onCancel={() => setEditExp(false)}
               data={defaultValues.experience[editExpIndex]}
               index={editExpIndex}
+              isEdit={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {editProj && (
+        <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
+          {console.log('editProj', defaultValues.projects)}
+
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <AddProject
+              onCancel={() => setEditProj(false)}
+              data={defaultValues.projects[editProjIndex]}
               isEdit={true}
             />
           </div>
@@ -894,6 +986,26 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 onClick={() => {
                   handleDeleteSkills(deleteSkillIndex);
                   setDeleteSkill(false);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteProj && (
+        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black bg-opacity-50">
+          <div className="w-full max-w-3xl  overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+            <p>Are you sure you want to delete this project entry?</p>
+            <div className="flex justify-end gap-4 mt-4">
+              <Button onClick={() => setDeleteProj(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleDeleteProject(deleteProjIndex);
+                  setDeleteProj(false);
                 }}
               >
                 Delete

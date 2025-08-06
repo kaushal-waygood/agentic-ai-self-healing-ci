@@ -32,6 +32,9 @@ import {
   removeStudentProjectRequest,
   removeStudentProjectSuccess,
   removeStudentProjectFailure,
+  updateStudentProjectRequest,
+  updateStudentProjectSuccess,
+  updateStudentProjectFailure,
 
   // student Skills
   addStudentSkillRequest,
@@ -68,6 +71,9 @@ import {
   recommendProfileJob,
   updateExperience,
   removeExperience,
+  addProject,
+  updateProject,
+  removeProject,
 } from '@/services/api/student';
 import { PayloadAction } from '@reduxjs/toolkit';
 
@@ -80,6 +86,7 @@ function* getStudentDetailsSaga() {
   }
 }
 
+// student Education
 function* addStudentEducationSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(addEducation, action.payload);
@@ -111,12 +118,25 @@ function* updateStudentEducationSaga(action: PayloadAction<any>) {
   }
 }
 
+// student Experience
 function* addStudentExperienceSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(addExperience, action.payload);
     yield put(addStudentExperienceSuccess(response.data.studentDetails));
   } catch (error: unknown | Error) {
     yield put(addStudentExperienceFailure((error as Error).message));
+  }
+}
+
+function* removeStudentExperienceSaga(action: PayloadAction<any>) {
+  try {
+    const response: AxiosResponse = yield call(
+      removeExperience,
+      action.payload,
+    );
+    yield put(removeStudentExperienceSuccess(response.data));
+  } catch (error: unknown | Error) {
+    yield put(removeStudentExperienceFailure((error as Error).message));
   }
 }
 
@@ -134,6 +154,7 @@ function* updateStudentExperienceSaga(action: PayloadAction<any>) {
   }
 }
 
+// student Skills
 function* addStudentSkillsSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(addSkill, action.payload);
@@ -161,15 +182,39 @@ function* updateStudentSkillsSaga(action: PayloadAction<any>) {
   }
 }
 
-function* addStudentProjectsSaga() {
+// student Projects
+function* addStudentProjectsSaga(action: PayloadAction<any>) {
   try {
-    const response: AxiosResponse = yield call(getStudentDetails);
-    yield put(getStudentDetailsSuccess(response.data.studentDetails));
+    const response: AxiosResponse = yield call(addProject, action.payload);
+    yield put(addStudentProjectSuccess(response.data.studentDetails));
   } catch (error: unknown | Error) {
-    yield put(getStudentDetailsFailure((error as Error).message));
+    yield put(addStudentProjectFailure((error as Error).message));
   }
 }
 
+function* updateStudentProjectsSaga(action: PayloadAction<any>) {
+  try {
+    const response: AxiosResponse = yield call(
+      updateProject,
+      action.payload.data,
+      action.payload.index,
+    );
+    yield put(updateStudentProjectSuccess(response.data));
+  } catch (error: unknown | Error) {
+    yield put(updateStudentProjectFailure((error as Error).message));
+  }
+}
+
+function* removeStudentProjectsSaga(action: PayloadAction<any>) {
+  try {
+    const response: AxiosResponse = yield call(removeProject, action.payload);
+    yield put(removeStudentProjectSuccess(response.data));
+  } catch (error: unknown | Error) {
+    yield put(removeStudentProjectFailure((error as Error).message));
+  }
+}
+
+// student Job Preference
 function* updateStudentJobPreferenceSaga(action: PayloadAction<any>) {
   try {
     console.log(action.payload);
@@ -193,21 +238,10 @@ function* getStudentJobPreferenceSaga() {
   }
 }
 
-function* removeStudentExperienceSaga(action: PayloadAction<any>) {
-  try {
-    const response: AxiosResponse = yield call(
-      removeExperience,
-      action.payload,
-    );
-    yield put(removeStudentExperienceSuccess(response.data));
-  } catch (error: unknown | Error) {
-    yield put(removeStudentExperienceFailure((error as Error).message));
-  }
-}
-
 export function* studentWatcher() {
   yield takeLatest(getStudentDetailsRequest.type, getStudentDetailsSaga);
 
+  // student Education
   yield takeLatest(addStudentEducationRequest.type, addStudentEducationSaga);
   yield takeLatest(
     removeStudentEducationRequest.type,
@@ -218,21 +252,8 @@ export function* studentWatcher() {
     updateStudentEducationSaga,
   );
 
+  // student Experience
   yield takeLatest(addStudentExperienceRequest.type, addStudentExperienceSaga);
-  yield takeLatest(addStudentSkillRequest.type, addStudentSkillsSaga);
-  yield takeLatest(removeStudentSkillRequest.type, removeStudentSkillsSaga);
-  yield takeLatest(updateStudentSkillRequest.type, updateStudentSkillsSaga);
-
-  yield takeLatest(
-    updateStudentJobPreferenceRequest.type,
-    updateStudentJobPreferenceSaga,
-  );
-
-  yield takeLatest(
-    getStudentJobPreferenceRequest.type,
-    getStudentJobPreferenceSaga,
-  );
-
   yield takeLatest(
     updateStudentExperienceRequest.type,
     updateStudentExperienceSaga,
@@ -240,5 +261,24 @@ export function* studentWatcher() {
   yield takeLatest(
     removeStudentExperienceRequest.type,
     removeStudentExperienceSaga,
+  );
+
+  // student Skills
+  yield takeLatest(addStudentSkillRequest.type, addStudentSkillsSaga);
+  yield takeLatest(removeStudentSkillRequest.type, removeStudentSkillsSaga);
+  yield takeLatest(updateStudentSkillRequest.type, updateStudentSkillsSaga);
+
+  // student Projects
+  yield takeLatest(addStudentProjectRequest.type, addStudentProjectsSaga);
+  yield takeLatest(updateStudentProjectRequest.type, updateStudentProjectsSaga);
+  yield takeLatest(removeStudentProjectRequest.type, removeStudentProjectsSaga);
+
+  yield takeLatest(
+    updateStudentJobPreferenceRequest.type,
+    updateStudentJobPreferenceSaga,
+  );
+  yield takeLatest(
+    getStudentJobPreferenceRequest.type,
+    getStudentJobPreferenceSaga,
   );
 }

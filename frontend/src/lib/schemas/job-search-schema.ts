@@ -17,15 +17,40 @@ export const JobPreferencesSchema = z.object({
     .enum(['ENTRY_LEVEL', 'MID_LEVEL', 'SENIOR', 'EXECUTIVE', 'NONE'])
     .optional(),
 
-  // Compensation
-  preferedSalary: z.object({
-    min: z.number().optional(),
-    max: z.number().optional(),
-    currency: z.string().optional(),
-    period: z.enum(['YEAR', 'MONTH', 'WEEK']).optional(),
-  }),
+  // Compensation (updated)
+  preferedSalary: z
+    .object({
+      min: z
+        .number()
+        .min(0, 'Minimum salary must be positive')
+        .optional()
+        .nullable(),
+      max: z
+        .number()
+        .min(0, 'Maximum salary must be positive')
+        .optional()
+        .nullable(),
+      currency: z.string().min(1, 'Currency is required').optional().nullable(),
+      period: z.enum(['YEAR', 'MONTH', 'WEEK']).optional().nullable(),
+    })
+    .nullable()
+    .optional()
+    .refine(
+      (data) => {
+        if (!data) return true;
+        if (data.min && data.max) {
+          return data.max >= data.min;
+        }
+        return true;
+      },
+      {
+        message:
+          'Maximum salary must be greater than or equal to minimum salary',
+        path: ['max'],
+      },
+    ),
 
-  // Skills & Education
+  // Rest of the schema remains the same...
   mustHaveSkills: z
     .array(
       z.object({
@@ -40,12 +65,8 @@ export const JobPreferencesSchema = z.object({
   preferedEducationLevel: z
     .enum(['high_school', 'associate', 'bachelor', 'master', 'phd', 'none'])
     .optional(),
-
-  // Company Preferences
   preferedCompanySizes: z.array(z.string()).optional().default([]),
   preferedCompanyCultures: z.array(z.string()).optional().default([]),
-
-  // Additional Preferences
   visaSponsorshipRequired: z.boolean().optional().default(false),
   immediateAvailability: z.boolean().optional().default(false),
 });
