@@ -14,18 +14,18 @@ export default function ProtectedRoute({
     'loading' | 'authenticated' | 'unauthenticated'
   >('loading');
 
-  useEffect(() => {
-    const token = Cookie.get('accessToken');
+  // useEffect(() => {
+  //   const token = Cookie.get('accessToken');
 
-    if (!token) {
-      console.warn('Authentication failed - no token found');
-      setAuthStatus('unauthenticated');
-      router.push('/login');
-    } else {
-      console.log('Authentication successful - token found');
-      setAuthStatus('authenticated');
-    }
-  }, [router]);
+  //   if (!token) {
+  //     console.warn('Authentication failed - no token found');
+  //     setAuthStatus('unauthenticated');
+  //     router.push('/login');
+  //   } else {
+  //     console.log('Authentication successful - token found');
+  //     setAuthStatus('authenticated');
+  //   }
+  // }, [router]);
 
   if (authStatus === 'loading') {
     return <div>Checking authentication...</div>;
