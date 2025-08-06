@@ -220,6 +220,7 @@ export const useProfile = () => {
 
   const [isNameEditable, setIsNameEditable] = useState(false);
   const [isEmailEditable, setIsEmailEditable] = useState(false);
+  const [isJobPrefEditable, setIsJobPrefEditable] = useState(false);
   const [handleName, setHandleName] = useState('');
   const [handleEmail, setHandleEmail] = useState('');
 
@@ -231,8 +232,8 @@ export const useProfile = () => {
       profileFormSchema.pick({ fullName: true, email: true }),
     ),
     defaultValues: {
-      fullName: defaultValues.fullName,
-      email: defaultValues.email,
+      fullName: defaultValues?.fullName || '',
+      email: defaultValues?.email || '',
     },
     mode: 'onChange',
   });
@@ -451,6 +452,8 @@ export const useProfile = () => {
     //state
     isNameEditable,
     isEmailEditable,
+    isJobPrefEditable,
+    setIsJobPrefEditable,
     addEdu,
     addExp,
     addProj,

@@ -27,6 +27,8 @@ import {
   updateExperience,
   addProjects,
   removeProject,
+  getProfileCompletion,
+  StudentAnalytics,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -143,6 +145,8 @@ router.post('/jobs/saved', authMiddleware, isStudent, savedJobs);
 router.get('/jobs/saved', authMiddleware, isStudent, getSavedJobs);
 router.get('/jobs/issaved', authMiddleware, isStudent, isSavedOrNot);
 router.get('/jobs/recommended', authMiddleware, isStudent, getRecommendedJobs);
+router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
+router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
 
 router.post('/pdf/generate-pdf', async (req, res) => {
   console.log('Received request to generate PDF...');

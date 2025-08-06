@@ -947,6 +947,51 @@ export const getAppliedJobs = async (req, res) => {
   }
 };
 
+export const StudentAnalytics = async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(
+      _id,
+      'appliedJobs savedJobs htmlCV coverLetter',
+    );
+
+    const studentReferal = await User.findById(
+      _id,
+      'referralCount referralCode isEmailVerified',
+    );
+
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
+    }
+
+    // Count the length of each array directly from the student document
+    const analytics = {
+      applicationsSent: student.appliedJobs.length,
+      savedJobsCount: student.savedJobs.length,
+      cvsGenerated: student.htmlCV.length,
+      coverLettersGenerated: student.coverLetter.length,
+      referralCount: studentReferal.referralCount,
+      isEmailVerified: studentReferal.isEmailVerified,
+      referralCode: studentReferal.referralCode,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: analytics,
+      message: 'Student analytics retrieved successfully',
+    });
+  } catch (error) {
+    console.error('Error fetching student analytics:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 export const createJobPreference = async (req, res) => {
   try {
     const {
@@ -1215,6 +1260,103 @@ export const isSavedOrNot = async (req, res) => {
       message: 'An error occurred while checking saved status',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
+  }
+};
+
+export const getProfileCompletion = async (req, res) => {
+  try {
+    const { _id: studentId } = req.user;
+
+    const student = await Student.findById(studentId).select(
+      'fullName phone profileImage jobRole resumeUrl education experience skills projects jobPreferences coverLetter',
+    );
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const completionStatus = {
+      coreProfile: false,
+      resume: false,
+      education: false,
+      workExperience: false,
+      skills: false,
+      projects: false,
+      jobPreferences: false,
+      coverLetter: false,
+    };
+
+    let completedCategories = 0;
+    const totalCategories = Object.keys(completionStatus).length; // Now 8
+
+    if (
+      student.fullName &&
+      student.phone &&
+      student.profileImage &&
+      student.jobRole
+    ) {
+      completionStatus.coreProfile = true;
+      completedCategories++;
+    }
+
+    if (student.resumeUrl) {
+      completionStatus.resume = true;
+      completedCategories++;
+    }
+
+    if (student.education && student.education.length > 0) {
+      completionStatus.education = true;
+      completedCategories++;
+    }
+
+    if (student.experience && student.experience.length > 0) {
+      completionStatus.workExperience = true;
+      completedCategories++;
+    }
+
+    if (student.skills && student.skills.length >= 10) {
+      completionStatus.skills = true;
+      completedCategories++;
+    }
+
+    if (student.projects && student.projects.length > 0) {
+      completionStatus.projects = true;
+      completedCategories++;
+    }
+
+    const prefs = student.jobPreferences;
+    if (
+      prefs &&
+      prefs.preferedJobTitles?.length > 0 &&
+      prefs.preferedSalary?.min > 0 && // A min salary must be set
+      (prefs.preferedCountries?.length > 0 ||
+        prefs.preferedCities?.length > 0 ||
+        prefs.isRemote === true)
+    ) {
+      completionStatus.jobPreferences = true;
+      completedCategories++;
+    }
+
+    if (student.coverLetter && student.coverLetter.length > 0) {
+      completionStatus.coverLetter = true;
+      completedCategories++;
+    }
+
+    const completionPercentage = Math.round(
+      (completedCategories / totalCategories) * 100,
+    );
+
+    res.status(200).json({
+      percentage: completionPercentage,
+      breakdown: {
+        completed: completedCategories,
+        total: totalCategories,
+      },
+      categories: completionStatus,
+    });
+  } catch (error) {
+    console.error('Error calculating profile completion:', error);
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 

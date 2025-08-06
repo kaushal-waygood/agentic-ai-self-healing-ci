@@ -55,6 +55,7 @@ import {
 import { useDispatch } from 'react-redux';
 import { getProfileRequest } from '@/redux/reducers/authReducer';
 import { useSelector } from 'react-redux';
+import apiInstance from '@/services/api';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -72,6 +73,20 @@ export default function DashboardPage() {
     const role = authUser?.role;
     setUser(authUser);
   }, [dispatch]);
+
+  // --- Start of the moved useEffect hook ---
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await apiInstance.get('/students/jobs/stats');
+        console.log(response.data);
+        setStats(response.data.data);
+      } catch (error) {}
+    };
+
+    fetchStats();
+  }, []);
+  // --- End of the moved useEffect hook ---
 
   // State for calculated values to prevent hydration errors
   const [stats, setStats] = useState({
@@ -165,17 +180,6 @@ export default function DashboardPage() {
     setEffectivePlan(
       mockSubscriptionPlans.find((p) => p.id === finalPlanId) || undefined,
     );
-
-    // Calculate stats on the client
-    setStats({
-      applicationsSent: mockApplications.length,
-      cvsGenerated: currentUser.savedCvs.length,
-      coverLettersGenerated: currentUser.savedCoverLetters.length,
-      activeAgents: (currentUser.autoApplyAgents || []).filter(
-        (a) => a.isActive,
-      ).length,
-      careerXp: currentUser.careerXp || 0,
-    });
 
     const statusCounts = mockApplications.reduce((acc, app) => {
       acc[app.status] = (acc[app.status] || 0) + 1;
@@ -314,13 +318,13 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Career XP"
-          value={stats.careerXp.toString()}
+          value={stats.careerXp}
           icon={Award}
           description="Points for career-building actions"
         />
         <StatCard
-          title="Active AI Agents"
-          value={stats.activeAgents.toString()}
+          title="Cover Letters"
+          value={stats.coverLettersGenerated}
           icon={Bot}
           description="Agents preparing drafts"
           actionLink="/ai-auto-apply"
