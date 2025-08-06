@@ -40,6 +40,7 @@ const userSchema = new Schema(
       required: function () {
         return this.authMethod === 'local'; // Only required for local auth
       },
+      select: false, // Exclude by default from queries
     },
     jobRole: {
       type: String,
@@ -51,18 +52,14 @@ const userSchema = new Schema(
     },
     referralCode: {
       type: String,
+      unique: true,
+      sparse: true,
     },
     referredBy: {
       type: String,
     },
     otp: {
       type: String,
-    },
-    passwordResetToken: {
-      type: String,
-    },
-    passwordResetExpires: {
-      type: Date,
     },
     otpExpires: {
       type: Date,
@@ -79,33 +76,40 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
-    referralCode: {
+    passwordResetToken: {
       type: String,
     },
-    referredBy: {
-      type: String,
+    passwordResetExpires: {
+      type: Date,
     },
   },
   {
     timestamps: true,
     versionKey: false,
-  },
+    toJSON: {
+      virtuals: true,
+      transform: function (doc, ret) {
+        delete ret.password; // Always remove password when converting to JSON
+        return ret;
+      },
+    },
+  }
 );
 
-userSchema.pre('save', function (next) {
-  if (this.isModified('password')) {
-    this.password = bcrypt.hashSync(this.password, 10);
+// Password hashing middleware
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || this.authMethod !== 'local') return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 });
 
-userSchema.pre('save', function (next) {
-  if (this.isModified('password') && this.authMethod === 'local') {
-    this.password = bcrypt.hashSync(this.password, 10);
-  }
-  next();
-});
-
+// Access token generation
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
@@ -116,24 +120,37 @@ userSchema.methods.generateAccessToken = function () {
     },
     config.accessTokenSecret,
     {
-      expiresIn: '7d', // Optional default
-    },
+      expiresIn: config.accessTokenExpiry || '7d',
+    }
   );
 };
 
+// Refresh token generation
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       _id: this._id,
       email: this.email,
-      role: this.role,
-      accountType: this.accountType,
     },
     config.refreshTokenSecret,
     {
-      expiresIn: '7d',
-    },
+      expiresIn: config.refreshTokenExpiry || '30d',
+    }
   );
+};
+
+// Password reset token generation
+userSchema.methods.generatePasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(20).toString('hex');
+  
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+    
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  
+  return resetToken;
 };
 
 export const User = model('User', userSchema);

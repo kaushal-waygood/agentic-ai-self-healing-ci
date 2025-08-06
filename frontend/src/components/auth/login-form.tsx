@@ -119,12 +119,12 @@ export function LoginForm() {
     }
   }
 
-  useEffect(() => {
-    const token = Cookie.get('accessToken');
-    if (token) {
-      router.push('/dashboard');
-    }
-  }, [router]);
+  // useEffect(() => {
+  //   const token = Cookie.get('accessToken');
+  //   if (token) {
+  //     router.push('/dashboard');
+  //   }
+  // }, [router]);
 
   return (
     <Card className="w-full max-w-md shadow-xl">

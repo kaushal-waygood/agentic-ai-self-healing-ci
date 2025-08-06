@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '../ui/card';
 import { Building, MailCheck, Rocket, UserPlus } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -27,7 +27,6 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import apiInstance from '@/services/api';
 import { errorToast, successToast } from '@/utils/toasts';
-import { GoogleSignInButton } from './GoogleSingupButton';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 
@@ -57,7 +56,7 @@ const signupFormSchema = z
     confirmPassword: z.string().min(1, { message: 'Passwords do not match.' }),
     organizationName: z.string().optional(),
     jobPreference: z.string().optional(),
-    referredBy: z.string().optional(), // New optional referral field
+    referredBy: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match.',
@@ -65,25 +64,13 @@ const signupFormSchema = z
   });
 
 type SignupFormValues = z.infer<typeof signupFormSchema>;
-type JobRole = { _id: string; name: string };
 
 const SignupForm = () => {
-  const [jobRoles, setJobRoles] = useState<any[]>(['Software Developer']);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [storedEmail, setStoredEmail] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-
   const router = useRouter();
-
-  // Check localStorage for pending verification on component mount
-  useEffect(() => {
-    const pendingEmail = localStorage.getItem('pendingVerificationEmail');
-    if (pendingEmail) {
-      setStoredEmail(pendingEmail);
-      setSignupSuccess(true);
-    }
-  }, []);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
@@ -95,11 +82,24 @@ const SignupForm = () => {
       confirmPassword: '',
       jobPreference: '',
       organizationName: '',
-      referredBy: '', // Set default value for the new field
+      referredBy: '',
     },
   });
 
-  const accountType = form.watch('accountType');
+  // Move useWatch inside the component body but before any conditional returns
+  const accountType = useWatch({
+    control: form.control,
+    name: 'accountType',
+  });
+
+  // Check localStorage for pending verification on component mount
+  useEffect(() => {
+    const pendingEmail = localStorage.getItem('pendingVerificationEmail');
+    if (pendingEmail) {
+      setStoredEmail(pendingEmail);
+      setSignupSuccess(true);
+    }
+  }, []);
 
   async function onSubmit(data: SignupFormValues) {
     try {
@@ -108,7 +108,6 @@ const SignupForm = () => {
         'Your account has been created successfully! Please check your email for verification instructions.',
       );
 
-      // Store email in localStorage and state
       localStorage.setItem('pendingVerificationEmail', data.email);
       setStoredEmail(data.email);
       setSignupSuccess(true);
@@ -154,6 +153,13 @@ const SignupForm = () => {
       errorToast('Failed to resend verification code. Please try again.');
     }
   };
+
+  useEffect(() => {
+    const token = Cookies.get('accessToken');
+    if (token) {
+      router.push('/dashboard');
+    }
+  }, [router]);
 
   if (signupSuccess) {
     return (
@@ -214,13 +220,6 @@ const SignupForm = () => {
       </Card>
     );
   }
-
-  useEffect(() => {
-    const token = Cookies.get('accessToken');
-    if (token) {
-      router.push('/dashboard');
-    }
-  }, [router]);
 
   return (
     <Card className="w-full max-w-md shadow-xl">
@@ -377,7 +376,6 @@ const SignupForm = () => {
               )}
             />
 
-            {/* 2. Add the new form field for the referral code */}
             <FormField
               control={form.control}
               name="referredBy"
@@ -413,8 +411,6 @@ const SignupForm = () => {
           </form>
         </Form>
       </CardContent>
-
-      <GoogleSignInButton form={form} />
 
       <CardFooter className="flex justify-center text-sm">
         <p>

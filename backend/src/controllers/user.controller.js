@@ -6,6 +6,7 @@ import { config } from '../config/config.js';
 import crypto from 'crypto';
 import admin from '../config/firebase.js';
 import { transporter } from '../utils/transporter.js';
+import bcrypt from 'bcryptjs';
 
 export const firebaseAuth = async (req, res) => {
   try {
@@ -165,6 +166,7 @@ export const signUpUser = async (req, res) => {
         await organization.save();
       }
     }
+
 
     // Create user (unverified)
     const user = new User({
@@ -366,12 +368,22 @@ export const signInUser = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    const user = await User.findOne({ email });
+    // Include password field which is normally excluded
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const isPasswordCorrect = await user.isPasswordCorrect(password);
+    // Check if user has password (for social login users)
+    if (!user.password) {
+      return res.status(401).json({ 
+        message: 'Account created with social login. Please use that method to sign in.'
+      });
+    }
+
+    // Now this will work since we added the method to the schema
+    const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+    console.log('Password comparison result:', isPasswordCorrect);
     if (!isPasswordCorrect) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -379,26 +391,32 @@ export const signInUser = async (req, res) => {
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
-    user.password = undefined;
+    // Convert to object and remove password before sending response
+    const userObject = user.toObject();
+    delete userObject.password;
 
     res
       .cookie('accessToken', accessToken, {
-        // httpOnly: true,
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       })
       .cookie('refreshToken', refreshToken, {
-        // httpOnly: true,
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-    res.status(200).json({ accessToken, user });
+    res.status(200).json({ 
+      accessToken, 
+      user: userObject,
+      refreshToken // Optionally include in response if needed
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
+    console.error('Sign in error:', error);
+    res.status(500).json({ message: error.message || 'Internal server error' });
   }
 };
 

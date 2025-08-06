@@ -35,39 +35,39 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-apiInstance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+// apiInstance.interceptors.response.use(
+//   (response) => response,
+//   async (error) => {
+//     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+//     if (error.response?.status === 401 && !originalRequest._retry) {
+//       originalRequest._retry = true;
 
-      try {
-        // Make sure to include credentials for refresh request
-        const refreshResponse = await axios.get(
-          `${API_BASE_URL}/api/v1/auth/refresh-token`,
-          {
-            withCredentials: true,
-          },
-        );
+//       try {
+//         // Make sure to include credentials for refresh request
+//         const refreshResponse = await axios.get(
+//           `${API_BASE_URL}/api/v1/auth/refresh-token`,
+//           {
+//             withCredentials: true,
+//           },
+//         );
 
-        // Update the original request with new token
-        originalRequest.headers[
-          'Authorization'
-        ] = `Bearer ${refreshResponse.data.accessToken}`;
+//         // Update the original request with new token
+//         originalRequest.headers[
+//           'Authorization'
+//         ] = `Bearer ${refreshResponse.data.accessToken}`;
 
-        // Retry the original request
-        return apiInstance(originalRequest);
-      } catch (refreshError) {
-        // Handle refresh token failure (redirect to login, etc.)
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
-    }
+//         // Retry the original request
+//         return apiInstance(originalRequest);
+//       } catch (refreshError) {
+//         // Handle refresh token failure (redirect to login, etc.)
+//         window.location.href = '/login';
+//         return Promise.reject(refreshError);
+//       }
+//     }
 
-    return Promise.reject(error);
-  },
-);
+//     return Promise.reject(error);
+//   },
+// );
 
 export default apiInstance;
