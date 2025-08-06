@@ -1267,9 +1267,13 @@ export const getProfileCompletion = async (req, res) => {
   try {
     const { _id: studentId } = req.user;
 
+    console.log(studentId);
+
     const student = await Student.findById(studentId).select(
       'fullName phone profileImage jobRole resumeUrl education experience skills projects jobPreferences coverLetter',
     );
+
+    console.log(student);
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });

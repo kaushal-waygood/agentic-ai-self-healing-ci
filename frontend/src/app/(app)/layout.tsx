@@ -14,6 +14,7 @@ import { AppHeader } from '@/components/layout/app-header';
 import { Footer } from '@/components/layout/footer';
 import { mockUserProfile } from '@/lib/data/user';
 import { Loader2 } from 'lucide-react';
+import ProtectedRoute from '@/components/protected/ProtectedRoute';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isVerified, setIsVerified] = useState(false);
@@ -32,7 +33,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset className="flex flex-col min-h-screen">
         <AppHeader />
         <ScrollArea className="flex-1">
-          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+          <main className="p-4 sm:p-6 lg:p-8">
+            <ProtectedRoute>{children}</ProtectedRoute>
+          </main>
         </ScrollArea>
         <Footer />
       </SidebarInset>

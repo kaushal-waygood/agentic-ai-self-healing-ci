@@ -1,4 +1,3 @@
-/** @format */
 'use client';
 
 import Link from 'next/link';
@@ -13,7 +12,6 @@ import {
 } from '../ui/card';
 import { Building, MailCheck, Rocket, UserPlus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -26,21 +24,13 @@ import {
 } from '../ui/form';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Input } from '../ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
 import { Button } from '../ui/button';
-import axios from 'axios';
 import apiInstance from '@/services/api';
-import { toast } from '@/hooks/use-toast';
 import { errorToast, successToast } from '@/utils/toasts';
 import { GoogleSignInButton } from './GoogleSingupButton';
+import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
 
-// 1. Update the schema to include the optional referral field
 const signupFormSchema = z
   .object({
     accountType: z.enum(['individual', 'institution'], {
@@ -83,6 +73,8 @@ const SignupForm = () => {
   const [verificationCode, setVerificationCode] = useState('');
   const [storedEmail, setStoredEmail] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  const router = useRouter();
 
   // Check localStorage for pending verification on component mount
   useEffect(() => {
@@ -154,7 +146,7 @@ const SignupForm = () => {
     if (!storedEmail) return;
 
     try {
-      await apiInstance.post('/user/resend-verification', {
+      await apiInstance.post('/user/resend-otp', {
         email: storedEmail,
       });
       successToast('Verification code has been resent to your email.');
@@ -222,6 +214,13 @@ const SignupForm = () => {
       </Card>
     );
   }
+
+  useEffect(() => {
+    const token = Cookies.get('accessToken');
+    if (token) {
+      router.push('/dashboard');
+    }
+  }, [router]);
 
   return (
     <Card className="w-full max-w-md shadow-xl">

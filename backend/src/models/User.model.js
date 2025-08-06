@@ -58,6 +58,12 @@ const userSchema = new Schema(
     otp: {
       type: String,
     },
+    passwordResetToken: {
+      type: String,
+    },
+    passwordResetExpires: {
+      type: Date,
+    },
     otpExpires: {
       type: Date,
     },

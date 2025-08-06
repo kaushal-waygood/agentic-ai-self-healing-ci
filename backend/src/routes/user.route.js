@@ -10,6 +10,9 @@ import {
   changePassword,
   verifyEmail,
   firebaseAuth,
+  resendOtp,
+  forgotPassword,
+  resetPassword,
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 import { Job } from '../models/jobs.model.js'; // Import Application model
@@ -136,5 +139,8 @@ router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, getUserProfile);
 router.get('/refresh-token', authMiddleware, refreshAccessToken);
 router.patch('/me/password/change', authMiddleware, changePassword);
+router.post('/resend-otp', authMiddleware, resendOtp);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 export default router;

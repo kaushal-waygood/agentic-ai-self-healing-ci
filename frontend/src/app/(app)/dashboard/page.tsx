@@ -79,7 +79,6 @@ export default function DashboardPage() {
     const fetchStats = async () => {
       try {
         const response = await apiInstance.get('/students/jobs/stats');
-        console.log(response.data);
         setStats(response.data.data);
       } catch (error) {}
     };
@@ -323,7 +322,7 @@ export default function DashboardPage() {
           description="Points for career-building actions"
         />
         <StatCard
-          title="Cover Letters"
+          title="Cover Letters Prepared"
           value={stats.coverLettersGenerated}
           icon={Bot}
           description="Agents preparing drafts"
