@@ -110,6 +110,14 @@ const jobPreferenceSchema = new Schema({
   },
 });
 
+const tokenSchema = new Schema({
+  access_token: String,
+  refresh_token: String,
+  scope: String,
+  token_type: String,
+  expiry_date: Number,
+});
+
 const studentSchema = new Schema(
   {
     fullName: {
@@ -123,6 +131,10 @@ const studentSchema = new Schema(
       unique: true,
       lowercase: true,
       trim: true,
+    },
+
+    token: {
+      type: tokenSchema,
     },
 
     // Basic Info
@@ -191,14 +203,9 @@ const studentSchema = new Schema(
 
     skills: [
       {
-        skillId: { type: String, unique: true, index: true },
-        skill: {
-          type: String,
-        },
-        level: {
-          type: String,
-          enum: ['BEGINNER', 'INTERMEDIATE', 'EXPERT'],
-        },
+        skillId: { type: String, index: true }, // Remove unique: true
+        skill: { type: String },
+        level: { type: String, enum: ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] },
       },
     ],
 
@@ -308,7 +315,5 @@ const studentSchema = new Schema(
   },
   { timestamps: true },
 );
-
-studentSchema.index({ 'skills.skillId': 1 }, { unique: false });
 
 export const Student = model('Student', studentSchema);

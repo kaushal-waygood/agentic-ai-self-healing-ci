@@ -15,121 +15,83 @@ import {
   resetPassword,
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
-import { Job } from '../models/jobs.model.js'; // Import Application model
-import { User } from '../models/User.model.js'; // Import User model
 import { google } from 'googleapis';
-import { sendApplicationEmail } from '../utils/sendApplicationEmail.js';
-// import { authMiddlewares } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
-// OAuth2 Client for Google API
-// const oauth2Client = new google.auth.OAuth2(
-//   '584491493872-d7rbt5f23i4va2eu8r2s3m3kjdhiv4as.apps.googleusercontent.com',
-//   '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',
-//   'http://localhost:3001/api/user/google/callback',
-// );
+const SCOPES = [
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/gmail.send',
+];
 
-// router.post('/google', authMiddlewares, async (req, res) => {
-//   try {
-//     const { code } = req.body;
+// Google OAuth2 setup
+const oauth2Client = new google.auth.OAuth2(
+  '584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com',
+  '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',
+  'http://localhost:8080/api/v1/user/oauth2callback',
+);
 
-//     // Verify all required parameters exist
-//     if (
-//       !code ||
-//       !process.env.GOOGLE_CLIENT_ID ||
-//       !process.env.GOOGLE_CLIENT_SECRET
-//     ) {
-//       throw new Error('Missing required OAuth parameters');
-//     }
+// Start the OAuth flow
+router.get('/auth/google', (req, res) => {
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES,
+    prompt: 'consent',
+  });
+  res.redirect(authUrl);
+});
 
-//     // Create fresh OAuth2 client for each request
-//     const oauth2Client = new google.auth.OAuth2(
-//       process.env.GOOGLE_CLIENT_ID,
-//       process.env.GOOGLE_CLIENT_SECRET,
-//       process.env.GOOGLE_REDIRECT_URI,
-//     );
+// Gmail Send Email Helper
+const sendTestEmail = async (auth) => {
+  const gmail = google.gmail({ version: 'v1', auth });
 
-//     // Get tokens with all parameters explicitly passed
-//     const { tokens } = await oauth2Client.getToken({
-//       code,
-//       redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-//       client_id: process.env.GOOGLE_CLIENT_ID,
-//       client_secret: process.env.GOOGLE_CLIENT_SECRET,
-//     });
+  const rawMessage = [
+    'From: "Me" <me>',
+    'To: thesiddiqui7@gmail.com',
+    'Subject: Gmail API Test ✅',
+    '',
+    'Hello, this is a test email sent using the Gmail API via OAuth2.',
+  ].join('\n');
 
-//     // Store tokens and respond
-//     await User.findOneAndUpdate(
-//       { email: req.user.email },
-//       { googleRefreshToken: tokens.refresh_token },
-//       { upsert: true },
-//     );
+  const encodedMessage = Buffer.from(rawMessage)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 
-//     res.json({
-//       message: 'Google authentication successful',
-//       accessToken: tokens.access_token,
-//     });
-//   } catch (error) {
-//     console.error('Complete OAuth error:', {
-//       timestamp: new Date().toISOString(),
-//       error: error.message,
-//       request: {
-//         code: req.body.code ? 'received' : 'missing',
-//         client_id: process.env.GOOGLE_CLIENT_ID ? 'configured' : 'missing',
-//         client_secret: process.env.GOOGLE_CLIENT_SECRET
-//           ? 'configured'
-//           : 'missing',
-//         redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-//       },
-//       response: error.response?.data,
-//     });
-//     res.status(500).json({
-//       error: 'Authentication failed',
-//       details: error.response?.data || error.message,
-//     });
-//   }
-// });
+  await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: {
+      raw: encodedMessage,
+    },
+  });
+};
 
-// // Apply for a job
-// router.post('/apply', async (req, res) => {
-//   const { recruiterEmail, jobTitle, coverLetter, jobId } = req.body;
-//   console.log(req.body);
-//   const studentEmail = req.body.email; // Get email from authenticated user
+// Handle the redirect URI
+router.get('/oauth2callback', async (req, res) => {
+  const code = req.query.code;
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
 
-//   try {
-//     const application = new Job({
-//       studentEmail,
-//       recruiterEmail,
-//       jobTitle,
-//       coverLetter,
-//       status: 'pending',
-//     });
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    const profile = await gmail.users.getProfile({ userId: 'me' });
 
-//     console.log(application);
-//     await application.save();
+    // Send the test email
+    await sendTestEmail(oauth2Client);
 
-//     // Send email
-//     await sendApplicationEmail(studentEmail, recruiterEmail, {
-//       jobTitle,
-//       coverLetter,
-//     });
-
-//     // Update application status
-//     application.status = 'sent';
-//     await application.save();
-
-//     res.json({ message: 'Application sent successfully' });
-//   } catch (error) {
-//     console.error('Error sending application:', error);
-//     await Application.findOneAndUpdate(
-//       { studentEmail, jobTitle, status: 'pending' },
-//       { status: 'failed' },
-//     );
-//     res.status(500).json({ error: 'Failed to send application' });
-//   }
-// });
-
-// Existing routes
+    res.redirect(
+      `http://localhost:3000/settings?email=${profile.data.emailAddress}`,
+    );
+  } catch (err) {
+    console.error('Gmail Error:', err);
+    res
+      .status(500)
+      .send(
+        `<h3>❌ Authentication or Email Failed.</h3><pre>${err.message}</pre>`,
+      );
+  }
+});
 
 router.post('/google/auth', firebaseAuth);
 router.post('/signup', signUpUser);
