@@ -34,7 +34,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <AppHeader />
         <ScrollArea className="flex-1">
           <main className="p-4 sm:p-6 lg:p-8">
-            <ProtectedRoute>{children}</ProtectedRoute>
+            {/* <ProtectedRoute>{children}</ProtectedRoute> */}
+            {children}
           </main>
         </ScrollArea>
         <Footer />

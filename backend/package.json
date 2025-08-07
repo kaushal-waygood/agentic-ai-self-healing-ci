@@ -5,19 +5,32 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:debug": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --runInBand"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-react": "^7.27.1",
+    "@types/jest": "^30.0.0",
+    "@types/supertest": "^6.0.3",
+    "babel-jest": "^30.0.5",
+    "jest": "^30.0.5",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.1",
     "typescript": "^5.8.3"
   },
   "dependencies": {
     "@google/genai": "^1.10.0",
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.10.0",
+    "base64url": "^3.0.1",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
@@ -42,5 +55,17 @@
     "slugify": "^1.6.6",
     "tesseract.js": "^6.0.1",
     "uuid": "^11.1.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!your-esm-module)/"
+    ],
+    "setupFilesAfterEnv": [
+      "./jest.setup.js"
+    ]
   }
 }

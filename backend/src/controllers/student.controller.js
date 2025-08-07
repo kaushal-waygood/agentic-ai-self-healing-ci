@@ -14,13 +14,18 @@ import {
   extractQualificationsFromDescription,
   extractResponsibilitiesFromDescription,
 } from '../utils/exprienceExtractor.js';
+import { google } from 'googleapis';
+import pkg from 'base64url';
+const { encode } = pkg;
+import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
+// import { createAttachment } from '../utils/generatePdfFromHtml.js';
+import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
 // Get student details
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
 
   try {
-    // Get the user
     const user = await User.findById(_id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -32,23 +37,28 @@ export const studentDetails = async (req, res) => {
         .json({ message: 'Only students can create student profile' });
     }
 
-    const existingStudent = await Student.findOne({ _id: user._id });
+    // Check if student exists using the user's _id
+    const existingStudent = await Student.findById(_id);
     if (existingStudent) {
       return res.status(200).json({ studentDetails: existingStudent });
     }
 
-    // Create new student profile
+    // Create new student profile with empty skills array
     const studentDetails = await Student.create({
       _id: user._id,
       fullName: user.fullName,
       email: user.email,
       jobRole: user.jobRole,
+      skills: [], // Explicitly set empty array
     });
 
     return res.status(201).json({ studentDetails });
   } catch (error) {
     console.error('Error creating student details:', error);
-    return res.status(500).json({ message: 'Internal server error', error });
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error.message, // Send only error message in production
+    });
   }
 };
 
@@ -1364,290 +1374,6 @@ export const getProfileCompletion = async (req, res) => {
   }
 };
 
-// export const getRecommendedJobs = async (req, res) => {
-//   try {
-//     const studentId = req.user._id;
-//     const { page = 1, limit = 10 } = req.query;
-
-//     // Get student preferences
-//     const student = await Student.findById(studentId).select('jobPreferences');
-//     if (!student) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Student not found',
-//       });
-//     }
-
-//     const preferences = student.jobPreferences;
-
-//     // Build the filter based on preferences
-//     const filter = { isActive: true };
-
-//     // Location filters
-//     if (preferences.isRemote) {
-//       filter.isRemote = true;
-//     } else {
-//       if (
-//         preferences.preferedCountries &&
-//         preferences.preferedCountries.length > 0
-//       ) {
-//         filter.country = {
-//           $in: preferences.preferedCountries.map((c) => new RegExp(c, 'i')),
-//         };
-//       }
-//       if (preferences.preferedCities && preferences.preferedCities.length > 0) {
-//         filter['location.city'] = {
-//           $in: preferences.preferedCities.map((c) => new RegExp(c, 'i')),
-//         };
-//       }
-//     }
-
-//     // Job type filters
-//     if (
-//       preferences.preferedJobTypes &&
-//       preferences.preferedJobTypes.length > 0
-//     ) {
-//       filter.jobTypes = { $in: preferences.preferedJobTypes };
-//     }
-
-//     // Job title filters
-//     if (
-//       preferences.preferedJobTitles &&
-//       preferences.preferedJobTitles.length > 0
-//     ) {
-//       filter.$or = preferences.preferedJobTitles.map((title) => ({
-//         title: { $regex: title, $options: 'i' },
-//       }));
-//     }
-
-//     // Salary filter
-//     if (preferences.preferedSalary && preferences.preferedSalary.min) {
-//       // Convert to yearly if needed for comparison
-//       const minSalary = convertSalaryToYearly(
-//         preferences.preferedSalary.min,
-//         preferences.preferedSalary.period,
-//       );
-
-//       filter['salary.min'] = { $gte: minSalary };
-//     }
-
-//     // Experience level filter
-//     if (preferences.preferedExperienceLevel) {
-//       let experienceValue;
-//       switch (preferences.preferedExperienceLevel) {
-//         case 'ENTRY_LEVEL':
-//           experienceValue = 0;
-//           break;
-//         case 'MID_LEVEL':
-//           experienceValue = 3;
-//           break;
-//         case 'SENIOR':
-//           experienceValue = 5;
-//           break;
-//         default:
-//           experienceValue = 0;
-//       }
-//       filter.experience = { $lte: experienceValue };
-//     }
-
-//     // Company size filter
-//     if (
-//       preferences.preferedCompanySizes &&
-//       preferences.preferedCompanySizes.length > 0
-//     ) {
-//       filter['company.size'] = { $in: preferences.preferedCompanySizes };
-//     }
-
-//     // Must-have skills filter
-//     if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
-//       filter.$and = preferences.mustHaveSkills.map((skill) => ({
-//         $or: [
-//           { qualifications: { $regex: skill.skill, $options: 'i' } },
-//           { description: { $regex: skill.skill, $options: 'i' } },
-//           { tags: { $regex: skill.skill, $options: 'i' } },
-//         ],
-//       }));
-//     }
-
-//     // Visa sponsorship filter
-//     if (preferences.visaSponsorshipRequired) {
-//       filter.visaSponsorshipAvailable = true;
-//     }
-
-//     const skip = (parseInt(page) - 1) * parseInt(limit);
-
-//     const [jobs, total] = await Promise.all([
-//       Job.find(filter)
-//         .sort({ createdAt: -1 })
-//         .skip(skip)
-//         .limit(parseInt(limit)),
-//       Job.countDocuments(filter),
-//     ]);
-
-//     // Calculate match score for each job
-//     const jobsWithScores = jobs.map((job) => ({
-//       ...job.toObject(),
-//       matchScore: calculateMatchScore(job, preferences),
-//     }));
-
-//     // Sort by match score
-//     jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
-
-//     res.status(200).json({
-//       success: true,
-//       jobs: jobsWithScores,
-//       pagination: {
-//         total,
-//         page: parseInt(page),
-//         limit: parseInt(limit),
-//         totalPages: Math.ceil(total / limit),
-//       },
-//     });
-//   } catch (error) {
-//     console.error('Error fetching recommended jobs:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error',
-//       error: error.message,
-//     });
-//   }
-// };
-
-// // Helper function to convert salary to yearly for comparison
-// function convertSalaryToYearly(amount, period) {
-//   switch (period) {
-//     case 'HOUR':
-//       return amount * 40 * 52; // 40 hours/week * 52 weeks
-//     case 'DAY':
-//       return amount * 5 * 52; // 5 days/week * 52 weeks
-//     case 'WEEK':
-//       return amount * 52;
-//     case 'MONTH':
-//       return amount * 12;
-//     case 'YEAR':
-//     default:
-//       return amount;
-//   }
-// }
-
-// // Helper function to calculate match score (0-100)
-// function calculateMatchScore(job, preferences) {
-//   let score = 0;
-//   const totalPossible = 100;
-//   let points = 0;
-
-//   // Location match (20 points)
-//   if (preferences.isRemote && job.isRemote) {
-//     points += 20;
-//   } else if (
-//     preferences.preferedCountries &&
-//     preferences.preferedCountries.length > 0
-//   ) {
-//     if (
-//       preferences.preferedCountries.some((c) =>
-//         job.country.toLowerCase().includes(c.toLowerCase()),
-//       )
-//     ) {
-//       points += 10;
-//       if (preferences.preferedCities && preferences.preferedCities.length > 0) {
-//         if (
-//           preferences.preferedCities.some((c) =>
-//             job.location.city.toLowerCase().includes(c.toLowerCase()),
-//           )
-//         ) {
-//           points += 10;
-//         }
-//       }
-//     }
-//   }
-
-//   // Job type match (15 points)
-//   if (preferences.preferedJobTypes && job.jobTypes) {
-//     const matchingTypes = job.jobTypes.filter((type) =>
-//       preferences.preferedJobTypes.includes(type),
-//     );
-//     if (matchingTypes.length > 0) {
-//       points += 15;
-//     }
-//   }
-
-//   // Title match (15 points)
-//   if (
-//     preferences.preferedJobTitles &&
-//     preferences.preferedJobTitles.length > 0
-//   ) {
-//     if (
-//       preferences.preferedJobTitles.some((title) =>
-//         job.title.toLowerCase().includes(title.toLowerCase()),
-//       )
-//     ) {
-//       points += 15;
-//     }
-//   }
-
-//   // Salary match (15 points)
-//   if (preferences.preferedSalary && job.salary) {
-//     const prefMinYearly = convertSalaryToYearly(
-//       preferences.preferedSalary.min,
-//       preferences.preferedSalary.period,
-//     );
-//     const jobMinYearly = convertSalaryToYearly(
-//       job.salary.min || 0,
-//       job.salary.period || 'YEAR',
-//     );
-
-//     if (jobMinYearly >= prefMinYearly) {
-//       points += 15;
-//     } else if (jobMinYearly >= prefMinYearly * 0.8) {
-//       points += 10;
-//     } else if (jobMinYearly >= prefMinYearly * 0.6) {
-//       points += 5;
-//     }
-//   }
-
-//   // Skills match (20 points)
-//   if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
-//     const jobText = `${job.description} ${job.qualifications.join(
-//       ' ',
-//     )} ${job.tags.join(' ')}`.toLowerCase();
-//     const matchedSkills = preferences.mustHaveSkills.filter((skill) =>
-//       jobText.includes(skill.skill.toLowerCase()),
-//     );
-//     points += (matchedSkills.length / preferences.mustHaveSkills.length) * 20;
-//   }
-
-//   // Experience match (10 points)
-//   if (preferences.preferedExperienceLevel) {
-//     let prefExpLevel;
-//     switch (preferences.preferedExperienceLevel) {
-//       case 'ENTRY_LEVEL':
-//         prefExpLevel = 0;
-//         break;
-//       case 'MID_LEVEL':
-//         prefExpLevel = 3;
-//         break;
-//       case 'SENIOR':
-//         prefExpLevel = 5;
-//         break;
-//       default:
-//         prefExpLevel = 0;
-//     }
-
-//     if (job.experience <= prefExpLevel) {
-//       points += 10;
-//     } else if (job.experience <= prefExpLevel + 2) {
-//       points += 5;
-//     }
-//   }
-
-//   // Visa sponsorship (5 points)
-//   if (preferences.visaSponsorshipRequired && job.visaSponsorshipAvailable) {
-//     points += 5;
-//   }
-
-//   return Math.min(Math.round((points / totalPossible) * 100), 100);
-// }
-
 export const getRecommendedJobs = async (req, res) => {
   try {
     const studentId = req.user._id;
@@ -2072,3 +1798,84 @@ function calculateMatchScore(job, preferences) {
 
   return Math.min(Math.round((points / totalPossible) * 100), 100);
 }
+
+export const sendJobApplicationViaEmail = async (req, res) => {
+  const {
+    senderEmail,
+    recieverEmail,
+    htmlResume,
+    htmlCoverLetter,
+    subject,
+    bodyHtml,
+  } = req.body;
+
+  try {
+    const user = await User.findOne({ email: senderEmail }).select('tokens');
+    if (!user || !user.tokens) {
+      return res.status(404).send('User not found or not authorized');
+    }
+
+    const oauth2Client = new google.auth.OAuth2();
+    oauth2Client.setCredentials(user.tokens);
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+    // Generate PDFs
+    const resumePdf = await generatePdfFromHtml(htmlResume);
+    const coverLetterPdf = await generatePdfFromHtml(htmlCoverLetter);
+
+    const resumeBase64 = resumePdf.toString('base64');
+    const coverLetterBase64 = coverLetterPdf.toString('base64');
+
+    // Compose raw email message
+    const messageParts = [
+      `From: <${senderEmail}>`,
+      `To: <${recieverEmail}>`,
+      `Subject: ${subject || 'Job Application'}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/mixed; boundary="boundary123"`,
+      ``,
+      `--boundary123`,
+      `Content-Type: text/html; charset="UTF-8"`,
+      `Content-Transfer-Encoding: 7bit`,
+      ``,
+      bodyHtml || 'Hi, please find attached my resume and cover letter.',
+      ``,
+      ...createAttachment('Resume.pdf', 'application/pdf', resumeBase64),
+      ...createAttachment(
+        'CoverLetter.pdf',
+        'application/pdf',
+        coverLetterBase64,
+      ),
+      `--boundary123--`,
+    ];
+
+    const rawMessage = messageParts.join('\r\n');
+    const encodedMessage = Buffer.from(rawMessage)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: encodedMessage },
+    });
+
+    res.status(200).json({ message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('❌ Error sending email:', error);
+    res.status(500).send(`<pre>${error.message}</pre>`);
+  }
+};
+
+const createAttachment = (filename, mimeType, base64Data) => {
+  return [
+    `--boundary123`,
+    `Content-Type: ${mimeType}; name="${filename}"`,
+    `Content-Disposition: attachment; filename="${filename}"`,
+    `Content-Transfer-Encoding: base64`,
+    ``,
+    base64Data,
+    ``,
+  ];
+};

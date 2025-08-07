@@ -38,3 +38,23 @@ export const changePassword = async (payload: {
   const response = await apiInstance.patch('/user/me/password/change', payload);
   return response;
 };
+
+export const sendEmailPermit = async (payload: {
+  email: String;
+  recieverEmail: 'thesiddiqui7@gmail.com';
+  resume: String;
+  coverLetter: String;
+  jobTitle: String;
+  emailDraft: String;
+}) => {
+  console.log('payload', payload);
+  const response = await apiInstance.post('/user/send-email', {
+    senderEmail: payload.email,
+    recieverEmail: payload.recieverEmail,
+    subject: payload.jobTitle,
+    bodyHtml: payload.emailDraft,
+    htmlResume: payload.resume,
+    htmlCoverLetter: payload.coverLetter,
+  });
+  return response;
+};

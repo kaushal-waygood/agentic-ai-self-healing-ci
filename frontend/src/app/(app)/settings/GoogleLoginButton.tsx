@@ -4,7 +4,7 @@ import React from 'react';
 const GoogleLoginButton = () => {
   const handleLogin = () => {
     // 🔥 Direct browser redirect (NOT fetch)
-    window.location.href = 'http://localhost:5000/auth/google';
+    window.location.href = 'http://localhost:8080/api/v1/user/auth/google';
   };
 
   return (

@@ -80,6 +80,7 @@ import { useDispatch } from 'react-redux';
 import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import apiInstance from '@/services/api';
+import { sendEmailPermit } from '@/services/api/auth';
 
 // Types for Wizard State
 type WizardStep =
@@ -741,12 +742,6 @@ export function ApplicationWizardClient() {
   const handleSaveAndFinish = () => {
     if (!currentApplication || !jobContext) return;
 
-    console.log('currentApplication', currentApplication);
-    console.log('jobContext', jobContext);
-    console.log('refinedCv', refinedCv);
-    console.log('tailoredCl', tailoredCl);
-    console.log('emailDraft', emailDraft);
-
     toast({
       title: 'Application Saved!',
       description: "You can find it in your 'My Applications' list.",
@@ -778,6 +773,32 @@ export function ApplicationWizardClient() {
     toast({
       title: 'New Application Started',
       description: 'You can now create another tailored application.',
+    });
+  };
+
+  const handleSendEmail = () => {
+    const response = apiInstance.post('/user/send-email', {
+      senderEmail: student?.email,
+      recieverEmail: 'thesiddiqui7@gmail.com',
+      subject: jobContext?.title,
+      bodyHtml: emailDraft,
+      htmlResume: refinedCv,
+      htmlCoverLetter: tailoredCl,
+    });
+
+    // const respones = sendEmailPermit({
+    //   email: user?.email,
+    //   recieverEmail: 'thesiddiqui7@gmail.com',
+    //   resume: refinedCv,
+    //   coverLetter: tailoredCl,
+    //   jobTitle: jobContext?.title,
+    //   emailDraft: emailDraft,
+    // });
+
+    console.log(response);
+    toast({
+      title: 'Email Sent',
+      description: 'An email has been sent to your linked account.',
     });
   };
 
@@ -1790,6 +1811,9 @@ export function ApplicationWizardClient() {
           Back
         </Button>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleSendEmail}>
+            Send Email
+          </Button>
           <Button variant="outline" onClick={handleStartNew}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Start New Application

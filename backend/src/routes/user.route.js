@@ -15,121 +15,101 @@ import {
   resetPassword,
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
-import { Job } from '../models/jobs.model.js'; // Import Application model
-import { User } from '../models/User.model.js'; // Import User model
 import { google } from 'googleapis';
-import { sendApplicationEmail } from '../utils/sendApplicationEmail.js';
-// import { authMiddlewares } from '../middlewares/authMiddleware.js';
+import { User } from '../models/User.model.js';
+import { sendJobApplicationViaEmail } from '../controllers/student.controller.js';
 
 const router = Router();
 
-// OAuth2 Client for Google API
-// const oauth2Client = new google.auth.OAuth2(
-//   '584491493872-d7rbt5f23i4va2eu8r2s3m3kjdhiv4as.apps.googleusercontent.com',
-//   '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',
-//   'http://localhost:3001/api/user/google/callback',
-// );
+const SCOPES = [
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/gmail.send',
+];
 
-// router.post('/google', authMiddlewares, async (req, res) => {
-//   try {
-//     const { code } = req.body;
+// Google OAuth2 setup
+const oauth2Client = new google.auth.OAuth2(
+  '584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com',
+  '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',
+  'http://localhost:8080/api/v1/user/oauth2callback',
+);
 
-//     // Verify all required parameters exist
-//     if (
-//       !code ||
-//       !process.env.GOOGLE_CLIENT_ID ||
-//       !process.env.GOOGLE_CLIENT_SECRET
-//     ) {
-//       throw new Error('Missing required OAuth parameters');
-//     }
+// Start the OAuth flow
+router.get('/auth/google', (req, res) => {
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: SCOPES,
+  });
+  res.redirect(url);
+});
 
-//     // Create fresh OAuth2 client for each request
-//     const oauth2Client = new google.auth.OAuth2(
-//       process.env.GOOGLE_CLIENT_ID,
-//       process.env.GOOGLE_CLIENT_SECRET,
-//       process.env.GOOGLE_REDIRECT_URI,
-//     );
+// Gmail Send Email Helper
+const sendTestEmail = async (auth) => {
+  const gmail = google.gmail({ version: 'v1', auth });
 
-//     // Get tokens with all parameters explicitly passed
-//     const { tokens } = await oauth2Client.getToken({
-//       code,
-//       redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-//       client_id: process.env.GOOGLE_CLIENT_ID,
-//       client_secret: process.env.GOOGLE_CLIENT_SECRET,
-//     });
+  const rawMessage = [
+    'From: "Me" <me>',
+    'To: thesiddiqui7@gmail.com',
+    'Subject: Gmail API Test ✅',
+    '',
+    'Hello, this is a test email sent using the Gmail API via OAuth2.',
+  ].join('\n');
 
-//     // Store tokens and respond
-//     await User.findOneAndUpdate(
-//       { email: req.user.email },
-//       { googleRefreshToken: tokens.refresh_token },
-//       { upsert: true },
-//     );
+  const encodedMessage = Buffer.from(rawMessage)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 
-//     res.json({
-//       message: 'Google authentication successful',
-//       accessToken: tokens.access_token,
-//     });
-//   } catch (error) {
-//     console.error('Complete OAuth error:', {
-//       timestamp: new Date().toISOString(),
-//       error: error.message,
-//       request: {
-//         code: req.body.code ? 'received' : 'missing',
-//         client_id: process.env.GOOGLE_CLIENT_ID ? 'configured' : 'missing',
-//         client_secret: process.env.GOOGLE_CLIENT_SECRET
-//           ? 'configured'
-//           : 'missing',
-//         redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-//       },
-//       response: error.response?.data,
-//     });
-//     res.status(500).json({
-//       error: 'Authentication failed',
-//       details: error.response?.data || error.message,
-//     });
-//   }
-// });
+  await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: {
+      raw: encodedMessage,
+    },
+  });
+};
 
-// // Apply for a job
-// router.post('/apply', async (req, res) => {
-//   const { recruiterEmail, jobTitle, coverLetter, jobId } = req.body;
-//   console.log(req.body);
-//   const studentEmail = req.body.email; // Get email from authenticated user
+router.post('/send-email', sendJobApplicationViaEmail);
 
-//   try {
-//     const application = new Job({
-//       studentEmail,
-//       recruiterEmail,
-//       jobTitle,
-//       coverLetter,
-//       status: 'pending',
-//     });
+router.get('/oauth2callback', async (req, res) => {
+  const code = req.query.code;
 
-//     console.log(application);
-//     await application.save();
+  try {
+    // 1. Exchange code for tokens
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
 
-//     // Send email
-//     await sendApplicationEmail(studentEmail, recruiterEmail, {
-//       jobTitle,
-//       coverLetter,
-//     });
+    // 2. Get user profile from Google
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    const profile = await gmail.users.getProfile({ userId: 'me' });
+    const userEmail = profile.data.emailAddress;
 
-//     // Update application status
-//     application.status = 'sent';
-//     await application.save();
+    // 3. Check if user exists in your database
+    const existingUser = await User.findOne({ email: userEmail });
 
-//     res.json({ message: 'Application sent successfully' });
-//   } catch (error) {
-//     console.error('Error sending application:', error);
-//     await Application.findOneAndUpdate(
-//       { studentEmail, jobTitle, status: 'pending' },
-//       { status: 'failed' },
-//     );
-//     res.status(500).json({ error: 'Failed to send application' });
-//   }
-// });
+    if (!existingUser) {
+      // User doesn't exist - handle accordingly
+      return res.redirect('http://localhost:3000/login?error=user_not_found');
+    }
 
-// Existing routes
+    // 4. Update only the email (and tokens) for existing user
+    await User.updateOne(
+      { _id: existingUser._id }, // Use the user's ID for precise update
+      {
+        $set: {
+          email: userEmail, // Update email
+          tokens: tokens, // Update tokens
+        },
+      },
+    );
+
+    // 5. Redirect to frontend
+    res.redirect(`http://localhost:3000/settings?email=${userEmail}`);
+  } catch (err) {
+    console.error('OAuth error:', err);
+    res.redirect('http://localhost:3000/login?error=auth_failed');
+  }
+});
 
 router.post('/google/auth', firebaseAuth);
 router.post('/signup', signUpUser);

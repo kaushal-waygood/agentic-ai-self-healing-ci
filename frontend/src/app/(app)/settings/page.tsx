@@ -45,6 +45,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { changePasswordRequest } from '@/redux/reducers/authReducer';
 import GoogleLoginButton from './GoogleLoginButton';
+import apiInstance from '@/services/api';
+import { sendEmailPermit } from '@/services/api/auth';
 
 export default function SettingsPage() {
   const [notifications, setNotifications] = React.useState({
@@ -93,6 +95,21 @@ export default function SettingsPage() {
     toast({
       title: 'Account Linked',
       description: 'Your Google account has been successfully linked.',
+    });
+  };
+  console.log(user);
+
+  const handleSendEmail = () => {
+    console.log('user?.email');
+    const respones = sendEmailPermit({
+      email: user?.email,
+      recieverEmail: 'thesiddiqui7@gmail.com',
+    });
+
+    console.log(respones);
+    toast({
+      title: 'Email Sent',
+      description: 'An email has been sent to your linked account.',
     });
   };
 
@@ -250,6 +267,9 @@ export default function SettingsPage() {
             </div>
             <Separator />
             <div>
+              <Button variant="outline" onClick={handleSendEmail}>
+                Send Email
+              </Button>
               <h4 className="font-medium mb-1">Linked Email Accounts</h4>
               {isLinked ? (
                 <div className="flex items-center gap-4">
