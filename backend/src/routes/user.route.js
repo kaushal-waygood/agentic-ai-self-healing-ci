@@ -16,6 +16,8 @@ import {
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 import { google } from 'googleapis';
+import { User } from '../models/User.model.js';
+import { sendJobApplicationViaEmail } from '../controllers/student.controller.js';
 
 const router = Router();
 
@@ -33,12 +35,12 @@ const oauth2Client = new google.auth.OAuth2(
 
 // Start the OAuth flow
 router.get('/auth/google', (req, res) => {
-  const authUrl = oauth2Client.generateAuthUrl({
+  const url = oauth2Client.generateAuthUrl({
     access_type: 'offline',
-    scope: SCOPES,
     prompt: 'consent',
+    scope: SCOPES,
   });
-  res.redirect(authUrl);
+  res.redirect(url);
 });
 
 // Gmail Send Email Helper
@@ -67,29 +69,45 @@ const sendTestEmail = async (auth) => {
   });
 };
 
-// Handle the redirect URI
+router.post('/send-email', sendJobApplicationViaEmail);
+
 router.get('/oauth2callback', async (req, res) => {
   const code = req.query.code;
+
   try {
+    // 1. Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
+    // 2. Get user profile from Google
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
     const profile = await gmail.users.getProfile({ userId: 'me' });
+    const userEmail = profile.data.emailAddress;
 
-    // Send the test email
-    await sendTestEmail(oauth2Client);
+    // 3. Check if user exists in your database
+    const existingUser = await User.findOne({ email: userEmail });
 
-    res.redirect(
-      `http://localhost:3000/settings?email=${profile.data.emailAddress}`,
+    if (!existingUser) {
+      // User doesn't exist - handle accordingly
+      return res.redirect('http://localhost:3000/login?error=user_not_found');
+    }
+
+    // 4. Update only the email (and tokens) for existing user
+    await User.updateOne(
+      { _id: existingUser._id }, // Use the user's ID for precise update
+      {
+        $set: {
+          email: userEmail, // Update email
+          tokens: tokens, // Update tokens
+        },
+      },
     );
+
+    // 5. Redirect to frontend
+    res.redirect(`http://localhost:3000/settings?email=${userEmail}`);
   } catch (err) {
-    console.error('Gmail Error:', err);
-    res
-      .status(500)
-      .send(
-        `<h3>❌ Authentication or Email Failed.</h3><pre>${err.message}</pre>`,
-      );
+    console.error('OAuth error:', err);
+    res.redirect('http://localhost:3000/login?error=auth_failed');
   }
 });
 

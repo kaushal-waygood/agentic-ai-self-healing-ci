@@ -15,6 +15,13 @@ const userSchema = new Schema(
       enum: ['firebase', 'local'],
       default: 'local',
     },
+    tokens: {
+      access_token: String,
+      refresh_token: String,
+      scope: String,
+      token_type: String,
+      expiry_date: Number,
+    },
     avatar: {
       type: String,
     },
@@ -93,13 +100,14 @@ const userSchema = new Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
 // Password hashing middleware
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password') || this.authMethod !== 'local') return next();
-  
+  if (!this.isModified('password') || this.authMethod !== 'local')
+    return next();
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -121,7 +129,7 @@ userSchema.methods.generateAccessToken = function () {
     config.accessTokenSecret,
     {
       expiresIn: config.accessTokenExpiry || '7d',
-    }
+    },
   );
 };
 
@@ -135,21 +143,21 @@ userSchema.methods.generateRefreshToken = function () {
     config.refreshTokenSecret,
     {
       expiresIn: config.refreshTokenExpiry || '30d',
-    }
+    },
   );
 };
 
 // Password reset token generation
 userSchema.methods.generatePasswordResetToken = function () {
   const resetToken = crypto.randomBytes(20).toString('hex');
-  
+
   this.passwordResetToken = crypto
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-    
+
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-  
+
   return resetToken;
 };
 

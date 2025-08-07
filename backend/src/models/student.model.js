@@ -203,7 +203,11 @@ const studentSchema = new Schema(
 
     skills: [
       {
-        skillId: { type: String, index: true }, // Remove unique: true
+        skillId: {
+          type: String,
+          index: true, // Keep index but remove unique
+          sparse: true, // This prevents indexing null values
+        },
         skill: { type: String },
         level: { type: String, enum: ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] },
       },
@@ -315,5 +319,7 @@ const studentSchema = new Schema(
   },
   { timestamps: true },
 );
+
+studentSchema.index({ 'skills.skillId': 1 }, { unique: false });
 
 export const Student = model('Student', studentSchema);
