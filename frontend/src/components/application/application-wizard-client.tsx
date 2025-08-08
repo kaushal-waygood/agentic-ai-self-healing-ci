@@ -786,15 +786,6 @@ export function ApplicationWizardClient() {
       htmlCoverLetter: tailoredCl,
     });
 
-    // const respones = sendEmailPermit({
-    //   email: user?.email,
-    //   recieverEmail: 'thesiddiqui7@gmail.com',
-    //   resume: refinedCv,
-    //   coverLetter: tailoredCl,
-    //   jobTitle: jobContext?.title,
-    //   emailDraft: emailDraft,
-    // });
-
     console.log(response);
     toast({
       title: 'Email Sent',

@@ -108,15 +108,13 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     personalInfoForm,
     careerDetailsForm,
     narrativesForm,
-    jobSearchForm,
-    educationForm,
+
     handleDeleteExp,
 
     //handlers
     handlePersonalInfoSubmit,
     handleCareerDetailsSubmit,
     handleNarrativesSubmit,
-    // handleJobSearchSubmit,
     handleDeleteSkills,
     onCancel,
     deleteEducation,

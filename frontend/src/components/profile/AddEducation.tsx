@@ -113,12 +113,6 @@ export const AddEducation = ({ onCancel, isEdit, data, index }: closeProps) => {
     },
   });
 
-  console.log('data', data);
-
-  const { educations, loading, error } = useSelector(
-    (state: RootState) => state.student,
-  );
-
   const dispatch = useDispatch();
 
   const { handleSubmit, control, reset } = form;
