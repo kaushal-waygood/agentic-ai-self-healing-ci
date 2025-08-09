@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import admin from '../config/firebase.js';
 import { transporter } from '../utils/transporter.js';
 import bcrypt from 'bcryptjs';
+import redisClient from '../config/redis.js';
 
 export const firebaseAuth = async (req, res) => {
   try {
@@ -601,17 +602,28 @@ export const signout = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const { _id: userId } = req.user;
+    const cacheKey = `user:profile:${userId}`;
 
-    const user = await User.findById(userId).populate(
-      'organization',
-      '-__v -apiKey',
-    );
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    const user = await redisClient.withCache(cacheKey, 3600, async () => {
+      const userData = await User.findById(userId).populate(
+        'organization',
+        '-__v -apiKey',
+      );
+
+      if (!userData) {
+        throw new Error('User not found');
+      }
+
+      return userData;
+    });
+
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({
+      message: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
   }
 };
 

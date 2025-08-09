@@ -10,6 +10,7 @@ import {
   extractQualificationsFromDescription,
   extractResponsibilitiesFromDescription,
 } from '../utils/exprienceExtractor.js';
+import redisClient from '../config/redis.js';
 
 export const postManualJob = async (req, res) => {
   const { _id } = req.user;
@@ -67,8 +68,11 @@ export const postManualJob = async (req, res) => {
       workPeriods,
     };
 
-    const newJob = new Job({ ...jobData });
-    await newJob.save();
+    const newJob = await Job.create(jobData);
+
+    // Invalidate relevant caches
+    await redisClient.invalidateAllJobsCache();
+    await redisClient.del('jobs:employmentTypes');
 
     res.status(201).json({
       success: true,
@@ -260,6 +264,10 @@ export const fetchAndSaveRapidJobsUseLater = async (req, res) => {
       }
     }
 
+    if (savedCount > 0) {
+      await redisClient.invalidateAllJobsCache();
+    }
+
     res.status(200).json({
       success: true,
       message: 'Jobs processed successfully',
@@ -371,6 +379,11 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
       }
     }
 
+    // Invalidate relevant caches
+    if (savedCount > 0) {
+      await redisClient.invalidateAllJobsCache();
+    }
+
     res.status(200).json({
       success: true,
       message: `Jobs fetched and saved successfully`,
@@ -397,149 +410,193 @@ export const getAllJobs = async (req, res) => {
       limit = 10,
     } = req.query;
 
-    const filter = {};
+    const cacheKey = `jobs:filtered:${query}:${country}:${city}:${datePosted}:${employmentType}:${experience}:${page}:${limit}`;
 
-    // General query search (searches title and description)
-    if (query) {
-      filter.$or = [
-        { title: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } },
-        { company: { $regex: query, $options: 'i' } },
-      ];
-    }
+    const result = await redisClient.withCache(cacheKey, 1800, async () => {
+      // Added TTL parameter (1800 seconds = 30 minutes)
+      const filter = {};
 
-    // Location filters
-    if (country) {
-      filter.country = { $regex: country, $options: 'i' };
-    }
-
-    if (city) {
-      filter['location.city'] = { $regex: city, $options: 'i' };
-    }
-
-    // Date posted filter
-    if (datePosted) {
-      const dateNow = new Date();
-      let dateFilter;
-
-      switch (datePosted) {
-        case '1': // Last 24 hours
-          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 1));
-          break;
-        case '3': // Last 3 days
-          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 3));
-          break;
-        case '7': // Last week
-          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 7));
-          break;
-        case '30': // Last month
-          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 30));
-          break;
-        default:
-          break;
+      // General query search (searches title and description)
+      if (query) {
+        filter.$or = [
+          { title: { $regex: query, $options: 'i' } },
+          { description: { $regex: query, $options: 'i' } },
+          { company: { $regex: query, $options: 'i' } },
+        ];
       }
 
-      if (dateFilter) {
-        filter.createdAt = { $gte: dateFilter };
+      // Location filters
+      if (country) {
+        filter.country = { $regex: country, $options: 'i' };
       }
-    }
 
-    // Employment type filter (can be multiple)
-    if (employmentType) {
-      const employmentTypes = employmentType.split(',');
-      filter.jobTypes = { $in: employmentTypes };
-    }
+      if (city) {
+        filter['location.city'] = { $regex: city, $options: 'i' };
+      }
 
-    // Experience level filter (can be multiple)
-    if (experience) {
-      filter.experience = { $gte: experience };
-    }
+      // Date posted filter
+      if (datePosted) {
+        const dateNow = new Date();
+        let dateFilter;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+        switch (datePosted) {
+          case '1': // Last 24 hours
+            dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 1));
+            break;
+          case '3': // Last 3 days
+            dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 3));
+            break;
+          case '7': // Last week
+            dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 7));
+            break;
+          case '30': // Last month
+            dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 30));
+            break;
+          default:
+            break;
+        }
 
-    const [jobs, total] = await Promise.all([
-      Job.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit)),
-      Job.countDocuments(filter),
-    ]);
+        if (dateFilter) {
+          filter.createdAt = { $gte: dateFilter };
+        }
+      }
+
+      // Employment type filter (can be multiple)
+      if (employmentType) {
+        const employmentTypes = employmentType.split(',');
+        filter.jobTypes = { $in: employmentTypes };
+      }
+
+      // Experience level filter (can be multiple)
+      if (experience) {
+        filter.experience = { $gte: experience };
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const [jobs, total] = await Promise.all([
+        Job.find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(parseInt(limit)),
+        Job.countDocuments(filter),
+      ]);
+
+      return {
+        jobs,
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    });
 
     res.status(200).json({
       success: true,
-      jobs,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit),
-      },
+      jobs: result.jobs,
+      pagination: result.pagination,
     });
   } catch (error) {
     console.error('Error fetching filtered jobs:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
 
 export const getMannualyJobs = async (req, res) => {
   try {
-    const jobs = await Job.find({ origin: 'HOSTED' }).sort({ createdAt: -1 });
+    const cacheKey = 'jobs:manual';
+    const jobs = await redisClient.withCache(cacheKey, 3600, async () => {
+      return await Job.find({ origin: 'HOSTED' }).sort({ createdAt: -1 });
+    });
+
     res.status(200).json({ success: true, jobs });
   } catch (error) {
-    console.error('Error fetching jobs:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error('Error fetching manual jobs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
 export const getRapidJobs = async (req, res) => {
   try {
-    const jobs = await Job.find({ origin: 'EXTERNAL' });
+    const cacheKey = 'jobs:rapid';
+    const jobs = await redisClient.withCache(cacheKey, 3600, async () => {
+      return await Job.find({ origin: 'EXTERNAL' }).sort({ createdAt: -1 });
+    });
+
     res.status(200).json({ success: true, jobs });
   } catch (error) {
-    console.error('Error fetching jobs:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error('Error fetching rapid jobs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
 export const getSingleJobDetail = async (req, res) => {
-  const { jobId: _id } = req.params;
+  const { jobId } = req.params;
   try {
-    const job = await Job.findById(_id).select('-queries');
+    const cacheKey = `job:${jobId}`;
+    const job = await redisClient.withCache(cacheKey, 3600, async () => {
+      return await Job.findById(jobId).select('-queries');
+    });
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
     res.status(200).json({ success: true, job });
   } catch (error) {
     console.error('Error fetching job:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
 export const getJobDetailBySlug = async (req, res) => {
   const { slug } = req.query;
-
   try {
-    const singleJob = await Job.findOne({ slug });
-    res.status(200).json({
-      singleJob,
+    const cacheKey = `job:slug:${slug}`;
+    const singleJob = await redisClient.withCache(cacheKey, 3600, async () => {
+      return await Job.findOne({ slug });
     });
+
+    if (!singleJob) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    res.status(200).json({ singleJob });
   } catch (error) {
-    console.error('Error', error);
+    console.error('Error fetching job by slug:', error);
     res.status(500).json({
       message: 'Server Error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
 
 export const getAllEmploymentTypes = async (req, res) => {
   try {
-    const result = await Job.distinct('jobTypes');
+    const cacheKey = 'jobs:employmentTypes';
+    const jobTypes = await redisClient.withCache(cacheKey, 86400, async () => {
+      return await Job.distinct('jobTypes');
+    });
 
     res.status(200).json({
       success: true,
-      jobTypes: result,
+      jobTypes: jobTypes || [],
     });
   } catch (error) {
     console.error('Error fetching employment types:', error);
@@ -552,10 +609,13 @@ export const getAllEmploymentTypes = async (req, res) => {
 
 export const getAllExperiences = async (req, res) => {
   try {
-    let experiences = await Job.distinct('experience');
-    experiences = experiences.map((exp) => (exp === null ? 0 : exp));
+    const cacheKey = 'jobs:experiences';
+    let experiences = await redisClient.withCache(cacheKey, 86400, async () => {
+      const exp = await Job.distinct('experience');
+      return exp.map((e) => (e === null ? 0 : e));
+    });
 
-    if (experiences.length === 0) {
+    if (!experiences || experiences.length === 0) {
       experiences = [0];
     }
 
@@ -580,12 +640,21 @@ export const toggleJobStatus = async (req, res) => {
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
+
     job.isActive = !job.isActive;
     await job.save();
+
+    // Invalidate relevant caches
+    await redisClient.invalidateJobCache(jobId);
+    await redisClient.invalidateAllJobsCache();
+
     res.status(200).json({ message: 'Job status updated successfully' });
   } catch (error) {
     console.error('Error toggling job status:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
@@ -596,33 +665,53 @@ export const jobViewsCount = async (req, res) => {
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
+
     job.views++;
     await job.save();
+
+    // Invalidate cache for this job
+    await redisClient.invalidateJobCache(jobId);
+
     res.status(200).json({ message: 'Job views count updated successfully' });
   } catch (error) {
     console.error('Error updating job views count:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
 export const jobApplications = async (req, res) => {
   const { jobId } = req.params;
   try {
-    const job = await Job.findById(jobId).populate('applications');
+    const cacheKey = `job:${jobId}:applications`;
+    const job = await redisClient.withCache(cacheKey, 600, async () => {
+      return await Job.findById(jobId).populate('applications');
+    });
+
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
+
     res.status(200).json({ job });
   } catch (error) {
     console.error('Error fetching job applications:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
 export const getSingleJobApplication = async (req, res) => {
   const { jobId } = req.params;
   try {
-    const job = await Job.findById(jobId);
+    const cacheKey = `job:${jobId}:application`;
+    const job = await redisClient.withCache(cacheKey, 600, async () => {
+      return await Job.findById(jobId);
+    });
+
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
@@ -630,6 +719,9 @@ export const getSingleJobApplication = async (req, res) => {
     res.status(200).json({ job });
   } catch (error) {
     console.error('Error fetching job application:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };

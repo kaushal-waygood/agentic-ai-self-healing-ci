@@ -270,6 +270,10 @@ const studentSchema = new Schema(
       ref: 'Organization',
     },
 
+    settings: {
+      autopilotEnabled: { type: Boolean, default: false },
+    },
+
     // Metadata
     isActive: {
       type: Boolean,

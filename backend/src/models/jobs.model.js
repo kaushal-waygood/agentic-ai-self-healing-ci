@@ -23,7 +23,7 @@ const jobSchema = new Schema(
 
     applyMethod: {
       method: { type: String, enum: ['EMAIL', 'URL'] },
-      emails: [String],
+      email: { type: String },
       url: { type: String },
     },
 

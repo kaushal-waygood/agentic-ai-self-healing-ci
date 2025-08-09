@@ -13,6 +13,7 @@ import organizationRoutes from './routes/organization.route.js';
 import jobRoutes from './routes/job.route.js';
 import studentRoutes from './routes/student.route.js';
 import aiRoutes from './routes/ai.route.js';
+import { startCronJobs } from './config/cron-config.js';
 
 const app = express();
 
@@ -61,6 +62,8 @@ app.use(
 // 4. Other Middleware
 app.use(cookieParser());
 app.use(morgan('dev'));
+
+startCronJobs();
 
 // 5. Route Middleware
 app.use('/api/v1/user', userRoutes);
