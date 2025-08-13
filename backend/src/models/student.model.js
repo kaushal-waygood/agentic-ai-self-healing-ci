@@ -324,6 +324,4 @@ const studentSchema = new Schema(
   { timestamps: true },
 );
 
-studentSchema.index({ 'skills.skillId': 1 }, { unique: false });
-
 export const Student = model('Student', studentSchema);
