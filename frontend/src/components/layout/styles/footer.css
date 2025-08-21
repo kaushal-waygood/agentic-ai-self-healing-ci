@@ -1,0 +1,47 @@
+/* Custom keyframe animation for the floating effect */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(1deg);
+  }
+}
+
+/* Class to apply the float animation */
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+/* Class for the footer's grid pattern overlay */
+.footer-grid-pattern {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.1) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Enhanced glassmorphism effect.
+  Note: Tailwind's backdrop-blur-xl is usually sufficient,
+  but this was in the original <style jsx> block.
+*/
+.backdrop-blur-xl {
+  backdrop-filter: blur(20px);
+}
+
+/* Custom scrollbar for the page (applied globally) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+  border-radius: 4px;
+}

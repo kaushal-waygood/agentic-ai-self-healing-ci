@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  FileText,
   LayoutDashboard,
   Send,
   Bot,
@@ -20,6 +19,8 @@ import {
   MailWarning,
   Bell,
   Award,
+  FileText,
+  Filter,
 } from 'lucide-react';
 import Link from 'next/link';
 import { mockApplications } from '@/lib/data/applications';
@@ -34,28 +35,30 @@ import {
   mockSubscriptionPlans,
   SubscriptionPlan,
 } from '@/lib/data/subscriptions';
-import { BarChart, Bar, XAxis, YAxis } from 'recharts';
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart';
+import { type ChartConfig } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { getProfileRequest } from '@/redux/reducers/authReducer';
+import apiInstance from '@/services/api';
 
+// Import new design components
 import {
   StatCard,
   ToolkitButton,
-  UsageTracker,
-  ChecklistItem,
   ProfileReadinessCard,
-  UsageAndLimitsCard,
-} from './UtilsComp';
-import { useDispatch } from 'react-redux';
-import { getProfileRequest } from '@/redux/reducers/authReducer';
-import { useSelector } from 'react-redux';
-import apiInstance from '@/services/api';
+  ActionItemCard,
+} from './DashboardDesign'; // Update this path if you place the file elsewhere
+
+// Recharts imports from the new design code
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -63,31 +66,6 @@ export default function DashboardPage() {
   const [effectivePlan, setEffectivePlan] = useState<
     SubscriptionPlan | undefined
   >(undefined);
-
-  const dispatch = useDispatch();
-  const { user: authUser } = useSelector((state: any) => state.auth);
-
-  useEffect(() => {
-    dispatch(getProfileRequest());
-
-    const role = authUser?.role;
-    setUser(authUser);
-  }, [dispatch]);
-
-  // --- Start of the moved useEffect hook ---
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await apiInstance.get('/students/jobs/stats');
-        setStats(response.data.data);
-      } catch (error) {}
-    };
-
-    fetchStats();
-  }, []);
-  // --- End of the moved useEffect hook ---
-
-  // State for calculated values to prevent hydration errors
   const [stats, setStats] = useState({
     applicationsSent: 0,
     cvsGenerated: 0,
@@ -101,14 +79,73 @@ export default function DashboardPage() {
     checks: ProfileReadinessChecks | null;
   }>({ score: null, checks: null });
 
-  useEffect(() => {
-    // This effect runs only on the client, after the initial render, preventing hydration mismatches.
-    const currentUser = mockUserProfile;
+  const dispatch = useDispatch();
+  const { user: authUser } = useSelector((state: any) => state.auth);
 
-    // --- Simulate background tasks to generate notifications ---
+  useEffect(() => {
+    dispatch(getProfileRequest());
+    setUser(authUser);
+  }, [dispatch]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await apiInstance.get('/students/jobs/stats');
+        setStats((prev) => ({
+          applicationsSent: 0,
+          cvsGenerated: 0,
+          coverLettersGenerated: 0,
+          activeAgents: 0,
+          careerXp: 0,
+          ...response.data.data,
+        }));
+
+        // Calculate application status for the chart
+        const statusCounts = response.data.data.applicationStats.reduce(
+          (acc, stat) => {
+            acc[stat.status] = stat.count;
+            return acc;
+          },
+          {},
+        );
+
+        const chartData = [
+          {
+            status: 'Sent',
+            applications: statusCounts['Sent'] || 0,
+            color: '#8b5cf6',
+          },
+          {
+            status: 'Reviewed',
+            applications: statusCounts['Reviewed'] || 0,
+            color: '#3b82f6',
+          },
+          {
+            status: 'Interview',
+            applications: statusCounts['Interview'] || 0,
+            color: '#06b6d4',
+          },
+          {
+            status: 'Rejected',
+            applications: statusCounts['Rejected'] || 0,
+            color: '#ef4444',
+          },
+        ];
+        setStatusChartData(chartData);
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Use a separate effect for client-side calculations and mock data
+  useEffect(() => {
+    const currentUser = mockUserProfile;
     const existingIds = new Set(currentUser.actionItems.map((item) => item.id));
 
-    // 1. Check for stale applications
+    // Simulate background tasks to generate notifications
     mockApplications.forEach((app) => {
       const appId = `stale-${app.id}`;
       if (!existingIds.has(appId) && app.status === 'Sent') {
@@ -129,7 +166,6 @@ export default function DashboardPage() {
       }
     });
 
-    // 2. Check for Career XP milestones
     const xp = currentUser.careerXp || 0;
     const xpMilestoneId = 'xp-milestone-500';
     if (!existingIds.has(xpMilestoneId) && xp >= 500) {
@@ -144,7 +180,6 @@ export default function DashboardPage() {
       });
     }
 
-    // 3. Simulate finding new matching jobs
     const newJobsId = 'new-jobs-rec';
     if (!existingIds.has(newJobsId)) {
       currentUser.actionItems.unshift({
@@ -160,7 +195,6 @@ export default function DashboardPage() {
 
     setActionItems(currentUser.actionItems || []);
 
-    // Determine the user's effective plan
     const org = currentUser.organizationId
       ? mockOrganizations.find((o) => o.id === currentUser.organizationId)
       : null;
@@ -168,7 +202,6 @@ export default function DashboardPage() {
     if (currentUser.role === 'OrgMember' && org) {
       basePlanId = org.planId;
     }
-
     let finalPlanId = basePlanId;
     if (
       currentUser.personalPlanId &&
@@ -180,26 +213,12 @@ export default function DashboardPage() {
       mockSubscriptionPlans.find((p) => p.id === finalPlanId) || undefined,
     );
 
-    const statusCounts = mockApplications.reduce((acc, app) => {
-      acc[app.status] = (acc[app.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    setStatusChartData(
-      Object.keys(statusCounts).map((status) => ({
-        status: status,
-        applications: statusCounts[status],
-      })),
-    );
-
-    // Calculate profile readiness score on the client
     let score = 0;
     let checks = {
       core: false,
       experience: false,
       education: false,
       skills: false,
-      narratives: false,
     };
     if (currentUser.fullName && currentUser.jobPreference) {
       score += 25;
@@ -217,15 +236,6 @@ export default function DashboardPage() {
       score += 15;
       checks.skills = true;
     }
-    if (
-      currentUser.narratives &&
-      currentUser.narratives.challenges &&
-      currentUser.narratives.achievements &&
-      currentUser.narratives.appreciation
-    ) {
-      score += 20;
-      checks.narratives = true;
-    }
     setProfileReadiness({ score: Math.min(score, 100), checks });
   }, []);
 
@@ -237,142 +247,144 @@ export default function DashboardPage() {
     }
   };
 
-  const chartConfig = {
-    applications: {
-      label: 'Applications',
-      color: 'hsl(var(--primary))',
-    },
-  } satisfies ChartConfig;
-
   return (
-    <>
-      <PageHeader
-        title="Dashboard"
-        description="Welcome back! Here's an overview of your job application progress."
-        icon={LayoutDashboard}
-      />
-
-      <div className="grid gap-8 lg:grid-cols-3 mb-8">
-        <div className="lg:col-span-2 space-y-8">
-          <ProfileReadinessCard
-            score={profileReadiness.score}
-            checks={profileReadiness.checks}
-          />
-          <UsageAndLimitsCard user={user} plan={effectivePlan} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <LayoutDashboard className="w-8 h-8 mr-3 text-purple-600" />
+              Job Search Dashboard
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Welcome back! Here's your job application progress.
+            </p>
+          </div>
         </div>
-        <div className="space-y-8">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-headline">Core AI Toolkit</CardTitle>
-              <CardDescription>
-                Your essential tools for a smarter job search.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4">
-              <ToolkitButton
-                href="/search-jobs"
-                icon={Search}
-                title="Search & Apply"
-                description="Find your next job opportunity."
+
+        <div className="grid gap-8 lg:grid-cols-3 mb-8">
+          <div className="lg:col-span-2 space-y-8">
+            <ProfileReadinessCard
+              score={profileReadiness.score}
+              checks={profileReadiness.checks}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <StatCard
+                title="Applications Tracked"
+                value={stats.applicationsSent.toString()}
+                icon={Send}
+                description="Total applications in pipeline"
+                color="purple"
+                actionText="View Applications"
+                actionLink="/applications"
               />
-              <ToolkitButton
-                href="/apply"
-                icon={Wand2}
-                title="Application Wizard"
-                description="Tailor docs for a specific job."
+              <StatCard
+                title="Saved CVs"
+                value={stats.cvsGenerated.toString()}
+                icon={FileText}
+                description="Total CVs generated"
+                color="blue"
+                actionText="Manage CVs"
+                actionLink="/cv-generator"
               />
-              <ToolkitButton
-                href="/cv-generator"
-                icon={FilePlus2}
-                title="AI CV Generator"
-                description="Craft a standout CV from scratch."
+              <StatCard
+                title="Career XP"
+                value={stats.careerXp}
+                icon={Award}
+                description="Points for career-building actions"
+                color="cyan"
               />
-              <ToolkitButton
-                href="/ai-auto-apply"
+              <StatCard
+                title="Cover Letters Prepared"
+                value={stats.coverLettersGenerated}
                 icon={Bot}
-                title="AI Auto-Apply Agents"
-                description="Automate your job search."
+                description="Documents prepared with AI"
+                color="green"
+                actionText="Configure Agents"
+                actionLink="/ai-auto-apply"
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Core AI Toolkit
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Your essential tools for a smarter job search.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <ToolkitButton
+                  href="/search-jobs"
+                  icon={Search}
+                  title="Search & Apply"
+                  description="Find your next job opportunity."
+                  color="purple"
+                />
+                <ToolkitButton
+                  href="/apply"
+                  icon={Wand2}
+                  title="Application Wizard"
+                  description="Tailor docs for a specific job."
+                  color="blue"
+                />
+                <ToolkitButton
+                  href="/cv-generator"
+                  icon={FilePlus2}
+                  title="AI CV Generator"
+                  description="Craft a standout CV from scratch."
+                  color="cyan"
+                />
+                <ToolkitButton
+                  href="/ai-auto-apply"
+                  icon={Bot}
+                  title="AI Auto-Apply Agents"
+                  description="Automate your job search."
+                  color="green"
+                />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard
-          title="Applications Tracked"
-          value={stats.applicationsSent.toString()}
-          icon={Send}
-          description="Total applications in pipeline"
-          actionLink="/applications"
-          actionText="View Applications"
-        />
-        <StatCard
-          title="Saved CVs"
-          value={stats.cvsGenerated.toString()}
-          icon={FileText}
-          description="Total CVs generated"
-          actionLink="/cv-generator"
-          actionText="Manage CVs"
-        />
-        <StatCard
-          title="Career XP"
-          value={stats.careerXp}
-          icon={Award}
-          description="Points for career-building actions"
-        />
-        <StatCard
-          title="Cover Letters Prepared"
-          value={stats.coverLettersGenerated}
-          icon={Bot}
-          description="Agents preparing drafts"
-          actionLink="/ai-auto-apply"
-          actionText="Configure Agents"
-        />
-      </div>
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Application Pipeline
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    Track your application progress
+                  </p>
+                </div>
+                <button className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  <Filter className="w-4 h-4" />
+                </button>
+              </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-8">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-headline">
-                Application Status Overview
-              </CardTitle>
-              <CardDescription>
-                A summary of your application pipeline.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
               {statusChartData.length > 0 ? (
-                <ChartContainer
-                  config={chartConfig}
-                  className="h-[250px] w-full"
-                >
-                  <BarChart
-                    data={statusChartData}
-                    layout="vertical"
-                    margin={{ left: 10 }}
-                  >
-                    <XAxis type="number" dataKey="applications" hide />
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={statusChartData} margin={{ left: 20 }}>
+                    <XAxis dataKey="status" axisLine={false} tickLine={false} />
                     <YAxis
-                      dataKey="status"
-                      type="category"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-                      width={110}
-                    />
-                    <ChartTooltip
-                      cursor={{ fill: 'hsl(var(--muted))' }}
-                      content={<ChartTooltipContent />}
-                    />
-                    <Bar
                       dataKey="applications"
-                      fill="var(--color-applications)"
-                      radius={4}
+                      axisLine={false}
+                      tickLine={false}
                     />
+                    <Bar dataKey="applications" radius={8}>
+                      {statusChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
                   </BarChart>
-                </ChartContainer>
+                </ResponsiveContainer>
               ) : (
                 <div className="flex flex-col items-center justify-center h-[250px] text-center text-muted-foreground border-2 border-dashed rounded-lg">
                   <p className="font-medium">No application data yet.</p>
@@ -389,62 +401,48 @@ export default function DashboardPage() {
                   </Button>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
 
-        <div className="space-y-8">
-          <Card className="shadow-sm" id="action-items">
-            <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2">
-                <MailWarning className="h-6 w-6 text-primary" />
-                Action Items & Notifications
-              </CardTitle>
-              <CardDescription>
-                AI-flagged tasks and important updates.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {actionItems.length > 0 ? (
-                <ul className="space-y-4">
-                  {actionItems.map((item) => (
-                    <li key={item.id}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          'block border-l-4 p-3 rounded-r-md hover:bg-muted/50',
-                          item.isRead
-                            ? 'border-transparent'
-                            : 'border-primary bg-primary/5',
-                        )}
-                        onClick={() => handleMarkAsRead(item.id)}
-                      >
-                        <p
-                          className={cn(
-                            'text-sm font-semibold',
-                            item.isRead && 'text-muted-foreground font-normal',
-                          )}
-                        >
-                          {item.summary}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(item.date).toLocaleString()}
-                        </p>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  <Bell className="h-8 w-8 mx-auto mb-2" />
-                  <p className="font-medium">You're all caught up!</p>
-                  <p className="text-sm">Important updates will appear here.</p>
+          <div className="space-y-8">
+            <div
+              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
+              id="action-items"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <MailWarning className="h-6 w-6 text-primary" />
+                    Action Items & Notifications
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    AI-flagged tasks and important updates.
+                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+              <div className="space-y-4">
+                {actionItems.length > 0 ? (
+                  actionItems.map((item) => (
+                    <ActionItemCard
+                      key={item.id}
+                      item={item}
+                      onMarkAsRead={handleMarkAsRead}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <Bell className="h-8 w-8 mx-auto mb-2" />
+                    <p className="font-medium">You're all caught up!</p>
+                    <p className="text-sm">
+                      Important updates will appear here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

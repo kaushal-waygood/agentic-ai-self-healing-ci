@@ -54,6 +54,9 @@ import {
   getStudentJobPreferenceRequest,
   getStudentJobPreferenceSuccess,
   getStudentJobPreferenceFailure,
+  getStudentResumeRequest,
+  getStudentResumeSuccess,
+  getStudentResumeFailure,
 } from '../reducers/studentReducer';
 
 import { call, put, takeLatest } from 'redux-saga/effects';
@@ -74,8 +77,10 @@ import {
   addProject,
   updateProject,
   removeProject,
+  getResumeDetailsByResume,
 } from '@/services/api/student';
 import { PayloadAction } from '@reduxjs/toolkit';
+import { act } from 'react';
 
 function* getStudentDetailsSaga() {
   try {
@@ -146,7 +151,6 @@ function* updateStudentExperienceSaga(action: PayloadAction<any>) {
     const response: AxiosResponse = yield call(
       updateExperience,
       action.payload.data,
-      action.payload.index,
     );
     yield put(updateStudentExperienceRequest(response.data));
   } catch (error: unknown | Error) {
@@ -238,6 +242,17 @@ function* getStudentJobPreferenceSaga() {
   }
 }
 
+function* getStudentResumeDetailsSaga(action: PayloadAction<any>) {
+  try {
+    const response: AxiosResponse = yield call(
+      getResumeDetailsByResume(action.payload),
+    );
+    yield put(getStudentResumeSuccess(response.data));
+  } catch (error: unknown | Error) {
+    yield put(getStudentResumeFailure((error as Error).message));
+  }
+}
+
 export function* studentWatcher() {
   yield takeLatest(getStudentDetailsRequest.type, getStudentDetailsSaga);
 
@@ -281,4 +296,6 @@ export function* studentWatcher() {
     getStudentJobPreferenceRequest.type,
     getStudentJobPreferenceSaga,
   );
+
+  yield takeLatest(getStudentResumeRequest.type, getStudentResumeDetailsSaga);
 }

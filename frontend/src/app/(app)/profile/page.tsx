@@ -10,7 +10,7 @@ export default function ProfilePage() {
         description="Manage your personal information, job preferences, and application materials."
         icon={UserCircle}
       />
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-full mx-auto">
         <ProfileForm />
       </div>
     </>

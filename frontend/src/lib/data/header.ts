@@ -1,4 +1,3 @@
-
 export interface HeaderNavItem {
   id: string;
   title: string;
@@ -8,29 +7,29 @@ export interface HeaderNavItem {
 
 const initialHeaderData: HeaderNavItem[] = [
   {
-    id: "search-jobs",
-    title: "Search Jobs",
-    href: "/search-jobs",
+    id: 'search-jobs',
+    title: 'Search Jobs',
+    href: '/search-jobs',
   },
   {
-    id: "my-applications",
-    title: "My Applications",
-    href: "/applications",
+    id: 'my-applications',
+    title: 'My Applications',
+    href: '/applications',
   },
   {
-    id: "ai-auto-apply",
-    title: "AI Auto Apply",
-    href: "/ai-auto-apply",
+    id: 'ai-auto-apply',
+    title: 'AI Auto Apply',
+    href: '/ai-auto-apply',
   },
   {
-    id: "pricing",
-    title: "Pricing",
-    href: "/subscriptions",
+    id: 'pricing',
+    title: 'Pricing',
+    href: '/subscriptions',
   },
   {
-    id: "contact",
-    title: "Contact",
-    href: "/support",
+    id: 'contact',
+    title: 'Contact',
+    href: '/support',
   },
 ];
 
@@ -41,7 +40,7 @@ declare global {
 
 export let mockHeaderData: HeaderNavItem[];
 
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === 'production') {
   mockHeaderData = initialHeaderData;
 } else {
   if (!globalThis.__mockHeaderData) {

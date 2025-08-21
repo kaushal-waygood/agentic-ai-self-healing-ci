@@ -1,146 +1,189 @@
+'use client';
+import { Button } from '@/components/ui/button';
+import { Menu, X, Search, Command } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
-"use client";
+export const Navigation = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Rocket, UserCircle, LogIn, Settings as SettingsIcon, ChevronDown, LogOut } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
-import { mockHeaderData } from "@/lib/data/header";
-import { mockUserProfile, initialUserProfile } from "@/lib/data/user"; 
-import { useState, useEffect } from "react";
+  const navItems = [
+    { name: 'Features', href: '#features' },
+    { name: 'How it Works', href: '#how-it-works' },
+    { name: 'Pricing', href: '#pricing' },
+    { name: 'Success Stories', href: '#testimonials' },
+  ];
 
-export function SiteHeader() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    // This effect runs on the client, so it correctly reflects the initial state
-    // and subsequent changes during the user's session.
-    setIsAuthenticated(!!mockUserProfile.email);
-    setIsClient(true);
-  }, []); // Re-checking auth state isn't strictly necessary here unless mockUserProfile can change without a re-render.
-  
-  return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
-        <Link href="/" className="flex items-center space-x-2">
-          <Rocket className="h-6 w-6 text-primary" />
-          <span className="font-bold inline-block">CareerPilot</span>
-        </Link>
-
-        <div className="flex items-center space-x-4">
-          <nav className="hidden md:flex gap-1">
-            {mockHeaderData.map((item) =>
-              item.children && item.children.length > 0 ? (
-                <DropdownMenu key={item.id}>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-1">
-                      {item.title}
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {item.children.map((child) => (
-                      <DropdownMenuItem key={child.id} asChild>
-                        <Link href={child.href || "#"}>{child.title}</Link>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button key={item.id} variant="ghost" asChild>
-                  <Link href={item.href || "#"}>{item.title}</Link>
-                </Button>
-              )
-            )}
-          </nav>
-          <div className="flex items-center space-x-2">
-            {isClient && (
-              <>
-                {isAuthenticated ? (
-                  <UserNav />
-                ) : (
-                  <Button asChild>
-                    <Link href="/login">
-                      <LogIn className="mr-2 h-4 w-4" /> Login / Sign Up
-                    </Link>
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function UserNav() {
-  const router = useRouter();
-  const { toast } = useToast();
-  const user = mockUserProfile;
-
-  const handleLogout = () => {
-    // Reset the mock user profile to its initial, logged-out state
-    Object.assign(mockUserProfile, {
-      ...initialUserProfile,
-    });
-
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    router.push('/login');
+  const handleSearchSubmit = (query) => {
+    if (query.trim()) {
+      console.log('Searching for:', query);
+      // Add your search logic here
+    }
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="https://placehold.co/100x100.png" alt={user.fullName} data-ai-hint="user avatar" />
-            <AvatarFallback>{user.fullName.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.fullName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
-            </p>
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/10 backdrop-blur-xl border-b border-white/20 shadow-lg">
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-cyan-500/5"></div>
+      <div className="relative container mx-auto px-6">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <div className="flex items-center">
+            <div className="relative">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent drop-shadow-sm">
+                ZobsAI
+              </h1>
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/20 to-cyan-600/20 rounded-lg blur opacity-30"></div>
+            </div>
           </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard">
-            <UserCircle className="mr-2 h-4 w-4" />
-            Dashboard
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/settings">
-            <SettingsIcon className="mr-2 h-4 w-4" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+
+          {/* Desktop Search Box */}
+          <div className="hidden lg:flex flex-1 max-w-md mx-8">
+            <div className="relative w-full group">
+              <div
+                className={`absolute inset-0 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-xl blur transition-all duration-300 ${
+                  isSearchFocused
+                    ? 'opacity-100 scale-105'
+                    : 'opacity-0 scale-100'
+                }`}
+              ></div>
+              <div className="relative flex items-center">
+                <Search className="absolute left-3 w-4 h-4 text-gray-400 transition-colors duration-200 group-hover:text-purple-500" />
+                <input
+                  type="text"
+                  placeholder="Search features, docs, help..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      console.log('Searching for:', searchQuery);
+                    }
+                  }}
+                  className="w-full pl-10 pr-12 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 hover:bg-white/15"
+                />
+                <div className="absolute right-3 flex items-center space-x-1">
+                  <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-gray-500 bg-white/20 rounded border border-white/30">
+                    <Command className="w-3 h-3" />
+                    <span>K</span>
+                  </kbd>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            {navItems.map((item) => (
+              <a
+                key={item.name}
+                href={item.href}
+                className="relative text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium group"
+              >
+                <span className="relative z-10">{item.name}</span>
+                <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-gradient-to-r from-purple-600 to-cyan-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+              </a>
+            ))}
+          </div>
+
+          {/* Desktop CTA */}
+          <div className="hidden md:flex items-center space-x-4">
+            <Link
+              href={'/login'}
+              className="hover:bg-white/20 backdrop-blur-sm transition-all duration-300 hover:shadow-lg"
+            >
+              Sign In
+            </Link>
+            <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm">
+              Start Free Trial
+            </Button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(!isOpen)}
+              className="hover:bg-white/20 backdrop-blur-sm transition-all duration-300 relative"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-lg opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+              {isOpen ? (
+                <X className="w-6 h-6 relative z-10" />
+              ) : (
+                <Menu className="w-6 h-6 relative z-10" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isOpen && (
+          <div className="md:hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-2xl border border-white/20"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-cyan-500/5 rounded-2xl"></div>
+            <div className="relative p-6 space-y-6">
+              {/* === Mobile Search is now inside the menu === */}
+              <div className="relative group">
+                <div
+                  className={`absolute inset-0 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-xl blur transition-all duration-300 ${
+                    isSearchFocused
+                      ? 'opacity-100 scale-105'
+                      : 'opacity-0 scale-100'
+                  }`}
+                ></div>
+                <div className="relative flex items-center">
+                  <Search className="absolute left-3 w-4 h-4 text-gray-400 transition-colors duration-200 group-hover:text-purple-500" />
+                  <input
+                    type="text"
+                    placeholder="Search features, docs, help..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchQuery.trim()) {
+                        console.log('Searching for:', searchQuery);
+                      }
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 hover:bg-white/15"
+                  />
+                </div>
+              </div>
+              {/* ============================================== */}
+              <div className="space-y-4">
+                {navItems.map((item, index) => (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    className="block text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium py-2 px-4 rounded-lg hover:bg-white/20 backdrop-blur-sm group"
+                    onClick={() => setIsOpen(false)}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <span className="relative">
+                      {item.name}
+                      <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-gradient-to-r from-purple-600 to-cyan-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                    </span>
+                  </a>
+                ))}
+              </div>
+              <div className="pt-4 border-t border-white/20 space-y-3">
+                <Button
+                  variant="ghost"
+                  className="w-full hover:bg-white/20 backdrop-blur-sm transition-all duration-300 hover:shadow-lg"
+                >
+                  Sign In
+                </Button>
+                <Button className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  Start Free Trial
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
   );
-}
+};

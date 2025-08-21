@@ -1,421 +1,412 @@
-'use client';
-
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import * as LucideIcons from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import {
   Bell,
   LogOut,
   UserCircle,
   Settings,
   Gem,
-  School,
   Star,
   ShieldCheck,
   Building,
   Zap,
   AlertTriangle,
+  Menu,
+  Home,
+  Search,
+  FileText,
+  Bot,
+  ChevronDown,
+  Sparkles,
+  Crown,
+  Shield,
+  Award,
 } from 'lucide-react';
+import Link from 'next/link';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import {
-  mockUserProfile,
-  UserProfile,
-  ActionItem,
-  planTierOrder,
-  mockOrganizations,
-  initialUserProfile,
-} from '@/lib/data/user';
-import { useToast } from '@/hooks/use-toast';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  mockSubscriptionPlans,
-  SubscriptionPlan,
-} from '@/lib/data/subscriptions';
-import { Label } from '../ui/label';
-import { Progress } from '../ui/progress';
-import { cn } from '@/lib/utils';
-import { siteConfig } from '@/config/site';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import apiInstance from '@/services/api';
-
-const iconMap = { ...LucideIcons, Zap, Star, Gem, ShieldCheck, Building };
-
-function UsageTracker({
-  label,
-  used,
-  limit,
-}: {
-  label: string;
-  used: number;
-  limit: number;
-}) {
-  if (limit === 0) return null; // Don't show features the plan doesn't have at all
-  const isUnlimited = limit === -1;
-  const percentage = !isUnlimited && limit > 0 ? (used / limit) * 100 : 0;
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between items-baseline">
-        <Label className="text-sm font-medium">{label}</Label>
-        <p className="text-sm text-muted-foreground">
-          {isUnlimited ? 'Unlimited' : `${used} / ${limit}`}
-        </p>
-      </div>
-      {!isUnlimited && <Progress value={percentage} className="h-2" />}
-    </div>
-  );
-}
-
-export function AppHeader() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { toast } = useToast();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [effectivePlan, setEffectivePlan] = useState<SubscriptionPlan | null>(
-    null,
-  );
+const AppHeader = () => {
   const [mounted, setMounted] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
+  const [currentPath, setCurrentPath] = useState('/dashboard');
+
+  // Mock data
+  const user = {
+    fullName: 'John Doe',
+    email: 'john.doe@example.com',
+    avatar: null,
+    usage: {
+      aiJobApply: 15,
+      aiCvGenerator: 8,
+      aiCoverLetterGenerator: 12,
+      applications: 25,
+    },
+    actionItems: [
+      {
+        id: '1',
+        type: 'application',
+        summary: 'Application for Senior Developer at TechCorp was viewed',
+        date: '2024-01-20T10:30:00Z',
+        isRead: false,
+        href: '/applications/1',
+      },
+      {
+        id: '2',
+        type: 'recommendation',
+        summary: 'New job matches found for your profile',
+        date: '2024-01-19T15:45:00Z',
+        isRead: false,
+        href: '/jobs',
+      },
+      {
+        id: '3',
+        type: 'reward',
+        summary: 'Congratulations! You earned the "Active Applicant" badge',
+        date: '2024-01-18T09:20:00Z',
+        isRead: true,
+        href: '/profile',
+      },
+    ],
+    scheduledPlanChange: false,
+  };
+
+  const effectivePlan = {
+    id: 'pro',
+    name: 'Pro',
+    icon: 'Star',
+    limits: {
+      aiJobApply: 50,
+      aiCvGenerator: 25,
+      aiCoverLetterGenerator: 30,
+      applicationLimit: 100,
+    },
+  };
+
+  const navItems = [
+    { title: 'Dashboard', href: '/dashboard', icon: Home },
+    { title: 'Search Jobs', href: '/jobs', icon: Search },
+    { title: 'My Applications', href: '/applications', icon: FileText },
+    { title: 'AI Auto Apply', href: '/auto-apply', icon: Bot },
+  ];
 
   useEffect(() => {
-    const currentUser = mockUserProfile;
-    setUser(currentUser);
-
-    // Determine the user's effective plan
-    const org = currentUser.organizationId
-      ? mockOrganizations.find((o) => o.id === currentUser.organizationId)
-      : null;
-    let basePlanId = currentUser.currentPlanId;
-    if (currentUser.role === 'OrgMember' && org) {
-      basePlanId = org.planId;
-    }
-
-    let finalPlanId = basePlanId;
-    if (
-      currentUser.personalPlanId &&
-      planTierOrder[currentUser.personalPlanId] > planTierOrder[basePlanId]
-    ) {
-      finalPlanId = currentUser.personalPlanId;
-    }
-    setEffectivePlan(
-      mockSubscriptionPlans.find((p) => p.id === finalPlanId) || null,
-    );
-
     setMounted(true);
   }, []);
 
-  const navItems = [
-    siteConfig.sidebarNav.find((i) => i.title === 'Dashboard'),
-    siteConfig.sidebarNav.find((i) => i.title === 'Search Jobs'),
-    siteConfig.sidebarNav.find((i) => i.title === 'My Applications'),
-    siteConfig.sidebarNav.find((i) => i.title === 'AI Auto Apply'),
-  ].filter(Boolean);
+  const unreadCount = user.actionItems.filter((item) => !item.isRead).length;
 
-  const handleLogout = async () => {
-    // Reset the mock user profile to a logged-out state
-    await apiInstance.get('/user/signout');
-    setUser(initialUserProfile);
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
-    router.push('/login');
-  };
-
-  const handleNotificationClick = (item: ActionItem) => {
-    if (!user) return;
-    const itemIndex = user.actionItems.findIndex((a) => a.id === item.id);
-    if (itemIndex > -1 && !user.actionItems[itemIndex].isRead) {
-      user.actionItems[itemIndex].isRead = true;
-      setUser({ ...user }); // Trigger re-render
-    }
-    router.push(item.href);
-  };
-
-  const unreadCount = user
-    ? user.actionItems.filter((i) => !i.isRead).length
-    : 0;
-
-  const getPlanIconColor = (planId?: string) => {
+  const getPlanIcon = (planId) => {
     switch (planId) {
-      case 'plus':
-      case 'enterprise_plus':
-        return 'text-primary';
       case 'pro':
-      case 'enterprise_pro':
-        return 'text-yellow-500';
+        return Star;
       case 'platinum':
-      case 'enterprise_platinum':
-        return 'text-purple-500';
+        return Crown;
+      case 'enterprise':
+        return Shield;
       default:
-        return 'text-muted-foreground';
+        return Gem;
     }
   };
 
-  const getNotificationIcon = (item: ActionItem) => {
-    const IconComponent = item.iconName
-      ? iconMap[item.iconName]
-      : LucideIcons.Info;
-    let iconColor = 'text-muted-foreground';
-    switch (item.type) {
-      case 'application':
-        iconColor = 'text-blue-500';
-        break;
-      case 'recommendation':
-        iconColor = 'text-green-500';
-        break;
-      case 'alert':
-        iconColor = 'text-yellow-500';
-        break;
-      case 'reward':
-        iconColor = 'text-purple-500';
-        break;
+  const getPlanColor = (planId) => {
+    switch (planId) {
+      case 'pro':
+        return 'from-yellow-400 to-yellow-600';
+      case 'platinum':
+        return 'from-purple-400 to-purple-600';
+      case 'enterprise':
+        return 'from-blue-400 to-blue-600';
+      default:
+        return 'from-slate-400 to-slate-600';
     }
-    return <IconComponent className={cn('h-5 w-5 mr-3 shrink-0', iconColor)} />;
+  };
+
+  const getNotificationColor = (type) => {
+    switch (type) {
+      case 'application':
+        return 'from-blue-400 to-blue-600';
+      case 'recommendation':
+        return 'from-green-400 to-green-600';
+      case 'alert':
+        return 'from-yellow-400 to-yellow-600';
+      case 'reward':
+        return 'from-purple-400 to-purple-600';
+      default:
+        return 'from-slate-400 to-slate-600';
+    }
+  };
+
+  const UsageTracker = ({ label, used, limit }) => {
+    const percentage = limit === -1 ? 0 : (used / limit) * 100;
+    const isUnlimited = limit === -1;
+
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium text-slate-700">{label}</span>
+          <span className="text-xs text-slate-500">
+            {isUnlimited ? 'Unlimited' : `${used} / ${limit}`}
+          </span>
+        </div>
+        {!isUnlimited && (
+          <div className="w-full bg-slate-200 rounded-full h-2">
+            <div
+              className="h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
-      <div className="md:hidden">
-        <SidebarTrigger />
-      </div>
+    <header className="sticky top-0 z-50 w-full  bg-white/95 backdrop-blur-md shadow-sm">
+      <div className="flex h-16 items-center justify-between px-6">
+        {/* Mobile menu button */}
+        <button className="md:hidden p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200">
+          <Menu className="w-5 h-5 text-slate-600" />
+        </button>
 
-      <div className="w-full flex-1 flex justify-end">
-        <nav className="hidden md:flex items-center gap-1">
-          {navItems.map(
-            (item) =>
-              item && (
-                <Button
-                  key={item.href}
-                  variant="ghost"
-                  asChild
-                  className={cn(
-                    'text-sm font-medium text-muted-foreground',
-                    pathname?.startsWith(item.href) && 'text-foreground',
-                  )}
-                >
-                  <Link href={item.href}>{item.title}</Link>
-                </Button>
-              ),
-          )}
-        </nav>
-      </div>
+        {/* Logo/Brand */}
+        <div className="flex items-center space-x-3"></div>
 
-      {mounted && user && effectivePlan && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9">
-              {(() => {
-                const Icon = effectivePlan.icon
-                  ? iconMap[effectivePlan.icon]
-                  : Gem;
-                return (
-                  <Icon
-                    className={cn(
-                      'h-5 w-5',
-                      getPlanIconColor(effectivePlan.id),
-                    )}
-                  />
-                );
-              })()}
-              <span className="sr-only">Subscription Status</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="end">
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                {(() => {
-                  const Icon = effectivePlan.icon
-                    ? iconMap[effectivePlan.icon]
-                    : Gem;
-                  return (
-                    <Icon
-                      className={cn(
-                        'h-5 w-5',
-                        getPlanIconColor(effectivePlan.id),
-                      )}
+        {/* Right side actions */}
+        <div className="flex items-center space-x-3">
+          {/* Plan Status */}
+          {mounted && (
+            <div className="relative">
+              <button
+                onClick={() => setIsPlanOpen(!isPlanOpen)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 transition-all duration-200 border border-yellow-300"
+              >
+                <Star className="w-4 h-4" />
+                <span className="text-sm font-medium hidden sm:inline">
+                  Pro
+                </span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+
+              {isPlanOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                  {/* Plan header */}
+                  <div className="p-6 bg-gradient-to-r from-yellow-400 to-yellow-600">
+                    <div className="flex items-center space-x-3 text-white">
+                      <Star className="w-6 h-6" />
+                      <div>
+                        <h3 className="font-bold text-lg">Pro Plan</h3>
+                        <p className="text-yellow-100 text-sm">
+                          Your current billing cycle usage
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Usage tracking */}
+                  <div className="p-6 space-y-4">
+                    <UsageTracker
+                      label="AI Applications"
+                      used={user.usage.aiJobApply}
+                      limit={effectivePlan.limits.aiJobApply}
                     />
-                  );
-                })()}
-                <h3 className="text-lg font-semibold font-headline">
-                  {effectivePlan.name} Plan
-                </h3>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Your usage for the current billing cycle.
-              </p>
-              <div className="space-y-4">
-                <UsageTracker
-                  label="AI Applications"
-                  used={user.usage.aiJobApply}
-                  limit={effectivePlan.limits.aiJobApply}
-                />
-                <UsageTracker
-                  label="AI CV Generations"
-                  used={user.usage.aiCvGenerator}
-                  limit={effectivePlan.limits.aiCvGenerator}
-                />
-                <UsageTracker
-                  label="AI Cover Letters"
-                  used={user.usage.aiCoverLetterGenerator}
-                  limit={effectivePlan.limits.aiCoverLetterGenerator}
-                />
-                <UsageTracker
-                  label="Tracked Applications"
-                  used={user.usage.applications}
-                  limit={effectivePlan.limits.applicationLimit}
-                />
-              </div>
+                    <UsageTracker
+                      label="AI CV Generations"
+                      used={user.usage.aiCvGenerator}
+                      limit={effectivePlan.limits.aiCvGenerator}
+                    />
+                    <UsageTracker
+                      label="AI Cover Letters"
+                      used={user.usage.aiCoverLetterGenerator}
+                      limit={effectivePlan.limits.aiCoverLetterGenerator}
+                    />
+                    <UsageTracker
+                      label="Tracked Applications"
+                      used={user.usage.applications}
+                      limit={effectivePlan.limits.applicationLimit}
+                    />
+                  </div>
+
+                  {/* Upgrade button */}
+                  <div className="p-4 border-t border-slate-100">
+                    <button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2">
+                      <Crown className="w-4 h-4" />
+                      <span>Upgrade Plan</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="p-4 border-t">
-              <Button className="w-full" asChild>
-                <Link href="/subscriptions">
-                  <Star className="mr-2 h-4 w-4" />
-                  Upgrade Plan
-                </Link>
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+          )}
+
+          {/* Notifications */}
+          <div className="relative">
+            <button
+              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
+            >
+              <Bell className="w-5 h-5 text-slate-600" />
+              {unreadCount > 0 && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                  {unreadCount}
+                </div>
+              )}
+            </button>
+
+            {isNotificationOpen && (
+              <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                <div className="p-4 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-900">
+                    Notifications
+                  </h3>
+                </div>
+
+                <div className="max-h-96 overflow-y-auto">
+                  {user.actionItems.length > 0 ? (
+                    user.actionItems.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className={`p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100 cursor-pointer ${
+                          !item.isRead
+                            ? 'bg-gradient-to-r from-blue-50/50 to-purple-50/50'
+                            : ''
+                        }`}
+                        style={{
+                          animationDelay: `${index * 100}ms`,
+                          animation: 'slideIn 0.4s ease-out forwards',
+                        }}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div
+                            className={`w-2 h-2 rounded-full mt-2 bg-gradient-to-r ${getNotificationColor(
+                              item.type,
+                            )} ${!item.isRead ? 'animate-pulse' : ''}`}
+                          ></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-900 mb-1">
+                              {item.summary}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {new Date(item.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center">
+                      <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-500">No notifications yet</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 border-t border-slate-100">
+                  <button className="w-full text-center text-sm text-purple-600 hover:text-purple-700 font-medium">
+                    View All Notifications
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* User Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              className="flex items-center space-x-2 p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
+            >
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                {user.fullName.charAt(0)}
+              </div>
+              <ChevronDown className="w-4 h-4 text-slate-600 hidden sm:block" />
+            </button>
+
+            {isUserMenuOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                {/* User info */}
+                <div className="p-4 border-b border-slate-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      {user.fullName.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-900 truncate">
+                        {user.fullName}
+                      </p>
+                      <p className="text-sm text-slate-500 truncate">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu items */}
+                <div className="py-2">
+                  {user.scheduledPlanChange && (
+                    <button className="w-full px-4 py-3 text-left hover:bg-yellow-50 transition-colors duration-200 flex items-center space-x-3">
+                      <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                      <span className="text-yellow-700 font-medium">
+                        Plan change scheduled
+                      </span>
+                    </button>
+                  )}
+
+                  <Link
+                    href="/profile"
+                    className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
+                  >
+                    <UserCircle className="w-4 h-4 text-slate-600" />
+                    <span className="text-slate-700">Profile</span>
+                  </Link>
+
+                  <Link
+                    href="/settings"
+                    className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
+                  >
+                    <Settings className="w-4 h-4 text-slate-600" />
+                    <span className="text-slate-700">Settings</span>
+                  </Link>
+                </div>
+
+                {/* Logout */}
+                <div className="border-t border-slate-100 p-2">
+                  <button className="w-full px-4 py-3 text-left hover:bg-red-50 transition-colors duration-200 flex items-center space-x-3 text-red-600">
+                    <LogOut className="w-4 h-4" />
+                    <span>Log out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Click outside to close dropdowns */}
+      {(isNotificationOpen || isUserMenuOpen || isPlanOpen) && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => {
+            setIsNotificationOpen(false);
+            setIsUserMenuOpen(false);
+            setIsPlanOpen(false);
+          }}
+        />
       )}
 
-      <DropdownMenu onOpenChange={() => setUser({ ...mockUserProfile })}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative h-9 w-9">
-            <Bell className="h-5 w-5" />
-            {mounted && unreadCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="absolute -top-1 -right-1 h-5 w-5 justify-center rounded-full p-0 text-xs"
-              >
-                {unreadCount}
-              </Badge>
-            )}
-            <span className="sr-only">Toggle notifications</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80 md:w-96">
-          <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {mounted && user && user.actionItems.length > 0 ? (
-            <ScrollArea className="h-[300px]">
-              {user.actionItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.id}
-                  onSelect={() => handleNotificationClick(item)}
-                  className={cn(
-                    'flex items-start gap-1 whitespace-normal cursor-pointer p-3',
-                    !item.isRead && 'bg-primary/5',
-                  )}
-                >
-                  {getNotificationIcon(item)}
-                  <div className="flex-grow">
-                    <p className="font-semibold text-sm leading-tight">
-                      {item.summary}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(item.date).toLocaleString()}
-                    </p>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </ScrollArea>
-          ) : (
-            <p className="p-4 text-sm text-center text-muted-foreground">
-              No notifications yet.
-            </p>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link
-              href="/dashboard#action-items"
-              className="justify-center cursor-pointer"
-            >
-              View All
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-            {mounted && user ? (
-              <Avatar className="h-9 w-9">
-                <AvatarImage
-                  src={'https://placehold.co/100x100.png'}
-                  alt={user.fullName}
-                  data-ai-hint="user avatar"
-                />
-                <AvatarFallback>
-                  {user.fullName.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            ) : (
-              <UserCircle className="h-6 w-6" />
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-          {mounted && user && (
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {user.fullName}
-                </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-          )}
-          <DropdownMenuSeparator />
-          {user?.scheduledPlanChange && (
-            <DropdownMenuItem asChild>
-              <Link
-                href="/subscriptions"
-                className="text-yellow-600 dark:text-yellow-400 focus:bg-yellow-100 dark:focus:bg-yellow-900/50"
-              >
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                <span>Plan change scheduled</span>
-              </Link>
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem asChild>
-            <Link href="/profile">
-              <UserCircle className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/settings">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </header>
   );
-}
+};
+
+export { AppHeader };

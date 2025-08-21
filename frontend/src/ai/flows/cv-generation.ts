@@ -1,13 +1,5 @@
 'use server';
 
-/**
- * @fileOverview CV Generation flow.
- *
- * - generateCv - A function that handles the CV generation process.
- * - CVGenerationInput - The input type for the generateCv function.
- * - CVGenerationOutput - The return type for the generateCv function.
- */
-
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 

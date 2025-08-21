@@ -20,16 +20,30 @@ const { encode } = pkg;
 import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 // import { createAttachment } from '../utils/generatePdfFromHtml.js';
 import { SCOPES, oauth2Client } from '../config/googleConsole.js';
+import redisClient from '../config/redis.js';
+
+import {
+  calculateMatchScore,
+  getFallbackJobsFromRapidAPI,
+  convertSalaryToYearly,
+} from '../utils/jobUtils.js';
 
 // Get student details
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
+  const cacheKey = `student:${_id}`;
 
   try {
-    const user = await User.findById(_id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData !== null) {
+      return res.status(200).json({
+        studentDetails: JSON.parse(cachedData),
+        fromCache: true,
+      });
     }
+
+    const user = await User.findById(_id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (user.role !== 'student') {
       return res
@@ -37,27 +51,28 @@ export const studentDetails = async (req, res) => {
         .json({ message: 'Only students can create student profile' });
     }
 
-    // Check if student exists using the user's _id
-    const existingStudent = await Student.findById(_id);
-    if (existingStudent) {
-      return res.status(200).json({ studentDetails: existingStudent });
+    let student = await Student.findById(_id);
+    if (!student) {
+      student = await Student.create({
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        jobRole: user.jobRole,
+        skills: [],
+      });
     }
 
-    // Create new student profile with empty skills array
-    const studentDetails = await Student.create({
-      _id: user._id,
-      fullName: user.fullName,
-      email: user.email,
-      jobRole: user.jobRole,
-      skills: [], // Explicitly set empty array
-    });
+    await redisClient.set(cacheKey, JSON.stringify(student), 3600);
 
-    return res.status(201).json({ studentDetails });
+    return res.status(200).json({
+      studentDetails: student,
+      fromCache: false,
+    });
   } catch (error) {
     console.error('Error creating student details:', error);
     return res.status(500).json({
       message: 'Internal server error',
-      error: error.message, // Send only error message in production
+      error: error.message,
     });
   }
 };
@@ -144,15 +159,16 @@ export const addStudentSkills = async (req, res) => {
 
     const result = await Student.findByIdAndUpdate(
       _id,
-      {
-        $addToSet: { skills: newSkill }, // Only adds if not already exists
-      },
+      { $addToSet: { skills: newSkill } },
       { new: true },
     );
 
     if (!result) {
       return res.status(404).json({ message: 'Student not found' });
     }
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({
       message: 'Skill added successfully',
@@ -178,9 +194,7 @@ export const removeStudentSkills = async (req, res) => {
   try {
     const result = await Student.findByIdAndUpdate(
       _id,
-      {
-        $pull: { skills: { _id: skillId } },
-      },
+      { $pull: { skills: { _id: skillId } } },
       { new: true },
     );
 
@@ -188,17 +202,18 @@ export const removeStudentSkills = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     return res.status(200).json({
       message: 'Skill removed successfully',
       skills: result.skills,
     });
   } catch (error) {
     console.error('Error removing skill:', error);
-
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid skill ID format' });
     }
-
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
@@ -211,19 +226,23 @@ export const updateStudentSkills = async (req, res) => {
   const { level } = req.body;
   const { _id } = req.user;
 
-  console.log(skillId, level, _id);
-
   try {
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
+
     const skill = student.skills.find((s) => s.skillId === skillId);
     if (!skill) {
       return res.status(404).json({ message: 'Skill not found' });
     }
+
     skill.level = level;
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     res.status(200).json({ message: 'Skills updated successfully' });
   } catch (error) {
     console.error('Error updating skills:', error);
@@ -267,6 +286,10 @@ export const addExperience = async (req, res) => {
     });
 
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     res.status(200).json({
       message: 'Experience added successfully',
       experience: student.experience,
@@ -280,6 +303,7 @@ export const addExperience = async (req, res) => {
 export const removeExperience = async (req, res) => {
   const { expId: experienceId } = req.params;
   const { _id } = req.user;
+
   try {
     const student = await Student.findById(_id);
     if (!student) {
@@ -291,6 +315,10 @@ export const removeExperience = async (req, res) => {
     );
 
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     res.status(200).json({ message: 'Experience removed successfully' });
   } catch (error) {
     console.error('Error removing experience:', error);
@@ -314,6 +342,7 @@ export const updateExperience = async (req, res) => {
   } = req.body;
 
   const { _id } = req.user;
+
   try {
     const student = await Student.findById(_id);
     if (!student) {
@@ -324,12 +353,11 @@ export const updateExperience = async (req, res) => {
       return exp._id.toString() === experienceId;
     });
 
-    console.log(experience);
-
     if (!experience) {
       return res.status(404).json({ message: 'Experience not found' });
     }
 
+    // Update experience fields
     experience.company = company;
     experience.title = title;
     experience.startDate = startDate;
@@ -340,20 +368,14 @@ export const updateExperience = async (req, res) => {
     experience.location = location;
     experience.designation = jobType;
 
-    if (employmentType) {
-      experience.employmentType = employmentType;
-    }
-    if (currentlyWorking === false) {
-      experience.endDate = null;
-    }
+    if (employmentType) experience.employmentType = employmentType;
+    if (currentlyWorking === false) experience.endDate = null;
 
-    student.experience = student.experience.map((exp) => {
-      if (exp._id.toString() === experienceId) {
-        return experience;
-      }
-      return exp;
-    });
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     res.status(200).json({ message: 'Experience updated successfully' });
   } catch (error) {
     console.error('Error updating experience:', error);
@@ -400,6 +422,10 @@ export const addEducations = async (req, res) => {
     });
 
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     res.status(200).json({
       message: 'Education added successfully',
       education: student.education,
@@ -413,6 +439,7 @@ export const addEducations = async (req, res) => {
 export const removeEducation = async (req, res) => {
   const { eduId: educationId } = req.params;
   const { _id } = req.user;
+
   try {
     const student = await Student.findById(_id);
     if (!student) {
@@ -424,6 +451,10 @@ export const removeEducation = async (req, res) => {
     );
 
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     res.status(200).json({ message: 'Education removed successfully' });
   } catch (error) {
     console.error('Error removing education:', error);
@@ -444,6 +475,7 @@ export const updateEducation = async (req, res) => {
     isCurrentlyStudying,
   } = req.body;
   const { _id } = req.user;
+
   try {
     const student = await Student.findById(_id);
     if (!student) {
@@ -458,6 +490,7 @@ export const updateEducation = async (req, res) => {
       return res.status(404).json({ message: 'Education not found' });
     }
 
+    // Update education fields
     if (degree) education.degree = degree;
     if (fieldOfStudy) education.fieldOfStudy = fieldOfStudy;
     if (startDate) education.startDate = startDate;
@@ -469,16 +502,11 @@ export const updateEducation = async (req, res) => {
     if (isCurrentlyStudying === false) education.endDate = null;
     if (country) education.country = country;
 
-    student.education = student.education.filter((edu) => {
-      return edu.educationId !== educationId;
-    });
-    student.education.push(education);
-
-    student.education.sort((a, b) => {
-      return new Date(b.startDate) - new Date(a.startDate);
-    });
-
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     res.status(200).json({ message: 'Education updated successfully' });
   } catch (error) {
     console.error('Error updating education:', error);
@@ -486,6 +514,7 @@ export const updateEducation = async (req, res) => {
   }
 };
 
+// Projects controller
 export const addProjects = async (req, res) => {
   const {
     projectName,
@@ -496,9 +525,10 @@ export const addProjects = async (req, res) => {
     link,
     isWorkingActive,
   } = req.body;
+  const { _id } = req.user;
 
   try {
-    const student = await Student.findById(req.user._id);
+    const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
@@ -512,7 +542,11 @@ export const addProjects = async (req, res) => {
       link,
       isWorkingActive,
     });
+
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({ message: 'Project added successfully' });
   } catch (error) {
@@ -532,17 +566,16 @@ export const updateProjects = async (req, res) => {
     link,
     isWorkingActive,
   } = req.body;
+  const { _id } = req.user;
 
-  // Basic validation
   if (!projectId) {
     return res.status(400).json({ message: 'Project ID is required' });
   }
 
   try {
-    // Find the student and update the specific project in one operation
     const result = await Student.findOneAndUpdate(
       {
-        _id: req.user._id,
+        _id: _id,
         'projects._id': projectId,
       },
       {
@@ -554,10 +587,10 @@ export const updateProjects = async (req, res) => {
           'projects.$.technologies': technologies,
           'projects.$.link': link,
           'projects.$.isWorkingActive': isWorkingActive,
-          'projects.$.updatedAt': new Date(), // Add update timestamp
+          'projects.$.updatedAt': new Date(),
         },
       },
-      { new: true }, // Return the updated document
+      { new: true },
     );
 
     if (!result) {
@@ -566,18 +599,18 @@ export const updateProjects = async (req, res) => {
       });
     }
 
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
     return res.status(200).json({
       message: 'Project updated successfully',
       project: result.projects.find((p) => p._id.toString() === projectId),
     });
   } catch (error) {
     console.error('Error updating project:', error);
-
-    // Handle specific errors
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid project ID format' });
     }
-
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
@@ -587,16 +620,15 @@ export const updateProjects = async (req, res) => {
 
 export const removeProject = async (req, res) => {
   const { projectId } = req.params;
+  const { _id } = req.user;
 
-  // Validate projectId
   if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
     return res.status(400).json({ message: 'Invalid project ID' });
   }
 
   try {
-    // Atomic operation to pull the project from the array
     const updatedStudent = await Student.findByIdAndUpdate(
-      req.user._id,
+      _id,
       { $pull: { projects: { _id: projectId } } },
       { new: true },
     );
@@ -605,16 +637,8 @@ export const removeProject = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Verify the project was actually removed
-    const projectExists = updatedStudent.projects.some(
-      (p) => p._id.toString() === projectId,
-    );
-
-    if (projectExists) {
-      return res
-        .status(404)
-        .json({ message: 'Project not found in your profile' });
-    }
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({
       message: 'Project removed successfully',
@@ -622,7 +646,6 @@ export const removeProject = async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing project:', error);
-
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
@@ -634,7 +657,6 @@ export const removeProject = async (req, res) => {
 export const addProfileImage = async (req, res) => {
   const { _id } = req.user;
 
-  // If no file was uploaded
   if (!req.file) {
     return res.status(400).json({ message: 'No image file uploaded' });
   }
@@ -649,24 +671,23 @@ export const addProfileImage = async (req, res) => {
   );
 
   try {
-    // Find student
     const student = await Student.findById(_id);
     if (!student) {
-      fs.unlinkSync(localFilePath); // Cleanup if user not found
+      fs.unlinkSync(localFilePath);
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(localFilePath, {
       folder: 'student-profile-images',
     });
 
-    // Save Cloudinary URL to DB
     student.profileImage = result.secure_url;
     await student.save();
 
-    // Delete from local storage
     safeUnlink(localFilePath);
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
 
     res.status(200).json({
       message: 'Profile image uploaded successfully',
@@ -702,23 +723,22 @@ export const updateProfileImage = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // 1. Delete previous image from Cloudinary
     if (student.profileImagePublicId) {
       await cloudinary.uploader.destroy(student.profileImagePublicId);
     }
 
-    // 2. Upload new image to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(localFilePath, {
       folder: 'student-profile-images',
     });
 
-    // 3. Save new image URL & public_id
     student.profileImage = uploadResult.secure_url;
     student.profileImagePublicId = uploadResult.public_id;
     await student.save();
 
-    // 4. Delete from local
     safeUnlink(localFilePath);
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({
       message: 'Profile image updated successfully',
@@ -731,7 +751,6 @@ export const updateProfileImage = async (req, res) => {
   }
 };
 
-// Resume
 export const addResume = async (req, res) => {
   const { _id } = req.user;
 
@@ -755,23 +774,22 @@ export const addResume = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // 1. Delete previous resume from Cloudinary
     if (student.resumePublicId) {
       await cloudinary.uploader.destroy(student.resumePublicId);
     }
 
-    // 2. Upload new resume to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(localFilePath, {
       folder: 'student-resumes',
     });
 
-    // 3. Save new resume URL & public_id
     student.resumeUrl = uploadResult.secure_url;
     student.resumePublicId = uploadResult.public_id;
     await student.save();
 
-    // 4. Delete from local
     safeUnlink(localFilePath);
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({
       message: 'Resume uploaded successfully',
@@ -789,63 +807,49 @@ export const appliedJob = async (req, res) => {
   const { _id } = req.user;
 
   try {
-    // Validate jobId format if using MongoDB
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       return res.status(400).json({ message: 'Invalid job ID format' });
     }
 
-    // Find student and job in parallel for better performance
     const [student, job] = await Promise.all([
       Student.findById(_id),
       Job.findById(jobId),
     ]);
 
     if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
+      return res.status(404).json({ message: 'Student not found' });
     }
 
     if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+      return res.status(404).json({ message: 'Job not found' });
     }
 
-    // Check if already applied - now checking the job field of each object
     if (student.appliedJobs.some((appliedJob) => appliedJob.job === jobId)) {
       return res.status(400).json({
-        success: false,
         message: 'You have already applied for this job',
       });
     }
 
-    // Handle potential validation errors
-    try {
-      // Push an object with job field instead of just the ID
-      student.appliedJobs.push({ job: jobId });
-      job.appliedStudents.push(student._id);
+    student.appliedJobs.push({ job: jobId });
+    job.appliedStudents.push(student._id);
 
-      // Save both in parallel
-      await Promise.all([student.save(), job.save()]);
+    await Promise.all([student.save(), job.save()]);
 
-      return res.status(200).json({
-        success: true,
-        message: 'Job applied successfully',
-      });
-    } catch (saveError) {
-      // Handle validation errors specifically
-      if (saveError.name === 'ValidationError') {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation error',
-          error: saveError.message,
-        });
-      }
-      throw saveError; // Re-throw other errors
-    }
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
+
+    return res.status(200).json({
+      message: 'Job applied successfully',
+    });
   } catch (error) {
     console.error('Error applying for job:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'Validation error',
+        error: error.message,
+      });
+    }
     return res.status(500).json({
-      success: false,
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
@@ -860,195 +864,120 @@ export const updateStatus = async (req, res) => {
   try {
     const student = await Student.findById(_id);
     if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Check if applied
+    const appliedJob = student.appliedJobs.find(
+      (job) => job.job.toString() === jobId,
+    );
+    if (!appliedJob) {
       return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
-    }
-
-    const job = await Job.findById(jobId);
-    if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
-    }
-
-    // Check if already applied - now checking the job field of each object
-    if (!student.appliedJobs.some((appliedJob) => appliedJob.job === jobId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have not applied for this job',
-      });
+        .status(400)
+        .json({ message: 'You have not applied for this job' });
     }
 
     // Update status
-    student.appliedJobs.forEach((appliedJob) => {
-      if (appliedJob.job === jobId) {
-        appliedJob.status = status;
-      }
-    });
-
+    appliedJob.status = status;
     await student.save();
 
-    return res.status(200).json({
-      success: true,
-      message: 'Status updated successfully',
-    });
+    // Invalidate relevant caches
+    await redisClient.invalidateStudentCache(_id);
+    await redisClient.del(`student:${_id}:appliedJobs`);
+    await redisClient.del(`student:${_id}:jobStatus:${jobId}`);
+
+    return res.status(200).json({ message: 'Status updated successfully' });
   } catch (error) {
     console.error('Error updating status:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const isAppliedOrNot = async (req, res) => {
   const { jobId } = req.query;
   const { _id } = req.user;
+  const cacheKey = `student:${_id}:isApplied:${jobId}`;
 
   try {
-    const student = await Student.findById(_id);
-    if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
-    }
+    const result = await redisClient.withCache(cacheKey, 600, async () => {
+      const student = await Student.findById(_id);
+      if (!student) throw new Error('Student not found');
 
-    const isApplied = student.appliedJobs.some((id) => id.toString() === jobId);
-
-    return res.status(200).json({
-      success: true,
-      isApplied,
+      return student.appliedJobs.some((job) => job.job.toString() === jobId);
     });
+
+    return res.status(200).json({ isApplied: result });
   } catch (error) {
-    console.error('Error checking if applied:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    console.error('Error checking application status:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const getAppliedJobs = async (req, res) => {
   const { _id } = req.user;
+  const cacheKey = `student:${_id}:appliedJobs`;
 
   try {
-    const student = await Student.findById(_id).populate({
-      path: 'appliedJobs.job',
-      select: '-__v',
-      options: { lean: true },
-    });
+    const appliedJobs = await redisClient.withCache(
+      cacheKey,
+      1800,
+      async () => {
+        const student = await Student.findById(_id).populate({
+          path: 'appliedJobs.job',
+          select: '-__v',
+          options: { lean: true },
+        });
 
-    if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
-    }
+        if (!student) throw new Error('Student not found');
+        return student.appliedJobs;
+      },
+    );
 
-    return res.status(200).json({
-      success: true,
-      appliedJobs: student.appliedJobs,
-    });
+    return res.status(200).json({ appliedJobs });
   } catch (error) {
-    console.error('Error getting applied jobs:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    console.error('Error fetching applied jobs:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const StudentAnalytics = async (req, res) => {
   const { _id } = req.user;
+  const cacheKey = `student:${_id}:analytics`;
 
   try {
-    const student = await Student.findById(
-      _id,
-      'appliedJobs savedJobs htmlCV coverLetter',
-    );
+    const analytics = await redisClient.withCache(cacheKey, 3600, async () => {
+      const [student, studentReferal] = await Promise.all([
+        Student.findById(_id, 'appliedJobs savedJobs htmlCV coverLetter'),
+        User.findById(_id, 'referralCount referralCode isEmailVerified'),
+      ]);
 
-    const studentReferal = await User.findById(
-      _id,
-      'referralCount referralCode isEmailVerified',
-    );
+      if (!student) throw new Error('Student not found');
 
-    if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
-    }
-
-    // Count the length of each array directly from the student document
-    const analytics = {
-      applicationsSent: student.appliedJobs.length,
-      savedJobsCount: student.savedJobs.length,
-      cvsGenerated: student.htmlCV.length,
-      coverLettersGenerated: student.coverLetter.length,
-      referralCount: studentReferal.referralCount,
-      isEmailVerified: studentReferal.isEmailVerified,
-      referralCode: studentReferal.referralCode,
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: analytics,
-      message: 'Student analytics retrieved successfully',
+      return {
+        applicationsSent: student.appliedJobs.length,
+        savedJobsCount: student.savedJobs.length,
+        cvsGenerated: student.htmlCV.length,
+        coverLettersGenerated: student.coverLetter.length,
+        referralCount: studentReferal?.referralCount || 0,
+        isEmailVerified: studentReferal?.isEmailVerified || false,
+        referralCode: studentReferal?.referralCode || '',
+      };
     });
+
+    return res.status(200).json(analytics);
   } catch (error) {
-    console.error('Error fetching student analytics:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    console.error('Error fetching analytics:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const createJobPreference = async (req, res) => {
   try {
-    const {
-      // Location
-      preferedCountries,
-      preferedCities,
-      isRemote,
-      relocationWillingness,
-
-      // Job Details
-      preferedJobTitles,
-      preferedJobTypes,
-      preferedIndustries,
-      preferedExperienceLevel,
-
-      // Compensation
-      preferedSalary,
-
-      // Skills
-      mustHaveSkills,
-      niceToHaveSkills,
-      preferedCertifications,
-      preferedEducationLevel,
-
-      // Company
-      preferedCompanySizes,
-      preferedCompanyCultures,
-
-      // Additional
-      visaSponsorshipRequired,
-      immediateAvailability,
-    } = req.body;
-
-    // Validate must-have skills structure
-    if (mustHaveSkills && Array.isArray(mustHaveSkills)) {
-      for (const skill of mustHaveSkills) {
-        if (!skill.skill || !skill.level) {
-          return res.status(400).json({
-            message: 'Must-have skills must have both skill name and level',
-          });
-        }
-      }
-    }
-
-    // Build update object
+    const studentId = req.user._id;
     const update = {};
-    const fields = [
+
+    // Build update object from request body
+    const preferenceFields = [
       'preferedCountries',
       'preferedCities',
       'isRemote',
@@ -1068,82 +997,58 @@ export const createJobPreference = async (req, res) => {
       'immediateAvailability',
     ];
 
-    fields.forEach((field) => {
+    preferenceFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         update[`jobPreferences.${field}`] = req.body[field];
       }
     });
 
-    // Update student with validation
+    // Update student
     const student = await Student.findByIdAndUpdate(
-      req.user._id,
+      studentId,
       { $set: update },
-      {
-        new: true,
-        runValidators: true,
-        select: 'jobPreferences',
-      },
+      { new: true, runValidators: true },
     );
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
+
+    // Invalidate relevant caches
+    await redisClient.invalidateStudentCache(studentId);
+    await redisClient.del(`student:${studentId}:jobPreferences`);
+    await redisClient.del(`jobs:recommended:${studentId}:*`);
 
     return res.status(200).json({
       message: 'Job preferences updated successfully',
       preferences: student.jobPreferences,
     });
   } catch (error) {
-    console.error('Error updating job preferences:', error);
-
-    // Handle specific error types
-    if (error.name === 'ValidationError') {
-      const errors = {};
-      Object.keys(error.errors).forEach((key) => {
-        errors[key] = error.errors[key].message;
-      });
-      return res.status(400).json({
-        message: 'Validation error',
-        errors,
-      });
-    }
-
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: 'Invalid data type provided',
-        field: error.path,
-        expectedType: error.kind,
-      });
-    }
-
+    console.error('Error updating preferences:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const getJobPreferences = async (req, res) => {
+  const studentId = req.user._id;
+  const cacheKey = `student:${studentId}:jobPreferences`;
+
   try {
-    // Explicitly select the jobPreferences field
-    const student = await Student.findById(req.user._id).select(
-      'jobPreferences',
+    const preferences = await redisClient.withCache(
+      cacheKey,
+      86400,
+      async () => {
+        const student = await Student.findById(studentId).select(
+          'jobPreferences',
+        );
+        return student?.jobPreferences || {};
+      },
     );
 
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    // Return empty object if no preferences exist yet
-    const preferences = student.jobPreferences || {};
-
-    return res.status(200).json({
-      success: true,
-      preferences,
-    });
+    return res.status(200).json({ preferences });
   } catch (error) {
-    console.error('Error getting job preferences:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    console.error('Error getting preferences:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -1152,225 +1057,125 @@ export const savedJobs = async (req, res) => {
   const { jobId } = req.body;
 
   try {
-    // Atomically update only the savedJobs array
     const updatedStudent = await Student.findByIdAndUpdate(
       _id,
-      { $addToSet: { savedJobs: jobId } }, // Adds jobId only if it's not already there
-      { new: true, runValidators: false }, // `new: true` returns the updated doc
+      { $addToSet: { savedJobs: jobId } },
+      { new: true },
     );
 
     if (!updatedStudent) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
+    // Invalidate relevant caches
+    await redisClient.invalidateStudentCache(_id);
+    await redisClient.del(`student:${_id}:savedJobs`);
+    await redisClient.del(`student:${_id}:isSaved:${jobId}`);
+
     return res.status(200).json({
-      success: true,
       savedJobs: updatedStudent.savedJobs,
     });
   } catch (error) {
-    // The console error name is more accurate now
     console.error('Error saving job:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const getSavedJobs = async (req, res) => {
+  const { _id } = req.user;
+  const cacheKey = `student:${_id}:savedJobs`;
+
   try {
-    const { _id } = req.user;
-
-    // Validate user ID
-    if (!_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'User ID is required',
+    const savedJobs = await redisClient.withCache(cacheKey, 1800, async () => {
+      const student = await Student.findById(_id).populate({
+        path: 'savedJobs',
+        select: '-__v',
+        options: { lean: true },
       });
-    }
 
-    // Find student with populated savedJobs
-    const student = await Student.findById(_id).populate({
-      path: 'savedJobs',
-      select: '-__v', // Exclude version key
-      options: { lean: true }, // Return plain JavaScript objects
+      if (!student) throw new Error('Student not found');
+      return student.savedJobs;
     });
 
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found',
-      });
-    }
-
-    // If you want to transform the data before sending
-    const savedJobs = student.savedJobs.map((job) => ({
-      ...(job.toObject ? job.toObject() : job), // Handle both mongoose docs and lean objects
-      // Add any transformations here
-    }));
-
-    return res.status(200).json({
-      success: true,
-      data: savedJobs, // Better to wrap in a 'data' property
-      count: savedJobs.length, // Useful metadata
-    });
+    return res.status(200).json({ savedJobs });
   } catch (error) {
     console.error('Error getting saved jobs:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const isSavedOrNot = async (req, res) => {
+  const { _id } = req.user;
+  const { jobId } = req.query;
+  const cacheKey = `student:${_id}:isSaved:${jobId}`;
+
   try {
-    const { _id } = req.user;
-    const { jobId } = req.query;
-
-    // Validate inputs
-    if (!_id || !jobId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Both user ID and job ID are required',
-      });
-    }
-
-    // Check if jobId is a valid ObjectId if you're using MongoDB
-    if (!mongoose.Types.ObjectId.isValid(jobId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid job ID format',
-      });
-    }
-
-    const student = await Student.findById(_id).select('savedJobs');
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found',
-      });
-    }
-
-    // Convert to string for comparison (MongoDB ObjectIds need special handling)
-    const isSaved = student.savedJobs.some(
-      (savedJob) => savedJob.toString() === jobId,
-    );
-
-    return res.status(200).json({
-      success: true,
-      isSaved,
+    const isSaved = await redisClient.withCache(cacheKey, 600, async () => {
+      const student = await Student.findById(_id);
+      if (!student) throw new Error('Student not found');
+      return student.savedJobs.some((id) => id.toString() === jobId);
     });
+
+    return res.status(200).json({ isSaved });
   } catch (error) {
     console.error('Error checking saved status:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'An error occurred while checking saved status',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const getProfileCompletion = async (req, res) => {
+  const studentId = req.user._id;
+  const cacheKey = `student:${studentId}:profileCompletion`;
+
   try {
-    const { _id: studentId } = req.user;
+    const completionData = await redisClient.withCache(
+      cacheKey,
+      86400,
+      async () => {
+        const student = await Student.findById(studentId).select(
+          'fullName phone profileImage jobRole resumeUrl education experience skills projects jobPreferences coverLetter',
+        );
 
-    console.log(studentId);
+        if (!student) throw new Error('Student not found');
 
-    const student = await Student.findById(studentId).select(
-      'fullName phone profileImage jobRole resumeUrl education experience skills projects jobPreferences coverLetter',
-    );
+        const completionStatus = {
+          coreProfile: Boolean(
+            student.fullName &&
+              student.phone &&
+              student.profileImage &&
+              student.jobRole,
+          ),
+          resume: Boolean(student.resumeUrl),
+          education: Boolean(student.education?.length > 0),
+          workExperience: Boolean(student.experience?.length > 0),
+          skills: Boolean(student.skills?.length >= 10),
+          projects: Boolean(student.projects?.length > 0),
+          jobPreferences: Boolean(
+            student.jobPreferences?.preferedJobTitles?.length > 0 &&
+              student.jobPreferences?.preferedSalary?.min > 0 &&
+              (student.jobPreferences?.preferedCountries?.length > 0 ||
+                student.jobPreferences?.preferedCities?.length > 0 ||
+                student.jobPreferences?.isRemote === true),
+          ),
+          coverLetter: Boolean(student.coverLetter?.length > 0),
+        };
 
-    console.log(student);
+        const completedCategories =
+          Object.values(completionStatus).filter(Boolean).length;
+        const totalCategories = Object.keys(completionStatus).length;
 
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    const completionStatus = {
-      coreProfile: false,
-      resume: false,
-      education: false,
-      workExperience: false,
-      skills: false,
-      projects: false,
-      jobPreferences: false,
-      coverLetter: false,
-    };
-
-    let completedCategories = 0;
-    const totalCategories = Object.keys(completionStatus).length; // Now 8
-
-    if (
-      student.fullName &&
-      student.phone &&
-      student.profileImage &&
-      student.jobRole
-    ) {
-      completionStatus.coreProfile = true;
-      completedCategories++;
-    }
-
-    if (student.resumeUrl) {
-      completionStatus.resume = true;
-      completedCategories++;
-    }
-
-    if (student.education && student.education.length > 0) {
-      completionStatus.education = true;
-      completedCategories++;
-    }
-
-    if (student.experience && student.experience.length > 0) {
-      completionStatus.workExperience = true;
-      completedCategories++;
-    }
-
-    if (student.skills && student.skills.length >= 10) {
-      completionStatus.skills = true;
-      completedCategories++;
-    }
-
-    if (student.projects && student.projects.length > 0) {
-      completionStatus.projects = true;
-      completedCategories++;
-    }
-
-    const prefs = student.jobPreferences;
-    if (
-      prefs &&
-      prefs.preferedJobTitles?.length > 0 &&
-      prefs.preferedSalary?.min > 0 && // A min salary must be set
-      (prefs.preferedCountries?.length > 0 ||
-        prefs.preferedCities?.length > 0 ||
-        prefs.isRemote === true)
-    ) {
-      completionStatus.jobPreferences = true;
-      completedCategories++;
-    }
-
-    if (student.coverLetter && student.coverLetter.length > 0) {
-      completionStatus.coverLetter = true;
-      completedCategories++;
-    }
-
-    const completionPercentage = Math.round(
-      (completedCategories / totalCategories) * 100,
-    );
-
-    res.status(200).json({
-      percentage: completionPercentage,
-      breakdown: {
-        completed: completedCategories,
-        total: totalCategories,
+        return {
+          percentage: Math.round((completedCategories / totalCategories) * 100),
+          breakdown: { completed: completedCategories, total: totalCategories },
+          categories: completionStatus,
+        };
       },
-      categories: completionStatus,
-    });
+    );
+
+    return res.status(200).json(completionData);
   } catch (error) {
-    console.error('Error calculating profile completion:', error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('Error calculating completion:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -1514,291 +1319,6 @@ export const getRecommendedJobs = async (req, res) => {
   }
 };
 
-async function getFallbackJobsFromRapidAPI(req, res, preferences) {
-  try {
-    let queryParts = [];
-
-    // Build query based on preferences
-    if (preferences.preferedJobTitles?.length > 0) {
-      queryParts.push(`(${preferences.preferedJobTitles.join(' OR ')})`);
-    }
-
-    if (preferences.mustHaveSkills?.length > 0) {
-      queryParts.push(
-        `(${preferences.mustHaveSkills.map((s) => s.skill).join(' OR ')})`,
-      );
-    }
-
-    if (!preferences.isRemote && preferences.preferedCountries?.length > 0) {
-      queryParts.push(
-        `location:(${preferences.preferedCountries.join(' OR ')})`,
-      );
-    }
-
-    const query = queryParts.join(' AND ') || 'Software Engineer';
-
-    const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
-      params: {
-        query,
-        page: req.query.page || 1,
-        num_pages: 20,
-      },
-      headers: {
-        'X-RapidAPI-Key': '0d3678f4demsh0fdb835e7b93d0cp15bf60jsnd8ee05c7fc47',
-        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
-      },
-    });
-
-    const externalJobs = response.data.data || [];
-    const processedJobs = [];
-
-    for (const job of externalJobs) {
-      const existing = await Job.findOne({ jobId: job.job_id });
-      const experience = extractExperience(job.job_description);
-      const qualifications = extractQualificationsFromDescription(
-        job.job_description,
-      );
-      const responsibilities = extractResponsibilitiesFromDescription(
-        job.job_description,
-      );
-
-      if (!existing) {
-        const newJob = new Job({
-          jobId: job.job_id,
-          origin: 'EXTERNAL',
-          logo: job.employer_logo,
-          experience,
-          qualification: qualifications,
-          responsibilities,
-          title: job.job_title,
-          description: job.job_description,
-          jobTypes: job.job_employment_types || [],
-          company: job.employer_name,
-          applyMethod: {
-            method: 'URL',
-            url: job.job_apply_link,
-          },
-          salary: {
-            min: job.job_min_salary || 0,
-            max: job.job_max_salary || 0,
-            period: job.job_salary_period || 'YEAR',
-          },
-          location: {
-            city: job.job_city,
-            postalCode: job.job_postal_code || '',
-            lat: job.job_latitude,
-            lng: job.job_longitude,
-          },
-          jobAddress: job.job_location,
-          country: job.job_country,
-          tags: job.job_benefits || [],
-          queries: [query],
-        });
-
-        const savedJob = await newJob.save();
-        processedJobs.push(savedJob);
-      } else {
-        await Job.updateOne(
-          { jobId: job.job_id },
-          { $addToSet: { queries: query } },
-        );
-        processedJobs.push(existing); // Include existing one for scoring
-      }
-    }
-
-    // Add match scores and sort
-    const jobsWithScores = processedJobs.map((job) => ({
-      ...job.toObject(),
-      matchScore: calculateMatchScore(job, preferences),
-    }));
-
-    jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
-
-    // Pagination
-    const page = parseInt(req.query.page || 1);
-    const limit = parseInt(req.query.limit || 10);
-    const paginatedJobs = jobsWithScores.slice(
-      (page - 1) * limit,
-      page * limit,
-    );
-
-    return res.status(200).json({
-      success: true,
-      jobs: paginatedJobs,
-      pagination: {
-        total: jobsWithScores.length,
-        page,
-        limit,
-        totalPages: Math.ceil(jobsWithScores.length / limit),
-      },
-      source: 'external',
-      message:
-        jobsWithScores.length > 0
-          ? 'Showing external job listings that match your preferences'
-          : 'No matching jobs found in our database or external sources',
-    });
-  } catch (error) {
-    console.error('Error fetching fallback jobs from RapidAPI:', error.message);
-    return res.status(200).json({
-      success: true,
-      jobs: [],
-      pagination: {
-        total: 0,
-        page: parseInt(req.query.page || 1),
-        limit: parseInt(req.query.limit || 10),
-        totalPages: 0,
-      },
-      source: 'none',
-      message:
-        'No matching jobs found. Try adjusting your preferences or check back later.',
-    });
-  }
-}
-
-// Helper function to convert salary to yearly for comparison
-function convertSalaryToYearly(amount, period) {
-  switch (period) {
-    case 'HOUR':
-      return amount * 40 * 52;
-    case 'DAY':
-      return amount * 5 * 52;
-    case 'WEEK':
-      return amount * 52;
-    case 'MONTH':
-      return amount * 12;
-    case 'YEAR':
-    default:
-      return amount;
-  }
-}
-
-// Helper function to calculate match score (0-100)
-function calculateMatchScore(job, preferences) {
-  let score = 0;
-  const totalPossible = 100;
-  let points = 0;
-
-  // Location match (20 points)
-  if (preferences.isRemote && job.isRemote) {
-    points += 20;
-  } else if (
-    preferences.preferedCountries &&
-    preferences.preferedCountries.length > 0
-  ) {
-    if (
-      preferences.preferedCountries.some(
-        (c) =>
-          job.country && job.country.toLowerCase().includes(c.toLowerCase()),
-      )
-    ) {
-      points += 10;
-      if (preferences.preferedCities && preferences.preferedCities.length > 0) {
-        if (
-          preferences.preferedCities.some(
-            (c) =>
-              job.location?.city &&
-              job.location.city.toLowerCase().includes(c.toLowerCase()),
-          )
-        ) {
-          points += 10;
-        }
-      }
-    }
-  }
-
-  // Job type match (15 points)
-  if (preferences.preferedJobTypes && job.jobTypes) {
-    const matchingTypes = job.jobTypes.filter((type) =>
-      preferences.preferedJobTypes.includes(type),
-    );
-    if (matchingTypes.length > 0) {
-      points += 15;
-    }
-  }
-
-  // Title match (15 points)
-  if (
-    preferences.preferedJobTitles &&
-    preferences.preferedJobTitles.length > 0
-  ) {
-    if (
-      preferences.preferedJobTitles.some(
-        (title) =>
-          job.title && job.title.toLowerCase().includes(title.toLowerCase()),
-      )
-    ) {
-      points += 15;
-    }
-  }
-
-  // Salary match (15 points)
-  if (preferences.preferedSalary && job.salary) {
-    const prefMinYearly = convertSalaryToYearly(
-      preferences.preferedSalary.min,
-      preferences.preferedSalary.period,
-    );
-    const jobMinYearly = convertSalaryToYearly(
-      job.salary.min || 0,
-      job.salary.period || 'YEAR',
-    );
-
-    if (jobMinYearly >= prefMinYearly) {
-      points += 15;
-    } else if (jobMinYearly >= prefMinYearly * 0.8) {
-      points += 10;
-    } else if (jobMinYearly >= prefMinYearly * 0.6) {
-      points += 5;
-    }
-  }
-
-  // Skills match (20 points)
-  if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
-    const jobText = [
-      job.description || '',
-      ...(job.qualifications || []),
-      ...(job.tags || []),
-    ]
-      .join(' ')
-      .toLowerCase();
-
-    const matchedSkills = preferences.mustHaveSkills.filter((skill) =>
-      jobText.includes(skill.skill.toLowerCase()),
-    );
-    points += (matchedSkills.length / preferences.mustHaveSkills.length) * 20;
-  }
-
-  // Experience match (10 points)
-  if (preferences.preferedExperienceLevel) {
-    let prefExpLevel;
-    switch (preferences.preferedExperienceLevel) {
-      case 'ENTRY_LEVEL':
-        prefExpLevel = 0;
-        break;
-      case 'MID_LEVEL':
-        prefExpLevel = 3;
-        break;
-      case 'SENIOR':
-        prefExpLevel = 5;
-        break;
-      default:
-        prefExpLevel = 0;
-    }
-
-    if (job.experience <= prefExpLevel) {
-      points += 10;
-    } else if (job.experience <= prefExpLevel + 2) {
-      points += 5;
-    }
-  }
-
-  // Visa sponsorship (5 points)
-  if (preferences.visaSponsorshipRequired && job.visaSponsorshipAvailable) {
-    points += 5;
-  }
-
-  return Math.min(Math.round((points / totalPossible) * 100), 100);
-}
-
 export const sendJobApplicationViaEmail = async (req, res) => {
   const {
     senderEmail,
@@ -1878,4 +1398,29 @@ const createAttachment = (filename, mimeType, base64Data) => {
     base64Data,
     ``,
   ];
+};
+
+export const toggleAutopilot = async (req, res, next) => {
+  try {
+    const studentId = req.user._id; // Assuming `req.user` is set by your auth middleware
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return next(createHttpError(404, 'Student not found'));
+    }
+
+    // Toggle the autopilot status
+    student.settings.autopilotEnabled = !student.settings.autopilotEnabled;
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Autopilot has been ${
+        student.settings.autopilotEnabled ? 'enabled' : 'disabled'
+      }.`,
+      autopilotStatus: student.settings.autopilotEnabled,
+    });
+  } catch (error) {
+    next(createHttpError(500, error.message));
+  }
 };

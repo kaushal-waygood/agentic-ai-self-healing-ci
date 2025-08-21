@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { X } from 'lucide-react';
+import { Briefcase, TrendingUp, X } from 'lucide-react';
 import { capitalise } from '@/utils/capitalise';
 
 interface FilterModalProps {
@@ -34,76 +34,95 @@ export const FilterModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold">Filter Jobs</h2>
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-t-3xl">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Advanced Filters</h2>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
             >
-              <X className="h-6 w-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
-
-          <div className="space-y-6">
-            <div>
-              <Label>Employment Type</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                {employmentTypes.map((type, i) => (
-                  <div key={i} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`employment-${type}`}
-                      checked={filters.employmentType.includes(type)}
-                      onCheckedChange={(checked) => {
-                        let newTypes = [...filters.employmentType];
-                        if (checked) {
-                          newTypes.push(type);
-                        } else {
-                          newTypes = newTypes.filter((t) => t !== type);
-                        }
-                        onFilterChange('employmentType', newTypes);
-                      }}
-                    />
-                    <Label htmlFor={`employment-${type}`}>
-                      {capitalise(type)}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label>Experience Level</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                {experienceLevels.map((level, i) => (
-                  <div key={i} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`experience-${level}`}
-                      checked={filters.experience.includes(level)}
-                      onCheckedChange={(checked) => {
-                        let newLevels = [...filters.experience];
-                        if (checked) {
-                          newLevels.push(level);
-                        } else {
-                          newLevels = newLevels.filter((l) => l !== level);
-                        }
-                        onFilterChange('experience', newLevels);
-                      }}
-                    />
-                    <Label htmlFor={`experience-${level}`}>{level}</Label>
-                  </div>
-                ))}
-              </div>
+        </div>
+        <div className="p-6 space-y-8 overflow-y-auto">
+          {/* Employment Type - WIRED TO YOUR LOGIC */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-purple-500" /> Employment Type
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {employmentTypes.map((type) => (
+                <label
+                  key={type}
+                  className="flex items-center space-x-3 p-3 rounded-xl hover:bg-purple-50 transition-colors cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={filters.employmentType.includes(type)}
+                    onChange={(e) => {
+                      const newTypes = e.target.checked
+                        ? [...filters.employmentType, type]
+                        : filters.employmentType.filter(
+                            (t: string) => t !== type,
+                          );
+                      onFilterChange('employmentType', newTypes);
+                    }}
+                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-400"
+                  />
+                  <span className="text-gray-700 font-medium">
+                    {capitalise(type)}
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-8">
-            <Button variant="outline" onClick={onReset}>
+          {/* Experience Level - WIRED TO YOUR LOGIC */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-500" /> Experience Level
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {experienceLevels.map((level) => (
+                <label
+                  key={level}
+                  className="flex items-center space-x-3 p-3 rounded-xl hover:bg-blue-50 transition-colors cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={filters.experience.includes(level)}
+                    onChange={(e) => {
+                      const newLevels = e.target.checked
+                        ? [...filters.experience, level]
+                        : filters.experience.filter((l: string) => l !== level);
+                      onFilterChange('experience', newLevels);
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-400"
+                  />
+                  <span className="text-gray-700 font-medium">{level}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-gray-50 p-6 rounded-b-3xl border-t border-gray-200 mt-auto">
+          <div className="flex gap-3">
+            <button
+              onClick={onReset}
+              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-semibold transition-all duration-300"
+            >
               Reset All
-            </Button>
-            <Button onClick={onApply}>Apply Filters</Button>
+            </button>
+            <button
+              onClick={onApply}
+              className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+            >
+              Apply Filters
+            </button>
           </div>
         </div>
       </div>

@@ -19,6 +19,9 @@ import { Button } from '../ui/button';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 
 const ConfigWizard = ({ form, currentPlan, setWizardStep, isLoading }: any) => {
+  const handleSaveAgent = () => {
+    form.handleSubmit;
+  };
   return (
     <Card>
       <CardHeader>
@@ -68,7 +71,7 @@ const ConfigWizard = ({ form, currentPlan, setWizardStep, isLoading }: any) => {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} onClick={handleSaveAgent}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

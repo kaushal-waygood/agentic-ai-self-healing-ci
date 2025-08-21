@@ -62,6 +62,7 @@ import {
   generateCVByJobDescriptionRequest,
   savedStudentResumeRequest,
 } from '@/redux/reducers/aiReducer';
+import JobWizard from './components/JobWizard';
 
 // --- Types and Schemas ---
 
@@ -503,108 +504,14 @@ export function CvGeneratorClient() {
     switch (wizardStep) {
       case 'job':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">
-                Step 1: Provide Job Context
-              </CardTitle>
-              <CardDescription>
-                Tell the AI about the job. This is crucial for tailoring your
-                CV.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="paste" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="paste">
-                    <FileSignature className="mr-2 h-4 w-4" />
-                    Paste
-                  </TabsTrigger>
-                  <TabsTrigger value="select">
-                    <Briefcase className="mr-2 h-4 w-4" />
-                    Select
-                  </TabsTrigger>
-                  <TabsTrigger value="title">
-                    <User className="mr-2 h-4 w-4" />
-                    Title
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="paste" className="pt-4 space-y-4">
-                  <Textarea
-                    placeholder="Paste the full job description here..."
-                    className="min-h-[200px]"
-                    value={pastedJobDescription}
-                    onChange={(e) => setPastedJobDescription(e.target.value)}
-                  />
-                  <Button
-                    className="w-full"
-                    onClick={() => handleSetJobContext('paste')}
-                    disabled={!pastedJobDescription || isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="animate-spin mr-2" />
-                    ) : (
-                      <ChevronsRight className="mr-2" />
-                    )}
-                    Use Description
-                  </Button>
-                </TabsContent>
-                {/* <TabsContent value="select" className="pt-4 space-y-4">
-                  <RadioGroup
-                    value={selectedJobId}
-                    onValueChange={setSelectedJobId}
-                    className="space-y-2 max-h-60 overflow-y-auto pr-2"
-                  >
-                    {mockJobListings.map((job) => (
-                      <Label
-                        key={job.id}
-                        className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-muted/50 has-[:checked]:bg-primary/10 has-[:checked]:border-primary"
-                      >
-                        <RadioGroupItem value={job.id} id={`job-${job.id}`} />
-                        <div>
-                          <p className="font-semibold">{job.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {job.company}
-                          </p>
-                        </div>
-                      </Label>
-                    ))}
-                  </RadioGroup>
-                  <Button
-                    className="w-full"
-                    onClick={() => handleSetJobContext('select')}
-                    disabled={!selectedJobId || isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="animate-spin mr-2" />
-                    ) : (
-                      <ChevronsRight className="mr-2" />
-                    )}
-                    Use Selected Job
-                  </Button>
-                </TabsContent> */}
-                <TabsContent value="title" className="pt-4 space-y-4">
-                  <Input
-                    placeholder="e.g., Senior Software Engineer"
-                    value={enteredJobTitle}
-                    onChange={(e) => setEnteredJobTitle(e.target.value)}
-                  />
-                  <Button
-                    className="w-full"
-                    onClick={() => handleSetJobContext('title')}
-                    disabled={!enteredJobTitle || isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="animate-spin mr-2" />
-                    ) : (
-                      <ChevronsRight className="mr-2" />
-                    )}
-                    Use Title
-                  </Button>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+          <JobWizard
+            isLoading={isLoading}
+            pastedJobDescription={pastedJobDescription}
+            setPastedJobDescription={setPastedJobDescription}
+            enteredJobTitle={enteredJobTitle}
+            handleSetJobContext={handleSetJobContext}
+            setEnteredJobTitle={setEnteredJobTitle}
+          />
         );
       case 'cv':
         return (
