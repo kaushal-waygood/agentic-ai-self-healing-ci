@@ -81,6 +81,11 @@ import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import apiInstance from '@/services/api';
 import { sendEmailPermit } from '@/services/api/auth';
+import SleekCvStep from './applications/wizard/steps/create-cv/CreateCvStep';
+import SleekClStep from './applications/wizard/steps/ClStep';
+import { GenerateStep } from './applications/wizard/steps/GenerateStep';
+import SleekLoadingCard from './applications/wizard/steps/LoadingStep';
+import ResultStep from './applications/wizard/steps/result/ResultStep';
 
 // Types for Wizard State
 type WizardStep =
@@ -206,6 +211,26 @@ const engagingMessages = [
   'Finalizing the application email...',
   'Almost there, just polishing the final details...',
 ];
+
+// Framer Motion Variants
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      when: 'beforeChildren',
+      staggerChildren: 0.1,
+    },
+  },
+  exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export function ApplicationWizardClient() {
   const router = useRouter();
@@ -793,20 +818,26 @@ export function ApplicationWizardClient() {
     });
   };
 
+  const StyledCard = (props) => (
+    <motion.div variants={containerVariants}>
+      <Card className="bg-white border-slate-700 backdrop-blur-sm" {...props} />
+    </motion.div>
+  );
+
   // --- Render Functions ---
   const renderLoadingStep = () => (
-    <Card className="min-h-[400px] flex items-center justify-center">
+    <StyledCard className="min-h-[400px] flex items-center justify-center">
       <div className="text-center">
-        <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">
+        <Loader2 className="h-12 w-12 mx-auto animate-spin text-purple-400" />
+        <p className="mt-4 text-slate-400">
           {loadingMessage || 'Loading Application Wizard...'}
         </p>
       </div>
-    </Card>
+    </StyledCard>
   );
 
   const renderJobStep = () => (
-    <Card>
+    <StyledCard>
       <CardHeader>
         <CardTitle>Step 1: Provide the Job Description</CardTitle>
         <CardDescription>
@@ -814,68 +845,80 @@ export function ApplicationWizardClient() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="job-select">Select from Saved/Found Jobs</Label>
+        <motion.div variants={itemVariants}>
+          <Label htmlFor="job-select" className="text-slate-300">
+            Select from Saved/Found Jobs
+          </Label>
           <RadioGroup
             id="job-select"
             value={selectedJobId}
             onValueChange={setSelectedJobId}
-            className="mt-2 space-y-1 max-h-40 overflow-y-auto border p-2 rounded-md"
+            className="mt-2 space-y-1 max-h-40 overflow-y-auto border border-slate-700 p-2 rounded-md"
           >
             {(mockJobListings || []).slice(0, 10).map((job) => (
               <Label
                 key={job.id}
-                className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted"
+                className="flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors hover:bg-slate-800 has-[:checked]:bg-purple-600/20 has-[:checked]:border-purple-500 border border-transparent"
               >
                 <RadioGroupItem value={job.id} />
                 {job.title} at {job.company}
               </Label>
             ))}
           </RadioGroup>
-          <Button
-            className="w-full mt-2"
-            disabled={!selectedJobId || isLoading}
-            onClick={() => handleJobContextSubmit('select', selectedJobId)}
-          >
-            Use Selected Job
-          </Button>
-        </div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white"
+              disabled={!selectedJobId || isLoading}
+              onClick={() => handleJobContextSubmit('select', selectedJobId)}
+            >
+              Use Selected Job
+            </Button>
+          </motion.div>
+        </motion.div>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+            <span className="w-full border-t border-slate-700" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or</span>
+            <span className="bg-slate-900 px-2 text-slate-500">Or</span>
           </div>
         </div>
-        <div>
-          <Label htmlFor="job-paste">Paste Job Description</Label>
+        <motion.div variants={itemVariants}>
+          <Label htmlFor="job-paste" className="text-slate-300">
+            Paste Job Description
+          </Label>
           <Textarea
             id="job-paste"
             placeholder="Paste the full job description here..."
-            className="mt-2 min-h-[150px]"
+            className="mt-2 min-h-[150px] bg-slate-800 border-slate-600 focus:border-purple-500"
             value={pastedJobDesc}
             onChange={(e) => setPastedJobDesc(e.target.value)}
           />
-          <Button
-            className="w-full mt-2"
-            disabled={!pastedJobDesc || isLoading}
-            onClick={() => handleJobContextSubmit('paste', pastedJobDesc)}
-          >
-            Use Pasted Description
-          </Button>
-        </div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white"
+              disabled={!pastedJobDesc || isLoading}
+              onClick={() => handleJobContextSubmit('paste', pastedJobDesc)}
+            >
+              Use Pasted Description
+            </Button>
+          </motion.div>
+        </motion.div>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+            <span className="w-full border-t border-slate-700" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or</span>
+            <span className="bg-slate-900 px-2 text-slate-500">Or</span>
           </div>
         </div>
-        <div>
+        <motion.div
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
           <Button
-            className="w-full"
+            className="w-full bg-slate-800 border border-slate-600 hover:bg-slate-700"
             variant="outline"
             onClick={() => jobDescFileInputRef.current?.click()}
             disabled={isLoading}
@@ -887,8 +930,8 @@ export function ApplicationWizardClient() {
               </>
             ) : (
               <>
-                <UploadCloud className="mr-2 h-4 w-4" /> Upload Job Description
-                File
+                <UploadCloud className="mr-2 h-4 w-4 text-purple-400" /> Upload
+                Job Description File
               </>
             )}
           </Button>
@@ -902,107 +945,31 @@ export function ApplicationWizardClient() {
             className="hidden"
             accept=".pdf,.png,.jpg,.jpeg"
           />
-          <p className="text-xs text-muted-foreground text-center mt-1">
+          <p className="text-xs text-slate-500 text-center mt-1">
             PDF, PNG, JPG supported
           </p>
-        </div>
+        </motion.div>
       </CardContent>
-    </Card>
+    </StyledCard>
   );
 
   const renderCvStep = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Step 2: Provide Your CV</CardTitle>
-        <CardDescription>
-          The AI needs your background to tailor it for the job.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label>Select from Saved CVs</Label>
-          <RadioGroup
-            value={selectedCvId}
-            onValueChange={setSelectedCvId}
-            className="mt-2 space-y-1 max-h-40 overflow-y-auto border p-2 rounded-md"
-          >
-            {mockUserProfile.savedCvs.length > 0 ? (
-              mockUserProfile.savedCvs.map((cv) => (
-                <Label
-                  key={cv.id}
-                  className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted"
-                >
-                  <RadioGroupItem value={cv.id} />
-                  {cv.name}
-                </Label>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center p-4">
-                No saved CVs.
-              </p>
-            )}
-          </RadioGroup>
-          <Button
-            className="w-full mt-2"
-            disabled={!selectedCvId || isLoading}
-            onClick={() => handleCvContextSubmit('saved', selectedCvId)}
-          >
-            Use Saved CV
-          </Button>
-        </div>
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or</span>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Button
-            variant="outline"
-            className="h-20"
-            onClick={() => handleCvContextSubmit('profile')}
-            disabled={isLoading}
-          >
-            <User className="mr-2 h-4 w-4" /> Use My Profile
-          </Button>
-          <Button
-            variant="outline"
-            className="h-20"
-            onClick={() => cvFileInputRef.current?.click()}
-            disabled={isLoading}
-          >
-            <UploadCloud className="mr-2 h-4 w-4" /> Upload CV File
-          </Button>
-          <Button
-            variant="outline"
-            className="h-20"
-            onClick={() => setWizardStep('createCv')}
-            disabled={isLoading}
-          >
-            <PlusCircle className="mr-2 h-4 w-4" /> Create New CV
-          </Button>
-          <input
-            type="file"
-            ref={cvFileInputRef}
-            onChange={handleCVContext}
-            className="hidden"
-            accept=".pdf,.doc,.docx"
-          />
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button variant="ghost" onClick={() => setWizardStep('job')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </CardFooter>
-    </Card>
+    <SleekCvStep
+      mockUserProfile={mockUserProfile}
+      handleCvContextSubmit={handleCvContextSubmit}
+      setWizardState={setWizardStep}
+      selectedCvId={selectedCvId}
+      setSelectedCvId={setSelectedCvId}
+      isLoading={isLoading}
+      loadingMessage={loadingMessage}
+      wizardStep={wizardStep}
+      setWizardStep={setWizardStep}
+      handleCVContext={handleCVContext}
+    />
   );
 
   const renderCreateCvStep = () => (
-    <Card>
+    <StyledCard>
       <CardHeader>
         <CardTitle>Create a New CV</CardTitle>
         <CardDescription>
@@ -1020,7 +987,7 @@ export function ApplicationWizardClient() {
                 <FormItem>
                   <FormLabel>
                     Target Job Title for this CV{' '}
-                    <span className="text-destructive">*</span>
+                    <span className="text-red-400">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -1039,8 +1006,7 @@ export function ApplicationWizardClient() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Professional Summary{' '}
-                    <span className="text-destructive">*</span>
+                    Professional Summary <span className="text-red-400">*</span>
                   </FormLabel>
                   <FormControl>
                     <Textarea
@@ -1058,7 +1024,7 @@ export function ApplicationWizardClient() {
 
             <div>
               <h3 className="text-lg font-medium mb-2">
-                Education <span className="text-destructive">*</span>
+                Education <span className="text-red-400">*</span>
               </h3>
               {eduFields.map((field, index) => (
                 <Card
@@ -1201,7 +1167,7 @@ export function ApplicationWizardClient() {
 
             <div>
               <h3 className="text-lg font-medium mb-2">
-                Work Experience <span className="text-destructive">*</span>
+                Work Experience <span className="text-red-400">*</span>
               </h3>
               {expFields.map((field, index) => (
                 <Card
@@ -1519,7 +1485,7 @@ export function ApplicationWizardClient() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Skills <span className="text-destructive">*</span>
+                    Skills <span className="text-red-400">*</span>
                   </FormLabel>
                   <FormControl>
                     <Textarea
@@ -1545,280 +1511,73 @@ export function ApplicationWizardClient() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button
-              type="button"
-              onClick={createCvForm.handleSubmit(handleCreateCvFormSubmit)}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Create & Use this CV
-                </>
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                type="button"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={createCvForm.handleSubmit(handleCreateCvFormSubmit)}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Create & Use this CV
+                  </>
+                )}
+              </Button>
+            </motion.div>
           </CardFooter>
         </form>
       </Form>
-    </Card>
+    </StyledCard>
   );
 
   const renderClStep = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Step 3: Cover Letter (Optional)</CardTitle>
-        <CardDescription>
-          Provide an existing cover letter to give the AI more context, or skip
-          to generate one from scratch.
-        </CardDescription>
-      </CardHeader>
-      <Form {...clForm}>
-        <form onSubmit={clForm.handleSubmit(handleClContextSubmit)}>
-          <CardContent>
-            <FormField
-              control={clForm.control}
-              name="clSource"
-              render={({ field }) => (
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="space-y-4"
-                >
-                  <Label className="flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:bg-muted has-[:checked]:border-primary">
-                    <RadioGroupItem value="skip" />
-                    Skip this step - Generate from scratch
-                  </Label>
-                  <Label className="flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:bg-muted has-[:checked]:border-primary">
-                    <RadioGroupItem value="paste" />
-                    Paste content from an old cover letter
-                  </Label>
-                  {clForm.watch('clSource') === 'paste' && (
-                    <FormField
-                      control={clForm.control}
-                      name="pastedCl"
-                      render={({ field }) => (
-                        <Textarea
-                          {...field}
-                          placeholder="Paste your draft cover letter here."
-                          className="min-h-[120px]"
-                        />
-                      )}
-                    />
-                  )}
-                  <Label className="flex items-center gap-2 p-3 border rounded-md cursor-pointer hover:bg-muted has-[:checked]:border-primary">
-                    <RadioGroupItem value="saved" />
-                    Use a saved cover letter
-                  </Label>
-                  {clForm.watch('clSource') === 'saved' && (
-                    <FormField
-                      control={clForm.control}
-                      name="savedClId"
-                      render={({ field }) => (
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="pl-6 space-y-1"
-                        >
-                          {mockUserProfile.savedCoverLetters.length > 0 ? (
-                            mockUserProfile.savedCoverLetters.map((cl) => (
-                              <Label
-                                key={cl.id}
-                                className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted/50 text-sm"
-                              >
-                                <RadioGroupItem value={cl.id} />
-                                {cl.name}
-                              </Label>
-                            ))
-                          ) : (
-                            <p className="text-xs text-muted-foreground p-2">
-                              No saved cover letters found.
-                            </p>
-                          )}
-                        </RadioGroup>
-                      )}
-                    />
-                  )}
-                </RadioGroup>
-              )}
-            />
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setWizardStep('cv')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-            <Button type="submit">
-              Next <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+    <SleekClStep
+      clForm={clForm}
+      handleClContextSubmit={handleClContextSubmit}
+      setWizardStep={setWizardStep}
+      mockUserProfile={mockUserProfile}
+      itemVariants={itemVariants}
+    />
   );
 
   const renderGenerateStep = () => (
-    <Card className="text-center">
-      <CardHeader>
-        <CardTitle>Ready to Generate?</CardTitle>
-        <CardDescription>
-          We'll use the job info and your CV to tailor your application
-          documents.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="p-4 border rounded-md bg-muted/50">
-          <p className="font-semibold text-primary">{jobContext?.jobTitle}</p>
-          <p className="text-sm text-muted-foreground">
-            Using CV: {cvContext?.name}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Cover Letter:{' '}
-            {clContext?.mode === 'skip'
-              ? 'Generate from scratch'
-              : `Based on ${clContext?.name}`}
-          </p>
-        </div>
-      </CardContent>
-      <CardFooter className="flex-col gap-4">
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={handleGenerate}
-          disabled={isLoading}
-        >
-          <Sparkles className="mr-2 h-5 w-5" /> Tailor My Application
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => setWizardStep('cl')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </CardFooter>
-    </Card>
+    <GenerateStep
+      isLoading={isLoading}
+      jobContext={jobContext}
+      cvContext={cvContext}
+      clContext={clContext}
+      handleGenerate={handleGenerate}
+      setWizardStep={setWizardStep}
+    />
   );
 
-  const renderGeneratingView = () => (
-    <Card className="min-h-[400px] flex items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-        <h2 className="text-xl font-semibold mt-4 font-headline">
-          {loadingMessage}
-        </h2>
-        <p className="mt-2 text-muted-foreground">This may take a moment...</p>
-      </div>
-    </Card>
-  );
+  const renderGeneratingView = () => <SleekLoadingCard />;
 
   const renderResultStep = () => (
-    <div className="space-y-6">
-      {jobContext && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline text-xl flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary" />
-              Job Details
-            </CardTitle>
-            <CardDescription>
-              This is the job you are creating an application for.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h3 className="font-bold text-lg">{jobContext.jobTitle}</h3>
-              <p className="text-muted-foreground">{jobContext.companyName}</p>
-            </div>
-            <Separator />
-            <div
-              className="prose dark:prose-invert max-w-none text-sm h-48 overflow-y-auto"
-              dangerouslySetInnerHTML={{ __html: jobContext.jobDescription }}
-            />
-          </CardContent>
-        </Card>
-      )}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl flex items-center gap-2">
-            <FileText className="text-primary" />
-            Tailored CV
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EditableMaterial
-            editorId="cv-editor"
-            title="CV"
-            content={refinedCv}
-            setContent={setRefinedCv}
-            isHtml
-          />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl flex items-center gap-2">
-            <FileCheck2 className="text-primary" />
-            Tailored Cover Letter
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EditableMaterial
-            editorId="cl-editor"
-            title="Cover Letter"
-            content={tailoredCl}
-            setContent={setTailoredCl}
-            isHtml
-          />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">
-            Application Email Draft
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EditableMaterial
-            editorId="email-editor"
-            title="Email"
-            content={emailDraft}
-            setContent={setEmailDraft}
-          />
-        </CardContent>
-      </Card>
-      <div className="flex justify-between items-center">
-        <Button variant="ghost" onClick={() => setWizardStep('generate')}>
-          <ArrowLeft className="mr-2" />
-          Back
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleSendEmail}>
-            Send Email
-          </Button>
-          <Button variant="outline" onClick={handleStartNew}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Start New Application
-          </Button>
-          <Button size="lg" onClick={handleSaveAndFinish}>
-            <Save className="mr-2" />
-            Save Application
-          </Button>
-        </div>
-      </div>
-    </div>
+    <ResultStep
+      jobContext={jobContext}
+      refinedCv={refinedCv}
+      setRefinedCv={setRefinedCv}
+      tailoredCl={tailoredCl}
+      setTailoredCl={setTailoredCl}
+      emailDraft={emailDraft}
+      setEmailDraft={setEmailDraft}
+      setWizardStep={setWizardStep}
+      handleSendEmail={handleSendEmail}
+      handleSaveAndFinish={handleSaveAndFinish}
+      handleStartNew={handleStartNew}
+    />
   );
 
   const renderStep = () => {
+    console.log('wizardStep', wizardStep);
     switch (wizardStep) {
       case 'loading':
         return renderLoadingStep();
@@ -1835,7 +1594,7 @@ export function ApplicationWizardClient() {
       case 'result':
         return renderResultStep();
       default:
-        return <p>Invalid step</p>;
+        return renderJobStep();
     }
   };
 
@@ -1862,10 +1621,10 @@ export function ApplicationWizardClient() {
         <AnimatePresence mode="wait">
           <motion.div
             key={wizardStep}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={containerVariants}
           >
             {renderStep()}
           </motion.div>

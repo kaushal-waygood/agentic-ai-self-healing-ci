@@ -280,6 +280,20 @@ const studentSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    // student Resume
+    getStudentResumeRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getStudentResumeSuccess: (state, action: PayloadAction<any>) => {
+      state.loading = false;
+      state.resume = action.payload;
+    },
+    getStudentResumeFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -340,5 +354,9 @@ export const {
   getStudentJobPreferenceRequest,
   getStudentJobPreferenceSuccess,
   getStudentJobPreferenceFailure,
+
+  getStudentResumeRequest,
+  getStudentResumeSuccess,
+  getStudentResumeFailure,
 } = studentSlice.actions;
 export default studentSlice.reducer;

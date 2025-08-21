@@ -1,3 +1,5 @@
+import { config } from '../config/config.js';
+
 export async function getFallbackJobsFromRapidAPI(req, res, preferences) {
   try {
     let queryParts = [];
@@ -21,15 +23,15 @@ export async function getFallbackJobsFromRapidAPI(req, res, preferences) {
 
     const query = queryParts.join(' AND ') || 'Software Engineer';
 
-    const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
+    const response = await axios.get(config.rapidJobApi, {
       params: {
         query,
         page: req.query.page || 1,
         num_pages: 20,
       },
       headers: {
-        'X-RapidAPI-Key': '0d3678f4demsh0fdb835e7b93d0cp15bf60jsnd8ee05c7fc47',
-        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+        'X-RapidAPI-Key': config.rapidApiKey,
+        'X-RapidAPI-Host': config.rapidApiHost,
       },
     });
 
@@ -157,41 +159,100 @@ export function convertSalaryToYearly(amount, period) {
 }
 
 // Helper function to calculate match score (0-100)
-export function calculateMatchScore(job, preferences) {
+export function calculateMatchScore(
+  job,
+  preferences = {},
+  jobRole = '',
+  skills = [],
+  experience = [],
+  education = [],
+) {
   let score = 0;
   const totalPossible = 100;
   let points = 0;
 
+  // If no preferences exist, calculate score based on profile data
+  if (!preferences || Object.keys(preferences).length === 0) {
+    // Job Role Match (30 points max)
+    if (jobRole && job.title) {
+      const roleMatchStrength = getMatchStrength(job.title, jobRole);
+      points += roleMatchStrength * 30;
+    }
+
+    // Skills Match (30 points max)
+    if (
+      skills.length > 0 &&
+      (job.description || job.qualifications || job.tags)
+    ) {
+      const jobText = [
+        job.description || '',
+        ...(job.qualifications || []),
+        ...(job.tags || []),
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      const matchedSkills = skills.filter(
+        (skill) => skill.skill && jobText.includes(skill.skill.toLowerCase()),
+      );
+      points += (matchedSkills.length / skills.length) * 30;
+    }
+
+    // Experience Match (20 points max)
+    if (experience.length > 0) {
+      const jobText = `${job.title || ''} ${
+        job.description || ''
+      }`.toLowerCase();
+      const matchedExperience = experience.filter(
+        (exp) =>
+          (exp.title && jobText.includes(exp.title.toLowerCase())) ||
+          (exp.designation && jobText.includes(exp.designation.toLowerCase())),
+      );
+      points += (matchedExperience.length / experience.length) * 20;
+    }
+
+    // Education Match (20 points max)
+    if (education.length > 0 && (job.description || job.qualifications)) {
+      const jobText = `${job.description || ''} ${
+        job.qualifications || ''
+      }`.toLowerCase();
+      const matchedEducation = education.filter(
+        (edu) =>
+          (edu.fieldOfStudy &&
+            jobText.includes(edu.fieldOfStudy.toLowerCase())) ||
+          (edu.degree && jobText.includes(edu.degree.toLowerCase())),
+      );
+      points += (matchedEducation.length / education.length) * 20;
+    }
+
+    return Math.min(Math.round(points), 100);
+  }
+
+  // Preference-based scoring (original logic with enhancements)
+
   // Location match (20 points)
   if (preferences.isRemote && job.isRemote) {
     points += 20;
-  } else if (
-    preferences.preferedCountries &&
-    preferences.preferedCountries.length > 0
-  ) {
-    if (
-      preferences.preferedCountries.some(
-        (c) =>
-          job.country && job.country.toLowerCase().includes(c.toLowerCase()),
-      )
-    ) {
+  } else if (preferences.preferedCountries?.length > 0) {
+    const countryMatch = preferences.preferedCountries.some(
+      (c) => job.country && job.country.toLowerCase().includes(c.toLowerCase()),
+    );
+
+    if (countryMatch) {
       points += 10;
-      if (preferences.preferedCities && preferences.preferedCities.length > 0) {
-        if (
-          preferences.preferedCities.some(
-            (c) =>
-              job.location?.city &&
-              job.location.city.toLowerCase().includes(c.toLowerCase()),
-          )
-        ) {
-          points += 10;
-        }
+
+      // City match (additional 10 points if country matches)
+      if (preferences.preferedCities?.length > 0 && job.location?.city) {
+        const cityMatch = preferences.preferedCities.some((c) =>
+          job.location.city.toLowerCase().includes(c.toLowerCase()),
+        );
+        if (cityMatch) points += 10;
       }
     }
   }
 
   // Job type match (15 points)
-  if (preferences.preferedJobTypes && job.jobTypes) {
+  if (preferences.preferedJobTypes?.length && job.jobTypes?.length) {
     const matchingTypes = job.jobTypes.filter((type) =>
       preferences.preferedJobTypes.includes(type),
     );
@@ -201,17 +262,21 @@ export function calculateMatchScore(job, preferences) {
   }
 
   // Title match (15 points)
-  if (
-    preferences.preferedJobTitles &&
-    preferences.preferedJobTitles.length > 0
-  ) {
-    if (
-      preferences.preferedJobTitles.some(
-        (title) =>
-          job.title && job.title.toLowerCase().includes(title.toLowerCase()),
-      )
-    ) {
+  if (preferences.preferedJobTitles?.length) {
+    const titleMatch = preferences.preferedJobTitles.some(
+      (title) =>
+        job.title && job.title.toLowerCase().includes(title.toLowerCase()),
+    );
+
+    if (titleMatch) {
       points += 15;
+    } else if (
+      jobRole &&
+      job.title &&
+      job.title.toLowerCase().includes(jobRole.toLowerCase())
+    ) {
+      // Fallback to jobRole if no title matches
+      points += 10;
     }
   }
 
@@ -236,7 +301,7 @@ export function calculateMatchScore(job, preferences) {
   }
 
   // Skills match (20 points)
-  if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
+  if (preferences.mustHaveSkills?.length > 0) {
     const jobText = [
       job.description || '',
       ...(job.qualifications || []),
@@ -253,24 +318,14 @@ export function calculateMatchScore(job, preferences) {
 
   // Experience match (10 points)
   if (preferences.preferedExperienceLevel) {
-    let prefExpLevel;
-    switch (preferences.preferedExperienceLevel) {
-      case 'ENTRY_LEVEL':
-        prefExpLevel = 0;
-        break;
-      case 'MID_LEVEL':
-        prefExpLevel = 3;
-        break;
-      case 'SENIOR':
-        prefExpLevel = 5;
-        break;
-      default:
-        prefExpLevel = 0;
-    }
+    const prefExpLevel = getExperienceLevelValue(
+      preferences.preferedExperienceLevel,
+    );
+    const jobExpLevel = job.experience || 0;
 
-    if (job.experience <= prefExpLevel) {
+    if (jobExpLevel <= prefExpLevel) {
       points += 10;
-    } else if (job.experience <= prefExpLevel + 2) {
+    } else if (jobExpLevel <= prefExpLevel + 2) {
       points += 5;
     }
   }
@@ -282,3 +337,54 @@ export function calculateMatchScore(job, preferences) {
 
   return Math.min(Math.round((points / totalPossible) * 100), 100);
 }
+
+// Helper function to convert experience level to numeric value
+function getExperienceLevelValue(level) {
+  switch (level) {
+    case 'ENTRY_LEVEL':
+      return 0;
+    case 'MID_LEVEL':
+      return 3;
+    case 'SENIOR':
+      return 5;
+    case 'EXPERT':
+      return 8;
+    default:
+      return 0;
+  }
+}
+
+// Helper function to calculate match strength between strings
+function getMatchStrength(text, searchTerm) {
+  if (!text || !searchTerm) return 0;
+
+  const textLower = text.toLowerCase();
+  const termLower = searchTerm.toLowerCase();
+
+  if (textLower === termLower) return 1;
+  if (textLower.includes(termLower)) return 0.8;
+
+  // Tokenize and check partial matches
+  const textWords = textLower.split(/\s+/);
+  const termWords = termLower.split(/\s+/);
+
+  const matchingWords = termWords.filter((word) =>
+    textWords.some((tWord) => tWord.includes(word)),
+  );
+
+  return matchingWords.length / termWords.length;
+}
+
+// export function convertSalaryToYearly(amount, period) {
+//   if (!amount) return 0;
+
+//   const multipliers = {
+//     HOUR: 2080, // 40 hrs/week * 52 weeks
+//     DAY: 260, // 5 days/week * 52 weeks
+//     WEEK: 52,
+//     MONTH: 12,
+//     YEAR: 1,
+//   };
+
+//   return amount * (multipliers[convertSalaryToYearlyperiod] || 1);
+// }

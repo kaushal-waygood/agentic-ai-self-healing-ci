@@ -11,7 +11,7 @@ const appliedJobSchema = new Schema(
     job: {
       type: Schema.Types.ObjectId,
       ref: 'Job',
-      required: true,
+      // required: true,
     },
     applicationDate: {
       type: Date,

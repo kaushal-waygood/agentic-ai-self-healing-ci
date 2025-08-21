@@ -17,7 +17,6 @@ import {
 } from '../ui/form';
 import { Input } from '../ui/input';
 import { Separator } from '../ui/separator';
-
 import { Select, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { mockUserProfile } from '@/lib/data/user';
@@ -30,32 +29,52 @@ import {
   PlusCircle,
   UploadCloud,
 } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 const CvWizard = ({
   form,
   errors,
   isLoading,
-  //   fileInputRef,
   loadingMessage,
   handleFileUpload,
   setWizardStep,
   wizardStep,
   handleGoToNextStep,
   baseCvId,
+  setIsLoading,
+  setLoadingMessage,
 }: {
   form: any;
   errors: any;
   isLoading: boolean;
-  //   fileInputRef: any;
   loadingMessage: string;
-  handleFileUpload: () => void;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   setWizardStep: (step: any) => void;
-  //   handleGoToNextStep; (step: any) => void;
+  wizardStep: string;
+  handleGoToNextStep: (step: string, fields?: string[]) => void;
   baseCvId: string;
+  setIsLoading: (loading: boolean) => void;
+  setLoadingMessage: (message: string) => void;
 }) => {
-  console.log('CV WIZARD');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Watch for changes in baseCvId to auto-proceed
+  useEffect(() => {
+    if (baseCvId) {
+      const timer = setTimeout(() => {
+        handleGoToNextStep('cv', ['baseCvId']);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [baseCvId, handleGoToNextStep]);
+
+  const handleUploadClick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      await handleFileUpload(e);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    }
+  };
 
   return (
     <Card>
@@ -112,7 +131,10 @@ const CvWizard = ({
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              fileInputRef.current?.click();
+              console.log('fileInputRef.current', fileInputRef.current);
+            }}
             disabled={isLoading}
           >
             {isLoading && loadingMessage ? (
@@ -130,7 +152,7 @@ const CvWizard = ({
           <input
             type="file"
             ref={fileInputRef}
-            onChange={handleFileUpload}
+            onChange={handleUploadClick}
             className="hidden"
             accept=".pdf,.doc,.docx,.png,.jpg"
           />
@@ -157,7 +179,7 @@ const CvWizard = ({
         <Button
           type="button"
           onClick={() => handleGoToNextStep('cv', ['baseCvId'])}
-          disabled={!baseCvId}
+          disabled={!baseCvId || isLoading}
         >
           Next: Cover Letter <ArrowRight className="ml-2 h-4 w-4" />
         </Button>

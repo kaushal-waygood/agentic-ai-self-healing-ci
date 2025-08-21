@@ -1,12 +1,11 @@
+'use client';
 
-"use client";
-
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { PageHeader } from "@/components/common/page-header";
-import { UserCheck } from "lucide-react";
-import { ProfileForm } from "@/components/profile/profile-form";
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { PageHeader } from '@/components/common/page-header';
+import { UserCheck } from 'lucide-react';
+import { ProfileForm } from '@/components/profile/profile-form';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -17,12 +16,12 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     // In a real app, you might await an API call. Here we simulate it.
     setTimeout(() => {
-        toast({
-          title: "Profile Created!",
-          description: "Your information has been saved. Welcome to CareerPilot!",
-        });
-        router.push('/dashboard');
-        setIsSubmitting(false);
+      toast({
+        title: 'Profile Created!',
+        description: 'Your information has been saved. Welcome to CareerPilot!',
+      });
+      router.push('/dashboard');
+      setIsSubmitting(false);
     }, 1000);
   };
 
@@ -33,11 +32,11 @@ export default function OnboardingPage() {
         description="Let's find your next job. Start by completing your profile for the best experience."
         icon={UserCheck}
       />
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-full mx-auto">
         {/* We now use the centralized ProfileForm for a consistent experience */}
-        <ProfileForm 
-          onSave={handleProfileSave} 
-          isSubmitting={isSubmitting} 
+        <ProfileForm
+          onSave={handleProfileSave}
+          isSubmitting={isSubmitting}
           isOnboarding={true}
         />
       </div>

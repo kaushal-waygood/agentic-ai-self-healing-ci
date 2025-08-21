@@ -13,7 +13,7 @@ import organizationRoutes from './routes/organization.route.js';
 import jobRoutes from './routes/job.route.js';
 import studentRoutes from './routes/student.route.js';
 import aiRoutes from './routes/ai.route.js';
-import { startCronJobs } from './config/cron-config.js';
+import agentRoutes from './routes/autopilotAgent.route.js';
 
 const app = express();
 
@@ -63,8 +63,6 @@ app.use(
 app.use(cookieParser());
 app.use(morgan('dev'));
 
-startCronJobs();
-
 // 5. Route Middleware
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/job-role', jobRoleRoutes);
@@ -72,6 +70,7 @@ app.use('/api/v1/organization', organizationRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/students', studentRoutes);
 app.use('/api/v1/students', aiRoutes);
+app.use('/api/v1/pilotagent', agentRoutes);
 
 // 6. 404 Handler
 app.use((req, res, next) => {

@@ -1,173 +1,158 @@
-// // autopilot/jobApplyQueue.js
-// import Queue from 'bull';
-// import { Student } from '../models/student.model.js'; // Adjust path as per your project structure
-// import { AppliedJob } from '../models/AppliedJob.js'; // Adjust path as per your project structure
-// import {
-//   sendJobApplicationEmail,
-//   getRecruiterEmail,
-// } from '../services/emailService.js'; // Adjust path
-// import aiTaskQueue from './aiTaskQueue.js'; // Import the AI task queue
-
-// // Initialize the Bull.js queue for job application tasks
-// const jobApplyQueue = new Queue('job application', {
-//   redis: {
-//     host: process.env.REDIS_HOST || '127.0.0.1', // Use environment variable for Redis host
-//     port: process.env.REDIS_PORT || 6379, // Use environment variable for Redis port
-//   },
-//   // Limiter ensures jobs are processed sequentially to avoid rate limits on email sending or APIs
-//   limiter: {
-//     max: 1, // Process a maximum of 1 job at a time
-//     duration: 10000, // Wait 10 seconds between processing each job
-//   },
-// });
-
-// /**
-//  * Processes individual job application tasks.
-//  * This worker performs the following steps sequentially for each job:
-//  * 1. Fetches student data and their OAuth credentials.
-//  * 2. Extracts the recruiter's email from the job data.
-//  * 3. Enqueues an AI task to generate a cover letter and waits for its completion.
-//  * 4. Sends the job application email using the generated cover letter.
-//  * 5. Logs the successful application in the AppliedJob collection.
-//  */
-// jobApplyQueue.process(async (job) => {
-//   console.log(
-//     'Starting job application process for:',
-//     job.data.jobData.job?.title,
-//   );
-//   const { studentId, jobData: jobData } = job.data;
-//   console.log(
-//     `[JobApplyQueue] Processing application for student ${studentId} to job: ${jobData.job.title}`,
-//   );
-
-//   try {
-//     // 1. Fetch student data, including OAuth refresh token and name
-//     const student = await Student.findById(studentId).select('fullName email ');
-
-//     // 2. Extract the recruiter's email
-//     // Assuming jobData.applyMethod.email is the direct email field
-//     const recipientEmail =
-//       jobData.applyMethod?.email || getRecruiterEmail(jobData);
-//     if (!recipientEmail) {
-//       console.error(
-//         `[JobApplyQueue] No recipient email found for job: ${jobData.title} (Job ID: ${jobData._id}).`,
-//       );
-//       // If no email, this application cannot be sent. Throw error.
-//       throw new Error('No recipient email found for job.');
-//     }
-
-//     // 3. Enqueue and wait for AI-generated cover letter
-//     // Add a job to the 'ai tasks' queue, specifying the task type 'generate_cover_letter'
-//     const aiJob = await aiTaskQueue.add('generate_cover_letter', {
-//       jobData: jobData,
-//       studentData: {
-//         fullName: student.fullName,
-//         email: student.email,
-//         // Pass other relevant student data for AI context, like skills, experience
-//         skills: student.skills, // Assuming student.skills exists and is relevant for CV/cover letter
-//         experience: student.experience, // Assuming student.experience exists
-//       },
-//     });
-//     // Wait for the AI task to complete and get the result (the generated cover letter)
-//     const generatedCoverLetter = await aiJob.finished();
-//     console.log(
-//       `[JobApplyQueue] AI-generated cover letter received for job: ${jobData.title}.`,
-//     );
-
-//     // 4. Send the job application email
-//     // Pass the AI-generated cover letter to the email service
-//     await sendJobApplicationEmail(
-//       jobData,
-//       student,
-//       recipientEmail,
-//       generatedCoverLetter,
-//     );
-
-//     // 5. Log the successful application in the AppliedJob collection
-//     await AppliedJob.create({
-//       student: studentId,
-//       job: jobData._id,
-//       applicationDate: new Date(),
-//       status: 'APPLIED', // Set status as 'APPLIED'
-//       applicationMethod: 'AUTOPILOT', // Indicate it was sent by autopilot
-//       // Optionally store links to generated content if they are persisted elsewhere
-//       // coverLetterLink: 'url_to_generated_cover_letter.pdf',
-//       // cvLink: 'url_to_generated_cv.pdf',
-//     });
-//     console.log(
-//       `[JobApplyQueue] Successfully applied and logged for job ID: ${jobData._id}.`,
-//     );
-//   } catch (error) {
-//     console.error(
-//       `[JobApplyQueue] Error processing application for student ${studentId} to job ${jobData.title}:`,
-//       error.message,
-//     );
-//     // Throwing the error here tells Bull.js that this job failed.
-//     // Bull.js's 'attempts' and 'backoff' settings will handle retries.
-//     throw error;
-//   }
-// });
-
-// // --- Event Listeners for Queue Monitoring (Optional but highly recommended) ---
-// // Add this to your jobApplyQueue initialization
-// jobApplyQueue.on('waiting', (jobId) => {
-//   console.log(`Job ${jobId} is waiting`);
-// });
-
-// jobApplyQueue.on('progress', (job, progress) => {
-//   console.log(`Job ${job.id} is ${progress}% complete`);
-// });
-
-// jobApplyQueue.on('completed', (job) => {
-//   console.log(
-//     `[JobApplyQueue] Application task ${job.id} completed successfully.`,
-//   );
-// });
-
-// jobApplyQueue.on('failed', (job, error) => {
-//   console.error(
-//     `[JobApplyQueue] Application task ${job.id} failed: ${error.message}.`,
-//   );
-//   // Log detailed error for debugging
-//   console.error(error);
-// });
-
-// jobApplyQueue.on('active', (job) => {
-//   console.log(
-//     `[JobApplyQueue] Application task ${job.id} is active for job: ${job.data.jobData.title}.`,
-//   );
-// });
-
-// jobApplyQueue.on('stalled', (jobId) => {
-//   console.warn(
-//     `[JobApplyQueue] Job ${jobId} stalled. This might indicate an issue with the worker.`,
-//   );
-// });
-
-// jobApplyQueue.on('error', (error) => {
-//   console.error(`[JobApplyQueue] Queue error: ${error.message}`);
-// });
-
-// export default jobApplyQueue;
-
-import { sendJobApplicationEmail } from '../services/emailService.js';
+// autopilot/jobApplyQueue.js
+import Queue from 'bull';
 import { Student } from '../models/student.model.js';
-import { Job } from '../models/jobs.model.js';
+import { AppliedJob } from '../models/AppliedJob.js';
+import { sendJobApplicationEmail } from '../services/emailService.js';
+import mongoose from 'mongoose';
 
-// Example usage
-const student = await Student.findById('student123').select('fullName email');
-const job = await Job.findById('job456');
+const jobApplyQueue = new Queue('job application', {
+  redis: {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT) || 6379,
+  },
+  settings: {
+    stalledInterval: 60000,
+    maxStalledCount: 1,
+    lockDuration: 30000,
+  },
+  limiter: {
+    max: 1,
+    duration: 10000,
+  },
+});
 
-if (student && job) {
-  const success = await sendJobApplicationEmail(
-    job,
-    student,
-    'recruiter@company.com', // or job.applyMethod.email
+jobApplyQueue.process(async (job) => {
+  const { studentId, jobData } = job.data;
+
+  console.log(
+    `Processing application for student ${studentId} to job: ${jobData.job?.title}`,
   );
 
-  if (success) {
-    console.log('Application sent successfully!');
-  } else {
-    console.log('Failed to send application');
+  try {
+    // 1. First check if autopilot is still enabled
+    const student = await Student.findById(studentId).select(
+      'settings.autopilotEnabled',
+    );
+    if (!student) {
+      throw new Error(`Student not found with ID: ${studentId}`);
+    }
+
+    if (!student.settings.autopilotEnabled) {
+      console.log(
+        `Autopilot disabled - skipping application for student ${studentId}`,
+      );
+      return { skipped: true, reason: 'Autopilot disabled' };
+    }
+
+    // 2. Validate job data
+    if (!jobData?.job || typeof jobData.job !== 'object') {
+      throw new Error('Invalid job data: missing job object');
+    }
+
+    const requiredFields = ['title', 'company', 'description'];
+    const missingFields = requiredFields.filter((field) => !jobData.job[field]);
+    if (missingFields.length > 0) {
+      throw new Error(
+        `Missing required job fields: ${missingFields.join(', ')}`,
+      );
+    }
+
+    // 3. Generate MongoDB ObjectId if needed
+    if (!mongoose.Types.ObjectId.isValid(jobData.job._id)) {
+      jobData.job._id = new mongoose.Types.ObjectId();
+    }
+
+    // 4. Get full student data
+    const fullStudent = await Student.findById(studentId).select(
+      'fullName email skills experience',
+    );
+
+    // 5. Send application email
+    const recipientEmail =
+      process.env.DEFAULT_RECIPIENT_EMAIL || 'careers@example.com';
+    const emailResult = await sendJobApplicationEmail({
+      jobData,
+      student: fullStudent,
+      recipientEmail: 'arsalan@helpstudyabroad.com',
+    });
+
+    if (emailResult.rejected?.length > 0) {
+      throw new Error(
+        `Email rejected by recipient server: ${emailResult.rejected.join(
+          ', ',
+        )}`,
+      );
+    }
+
+    // 6. Record application
+    await AppliedJob.create({
+      student: studentId,
+      job: jobData.job._id,
+      applicationDate: new Date(),
+      status: 'APPLIED',
+      applicationMethod: 'AUTOPILOT',
+      jobTitle: jobData.job.title,
+      company: jobData.job.company,
+      source: jobData.source || 'external',
+      emailConfirmation: {
+        messageId: emailResult.messageId,
+        accepted: emailResult.accepted,
+        timestamp: new Date(),
+      },
+    });
+
+    console.log(
+      `Successfully applied to ${jobData.job.title} at ${jobData.job.company}`,
+    );
+    return { success: true };
+  } catch (error) {
+    console.error(
+      `Error processing application for student ${studentId}:`,
+      error.message,
+    );
+    throw error;
   }
-}
+});
+
+// Enhanced event listeners with better logging
+jobApplyQueue.on('completed', (job, result) => {
+  if (result?.skipped) {
+    console.log(`Job ${job.id} skipped: ${result.reason}`);
+  } else {
+    console.log(`Job ${job.id} completed successfully`);
+  }
+});
+
+jobApplyQueue.on('failed', (job, err) => {
+  console.error(`Job ${job.id} failed with error:`, err.message);
+  if (job) {
+    console.error(
+      'Job data:',
+      JSON.stringify(
+        {
+          studentId: job.data.studentId,
+          jobTitle: job.data.jobData?.job?.title,
+        },
+        null,
+        2,
+      ),
+    );
+  }
+});
+
+// Cleanup jobs
+// const cleanQueue = async () => {
+//   try {
+//     await jobApplyQueue.clean(7 * 24 * 60 * 60 * 1000, 'completed');
+//     await jobApplyQueue.clean(14 * 24 * 60 * 60 * 1000, 'failed');
+//     console.log('Queue cleanup completed');
+//   } catch (err) {
+//     console.error('Queue cleanup failed:', err);
+//   }
+// };
+
+// Run cleanup daily
+// setInterval(cleanQueue, 24 * 60 * 60 * 1000);
+// cleanQueue(); // Initial cleanup
+
+export default jobApplyQueue;

@@ -35,7 +35,7 @@ export const studentDetails = async (req, res) => {
 
   try {
     const cachedData = await redisClient.get(cacheKey);
-    if (cachedData) {
+    if (cachedData !== null) {
       return res.status(200).json({
         studentDetails: JSON.parse(cachedData),
         fromCache: true,

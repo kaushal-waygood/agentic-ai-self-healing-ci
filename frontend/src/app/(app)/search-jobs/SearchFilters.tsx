@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Filter } from 'lucide-react';
+import { Filter, Search, Briefcase, TrendingUp, X, Globe, MapPin } from 'lucide-react';
 import { debounce } from 'lodash';
 
 export const datePostedOptions = [
@@ -38,17 +38,17 @@ export const SearchFilters = ({
   onSearchChange,
   onOpenFilterModal,
 }: SearchFiltersProps) => {
-  const [localFilters, setLocalFilters] = useState<FilterState>(initialFilters);
+  const [localFilters, setLocalFilters] = useState(initialFilters);
 
-  // Debounced search change handler
+  // Your debounced logic is preserved
   const debouncedSearch = useCallback(
-    debounce((filters: FilterState) => {
+    debounce((filters) => {
       onSearchChange(filters);
     }, 500),
-    [],
+    [onSearchChange],
   );
 
-  const handleInputChange = (name: keyof FilterState, value: string) => {
+  const handleInputChange = (name: string, value: string) => {
     const newFilters = { ...localFilters, [name]: value };
     setLocalFilters(newFilters);
     debouncedSearch(newFilters);
@@ -59,56 +59,45 @@ export const SearchFilters = ({
   }, [initialFilters]);
 
   return (
-    <div className="flex flex-wrap items-center justify-between mb-6 gap-3">
-      <div className="flex flex-1 items-center gap-2 min-w-[300px]">
-        <Input
-          placeholder="Job title, keywords, or company"
-          value={localFilters.query}
-          onChange={(e) => handleInputChange('query', e.target.value)}
-          className="outline-none bg-white"
-        />
-
-        <Input
-          placeholder="Country"
-          value={localFilters.country}
-          onChange={(e) => handleInputChange('country', e.target.value)}
-          className="outline-none bg-white"
-        />
-
-        <Input
-          placeholder="City"
-          value={localFilters.city}
-          onChange={(e) => handleInputChange('city', e.target.value)}
-          className="outline-none bg-white"
-        />
-
-        <Select
-          value={localFilters.datePosted}
-          onValueChange={(value) => handleInputChange('datePosted', value)}
-        >
-          <SelectTrigger className="outline-none bg-white">
-            <SelectValue placeholder="Date Posted" />
-          </SelectTrigger>
-          <SelectContent className="outline-none bg-white">
-            {datePostedOptions.map((option) => (
-              <SelectItem key={option.id} value={option.id}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {/* Only show the "More Filters" button now */}
-        <Button
-          variant="outline"
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex-1 min-w-[250px] relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Job title, keywords, or company..."
+            // value={localFilters.query}
+            onChange={(e) => handleInputChange('query', e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
+          />
+        </div>
+        <div className="flex-1 min-w-[150px] relative">
+          <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Country"
+            value={localFilters.country}
+            onChange={(e) => handleInputChange('country', e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
+          />
+        </div>
+        <div className="flex-1 min-w-[150px] relative">
+          <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="City"
+            value={localFilters.city}
+            onChange={(e) => handleInputChange('city', e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
+          />
+        </div>
+        <button
           onClick={onOpenFilterModal}
-          className="flex items-center gap-2 bg-white"
+          className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
         >
-          <Filter className="h-4 w-4" />
+          <Filter className="w-4 h-4" />
           More Filters
-        </Button>
+        </button>
       </div>
     </div>
   );

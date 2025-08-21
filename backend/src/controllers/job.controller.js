@@ -2,7 +2,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { Job } from '../models/jobs.model.js';
-import { config } from '../config/config.js';
 import axios from 'axios';
 import {
   extractExperience,
@@ -11,6 +10,7 @@ import {
   extractResponsibilitiesFromDescription,
 } from '../utils/exprienceExtractor.js';
 import redisClient from '../config/redis.js';
+import { config } from '../config/config.js';
 
 export const postManualJob = async (req, res) => {
   const { _id } = req.user;
@@ -106,13 +106,11 @@ export const fetchAndSaveRapidJobsUseLater = async (req, res) => {
       num_pages: 5, // Reduced from 20 to avoid hitting rate limits
     };
 
-    const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
+    const response = await axios.get(config.rapidJobApi, {
       params,
       headers: {
-        'X-RapidAPI-Key':
-          process.env.RAPIDAPI_KEY ||
-          'c7ba6ca0c9mshc1e7b4827328e98p1be463jsn88e70a3f4bcc',
-        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+        'X-RapidAPI-Key': config.rapidApiKey,
+        'X-RapidAPI-Host': config.rapidApiHost,
       },
     });
 
@@ -303,15 +301,15 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
   }
 
   try {
-    const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
+    const response = await axios.get(config.rapidJobApi, {
       params: {
         query,
         page: 1,
         num_pages: 20,
       },
       headers: {
-        'X-RapidAPI-Key': '0d3678f4demsh0fdb835e7b93d0cp15bf60jsnd8ee05c7fc47',
-        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+        'X-RapidAPI-Key': config.rapidApiKey,
+        'X-RapidAPI-Host': config.rapidApiHost,
       },
     });
 

@@ -1,183 +1,370 @@
+'use client';
 
-"use client";
-
-import Link from "next/link";
-import { mockFooterData } from "@/lib/data/footer";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Rocket,
+  Mail,
+  MapPin,
+  Phone,
+  Heart,
+  Globe,
+  ExternalLink,
   Send,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-  Youtube,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
-
-const TiktokIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M16.5 4A3.5 3.5 0 0 0 13 7.5V15a6 6 0 1 1-6-6v2.5a3.5 3.5 0 1 0 7 0V9a1.5 1.5 0 0 1-3 0V7.5a1.5 1.5 0 0 1 3 0V15a4.5 4.5 0 1 1-9 0V7.5a6 6 0 1 1 12 0v-2a1.5 1.5 0 0 0-1.5-1.5Z" />
-  </svg>
-);
-
-const socialIcons: { [key: string]: React.ElementType } = {
-  facebook: Facebook,
-  twitter: Twitter,
-  instagram: Instagram,
-  linkedin: Linkedin,
-  youtube: Youtube,
-  tiktok: TiktokIcon,
-};
+  ChevronUp,
+  Rocket,
+} from 'lucide-react';
+import './styles/footer.css'; // Import the new CSS file
+import { footerLinks, socialLinks } from '@/services/dummy/Footer';
 
 export function Footer() {
-  const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [isClient, setIsClient] = useState(false);
-  const footerData = mockFooterData;
+  const [isVisible, setIsVisible] = useState(false);
+  const [hoveredLink, setHoveredLink] = useState(null);
+  const [email, setEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState('idle');
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const footerRef = useRef(null);
 
   useEffect(() => {
-    setIsClient(true);
+    setIsVisible(true);
+
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 500);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      toast({
-        title: "Subscribed!",
-        description: "Thanks for subscribing to our newsletter.",
-      });
-      setEmail("");
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (footerRef.current) {
+        const rect = footerRef.current.getBoundingClientRect();
+        setMousePosition({
+          x: ((e.clientX - rect.left) / rect.width) * 100,
+          y: ((e.clientY - rect.top) / rect.height) * 100,
+        });
+      }
+    };
+
+    const footer = footerRef.current;
+    if (footer) {
+      footer.addEventListener('mousemove', handleMouseMove);
+      return () => footer.removeEventListener('mousemove', handleMouseMove);
     }
+  }, []);
+
+  const handleNewsletterSubmit = (e) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setNewsletterStatus('loading');
+
+    // Simulate API call
+    setTimeout(() => {
+      setNewsletterStatus('success');
+      setEmail('');
+      setTimeout(() => setNewsletterStatus('idle'), 3000);
+    }, 1500);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const LinkItem = ({ item, index, section }) => {
+    const IconComponent = item.icon;
+
+    return (
+      <li
+        style={{
+          transform: `translateY(${isVisible ? 0 : 30}px)`,
+          opacity: isVisible ? 1 : 0,
+          transitionDelay: `${index * 50 + section * 200}ms`,
+        }}
+      >
+        <a
+          href="#"
+          className="group flex items-center gap-2 text-gray-400 hover:text-white transition-all duration-300 py-1 rounded-lg hover:bg-white/5 px-2 -mx-2"
+          onMouseEnter={() => setHoveredLink(`${section}-${index}`)}
+          onMouseLeave={() => setHoveredLink(null)}
+        >
+          {IconComponent && (
+            <IconComponent className="w-3 h-3 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
+          )}
+          <span className="group-hover:translate-x-1 transition-transform duration-300">
+            {item.name}
+          </span>
+          {item.badge && (
+            <span
+              className={`
+              text-xs px-2 py-0.5 rounded-full font-semibold
+              ${
+                item.badge === 'New' ? 'bg-emerald-500/20 text-emerald-400' : ''
+              }
+              ${item.badge === 'Popular' ? 'bg-blue-500/20 text-blue-400' : ''}
+              ${
+                item.badge === 'Hiring'
+                  ? 'bg-orange-500/20 text-orange-400'
+                  : ''
+              }
+              ${
+                item.badge === 'Live'
+                  ? 'bg-green-500/20 text-green-400 animate-pulse'
+                  : ''
+              }
+            `}
+            >
+              {item.badge}
+            </span>
+          )}
+          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        </a>
+      </li>
+    );
   };
 
   return (
-    <footer className="bg-card text-card-foreground border-t">
-      <div className="container py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {/* Company Info */}
-          <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-2">
-              <Rocket className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold font-headline">
-                {footerData.company.name}
-              </span>
-            </Link>
-            <p className="text-sm text-muted-foreground">
-              {footerData.company.tagline}
-            </p>
-            <div className="space-y-1 text-sm">
-              <p>{footerData.company.address}</p>
-              <p>
-                <strong>Email:</strong> {footerData.company.email}
-              </p>
-              <p>
-                <strong>Phone:</strong> {footerData.company.phone}
+    <footer
+      ref={footerRef}
+      className="relative overflow-hidden"
+      style={{
+        background: `
+          radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+          linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%)
+        `,
+      }}
+    >
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full blur-3xl animate-float opacity-60" />
+        <div
+          className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 rounded-full blur-3xl animate-float opacity-60"
+          style={{ animationDelay: '2s' }}
+        />
+
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-5 footer-grid-pattern" />
+      </div>
+
+      <div className="container mx-auto px-6 py-20 relative z-10">
+        {/* Newsletter Section */}
+        <div
+          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 mb-16 hover:bg-white/10 transition-all duration-500 group"
+          style={{
+            transform: `translateY(${isVisible ? 0 : 50}px)`,
+            opacity: isVisible ? 1 : 0,
+            transitionDelay: '0.2s',
+          }}
+        >
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl group-hover:rotate-6 transition-transform duration-500">
+                <Mail className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  Stay Updated
+                </h3>
+                <p className="text-gray-400">
+                  Get the latest AI job search tips and product updates.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 w-full lg:w-auto">
+              <div className="relative flex-1 lg:w-80">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300"
+                />
+              </div>
+              <button
+                onClick={handleNewsletterSubmit}
+                disabled={newsletterStatus === 'loading'}
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:scale-105 transition-all duration-300 disabled:opacity-50"
+              >
+                {newsletterStatus === 'loading' ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : newsletterStatus === 'success' ? (
+                  <span className="text-green-400">✓</span>
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+                {newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-6 gap-12">
+          {/* Enhanced Brand Section */}
+          <div className="lg:col-span-2">
+            <div
+              className="mb-8"
+              style={{
+                transform: `translateY(${isVisible ? 0 : 30}px)`,
+                opacity: isVisible ? 1 : 0,
+                transitionDelay: '0.4s',
+              }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
+                  <Rocket className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-3xl font-black text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text">
+                  ZobsAI
+                </h3>
+              </div>
+              <p className="text-gray-400 leading-relaxed text-lg">
+                AI-powered job application automation for the modern
+                professional. Transform your career with intelligent automation.
               </p>
             </div>
-            {isClient && footerData.company.showAdminLogin && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/primary-admin/login">
-                  Admin Login
-                </Link>
-              </Button>
+
+            {/* Contact Info */}
+            <div
+              className="space-y-4"
+              style={{
+                transform: `translateY(${isVisible ? 0 : 30}px)`,
+                opacity: isVisible ? 1 : 0,
+                transitionDelay: '0.6s',
+              }}
+            >
+              {[
+                { icon: Mail, text: 'hello@zobsai.com', color: 'blue' },
+                { icon: Phone, text: '+1 (555) 123-4567', color: 'emerald' },
+                { icon: MapPin, text: 'San Francisco, CA', color: 'purple' },
+              ].map((contact, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 group hover:bg-white/5 rounded-lg p-2 -mx-2 transition-all duration-300"
+                >
+                  <div
+                    className={`p-2 bg-gradient-to-r from-${contact.color}-500/20 to-${contact.color}-600/20 rounded-lg group-hover:scale-110 transition-transform duration-300`}
+                  >
+                    <contact.icon
+                      className={`w-4 h-4 text-${contact.color}-400`}
+                    />
+                  </div>
+                  <span className="text-gray-300 group-hover:text-white transition-colors duration-300">
+                    {contact.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Stats */}
+            <div
+              className="grid grid-cols-3 gap-4 mt-8 p-6 bg-white/5 rounded-2xl border border-white/10"
+              style={{
+                transform: `translateY(${isVisible ? 0 : 30}px)`,
+                opacity: isVisible ? 1 : 0,
+                transitionDelay: '0.8s',
+              }}
+            >
+              {[
+                { number: '50K+', label: 'Users' },
+                { number: '2M+', label: 'Applications' },
+                { number: '85%', label: 'Success Rate' },
+              ].map((stat, index) => (
+                <div key={index} className="text-center">
+                  <div className="text-2xl font-black text-white mb-1">
+                    {stat.number}
+                  </div>
+                  <div className="text-xs text-gray-400">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Enhanced Links Sections */}
+          <div className="lg:col-span-4 grid md:grid-cols-4 gap-8">
+            {Object.entries(footerLinks).map(
+              ([section, links], sectionIndex) => (
+                <div key={section}>
+                  <h4
+                    className="font-bold text-white mb-6 text-lg flex items-center gap-2"
+                    style={{
+                      transform: `translateY(${isVisible ? 0 : 20}px)`,
+                      opacity: isVisible ? 1 : 0,
+                      transitionDelay: `${sectionIndex * 100}ms`,
+                    }}
+                  >
+                    <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" />
+                    {section.charAt(0).toUpperCase() + section.slice(1)}
+                  </h4>
+                  <ul className="space-y-3">
+                    {links.map((link, index) => (
+                      <LinkItem
+                        key={index}
+                        item={link}
+                        index={index}
+                        section={sectionIndex}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ),
             )}
           </div>
-
-          {/* Link Columns */}
-          {footerData.linkColumns.map((column) => (
-            <div key={column.id}>
-              <h3 className="font-semibold mb-4">{column.title}</h3>
-              <ul className="space-y-2">
-                {column.links.map((link, index) => (
-                  <li key={index}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {link.text}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
         </div>
 
-        <div className="mt-12 border-t pt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Newsletter */}
-          <div>
-            <h3 className="font-semibold mb-2">
-              {footerData.newsletter.title}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {footerData.newsletter.description}
-            </p>
-            <form
-              onSubmit={handleNewsletterSubmit}
-              className="flex items-center gap-2"
-            >
-              <Input
-                type="email"
-                placeholder={footerData.newsletter.placeholder}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-background"
-                required
-              />
-              <Button type="submit" size="icon">
-                <Send className="h-4 w-4" />
-                <span className="sr-only">Subscribe</span>
-              </Button>
-            </form>
+        {/* Enhanced Bottom Section */}
+        <div
+          className="border-t border-white/10 mt-16 pt-8 flex flex-col lg:flex-row justify-between items-center gap-8"
+          style={{
+            transform: `translateY(${isVisible ? 0 : 30}px)`,
+            opacity: isVisible ? 1 : 0,
+            transitionDelay: '1.2s',
+          }}
+        >
+          <div className="flex flex-col lg:flex-row items-center gap-4">
+            <div className="text-gray-400 flex items-center gap-2">
+              © 2024 ZobsAI. Made with
+              <Heart className="w-4 h-4 text-red-400 animate-pulse" />
+              for job seekers worldwide.
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Globe className="w-4 h-4" />
+              <span>Serving 50+ countries</span>
+            </div>
           </div>
 
-          {/* Social Links */}
-          <div>
-            <h3 className="font-semibold mb-2">
-              {footerData.socials.title}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {footerData.socials.description}
-            </p>
-            <div className="flex items-center gap-4">
-              {isClient && footerData.socials.links.map((social) => {
-                const Icon = socialIcons[social.name.toLowerCase()];
-                return Icon ? (
-                  <Link
-                    key={social.name}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    <Icon className="h-6 w-6" />
-                    <span className="sr-only">{social.name}</span>
-                  </Link>
-                ) : null;
-              })}
-            </div>
+          {/* Enhanced Social Links */}
+          <div className="flex items-center gap-4">
+            {socialLinks.map((social, index) => (
+              <a
+                key={index}
+                href="#"
+                className="group relative p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-110"
+                title={`Follow us on ${social.name} (${social.followers} followers)`}
+              >
+                <social.icon
+                  className={`w-5 h-5 text-${social.color}-400 group-hover:scale-110 transition-transform duration-300`}
+                />
+
+                {/* Tooltip */}
+                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                  {social.followers} followers
+                </div>
+              </a>
+            ))}
           </div>
         </div>
       </div>
-      <div className="bg-muted/50">
-        <div className="container py-4 text-center text-xs text-muted-foreground">
-          <p>{footerData.copyright}</p>
-        </div>
-      </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 p-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-50 group"
+        >
+          <ChevronUp className="w-6 h-6 group-hover:-translate-y-1 transition-transform duration-300" />
+        </button>
+      )}
     </footer>
   );
 }

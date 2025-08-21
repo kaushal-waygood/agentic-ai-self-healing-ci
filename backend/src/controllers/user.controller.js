@@ -384,7 +384,6 @@ export const signInUser = async (req, res) => {
 
     // Now this will work since we added the method to the schema
     const isPasswordCorrect = bcrypt.compare(password, user.password);
-    console.log('Password comparison result:', isPasswordCorrect);
     if (!isPasswordCorrect) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }

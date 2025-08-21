@@ -1,17 +1,25 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { mockUserProfile } from '@/lib/data/user';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
-import { useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  createContext,
+  useContext,
+} from 'react';
 import {
   getStudentDetailsRequest,
+  getStudentResumeRequest,
   removeStudentEducationRequest,
   removeStudentExperienceRequest,
   removeStudentProjectRequest,
   removeStudentSkillRequest,
-  updateStudentExperienceRequest,
+  updateStudentJobPreferenceRequest,
   updateStudentSkillRequest,
 } from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
@@ -25,20 +33,6 @@ const employmentTypes = [
   'Contract',
   'Internship',
 ] as const;
-
-const employmentTypeOptions = [
-  { id: 'FULLTIME', label: 'Full-time' },
-  { id: 'CONTRACTOR', label: 'Contractor' },
-  { id: 'PARTTIME', label: 'Part-time' },
-  { id: 'INTERN', label: 'Internship' },
-];
-
-const jobRequirementOptions = [
-  { id: 'under_3_years_experience', label: 'Under 3 years experience' },
-  { id: 'more_than_3_years_experience', label: 'More than 3 years experience' },
-  { id: 'no_experience', label: 'No experience required' },
-  { id: 'no_degree', label: 'No degree required' },
-];
 
 const educationEntrySchema = z.object({
   institution: z.string().min(1, 'Institution name is required'),
@@ -146,6 +140,150 @@ export const useProfile = () => {
     (state: RootState) => state.student,
   );
 
+  // Initializing state variables for forms and UI.
+  // We'll reset the forms in useEffect when the Redux state is updated.
+  const [addExp, setAddExp] = useState(false);
+  const [addProj, setAddProj] = useState(false);
+  const [addEdu, setAddEdu] = useState(false);
+  const [addSkill, setAddSkill] = useState(false);
+
+  const [editEdu, setEditEdu] = useState(false);
+  const [editExp, setEditExp] = useState(false);
+  const [editProj, setEditProj] = useState(false);
+  const [editSkill, setEditSkill] = useState(false);
+
+  const [editEduIndex, setEditEduIndex] = useState(0);
+  const [editExpIndex, setEditExpIndex] = useState(0);
+  const [editProjIndex, setEditProjIndex] = useState(0);
+  const [editSkillIndex, setEditSkillIndex] = useState(0);
+
+  const [deleteEdu, setDeleteEdu] = useState(false);
+  const [deleteExp, setDeleteExp] = useState(false);
+  const [deleteProj, setDeleteProj] = useState(false);
+  const [deleteSkill, setDeleteSkill] = useState(false);
+
+  const [expandedIndex, setExpandedIndex] = useState(null);
+
+  const [deleteEduIndex, setDeleteEduIndex] = useState(0);
+  const [deleteExpIndex, setDeleteExpIndex] = useState(0);
+  const [deleteProjIndex, setDeleteProjIndex] = useState(0);
+  const [deleteSkillIndex, setDeleteSkillIndex] = useState(0);
+
+  const [isNameEditable, setIsNameEditable] = useState(false);
+  const [isEmailEditable, setIsEmailEditable] = useState(false);
+  const [isJobPrefEditable, setIsJobPrefEditable] = useState(false);
+  const [handleName, setHandleName] = useState('');
+  const [handleEmail, setHandleEmail] = useState('');
+  const [handleJobPreference, setHandleJobPreference] = useState('');
+
+  const [file, setFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // 1. Initialize forms without default values from students.
+  // The forms will be empty at first, then reset with data from Redux.
+  const personalInfoForm = useForm<
+    Pick<ProfileFormValues, 'fullName' | 'email'>
+  >({
+    resolver: zodResolver(
+      profileFormSchema.pick({ fullName: true, email: true }),
+    ),
+    mode: 'onChange',
+  });
+
+  const careerDetailsForm = useForm<
+    Pick<ProfileFormValues, 'jobPreference' | 'skills'>
+  >({
+    resolver: zodResolver(
+      profileFormSchema.pick({ jobPreference: true, skills: true }),
+    ),
+    mode: 'onChange',
+  });
+
+  const narrativesForm = useForm<
+    Pick<
+      ProfileFormValues,
+      'narrativeChallenges' | 'narrativeAchievements' | 'narrativeAppreciation'
+    >
+  >({
+    resolver: zodResolver(
+      profileFormSchema.pick({
+        narrativeChallenges: true,
+        narrativeAchievements: true,
+        narrativeAppreciation: true,
+      }),
+    ),
+    mode: 'onChange',
+  });
+
+  const jobSearchForm = useForm<
+    Pick<
+      ProfileFormValues,
+      | 'preferredCountry'
+      | 'preferredLanguage'
+      | 'preferredDatePosted'
+      | 'prefersWorkFromHome'
+      | 'preferredEmploymentTypes'
+      | 'preferredJobRequirements'
+      | 'preferredSearchRadius'
+      | 'excludedJobPublishers'
+    >
+  >({
+    resolver: zodResolver(
+      profileFormSchema.pick({
+        preferredCountry: true,
+        preferredLanguage: true,
+        preferredDatePosted: true,
+        prefersWorkFromHome: true,
+        preferredEmploymentTypes: true,
+        preferredJobRequirements: true,
+        preferredSearchRadius: true,
+        excludedJobPublishers: true,
+      }),
+    ),
+    mode: 'onChange',
+  });
+
+  // 2. Use a single useEffect to handle all form updates
+  // This hook runs whenever `students` changes, ensuring forms are always in sync with Redux.
+  useEffect(() => {
+    // Make sure the `students` object is not empty before resetting
+    if (students && Object.keys(students).length > 0) {
+      personalInfoForm.reset({
+        fullName: students.fullName || '',
+        email: students.email || '',
+      });
+      careerDetailsForm.reset({
+        jobPreference: students.jobRole || '',
+      });
+      // Assuming you have narratives and job preferences in your Redux state
+      // Narratives are currently mocked, so this part might need adjustment
+      narrativesForm.reset({
+        narrativeChallenges: mockUserProfile.narratives.challenges,
+        narrativeAchievements: mockUserProfile.narratives.achievements,
+        narrativeAppreciation: mockUserProfile.narratives.appreciation,
+      });
+      jobSearchForm.reset({
+        preferredCountry: mockUserProfile.preferredCountry || 'US',
+        preferredLanguage: mockUserProfile.preferredLanguage || 'en',
+        preferredDatePosted: mockUserProfile.preferredDatePosted || 'all',
+        prefersWorkFromHome: mockUserProfile.prefersWorkFromHome || false,
+        preferredEmploymentTypes:
+          mockUserProfile.preferredEmploymentTypes || [],
+        preferredJobRequirements:
+          mockUserProfile.preferredJobRequirements || [],
+        preferredSearchRadius:
+          mockUserProfile.preferredSearchRadius === undefined
+            ? undefined
+            : mockUserProfile.preferredSearchRadius,
+        excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
+      });
+    }
+  }, [students]); // Dependency array: this effect runs when `students` changes.
+
+  // 3. Define the `defaultValues` object inside the hook.
+  // This is used for rendering the list components, like education and projects.
   const defaultValues: ProfileFormValues = {
     fullName: students.fullName,
     email: students.email,
@@ -191,53 +329,6 @@ export const useProfile = () => {
     excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
   };
 
-  const [addExp, setAddExp] = useState(false);
-  const [addProj, setAddProj] = useState(false);
-  const [addEdu, setAddEdu] = useState(false);
-  const [addSkill, setAddSkill] = useState(false);
-
-  const [editEdu, setEditEdu] = useState(false);
-  const [editExp, setEditExp] = useState(false);
-  const [editProj, setEditProj] = useState(false);
-  const [editSkill, setEditSkill] = useState(false);
-
-  const [editEduIndex, setEditEduIndex] = useState(0);
-  const [editExpIndex, setEditExpIndex] = useState(0);
-  const [editProjIndex, setEditProjIndex] = useState(0);
-  const [editSkillIndex, setEditSkillIndex] = useState(0);
-
-  const [deleteEdu, setDeleteEdu] = useState(false);
-  const [deleteExp, setDeleteExp] = useState(false);
-  const [deleteProj, setDeleteProj] = useState(false);
-  const [deleteSkill, setDeleteSkill] = useState(false);
-
-  const [expandedIndex, setExpandedIndex] = useState(null);
-
-  const [deleteEduIndex, setDeleteEduIndex] = useState(0);
-  const [deleteExpIndex, setDeleteExpIndex] = useState(0);
-  const [deleteProjIndex, setDeleteProjIndex] = useState(0);
-  const [deleteSkillIndex, setDeleteSkillIndex] = useState(0);
-
-  const [isNameEditable, setIsNameEditable] = useState(false);
-  const [isEmailEditable, setIsEmailEditable] = useState(false);
-  const [isJobPrefEditable, setIsJobPrefEditable] = useState(false);
-  const [handleName, setHandleName] = useState('');
-  const [handleEmail, setHandleEmail] = useState('');
-
-  // Personal Info Form
-  const personalInfoForm = useForm<
-    Pick<ProfileFormValues, 'fullName' | 'email'>
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({ fullName: true, email: true }),
-    ),
-    defaultValues: {
-      fullName: defaultValues?.fullName || '',
-      email: defaultValues?.email || '',
-    },
-    mode: 'onChange',
-  });
-
   const handleDeleteSkills = (index: number) => {
     dispatch(removeStudentSkillRequest(index));
     setDeleteSkill(false);
@@ -258,100 +349,7 @@ export const useProfile = () => {
     setDeleteEdu(false);
   };
 
-  useEffect(() => {
-    if (students.fullName) {
-      personalInfoForm.reset(defaultValues);
-    }
-  }, [students.fullName]);
-
-  // Career Details Form
-  const careerDetailsForm = useForm<
-    Pick<ProfileFormValues, 'jobPreference' | 'skills'>
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({ jobPreference: true, skills: true }),
-    ),
-    defaultValues: {
-      jobPreference: defaultValues.jobPreference,
-      skills: defaultValues.skills,
-    },
-    mode: 'onChange',
-  });
-
-  const educationForm = useForm<{
-    education: ProfileFormValues['education'];
-  }>({
-    resolver: zodResolver(
-      z.object({ education: z.array(educationEntrySchema) }),
-    ),
-    defaultValues: {
-      education: defaultValues.education || [],
-    },
-    mode: 'onChange',
-  });
-
-  // Narratives Form
-  const narrativesForm = useForm<
-    Pick<
-      ProfileFormValues,
-      'narrativeChallenges' | 'narrativeAchievements' | 'narrativeAppreciation'
-    >
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({
-        narrativeChallenges: true,
-        narrativeAchievements: true,
-        narrativeAppreciation: true,
-      }),
-    ),
-    defaultValues: {
-      narrativeChallenges: defaultValues.narrativeChallenges,
-      narrativeAchievements: defaultValues.narrativeAchievements,
-      narrativeAppreciation: defaultValues.narrativeAppreciation,
-    },
-    mode: 'onChange',
-  });
-
-  // Job Search Preferences Form
-  const jobSearchForm = useForm<
-    Pick<
-      ProfileFormValues,
-      | 'preferredCountry'
-      | 'preferredLanguage'
-      | 'preferredDatePosted'
-      | 'prefersWorkFromHome'
-      | 'preferredEmploymentTypes'
-      | 'preferredJobRequirements'
-      | 'preferredSearchRadius'
-      | 'excludedJobPublishers'
-    >
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({
-        preferredCountry: true,
-        preferredLanguage: true,
-        preferredDatePosted: true,
-        prefersWorkFromHome: true,
-        preferredEmploymentTypes: true,
-        preferredJobRequirements: true,
-        preferredSearchRadius: true,
-        excludedJobPublishers: true,
-      }),
-    ),
-    defaultValues: {
-      preferredCountry: defaultValues.preferredCountry,
-      preferredLanguage: defaultValues.preferredLanguage,
-      preferredDatePosted: defaultValues.preferredDatePosted,
-      prefersWorkFromHome: defaultValues.prefersWorkFromHome,
-      preferredEmploymentTypes: defaultValues.preferredEmploymentTypes,
-      preferredJobRequirements: defaultValues.preferredJobRequirements,
-      preferredSearchRadius: defaultValues.preferredSearchRadius,
-      excludedJobPublishers: defaultValues.excludedJobPublishers,
-    },
-    mode: 'onChange',
-  });
-
-  // Handlers for each form submission
+  // The rest of the handlers remain the same as they correctly use the dispatch function.
   const handlePersonalInfoSubmit = (
     data: Pick<ProfileFormValues, 'fullName' | 'email'>,
   ) => {
@@ -365,7 +363,6 @@ export const useProfile = () => {
   const handleCareerDetailsSubmit = (
     data: Pick<ProfileFormValues, 'jobPreference' | 'skills'>,
   ) => {
-    // Call API for career details update
     console.log('Career Details:', data);
     toast({
       title: 'Career Details Updated',
@@ -379,7 +376,6 @@ export const useProfile = () => {
       'narrativeChallenges' | 'narrativeAchievements' | 'narrativeAppreciation'
     >,
   ) => {
-    // Call API for narratives update
     toast({
       title: 'Narratives Updated',
       description: 'Your narratives have been saved successfully.',
@@ -445,8 +441,80 @@ export const useProfile = () => {
 
       setIsEmailEditable(false);
       setHandleEmail('');
+    } else if (handle === 'jobPreference') {
+      console.log('handleJobPreference');
+
+      dispatch(updateStudentJobPreferenceRequest(handleJobPreference));
+
+      console.log('handleJobPreference', handleJobPreference);
+
+      setIsJobPrefEditable((prev) => !prev);
     }
   };
+
+  const handleFileChange = async (selectedFile) => {
+    if (selectedFile) {
+      setFile(selectedFile);
+      console.log('Selected file:', selectedFile);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('cv', file);
+
+    try {
+      dispatch(getStudentResumeRequest(formData));
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFileChange(files[0]);
+    }
+  }, []);
 
   return {
     //state
@@ -500,16 +568,33 @@ export const useProfile = () => {
     setHandleName,
     handleEmail,
     setHandleEmail,
+    handleJobPreference,
+    setHandleJobPreference,
     handleDeleteSkills,
     handleDeleteExp,
     handleDeleteProject,
+
+    file,
+    setFile,
+    isDragging,
+    setIsDragging,
+    fileInputRef,
+    isUploading,
+    setIsUploading,
+    handleFileChange,
+    handleDrop,
+    handleDragOver,
+    handleDragLeave,
+    handleDragEnter,
+    handleButtonClick,
+    handleRemoveFile,
+    handleUpload,
 
     //form
     personalInfoForm,
     careerDetailsForm,
     narrativesForm,
     jobSearchForm,
-    educationForm,
 
     //handlers
     handlePersonalInfoSubmit,

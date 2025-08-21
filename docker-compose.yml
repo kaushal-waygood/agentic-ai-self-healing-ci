@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hsa-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - MONGO_URI=mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot
+      - REDIS_URL=redis://redis:6379
+      - GOOGLE_API_KEY=AIzaSyBV9zLT9YX8b7NVNbxM8YDgiRwsNANJRJs
+      - REDIS_HOST=127.0.0.1
+      - REDIS_PORT=6379
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=2525
+      - EMAIL_USER=arsalan@helpstudyabroad.com
+      - EMAIL_PASSWORD=qlmj zoaa ncno yugp
+      - EMAIL_SECURE=false
+      - CLIENT_ID=584491493872-83pvhlcutmll768clf3bom050882n3ur.apps.googleusercontent.com
+      - CLIENT_SECRET=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
+      - REDIRECT_URI=http://localhost:8080/oauth2callback
+
+    ports:
+      - '8080:8080'
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - hsa-network
+
+  # Frontend Service (React/Vue/Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hsa-frontend
+    restart: unless-stopped
+    ports:
+      - '3000:80' # Nginx runs on 80 internally
+    depends_on:
+      - backend
+    networks:
+      - hsa-network
+
+  # MongoDB Service
+  mongo:
+    image: mongo:6
+    container_name: hsa-mongo
+    restart: always
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - '27017:27017'
+    networks:
+      - hsa-network
+
+  # Redis Service
+  redis:
+    image: redis:7-alpine
+    container_name: hsa-redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - hsa-network
+
+# Volumes & Networks
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  hsa-network:
+    driver: bridge

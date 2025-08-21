@@ -10,6 +10,15 @@ import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
 import { generateCoverLetterPrompt } from '../prompt/generateCoverletter.js';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/student.model.js';
+import {
+  generateCVPrompts,
+  generateCoverLetterPrompts,
+  generateEmailPrompt,
+  processCVResponse,
+  processCoverLetterResponse,
+  processEmailResponse,
+} from '../utils/generateTailored.js';
+import { extractDataFromCV } from '../utils/extractedCv.js';
 
 export const extractStudentDataFromCV = async (req, res) => {
   const { _id } = req.user;
@@ -28,101 +37,28 @@ export const extractStudentDataFromCV = async (req, res) => {
   );
 
   try {
-    const dataBuffer = fs.readFileSync(filePath);
-    const pdfData = await pdfParse(dataBuffer);
-    fs.unlinkSync(filePath); // delete uploaded file
+    // Extract data using shared utility
+    const extractedData = await extractDataFromCV(filePath);
 
-    const prompt = CVDataPrompt(pdfData.text);
-    const rawText = await genAI(prompt);
+    // Clean up file
+    fs.unlinkSync(filePath);
 
-    const cleaned = rawText.replace(/```json|```/g, '').trim();
-
-    let parsedJson;
-    try {
-      parsedJson = JSON.parse(cleaned);
-    } catch (err) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid JSON received from AI',
-        raw: rawText,
-      });
-    }
-
-    const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-
-    const education = (parsedJson.education || []).map((item) => ({
-      educationId: uuidv4(),
-      institute: item.institute || '',
-      degree: item.degree || '',
-      fieldOfStudy: item.fieldOfStudy || '',
-      startYear: item.startYear || null,
-      endYear: item.endYear || null,
-      grade: item.grade || '',
-    }));
-
-    const experience = (parsedJson.experience || []).map((item) => ({
-      experienceId: uuidv4(),
-      company: item.company || '',
-      title: item.title || '',
-      employmentType: 'FULL_TIME', // or parse if available
-      location: item.location || '',
-      startDate: item.startDate ? new Date(item.startDate) : null,
-      endDate: item.endDate ? new Date(item.endDate) : null,
-      description: item.description || '',
-      experienceYrs: item.experienceYrs || 0,
-      currentlyWorking: item.currentlyWorking || false,
-      technologies: item.technologies || [],
-    }));
-
-    const skills = (parsedJson.skills || []).map((item) => {
-      const skill = typeof item === 'string' ? item : item.skill;
-      const level =
-        typeof item === 'object' && item.level
-          ? item.level.toUpperCase()
-          : 'BEGINNER';
-
-      return {
-        skillId: uuidv4(),
-        skill: skill || '',
-        level: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(level)
-          ? level
-          : 'BEGINNER',
-      };
-    });
-
-    const projects = (parsedJson.projects || []).map((item) => ({
-      projectName: item.projectName || '',
-      description: item.description || '',
-      startDate: item.startDate ? new Date(item.startDate) : null,
-      endDate: item.endDate ? new Date(item.endDate) : null,
-      technologies: item.technologies || [],
-      link: item.link || '',
-      isWorkingActive: item.isWorkingActive || false,
-    }));
-
-    // === Perform the Update ===
+    // Update student record
     const updatedStudent = await Student.findByIdAndUpdate(
       _id,
       {
-        fullName: parsedJson.fullName || student.fullName,
-        phone: parsedJson.phone || student.phone,
-        skills,
-        education,
-        experience,
-        projects,
-        jobPreferences: parsedJson.jobPreferences || student.jobPreferences,
-        // resumeUrl: `/pdf/${req.file.filename}`,
+        fullName: extractedData.personalInfo.fullName,
+        phone: extractedData.personalInfo.phone,
+        skills: extractedData.skills,
+        education: extractedData.education,
+        experience: extractedData.experience,
+        projects: extractedData.projects,
+        jobPreferences: extractedData.jobPreferences,
       },
       { new: true, runValidators: true },
     );
 
-    return res.json({
-      success: true,
-      data: updatedStudent,
-    });
+    return res.json({ success: true, data: updatedStudent });
   } catch (error) {
     console.error('Error updating student from CV:', error);
     res.status(500).json({
@@ -869,116 +805,4 @@ export const createTailoredApply = async (req, res) => {
       details: error.message,
     });
   }
-};
-
-// Separate prompt generators
-const generateCVPrompts = (data) => {
-  return `
-  You are a professional CV writer. Based on the following data, generate a polished, well-formatted **Harvard-style CV** in pure HTML (no markdown or styling frameworks). Follow these instructions closely:
-
-  === JOB DETAILS ===
-  Job Title: ${data.job.title}
-  Company: ${data.job.company}
-  Job Description: ${data.job.description}
-
-  === CANDIDATE DETAILS ===
-  ${JSON.stringify(data.candidate, null, 2)}
-
-  === ADDITIONAL PREFERENCES ===
-  ${data.preferences || 'None provided'}
-
-  === INSTRUCTIONS ===
-  - Use the Harvard-style CV format: clean, professional, and minimal.
-  - Sections should include:
-    1. Contact Information (name, phone, email, LinkedIn, etc.)
-    2. Professional Summary (3–4 lines tailored to the job)
-    3. Key Skills (bullet points)
-    4. Work Experience (most recent first, with bullet points for achievements)
-    5. Education (most recent first, include degrees, institutions, and dates)
-    6. Certifications or Awards (if any)
-    7. Projects or Publications (if any)
-    8. Additional Information (languages, interests, etc.)
-  - Tailor the CV content to match the job description and highlight the candidate's most relevant skills and experiences.
-  - Return only valid, clean HTML wrapped in a single <html><body>...</body></html> block.
-  - Do not include any external CSS or scripts—inline styles only if necessary for readability.
-  - Use consistent fonts, spacing, and structure appropriate for a Harvard-style professional CV.
-  `;
-};
-
-const generateCoverLetterPrompts = (data) => {
-  return `
-You are a professional career writing assistant. Based on the information provided below, generate a **well-formatted HTML cover letter** that is tailored to the job and candidate profile.
-
-=== JOB DETAILS ===
-Job Title: ${data.job.title}
-Company: ${data.job.company}
-Job Description:
-${data.job.description}
-
-=== CANDIDATE INFORMATION ===
-${JSON.stringify(data.candidate, null, 2)}
-
-=== EXISTING COVER LETTER ===
-${
-  data.coverLetter
-    ? `Use this content as a reference or starting point:\n${data.coverLetter}`
-    : 'None provided'
-}
-
-=== ADDITIONAL PREFERENCES ===
-${data.preferences || 'None provided'}
-
-=== INSTRUCTIONS ===
-- Generate the cover letter in **complete, valid HTML**, wrapped in \`<html><body>...</body></html>\` tags.
-- **Do not return plain text** or markdown.
-- Use **professional inline CSS** for font (e.g., Arial or Georgia), spacing, and readability.
-- The tone should be confident, warm, and professional—not overly formal.
-- Use a standard business format:
-  1. Personalized greeting ("Dear Hiring Manager" or a specific name if provided)
-  2. Opening paragraph stating interest in the role
-  3. One or two body paragraphs connecting experience and skills to the job description
-  4. Closing paragraph with a call to action (e.g., availability for interview)
-  5. Proper sign-off with full name
-
-- Do **not** include external assets, stylesheets, or JavaScript—**HTML and inline CSS only**.
-- Ensure the letter fits on a standard page and is suitable for email or PDF export.
-
-Return only the formatted HTML content. No explanation or extra comments.
-  `;
-};
-
-const generateEmailPrompt = (data) => {
-  return `
-  Compose a professional application email to submit the CV and cover letter for this job:
-  
-  Position: ${data.job.title}
-  Company: ${data.job.company}
-  
-  Candidate Information:
-  ${JSON.stringify(data.candidate, null, 2)}
-  
-  The email should:
-  - Be concise (3-4 paragraphs max)
-  - Include a clear subject line
-  - Introduce the candidate
-  - Briefly mention why they're a good fit
-  - Reference the attached documents
-  - Include a professional closing
-  
-  Please return the email in HTML format without any markdown formatting.
-  `;
-};
-
-// Response processors
-const processCVResponse = (response) => {
-  // Clean up AI response and ensure proper HTML formatting
-  return response.replace(/```html|```/g, '').trim();
-};
-
-const processCoverLetterResponse = (response) => {
-  return response.replace(/```html|```/g, '').trim();
-};
-
-const processEmailResponse = (response) => {
-  return response.replace(/```html|```/g, '').trim();
 };

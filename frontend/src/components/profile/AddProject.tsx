@@ -1,789 +1,717 @@
-import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/redux/rootReducer';
+'use client';
+
+import React, { useState } from 'react';
 import {
-  getStudentDetailsRequest,
-  updateStudentJobPreferenceRequest,
-} from '@/redux/reducers/studentReducer';
+  ChevronDown,
+  MapPin,
+  Briefcase,
+  DollarSign,
+  GraduationCap,
+  Building,
+  Settings,
+  Check,
+  Star,
+  Globe,
+  Code,
+  Award,
+} from 'lucide-react';
+import { Textarea } from '../ui/textarea';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '../ui/form';
-import { Textarea } from '../ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
-import { Checkbox } from '../ui/checkbox';
-import { Input } from '../ui/input';
-import { Switch } from '../ui/switch';
-import { Button } from '../ui/button';
-import { JobPreferencesSchema } from '@/lib/schemas/job-search-schema';
 
-const experienceLevels = [
-  { id: 'ENTRY_LEVEL', label: 'Entry Level' },
-  { id: 'MID_LEVEL', label: 'Mid Level' },
-  { id: 'SENIOR', label: 'Senior Level' },
-  { id: 'EXECUTIVE', label: 'Executive' },
-  { id: 'NONE', label: 'None' },
-];
+const JobPreferencesForm = () => {
+  const [activeSection, setActiveSection] = useState('location');
+  const [formData, setFormData] = useState({
+    // Location
+    preferredCountries: '',
+    preferredCities: '',
+    isRemote: false,
+    relocationWillingness: '',
 
-const jobTypes = [
-  { id: 'FULL_TIME', label: 'Full-time' },
-  { id: 'PART_TIME', label: 'Part-time' },
-  { id: 'CONTRACT', label: 'Contract' },
-  { id: 'TEMPORARY', label: 'Temporary' },
-  { id: 'INTERNSHIP', label: 'Internship' },
-  { id: 'FREELANCE', label: 'Freelance' },
-];
+    // Job Details
+    preferredJobTitles: '',
+    preferredJobTypes: [],
+    preferredIndustries: '',
+    preferredExperienceLevel: '',
 
-const companySizes = [
-  { id: 'small', label: 'Small (1-50 employees)' },
-  { id: 'medium', label: 'Medium (51-500 employees)' },
-  { id: 'large', label: 'Large (501-1000 employees)' },
-  { id: 'enterprise', label: 'Enterprise (1000+ employees)' },
-];
-
-const companyCultures = [
-  { id: 'startup', label: 'Startup' },
-  { id: 'tech', label: 'Tech-focused' },
-  { id: 'corporate', label: 'Corporate' },
-  { id: 'nonprofit', label: 'Non-profit' },
-  { id: 'remote-first', label: 'Remote-first' },
-];
-
-const educationLevels = [
-  { id: 'high_school', label: 'High School' },
-  { id: 'associate', label: 'Associate Degree' },
-  { id: 'bachelor', label: "Bachelor's Degree" },
-  { id: 'master', label: "Master's Degree" },
-  { id: 'phd', label: 'PhD' },
-  { id: 'none', label: 'No Formal Education Required' },
-];
-
-export const JobPref = () => {
-  const [formData, setFormData] = useState(null);
-  const {
-    students: student,
-    loading,
-    error,
-  } = useSelector((state: RootState) => state.student);
-  const dispatch = useDispatch();
-
-  const form = useForm({
-    resolver: zodResolver(JobPreferencesSchema),
-    defaultValues: {
-      preferedCountries: student?.jobPreferences?.preferedCountries || [],
-      preferedCities: student?.jobPreferences?.preferedCities || [],
-      isRemote: student?.jobPreferences?.isRemote || false,
-      relocationWillingness:
-        student?.jobPreferences?.relocationWillingness || '',
-      preferedJobTitles: student?.jobPreferences?.preferedJobTitles || [],
-      preferedJobTypes: student?.jobPreferences?.preferedJobTypes || [],
-      preferedIndustries: student?.jobPreferences?.preferedIndustries || [],
-      preferedExperienceLevel:
-        student?.jobPreferences?.preferedExperienceLevel || '',
-      preferedSalary: student?.jobPreferences?.preferedSalary || '',
-      mustHaveSkills: student?.jobPreferences?.mustHaveSkills || [],
-      niceToHaveSkills: [],
-      preferedCertifications: [],
-      preferedEducationLevel: '',
-      preferedCompanySizes: [],
-      preferedCompanyCultures: [],
-      visaSponsorshipRequired: false,
-      immediateAvailability: false,
+    // Compensation
+    preferredSalary: {
+      min: '',
+      max: '',
+      currency: 'USD',
+      period: 'YEAR',
     },
+
+    // Skills
+    mustHaveSkills: '',
+    niceToHaveSkills: '',
+    preferredCertifications: '',
+    preferredEducationLevel: '',
+
+    // Company
+    preferredCompanySizes: [],
+    preferredCompanyCultures: [],
+
+    // Additional
+    visaSponsorshipRequired: false,
+    immediateAvailability: false,
   });
 
-  useEffect(() => {
-    dispatch(getStudentDetailsRequest());
-  }, [dispatch]);
+  const experienceLevels = [
+    { id: 'ENTRY_LEVEL', label: 'Entry Level', icon: '🌱' },
+    { id: 'MID_LEVEL', label: 'Mid Level', icon: '🚀' },
+    { id: 'SENIOR', label: 'Senior Level', icon: '⭐' },
+    { id: 'EXECUTIVE', label: 'Executive', icon: '👑' },
+    { id: 'NONE', label: 'None', icon: '💫' },
+  ];
 
-  useEffect(() => {
-    if (student?.jobPreferences) {
-      const { jobPreferences } = student;
-      form.reset({
-        preferedCountries: jobPreferences.preferedCountries || [],
-        preferedCities: jobPreferences.preferedCities || [],
-        isRemote: jobPreferences.isRemote || false,
-        relocationWillingness: jobPreferences.relocationWillingness || '',
-        preferedJobTitles: jobPreferences.preferedJobTitles || [],
-        preferedJobTypes: jobPreferences.preferedJobTypes || [],
-        preferedIndustries: jobPreferences.preferedIndustries || [],
-        preferedExperienceLevel: jobPreferences.preferedExperienceLevel || '',
-        preferedSalary: student?.jobPreferences?.preferedSalary || {
-          min: undefined,
-          max: undefined,
-          currency: undefined,
-          period: undefined,
-        },
-        mustHaveSkills: jobPreferences.mustHaveSkills || [],
-        niceToHaveSkills: jobPreferences.niceToHaveSkills || [],
-        preferedCertifications: jobPreferences.preferedCertifications || [],
-        preferedEducationLevel: jobPreferences.preferedEducationLevel || '',
-        preferedCompanySizes: jobPreferences.preferedCompanySizes || [],
-        preferedCompanyCultures: jobPreferences.preferedCompanyCultures || [],
-        visaSponsorshipRequired:
-          jobPreferences.visaSponsorshipRequired || false,
-        immediateAvailability: jobPreferences.immediateAvailability || false,
-      });
-    }
-  }, [student, form]);
+  const jobTypes = [
+    {
+      id: 'FULL_TIME',
+      label: 'Full-time',
+      color: 'from-purple-400 to-purple-600',
+    },
+    { id: 'PART_TIME', label: 'Part-time', color: 'from-blue-400 to-blue-600' },
+    { id: 'CONTRACT', label: 'Contract', color: 'from-cyan-400 to-cyan-600' },
+    {
+      id: 'TEMPORARY',
+      label: 'Temporary',
+      color: 'from-green-400 to-green-600',
+    },
+    {
+      id: 'INTERNSHIP',
+      label: 'Internship',
+      color: 'from-yellow-400 to-yellow-600',
+    },
+    { id: 'FREELANCE', label: 'Freelance', color: 'from-red-400 to-red-600' },
+  ];
 
-  const onSubmit = (data: any) => {
-    try {
-      dispatch(updateStudentJobPreferenceRequest(data));
-    } catch (error) {
-      console.error('SUBMISSION FAILED:', error);
-    }
+  const companySizes = [
+    { id: 'small', label: 'Small', desc: '1-50 employees', icon: '🏠' },
+    { id: 'medium', label: 'Medium', desc: '51-500 employees', icon: '🏢' },
+    { id: 'large', label: 'Large', desc: '501-1000 employees', icon: '🏬' },
+    {
+      id: 'enterprise',
+      label: 'Enterprise',
+      desc: '1000+ employees',
+      icon: '🌆',
+    },
+  ];
+
+  const companyCultures = [
+    { id: 'startup', label: 'Startup', icon: '🚀', color: 'purple' },
+    { id: 'tech', label: 'Tech-focused', icon: '💻', color: 'blue' },
+    { id: 'corporate', label: 'Corporate', icon: '🏛️', color: 'slate' },
+    { id: 'nonprofit', label: 'Non-profit', icon: '❤️', color: 'green' },
+    { id: 'remote-first', label: 'Remote-first', icon: '🌍', color: 'cyan' },
+  ];
+
+  const educationLevels = [
+    { id: 'high_school', label: 'High School', icon: '📚' },
+    { id: 'associate', label: 'Associate Degree', icon: '🎓' },
+    { id: 'bachelor', label: "Bachelor's Degree", icon: '🎓' },
+    { id: 'master', label: "Master's Degree", icon: '📜' },
+    { id: 'phd', label: 'PhD', icon: '🔬' },
+    { id: 'none', label: 'No Formal Education Required', icon: '💡' },
+  ];
+
+  const sections = [
+    { id: 'location', label: 'Location', icon: MapPin, color: 'purple' },
+    { id: 'job', label: 'Job Details', icon: Briefcase, color: 'blue' },
+    {
+      id: 'compensation',
+      label: 'Compensation',
+      icon: DollarSign,
+      color: 'cyan',
+    },
+    {
+      id: 'skills',
+      label: 'Skills & Education',
+      icon: GraduationCap,
+      color: 'green',
+    },
+    { id: 'company', label: 'Company', icon: Building, color: 'yellow' },
+    { id: 'additional', label: 'Additional', icon: Settings, color: 'red' },
+  ];
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
-  const onInvalid = (errors: any) => {
-    console.log('INVALID SUBMISSION:', errors);
+  const handleSalaryChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      preferredSalary: {
+        ...prev.preferredSalary,
+        [field]: value,
+      },
+    }));
   };
 
-  if (loading && !student) {
-    return <div>Loading...</div>;
-  }
+  const toggleArrayValue = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: prev[field].includes(value)
+        ? prev[field].filter((item) => item !== value)
+        : [...prev[field], value],
+    }));
+  };
 
-  if (error) {
-    console.log('error', error);
-  }
+  const CustomCheckbox = ({
+    checked,
+    onChange,
+    children,
+    color = 'purple',
+  }) => (
+    <div
+      className={`relative cursor-pointer group transition-all duration-300 transform hover:scale-105 ${
+        checked
+          ? `bg-gradient-to-r from-${color}-400 to-${color}-600 text-white shadow-lg shadow-${color}-400/30`
+          : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
+      } rounded-xl p-4 border-2 ${
+        checked
+          ? `border-${color}-400`
+          : 'border-slate-200 dark:border-slate-600'
+      }`}
+      onClick={onChange}
+    >
+      <div className="flex items-center justify-between">
+        {children}
+        <div
+          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+            checked ? 'border-white bg-white/20' : `border-${color}-300`
+          }`}
+        >
+          {checked && <Check className="w-4 h-4 text-white" />}
+        </div>
+      </div>
+    </div>
+  );
+
+  const SectionNavigation = () => (
+    <div className="flex flex-wrap gap-2 mb-8">
+      {sections.map((section) => {
+        const Icon = section.icon;
+        return (
+          <button
+            key={section.id}
+            onClick={() => setActiveSection(section.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
+              activeSection === section.id
+                ? `bg-gradient-to-r from-${section.color}-400 to-${section.color}-600 text-white shadow-lg shadow-${section.color}-400/30`
+                : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            <span className="font-medium">{section.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const LocationSection = () => (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <Globe className="inline w-4 h-4 mr-2" />
+            Preferred Countries
+          </label>
+          <textarea
+            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300 resize-none"
+            rows={3}
+            placeholder="USA, Canada, Germany..."
+            value={formData.preferredCountries}
+            onChange={(e) =>
+              handleInputChange('preferredCountries', e.target.value)
+            }
+          />
+        </div>
+
+        <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <MapPin className="inline w-4 h-4 mr-2" />
+            Preferred Cities
+          </label>
+          <textarea
+            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300 resize-none"
+            rows={3}
+            placeholder="New York, Toronto, Berlin..."
+            value={formData.preferredCities}
+            onChange={(e) =>
+              handleInputChange('preferredCities', e.target.value)
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <CustomCheckbox
+          checked={formData.isRemote}
+          onChange={() => handleInputChange('isRemote', !formData.isRemote)}
+          color="purple"
+        >
+          <div>
+            <div className="font-semibold">🌍 Remote Work Only</div>
+            <div className="text-sm opacity-80">
+              Only consider remote opportunities
+            </div>
+          </div>
+        </CustomCheckbox>
+
+        <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            Willingness to Relocate
+          </label>
+          <select
+            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300"
+            value={formData.relocationWillingness}
+            onChange={(e) =>
+              handleInputChange('relocationWillingness', e.target.value)
+            }
+          >
+            <option value="">Select willingness</option>
+            <option value="not-willing">❌ Not willing to relocate</option>
+            <option value="open">🤔 Open to relocation</option>
+            <option value="very-willing">✅ Very willing to relocate</option>
+            <option value="seeking">🎯 Actively seeking relocation</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+
+  const JobSection = () => (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <Briefcase className="inline w-4 h-4 mr-2" />
+            Preferred Job Titles
+          </label>
+          <textarea
+            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300 resize-none"
+            rows={3}
+            placeholder="Software Engineer, Product Manager..."
+            value={formData.preferredJobTitles}
+            onChange={(e) =>
+              handleInputChange('preferredJobTitles', e.target.value)
+            }
+          />
+        </div>
+
+        <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            Preferred Industries
+          </label>
+          <textarea
+            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300 resize-none"
+            rows={3}
+            placeholder="Technology, Healthcare, Finance..."
+            value={formData.preferredIndustries}
+            onChange={(e) =>
+              handleInputChange('preferredIndustries', e.target.value)
+            }
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+          Job Types
+        </label>
+        <div className="grid md:grid-cols-3 gap-4">
+          {jobTypes.map((type) => (
+            <CustomCheckbox
+              key={type.id}
+              checked={formData.preferredJobTypes.includes(type.id)}
+              onChange={() => toggleArrayValue('preferredJobTypes', type.id)}
+              color="blue"
+            >
+              <div className="font-medium">{type.label}</div>
+            </CustomCheckbox>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+          Experience Level
+        </label>
+        <div className="grid md:grid-cols-3 gap-4">
+          {experienceLevels.map((level) => (
+            <CustomCheckbox
+              key={level.id}
+              checked={formData.preferredExperienceLevel === level.id}
+              onChange={() =>
+                handleInputChange('preferredExperienceLevel', level.id)
+              }
+              color="blue"
+            >
+              <div>
+                <div className="font-medium">
+                  {level.icon} {level.label}
+                </div>
+              </div>
+            </CustomCheckbox>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const CompensationSection = () => (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-6">
+        <h4 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">
+          <DollarSign className="inline w-5 h-5 mr-2" />
+          Expected Salary Range
+        </h4>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+              Minimum Salary
+            </label>
+            <input
+              type="number"
+              className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+              placeholder="50,000"
+              value={formData.preferredSalary.min}
+              onChange={(e) => handleSalaryChange('min', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+              Maximum Salary
+            </label>
+            <input
+              type="number"
+              className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+              placeholder="80,000"
+              value={formData.preferredSalary.max}
+              onChange={(e) => handleSalaryChange('max', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+              Currency
+            </label>
+            <select
+              className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+              value={formData.preferredSalary.currency}
+              onChange={(e) => handleSalaryChange('currency', e.target.value)}
+            >
+              <option value="USD">💵 USD</option>
+              <option value="EUR">💶 EUR</option>
+              <option value="INR">💰 INR</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+              Period
+            </label>
+            <select
+              className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+              value={formData.preferredSalary.period}
+              onChange={(e) => handleSalaryChange('period', e.target.value)}
+            >
+              <option value="YEAR">📅 Yearly</option>
+              <option value="MONTH">📆 Monthly</option>
+              <option value="WEEK">📋 Weekly</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const SkillsSection = () => (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <Code className="inline w-4 h-4 mr-2" />
+            Must-have Skills
+          </label>
+          <textarea
+            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+            rows={4}
+            placeholder="JavaScript, Python, React..."
+            value={formData.mustHaveSkills}
+            onChange={(e) =>
+              handleInputChange('mustHaveSkills', e.target.value)
+            }
+          />
+        </div>
+
+        <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <Star className="inline w-4 h-4 mr-2" />
+            Nice-to-have Skills
+          </label>
+          <textarea
+            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+            rows={4}
+            placeholder="Docker, AWS, GraphQL..."
+            value={formData.niceToHaveSkills}
+            onChange={(e) =>
+              handleInputChange('niceToHaveSkills', e.target.value)
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <Award className="inline w-4 h-4 mr-2" />
+            Certifications
+          </label>
+          <textarea
+            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+            rows={3}
+            placeholder="AWS Certified, PMP, Scrum Master..."
+            value={formData.preferredCertifications}
+            onChange={(e) =>
+              handleInputChange('preferredCertifications', e.target.value)
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+            <GraduationCap className="inline w-4 h-4 mr-2" />
+            Education Level
+          </label>
+          <div className="space-y-2">
+            {educationLevels.map((level) => (
+              <CustomCheckbox
+                key={level.id}
+                checked={formData.preferredEducationLevel === level.id}
+                onChange={() =>
+                  handleInputChange('preferredEducationLevel', level.id)
+                }
+                color="green"
+              >
+                <div className="font-medium">
+                  {level.icon} {level.label}
+                </div>
+              </CustomCheckbox>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const CompanySection = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+          Company Sizes
+        </label>
+        <div className="grid md:grid-cols-2 gap-4">
+          {companySizes.map((size) => (
+            <CustomCheckbox
+              key={size.id}
+              checked={formData.preferredCompanySizes.includes(size.id)}
+              onChange={() =>
+                toggleArrayValue('preferredCompanySizes', size.id)
+              }
+              color="yellow"
+            >
+              <div>
+                <div className="font-semibold">
+                  {size.icon} {size.label}
+                </div>
+                <div className="text-sm opacity-80">{size.desc}</div>
+              </div>
+            </CustomCheckbox>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+          Company Cultures
+        </label>
+        <div className="grid md:grid-cols-3 gap-4">
+          {companyCultures.map((culture) => (
+            <CustomCheckbox
+              key={culture.id}
+              checked={formData.preferredCompanyCultures.includes(culture.id)}
+              onChange={() =>
+                toggleArrayValue('preferredCompanyCultures', culture.id)
+              }
+              color="yellow"
+            >
+              <div>
+                <div className="font-semibold">
+                  {culture.icon} {culture.label}
+                </div>
+              </div>
+            </CustomCheckbox>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const AdditionalSection = () => (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <CustomCheckbox
+          checked={formData.visaSponsorshipRequired}
+          onChange={() =>
+            handleInputChange(
+              'visaSponsorshipRequired',
+              !formData.visaSponsorshipRequired,
+            )
+          }
+          color="red"
+        >
+          <div>
+            <div className="font-semibold">🛂 Visa Sponsorship Required</div>
+            <div className="text-sm opacity-80">
+              Do you need visa sponsorship?
+            </div>
+          </div>
+        </CustomCheckbox>
+
+        <CustomCheckbox
+          checked={formData.immediateAvailability}
+          onChange={() =>
+            handleInputChange(
+              'immediateAvailability',
+              !formData.immediateAvailability,
+            )
+          }
+          color="red"
+        >
+          <div>
+            <div className="font-semibold">⚡ Immediate Availability</div>
+            <div className="text-sm opacity-80">Can you start immediately?</div>
+          </div>
+        </CustomCheckbox>
+      </div>
+    </div>
+  );
+
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case 'location':
+        return <LocationSection />;
+      case 'job':
+        return <JobSection />;
+      case 'compensation':
+        return <CompensationSection />;
+      case 'skills':
+        return <SkillsSection />;
+      case 'company':
+        return <CompanySection />;
+      case 'additional':
+        return <AdditionalSection />;
+      default:
+        return <LocationSection />;
+    }
+  };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit, onInvalid)}
-        className="space-y-6"
-        noValidate // Remove if you want browser validation
-      >
-        {/* Location Preferences */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Location Preferences</h3>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full mb-6 shadow-lg shadow-purple-400/30">
+            <Briefcase className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-4">
+            Job Preferences
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            Tell us about your dream job and we'll help you find the perfect
+            match. Complete each section to get personalized job
+            recommendations.
+          </p>
+        </div>
 
-          <FormField
-            control={form.control}
-            name="preferedCountries"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Countries</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter comma-separated country names"
-                    className="resize-y min-h-[60px]"
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Countries where you'd like to work
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Navigation */}
+        <SectionNavigation />
 
-          <FormField
-            control={form.control}
-            name="preferedCities"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Cities</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter comma-separated city names"
-                    className="resize-y min-h-[60px]"
-                    value={field.value?.join(', ') || ''}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value
-                          .split(',')
-                          .map((item) => item.trim())
-                          .filter((item) => item),
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormDescription>
-                  Specific cities you're targeting
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Form Content */}
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-400/10 border border-white/20 p-8">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+                {sections.find((s) => s.id === activeSection)?.label}
+              </h2>
+              <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-24"></div>
+            </div>
 
-          <FormField
-            control={form.control}
-            name="isRemote"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                <div className="space-y-0.5">
-                  <FormLabel>Remote Work Only</FormLabel>
-                  <FormDescription>
-                    Only consider remote work opportunities
-                  </FormDescription>
+            {renderActiveSection()}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-4 mt-8">
+          <button className="px-8 py-4 bg-gradient-to-r from-slate-400 to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-slate-400/30 hover:shadow-xl hover:shadow-slate-400/40 transform hover:scale-105 transition-all duration-300">
+            Save Draft
+          </button>
+          <button className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300">
+            Save Preferences
+          </button>
+        </div>
+
+        {/* Progress Indicator */}
+        <div className="max-w-md mx-auto mt-8">
+          <div className="flex justify-between items-center">
+            {sections.map((section, index) => (
+              <div key={section.id} className="flex items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                    activeSection === section.id
+                      ? `bg-gradient-to-r from-${section.color}-400 to-${section.color}-600 text-white shadow-lg`
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                  }`}
+                >
+                  {index + 1}
                 </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="relocationWillingness"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Willingness to Relocate</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your willingness to relocate" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="not-willing">
-                      Not willing to relocate
-                    </SelectItem>
-                    <SelectItem value="open">Open to relocation</SelectItem>
-                    <SelectItem value="very-willing">
-                      Very willing to relocate
-                    </SelectItem>
-                    <SelectItem value="seeking">
-                      Actively seeking relocation
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                {index < sections.length - 1 && (
+                  <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-
-        {/* Job Details */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Job Details</h3>
-
-          <FormField
-            control={form.control}
-            name="preferedJobTitles"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Job Titles</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter comma-separated job titles"
-                    className="resize-y min-h-[60px]"
-                    value={field.value?.join(', ') || ''}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value
-                          .split(',')
-                          .map((item) => item.trim())
-                          .filter((item) => item),
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormDescription>
-                  Titles of positions you're interested in
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="preferedJobTypes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Job Types</FormLabel>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {jobTypes.map((type) => (
-                    <FormField
-                      key={type.id}
-                      control={form.control}
-                      name="preferedJobTypes"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(type.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([
-                                      ...(field.value || []),
-                                      type.id,
-                                    ])
-                                  : field.onChange(
-                                      (field.value || []).filter(
-                                        (value) => value !== type.id,
-                                      ),
-                                    );
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            {type.label}
-                          </FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="preferedIndustries"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Industries</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter comma-separated industries"
-                    className="resize-y min-h-[60px]"
-                    value={field.value?.join(', ') || ''}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value
-                          .split(',')
-                          .map((item) => item.trim())
-                          .filter((item) => item),
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormDescription>
-                  Industries you're interested in working in
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="preferedExperienceLevel"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Experience Level</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select preferred experience level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {experienceLevels.map((level) => (
-                      <SelectItem key={level.id} value={level.id}>
-                        {level.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Compensation */}
-        {/* Compensation */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Compensation
-          </h3>
-
-          <FormField
-            control={form.control}
-            name="preferredSalary"
-            render={({ field }) => {
-              const { value, onChange } = field;
-
-              const updateField = (key: string, newValue: any) => {
-                onChange({ ...value, [key]: newValue });
-              };
-
-              return (
-                <FormItem className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <FormLabel className="text-gray-700 dark:text-gray-300">
-                        Expected Salary Range (MIN)
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., 50000"
-                          value={value?.min || ''}
-                          onChange={(e) =>
-                            updateField('min', Number(e.target.value))
-                          }
-                          type="number"
-                          className="w-full"
-                        />
-                      </FormControl>
-                    </div>
-
-                    <div className="space-y-2">
-                      <FormLabel className="text-gray-700 dark:text-gray-300">
-                        Expected Salary Range (MAX)
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., 60000"
-                          value={value?.max || ''}
-                          onChange={(e) =>
-                            updateField('max', Number(e.target.value))
-                          }
-                          type="number"
-                          className="w-full"
-                        />
-                      </FormControl>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <FormLabel className="text-gray-700 dark:text-gray-300">
-                        Currency
-                      </FormLabel>
-                      <FormControl>
-                        <select
-                          className="input w-full p-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          value={value?.currency || ''}
-                          onChange={(e) =>
-                            updateField('currency', e.target.value)
-                          }
-                        >
-                          <option value="">Select currency</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="INR">INR</option>
-                        </select>
-                      </FormControl>
-                    </div>
-
-                    <div className="space-y-2">
-                      <FormLabel className="text-gray-700 dark:text-gray-300">
-                        Salary Period
-                      </FormLabel>
-                      <FormControl>
-                        <select
-                          className="input w-full p-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          value={value?.period || ''}
-                          onChange={(e) =>
-                            updateField('period', e.target.value)
-                          }
-                        >
-                          <option value="">Select period</option>
-                          <option value="YEAR">Yearly</option>
-                          <option value="MONTH">Monthly</option>
-                          <option value="WEEK">Weekly</option>
-                        </select>
-                      </FormControl>
-                    </div>
-                  </div>
-
-                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400">
-                    Your expected salary range (in local currency per selected
-                    period)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              );
-            }}
-          />
-        </div>
-
-        {/* Skills & Education */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Skills & Education</h3>
-
-          <FormField
-            control={form.control}
-            name="mustHaveSkills"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Must-have Skills</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter comma-separated skills with level (e.g., 'JavaScript:expert, Python:intermediate')"
-                    className="resize-y min-h-[80px]"
-                    onChange={(e) => {
-                      field.onChange(e.target.value);
-                    }}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Skills you must use in your next role
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="niceToHaveSkills"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nice-to-have Skills</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter comma-separated skills"
-                    className="resize-y min-h-[60px]"
-                    value={field.value?.join(', ') || ''}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value
-                          .split(',')
-                          .map((item) => item.trim())
-                          .filter((item) => item),
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormDescription>
-                  Skills you'd like to use but aren't required
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="preferedCertifications"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Certifications</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter comma-separated certifications"
-                    className="resize-y min-h-[60px]"
-                    value={field.value?.join(', ') || ''}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value
-                          .split(',')
-                          .map((item) => item.trim())
-                          .filter((item) => item),
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormDescription>
-                  Certifications you have or are working towards
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="preferedEducationLevel"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Education Level</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select education level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {educationLevels.map((level) => (
-                      <SelectItem key={level.id} value={level.id}>
-                        {level.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Company Preferences */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Company Preferences</h3>
-
-          <FormField
-            control={form.control}
-            name="preferedCompanySizes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Company Sizes</FormLabel>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {companySizes.map((size) => (
-                    <FormField
-                      key={size.id}
-                      control={form.control}
-                      name="preferedCompanySizes"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(size.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([
-                                      ...(field.value || []),
-                                      size.id,
-                                    ])
-                                  : field.onChange(
-                                      (field.value || []).filter(
-                                        (value) => value !== size.id,
-                                      ),
-                                    );
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            {size.label}
-                          </FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="preferedCompanyCultures"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Company Cultures</FormLabel>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {companyCultures.map((culture) => (
-                    <FormField
-                      key={culture.id}
-                      control={form.control}
-                      name="preferedCompanyCultures"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(culture.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([
-                                      ...(field.value || []),
-                                      culture.id,
-                                    ])
-                                  : field.onChange(
-                                      (field.value || []).filter(
-                                        (value) => value !== culture.id,
-                                      ),
-                                    );
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            {culture.label}
-                          </FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Additional Preferences */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Additional Preferences</h3>
-
-          <FormField
-            control={form.control}
-            name="visaSponsorshipRequired"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                <div className="space-y-0.5">
-                  <FormLabel>Visa Sponsorship Required</FormLabel>
-                  <FormDescription>
-                    Do you require visa sponsorship?
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="immediateAvailability"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                <div className="space-y-0.5">
-                  <FormLabel>Immediate Availability</FormLabel>
-                  <FormDescription>
-                    Are you available to start immediately?
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="flex justify-end">
-          <Button
-            type="submit"
-            disabled={loading}
-            onClick={() => console.log('Submit button clicked')} // Debug click
-          >
-            {loading ? 'Saving...' : 'Save Preferences'}
-          </Button>
-        </div>
-      </form>
-    </Form>
+      </div>
+    </div>
   );
 };
 
+export default JobPreferencesForm;
+
+// Interface for props
 interface narrativProps {
   narrativesForm: any;
   handleNarrativesSubmit: any;
 }
 
+// Corrected Narratives Component
 export const Narratives = ({
   narrativesForm,
   handleNarrativesSubmit,

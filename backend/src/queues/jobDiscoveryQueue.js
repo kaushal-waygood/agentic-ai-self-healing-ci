@@ -4,13 +4,10 @@ import { Student } from '../models/student.model.js';
 import { Job } from '../models/jobs.model.js';
 import { AppliedJob } from '../models/AppliedJob.js';
 import jobApplyQueue from './jobApplyQueue.js';
-import {
-  calculateMatchScore,
-  convertSalaryToYearly,
-} from '../utils/jobUtils.js';
+import { calculateMatchScore } from '../utils/jobUtils.js';
 import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
+import { sendJobApplicationEmail } from '../services/emailService.js';
 
-// Initialize queue (in-memory for development)
 const jobDiscoveryQueue = new Queue('job discovery', {
   redis:
     process.env.NODE_ENV === 'production'
@@ -19,64 +16,191 @@ const jobDiscoveryQueue = new Queue('job discovery', {
           port: process.env.REDIS_PORT || 6379,
         }
       : undefined,
+  limiter: {
+    max: 10,
+    duration: 1000,
+  },
 });
 
-/**
- * Processes job discovery tasks by querying MongoDB directly
- */
 jobDiscoveryQueue.process(async (job) => {
-  const { studentId } = job.data;
-  console.log(`Discovering jobs for student ${studentId}...`);
+  const { studentId, agentId, agentConfig, studentProfile } = job.data;
+  console.log(
+    `Processing job discovery for student ${studentId} and agent ${agentId}`,
+  );
+
+  console.log('studentProfile Id', studentId);
 
   try {
-    // Execute query
-    const jobs = await getRecommendedJobs(studentId);
-    console.log(`Found ${jobs.length} potential jobs`);
-
-    if (jobs.length === 0) {
-      console.log('No jobs matched the criteria');
-      return;
+    const student = await Student.findById(studentId).lean();
+    // console.log('student', student);
+    if (!student) {
+      console.log(`Student ${studentId} not found`);
+      return { skipped: true, reason: 'Student not found' };
     }
 
-    const student = await Student.findById(studentId);
-    const preferences = student.jobPreferences;
+    if (!student.autopilotAgent || !Array.isArray(student.autopilotAgent)) {
+      console.log(`Student ${studentId} has no autopilotAgent array defined.`);
+      return { skipped: true, reason: 'Student has no autopilot agents' };
+    }
 
-    // Calculate match scores and sort
-    const scoredJobs = jobs
+    const jobsInApplyQueue = await jobApplyQueue.getJobs([
+      'waiting',
+      'active',
+      'delayed',
+    ]);
+
+    const recentlyQueuedJobIds = jobsInApplyQueue
+      .map((j) =>
+        j && j.data && j.data.jobData?.job?._id ? j.data.jobData.job._id : null,
+      )
+      .filter((id) => id);
+
+    const agent = student.autopilotAgent.find((a) => a.agentId === agentId);
+    if (!agent || !agent.autopilotEnabled) {
+      console.log(`Agent ${agentId} not found or disabled`);
+      return { skipped: true, reason: 'Agent disabled or not found' };
+    }
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const successfulApplicationsToday = await AppliedJob.countDocuments({
+      student: studentId,
+      'agentData.agentId': agentId,
+      createdAt: { $gte: startOfDay },
+    });
+
+    const queuedApplicationsToday = jobsInApplyQueue.filter(
+      (j) =>
+        j.data.studentId === studentId &&
+        j.data.agentData?.agentId === agentId &&
+        new Date(j.timestamp) >= startOfDay,
+    ).length;
+
+    const totalAttemptsToday =
+      successfulApplicationsToday + queuedApplicationsToday;
+    const applicationLimit = agent.autopilotLimit || 5;
+
+    console.log(
+      `Attempts today: ${totalAttemptsToday} (Successful: ${successfulApplicationsToday}, Queued: ${queuedApplicationsToday}), Limit: ${applicationLimit}`,
+    );
+
+    if (totalAttemptsToday >= applicationLimit) {
+      console.log(`Daily limit reached for agent ${agentId}`);
+      return { skipped: true, reason: 'Daily limit reached' };
+    }
+
+    const remainingApplications = applicationLimit - totalAttemptsToday;
+    console.log(`Remaining applications: ${remainingApplications}`);
+
+    const appliedJobIds = (
+      await AppliedJob.find({
+        student: studentId,
+      }).distinct('job')
+    ).map((id) => id.toString());
+
+    const jobs = await getRecommendedJobs(studentId, {
+      ...agentConfig,
+      ...studentProfile.jobPreferences,
+    });
+
+    console.log(
+      `Found ${jobs.length} potential jobs for student ${studentId} and agent ${agentId} `,
+    );
+
+    if (jobs.length === 0) {
+      return { skipped: true, reason: 'No matching jobs' };
+    }
+
+    const uniqueJobs = jobs.filter((job) => {
+      if (!job || !job._id) {
+        console.warn('Found invalid job without _id field');
+        return false;
+      }
+      const jobId = job._id.toString();
+      return (
+        !appliedJobIds.includes(jobId) && !recentlyQueuedJobIds.includes(jobId)
+      );
+    });
+
+    console.log(`Found ${uniqueJobs.length} unique jobs not applied to before`);
+
+    if (uniqueJobs.length === 0) {
+      return { skipped: true, reason: 'No new unique jobs available' };
+    }
+
+    const scoredJobs = uniqueJobs
       .map((job) => ({
         job,
-        score: calculateMatchScore(job, preferences),
+        score: calculateMatchScore(job, {
+          ...studentProfile.jobPreferences,
+          ...agentConfig,
+        }),
       }))
       .sort((a, b) => b.score - a.score);
 
-    // Process recommended jobs
-    for (const { job, score } of scoredJobs) {
-      console.log('job');
-      await jobApplyQueue.add(
+    const jobsToProcess = scoredJobs.slice(0, remainingApplications);
+
+    const studentDetails = await Student.findById(studentId);
+    if (!student) {
+      console.log(`Student ${studentId} not found`);
+      return { skipped: true, reason: 'Student not found' };
+    }
+
+    const applicationPromises = jobsToProcess.map(({ job, score }) => {
+      console.log(`Queueing job "${job.title}" (Score: ${score.toFixed(2)})`);
+      console.log('Email to send:', studentProfile);
+
+      sendJobApplicationEmail({
+        jobData: { job },
+        student: studentDetails,
+        senderEmail: studentDetails.email,
+        recipientEmail: 'thesiddiqui7@gmail.com', // Or the correct recipient
+      });
+
+      const plainJobObject = JSON.parse(JSON.stringify(job));
+
+      return jobApplyQueue.add(
         {
           studentId,
-          jobData: job,
+          jobData: {
+            job: plainJobObject,
+          },
+          agentData: { agentId, agentConfig },
         },
         {
           attempts: 3,
           backoff: { type: 'exponential', delay: 5000 },
-          timeout: 5 * 60 * 1000,
+          removeOnComplete: true,
+          removeOnFail: true,
         },
       );
-      console.log(`Added job "${job.title}" (Score: ${score.toFixed(2)})`);
-    }
+    });
+
+    await Promise.all(applicationPromises);
+
+    return {
+      success: true,
+      applications: jobsToProcess.length,
+      agentId,
+      limit: applicationLimit,
+      appliedToday: totalAttemptsToday,
+    };
   } catch (error) {
-    console.error(
-      `Error processing job discovery for student ${studentId}:`,
-      error,
-    );
+    console.error(`Error processing job discovery:`, error);
     throw error;
   }
 });
 
 // Event listeners
-jobDiscoveryQueue.on('completed', (job) => {
-  console.log(`Job discovery task ${job.id} completed`);
+jobDiscoveryQueue.on('completed', (job, result) => {
+  if (result.skipped) {
+    console.log(`Job ${job.id} skipped: ${result.reason}`);
+  } else {
+    console.log(
+      `Job ${job.id} completed - ${result.applications} applications queued`,
+    );
+  }
 });
 
 jobDiscoveryQueue.on('failed', (job, err) => {

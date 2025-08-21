@@ -9,10 +9,11 @@ import { mockUserProfile, AutoApplySettings, SavedCv } from '@/lib/data/user';
 // import { triggerAutoApplyAgent } from '@/ai/flows/auto-apply-agent-flow';
 import { generateCv } from '@/ai/flows/cv-generation';
 import { mockSubscriptionPlans } from '@/lib/data/subscriptions';
-import FilterWizard from './FilterWizard';
+
 import CvWizard from './CvWizard';
 import CreateCVWizard from './CreateCVWizard';
 import CoverLetterWizard from './CoverLetterWizard';
+import FilterWizard from './FilterWizard';
 import ConfigWizard from './ConfigWizard';
 import IntroWizard from './IntroWizard';
 import RenderDashboard from './RenderDashboard';
@@ -36,6 +37,7 @@ import {
   useCurrentPlan,
   useWizardNavigation,
 } from '@/hooks/autopilot/useAutoPilot';
+import apiInstance from '@/services/api';
 
 export function AutoApplyClient() {
   const [view, setView] = useState<View>('wizard');
@@ -43,8 +45,7 @@ export function AutoApplyClient() {
   const [editingAgent, setEditingAgent] = useState<AutoApplySettings | null>(
     null,
   );
-  const [saveCv, setSaveCv] = useState<SavedCv | null>(null);
-
+  const [savedCvData, setSavedCvData] = useState<SavedCv | null>(null);
   const dispatch = useDispatch();
   const { students } = useSelector((state: RootState) => state.student);
   useEffect(() => {
@@ -185,25 +186,6 @@ export function AutoApplyClient() {
   } = useFieldArray({ control: createCvForm.control, name: 'experience' });
 
   const startNewAgentWizard = () => {
-    // if (!currentPlan || currentPlan.limits.autoApplyAgents === 0) {
-    //   toast({
-    //     variant: "destructive",
-    //     title: "Upgrade Required",
-    //     description: "Creating AI Auto-Apply agents is a premium feature. Please upgrade your plan.",
-    //     action: <ToastAction altText="Upgrade" asChild><Link href="/subscriptions">Upgrade</Link></ToastAction>,
-    //   });
-    //   return;
-    // }
-    // if (currentPlan.limits.autoApplyAgents !== -1 && (mockUserProfile.autoApplyAgents || []).length >= currentPlan.limits.autoApplyAgents) {
-    //   toast({
-    //     variant: "destructive",
-    //     title: "Agent Limit Reached",
-    //     description: `Your plan allows for ${currentPlan.limits.autoApplyAgents} agent(s).`,
-    //     action: <ToastAction altText="Upgrade" asChild><Link href="/subscriptions">Upgrade</Link></ToastAction>,
-    //   });
-    //   return;
-    // }
-
     setEditingAgent(null);
     form.reset({
       id: `agent-${Date.now()}`,
@@ -238,51 +220,107 @@ export function AutoApplyClient() {
   };
 
   const onSubmit = async (data: AutoApplyFormValues) => {
+    console.log('data', data);
     if (!currentPlan) return;
-    if (
-      currentPlan.limits.autoApplyDailyLimit !== -1 &&
-      data.dailyLimit > currentPlan.limits.autoApplyDailyLimit
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Daily Limit Exceeded',
-        description: `Your plan's daily limit is ${currentPlan.limits.autoApplyDailyLimit}. Please adjust the agent's limit.`,
-      });
-      setWizardStep('config');
-      return;
-    }
 
     setIsLoading(true);
 
-    if (!Array.isArray(mockUserProfile.autoApplyAgents)) {
-      mockUserProfile.autoApplyAgents = [];
-    }
+    try {
+      // Prepare form data according to backend requirements
+      const formData = new FormData();
 
-    if (editingAgent) {
-      const index = (mockUserProfile.autoApplyAgents || []).findIndex(
-        (a) => a.id === editingAgent.id,
+      // Add basic fields
+      formData.append('agentName', data.name);
+      formData.append('jobTitle', data.jobFilters.query);
+      formData.append('country', data.jobFilters.country);
+      formData.append('isRemote', data.jobFilters.workFromHome.toString());
+      formData.append('isOnsite', (!data.jobFilters.workFromHome).toString());
+      formData.append(
+        'employmentType',
+        data.jobFilters.employmentTypes.join(','),
       );
-      if (index > -1) {
-        mockUserProfile.autoApplyAgents[index] = data;
-      }
-    } else {
-      (mockUserProfile.autoApplyAgents || []).push(data);
-      if (!mockUserProfile.hasSetupFirstAgent) {
-        mockUserProfile.careerXp = (mockUserProfile.careerXp || 0) + 50;
-        mockUserProfile.hasSetupFirstAgent = true;
-        toast({
-          title: '+50 Career XP!',
-          description: 'For setting up your first AI agent.',
-        });
-      }
-    }
-    toast({
-      title: 'Agent Settings Saved!',
-      description: `Your settings for agent "${data.name}" have been updated.`,
-    });
+      formData.append('autopilotLimit', data.dailyLimit.toString());
+      formData.append('coverLetterStrategy', data.coverLetterSettings.strategy);
+      formData.append(
+        'coverLetterInstructions',
+        data.coverLetterSettings.instructions || '',
+      );
 
-    setIsLoading(false);
-    setView('dashboard');
+      // Handle CV option
+      if (data.baseCvId.startsWith('uploaded-cv')) {
+        formData.append('cvOption', 'uploaded_pdf');
+        // Find the uploaded CV
+        const uploadedCv = mockUserProfile.savedCvs.find(
+          (cv) => cv.id === data.baseCvId,
+        );
+        if (uploadedCv && uploadedCv.htmlContent) {
+          // Convert base64 to file if needed
+          const blob = await fetch(uploadedCv.htmlContent).then((r) =>
+            r.blob(),
+          );
+          formData.append('cv', blob, 'uploaded_cv.pdf');
+        }
+      } else {
+        formData.append('cvOption', 'current_profile');
+      }
+
+      // Make API call
+      const response = await apiInstance.post('/pilotagent/create', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        // Update local state
+        if (!Array.isArray(mockUserProfile.autoApplyAgents)) {
+          mockUserProfile.autoApplyAgents = [];
+        }
+
+        const newAgent = {
+          ...data,
+          id: response.data.agent.agentId || `agent-${Date.now()}`,
+          lastRun: new Date().toISOString(),
+        };
+
+        if (editingAgent) {
+          const index = mockUserProfile.autoApplyAgents.findIndex(
+            (a) => a.id === editingAgent.id,
+          );
+          if (index > -1) {
+            mockUserProfile.autoApplyAgents[index] = newAgent;
+          }
+        } else {
+          mockUserProfile.autoApplyAgents.push(newAgent);
+          if (!mockUserProfile.hasSetupFirstAgent) {
+            mockUserProfile.careerXp = (mockUserProfile.careerXp || 0) + 50;
+            mockUserProfile.hasSetupFirstAgent = true;
+            toast({
+              title: '+50 Career XP!',
+              description: 'For setting up your first AI agent.',
+            });
+          }
+        }
+
+        toast({
+          title: 'Agent Created Successfully!',
+          description: `Your agent "${data.name}" is now active.`,
+        });
+        setView('dashboard');
+      } else {
+        throw new Error(response.data.message || 'Failed to create agent');
+      }
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Agent Creation Failed',
+        description:
+          error.message || 'An error occurred while creating the agent',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const deleteAgent = (agentId: string) => {
@@ -304,14 +342,14 @@ export function AutoApplyClient() {
   };
 
   const handleTriggerAgent = async (agent: AutoApplySettings) => {
-    if (!currentPlan || currentPlan.limits.autoApplyAgents === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Upgrade Required',
-        description: 'AI Auto Apply is a premium feature.',
-      });
-      return;
-    }
+    // if (!currentPlan || currentPlan.limits.autoApplyAgents === 0) {
+    //   toast({
+    //     variant: 'destructive',
+    //     title: 'Upgrade Required',
+    //     description: 'AI Auto Apply is a premium feature.',
+    //   });
+    //   return;
+    // }
 
     setIsLoading(true);
     toast({
@@ -342,9 +380,16 @@ export function AutoApplyClient() {
     agent: AutoApplySettings,
     isActive: boolean,
   ) => {
+    console.log('handleActivationToggle', agent, isActive);
     const agentInProfile = (mockUserProfile.autoApplyAgents || []).find(
       (a) => a.id === agent.id,
     );
+
+    const response = apiInstance.post(`/pilotagent/activate/${agent.id}`, {
+      agentId: agent.id,
+      isActive,
+    });
+
     if (!agentInProfile) return;
     agentInProfile.isActive = isActive;
 
@@ -366,7 +411,9 @@ export function AutoApplyClient() {
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
+    console.log('handleFileUpload');
     const file = event.target.files?.[0];
+    console.log('file', file);
     if (!file) return;
 
     setIsLoading(true);
@@ -377,22 +424,34 @@ export function AutoApplyClient() {
       const base64data = await readFileAsBase64(file);
 
       setLoadingMessage('Processing your CV...');
-      // const generatedCv = await generateCv({ cvData: base64data, jobTitle });
 
-      setLoadingMessage('Saving your CV...');
-      // Use your actual API call here instead of mock
+      // Create a new CV object from the uploaded file
+      const newCv: SavedCv = {
+        id: `uploaded-cv-${Date.now()}`,
+        name: `Uploaded CV for ${jobTitle}`,
+        htmlContent: base64data, // Store the base64 content
+        atsScore: 0, // Default score, can be calculated later
+        createdAt: new Date().toISOString(),
+        jobTitle: jobTitle,
+      };
 
-      const newCv = await saveCv({
-        cvData: base64data,
-        jobTitle,
-        userId: students._id,
-      });
+      // Add to saved CVs
+      mockUserProfile.savedCvs.unshift(newCv);
 
+      // Set as selected CV
       form.setValue('baseCvId', newCv.id, { shouldValidate: true });
-      toast.success('CV uploaded successfully!');
+
+      toast({
+        title: 'CV uploaded successfully!',
+        description: 'Your CV is ready to be used',
+      });
     } catch (error) {
-      console.log('error', error);
-      toast.error('Failed to process CV: ' + (error as Error).message);
+      console.error('Upload failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: (error as Error).message,
+      });
     } finally {
       setIsLoading(false);
       setLoadingMessage('');
@@ -410,7 +469,6 @@ export function AutoApplyClient() {
   };
 
   const handleCreateCvFormSubmit = async (data: CvDetailsValues) => {
-    console.log('data', data);
     setIsLoading(true);
 
     try {

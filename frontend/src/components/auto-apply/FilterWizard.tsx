@@ -36,7 +36,10 @@ const FilterWizard = ({
   errors,
   isFiltersStepValid,
   handleGoToNextStep,
-}) => {
+  setView,
+  setWizardStep,
+  editingAgent,
+}: any) => {
   return (
     <Card>
       <CardHeader>

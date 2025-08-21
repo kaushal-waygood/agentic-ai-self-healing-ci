@@ -22,6 +22,16 @@ const aiTaskQueue = new Queue('ai tasks', {
  */
 aiTaskQueue.process('generate_cover_letter', async (job) => {
   const { jobData, studentData } = job.data;
+
+  if (!jobData?.job?.title) {
+    throw new Error('Job title is required for cover letter generation');
+  }
+
+  // Use jobData.job.title instead of just jobData.title
+  console.log(
+    `Generating cover letter for ${studentData.fullName} for: ${jobData.job.title}`,
+  );
+
   console.log(
     `[AITaskQueue] Generating cover letter for ${studentData.fullName} for job: ${jobData.title}...`,
   );
@@ -67,7 +77,7 @@ ${studentData.fullName}
     console.log(
       `[AITaskQueue] Cover letter generated for job: ${jobData.title}.`,
     );
-    return generatedCoverLetter; // Return the generated content
+    return 'generatedCoverLetter'; // Return the generated content
   } catch (error) {
     console.error(
       `[AITaskQueue] Error generating cover letter for student ${studentData.fullName} for job ${jobData.title}:`,

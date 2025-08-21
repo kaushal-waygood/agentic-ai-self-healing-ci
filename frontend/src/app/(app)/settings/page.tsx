@@ -69,7 +69,7 @@ export default function SettingsPage() {
   );
 
   // State to manage the linked account UI reactively
-  const [isLinked, setIsLinked] = React.useState(mockUserProfile.isEmailLinked);
+  const [isLinked, setIsLinked] = React.useState(user?.token);
   const [provider, setProvider] = React.useState(
     mockUserProfile.linkedEmailProvider,
   );
