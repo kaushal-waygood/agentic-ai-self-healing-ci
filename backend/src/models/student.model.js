@@ -2,15 +2,15 @@ import { Schema, model } from 'mongoose';
 
 // Sub-schemas
 const jobPreferenceSchema = new Schema({
-  preferedCountries: { type: [String], default: [] },
-  preferedCities: { type: [String], default: [] },
+  preferredCountries: { type: [String], default: [] },
+  preferredCities: { type: [String], default: [] },
   isRemote: { type: Boolean, default: false },
   relocationWillingness: { type: String, default: false },
-  preferedJobTitles: { type: [String], default: [] },
-  preferedJobTypes: { type: [String], default: ['FULL_TIME'] },
-  preferedIndustries: { type: [String], default: [] },
-  preferedExperienceLevel: { type: String, default: null },
-  preferedSalary: {
+  preferredJobTitles: { type: [String], default: [] },
+  preferredJobTypes: { type: [String], default: ['FULL_TIME'] },
+  preferredIndustries: { type: [String], default: [] },
+  preferredExperienceLevel: { type: String, default: null },
+  preferredSalary: {
     min: { type: Number, default: null },
     max: { type: Number, default: null },
     currency: { type: String, default: 'USD' },
@@ -38,10 +38,10 @@ const jobPreferenceSchema = new Schema({
       },
     },
   ],
-  preferedCertifications: { type: [String], default: [] },
-  preferedEducationLevel: { type: String, default: null },
-  preferedCompanySizes: { type: [String], default: [] },
-  preferedCompanyCultures: { type: [String], default: [] },
+  preferredCertifications: { type: [String], default: [] },
+  preferredEducationLevel: { type: String, default: null },
+  preferredCompanySizes: { type: [String], default: [] },
+  preferredCompanyCultures: { type: [String], default: [] },
   visaSponsorshipRequired: { type: Boolean, default: false },
   immediateAvailability: { type: Boolean, default: false },
 });

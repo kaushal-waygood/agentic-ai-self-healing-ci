@@ -24,7 +24,7 @@ import {
   AddProject,
   AddSkill,
 } from './AddEducation';
-import JobPreferencesForm from './AddProject';
+import JobPreferencesForm from './JobPreference';
 import { ProfileFormProps, useProfile } from '@/hooks/useProfile';
 import { useCallback, useRef, useState } from 'react';
 import apiInstance from '@/services/api';

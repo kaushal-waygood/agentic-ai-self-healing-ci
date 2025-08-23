@@ -107,6 +107,7 @@ const SignupForm = () => {
 
   async function onSubmit(data: SignupFormValues) {
     try {
+      console.log('data', data);
       await apiInstance.post('/user/signup', data);
       successToast(
         'Account created! Please check your email for a verification code.',
@@ -234,7 +235,6 @@ const SignupForm = () => {
             </div>
           </div>
         ) : (
-          // --- THEME APPLIED: Main Signup Card ---
           <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
             <div className="text-center mb-8">
               <div className="relative inline-block mb-6">
