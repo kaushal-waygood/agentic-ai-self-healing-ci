@@ -510,8 +510,8 @@ export function CvGeneratorClient() {
         return (
           <JobWizard
             isLoading={isLoading}
-            pastedJobDescription={pastedJobDesc}
-            setPastedJobDescription={setPastedJobDesc}
+            pastedJobDescription={pastedJobDescription}
+            setPastedJobDescription={setPastedJobDescription}
             enteredJobTitle={enteredJobTitle}
             handleSetJobContext={handleSetJobContext}
             setEnteredJobTitle={setEnteredJobTitle}

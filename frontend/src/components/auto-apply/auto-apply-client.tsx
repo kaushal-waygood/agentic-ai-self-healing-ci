@@ -208,7 +208,7 @@ export function AutoApplyClient() {
         instructions: '',
       },
     });
-    setWizardStep('filters'); // change it to filters
+    setWizardStep('filters');
     setView('wizard');
   };
 
@@ -531,24 +531,28 @@ export function AutoApplyClient() {
       | `coverLetterSettings.${keyof AutoApplyFormValues['coverLetterSettings']}`
     )[],
   ) => {
+    console.log('handleGoToNextStep');
     const isValid = await form.trigger(fieldsToValidate);
-    if (isValid) {
-      const nextStepMap: Record<WizardStep, WizardStep> = {
-        intro: 'filters',
-        filters: 'cv',
-        cv: 'coverLetter',
-        createCv: 'cv',
-        coverLetter: 'config',
-        config: 'config',
-      };
-      setWizardStep(nextStepMap[currentStep]);
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Incomplete Step',
-        description: 'Please fill out all required fields before proceeding.',
-      });
-    }
+    console.log('isValid', isValid);
+
+    const nextStepMap: Record<WizardStep, WizardStep> = {
+      intro: 'filters',
+      filters: 'cv',
+      cv: 'coverLetter',
+      createCv: 'cv',
+      coverLetter: 'config',
+      config: 'config',
+    };
+    console.log('nextStepMap[currentStep]', nextStepMap[currentStep]);
+    setWizardStep(nextStepMap[currentStep]);
+    // if (isValid) {
+    // } else {
+    //   toast({
+    //     variant: 'destructive',
+    //     title: 'Incomplete Step',
+    //     description: 'Please fill out all required fields before proceeding.',
+    //   });
+    // }
   };
 
   const filtersWatch = form.watch([
