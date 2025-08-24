@@ -39,13 +39,13 @@ YOUR TASKS:
 2. **Generate Professional HTML CV (in 'cv' field of output JSON):**
 
 **CRITICAL FORMATTING REQUIREMENTS:**
-- **Font**: Use Times New Roman, 11pt for body text, 22pt for name
-- **Page Layout**: Maximum 800px width, centered, optimized for 2-page maximum length
-- **Print Optimization**: Include print media queries for clean PDF conversion
+- **Font**: Use Times New Roman, 11pt for body text, 18pt for name
+- **Page Layout**: A4 size (210mm x 297mm), 0.75-inch margins, optimized for 2-page maximum length
+- **Print Optimization**: Include print media queries for clean A4 PDF conversion
 
-**HEADER FORMATTING (MUST BE CENTERED):**
-- Name: 22pt, bold, uppercase, centered
-- Contact info: 11pt, single line, centered below name
+**HEADER FORMATTING (LEFT ALIGNED):**
+- Name: 18pt, bold, uppercase, left-aligned
+- Contact info: 10pt, single line, left-aligned below name
 - Format: "Address | Phone | Email"
 
 **SECTION STRUCTURE (EXACT ORDER):**
@@ -55,9 +55,9 @@ YOUR TASKS:
 4. **SKILLS** (with horizontal divider)
 
 **SECTION FORMATTING RULES:**
-- Section titles: 12pt, bold, uppercase
+- Section titles: 11pt, bold, uppercase, underlined with solid black line
 - Add horizontal black line divider immediately after each section title using: \`<div class="section-divider"></div>\`
-- Consistent spacing: 18px between sections, 12px between job entries
+- Consistent spacing: 12px between sections, 8px between job entries
 
 **EXPERIENCE SECTION FORMAT:**
 For each job entry:
@@ -71,72 +71,83 @@ Job Title                                            Date Range
 **REQUIRED CSS STYLING (Include this exact CSS):**
 \`\`\`css
 <style>
+@page {
+    size: A4;
+    margin: 0.75in;
+}
+
 body {
     font-family: 'Times New Roman', serif;
-    line-height: 1.2;
+    line-height: 1.0;
     margin: 0;
-    padding: 40px;
+    padding: 0;
     color: #000;
     background-color: #fff;
     font-size: 11pt;
+    width: 210mm;
+    max-width: 210mm;
 }
 
 .container {
-    max-width: 800px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.75in;
+    box-sizing: border-box;
 }
 
 .header {
-    text-align: center;
-    margin-bottom: 0;
+    text-align: left;
+    margin-bottom: 12px;
 }
 
 .name {
-    font-size: 22pt;
+    font-size: 18pt;
     font-weight: bold;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     color: #000;
+    text-transform: uppercase;
 }
 
 .contact-info {
-    font-size: 11pt;
+    font-size: 10pt;
     color: #000;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .section {
-    margin-bottom: 18px;
+    margin-bottom: 12px;
 }
 
 .section-title {
-    font-size: 12pt;
+    font-size: 11pt;
     font-weight: bold;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
     color: #000;
     text-transform: uppercase;
 }
 
 .section-divider {
     border-bottom: 1px solid #000;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .summary-text {
     font-size: 11pt;
     text-align: justify;
-    line-height: 1.3;
-    margin-bottom: 12px;
+    line-height: 1.1;
+    margin-bottom: 8px;
 }
 
 .additional {
     font-size: 11pt;
     font-weight: bold;
     text-align: justify;
-    line-height: 1.3;
+    line-height: 1.1;
 }
 
 .job {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .company-line {
@@ -160,7 +171,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 6px;
+    margin-bottom: 3px;
 }
 
 .role {
@@ -181,8 +192,8 @@ body {
 
 .responsibilities li {
     font-size: 11pt;
-    line-height: 1.3;
-    margin-bottom: 4px;
+    line-height: 1.1;
+    margin-bottom: 2px;
     text-align: justify;
     position: relative;
     padding-left: 12px;
@@ -200,7 +211,7 @@ body {
 }
 
 .education-item {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .degree-line {
@@ -217,16 +228,16 @@ body {
 .degree {
     font-size: 11pt;
     font-style: italic;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 .skills-section {
     font-size: 11pt;
-    line-height: 1.4;
+    line-height: 1.2;
 }
 
 .skill-category {
-    margin-bottom: 6px;
+    margin-bottom: 3px;
     text-align: justify;
 }
 
@@ -236,12 +247,34 @@ body {
 }
 
 @media print {
-    body { 
-        padding: 0.5in; 
-        font-size: 11pt;
+    @page {
+        size: A4;
+        margin: 0.75in;
     }
+    
+    body { 
+        width: 210mm;
+        font-size: 11pt;
+        line-height: 1.0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
     .container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
         max-width: none;
+    }
+    
+    .section {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    .job {
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
 }
 </style>
