@@ -66,13 +66,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 
 import { mockUserProfile, SavedCoverLetter } from '@/lib/data/user';
-import {
-  generateCoverLetter,
-  CoverLetterGenerationInput,
-} from '@/ai/flows/cover-letter-generation';
 import { extractJobDetails } from '@/ai/flows/extract-job-details-flow';
 import { mockJobListings } from '@/lib/data/jobs';
-import { EditableMaterial } from '../application/editable-material';
+import EditableMaterial from '../application/editable-material';
 import { mockSubscriptionPlans } from '@/lib/data/subscriptions';
 import Link from 'next/link';
 import { ToastAction } from '../ui/toast';
@@ -82,6 +78,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import JobWizard from '../cv/components/JobWizard';
+import ClGenerator from './cl-generator';
+import CustomizeWizard from './customizeWizard';
 
 // Wizard related types
 type WizardStep =
@@ -512,8 +510,8 @@ export function CoverLetterGeneratorClient() {
         return (
           <JobWizard
             isLoading={isLoading}
-            pastedJobDescription={pastedJobDescription}
-            setPastedJobDescription={setPastedJobDescription}
+            pastedJobDescription={pastedJobDesc}
+            setPastedJobDescription={setPastedJobDesc}
             enteredJobTitle={enteredJobTitle}
             handleSetJobContext={handleSetJobContext}
             setEnteredJobTitle={setEnteredJobTitle}
@@ -521,208 +519,27 @@ export function CoverLetterGeneratorClient() {
         );
       case 'cv':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">
-                Step 2: CV Context
-              </CardTitle>
-              <CardDescription>
-                Choose the CV the AI should reference.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <RadioGroup
-                value={selectedSavedCvId}
-                onValueChange={setSelectedSavedCvId}
-                className="space-y-2 max-h-60 overflow-y-auto pr-2"
-              >
-                {mockUserProfile.savedCvs.map((cv) => (
-                  <Label
-                    key={cv.id}
-                    className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-muted/50 has-[:checked]:bg-primary/10 has-[:checked]:border-primary"
-                  >
-                    <RadioGroupItem value={cv.id} id={cv.id} />
-                    <div>
-                      <p className="font-semibold">{cv.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Saved: {new Date(cv.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </Label>
-                ))}
-              </RadioGroup>
-              {selectedSavedCvId && (
-                <Button
-                  className="w-full"
-                  onClick={() =>
-                    handleSetCvContext('saved', {
-                      value:
-                        mockUserProfile.savedCvs.find(
-                          (c) => c.id === selectedSavedCvId,
-                        )?.htmlContent || '',
-                      name:
-                        mockUserProfile.savedCvs.find(
-                          (c) => c.id === selectedSavedCvId,
-                        )?.name || '',
-                    })
-                  }
-                >
-                  Use Selected Saved CV
-                </Button>
-              )}
-              <Separator className="my-4" />
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleUseActiveProfileCv}
-              >
-                Use Active Profile CV
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-              >
-                {isLoading && loadingMessage ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{' '}
-                    {loadingMessage}
-                  </>
-                ) : (
-                  <>
-                    <UploadCloud className="mr-2 h-4 w-4" />
-                    Upload a New CV
-                  </>
-                )}
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                accept=".pdf,.doc,.docx,.png,.jpg"
-              />
-            </CardContent>
-            <CardFooter>
-              <Button variant="ghost" onClick={() => setWizardStep('job')}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
-            </CardFooter>
-          </Card>
+          <ClGenerator
+            selectedSavedCvId={selectedSavedCvId}
+            setSelectedSavedCvId={setSelectedSavedCvId}
+            mockUserProfile={mockUserProfile}
+            handleSetCvContext={handleSetCvContext}
+            handleUseActiveProfileCv={handleUseActiveProfileCv}
+            fileInputRef={fileInputRef}
+            handleFileUpload={handleFileUpload}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            setWizardStep={setWizardStep}
+          />
         );
       case 'customize':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">
-                Step 3: Customize
-              </CardTitle>
-              <CardDescription>
-                Adjust tone, style, and add a personal touch.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...customizationForm}>
-                <form
-                  onSubmit={customizationForm.handleSubmit(handleGenerate)}
-                  className="space-y-4"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField
-                      control={customizationForm.control}
-                      name="tone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tone</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Formal">Formal</SelectItem>
-                              <SelectItem value="Enthusiastic">
-                                Enthusiastic
-                              </SelectItem>
-                              <SelectItem value="Reserved">Reserved</SelectItem>
-                              <SelectItem value="Casual">Casual</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={customizationForm.control}
-                      name="style"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Style</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Concise">Concise</SelectItem>
-                              <SelectItem value="Detailed">Detailed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={customizationForm.control}
-                    name="personalStory"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Personal Story (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Mention a specific achievement..."
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full !mt-6"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{' '}
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="mr-2 h-4 w-4" /> Generate Letter
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-            <CardFooter>
-              <Button variant="ghost" onClick={() => setWizardStep('cv')}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
-            </CardFooter>
-          </Card>
+          <CustomizeWizard
+            customizationForm={customizationForm}
+            handleGenerate={handleGenerate}
+            isLoading={isLoading}
+            setWizardStep={setWizardStep}
+          />
         );
       case 'generating':
         return (
@@ -761,6 +578,15 @@ export function CoverLetterGeneratorClient() {
                 <Archive className="mr-2 h-4 w-4" /> Save Final Version
               </Button>
             </CardFooter>
+            <div className="lg:sticky lg:top-4">
+              <EditableMaterial
+                editorId="cover-letter-editor"
+                title="Cover Letter"
+                content={generatedCvOutput}
+                setContent={setGeneratedCoverLetter}
+                isHtml
+              />
+            </div>
           </Card>
         );
       default:
@@ -783,7 +609,7 @@ export function CoverLetterGeneratorClient() {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <div>
         {/* Left Panel: Wizard */}
         <div className="space-y-6">
           <AnimatePresence mode="wait">
@@ -797,17 +623,6 @@ export function CoverLetterGeneratorClient() {
               {renderWizardStep()}
             </motion.div>
           </AnimatePresence>
-        </div>
-
-        {/* Right Panel: Output Editor */}
-        <div className="lg:sticky lg:top-4">
-          <EditableMaterial
-            editorId="cover-letter-editor"
-            title="Cover Letter"
-            content={generatedCvOutput}
-            setContent={setGeneratedCoverLetter}
-            isHtml
-          />
         </div>
       </div>
 
