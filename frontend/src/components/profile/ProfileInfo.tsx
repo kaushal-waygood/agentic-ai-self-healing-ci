@@ -14,12 +14,12 @@ import { Check, Edit, Mail, User, X, Lock, Unlock } from 'lucide-react';
 
 const ProfileInfo = ({
   personalInfoForm,
-  handlePersonalInfoSubmit, // This can be used for a global save button if you add one
+  handlePersonalInfoSubmit,
   isNameEditable,
   handlePersonalInfoEdit,
-  toggleNameEdit, // This should now ideally just enable edit mode
+  toggleNameEdit,
   isEmailEditable,
-  toggleEmailEdit, // This should now ideally just enable edit mode
+  toggleEmailEdit,
   setHandleName,
   handleCancelEdit, // New prop for the cancel button
 }: any) => {

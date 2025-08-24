@@ -14,7 +14,7 @@ import {
   addResume,
   updateEducation,
   updateStudentSkills,
-  createJobPreference,
+  updateJobPreferences,
   getJobPreferences,
   updateFullName,
   savedJobs,
@@ -140,7 +140,7 @@ router.post(
   '/prefered-job/add',
   authMiddleware,
   isStudent,
-  createJobPreference,
+  updateJobPreferences,
 );
 
 router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);

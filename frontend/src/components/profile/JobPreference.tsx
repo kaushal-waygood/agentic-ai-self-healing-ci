@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ChevronDown,
   MapPin,
@@ -24,6 +24,11 @@ import {
   FormLabel,
   FormMessage,
 } from '../ui/form';
+import { useDispatch } from 'react-redux';
+import {
+  getStudentJobPreferenceRequest,
+  updateStudentJobPreferenceRequest,
+} from '@/redux/reducers/studentReducer';
 
 const JobPreferencesForm = () => {
   const [activeSection, setActiveSection] = useState('location');
@@ -62,6 +67,8 @@ const JobPreferencesForm = () => {
     visaSponsorshipRequired: false,
     immediateAvailability: false,
   });
+
+  const dispatch = useDispatch();
 
   const experienceLevels = [
     { id: 'ENTRY_LEVEL', label: 'Entry Level', icon: '🌱' },
@@ -156,6 +163,16 @@ const JobPreferencesForm = () => {
       },
     }));
   };
+
+  const handleSavePreferences = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    dispatch(updateStudentJobPreferenceRequest(formData));
+  };
+
+  useEffect(() => {
+    dispatch(getStudentJobPreferenceRequest());
+  }, []);
 
   const toggleArrayValue = (field, value) => {
     setFormData((prev) => ({
@@ -672,7 +689,10 @@ const JobPreferencesForm = () => {
           <button className="px-8 py-4 bg-gradient-to-r from-slate-400 to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-slate-400/30 hover:shadow-xl hover:shadow-slate-400/40 transform hover:scale-105 transition-all duration-300">
             Save Draft
           </button>
-          <button className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300">
+          <button
+            onClick={handleSavePreferences}
+            className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
+          >
             Save Preferences
           </button>
         </div>

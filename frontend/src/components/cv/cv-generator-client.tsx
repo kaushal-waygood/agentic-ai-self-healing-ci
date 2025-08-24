@@ -63,6 +63,10 @@ import {
   savedStudentResumeRequest,
 } from '@/redux/reducers/aiReducer';
 import JobWizard from './components/JobWizard';
+import CVGeneratorClient from './CVGeneratorClient';
+import ContextWizard from './ContextWizard';
+import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
+import GeneratedCV from './GeneratedCV';
 
 // --- Types and Schemas ---
 
@@ -358,7 +362,7 @@ export function CvGeneratorClient() {
         // Handle HTML response
         response = {
           cv: apiResponse.data,
-          atsScore: 0, // You might want to calculate this from the API
+          atsScore: 0,
           atsScoreReasoning: 'ATS score not calculated for JD-based generation',
         };
       } else if (jobContext.mode === 'title') {
@@ -506,8 +510,8 @@ export function CvGeneratorClient() {
         return (
           <JobWizard
             isLoading={isLoading}
-            pastedJobDescription={pastedJobDescription}
-            setPastedJobDescription={setPastedJobDescription}
+            pastedJobDescription={pastedJobDesc}
+            setPastedJobDescription={setPastedJobDesc}
             enteredJobTitle={enteredJobTitle}
             handleSetJobContext={handleSetJobContext}
             setEnteredJobTitle={setEnteredJobTitle}
@@ -515,149 +519,32 @@ export function CvGeneratorClient() {
         );
       case 'cv':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">
-                Step 2: Provide Your CV
-              </CardTitle>
-              <CardDescription>
-                Choose your professional background source.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                variant="outline"
-                className="w-full h-20 text-base flex-col gap-2"
-                onClick={handleFileInputUploadClick}
-                disabled={isLoading}
-              >
-                {isLoading && loadingMessage ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <>
-                    <UploadCloud />
-                    Upload CV File
-                  </>
-                )}
-              </Button>
-              <input
-                type="file"
-                className="hidden"
-                ref={fileInputRef}
-                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-                onChange={handleFileUpload}
-              />
-              <Button
-                variant="outline"
-                className="w-full h-20 text-base"
-                onClick={handleUseProfile}
-              >
-                <User />
-                Use My Profile
-              </Button>
-              {mockUserProfile.savedCvs?.length > 0 && (
-                <>
-                  <Separator />
-                  <RadioGroup
-                    value={selectedSavedCvId}
-                    onValueChange={setSelectedSavedCvId}
-                    className="space-y-2 max-h-40 overflow-y-auto p-2 border rounded-md"
-                  >
-                    {mockUserProfile.savedCvs.map((cv) => (
-                      <Label
-                        key={cv.id}
-                        className="flex items-center gap-3 p-2 border rounded-md cursor-pointer hover:bg-muted/50 has-[:checked]:bg-primary/10 has-[:checked]:border-primary"
-                      >
-                        <RadioGroupItem value={cv.id} id={cv.id} />
-                        {cv.name}
-                      </Label>
-                    ))}
-                  </RadioGroup>
-                  <Button
-                    className="w-full"
-                    onClick={() =>
-                      handleSetCvSource('saved', {
-                        value:
-                          mockUserProfile.savedCvs.find(
-                            (c) => c.id === selectedSavedCvId,
-                          )?.htmlContent || '',
-                        name:
-                          mockUserProfile.savedCvs.find(
-                            (c) => c.id === selectedSavedCvId,
-                          )?.name || '',
-                      })
-                    }
-                    disabled={!selectedSavedCvId}
-                  >
-                    Use Selected CV
-                  </Button>
-                </>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button variant="ghost" onClick={() => setWizardStep('job')}>
-                <ArrowLeft className="mr-2" />
-                Back
-              </Button>
-            </CardFooter>
-          </Card>
+          <CVGeneratorClient
+            handleFileInputUploadClick={handleFileInputUploadClick}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            fileInputRef={fileInputRef}
+            handleFileUpload={handleFileUpload}
+            handleUseProfile={handleUseProfile}
+            mockUserProfile={mockUserProfile}
+            selectedSavedCvId={selectedSavedCvId}
+            setSelectedSavedCvId={setSelectedSavedCvId}
+            handleSetCvSource={handleSetCvSource}
+            setWizardStep={setWizardStep}
+          />
         );
       case 'context':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">
-                Step 3: Final Touches
-              </CardTitle>
-              <CardDescription>
-                Optionally add keywords or achievements for the AI to emphasize.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="e.g., Emphasize my experience with scalable systems. Mention my passion for user-centric design."
-                className="min-h-[150px]"
-                value={additionalNarratives}
-                onChange={(e) => setAdditionalNarratives(e.target.value)}
-              />
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="ghost" onClick={() => setWizardStep('cv')}>
-                <ArrowLeft className="mr-2" />
-                Back
-              </Button>
-              <Button size="lg" onClick={handleGenerate}>
-                <Wand2 className="mr-2" />
-                Generate My CV
-              </Button>
-            </CardFooter>
-          </Card>
+          <ContextWizard
+            additionalNarratives={additionalNarratives}
+            setAdditionalNarratives={setAdditionalNarratives}
+            setWizardStep={setWizardStep}
+            handleGenerate={handleGenerate}
+          />
         );
       case 'generating':
-        return (
-          <Card className="flex flex-col items-center justify-center text-center p-12 min-h-[400px]">
-            <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-            <h2 className="text-2xl font-headline font-semibold">
-              Crafting Your CV...
-            </h2>
-            <p className="text-muted-foreground mt-2 max-w-md">
-              Our AI is analyzing your profile and the job description. This can
-              take up to a minute.
-            </p>
-          </Card>
-        );
-      case 'result':
-        return (
-          <Card className="flex flex-col items-center justify-center text-center p-12 min-h-[400px]">
-            <ChevronsRight className="h-16 w-16 text-primary mb-4" />
-            <h2 className="text-2xl font-headline font-semibold">
-              CV Generated!
-            </h2>
-            <p className="text-muted-foreground mt-2 max-w-xs">
-              Your tailored CV is ready. Review it and your saved CVs below.
-            </p>
-          </Card>
-        );
+        return <SleekLoadingCard />;
+
       default:
         return null;
     }
@@ -678,55 +565,11 @@ export function CvGeneratorClient() {
       </AnimatePresence>
 
       {wizardStep === 'result' && generatedCvOutput && (
-        <Card id="ai-generated-cv-card">
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="font-headline text-2xl">
-                  Your AI Generated CV
-                </CardTitle>
-                <CardDescription>
-                  Review the CV below. Click the "Edit" button to make live
-                  edits.
-                </CardDescription>
-              </div>
-              <Button variant="secondary" onClick={handleInitiateSave}>
-                <Save className="mr-2 h-4 w-4" />
-                Save Final Version
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Card className="mb-6 border-primary bg-primary/5">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xl flex items-center">
-                  <Star className="h-5 w-5 mr-2 text-primary" />
-                  AI ATS Analysis
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-primary">
-                    {generatedCvOutput.atsScore}
-                  </span>
-                  <span className="text-sm text-muted-foreground ml-1">
-                    / 100
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {generatedCvOutput.atsScoreReasoning}
-                </p>
-              </CardContent>
-            </Card>
-            <EditableMaterial
-              editorId="cv-live-editor"
-              title="CV"
-              content={generatedCvOutput.cv}
-              setContent={setCurrentCvContent}
-              isHtml
-            />
-          </CardContent>
-        </Card>
+        <GeneratedCV
+          generatedCvOutput={generatedCvOutput}
+          handleInitiateSave={handleInitiateSave}
+          setCurrentCvContent={setCurrentCvContent}
+        />
       )}
 
       <Card>

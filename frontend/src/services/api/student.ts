@@ -85,7 +85,6 @@ export const updateSkill = async (data: any) => {
 };
 
 export const updateJobPreference = async (data: any) => {
-  console.log('data', data);
   const response = await apiInstance.post('/students/job-role/update', {
     jobRole: data,
   });
@@ -99,5 +98,12 @@ export const recommendProfileJob = async () => {
 
 export const getResumeDetailsByResume = async (data: any) => {
   const response = await apiInstance.post('/students/resume/extract', data);
+  return response;
+};
+
+export const updateJobPrefered = async (data: any) => {
+  const response = await apiInstance.post('/students/prefered-job/add', {
+    data,
+  });
   return response;
 };

@@ -971,39 +971,80 @@ export const StudentAnalytics = async (req, res) => {
   }
 };
 
-export const createJobPreference = async (req, res) => {
+export const updateJobPreferences = async (req, res) => {
   try {
     const studentId = req.user._id;
+    console.log('studentId', studentId);
     const update = {};
 
-    // Build update object from request body
-    const preferenceFields = [
-      'preferedCountries',
-      'preferedCities',
-      'isRemote',
-      'relocationWillingness',
-      'preferedJobTitles',
-      'preferedJobTypes',
-      'preferedIndustries',
-      'preferedExperienceLevel',
-      'preferedSalary',
-      'mustHaveSkills',
-      'niceToHaveSkills',
-      'preferedCertifications',
-      'preferedEducationLevel',
-      'preferedCompanySizes',
-      'preferedCompanyCultures',
-      'visaSponsorshipRequired',
-      'immediateAvailability',
-    ];
+    const incomingData = req.body;
+    console.log('incomingData', incomingData);
 
-    preferenceFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        update[`jobPreferences.${field}`] = req.body[field];
-      }
-    });
+    // Use the corrected field names with 'preferred' instead of 'prefered'
+    if (incomingData.preferredCountries) {
+      update['jobPreferences.preferredCountries'] =
+        incomingData.preferredCountries;
+    }
+    if (incomingData.preferredCities) {
+      update['jobPreferences.preferredCities'] = incomingData.preferredCities;
+    }
+    if (incomingData.isRemote !== undefined) {
+      update['jobPreferences.isRemote'] = incomingData.isRemote;
+    }
+    if (incomingData.preferredSalary) {
+      update['jobPreferences.preferredSalary'] = incomingData.preferredSalary;
+    }
+    if (incomingData.relocationWillingness !== undefined) {
+      update['jobPreferences.relocationWillingness'] =
+        incomingData.relocationWillingness;
+    }
+    if (incomingData.preferredJobTitles) {
+      update['jobPreferences.preferredJobTitles'] =
+        incomingData.preferredJobTitles;
+    }
+    if (incomingData.preferredJobTypes) {
+      update['jobPreferences.preferredJobTypes'] =
+        incomingData.preferredJobTypes;
+    }
+    if (incomingData.preferredIndustries) {
+      update['jobPreferences.preferredIndustries'] =
+        incomingData.preferredIndustries;
+    }
+    if (incomingData.preferredExperienceLevel !== undefined) {
+      update['jobPreferences.preferredExperienceLevel'] =
+        incomingData.preferredExperienceLevel;
+    }
+    if (incomingData.mustHaveSkills) {
+      update['jobPreferences.mustHaveSkills'] = incomingData.mustHaveSkills;
+    }
+    if (incomingData.niceToHaveSkills) {
+      update['jobPreferences.niceToHaveSkills'] = incomingData.niceToHaveSkills;
+    }
+    if (incomingData.preferredCertifications) {
+      update['jobPreferences.preferredCertifications'] =
+        incomingData.preferredCertifications;
+    }
+    if (incomingData.preferredEducationLevel !== undefined) {
+      update['jobPreferences.preferredEducationLevel'] =
+        incomingData.preferredEducationLevel;
+    }
+    if (incomingData.preferredCompanySizes) {
+      update['jobPreferences.preferredCompanySizes'] =
+        incomingData.preferredCompanySizes;
+    }
+    if (incomingData.preferredCompanyCultures) {
+      update['jobPreferences.preferredCompanyCultures'] =
+        incomingData.preferredCompanyCultures;
+    }
+    if (incomingData.visaSponsorshipRequired !== undefined) {
+      update['jobPreferences.visaSponsorshipRequired'] =
+        incomingData.visaSponsorshipRequired;
+    }
+    if (incomingData.immediateAvailability !== undefined) {
+      update['jobPreferences.immediateAvailability'] =
+        incomingData.immediateAvailability;
+    }
 
-    // Update student
     const student = await Student.findByIdAndUpdate(
       studentId,
       { $set: update },
@@ -1014,17 +1055,12 @@ export const createJobPreference = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Invalidate relevant caches
-    await redisClient.invalidateStudentCache(studentId);
-    await redisClient.del(`student:${studentId}:jobPreferences`);
-    await redisClient.del(`jobs:recommended:${studentId}:*`);
-
     return res.status(200).json({
       message: 'Job preferences updated successfully',
       preferences: student.jobPreferences,
     });
   } catch (error) {
-    console.error('Error updating preferences:', error);
+    console.error('Error updating job preferences:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
