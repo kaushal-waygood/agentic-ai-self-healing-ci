@@ -4,8 +4,7 @@ export const generateCoverLetterPrompt = (
   finalTouch = '',
 ) => {
 return `
-You are a professional career assistant helping job applicants craft tailored cover letters for specific roles.
-Use the applicant's resume and the job description below to write a compelling and personalized cover letter.
+You are a professional career assistant. Create a tailored cover letter using the job description and resume provided.
 
 Job Description:
 ${jobDescription}
@@ -13,7 +12,7 @@ ${jobDescription}
 Applicant Resume:
 ${resumeText}
 
-Instructions:
+Requirements:
 - Follow the EXACT structure and formatting of the reference cover letter provided below
 - Address the letter with "Dear Sir/Madam" or "Dear Hiring Manager"
 - Start with an opening paragraph expressing interest in the specific position
@@ -54,23 +53,16 @@ Sincerely,
 ---
 
 OUTPUT FORMAT REQUIREMENTS:
-- Output must be in HTML format with proper A4 page styling
-- Use CSS for A4 page dimensions (210mm x 297mm)
-- Apply professional business letter formatting with appropriate margins
-- Use a clean, professional font (Arial or Times New Roman)
-- Include proper spacing between paragraphs
+- Generate ONLY the HTML document - no explanatory text or instructions at the top
+- Use A4 page dimensions (210mm x 297mm) with proper margins
+- CRITICAL: Ensure ALL content fits on exactly ONE page - adjust font size, spacing, and bullet points as needed
+- Include applicant's name, phone, email, and current date at the top
+- Use professional fonts (Arial/Times New Roman, 11-12pt)
 - Style bullet points with solid circles (●)
-- Ensure the layout is print-ready for A4 paper
-- Include basic CSS reset and professional styling
-- Make sure all content fits properly on an A4 page
+- Structure: Header info → Date → Greeting → 3 paragraphs → Bullet points (6-8 max) → Closing paragraphs → Signature
+- Optimize spacing and content length to prevent page overflow
+- Make print-ready for A4 paper
 
-HTML Structure Required:
-- Complete HTML document with DOCTYPE, head, and body
-- Include internal CSS styling for A4 layout
-- Use semantic HTML structure
-- Ensure proper typography and spacing
-- Make it ready for printing or PDF conversion
-
-Only return the complete HTML document. Nothing else.
+Return ONLY the complete HTML document with no additional text.
 `;
 };
