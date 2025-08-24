@@ -27,7 +27,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import React, { useState } from 'react';
-import { EditableMaterial } from '../application/editable-material';
+import EditableMaterial from '../application/editable-material';
 
 const GeneratedCV = ({
   generatedCvOutput,
@@ -86,11 +86,9 @@ const GeneratedCV = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Analytics Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* ATS Score Card */}
-            <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
+        <div className="flex flex-col gap-6">
+          <div className="flex justify-center itmes-center md:flex-row space-y-6">
+            <Card className="w-1/2 bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
@@ -155,49 +153,14 @@ const GeneratedCV = ({
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-indigo-500" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  className="w-full justify-start bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl h-12"
-                  //   onClick={handleDownload}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start border-2 hover:bg-blue-50 hover:border-blue-300 rounded-xl h-12"
-                  onClick={handleShare}
-                >
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share CV
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start border-2 hover:bg-purple-50 hover:border-purple-300 rounded-xl h-12"
-                  onClick={handleRegenerate}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Regenerate
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Performance Metrics */}
-            <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl">
+            <Card className="w-1/2 bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-purple-500" />
                   Performance
                 </CardTitle>
               </CardHeader>
+
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
                   <ThumbsUp className="h-5 w-5 text-green-500" />
@@ -226,7 +189,7 @@ const GeneratedCV = ({
           </div>
 
           {/* Main CV Display */}
-          <div className="lg:col-span-2">
+          <div className="col-span-2">
             <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white">
                 <div className="flex justify-between items-start">
