@@ -43,9 +43,9 @@ YOUR TASKS:
 - **Page Layout**: A4 size (210mm x 297mm), 0.75-inch margins, optimized for 2-page maximum length
 - **Print Optimization**: Include print media queries for clean A4 PDF conversion
 
-**HEADER FORMATTING (LEFT ALIGNED):**
-- Name: 18pt, bold, uppercase, left-aligned
-- Contact info: 10pt, single line, left-aligned below name
+**HEADER FORMATTING (CENTERED):**
+- Name: 18pt, bold, uppercase, centered
+- Contact info: 10pt, single line, centered below name
 - Format: "Address | Phone | Email"
 
 **SECTION STRUCTURE (EXACT ORDER):**
