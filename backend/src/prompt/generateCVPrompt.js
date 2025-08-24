@@ -57,7 +57,7 @@ YOUR TASKS:
 **SECTION FORMATTING RULES:**
 - Section titles: 11pt, bold, uppercase, underlined with solid black line
 - Add horizontal black line divider immediately after each section title using: \`<div class="section-divider"></div>\`
-- Consistent spacing: 12px between sections, 8px between job entries
+- Consistent spacing: 12px between sections, 10px between job entries
 
 **EXPERIENCE SECTION FORMAT:**
 For each job entry:
