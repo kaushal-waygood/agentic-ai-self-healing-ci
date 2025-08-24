@@ -61,12 +61,12 @@ YOUR TASKS:
 
 **EXPERIENCE SECTION FORMAT:**
 For each job entry:
-```
+\`\`\`
 Company Name                                          Location
 Job Title                                            Date Range
 • Bullet point with Bold Label: Description text
 • Bullet point with Bold Label: Description text
-```
+\`\`\`
 
 **REQUIRED CSS STYLING (Include this exact CSS):**
 \`\`\`css
@@ -269,7 +269,7 @@ body {
 - Output must include complete HTML document with embedded CSS
 - Use exact class names as specified in CSS
 - Follow this structure:
-```html
+\`\`\`html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -311,7 +311,7 @@ body {
     </div>
 </body>
 </html>
-```
+\`\`\`
 
 **CRITICAL SUCCESS FACTORS:**
 - Exact spacing and formatting match
