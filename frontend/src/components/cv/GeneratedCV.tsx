@@ -86,7 +86,7 @@ const GeneratedCV = ({
           </div>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8 ">
           <div className="flex justify-center itmes-center md:flex-row space-y-6">
             <Card className="w-1/2 bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">

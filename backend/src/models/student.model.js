@@ -1,4 +1,5 @@
 import { Schema, model } from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
 // Sub-schemas
 const jobPreferenceSchema = new Schema({
@@ -81,11 +82,11 @@ const experienceSchema = new Schema({
 });
 
 const skillSchema = new Schema({
-  skillId: { type: String, index: true, sparse: true },
+  skillId: { type: String, required: true },
   skill: String,
   level: {
     type: String,
-    enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'], // Added 'ADVANCED'
+    enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'],
     default: 'INTERMEDIATE',
   },
 });

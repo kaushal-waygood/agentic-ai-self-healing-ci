@@ -246,24 +246,26 @@ function* getStudentJobPreferenceSaga() {
   }
 }
 
-function* getStudentResumeDetailsSaga(action: PayloadAction<any>) {
-  try {
-    const response: AxiosResponse = yield call(
-      getResumeDetailsByResume(action.payload),
-    );
-    yield put(getStudentResumeSuccess(response.data));
-  } catch (error: unknown | Error) {
-    yield put(getStudentResumeFailure((error as Error).message));
-  }
-}
+// function* getStudentResumeDetailsSaga(action: PayloadAction<any>) {
+//   try {
+//     const response: AxiosResponse = yield call(
+//       updateJobPrefered(action.payload),
+//     );
+//     yield put(getStudentResumeSuccess(response.data));
+//   } catch (error: unknown | Error) {
+//     yield put(getStudentResumeFailure((error as Error).message));
+//   }
+// }
 
-function* pdateJobPreferedByStudentSaga(action: PayloadAction<any>) {
+function* updateJobPreferedByStudentSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(
       updateJobPrefered,
       action.payload,
     );
-  } catch (error) {}
+  } catch (error) {
+    yield put(updateJobPreferedByStudentFailure((error as Error).message));
+  }
 }
 
 export function* studentWatcher() {
@@ -310,5 +312,10 @@ export function* studentWatcher() {
     getStudentJobPreferenceSaga,
   );
 
-  yield takeLatest(getStudentResumeRequest.type, getStudentResumeDetailsSaga);
+  // yield takeLatest(getStudentResumeRequest.type, getStudentResumeDetailsSaga);
+
+  yield takeLatest(
+    updateJobPreferedByStudentRequest.type,
+    updateJobPreferedByStudentSaga,
+  );
 }

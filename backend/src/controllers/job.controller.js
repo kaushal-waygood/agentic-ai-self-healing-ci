@@ -411,10 +411,8 @@ export const getAllJobs = async (req, res) => {
     const cacheKey = `jobs:filtered:${query}:${country}:${city}:${datePosted}:${employmentType}:${experience}:${page}:${limit}`;
 
     const result = await redisClient.withCache(cacheKey, 1800, async () => {
-      // Added TTL parameter (1800 seconds = 30 minutes)
       const filter = {};
 
-      // General query search (searches title and description)
       if (query) {
         filter.$or = [
           { title: { $regex: query, $options: 'i' } },

@@ -232,12 +232,15 @@ export const signUpUser = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
+  console.log('Email:', email, 'OTP:', otp);
 
   try {
     // Find user by email
     const user = await User.findOne({ email }).select(
       '+otp +otpExpires +isEmailVerified',
     );
+
+    console.log('User:', user);
 
     // Validation checks
     if (!user) {
