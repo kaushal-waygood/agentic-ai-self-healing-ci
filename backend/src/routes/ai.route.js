@@ -33,8 +33,8 @@ router.get('/resume/convert', authMiddleware, isStudent, convertDataIntoHTML);
 
 router.post(
   '/resume/generate/jd',
-  authMiddleware,
-  isStudent,
+  // authMiddleware,
+  // isStudent,
   upload.single('cv'),
   generateCVByJD,
 );

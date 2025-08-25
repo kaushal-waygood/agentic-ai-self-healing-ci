@@ -27,8 +27,10 @@ import {
 import { useDispatch } from 'react-redux';
 import {
   getStudentJobPreferenceRequest,
+  updateJobPreferedByStudentRequest,
   updateStudentJobPreferenceRequest,
 } from '@/redux/reducers/studentReducer';
+import apiInstance from '@/services/api';
 
 const JobPreferencesForm = () => {
   const [activeSection, setActiveSection] = useState('location');
@@ -164,10 +166,12 @@ const JobPreferencesForm = () => {
     }));
   };
 
-  const handleSavePreferences = (e: React.FormEvent) => {
+  const handleSavePreferences = async (e) => {
     e.preventDefault();
-
-    dispatch(updateStudentJobPreferenceRequest(formData));
+    const response = await apiInstance.post('/students/prefered-job/add', {
+      formData,
+    });
+    console.log('formData', response);
   };
 
   useEffect(() => {
@@ -236,416 +240,424 @@ const JobPreferencesForm = () => {
     </div>
   );
 
-  const LocationSection = () => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="group">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            <Globe className="inline w-4 h-4 mr-2" />
-            Preferred Countries
-          </label>
-          <textarea
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300 resize-none"
-            rows={3}
-            placeholder="USA, Canada, Germany..."
-            value={formData.preferredCountries}
-            onChange={(e) =>
-              handleInputChange('preferredCountries', e.target.value)
-            }
-          />
-        </div>
-
-        <div className="group">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            <MapPin className="inline w-4 h-4 mr-2" />
-            Preferred Cities
-          </label>
-          <textarea
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300 resize-none"
-            rows={3}
-            placeholder="New York, Toronto, Berlin..."
-            value={formData.preferredCities}
-            onChange={(e) =>
-              handleInputChange('preferredCities', e.target.value)
-            }
-          />
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <CustomCheckbox
-          checked={formData.isRemote}
-          onChange={() => handleInputChange('isRemote', !formData.isRemote)}
-          color="purple"
-        >
-          <div>
-            <div className="font-semibold">🌍 Remote Work Only</div>
-            <div className="text-sm opacity-80">
-              Only consider remote opportunities
-            </div>
-          </div>
-        </CustomCheckbox>
-
-        <div className="group">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            Willingness to Relocate
-          </label>
-          <select
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300"
-            value={formData.relocationWillingness}
-            onChange={(e) =>
-              handleInputChange('relocationWillingness', e.target.value)
-            }
-          >
-            <option value="">Select willingness</option>
-            <option value="not-willing">❌ Not willing to relocate</option>
-            <option value="open">🤔 Open to relocation</option>
-            <option value="very-willing">✅ Very willing to relocate</option>
-            <option value="seeking">🎯 Actively seeking relocation</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-
-  const JobSection = () => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="group">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            <Briefcase className="inline w-4 h-4 mr-2" />
-            Preferred Job Titles
-          </label>
-          <textarea
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300 resize-none"
-            rows={3}
-            placeholder="Software Engineer, Product Manager..."
-            value={formData.preferredJobTitles}
-            onChange={(e) =>
-              handleInputChange('preferredJobTitles', e.target.value)
-            }
-          />
-        </div>
-
-        <div className="group">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            Preferred Industries
-          </label>
-          <textarea
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300 resize-none"
-            rows={3}
-            placeholder="Technology, Healthcare, Finance..."
-            value={formData.preferredIndustries}
-            onChange={(e) =>
-              handleInputChange('preferredIndustries', e.target.value)
-            }
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-          Job Types
-        </label>
-        <div className="grid md:grid-cols-3 gap-4">
-          {jobTypes.map((type) => (
-            <CustomCheckbox
-              key={type.id}
-              checked={formData.preferredJobTypes.includes(type.id)}
-              onChange={() => toggleArrayValue('preferredJobTypes', type.id)}
-              color="blue"
-            >
-              <div className="font-medium">{type.label}</div>
-            </CustomCheckbox>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-          Experience Level
-        </label>
-        <div className="grid md:grid-cols-3 gap-4">
-          {experienceLevels.map((level) => (
-            <CustomCheckbox
-              key={level.id}
-              checked={formData.preferredExperienceLevel === level.id}
-              onChange={() =>
-                handleInputChange('preferredExperienceLevel', level.id)
-              }
-              color="blue"
-            >
-              <div>
-                <div className="font-medium">
-                  {level.icon} {level.label}
-                </div>
-              </div>
-            </CustomCheckbox>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const CompensationSection = () => (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-6">
-        <h4 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">
-          <DollarSign className="inline w-5 h-5 mr-2" />
-          Expected Salary Range
-        </h4>
-
-        <div className="grid md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
-              Minimum Salary
-            </label>
-            <input
-              type="number"
-              className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
-              placeholder="50,000"
-              value={formData.preferredSalary.min}
-              onChange={(e) => handleSalaryChange('min', e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
-              Maximum Salary
-            </label>
-            <input
-              type="number"
-              className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
-              placeholder="80,000"
-              value={formData.preferredSalary.max}
-              onChange={(e) => handleSalaryChange('max', e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
-              Currency
-            </label>
-            <select
-              className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
-              value={formData.preferredSalary.currency}
-              onChange={(e) => handleSalaryChange('currency', e.target.value)}
-            >
-              <option value="USD">💵 USD</option>
-              <option value="EUR">💶 EUR</option>
-              <option value="INR">💰 INR</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
-              Period
-            </label>
-            <select
-              className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
-              value={formData.preferredSalary.period}
-              onChange={(e) => handleSalaryChange('period', e.target.value)}
-            >
-              <option value="YEAR">📅 Yearly</option>
-              <option value="MONTH">📆 Monthly</option>
-              <option value="WEEK">📋 Weekly</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const SkillsSection = () => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="group">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            <Code className="inline w-4 h-4 mr-2" />
-            Must-have Skills
-          </label>
-          <textarea
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
-            rows={4}
-            placeholder="JavaScript, Python, React..."
-            value={formData.mustHaveSkills}
-            onChange={(e) =>
-              handleInputChange('mustHaveSkills', e.target.value)
-            }
-          />
-        </div>
-
-        <div className="group">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            <Star className="inline w-4 h-4 mr-2" />
-            Nice-to-have Skills
-          </label>
-          <textarea
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
-            rows={4}
-            placeholder="Docker, AWS, GraphQL..."
-            value={formData.niceToHaveSkills}
-            onChange={(e) =>
-              handleInputChange('niceToHaveSkills', e.target.value)
-            }
-          />
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="group">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            <Award className="inline w-4 h-4 mr-2" />
-            Certifications
-          </label>
-          <textarea
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
-            rows={3}
-            placeholder="AWS Certified, PMP, Scrum Master..."
-            value={formData.preferredCertifications}
-            onChange={(e) =>
-              handleInputChange('preferredCertifications', e.target.value)
-            }
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-            <GraduationCap className="inline w-4 h-4 mr-2" />
-            Education Level
-          </label>
-          <div className="space-y-2">
-            {educationLevels.map((level) => (
-              <CustomCheckbox
-                key={level.id}
-                checked={formData.preferredEducationLevel === level.id}
-                onChange={() =>
-                  handleInputChange('preferredEducationLevel', level.id)
-                }
-                color="green"
-              >
-                <div className="font-medium">
-                  {level.icon} {level.label}
-                </div>
-              </CustomCheckbox>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const CompanySection = () => (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-          Company Sizes
-        </label>
-        <div className="grid md:grid-cols-2 gap-4">
-          {companySizes.map((size) => (
-            <CustomCheckbox
-              key={size.id}
-              checked={formData.preferredCompanySizes.includes(size.id)}
-              onChange={() =>
-                toggleArrayValue('preferredCompanySizes', size.id)
-              }
-              color="yellow"
-            >
-              <div>
-                <div className="font-semibold">
-                  {size.icon} {size.label}
-                </div>
-                <div className="text-sm opacity-80">{size.desc}</div>
-              </div>
-            </CustomCheckbox>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-          Company Cultures
-        </label>
-        <div className="grid md:grid-cols-3 gap-4">
-          {companyCultures.map((culture) => (
-            <CustomCheckbox
-              key={culture.id}
-              checked={formData.preferredCompanyCultures.includes(culture.id)}
-              onChange={() =>
-                toggleArrayValue('preferredCompanyCultures', culture.id)
-              }
-              color="yellow"
-            >
-              <div>
-                <div className="font-semibold">
-                  {culture.icon} {culture.label}
-                </div>
-              </div>
-            </CustomCheckbox>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const AdditionalSection = () => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <CustomCheckbox
-          checked={formData.visaSponsorshipRequired}
-          onChange={() =>
-            handleInputChange(
-              'visaSponsorshipRequired',
-              !formData.visaSponsorshipRequired,
-            )
-          }
-          color="red"
-        >
-          <div>
-            <div className="font-semibold">🛂 Visa Sponsorship Required</div>
-            <div className="text-sm opacity-80">
-              Do you need visa sponsorship?
-            </div>
-          </div>
-        </CustomCheckbox>
-
-        <CustomCheckbox
-          checked={formData.immediateAvailability}
-          onChange={() =>
-            handleInputChange(
-              'immediateAvailability',
-              !formData.immediateAvailability,
-            )
-          }
-          color="red"
-        >
-          <div>
-            <div className="font-semibold">⚡ Immediate Availability</div>
-            <div className="text-sm opacity-80">Can you start immediately?</div>
-          </div>
-        </CustomCheckbox>
-      </div>
-    </div>
-  );
-
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'location':
-        return <LocationSection />;
+        return (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  <Globe className="inline w-4 h-4 mr-2" />
+                  Preferred Countries
+                </label>
+                <textarea
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300 resize-none"
+                  rows={3}
+                  placeholder="USA, Canada, Germany..."
+                  value={formData.preferredCountries}
+                  onChange={(e) =>
+                    handleInputChange('preferredCountries', e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  <MapPin className="inline w-4 h-4 mr-2" />
+                  Preferred Cities
+                </label>
+                <textarea
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300 resize-none"
+                  rows={3}
+                  placeholder="New York, Toronto, Berlin..."
+                  value={formData.preferredCities}
+                  onChange={(e) =>
+                    handleInputChange('preferredCities', e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <CustomCheckbox
+                checked={formData.isRemote}
+                onChange={() =>
+                  handleInputChange('isRemote', !formData.isRemote)
+                }
+                color="purple"
+              >
+                <div>
+                  <div className="font-semibold">🌍 Remote Work Only</div>
+                  <div className="text-sm opacity-80">
+                    Only consider remote opportunities
+                  </div>
+                </div>
+              </CustomCheckbox>
+
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Willingness to Relocate
+                </label>
+                <select
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300"
+                  value={formData.relocationWillingness}
+                  onChange={(e) =>
+                    handleInputChange('relocationWillingness', e.target.value)
+                  }
+                >
+                  <option value="">Select willingness</option>
+                  <option value="not-willing">
+                    ❌ Not willing to relocate
+                  </option>
+                  <option value="open">🤔 Open to relocation</option>
+                  <option value="very-willing">
+                    ✅ Very willing to relocate
+                  </option>
+                  <option value="seeking">
+                    🎯 Actively seeking relocation
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
       case 'job':
-        return <JobSection />;
+        return (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  <Briefcase className="inline w-4 h-4 mr-2" />
+                  Preferred Job Titles
+                </label>
+                <textarea
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300 resize-none"
+                  rows={3}
+                  placeholder="Software Engineer, Product Manager..."
+                  value={formData.preferredJobTitles}
+                  onChange={(e) =>
+                    handleInputChange('preferredJobTitles', e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Preferred Industries
+                </label>
+                <textarea
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300 resize-none"
+                  rows={3}
+                  placeholder="Technology, Healthcare, Finance..."
+                  value={formData.preferredIndustries}
+                  onChange={(e) =>
+                    handleInputChange('preferredIndustries', e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+                Job Types
+              </label>
+              <div className="grid md:grid-cols-3 gap-4">
+                {jobTypes.map((type) => (
+                  <CustomCheckbox
+                    key={type.id}
+                    checked={formData.preferredJobTypes.includes(type.id)}
+                    onChange={() =>
+                      toggleArrayValue('preferredJobTypes', type.id)
+                    }
+                    color="blue"
+                  >
+                    <div className="font-medium">{type.label}</div>
+                  </CustomCheckbox>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+                Experience Level
+              </label>
+              <div className="grid md:grid-cols-3 gap-4">
+                {experienceLevels.map((level) => (
+                  <CustomCheckbox
+                    key={level.id}
+                    checked={formData.preferredExperienceLevel === level.id}
+                    onChange={() =>
+                      handleInputChange('preferredExperienceLevel', level.id)
+                    }
+                    color="blue"
+                  >
+                    <div>
+                      <div className="font-medium">
+                        {level.icon} {level.label}
+                      </div>
+                    </div>
+                  </CustomCheckbox>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
       case 'compensation':
-        return <CompensationSection />;
+        return (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-6">
+              <h4 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">
+                <DollarSign className="inline w-5 h-5 mr-2" />
+                Expected Salary Range
+              </h4>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                    Minimum Salary
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+                    placeholder="50,000"
+                    value={formData.preferredSalary.min}
+                    onChange={(e) => handleSalaryChange('min', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                    Maximum Salary
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+                    placeholder="80,000"
+                    value={formData.preferredSalary.max}
+                    onChange={(e) => handleSalaryChange('max', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                    Currency
+                  </label>
+                  <select
+                    className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+                    value={formData.preferredSalary.currency}
+                    onChange={(e) =>
+                      handleSalaryChange('currency', e.target.value)
+                    }
+                  >
+                    <option value="USD">💵 USD</option>
+                    <option value="EUR">💶 EUR</option>
+                    <option value="INR">💰 INR</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                    Period
+                  </label>
+                  <select
+                    className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+                    value={formData.preferredSalary.period}
+                    onChange={(e) =>
+                      handleSalaryChange('period', e.target.value)
+                    }
+                  >
+                    <option value="YEAR">📅 Yearly</option>
+                    <option value="MONTH">📆 Monthly</option>
+                    <option value="WEEK">📋 Weekly</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       case 'skills':
-        return <SkillsSection />;
+        return (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  <Code className="inline w-4 h-4 mr-2" />
+                  Must-have Skills
+                </label>
+                <textarea
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+                  rows={4}
+                  placeholder="JavaScript, Python, React..."
+                  value={formData.mustHaveSkills}
+                  onChange={(e) =>
+                    handleInputChange('mustHaveSkills', e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  <Star className="inline w-4 h-4 mr-2" />
+                  Nice-to-have Skills
+                </label>
+                <textarea
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+                  rows={4}
+                  placeholder="Docker, AWS, GraphQL..."
+                  value={formData.niceToHaveSkills}
+                  onChange={(e) =>
+                    handleInputChange('niceToHaveSkills', e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  <Award className="inline w-4 h-4 mr-2" />
+                  Certifications
+                </label>
+                <textarea
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+                  rows={3}
+                  placeholder="AWS Certified, PMP, Scrum Master..."
+                  value={formData.preferredCertifications}
+                  onChange={(e) =>
+                    handleInputChange('preferredCertifications', e.target.value)
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+                  <GraduationCap className="inline w-4 h-4 mr-2" />
+                  Education Level
+                </label>
+                <div className="space-y-2">
+                  {educationLevels.map((level) => (
+                    <CustomCheckbox
+                      key={level.id}
+                      checked={formData.preferredEducationLevel === level.id}
+                      onChange={() =>
+                        handleInputChange('preferredEducationLevel', level.id)
+                      }
+                      color="green"
+                    >
+                      <div className="font-medium">
+                        {level.icon} {level.label}
+                      </div>
+                    </CustomCheckbox>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       case 'company':
-        return <CompanySection />;
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+                Company Sizes
+              </label>
+              <div className="grid md:grid-cols-2 gap-4">
+                {companySizes.map((size) => (
+                  <CustomCheckbox
+                    key={size.id}
+                    checked={formData.preferredCompanySizes.includes(size.id)}
+                    onChange={() =>
+                      toggleArrayValue('preferredCompanySizes', size.id)
+                    }
+                    color="yellow"
+                  >
+                    <div>
+                      <div className="font-semibold">
+                        {size.icon} {size.label}
+                      </div>
+                      <div className="text-sm opacity-80">{size.desc}</div>
+                    </div>
+                  </CustomCheckbox>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+                Company Cultures
+              </label>
+              <div className="grid md:grid-cols-3 gap-4">
+                {companyCultures.map((culture) => (
+                  <CustomCheckbox
+                    key={culture.id}
+                    checked={formData.preferredCompanyCultures.includes(
+                      culture.id,
+                    )}
+                    onChange={() =>
+                      toggleArrayValue('preferredCompanyCultures', culture.id)
+                    }
+                    color="yellow"
+                  >
+                    <div>
+                      <div className="font-semibold">
+                        {culture.icon} {culture.label}
+                      </div>
+                    </div>
+                  </CustomCheckbox>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
       case 'additional':
-        return <AdditionalSection />;
+        return (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <CustomCheckbox
+                checked={formData.visaSponsorshipRequired}
+                onChange={() =>
+                  handleInputChange(
+                    'visaSponsorshipRequired',
+                    !formData.visaSponsorshipRequired,
+                  )
+                }
+                color="red"
+              >
+                <div>
+                  <div className="font-semibold">
+                    🛂 Visa Sponsorship Required
+                  </div>
+                  <div className="text-sm opacity-80">
+                    Do you need visa sponsorship?
+                  </div>
+                </div>
+              </CustomCheckbox>
+
+              <CustomCheckbox
+                checked={formData.immediateAvailability}
+                onChange={() =>
+                  handleInputChange(
+                    'immediateAvailability',
+                    !formData.immediateAvailability,
+                  )
+                }
+                color="red"
+              >
+                <div>
+                  <div className="font-semibold">⚡ Immediate Availability</div>
+                  <div className="text-sm opacity-80">
+                    Can you start immediately?
+                  </div>
+                </div>
+              </CustomCheckbox>
+            </div>
+          </div>
+        );
       default:
-        return <LocationSection />;
+        return null;
     }
   };
 

@@ -28,20 +28,10 @@ import {
   convertSalaryToYearly,
 } from '../utils/jobUtils.js';
 
-// Get student details
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
-  const cacheKey = `student:${_id}`;
 
   try {
-    const cachedData = await redisClient.get(cacheKey);
-    if (cachedData !== null) {
-      return res.status(200).json({
-        studentDetails: JSON.parse(cachedData),
-        fromCache: true,
-      });
-    }
-
     const user = await User.findById(_id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -53,16 +43,23 @@ export const studentDetails = async (req, res) => {
 
     let student = await Student.findById(_id);
     if (!student) {
-      student = await Student.create({
-        _id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        jobRole: user.jobRole,
-        skills: [],
-      });
+      try {
+        student = await Student.create({
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+        });
+      } catch (createError) {
+        if (createError.code === 11000) {
+          student = await Student.findById(_id);
+          if (!student) {
+            throw createError;
+          }
+        } else {
+          throw createError;
+        }
+      }
     }
-
-    await redisClient.set(cacheKey, JSON.stringify(student), 3600);
 
     return res.status(200).json({
       studentDetails: student,
@@ -70,6 +67,14 @@ export const studentDetails = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating student details:', error);
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: 'Duplicate data error. Please try again.',
+        error: 'Duplicate key violation',
+      });
+    }
+
     return res.status(500).json({
       message: 'Internal server error',
       error: error.message,
@@ -811,10 +816,10 @@ export const appliedJob = async (req, res) => {
       return res.status(400).json({ message: 'Invalid job ID format' });
     }
 
-    const [student, job] = await Promise.all([
-      Student.findById(_id),
-      Job.findById(jobId),
-    ]);
+    // Use findById for single document lookup
+
+    const student = await Student.findById(_id);
+    const job = await Job.findById(jobId);
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
@@ -824,19 +829,22 @@ export const appliedJob = async (req, res) => {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    if (student.appliedJobs.some((appliedJob) => appliedJob.job === jobId)) {
+    if (
+      student.appliedJobs.some(
+        (appliedJob) => appliedJob.job.toString() === jobId,
+      )
+    ) {
       return res.status(400).json({
         message: 'You have already applied for this job',
       });
     }
 
+    // Add the student and job to the respective arrays
     student.appliedJobs.push({ job: jobId });
     job.appliedStudents.push(student._id);
 
+    // Save both documents
     await Promise.all([student.save(), job.save()]);
-
-    // Invalidate cache
-    await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({
       message: 'Job applied successfully',
