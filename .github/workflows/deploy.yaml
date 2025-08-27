@@ -1,0 +1,50 @@
+name: Build & Push Docker Images
+
+on:
+  push:
+    branches:
+      - main   # or master, adjust to your default branch
+  workflow_dispatch:  # allow manual trigger
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write   # allow pushing to GHCR
+
+    steps:
+      # Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Login to GHCR
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build & Push Backend Image
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/zobsai-backend:latest
+            ghcr.io/${{ github.repository_owner }}/zobsai-backend:${{ github.sha }}
+
+      # Build & Push Frontend Image
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/zobsai-frontend:latest
+            ghcr.io/${{ github.repository_owner }}/zobsai-frontend:${{ github.sha }}
