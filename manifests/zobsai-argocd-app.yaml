@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zobsai
+  namespace: monitoring
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: zobsai-backend=ghcr.io/zobsai-com/zobsai-backend, zobsai-frontend=ghcr.io/zobsai-com/zobsai-frontend
+    argocd-image-updater.argoproj.io/zobsai-backend.update-strategy: latest
+    argocd-image-updater.argoproj.io/zobsai-frontend.update-strategy: latest
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ZobsAI-com/zobsai.git
+    targetRevision: main
+    path: manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: zobsai
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
