@@ -20,7 +20,7 @@ spec:
           image: ghcr.io/zobsai-com/zobsai-backend:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 4000
+            - containerPort: 8080
           envFrom:
             - secretRef:
                 name: zobsai-backend-secrets
@@ -46,6 +46,6 @@ spec:
   selector:
     app: zobsai-backend
   ports:
-    - port: 8000       # Frontend calls this port
+    - port: 8080      # Frontend calls this port
       targetPort: 4000 # Container port
   type: ClusterIP      # Internal pod-to-pod connectivity
