@@ -622,6 +622,7 @@ export function AutoApplyClient() {
             form={form}
             errors={errors}
             handleGoToNextStep={handleGoToNextStep}
+            setWizardStep={setWizardStep}
             coverLetterSettings={form.watch('coverLetterSettings')}
           />
         );

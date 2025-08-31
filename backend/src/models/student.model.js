@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Sub-schemas
 const jobPreferenceSchema = new Schema({
-  preferredCountries: { type: [String], default: [] },
-  preferredCities: { type: [String], default: [] },
+  preferredCountries: { type: [String] },
+  preferredCities: { type: [String] },
   isRemote: { type: Boolean, default: false },
   relocationWillingness: { type: String, default: false },
   preferredJobTitles: { type: [String], default: [] },
@@ -179,8 +179,8 @@ const studentSchema = new Schema(
     ],
     savedJobs: [
       {
-        job: { type: Schema.Types.ObjectId, ref: 'Job' },
-        savedAt: { type: Date, default: Date.now },
+        type: Schema.Types.ObjectId, // Defines the type as a MongoDB ObjectId
+        ref: 'Job', // Creates a reference to your 'Job' model
       },
     ],
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },

@@ -5,11 +5,11 @@ import { FileText } from 'lucide-react';
 export default function CvGeneratorPage() {
   return (
     <>
-      <PageHeader
+      {/* <PageHeader
         title="AI CV Generator"
         description="Follow the steps to craft a world-class CV tailored for your next job application."
         icon={FileText}
-      />
+      /> */}
       <CvGeneratorClient />
     </>
   );

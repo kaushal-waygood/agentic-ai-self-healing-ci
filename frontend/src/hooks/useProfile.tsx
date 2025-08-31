@@ -90,6 +90,7 @@ const profileFormSchema = z.object({
     message: 'Full name must be at least 2 characters.',
   }),
   email: z.string().email(),
+  phone: z.string().optional(),
   jobPreference: z.string().min(2, {
     message: 'Job preference must be at least 2 characters.',
   }),
@@ -140,8 +141,6 @@ export const useProfile = () => {
     (state: RootState) => state.student,
   );
 
-  // Initializing state variables for forms and UI.
-  // We'll reset the forms in useEffect when the Redux state is updated.
   const [addExp, setAddExp] = useState(false);
   const [addProj, setAddProj] = useState(false);
   const [addEdu, setAddEdu] = useState(false);
@@ -171,9 +170,11 @@ export const useProfile = () => {
 
   const [isNameEditable, setIsNameEditable] = useState(false);
   const [isEmailEditable, setIsEmailEditable] = useState(false);
+  const [isPhoneEditable, setIsPhoneEditable] = useState(false);
   const [isJobPrefEditable, setIsJobPrefEditable] = useState(false);
   const [handleName, setHandleName] = useState('');
   const [handleEmail, setHandleEmail] = useState('');
+  const [handlePhone, setHandlePhone] = useState('');
   const [handleJobPreference, setHandleJobPreference] = useState('');
 
   const [file, setFile] = useState(null);
@@ -181,10 +182,8 @@ export const useProfile = () => {
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // 1. Initialize forms without default values from students.
-  // The forms will be empty at first, then reset with data from Redux.
   const personalInfoForm = useForm<
-    Pick<ProfileFormValues, 'fullName' | 'email'>
+    Pick<ProfileFormValues, 'fullName' | 'email' | 'phone'>
   >({
     resolver: zodResolver(
       profileFormSchema.pick({ fullName: true, email: true }),
@@ -245,20 +244,16 @@ export const useProfile = () => {
     mode: 'onChange',
   });
 
-  // 2. Use a single useEffect to handle all form updates
-  // This hook runs whenever `students` changes, ensuring forms are always in sync with Redux.
   useEffect(() => {
-    // Make sure the `students` object is not empty before resetting
     if (students && Object.keys(students).length > 0) {
       personalInfoForm.reset({
         fullName: students.fullName || '',
         email: students.email || '',
+        phone: students.phone || '',
       });
       careerDetailsForm.reset({
         jobPreference: students.jobRole || '',
       });
-      // Assuming you have narratives and job preferences in your Redux state
-      // Narratives are currently mocked, so this part might need adjustment
       narrativesForm.reset({
         narrativeChallenges: mockUserProfile.narratives.challenges,
         narrativeAchievements: mockUserProfile.narratives.achievements,
@@ -280,13 +275,12 @@ export const useProfile = () => {
         excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
       });
     }
-  }, [students]); // Dependency array: this effect runs when `students` changes.
+  }, [students]);
 
-  // 3. Define the `defaultValues` object inside the hook.
-  // This is used for rendering the list components, like education and projects.
   const defaultValues: ProfileFormValues = {
     fullName: students.fullName,
     email: students.email,
+    phone: students.phone,
     jobPreference: students.jobRole,
     education: (students.education || []).map((edu) => ({
       institution: edu.institute || '',
@@ -417,6 +411,7 @@ export const useProfile = () => {
   const toggleEmailEdit = () => setIsEmailEditable((prev) => !prev);
 
   const handlePersonalInfoEdit = async (handle: string) => {
+    console.log('handle', handle);
     if (handle === 'fullName') {
       const response: AxiosResponse = await apiInstance.patch(
         '/students/fullname/update',
@@ -442,13 +437,18 @@ export const useProfile = () => {
       setIsEmailEditable(false);
       setHandleEmail('');
     } else if (handle === 'jobPreference') {
-      console.log('handleJobPreference');
-
       dispatch(updateStudentJobPreferenceRequest(handleJobPreference));
-
-      console.log('handleJobPreference', handleJobPreference);
-
       setIsJobPrefEditable((prev) => !prev);
+    } else if (handle === 'phone') {
+      const response: AxiosResponse = await apiInstance.patch(
+        '/students/email/update',
+        {
+          email: handleEmail,
+        },
+      );
+
+      setIsPhoneEditable(false);
+      setHandlePhone('');
     }
   };
 

@@ -11,10 +11,12 @@ import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AppHeader } from '@/components/layout/app-header';
 import { Footer } from '@/components/layout/footer';
+import DashboardFooter from '@/components/layout/DashboardFooter';
 // import ProtectedRoute from '@/components/protected/ProtectedRoute';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isVerified, setIsVerified] = useState(false);
+  const currentYear = new Date().getFullYear();
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -48,9 +50,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </ScrollArea>
 
         {/* Footer */}
-        <footer className="border-t">
-          <Footer />
-        </footer>
+        <DashboardFooter />
       </SidebarInset>
     </SidebarProvider>
   );

@@ -153,9 +153,8 @@ router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
 router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
 router.post('/autopilot/toggle', authMiddleware, isStudent, toggleAutopilot);
 
-router.post('/pdf/generate-pdf', async (req, res) => {
-  console.log('Received request to generate PDF...');
 
+router.post('/pdf/generate-pdf', async (req, res) => {
   const { html, title } = req.body;
 
   if (!html) {
@@ -175,7 +174,7 @@ router.post('/pdf/generate-pdf', async (req, res) => {
       format: 'A4',
       printBackground: true,
       margin: {
-        top: '15mm',
+        top: '10mm',
         right: '15mm',
         bottom: '15mm',
         left: '15mm',

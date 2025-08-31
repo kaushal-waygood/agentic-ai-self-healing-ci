@@ -12,6 +12,11 @@ import {
   Award,
   CheckCircle2,
 } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
+import { getProfileRequest } from '@/redux/reducers/authReducer';
 
 const PageHeader = ({ title, description, icon: Icon }) => (
   <div className="mb-8">
@@ -121,28 +126,18 @@ export default function ReferralsPage() {
   const [referralLink, setReferralLink] = useState(null);
   const [copied, setCopied] = useState(false);
   const [shareClicked, setShareClicked] = useState({});
+  const [mockUserProfile, setMockUserProfile] = useState({
+    referralsMade: 0,
+    earnedApplicationCredits: 0,
+    referralCode: null,
+  });
 
-  // Mock data
-  const mockUserProfile = {
-    referralsMade: 8,
-    earnedApplicationCredits: 120,
-    referralCode: 'CP-REF-2024',
-    nextRewardAt: 10,
-  };
-
+  const dispatch = useDispatch();
+  const { user, loading } = useSelector((state: RootState) => state.auth);
+  console.log('user', user);
   useEffect(() => {
-    // Simulate loading with stagger effect
-    setTimeout(() => setReferralsMade(mockUserProfile.referralsMade || 0), 300);
-    setTimeout(
-      () => setCreditsEarned(mockUserProfile.earnedApplicationCredits || 0),
-      500,
-    );
-    setTimeout(() => {
-      const code = mockUserProfile.referralCode || '';
-      setUserReferralCode(code);
-      setReferralLink(`https://careerpilot.app/signup?ref=${code}`);
-    }, 700);
-  }, []);
+    dispatch(getProfileRequest());
+  }, [dispatch]);
 
   const handleCopyReferralLink = async () => {
     if (!referralLink) return;
@@ -188,11 +183,11 @@ export default function ReferralsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <PageHeader
+        {/* <PageHeader
           title="Referral Program"
           description="Invite friends to CareerPilot and earn application credits!"
           icon={Gift}
-        />
+        /> */}
 
         {/* Stats Overview */}
         <div className="grid gap-6 md:grid-cols-3 mb-8">
@@ -209,30 +204,9 @@ export default function ReferralsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end gap-4">
-                {referralsMade === null ? (
-                  <Skeleton className="h-12 w-20" />
-                ) : (
-                  <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {referralsMade}
-                  </div>
-                )}
-                <div className="text-sm text-gray-500 mb-1">
-                  / {mockUserProfile.nextRewardAt} for bonus
-                </div>
+              <div className="flex items-end gap-4 text-3xl font-bold ">
+                {user.referralCount}
               </div>
-              {referralsMade !== null && (
-                <div className="mt-3">
-                  <ProgressBar
-                    value={referralsMade}
-                    max={mockUserProfile.nextRewardAt}
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    {mockUserProfile.nextRewardAt - referralsMade} more for
-                    special bonus!
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -249,20 +223,8 @@ export default function ReferralsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                {creditsEarned === null ? (
-                  <Skeleton className="h-12 w-20" />
-                ) : (
-                  <>
-                    <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-cyan-600 bg-clip-text text-transparent">
-                      {creditsEarned}
-                    </div>
-                    <div className="flex items-center gap-1 text-green-600">
-                      <TrendingUp className="h-4 w-4" />
-                      <span className="text-sm font-medium">+15 this week</span>
-                    </div>
-                  </>
-                )}
+              <div className="flex items-center gap-2 text-3xl font-bold ">
+                {user.referralCount * 15}
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 15 credits per successful referral
@@ -320,18 +282,7 @@ export default function ReferralsPage() {
                   <p className="text-sm font-medium text-gray-700 mb-2">
                     Your unique referral code:
                   </p>
-                  {userReferralCode === null ? (
-                    <Skeleton className="h-10 w-32" />
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="px-4 py-2 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg border-2 border-dashed border-purple-300">
-                        <span className="text-lg font-bold text-purple-700">
-                          {userReferralCode}
-                        </span>
-                      </div>
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    </div>
-                  )}
+                  {user.referralCode}
                 </div>
 
                 <div>

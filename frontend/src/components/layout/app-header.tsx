@@ -20,8 +20,17 @@ import {
   Crown,
   Shield,
   Award,
+  CreditCard,
+  HelpCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import apiInstance from '@/services/api';
+import { useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { getStudentDetails } from '@/services/api/student';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 
 const AppHeader = () => {
   const [mounted, setMounted] = useState(false);
@@ -29,6 +38,7 @@ const AppHeader = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [currentPath, setCurrentPath] = useState('/dashboard');
+  const router = useRouter();
 
   // Mock data
   const user = {
@@ -81,6 +91,13 @@ const AppHeader = () => {
       applicationLimit: 100,
     },
   };
+
+  const dispatch = useDispatch();
+  const { students } = useSelector((state: RootState) => state.student);
+
+  useEffect(() => {
+    dispatch(getStudentDetailsRequest());
+  }, [dispatch]);
 
   const navItems = [
     { title: 'Dashboard', href: '/dashboard', icon: Home },
@@ -160,13 +177,19 @@ const AppHeader = () => {
     );
   };
 
+  const handleLogout = async () => {
+    try {
+      const response = await apiInstance.get('/user/signout');
+      if (response.status === 200) {
+        router.push('/login');
+      }
+    } catch (error) {}
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full  bg-white/95 backdrop-blur-md shadow-sm">
       <div className="flex h-16 items-center justify-between px-6">
         {/* Mobile menu button */}
-        <button className="md:hidden p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200">
-          <Menu className="w-5 h-5 text-slate-600" />
-        </button>
 
         {/* Logo/Brand */}
         <div className="flex items-center space-x-3"></div>
@@ -228,7 +251,10 @@ const AppHeader = () => {
 
                   {/* Upgrade button */}
                   <div className="p-4 border-t border-slate-100">
-                    <button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2">
+                    <button
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+                      onClick={() => router.push('/subscriptions')}
+                    >
                       <Crown className="w-4 h-4" />
                       <span>Upgrade Plan</span>
                     </button>
@@ -366,11 +392,30 @@ const AppHeader = () => {
                     <Settings className="w-4 h-4 text-slate-600" />
                     <span className="text-slate-700">Settings</span>
                   </Link>
+
+                  <Link
+                    href="/billing"
+                    className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
+                  >
+                    <CreditCard className="w-4 h-4 text-slate-600" />
+                    <span className="text-slate-700">Billing</span>
+                  </Link>
+
+                  <Link
+                    href="/support"
+                    className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
+                  >
+                    <HelpCircle className="w-4 h-4 text-slate-600" />
+                    <span className="text-slate-700">Help</span>
+                  </Link>
                 </div>
 
                 {/* Logout */}
                 <div className="border-t border-slate-100 p-2">
-                  <button className="w-full px-4 py-3 text-left hover:bg-red-50 transition-colors duration-200 flex items-center space-x-3 text-red-600">
+                  <button
+                    className="w-full px-4 py-3 text-left hover:bg-red-50 transition-colors duration-200 flex items-center space-x-3 text-red-600"
+                    onClick={handleLogout}
+                  >
                     <LogOut className="w-4 h-4" />
                     <span>Log out</span>
                   </button>

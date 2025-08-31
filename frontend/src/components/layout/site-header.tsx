@@ -2,12 +2,14 @@
 import { Button } from '@/components/ui/button';
 import { Menu, X, Search, Command } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const router = useRouter();
 
   const navItems = [
     { name: 'Features', href: '#features' },
@@ -16,10 +18,13 @@ export const Navigation = () => {
     { name: 'Success Stories', href: '#testimonials' },
   ];
 
-  const handleSearchSubmit = (query) => {
-    if (query.trim()) {
-      console.log('Searching for:', query);
-      // Add your search logic here
+  // Handles the search submission and redirects the user
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      const encodedQuery = encodeURIComponent(searchQuery.trim());
+      setSearchQuery(''); // Clear search query after submission
+      router.push(`/search-jobs?query=${encodedQuery}`);
+      setIsOpen(false); // Close mobile menu if open
     }
   };
 
@@ -49,7 +54,14 @@ export const Navigation = () => {
                 }`}
               ></div>
               <div className="relative flex items-center">
-                <Search className="absolute left-3 w-4 h-4 text-gray-400 transition-colors duration-200 group-hover:text-purple-500" />
+                {/* Search icon acts as a button now */}
+                <button
+                  onClick={handleSearchSubmit}
+                  aria-label="Search"
+                  className="absolute left-3 w-4 h-4 text-gray-400 transition-colors duration-200 group-hover:text-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                >
+                  <Search />
+                </button>
                 <input
                   type="text"
                   placeholder="Search features, docs, help..."
@@ -58,18 +70,12 @@ export const Navigation = () => {
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setIsSearchFocused(false)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && searchQuery.trim()) {
-                      console.log('Searching for:', searchQuery);
+                    if (e.key === 'Enter') {
+                      handleSearchSubmit();
                     }
                   }}
                   className="w-full pl-10 pr-12 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 hover:bg-white/15"
                 />
-                <div className="absolute right-3 flex items-center space-x-1">
-                  <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-gray-500 bg-white/20 rounded border border-white/30">
-                    <Command className="w-3 h-3" />
-                    <span>K</span>
-                  </kbd>
-                </div>
               </div>
             </div>
           </div>
@@ -92,7 +98,7 @@ export const Navigation = () => {
           <div className="hidden md:flex items-center space-x-4">
             <Link
               href={'/login'}
-              className="hover:bg-white/20 backdrop-blur-sm transition-all duration-300 hover:shadow-lg"
+              className="px-4 py-2 rounded-lg text-gray-700 hover:bg-white/20 backdrop-blur-sm transition-all duration-300 hover:shadow-lg"
             >
               Sign In
             </Link>
@@ -125,7 +131,7 @@ export const Navigation = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-2xl border border-white/20"></div>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-cyan-500/5 rounded-2xl"></div>
             <div className="relative p-6 space-y-6">
-              {/* === Mobile Search is now inside the menu === */}
+              {/* Mobile Search */}
               <div className="relative group">
                 <div
                   className={`absolute inset-0 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-xl blur transition-all duration-300 ${
@@ -135,7 +141,14 @@ export const Navigation = () => {
                   }`}
                 ></div>
                 <div className="relative flex items-center">
-                  <Search className="absolute left-3 w-4 h-4 text-gray-400 transition-colors duration-200 group-hover:text-purple-500" />
+                  {/* Search icon acts as a button now */}
+                  <button
+                    onClick={handleSearchSubmit}
+                    aria-label="Search"
+                    className="absolute left-3 w-4 h-4 text-gray-400 transition-colors duration-200 group-hover:text-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  >
+                    <Search />
+                  </button>
                   <input
                     type="text"
                     placeholder="Search features, docs, help..."
@@ -144,15 +157,14 @@ export const Navigation = () => {
                     onFocus={() => setIsSearchFocused(true)}
                     onBlur={() => setIsSearchFocused(false)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && searchQuery.trim()) {
-                        console.log('Searching for:', searchQuery);
+                      if (e.key === 'Enter') {
+                        handleSearchSubmit();
                       }
                     }}
                     className="w-full pl-10 pr-4 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 hover:bg-white/15"
                   />
                 </div>
               </div>
-              {/* ============================================== */}
               <div className="space-y-4">
                 {navItems.map((item, index) => (
                   <a
@@ -170,12 +182,12 @@ export const Navigation = () => {
                 ))}
               </div>
               <div className="pt-4 border-t border-white/20 space-y-3">
-                <Button
-                  variant="ghost"
-                  className="w-full hover:bg-white/20 backdrop-blur-sm transition-all duration-300 hover:shadow-lg"
+                <Link
+                  href={'/login'}
+                  className="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg text-gray-700 hover:bg-white/20 backdrop-blur-sm transition-all duration-300 hover:shadow-lg"
                 >
                   Sign In
-                </Button>
+                </Link>
                 <Button className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                   Start Free Trial
                 </Button>

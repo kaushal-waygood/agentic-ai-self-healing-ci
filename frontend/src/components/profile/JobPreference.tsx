@@ -26,51 +26,101 @@ import {
 } from '../ui/form';
 import { useDispatch } from 'react-redux';
 import {
+  getStudentDetailsRequest,
   getStudentJobPreferenceRequest,
   updateJobPreferedByStudentRequest,
   updateStudentJobPreferenceRequest,
 } from '@/redux/reducers/studentReducer';
 import apiInstance from '@/services/api';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import LocationPreferences from './components/LocationPreferences';
 
 const JobPreferencesForm = () => {
   const [activeSection, setActiveSection] = useState('location');
+  const [tags, setTags] = useState([]);
+
+  const dispatch = useDispatch();
+  const { students } = useSelector((state: RootState) => state.student);
   const [formData, setFormData] = useState({
     // Location
-    preferredCountries: '',
-    preferredCities: '',
+    preferredCountries: [],
+    preferredCities: [],
     isRemote: false,
     relocationWillingness: '',
-
     // Job Details
     preferredJobTitles: '',
     preferredJobTypes: [],
     preferredIndustries: '',
     preferredExperienceLevel: '',
-
     // Compensation
-    preferredSalary: {
-      min: '',
-      max: '',
-      currency: 'USD',
-      period: 'YEAR',
-    },
-
+    preferredSalary: { min: '', max: '', currency: 'USD', period: 'YEAR' },
     // Skills
     mustHaveSkills: '',
     niceToHaveSkills: '',
     preferredCertifications: '',
     preferredEducationLevel: '',
-
     // Company
     preferredCompanySizes: [],
     preferredCompanyCultures: [],
-
     // Additional
     visaSponsorshipRequired: false,
     immediateAvailability: false,
   });
 
-  const dispatch = useDispatch();
+  // This useEffect will run when `students` data is fetched from Redux
+  useEffect(() => {
+    if (students && students.jobPreferences) {
+      const { jobPreferences } = students;
+
+      // Helper function to convert an array of skill objects to a string
+      const skillsToString = (skillsArray) => {
+        if (!Array.isArray(skillsArray)) return '';
+        return skillsArray.map((item) => item.skill).join(', ');
+      };
+
+      // Helper function to convert an array of strings to a string
+      const arrayToString = (stringArray) => {
+        if (!Array.isArray(stringArray)) return '';
+        return stringArray.join(', ');
+      };
+
+      setFormData({
+        preferredCountries: jobPreferences.preferredCountries || [],
+        preferredCities: jobPreferences.preferredCities || [],
+        isRemote: jobPreferences.isRemote || false,
+        relocationWillingness: jobPreferences.relocationWillingness || '',
+
+        preferredJobTitles: arrayToString(jobPreferences.preferredJobTitles),
+        preferredJobTypes: jobPreferences.preferredJobTypes || [],
+        preferredIndustries: arrayToString(jobPreferences.preferredIndustries),
+        preferredExperienceLevel: jobPreferences.preferredExperienceLevel || '',
+
+        preferredSalary: {
+          min: jobPreferences.preferredSalary?.min || '',
+          max: jobPreferences.preferredSalary?.max || '',
+          currency: jobPreferences.preferredSalary?.currency || 'USD',
+          period: jobPreferences.preferredSalary?.period || 'YEAR',
+        },
+
+        // ✨ This is the key transformation for your skills
+        mustHaveSkills: skillsToString(jobPreferences.mustHaveSkills),
+        niceToHaveSkills: skillsToString(jobPreferences.niceToHaveSkills),
+
+        preferredCertifications: arrayToString(
+          jobPreferences.preferredCertifications,
+        ),
+        preferredEducationLevel: jobPreferences.preferredEducationLevel || '',
+
+        preferredCompanySizes: jobPreferences.preferredCompanySizes || [],
+        preferredCompanyCultures: jobPreferences.preferredCompanyCultures || [],
+
+        visaSponsorshipRequired:
+          jobPreferences.visaSponsorshipRequired || false,
+        immediateAvailability: jobPreferences.immediateAvailability || false,
+      });
+    }
+  }, [students]); // Dependency array ensures this runs when `students` changes
 
   const experienceLevels = [
     { id: 'ENTRY_LEVEL', label: 'Entry Level', icon: '🌱' },
@@ -168,15 +218,30 @@ const JobPreferencesForm = () => {
 
   const handleSavePreferences = async (e) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      preferredCountries: formData.preferredCountries.join(','),
+      preferredCities: formData.preferredCities.join(','),
+      // Also join other fields that are now arrays in the form but need to be strings for the API
+      preferredJobTitles: Array.isArray(formData.preferredJobTitles)
+        ? formData.preferredJobTitles.join(',')
+        : formData.preferredJobTitles,
+      preferredIndustries: Array.isArray(formData.preferredIndustries)
+        ? formData.preferredIndustries.join(',')
+        : formData.preferredIndustries,
+      preferredCertifications: Array.isArray(formData.preferredCertifications)
+        ? formData.preferredCertifications.join(',')
+        : formData.preferredCertifications,
+    };
     const response = await apiInstance.post('/students/prefered-job/add', {
-      formData,
+      formData: payload,
     });
     console.log('formData', response);
   };
 
   useEffect(() => {
-    dispatch(getStudentJobPreferenceRequest());
-  }, []);
+    dispatch(getStudentDetailsRequest());
+  }, [dispatch]);
 
   const toggleArrayValue = (field, value) => {
     setFormData((prev) => ({
@@ -244,83 +309,11 @@ const JobPreferencesForm = () => {
     switch (activeSection) {
       case 'location':
         return (
-          <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="group">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  <Globe className="inline w-4 h-4 mr-2" />
-                  Preferred Countries
-                </label>
-                <textarea
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300 resize-none"
-                  rows={3}
-                  placeholder="USA, Canada, Germany..."
-                  value={formData.preferredCountries}
-                  onChange={(e) =>
-                    handleInputChange('preferredCountries', e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="group">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  <MapPin className="inline w-4 h-4 mr-2" />
-                  Preferred Cities
-                </label>
-                <textarea
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300 resize-none"
-                  rows={3}
-                  placeholder="New York, Toronto, Berlin..."
-                  value={formData.preferredCities}
-                  onChange={(e) =>
-                    handleInputChange('preferredCities', e.target.value)
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <CustomCheckbox
-                checked={formData.isRemote}
-                onChange={() =>
-                  handleInputChange('isRemote', !formData.isRemote)
-                }
-                color="purple"
-              >
-                <div>
-                  <div className="font-semibold">🌍 Remote Work Only</div>
-                  <div className="text-sm opacity-80">
-                    Only consider remote opportunities
-                  </div>
-                </div>
-              </CustomCheckbox>
-
-              <div className="group">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Willingness to Relocate
-                </label>
-                <select
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300"
-                  value={formData.relocationWillingness}
-                  onChange={(e) =>
-                    handleInputChange('relocationWillingness', e.target.value)
-                  }
-                >
-                  <option value="">Select willingness</option>
-                  <option value="not-willing">
-                    ❌ Not willing to relocate
-                  </option>
-                  <option value="open">🤔 Open to relocation</option>
-                  <option value="very-willing">
-                    ✅ Very willing to relocate
-                  </option>
-                  <option value="seeking">
-                    🎯 Actively seeking relocation
-                  </option>
-                </select>
-              </div>
-            </div>
-          </div>
+          <LocationPreferences
+            formData={formData}
+            handleInputChange={handleInputChange}
+            setFormData={setFormData}
+          />
         );
       case 'job':
         return (

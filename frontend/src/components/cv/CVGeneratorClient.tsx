@@ -76,8 +76,8 @@ const CVGeneratorClient = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-100 p-4 flex items-center justify-center">
-      <div className="w-full max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-100 flex items-center justify-center">
+      <div className="w-full">
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center gap-4">

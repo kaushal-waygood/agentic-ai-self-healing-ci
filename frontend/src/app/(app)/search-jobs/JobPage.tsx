@@ -13,6 +13,7 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import { getStudentJobPreferenceRequest } from '@/redux/reducers/studentReducer';
 import { Loader2, Search } from 'lucide-react';
+import { Pagination } from '@/components/utils/Pagination';
 
 export default function JobsPage() {
   const {
@@ -27,6 +28,7 @@ export default function JobsPage() {
     experienceLevels,
     filterModal,
     handleSearchChange,
+    handlePageChange,
     resetFilters,
   } = useJobs();
 
@@ -119,9 +121,9 @@ export default function JobsPage() {
           onOpenFilterModal={() => setFilterModal(true)}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="lg:col-span-5">
-            <div className="space-y-4 h-[calc(100vh-220px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100">
+            <div className="space-y-1 h-[calc(100vh-220px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100">
               {/* Initial page loading state */}
               {loading && pagination.page === 1
                 ? Array.from({ length: 5 }).map((_, index) => (
@@ -145,7 +147,7 @@ export default function JobsPage() {
             </div>
           </div>
 
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-gray-100">
               {selectedJob ? (
                 <JobDetail job={selectedJob} />
@@ -165,6 +167,15 @@ export default function JobsPage() {
             </div>
           </div>
         </div>
+        {pagination.totalPages > 1 && (
+          <div className="mt-8 flex justify-center">
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
 
         <FilterModal
           isOpen={filterModal}

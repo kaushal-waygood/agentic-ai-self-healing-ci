@@ -77,9 +77,11 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
-import JobWizard from '../cv/components/JobWizard';
+import JobWizard from './components/JobWizard';
 import ClGenerator from './cl-generator';
 import CustomizeWizard from './customizeWizard';
+import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
+import SavedCoverLetters from './components/SavedCl';
 
 // Wizard related types
 type WizardStep =
@@ -542,17 +544,7 @@ export function CoverLetterGeneratorClient() {
           />
         );
       case 'generating':
-        return (
-          <Card className="flex flex-col items-center justify-center text-center p-12 min-h-[400px]">
-            <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-            <h2 className="text-2xl font-headline font-semibold">
-              Crafting Your Letter...
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              This may take a moment.
-            </p>
-          </Card>
-        );
+        return <SleekLoadingCard />;
       case 'result':
         return (
           <Card className="flex flex-col items-center justify-center text-center p-12 w-full min-h-[400px]">
@@ -625,51 +617,10 @@ export function CoverLetterGeneratorClient() {
           </AnimatePresence>
         </div>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center">
-            <List className="mr-2 h-5 w-5 text-primary" />
-            Saved Cover Letters
-          </CardTitle>
-          <CardDescription>
-            Manage and view your previously saved letters. Auto-saved drafts
-            appear here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {savedLettersList.length > 0 ? (
-            <ul className="space-y-3">
-              {savedLettersList.map((savedLetter) => (
-                <li
-                  key={savedLetter._id}
-                  className="p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 hover:bg-muted/50"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {savedLetter.coverLetterTitle}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Saved: {new Date(savedLetter.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadSavedLetter(savedLetter)}
-                  >
-                    <Eye className="mr-2 h-4 w-4" /> View/Load
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground">
-              You haven't saved any cover letters yet.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <SavedCoverLetters
+        savedLettersList={savedLettersList}
+        loadSavedLetter={loadSavedLetter}
+      />
 
       {isNamingDialogDisplayed && (
         <AlertDialog

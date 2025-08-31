@@ -5,11 +5,11 @@ import { Newspaper } from 'lucide-react';
 export default function CoverLetterGeneratorPage() {
   return (
     <div className="flex flex-col">
-      <PageHeader
+      {/* <PageHeader
         title="Cover Letter Studio"
         description="Generate a tailored cover letter with our interactive AI assistant."
         icon={Newspaper}
-      />
+      /> */}
       <CoverLetterGeneratorClient />
     </div>
   );

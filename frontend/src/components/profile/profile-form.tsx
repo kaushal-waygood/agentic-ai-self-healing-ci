@@ -7,6 +7,9 @@ import {
   Settings as SettingsIcon,
   Briefcase,
   History,
+  AlertTriangle,
+  X,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -36,6 +39,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     //state
     isNameEditable,
     isEmailEditable,
+    isPhoneEditable,
     isJobPrefEditable,
     setIsJobPrefEditable,
     addEdu,
@@ -185,6 +189,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       <ProfileInfo
         isNameEditable={isNameEditable}
         isEmailEditable={isEmailEditable}
+        isPhoneEditable={isPhoneEditable}
         handleName={handleName}
         handleEmail={handleEmail}
         toggleNameEdit={toggleNameEdit}
@@ -236,7 +241,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         handleLevelChange={handleLevelChange}
       />
 
-      <Card id="narratives">
+      {/* <Card id="narratives">
         <CardHeader>
           <CardTitle className="text-xl font-headline">
             Personalize Your AI Documents
@@ -246,13 +251,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
             letters more effectively, making them unique to you.
           </CardDescription>
         </CardHeader>
-        {/* <CardContent className="space-y-4">
-          <Narratives
-            narrativesForm={narrativesForm}
-            handleNarrativesSubmit={handleNarrativesSubmit}
-          />
-        </CardContent> */}
-      </Card>
+      </Card> */}
 
       <Card id="search-prefs">
         <CardHeader>
@@ -301,7 +300,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       {/* add education, project, experience, skill */}
       {addEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
             <AddEducation onCancel={() => setAddEdu(false)} isEdit={false} />
           </div>
         </div>
@@ -309,7 +308,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
 
       {addProj && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-4 rounded-lg">
             <AddProject onCancel={() => setAddProj(false)} />
           </div>
         </div>
@@ -317,7 +316,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
 
       {addExp && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
             <AddExperience onCancel={() => setAddExp(false)} />
           </div>
         </div>
@@ -325,7 +324,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
 
       {addSkill && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+          <div className="w-full max-w-3xl overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-4 rounded-lg">
             <AddSkill onCancel={() => setAddSkill(false)} />
           </div>
         </div>
@@ -334,7 +333,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       {/* edit education, project, experience */}
       {editEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
             <AddEducation
               onCancel={() => setEditEdu(false)}
               data={defaultValues.education[editEduIndex]}
@@ -346,7 +345,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
 
       {editExp && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
             <AddExperience
               onCancel={() => setEditExp(false)}
               data={defaultValues.experience[editExpIndex]}
@@ -359,7 +358,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
 
       {editProj && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
+          <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
             <AddProject
               onCancel={() => setEditProj(false)}
               data={defaultValues.projects[editProjIndex]}
@@ -370,18 +369,55 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       )}
 
       {deleteEdu && (
-        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl  overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
-            <p>Are you sure you want to delete this education entry?</p>
-            <div className="flex justify-end gap-4 mt-4">
-              <Button onClick={() => setDeleteEdu(false)}>Cancel</Button>
+        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="relative p-6 pb-4">
+              <button
+                onClick={() => setDeleteEdu(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Education Entry
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 pb-2">
+              <p className="text-gray-600 leading-relaxed">
+                Are you sure you want to permanently delete this education
+                entry? All associated information will be removed from your
+                profile.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <Button onClick={() => setDeleteEdu(false)} className="px-6">
+                Cancel
+              </Button>
               <Button
                 variant="destructive"
                 onClick={() => {
                   deleteEducation(deleteEduIndex);
                   setDeleteEdu(false);
                 }}
+                className="px-6 flex items-center gap-2"
               >
+                <Trash2 className="w-4 h-4" />
                 Delete
               </Button>
             </div>
@@ -390,18 +426,55 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       )}
 
       {deleteExp && (
-        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl  overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
-            <p>Are you sure you want to delete this experience entry?</p>
-            <div className="flex justify-end gap-4 mt-4">
-              <Button onClick={() => setDeleteExp(false)}>Cancel</Button>
+        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="relative p-6 pb-4">
+              <button
+                onClick={() => setDeleteEdu(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Education Entry
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 pb-2">
+              <p className="text-gray-600 leading-relaxed">
+                Are you sure you want to permanently delete this education
+                entry? All associated information will be removed from your
+                profile.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <Button onClick={() => setDeleteExp(false)} className="px-6">
+                Cancel
+              </Button>
               <Button
                 variant="destructive"
                 onClick={() => {
                   handleDeleteExp(deleteExpIndex);
-                  setDeleteExp(true);
+                  setDeleteExp(false);
                 }}
+                className="px-6 flex items-center gap-2"
               >
+                <Trash2 className="w-4 h-4" />
                 Delete
               </Button>
             </div>
@@ -410,18 +483,55 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       )}
 
       {deleteSkill && (
-        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl  overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
-            <p>Are you sure you want to delete this skill entry?</p>
-            <div className="flex justify-end gap-4 mt-4">
-              <Button onClick={() => setDeleteSkill(false)}>Cancel</Button>
+        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="relative p-6 pb-4">
+              <button
+                onClick={() => setDeleteEdu(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Education Entry
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 pb-2">
+              <p className="text-gray-600 leading-relaxed">
+                Are you sure you want to permanently delete this education
+                entry? All associated information will be removed from your
+                profile.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <Button onClick={() => setDeleteSkill(false)} className="px-6">
+                Cancel
+              </Button>
               <Button
                 variant="destructive"
                 onClick={() => {
                   handleDeleteSkills(deleteSkillIndex);
                   setDeleteSkill(false);
                 }}
+                className="px-6 flex items-center gap-2"
               >
+                <Trash2 className="w-4 h-4" />
                 Delete
               </Button>
             </div>
@@ -430,18 +540,55 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       )}
 
       {deleteProj && (
-        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black bg-opacity-50">
-          <div className="w-full max-w-3xl  overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg">
-            <p>Are you sure you want to delete this project entry?</p>
-            <div className="flex justify-end gap-4 mt-4">
-              <Button onClick={() => setDeleteProj(false)}>Cancel</Button>
+        <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="relative p-6 pb-4">
+              <button
+                onClick={() => setDeleteEdu(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Education Entry
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 pb-2">
+              <p className="text-gray-600 leading-relaxed">
+                Are you sure you want to permanently delete this education
+                entry? All associated information will be removed from your
+                profile.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <Button onClick={() => setDeleteProj(false)} className="px-6">
+                Cancel
+              </Button>
               <Button
                 variant="destructive"
                 onClick={() => {
                   handleDeleteProject(deleteProjIndex);
                   setDeleteProj(false);
                 }}
+                className="px-6 flex items-center gap-2"
               >
+                <Trash2 className="w-4 h-4" />
                 Delete
               </Button>
             </div>

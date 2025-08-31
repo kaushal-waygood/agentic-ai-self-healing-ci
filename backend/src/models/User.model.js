@@ -52,6 +52,10 @@ const userSchema = new Schema(
     jobRole: {
       type: String,
     },
+    refreshToken: {
+      type: String,
+      select: false, // It's good practice to hide this from default queries
+    },
     role: {
       type: String,
       enum: ['student', 'OrgAdmin', 'super-admin', 'admin'],
@@ -117,6 +121,18 @@ userSchema.pre('save', async function (next) {
   }
 });
 
+userSchema.pre('save', async function (next) {
+  // Hash the token only if it has been modified (or is new) and is not null
+  if (!this.isModified('refreshToken') || !this.refreshToken) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.refreshToken = await bcrypt.hash(this.refreshToken, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Access token generation
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
@@ -131,6 +147,10 @@ userSchema.methods.generateAccessToken = function () {
       expiresIn: config.accessTokenExpiry || '7d',
     },
   );
+};
+
+userSchema.methods.isRefreshTokenCorrect = async function (token) {
+  return await bcrypt.compare(token, this.refreshToken);
 };
 
 // Refresh token generation

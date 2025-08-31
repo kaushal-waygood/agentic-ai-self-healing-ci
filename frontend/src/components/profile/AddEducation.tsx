@@ -50,6 +50,8 @@ import {
   MapPin,
   X,
 } from 'lucide-react';
+import { TechnologyInput } from '@/utils/TechnologyInput';
+import { formatDateForMonthInput } from '@/utils/TechnologyInput';
 
 const employmentTypes = [
   'Full-time',
@@ -170,21 +172,19 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
 
   const { handleSubmit, control, reset, trigger } = form;
 
-  const handleFormSubmit = (eduData) => {
-    console.log('Form Submitted:', eduData);
-    if (!eduData) return;
+  const handleFormSubmit = (formData) => {
+    // The formData already has technologies as an array, so no conversion is needed.
+    const payload = { ...formData };
+
+    console.log('Form Submitted:', payload);
 
     if (isEdit) {
       dispatch(
-        updateStudentEducationRequest({
-          educationId: data.educationId,
-          eduData,
-        }),
+        updateStudentProjectRequest({ data: payload, index: payload._id }),
       );
     } else {
-      dispatch(addStudentEducationRequest(eduData));
+      dispatch(addStudentProjectRequest(payload));
     }
-
     reset();
     onCancel();
   };
@@ -231,8 +231,8 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0  flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-white">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-500 to-cyan-500 p-5 text-white relative">
           <div className="flex items-center justify-between">
@@ -476,100 +476,35 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
   );
 };
 
-const TechnologyInput = ({ field }) => {
-  const [techs, setTechs] = useState(
-    Array.isArray(field.value) ? field.value : [],
-  );
-  const [inputValue, setInputValue] = useState('');
-
-  useEffect(() => {
-    // Sync with react-hook-form's value
-    if (Array.isArray(field.value)) {
-      setTechs(field.value);
-    }
-  }, [field.value]);
-
-  const handleAddTech = (e) => {
-    if (e.key === 'Enter' && inputValue.trim() !== '') {
-      e.preventDefault();
-      const newTechs = [...techs, inputValue.trim()];
-      setTechs(newTechs);
-      field.onChange(newTechs); // Update form state
-      setInputValue('');
-    }
-  };
-
-  const handleRemoveTech = (indexToRemove) => {
-    const newTechs = techs.filter((_, index) => index !== indexToRemove);
-    setTechs(newTechs);
-    field.onChange(newTechs); // Update form state
-  };
-
-  return (
-    <div>
-      <div className="flex flex-wrap gap-2 p-2 border rounded-lg bg-white">
-        {techs.map((tech, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-2 bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
-          >
-            {tech}
-            <button
-              type="button"
-              onClick={() => handleRemoveTech(index)}
-              className="text-blue-600 hover:text-blue-800"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-        <Input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleAddTech}
-          placeholder="Type a skill and press Enter"
-          className="flex-1 border-none focus:ring-0 shadow-none"
-        />
-      </div>
-      <FormDescription className="mt-2">
-        Add technologies by typing and pressing Enter.
-      </FormDescription>
-    </div>
-  );
-};
-
 export const AddProject = ({ onCancel, data, isEdit }: any) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const form = useForm({
-    // Add your Zod resolver if you use one
     defaultValues: {
-      name: data?.name || '',
+      projectName: data?.projectName || '',
       description: data?.description || '',
-      startDate: data?.startDate || '',
-      endDate: data?.endDate || '',
+      startDate: formatDateForMonthInput(data?.startDate) || '',
+      endDate: formatDateForMonthInput(data?.endDate) || '',
       isCurrent: data?.isCurrent || false,
-      // Ensure technologies is always an array for the helper component
       technologies: Array.isArray(data?.technologies)
         ? data.technologies
         : data?.technologies
-        ? data.technologies.split(',').map((t) => t.trim())
+        ? data.technologies
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
         : [],
       link: data?.link || '',
       _id: data?._id || '',
     },
   });
 
-  // This is a placeholder for your actual Redux dispatch
-  // const dispatch = (action) => console.log('Dispatching:', action);
   const dispatch = useDispatch();
 
   const { handleSubmit, control, reset, watch, setValue, trigger } = form;
 
   const isCurrent = watch('isCurrent');
 
-  // When 'isCurrent' checkbox changes, clear the endDate
   useEffect(() => {
     if (isCurrent) {
       setValue('endDate', '');
@@ -577,11 +512,12 @@ export const AddProject = ({ onCancel, data, isEdit }: any) => {
   }, [isCurrent, setValue]);
 
   const handleFormSubmit = (formData) => {
-    // Convert technologies array back to string if your backend expects that
-    const payload = {
-      ...formData,
-      technologies: formData.technologies.join(', '),
-    };
+    const payload = { ...formData };
+
+    console.log(
+      'Is technologies an array?',
+      Array.isArray(payload.technologies),
+    );
     console.log('Form Submitted:', payload);
 
     if (isEdit) {
@@ -605,7 +541,7 @@ export const AddProject = ({ onCancel, data, isEdit }: any) => {
       id: 'core',
       title: 'Core Details',
       icon: FileText,
-      fields: ['name', 'description'],
+      fields: ['projectName', 'description'],
     },
     {
       id: 'timeline',
@@ -637,8 +573,8 @@ export const AddProject = ({ onCancel, data, isEdit }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0  flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
+      <div className=" rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-white">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-teal-500 p-5 text-white relative">
           <div className="flex items-center justify-between">
@@ -707,7 +643,7 @@ export const AddProject = ({ onCancel, data, isEdit }: any) => {
               <div className={currentStep !== 0 ? 'hidden' : 'block'}>
                 <FormField
                   control={control}
-                  name="name"
+                  name="projectName"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Project Name*</FormLabel>
@@ -963,8 +899,8 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0  flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-white">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-500 to-indigo-500 p-5 text-white relative">
           <div className="flex items-center justify-between">

@@ -982,81 +982,52 @@ export const StudentAnalytics = async (req, res) => {
 export const updateJobPreferences = async (req, res) => {
   try {
     const studentId = req.user._id;
-    console.log('studentId', studentId);
+
+    const formData = req.body.formData || req.body;
+
+    if (!formData || Object.keys(formData).length === 0) {
+      return res
+        .status(400)
+        .json({ message: 'Missing form data in request body' });
+    }
+
     const update = {};
 
-    const incomingData = req.body;
-    console.log('incomingData', incomingData);
+    for (const key in formData) {
+      if (Object.prototype.hasOwnProperty.call(formData, key)) {
+        if (
+          (key === 'mustHaveSkills' || key === 'niceToHaveSkills') &&
+          typeof formData[key] === 'string'
+        ) {
+          const skillsString = formData[key];
 
-    // Use the corrected field names with 'preferred' instead of 'prefered'
-    if (incomingData.preferredCountries) {
-      update['jobPreferences.preferredCountries'] =
-        incomingData.preferredCountries;
+          if (skillsString.trim().length > 0) {
+            update[`jobPreferences.${key}`] = skillsString
+              .split(',')
+              .map((skill) => ({
+                skill: skill.trim().length > 0 ? skill.trim() : null,
+              }))
+              .filter((item) => item && item.skill); // Filter out any empty items
+          } else {
+            update[`jobPreferences.${key}`] = [];
+          }
+        } else if (formData[key] !== undefined) {
+          update[`jobPreferences.${key}`] = formData[key];
+        }
+      }
     }
-    if (incomingData.preferredCities) {
-      update['jobPreferences.preferredCities'] = incomingData.preferredCities;
-    }
-    if (incomingData.isRemote !== undefined) {
-      update['jobPreferences.isRemote'] = incomingData.isRemote;
-    }
-    if (incomingData.preferredSalary) {
-      update['jobPreferences.preferredSalary'] = incomingData.preferredSalary;
-    }
-    if (incomingData.relocationWillingness !== undefined) {
-      update['jobPreferences.relocationWillingness'] =
-        incomingData.relocationWillingness;
-    }
-    if (incomingData.preferredJobTitles) {
-      update['jobPreferences.preferredJobTitles'] =
-        incomingData.preferredJobTitles;
-    }
-    if (incomingData.preferredJobTypes) {
-      update['jobPreferences.preferredJobTypes'] =
-        incomingData.preferredJobTypes;
-    }
-    if (incomingData.preferredIndustries) {
-      update['jobPreferences.preferredIndustries'] =
-        incomingData.preferredIndustries;
-    }
-    if (incomingData.preferredExperienceLevel !== undefined) {
-      update['jobPreferences.preferredExperienceLevel'] =
-        incomingData.preferredExperienceLevel;
-    }
-    if (incomingData.mustHaveSkills) {
-      update['jobPreferences.mustHaveSkills'] = incomingData.mustHaveSkills;
-    }
-    if (incomingData.niceToHaveSkills) {
-      update['jobPreferences.niceToHaveSkills'] = incomingData.niceToHaveSkills;
-    }
-    if (incomingData.preferredCertifications) {
-      update['jobPreferences.preferredCertifications'] =
-        incomingData.preferredCertifications;
-    }
-    if (incomingData.preferredEducationLevel !== undefined) {
-      update['jobPreferences.preferredEducationLevel'] =
-        incomingData.preferredEducationLevel;
-    }
-    if (incomingData.preferredCompanySizes) {
-      update['jobPreferences.preferredCompanySizes'] =
-        incomingData.preferredCompanySizes;
-    }
-    if (incomingData.preferredCompanyCultures) {
-      update['jobPreferences.preferredCompanyCultures'] =
-        incomingData.preferredCompanyCultures;
-    }
-    if (incomingData.visaSponsorshipRequired !== undefined) {
-      update['jobPreferences.visaSponsorshipRequired'] =
-        incomingData.visaSponsorshipRequired;
-    }
-    if (incomingData.immediateAvailability !== undefined) {
-      update['jobPreferences.immediateAvailability'] =
-        incomingData.immediateAvailability;
+
+    // Check if there is anything to update after processing
+    if (Object.keys(update).length === 0) {
+      return res
+        .status(400)
+        .json({ message: 'No valid job preference data provided to update.' });
     }
 
     const student = await Student.findByIdAndUpdate(
       studentId,
       { $set: update },
-      { new: true, runValidators: true },
+      { new: true, runValidators: true }, // new: true returns the updated document
     );
 
     if (!student) {
@@ -1069,6 +1040,12 @@ export const updateJobPreferences = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating job preferences:', error);
+    // Check for Mongoose validation or cast errors
+    if (error.name === 'CastError' || error.name === 'ValidationError') {
+      return res
+        .status(400)
+        .json({ message: 'Invalid data provided.', error: error.message });
+    }
     return res.status(500).json({ message: 'Internal server error' });
   }
 };

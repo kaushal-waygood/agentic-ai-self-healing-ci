@@ -17,6 +17,7 @@ import {
   getStudentHTMLLetter,
   getSingleStudentHTMLLetter,
   createTailoredApply,
+  calculateJobMatchScore,
 } from '../controllers/ai.controller.js';
 
 const router = Router();
@@ -108,6 +109,13 @@ router.post(
   authMiddleware,
   isStudent,
   createTailoredApply,
+);
+
+router.post(
+  '/calculate-match',
+  authMiddleware,
+  isStudent,
+  calculateJobMatchScore,
 );
 
 export default router;

@@ -63,6 +63,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [canUseProFeatures, setCanUseProFeatures] = useState(false);
   const [isSaved, setIsSaved] = useState();
   const [isApplying, setIsApplying] = useState(false);
+  const [calculateScore, setCalculateScore] = useState({
+    matchScore: 0,
+    recommendation: '',
+  });
 
   // In your handleSavedJob function
   const handleSavedJob = async () => {
@@ -71,7 +75,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         jobId: job._id,
       });
 
-      // ✅ ADD THIS LINE: Update the state after a successful save
       setIsSaved(true);
 
       toast({
@@ -141,11 +144,16 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       planTierOrder[effectivePlanId] >= planTierOrder['pro'],
     );
 
-    // Reset score when the job changes
     setMatchScoreResult(null);
   }, [job]);
 
   const handleGetMatchScore = async () => {
+    const response = await apiInstance.post('/students/calculate-match', {
+      jobDescription: job.description,
+    });
+
+    setCalculateScore(response.data);
+    console.log('calculateScore', calculateScore);
     if (!canUseProFeatures) {
       toast({
         variant: 'destructive',
@@ -219,19 +227,37 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     <div className="space-y-6">
       {/* Header Card */}
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
-          <h1 className="text-2xl font-bold mb-2">{job.title}</h1>
-          <div className="flex items-center gap-4 text-purple-100">
-            <span className="font-semibold">{job.company}</span>
-            <span>•</span>
-            <span>
-              {job.location.city}, {job.location.state}
-            </span>
-            <span>•</span>
-            <span>{job.postedDate}</span>
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">{job.title}</h1>
+            <div className="flex items-center gap-4 text-purple-100">
+              <span className="font-semibold">{job.company}</span>
+              <span>|</span>
+              <span>{job.jobAddress}</span>
+              <span>|</span>
+              <span className="capitalize">{job.jobTypes[0]}</span>
+            </div>
           </div>
+
+          <Button
+            onClick={handleSavedJob}
+            disabled={isSaved}
+            className={`flex items-center gap-2 w-10 h-10 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg ${
+              isSaved
+                ? 'bg-white hover:bg-white text-white shadow-red-200 relative z-[999]'
+                : 'bg-red-100 hover:bg-red-200 text-red-700 shadow-red-200'
+            }`}
+          >
+            <Heart
+              className={`w-4 h-4 ${
+                isSaved ? 'fill-current text-red-500' : ''
+              }`}
+            />
+            {/* {isSaved ? 'Saved' : 'Save Job'} */}
+          </Button>
         </div>
-        <div className="p-6">
+        <div className="p-6 flex justify-between items-center">
+          <div></div>
           <div className="flex flex-wrap gap-3">
             <Button
               asChild
@@ -249,18 +275,30 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <ExternalLink className="w-4 h-4" /> Company Site
               </Button>
             )}
-            <Button
-              onClick={handleSavedJob}
-              disabled={isSaved}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg ${
-                isSaved
-                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-green-200'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-gray-200'
-              }`}
+
+            <button
+              onClick={handleGetMatchScore}
+              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
             >
-              <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-              {isSaved ? 'Saved' : 'Save Job'}
-            </Button>
+              Calculate My Match Score
+            </button>
+            <p className="text-gray-600 mt-2">
+              {/* Calculate your match score based on your profile and job */}
+              {/* requirements. */}
+            </p>
+            {calculateScore.matchScore > 0 && (
+              <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-lg font-semibold text-gray-800">
+                  Your AI Match Score is:
+                  <span className="ml-2 text-2xl font-bold text-purple-600">
+                    {calculateScore.matchScore}/10
+                  </span>
+                </p>
+                <p className="text-gray-600 mt-2">
+                  {calculateScore.recommendation}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -327,12 +365,28 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             <p className="text-gray-600 mt-2">{matchScoreResult.reasoning}</p>
           </div>
         ) : (
-          <button
-            onClick={handleGetMatchScore}
-            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
-          >
-            Calculate My Match Score
-          </button>
+          <div>
+            <button
+              onClick={handleGetMatchScore}
+              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
+            >
+              Calculate My Match Score
+            </button>
+
+            {calculateScore.matchScore > 0 && (
+              <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-lg font-semibold text-gray-800">
+                  Your AI Match Score is:
+                  <span className="ml-2 text-2xl font-bold text-purple-600">
+                    {calculateScore.matchScore}/10
+                  </span>
+                </p>
+                <p className="text-gray-600 mt-2">
+                  {calculateScore.recommendation}
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
