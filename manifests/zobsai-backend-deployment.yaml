@@ -34,5 +34,7 @@ spec:
   selector:
     app: zobsai-backend
   ports:
-    - port: 8000
+    - port: 8000      # frontend calls this port
       targetPort: 4000
+  type: ClusterIP     # <--- change from NodePort to ClusterIP
+
