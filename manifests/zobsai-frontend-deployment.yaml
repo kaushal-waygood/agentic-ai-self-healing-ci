@@ -26,6 +26,9 @@ spec:
               value: production
             - name: REACT_APP_API_URL
               value: "http://zobsai-backend.zobsai.svc.cluster.local:8000"
+          envFrom:
+            - secretRef:
+                name: zobsai-frontend-secrets
 ---
 apiVersion: v1
 kind: Service
@@ -35,6 +38,7 @@ metadata:
 spec:
   selector:
     app: zobsai-frontend
+  type: LoadBalancer
   ports:
     - port: 3000
       targetPort: 3000
