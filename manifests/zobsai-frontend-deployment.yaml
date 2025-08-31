@@ -4,7 +4,7 @@ metadata:
   name: zobsai-frontend
   namespace: zobsai
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: zobsai-frontend
