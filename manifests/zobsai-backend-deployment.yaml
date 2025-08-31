@@ -47,5 +47,5 @@ spec:
     app: zobsai-backend
   ports:
     - port: 8080      # Frontend calls this port
-      targetPort: 4000 # Container port
+      targetPort: 8080 # Container port
   type: ClusterIP      # Internal pod-to-pod connectivity
