@@ -25,10 +25,17 @@ spec:
             - secretRef:
                 name: zobsai-backend-secrets
           env:
+            # Override any local .env values
             - name: REDIS_HOST
-              value: "zobsai-redis.zobsai.svc.cluster.local"
+              valueFrom:
+                secretKeyRef:
+                  name: zobsai-backend-secrets
+                  key: REDIS_HOST
             - name: REDIS_PORT
-              value: "6379"
+              valueFrom:
+                secretKeyRef:
+                  name: zobsai-backend-secrets
+                  key: REDIS_PORT
 ---
 apiVersion: v1
 kind: Service
@@ -39,6 +46,6 @@ spec:
   selector:
     app: zobsai-backend
   ports:
-    - port: 8000        # frontend calls this port
-      targetPort: 4000  # container port
-  type: ClusterIP       # internal pod-to-pod connectivity
+    - port: 8000       # Frontend calls this port
+      targetPort: 4000 # Container port
+  type: ClusterIP      # Internal pod-to-pod connectivity
