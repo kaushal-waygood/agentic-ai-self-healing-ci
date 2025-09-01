@@ -2,7 +2,7 @@ import { createClient } from 'redis';
 import { config } from '../config/config.js';
 
 const url =
-  `redis://${config.redisHost}:${config.redisPort}` || 'redis://localhost:6379';
+  `redis://${config.redisHost}:${config.redisPort}` || 'redis://127.0.0.1:6379';
 
 class RedisClient {
   constructor() {
