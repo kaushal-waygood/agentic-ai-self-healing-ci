@@ -10,7 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Filter, Search, Briefcase, TrendingUp, X, Globe, MapPin } from 'lucide-react';
+import {
+  Filter,
+  Search,
+  Briefcase,
+  TrendingUp,
+  X,
+  Globe,
+  MapPin,
+} from 'lucide-react';
 import { debounce } from 'lodash';
 
 export const datePostedOptions = [

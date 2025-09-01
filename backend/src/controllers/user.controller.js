@@ -368,58 +368,55 @@ export const signInUser = async (req, res) => {
 
   try {
     if (!email || !password) {
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res
+        .status(400)
+        .json({ message: 'Email and password are required' });
     }
 
-    // Include password field which is normally excluded
-    const user = await User.findOne({ email }).select('+password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const user = await User.findOne({ email }).select(
+      '+password +refreshToken',
+    );
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Check if user has password (for social login users)
-    if (!user.password) {
-      return res.status(401).json({
-        message:
-          'Account created with social login. Please use that method to sign in.',
-      });
-    }
-
-    // Now this will work since we added the method to the schema
-    const isPasswordCorrect = bcrypt.compare(password, user.password);
-    if (!isPasswordCorrect) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user.isEmailVerified) {
+      return res
+        .status(403)
+        .json({ message: 'Please verify your email before signing in.' });
     }
 
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
-    // Convert to object and remove password before sending response
+    // ---> MODIFIED SECTION: Save the new refresh token to the database <---
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    // Prepare user object for the response (without sensitive data)
     const userObject = user.toObject();
     delete userObject.password;
+    delete userObject.refreshToken;
 
-    res
-      .cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      })
-      .cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    };
+
+    return res
+      .status(200)
+      .cookie('accessToken', accessToken, cookieOptions)
+      .cookie('refreshToken', refreshToken, cookieOptions)
+      .json({
+        message: 'Signed in successfully',
+        user: userObject,
+        accessToken,
       });
-
-    res.status(200).json({
-      accessToken,
-      user: userObject,
-      refreshToken, // Optionally include in response if needed
-    });
   } catch (error) {
     console.error('Sign in error:', error);
-    res.status(500).json({ message: error.message || 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -557,47 +554,79 @@ export const resetPassword = async (req, res) => {
 };
 
 export const refreshAccessToken = async (req, res) => {
+  const incomingRefreshToken = req.cookies.refreshToken;
+
+  if (!incomingRefreshToken) {
+    return res.status(401).json({ message: 'Unauthorized: No token provided' });
+  }
+
   try {
-    const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      return res.status(401).json({ message: 'No refresh token provided' });
+    const decoded = jwt.verify(incomingRefreshToken, config.refreshTokenSecret);
+
+    const user = await User.findById(decoded._id).select('+refreshToken');
+
+    if (!user || !user.refreshToken) {
+      return res
+        .status(403)
+        .json({ message: 'Forbidden: Invalid refresh token' });
     }
 
-    // Verify returns decoded token directly in modern jwt
-    const decoded = jwt.verify(refreshToken, config.refreshTokenSecret);
+    // ---> CRITICAL CHANGE: Use the comparison method <---
+    // Instead of direct string comparison, we now compare the incoming token
+    // with the hashed token stored in the database.
+    const isTokenValid = await user.isRefreshTokenCorrect(incomingRefreshToken);
 
-    const user = await User.findById(decoded._id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!isTokenValid) {
+      return res.status(403).json({
+        message: 'Forbidden: Refresh token is invalid or has been used',
+      });
     }
 
+    // If valid, generate a new access token
     const newAccessToken = user.generateAccessToken();
 
-    res.cookie('accessToken', newAccessToken, {
-      // httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production',
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-      path: '/', // Explicitly set path
-      domain: process.env.COOKIE_DOMAIN || 'localhost', // Set domain
-    });
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    };
 
-    return res.status(200).json({ accessToken: newAccessToken });
+    return res
+      .status(200)
+      .cookie('accessToken', newAccessToken, cookieOptions)
+      .json({
+        message: 'Access token refreshed',
+        accessToken: newAccessToken,
+      });
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(403).json({ message: 'Invalid refresh token' });
-    }
-    return res.status(500).json({ message: error.message });
+    return res
+      .status(403)
+      .json({ message: 'Forbidden: Refresh token is expired or malformed' });
   }
 };
 
 export const signout = async (req, res) => {
   try {
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
-    res.status(200).json({ message: 'User signed out successfully' });
+    await User.findByIdAndUpdate(
+      req.user._id,
+      { $unset: { refreshToken: 1 } }, // Use $unset to completely remove the field
+      { new: true },
+    );
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+    };
+
+    res.clearCookie('accessToken', cookieOptions);
+    res.clearCookie('refreshToken', cookieOptions);
+
+    return res.status(200).json({ message: 'User signed out successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Sign out error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 

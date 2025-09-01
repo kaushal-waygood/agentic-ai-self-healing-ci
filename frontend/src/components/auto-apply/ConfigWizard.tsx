@@ -18,10 +18,11 @@ import {
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { ArrowLeft, Check, Loader2, Gauge, Shield } from 'lucide-react';
+import apiInstance from '@/services/api';
 
 const ConfigWizard = ({ form, currentPlan, setWizardStep, isLoading }: any) => {
   // This function call is kept as is to preserve original functionality.
-  const handleSaveAgent = () => {
+  const handleSaveAgent = async () => {
     form.handleSubmit();
     console.log('handleSaveAgent', form.getValues());
   };

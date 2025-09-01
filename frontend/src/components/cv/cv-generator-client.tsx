@@ -67,6 +67,7 @@ import CVGeneratorClient from './CVGeneratorClient';
 import ContextWizard from './ContextWizard';
 import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
 import GeneratedCV from './GeneratedCV';
+import SavedCvs from './components/SavedCvs';
 
 // --- Types and Schemas ---
 
@@ -352,11 +353,6 @@ export function CvGeneratorClient() {
         const apiResponse = await apiInstance.post(
           'students/resume/generate/jd',
           formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          },
         );
 
         // Handle HTML response
@@ -572,50 +568,7 @@ export function CvGeneratorClient() {
         />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center">
-            <List className="mr-2 h-5 w-5 text-primary" />
-            Your Saved CVs
-          </CardTitle>
-          <CardDescription>
-            Manage your CVs. Auto-saved drafts appear here. Click to load one
-            into the editor.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {resume?.html?.length > 0 ? (
-            <ul className="space-y-3">
-              {resume?.html.map((savedCv, i) => (
-                <li
-                  key={i}
-                  className="p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 hover:bg-muted/50"
-                >
-                  <div>
-                    <p className="font-medium">{savedCv.htmlCVTitle}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Generated for: {savedCv.jobTitle} | Created:{' '}
-                      {new Date(savedCv.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadSavedCv(savedCv)}
-                  >
-                    <Eye className="mr-2 h-4 w-4" /> View/Load
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-center text-muted-foreground py-4">
-              You haven't generated any CVs yet. Use the wizard above to create
-              your first one.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <SavedCvs resume={resume} loadSavedCv={loadSavedCv} />
 
       {isNamingDialogDisplayed && (
         <AlertDialog

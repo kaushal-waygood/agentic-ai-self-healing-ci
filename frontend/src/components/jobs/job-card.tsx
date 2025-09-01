@@ -18,7 +18,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
         isActive
           ? 'bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-400 shadow-2xl shadow-purple-200/50'
           : 'bg-white hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50 border border-gray-200 hover:border-purple-300 shadow-lg hover:shadow-xl hover:shadow-purple-100/30'
-      } rounded-2xl p-6 overflow-hidden`}
+      } rounded-2xl py-4 px-6 overflow-hidden`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       {isActive && (
@@ -26,10 +26,10 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
       )}
 
       <div className="relative z-10">
-        <div className="flex items-start gap-4 mb-4">
-          {job.companyLogo ? (
+        <div className="flex items-start gap-4">
+          {job.logo ? (
             <Image
-              src={job.companyLogo}
+              src={job.logo}
               alt={`${job.company} logo`}
               width={48}
               height={48}
@@ -45,12 +45,12 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               {truncate(job.title, 50)}
             </h3>
             <p className="text-purple-600 font-semibold text-sm">
-              {job.company}
+              {job.company} | {job.jobAddress}
             </p>
           </div>
         </div>
 
-        <div className="space-y-2 text-sm text-gray-600">
+        {/* <div className="space-y-2 text-sm text-gray-600">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-purple-500" />
             <span>
@@ -67,7 +67,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
             <span className="text-gray-400">•</span>
             <span>{job.experienceLevel}</span>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -88,6 +88,7 @@ import { act } from 'react';
 
 function* getStudentDetailsSaga() {
   try {
+    console.log('saga calling');
     const response: AxiosResponse = yield call(getStudentDetails);
     yield put(getStudentDetailsSuccess(response.data.studentDetails));
   } catch (error: unknown | Error) {

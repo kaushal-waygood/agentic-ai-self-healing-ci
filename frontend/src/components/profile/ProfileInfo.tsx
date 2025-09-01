@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Check, Edit, Mail, User, X, Lock, Unlock } from 'lucide-react';
+import { Check, Edit, Mail, User, X, Lock, Unlock, Phone } from 'lucide-react';
 
 const ProfileInfo = ({
   personalInfoForm,
@@ -19,6 +19,7 @@ const ProfileInfo = ({
   handlePersonalInfoEdit,
   toggleNameEdit,
   isEmailEditable,
+  isPhoneEditable,
   toggleEmailEdit,
   setHandleName,
   handleCancelEdit, // New prop for the cancel button
@@ -51,7 +52,7 @@ const ProfileInfo = ({
             {/* We use a single form tag to wrap all fields */}
             <form
               onSubmit={personalInfoForm.handleSubmit(handlePersonalInfoSubmit)}
-              className="space-y-8"
+              className="grid grid-cols-1 md:grid-cols-3 gap-4"
             >
               {/* Full Name Field */}
               <FormField
@@ -175,6 +176,74 @@ const ProfileInfo = ({
                               type="button"
                               size="icon"
                               onClick={() => handlePersonalInfoEdit('email')}
+                              className="h-8 w-8 bg-green-500 hover:bg-green-600 text-white rounded-full"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="icon"
+                            onClick={toggleEmailEdit}
+                            variant="outline"
+                            className="h-8 w-8 bg-white/50 rounded-full border-gray-300 group-hover:border-cyan-400 group-hover:text-cyan-500"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={personalInfoForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem className="group">
+                    <FormLabel className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                      <Phone className="h-4 w-4 text-cyan-500" />
+                      Phone Number{' '}
+                    </FormLabel>
+                    <div
+                      className={`flex items-center gap-3 p-1 pr-2 rounded-xl border-2 transition-all duration-300 ${
+                        isEmailEditable
+                          ? 'border-cyan-400 bg-white shadow-md ring-2 ring-cyan-100'
+                          : 'border-gray-200 bg-gray-50 group-hover:border-cyan-300 group-hover:bg-white'
+                      }`}
+                    >
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="+91 1234567890"
+                          readOnly={!isEmailEditable}
+                          className={`flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-800 placeholder-gray-400 font-medium ${
+                            isEmailEditable ? 'text-cyan-800' : ''
+                          }`}
+                        />
+                      </FormControl>
+
+                      {/* Edit/Save/Cancel Buttons */}
+                      <div className="flex items-center gap-1">
+                        {isPhoneEditable ? (
+                          <>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleCancelEdit('phone')}
+                              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-full"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              onClick={() => handlePersonalInfoEdit('phone')}
                               className="h-8 w-8 bg-green-500 hover:bg-green-600 text-white rounded-full"
                             >
                               <Check className="h-4 w-4" />

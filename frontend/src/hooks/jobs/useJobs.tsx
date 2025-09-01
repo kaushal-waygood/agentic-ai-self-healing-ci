@@ -15,8 +15,6 @@ export const useJobs = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  console.log('searchParams use Jobs', searchParams);
-
   // Redux state
   const {
     jobs,
@@ -76,7 +74,6 @@ export const useJobs = () => {
         if (jobId) {
           const response = await apiInstance.get(`/jobs/find?slug=${jobId}`);
           setSelectedJob(response.data.singleJob);
-          console.log('selectedJob', selectedJob);
         }
       } catch (err) {
         console.error('Failed to fetch single job:', err);

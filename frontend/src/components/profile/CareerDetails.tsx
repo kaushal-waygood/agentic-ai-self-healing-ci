@@ -33,6 +33,13 @@ import {
   MapPin,
   Award,
 } from 'lucide-react';
+import { formatDateForMonthInput } from '@/utils/TechnologyInput';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion';
 
 export function CareerDetailsComponent({
   // Pass all your state and handlers as props
@@ -288,410 +295,479 @@ export function CareerDetailsComponent({
 
           <Separator />
 
-          {/* Education Section */}
-          <div
-            id="education"
-            className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
-                  <GraduationCap className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Education</h3>
-              </div>
-              <Button
-                type="button"
-                onClick={() => setAddEdu(true)}
-                className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Add
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {defaultValues.education?.map((edu, index) => (
-                <div
-                  key={edu._id}
-                  className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h4 className="text-lg font-bold text-gray-800 mb-1">
-                        {edu.degree}
-                      </h4>
-                      <p className="text-blue-600 font-medium">
-                        {edu.institution}
-                      </p>
-                      {edu.fieldOfStudy && (
-                        <p className="text-sm text-gray-500 mt-1">
-                          Field: {edu.fieldOfStudy}
-                        </p>
-                      )}
+          <Accordion type="multiple" className="w-full space-y-2">
+            {/* ========= EDUCATION SECTION ========= */}
+            <AccordionItem value="education" className="border rounded-lg">
+              {/* Added 'group' for the icon animation */}
+              <AccordionTrigger className="group px-4 py-3 hover:no-underline">
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
+                      <GraduationCap className="h-6 w-6 text-white" />
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => {
-                          setEditEdu(true);
-                          setEditEduIndex(index);
-                        }}
-                        className="text-blue-600 border-blue-300 hover:bg-blue-50 h-9 w-9"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => {
-                          setDeleteEdu(true);
-                          setDeleteEduIndex(edu.educationId);
-                        }}
-                        className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">
+                      Education
+                    </h3>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <span>
-                        {edu.startDate} - {edu.endDate || 'Present'}
-                      </span>
-                    </div>
-                    {edu.gpa && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Award className="h-4 w-4 text-gray-400" />
-                        <span>GPA: {edu.gpa}</span>
-                      </div>
-                    )}
-                    {edu.country && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span>{edu.country}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Projects Section */}
-          <div
-            id="projects"
-            className="bg-gradient-to-r from-cyan-50 to-purple-50 rounded-2xl p-6 border border-cyan-200"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-xl">
-                  <FolderOpen className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Projects</h3>
-              </div>
-              <Button
-                onClick={() => setAddProj(true)}
-                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Add
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {defaultValues.projects?.map((proj, index) => {
-                const isExpanded = expandedIndex === index;
-                return (
-                  <div
-                    key={proj._id}
-                    className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-cyan-100"
-                  >
-                    <div
-                      className="flex justify-between items-center cursor-pointer"
-                      onClick={() => toggleExpand(index)}
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent accordion from toggling
+                        setAddEdu(true);
+                      }}
+                      className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="flex-1 pr-4">
-                        <h4 className="text-lg font-bold text-gray-800">
-                          {proj.name}
-                        </h4>
-                        {!isExpanded && (
-                          <p className="text-gray-600 line-clamp-1 mt-1">
-                            {proj.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditProj(true);
-                            setEditProjIndex(index);
-                          }}
-                          className="text-cyan-600 border-cyan-300 hover:bg-cyan-50 h-9 w-9"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteProj(true);
-                            setDeleteProjIndex(proj._id);
-                          }}
-                          className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-9 w-9">
-                          {isExpanded ? (
-                            <ChevronUp className="h-5 w-5" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    {isExpanded && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-in slide-in-from-top duration-300">
-                        <p className="text-gray-600 leading-relaxed">
-                          {proj.description}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <PlusCircle className="mr-2 h-5 w-5" />
+                      Add Education
+                    </Button>
+                    {/* Added consistent chevron icon */}
+                    <ChevronDown className="h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180" />
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-4 border-t">
+                <div
+                  id="education"
+                  className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200"
+                >
+                  <div className="space-y-4">
+                    {defaultValues.education?.map((edu, index) => (
+                      <div
+                        key={edu._id}
+                        className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-bold text-gray-800 mb-1">
+                              {edu.degree}
+                            </h4>
+                            <p className="text-blue-600 font-medium">
+                              {edu.institution}
+                            </p>
+                            {edu.fieldOfStudy && (
+                              <p className="text-sm text-gray-500 mt-1">
+                                Field: {edu.fieldOfStudy}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => {
+                                setEditEdu(true);
+                                setEditEduIndex(index);
+                              }}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50 h-9 w-9"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => {
+                                setDeleteEdu(true);
+                                setDeleteEduIndex(edu.educationId);
+                              }}
+                              className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm pt-4 border-t border-gray-100">
                           <div className="flex items-center gap-2 text-gray-600">
                             <Calendar className="h-4 w-4 text-gray-400" />
                             <span>
-                              {proj.startDate} - {proj.endDate || 'Present'}
+                              {edu.startDate} - {edu.endDate || 'Present'}
                             </span>
                           </div>
-                          {proj.country && (
+                          {edu.gpa && (
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <Award className="h-4 w-4 text-gray-400" />
+                              <span>GPA: {edu.gpa}</span>
+                            </div>
+                          )}
+                          {edu.country && (
                             <div className="flex items-center gap-2 text-gray-600">
                               <MapPin className="h-4 w-4 text-gray-400" />
-                              <span>{proj.country}</span>
+                              <span>{edu.country}</span>
                             </div>
                           )}
                         </div>
-                        {proj.technologies?.length > 0 && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-700 mb-2">
-                              Technologies:
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {proj.technologies.map((tech) => (
-                                <span
-                                  key={tech}
-                                  className="px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-xs font-medium"
-                                >
-                                  {tech}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Experience Section */}
-          <div
-            id="experience"
-            className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-200"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-600 rounded-xl">
-                  <Briefcase className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Experience</h3>
-              </div>
-              <Button
-                type="button"
-                onClick={() => setAddExp(true)}
-                className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Add
-              </Button>
-            </div>
-            <div className="space-y-4 mt-4">
-              {defaultValues.experience?.map((exp, index) => {
-                const isExpanded = expandedIndex === index;
-                return (
-                  <div
-                    key={exp._id}
-                    className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-purple-100"
-                  >
-                    <div
-                      className="flex justify-between items-center cursor-pointer"
-                      onClick={() => toggleExpand(index)}
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="projects" className="border rounded-lg">
+              <AccordionTrigger className="group px-4 py-3 hover:no-underline">
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-xl">
+                      {/* FIXED: Icon is now FolderOpen */}
+                      <FolderOpen className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">
+                      Projects
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAddProj(true);
+                      }}
+                      className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="flex-1 pr-4">
-                        <h4 className="text-lg font-bold text-gray-800">
-                          {exp.company}
-                        </h4>
-                        {!isExpanded && (
-                          <p className="text-purple-600 font-medium line-clamp-1 mt-1">
-                            {exp.position}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditExp(true);
-                            setEditExpIndex(index);
-                          }}
-                          className="text-purple-600 border-purple-300 hover:bg-purple-50 h-9 w-9"
+                      <PlusCircle className="mr-2 h-5 w-5" />
+                      {/* FIXED: Button text is now correct */}
+                      Add Project
+                    </Button>
+                    <ChevronDown className="h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180" />
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-4 border-t">
+                <div
+                  id="projects"
+                  className="bg-gradient-to-r from-cyan-50 to-purple-50 rounded-2xl p-6 border border-cyan-200"
+                >
+                  {/* REMOVED: Redundant header was here */}
+                  <div className="space-y-4">
+                    {defaultValues.projects?.map((proj, index) => {
+                      const isExpanded = expandedIndex === index;
+                      return (
+                        <div
+                          key={proj._id}
+                          className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-cyan-100"
                         >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteExp(true);
-                            setDeleteExpIndex(exp._id);
-                          }}
-                          className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-9 w-9">
-                          {isExpanded ? (
-                            <ChevronUp className="h-5 w-5" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    {isExpanded && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-in slide-in-from-top duration-300">
-                        <p className="text-purple-600 font-medium">
-                          {exp.position}
-                        </p>
-                        <p className="text-gray-600 leading-relaxed">
-                          {exp.description}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span>
-                              {exp.startDate} - {exp.endDate || 'Present'}
-                            </span>
+                          <div
+                            className="flex justify-between items-center cursor-pointer"
+                            onClick={() => toggleExpand(index)}
+                          >
+                            <div className="flex-1 pr-4">
+                              <h4 className="text-lg font-bold text-gray-800">
+                                {proj.name}
+                              </h4>
+                              {!isExpanded && (
+                                <p className="text-gray-600 line-clamp-1 mt-1">
+                                  {proj.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditProj(true);
+                                  setEditProjIndex(index);
+                                }}
+                                className="text-cyan-600 border-cyan-300 hover:bg-cyan-50 h-9 w-9"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteProj(true);
+                                  setDeleteProjIndex(proj._id);
+                                }}
+                                className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9"
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="h-5 w-5" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                          {exp.location && (
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <MapPin className="h-4 w-4 text-gray-400" />
-                              <span>{exp.location}</span>
+                          {isExpanded && (
+                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-in slide-in-from-top duration-300">
+                              <p className="text-gray-600 leading-relaxed">
+                                {proj.description}
+                              </p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div className="flex items-center gap-2 text-gray-600">
+                                  <Calendar className="h-4 w-4 text-gray-400" />
+                                  <span className="whitespace-nowrap font-bold">
+                                    {formatDateForMonthInput(proj.startDate)} to{' '}
+                                    {formatDateForMonthInput(proj.endDate) ||
+                                      'Present'}
+                                  </span>
+                                </div>
+                                {proj.country && (
+                                  <div className="flex items-center gap-2 text-gray-600">
+                                    <MapPin className="h-4 w-4 text-gray-400" />
+                                    <span>{proj.country}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {proj.technologies?.length > 0 && (
+                                <div>
+                                  <p className="text-sm font-medium text-gray-700 mb-2">
+                                    Technologies:
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {proj.technologies.map((tech) => (
+                                      <span
+                                        key={tech}
+                                        className="px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-xs font-medium"
+                                      >
+                                        {tech}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                        {exp.technologies?.length > 0 && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-700 mb-2">
-                              Technologies:
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {exp.technologies.map((tech) => (
-                                <span
-                                  key={tech}
-                                  className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
-                                >
-                                  {tech}
-                                </span>
-                              ))}
+                      );
+                    })}
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="experience" className="border rounded-lg">
+              <AccordionTrigger className="group px-4 py-3 hover:no-underline">
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-600 rounded-xl">
+                      <Briefcase className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">
+                      Experience
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAddExp(true);
+                      }}
+                      className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                    >
+                      <PlusCircle className="mr-2 h-5 w-5" />
+                      Add Experience
+                    </Button>
+                    <ChevronDown className="h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180" />
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-4 border-t">
+                <div
+                  id="experience"
+                  className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-200"
+                >
+                  <div className="space-y-4">
+                    {defaultValues.experience?.map((exp, index) => {
+                      const isExpanded = expandedIndex === index;
+                      return (
+                        <div
+                          key={exp._id}
+                          className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-purple-100"
+                        >
+                          <div
+                            className="flex justify-between items-center cursor-pointer"
+                            onClick={() => toggleExpand(index)}
+                          >
+                            <div className="flex-1 pr-4">
+                              <h4 className="text-lg font-bold text-gray-800">
+                                {exp.company}
+                              </h4>
+                              {!isExpanded && (
+                                <p className="text-purple-600 font-medium line-clamp-1 mt-1">
+                                  {exp.position}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditExp(true);
+                                  setEditExpIndex(index);
+                                }}
+                                className="text-purple-600 border-purple-300 hover:bg-purple-50 h-9 w-9"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteExp(true);
+                                  setDeleteExpIndex(exp._id);
+                                }}
+                                className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9"
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="h-5 w-5" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5" />
+                                )}
+                              </Button>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+                          {isExpanded && (
+                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-in slide-in-from-top duration-300">
+                              <p className="text-purple-600 font-medium">
+                                {exp.position}
+                              </p>
+                              <p className="text-gray-600 leading-relaxed">
+                                {exp.description}
+                              </p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div className="flex items-center gap-2 text-gray-600">
+                                  <Calendar className="h-4 w-4 text-gray-400" />
+                                  <span>
+                                    {exp.startDate} - {exp.endDate || 'Present'}
+                                  </span>
+                                </div>
+                                {exp.location && (
+                                  <div className="flex items-center gap-2 text-gray-600">
+                                    <MapPin className="h-4 w-4 text-gray-400" />
+                                    <span>{exp.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {exp.technologies?.length > 0 && (
+                                <div>
+                                  <p className="text-sm font-medium text-gray-700 mb-2">
+                                    Technologies:
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {exp.technologies.map((tech) => (
+                                      <span
+                                        key={tech}
+                                        className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
+                                      >
+                                        {tech}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
 
-          {/* Skills Section */}
-          <div
-            id="skills"
-            className="bg-gradient-to-r from-green-50 to-cyan-50 rounded-2xl p-6 border border-green-200"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-r from-green-500 to-cyan-600 rounded-xl">
-                  <Code className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Skills</h3>
-              </div>
-              <Button
-                type="button"
-                onClick={() => setAddSkill(true)}
-                className="bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Add
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {defaultValues.skills?.map((skill) => (
-                <div
-                  key={skill._id}
-                  className="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100"
-                >
-                  <div className="flex justify-between items-center gap-3">
-                    <div className="flex-1">
-                      <h4 className="text-lg font-bold text-gray-800">
-                        {skill.skill}
-                      </h4>
-                      <span
-                        className={`mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium border ${getSkillBadgeColor(
-                          skill.level,
-                        )}`}
-                      >
-                        {skill.level}
-                      </span>
+            <AccordionItem value="skills" className="border rounded-lg">
+              <AccordionTrigger className="group px-4 py-3 hover:no-underline">
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-r from-green-500 to-cyan-600 rounded-xl">
+                      <Code className="h-6 w-6 text-white" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={skill.level}
-                        onChange={(e) =>
-                          handleLevelChange(skill.skillId, e.target.value)
-                        }
-                        className="w-full rounded border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      >
-                        <option value="BEGINNER">Beginner</option>
-                        <option value="INTERMEDIATE">Intermediate</option>
-                        <option value="EXPERT">Expert</option>
-                      </select>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          setDeleteSkill(true);
-                          setDeleteSkillIndex(skill._id);
-                        }}
-                        className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">Skills</h3>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAddSkill(true);
+                      }}
+                      className="bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                    >
+                      <PlusCircle className="mr-2 h-5 w-5" />
+                      Add Skill
+                    </Button>
+                    <ChevronDown className="h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180" />
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-4 border-t">
+                <div
+                  id="skills"
+                  className="bg-gradient-to-r from-green-50 to-cyan-50 rounded-2xl p-6 border border-green-200"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {defaultValues.skills?.map((skill) => (
+                      <div
+                        key={skill._id}
+                        className="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100"
+                      >
+                        <div className="flex justify-between items-center gap-3">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-bold text-gray-800">
+                              {skill.skill}
+                            </h4>
+                            <span
+                              className={`mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium border ${getSkillBadgeColor(
+                                skill.level,
+                              )}`}
+                            >
+                              {skill.level}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={skill.level}
+                              onChange={(e) =>
+                                handleLevelChange(skill.skillId, e.target.value)
+                              }
+                              className="w-full rounded border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                              <option value="BEGINNER">Beginner</option>
+                              <option value="INTERMEDIATE">Intermediate</option>
+                              <option value="EXPERT">Expert</option>
+                            </select>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setDeleteSkill(true);
+                                setDeleteSkillIndex(skill._id);
+                              }}
+                              className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </CardContent>
       </Card>
     </div>

@@ -39,10 +39,12 @@ const studentSlice = createSlice({
   reducers: {
     // student Details
     getStudentDetailsRequest: (state) => {
+      console.log('getStudentDetailsRequest');
       state.loading = true;
       state.error = null;
     },
     getStudentDetailsSuccess: (state, action: PayloadAction<any[]>) => {
+      console.log('getStudentDetailsSuccess', action.payload);
       state.loading = false;
       state.students = action.payload;
     },

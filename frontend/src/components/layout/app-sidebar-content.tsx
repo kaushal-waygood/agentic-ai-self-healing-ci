@@ -30,7 +30,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import { getProfileRequest } from '@/redux/reducers/authReducer';
@@ -42,6 +42,7 @@ const AppSidebarContent = () => {
   const [isPinned, setIsPinned] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
+  const route = useRouter();
 
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
@@ -59,10 +60,25 @@ const AppSidebarContent = () => {
   const siteConfig = {
     name: 'JobAI Pro',
     sidebarNav: [
+      // {
+      //   title: 'Dashboard',
+      //   href: '/dashboard',
+      //   icon: LayoutDashboard,
+      // },
       {
-        title: 'Dashboard',
-        href: '/dashboard',
-        icon: LayoutDashboard,
+        title: 'AI CV Generator',
+        href: '/cv-generator',
+        icon: FileText,
+      },
+      {
+        title: 'Cover Letter Studio',
+        href: '/cover-letter-generator',
+        icon: Newspaper,
+      },
+      {
+        title: 'AI Auto Apply',
+        href: '/ai-auto-apply',
+        icon: Bot,
       },
       {
         title: 'Organization',
@@ -85,21 +101,7 @@ const AppSidebarContent = () => {
         href: '/apply',
         icon: Wand2,
       },
-      {
-        title: 'AI CV Generator',
-        href: '/cv-generator',
-        icon: FileText,
-      },
-      {
-        title: 'Cover Letter Studio',
-        href: '/cover-letter-generator',
-        icon: Newspaper,
-      },
-      {
-        title: 'AI Auto Apply',
-        href: '/ai-auto-apply',
-        icon: Bot,
-      },
+
       {
         title: 'Subscriptions',
         href: '/subscriptions',
@@ -109,16 +111,6 @@ const AppSidebarContent = () => {
         title: 'Refer & Earn',
         href: '/referrals',
         icon: Gift,
-      },
-      {
-        title: 'AI Assistant',
-        href: '/ai-assistant',
-        icon: MessageSquare,
-      },
-      {
-        title: 'Support',
-        href: '/support',
-        icon: LifeBuoy,
       },
     ],
   };
@@ -359,7 +351,12 @@ const AppSidebarContent = () => {
               <p className="text-xs text-purple-100 mb-3">
                 Upgrade to get unlimited AI generations and premium features.
               </p>
-              <button className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors duration-200">
+              <button
+                className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors duration-200"
+                onClick={() => {
+                  route.push('/subscription');
+                }}
+              >
                 Upgrade Now
               </button>
             </div>

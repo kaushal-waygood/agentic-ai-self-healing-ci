@@ -57,14 +57,14 @@ const JobWizard = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="w-full">
+      <div className="w-full ">
         {/* Hero Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
             <Sparkles className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
-            CV Generator
+            Love Letter Generator
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Transform your CV with AI-powered insights tailored to your dream
@@ -171,7 +171,7 @@ const JobWizard = ({
                   ) : (
                     <>
                       <ChevronsRight className="mr-2 h-5 w-5" />
-                      Generate My CV
+                      Generate My Love Letter
                     </>
                   )}
                 </Button>

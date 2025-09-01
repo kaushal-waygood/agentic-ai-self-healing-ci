@@ -8,25 +8,14 @@ import {
   DollarSign,
   Share2,
   Star,
-  TrendingUp,
   Award,
   CheckCircle2,
 } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { getProfileRequest } from '@/redux/reducers/authReducer';
 
-const PageHeader = ({ title, description, icon: Icon }) => (
-  <div className="mb-8">
-    <div className="flex items-center gap-3 mb-2">
-      <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
-        <Icon className="h-6 w-6 text-white" />
-      </div>
-      <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-        {title}
-      </h1>
-    </div>
-    <p className="text-gray-600 text-lg">{description}</p>
-  </div>
-);
-
+// UI Components
 const Card = ({ children, className = '', hover = true }) => (
   <div
     className={`bg-white rounded-2xl border border-slate-200 shadow-lg ${
@@ -36,25 +25,20 @@ const Card = ({ children, className = '', hover = true }) => (
     {children}
   </div>
 );
-
 const CardHeader = ({ children, className = '' }) => (
   <div className={`p-6 pb-2 ${className}`}>{children}</div>
 );
-
 const CardContent = ({ children, className = '' }) => (
   <div className={`p-6 pt-2 ${className}`}>{children}</div>
 );
-
 const CardTitle = ({ children, className = '' }) => (
   <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>
     {children}
   </h3>
 );
-
 const CardDescription = ({ children, className = '' }) => (
   <p className={`text-sm text-gray-600 mt-1 ${className}`}>{children}</p>
 );
-
 const Button = ({
   children,
   variant = 'default',
@@ -69,19 +53,16 @@ const Button = ({
       'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl',
     outline:
       'border-2 border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400',
-    link: 'text-purple-600 hover:text-purple-700 underline-offset-4 hover:underline',
     success:
       'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg',
     secondary:
       'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg',
   };
-
   const sizes = {
     default: 'px-6 py-3 text-sm font-medium',
     sm: 'px-4 py-2 text-xs font-medium',
     icon: 'p-3 w-12 h-12 flex items-center justify-center',
   };
-
   return (
     <button
       className={`rounded-xl transition-all duration-200 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
@@ -93,60 +74,40 @@ const Button = ({
     </button>
   );
 };
-
 const Input = ({ className = '', ...props }) => (
   <input
     className={`w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-slate-50 ${className}`}
     {...props}
   />
 );
-
 const Skeleton = ({ className = '' }) => (
   <div className={`animate-pulse bg-slate-200 rounded-lg ${className}`} />
 );
 
-const ProgressBar = ({ value, max, className = '' }) => (
-  <div className={`w-full bg-slate-200 rounded-full h-2 ${className}`}>
-    <div
-      className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-500 ease-out"
-      style={{ width: `${Math.min((value / max) * 100, 100)}%` }}
-    />
-  </div>
-);
-
 export default function ReferralsPage() {
-  const [referralsMade, setReferralsMade] = useState(null);
-  const [creditsEarned, setCreditsEarned] = useState(null);
-  const [userReferralCode, setUserReferralCode] = useState(null);
-  const [referralLink, setReferralLink] = useState(null);
+  const [referralLink, setReferralLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [shareClicked, setShareClicked] = useState({});
 
-  // Mock data
-  const mockUserProfile = {
-    referralsMade: 8,
-    earnedApplicationCredits: 120,
-    referralCode: 'CP-REF-2024',
-    nextRewardAt: 10,
-  };
+  const dispatch = useDispatch();
+  const { user, loading } = useSelector((state: RootState) => state.auth);
 
+  // Fetch user profile on component mount
   useEffect(() => {
-    // Simulate loading with stagger effect
-    setTimeout(() => setReferralsMade(mockUserProfile.referralsMade || 0), 300);
-    setTimeout(
-      () => setCreditsEarned(mockUserProfile.earnedApplicationCredits || 0),
-      500,
-    );
-    setTimeout(() => {
-      const code = mockUserProfile.referralCode || '';
-      setUserReferralCode(code);
-      setReferralLink(`https://careerpilot.app/signup?ref=${code}`);
-    }, 700);
-  }, []);
+    dispatch(getProfileRequest());
+  }, [dispatch]);
+
+  // Generate referral link only after user data is available
+  useEffect(() => {
+    if (user?.referralCode) {
+      // Replace with your actual domain
+      const link = `https://yourapp.com/signup?ref=${user.referralCode}`;
+      setReferralLink(link);
+    }
+  }, [user]);
 
   const handleCopyReferralLink = async () => {
     if (!referralLink) return;
-
     try {
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);
@@ -158,18 +119,15 @@ export default function ReferralsPage() {
 
   const handleSocialShare = (platform) => {
     if (!referralLink) return;
-
     setShareClicked((prev) => ({ ...prev, [platform]: true }));
     setTimeout(
       () => setShareClicked((prev) => ({ ...prev, [platform]: false })),
       1000,
     );
-
     const text = encodeURIComponent(
       `🚀 I'm using CareerPilot to supercharge my job search with AI. You should check it out! Use my link to get started:`,
     );
     let url = '';
-
     if (platform === 'twitter') {
       url = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(
         referralLink,
@@ -179,21 +137,33 @@ export default function ReferralsPage() {
         referralLink,
       )}`;
     }
-
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
+  // Handle loading and null user state to prevent build crashes
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-3 mb-8">
+            <Skeleton className="h-40" />
+            <Skeleton className="h-40" />
+            <Skeleton className="h-40" />
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <PageHeader
-          title="Referral Program"
-          description="Invite friends to CareerPilot and earn application credits!"
-          icon={Gift}
-        />
-
         {/* Stats Overview */}
         <div className="grid gap-6 md:grid-cols-3 mb-8">
           <Card>
@@ -209,30 +179,9 @@ export default function ReferralsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end gap-4">
-                {referralsMade === null ? (
-                  <Skeleton className="h-12 w-20" />
-                ) : (
-                  <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {referralsMade}
-                  </div>
-                )}
-                <div className="text-sm text-gray-500 mb-1">
-                  / {mockUserProfile.nextRewardAt} for bonus
-                </div>
+              <div className="flex items-end gap-4 text-3xl font-bold ">
+                {user?.referralCount || 0}
               </div>
-              {referralsMade !== null && (
-                <div className="mt-3">
-                  <ProgressBar
-                    value={referralsMade}
-                    max={mockUserProfile.nextRewardAt}
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    {mockUserProfile.nextRewardAt - referralsMade} more for
-                    special bonus!
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -249,20 +198,8 @@ export default function ReferralsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                {creditsEarned === null ? (
-                  <Skeleton className="h-12 w-20" />
-                ) : (
-                  <>
-                    <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-cyan-600 bg-clip-text text-transparent">
-                      {creditsEarned}
-                    </div>
-                    <div className="flex items-center gap-1 text-green-600">
-                      <TrendingUp className="h-4 w-4" />
-                      <span className="text-sm font-medium">+15 this week</span>
-                    </div>
-                  </>
-                )}
+              <div className="flex items-center gap-2 text-3xl font-bold ">
+                {(user?.referralCount || 0) * 15}
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 15 credits per successful referral
@@ -320,18 +257,9 @@ export default function ReferralsPage() {
                   <p className="text-sm font-medium text-gray-700 mb-2">
                     Your unique referral code:
                   </p>
-                  {userReferralCode === null ? (
-                    <Skeleton className="h-10 w-32" />
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="px-4 py-2 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg border-2 border-dashed border-purple-300">
-                        <span className="text-lg font-bold text-purple-700">
-                          {userReferralCode}
-                        </span>
-                      </div>
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    </div>
-                  )}
+                  <span className="font-mono p-2 bg-slate-100 rounded-md text-slate-700">
+                    {user?.referralCode || '...'}
+                  </span>
                 </div>
 
                 <div>
@@ -339,7 +267,7 @@ export default function ReferralsPage() {
                     Your referral link:
                   </p>
                   <div className="flex gap-2">
-                    {referralLink === null ? (
+                    {!referralLink ? (
                       <Skeleton className="h-12 flex-grow" />
                     ) : (
                       <Input
@@ -429,7 +357,6 @@ export default function ReferralsPage() {
                     <p className="text-xs text-gray-500">credits</p>
                   </div>
                 </div>
-
                 <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-cyan-50 rounded-lg border border-green-200">
                   <div>
                     <p className="font-semibold text-green-700">
@@ -444,7 +371,6 @@ export default function ReferralsPage() {
                     <p className="text-xs text-gray-500">bonus credits</p>
                   </div>
                 </div>
-
                 <div className="flex justify-between items-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
                   <div>
                     <p className="font-semibold text-orange-700">
@@ -484,7 +410,6 @@ export default function ReferralsPage() {
                   social media
                 </p>
               </div>
-
               <div className="text-center space-y-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto">
                   <span className="text-white font-bold">2</span>
@@ -494,7 +419,6 @@ export default function ReferralsPage() {
                   They create an account using your referral code or link
                 </p>
               </div>
-
               <div className="text-center space-y-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto">
                   <span className="text-white font-bold">3</span>
@@ -504,7 +428,6 @@ export default function ReferralsPage() {
                   Your friend applies for jobs or subscribes to a plan
                 </p>
               </div>
-
               <div className="text-center space-y-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto">
                   <span className="text-white font-bold">4</span>

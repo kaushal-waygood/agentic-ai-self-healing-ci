@@ -543,6 +543,7 @@ const FilterWizard = ({
           </div>
 
           {/* Footer */}
+          {/* Footer */}
           <div className="bg-gray-50 px-8 py-6 flex justify-between items-center border-t border-gray-200">
             <button
               onClick={() => setWizardStep('intro')}
@@ -567,8 +568,15 @@ const FilterWizard = ({
                     'jobFilters.employmentTypes',
                   ])
                 }
+                disabled={!isValid}
+                className={`flex items-center space-x-2 px-6 py-3 font-semibold text-white rounded-full transition-all duration-300 transform ${
+                  isValid
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:scale-105 hover:shadow-lg'
+                    : 'bg-gray-400 cursor-not-allowed'
+                }`}
               >
-                Next
+                <span>Next Step</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>

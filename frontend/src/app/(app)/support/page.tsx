@@ -26,6 +26,7 @@ import {
   Upload,
   Bot,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const faqItems = [
   {
@@ -99,6 +100,7 @@ const categories = [
 ];
 
 export default function SupportPage() {
+  const route = useRouter();
   const [openFaq, setOpenFaq] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -290,7 +292,10 @@ export default function SupportPage() {
                   Our smart AI assistant can help answer specific questions
                   about your account and guide you through features.
                 </p>
-                <Button className="w-full bg-white text-purple-600 hover:bg-purple-50 transition-all duration-300 font-semibold shadow-lg">
+                <Button
+                  className="w-full bg-white text-purple-600 hover:bg-purple-50 transition-all duration-300 font-semibold shadow-lg"
+                  onClick={() => route.push('/ai-assistant')}
+                >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Start Chat
                 </Button>
