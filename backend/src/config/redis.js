@@ -1,9 +1,13 @@
 import { createClient } from 'redis';
+import { config } from '../config/config.js';
+
+const url =
+  `redis://${config.redisHost}:${config.redisPort}` || 'redis://localhost:6379';
 
 class RedisClient {
   constructor() {
     this.client = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      url,
       password: process.env.REDIS_PASSWORD || undefined,
     });
 

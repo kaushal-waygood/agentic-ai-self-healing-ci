@@ -1,28 +1,15 @@
 'use client';
 import React from 'react';
+import { Button } from '@/components/ui/button'; // Assuming ShadCN UI component
 
 const GoogleLoginButton = () => {
   const handleLogin = () => {
-    // 🔥 Direct browser redirect (NOT fetch)
+    // This is the correct approach. The browser needs to redirect to the
+    // backend endpoint, which will then redirect to Google.
     window.location.href = 'http://localhost:8080/api/v1/user/auth/google';
   };
 
-  return (
-    <button
-      onClick={handleLogin}
-      style={{
-        padding: '10px 20px',
-        fontSize: '16px',
-        backgroundColor: '#4285F4',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-      }}
-    >
-      Login with Google
-    </button>
-  );
+  return <Button onClick={handleLogin}>Connect Google</Button>;
 };
 
 export default GoogleLoginButton;

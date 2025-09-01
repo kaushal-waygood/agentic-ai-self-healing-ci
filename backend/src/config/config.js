@@ -15,4 +15,7 @@ export const config = {
     process.env.RAPID_API_KEY ||
     'ac604e5de3msh7ca8160c3a74f81p1cc1a1jsn7f7db4c40d75',
   rapidApiHost: 'jsearch.p.rapidapi.com',
+  redisHost: process.env.REDIS_HOST || 'localhost',
+  redisPort: process.env.REDIS_PORT || 6379,
+  
 };
