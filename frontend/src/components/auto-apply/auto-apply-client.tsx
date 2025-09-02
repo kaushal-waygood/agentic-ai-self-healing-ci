@@ -25,6 +25,7 @@ import {
   autoApplyFormSchema,
   AutoApplyFormValues,
   View,
+  WizardStep,
 } from './ZodValidation';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
@@ -527,7 +528,7 @@ export function AutoApplyClient() {
     )[],
   ) => {
     const isValid = await form.trigger(fieldsToValidate);
-=
+
     const nextStepMap: Record<WizardStep, WizardStep> = {
       intro: 'filters',
       filters: 'cv',

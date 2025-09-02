@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import GoogleLoginButton from '../GoogleLoginButton';
 import {
   Eye,
   EyeOff,
@@ -24,67 +23,198 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useSelector, useDispatch } from 'react-redux';
+import { setUserGoogleAuth } from '@/redux/reducers/authReducer';
+import { RootState } from '@/redux/rootReducer';
 
-export const AccountSetting = ({ user, handleSendEmail }) => (
-  <div className="space-y-6">
-    <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        Profile Information
-      </h4>
-      <div className="grid gap-4">
-        <div className="group">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Full Name
-          </label>
-          <Input
-            type="text"
-            defaultValue={user?.name || ''}
-            className="bg-gray-50 dark:bg-gray-700"
-          />
+// Google Login Button Component
+const GoogleLoginButton = ({ onSuccess, onError }) => {
+  const handleLogin = () => {
+    window.location.href = 'http://localhost:8080/api/v1/user/auth/google';
+  };
+
+  return <Button onClick={handleLogin}>Connect Google</Button>;
+};
+
+// Main Account Settings Component
+export const AccountSetting = ({ handleSendEmail }: any) => {
+  const { user, message, error } = useSelector(
+    (state: RootState) => state.auth,
+  );
+  const dispatch = useDispatch();
+  const [statusMessage, setStatusMessage] = useState('');
+  const [isError, setIsError] = useState(false);
+
+  // Handle OAuth callback parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
+
+    if (success === 'google_connected') {
+      setStatusMessage('Google account successfully connected!');
+      setIsError(false);
+
+      // Clear the URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      // In a real app, you might want to refetch user data here
+      // For now, we'll simulate updating the user state
+      dispatch(setUserGoogleAuth({ connected: true }));
+    }
+
+    if (error) {
+      let errorMessage = 'Failed to connect Google account';
+      if (error === 'user_not_found') {
+        errorMessage = 'No account found with your Google email';
+      } else if (error === 'auth_failed') {
+        errorMessage = 'Authentication failed';
+      }
+
+      setStatusMessage(errorMessage);
+      setIsError(true);
+
+      // Clear the URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [dispatch]);
+
+  // Handle sending test email
+  const handleSendTestEmail = async () => {
+    try {
+      setStatusMessage('Sending email...');
+      setIsError(false);
+
+      const response = await fetch(
+        'http://localhost:8080/api/v1/user/send-email',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatusMessage(data.message || 'Email sent successfully!');
+        setIsError(false);
+      } else {
+        setStatusMessage(data.message || 'Failed to send email');
+        setIsError(true);
+      }
+    } catch (err) {
+      setStatusMessage('Network error. Please try again.');
+      setIsError(true);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Status Message */}
+      {statusMessage && (
+        <div
+          className={`p-4 rounded-lg ${
+            isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+          }`}
+        >
+          {statusMessage}
         </div>
-        <div className="group">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Email Address
-          </label>
-          <Input
-            type="email"
-            defaultValue={user?.email || ''}
-            readOnly
-            className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
-          />
+      )}
+
+      <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          Profile Information
+        </h4>
+        <div className="grid gap-4">
+          <div className="group">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Full Name
+            </label>
+            <Input
+              type="text"
+              defaultValue={user?.name || ''}
+              className="bg-gray-50 dark:bg-gray-700"
+            />
+          </div>
+          <div className="group">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Email Address
+            </label>
+            <Input
+              type="email"
+              defaultValue={user?.email || ''}
+              readOnly
+              className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+            />
+          </div>
+          <Button variant="outline" asChild>
+            <a href="/profile">Edit Full Profile</a>
+          </Button>
         </div>
-        <Button variant="outline" asChild>
-          <a href="/profile">Edit Full Profile</a>
-        </Button>
       </div>
-    </div>
-    <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        Linked Accounts & Permissions
-      </h4>
-      <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-        <div>
-          <p className="font-medium text-gray-900 dark:text-gray-100">
-            Sign-in Provider
+
+      <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          Linked Accounts & Permissions
+        </h4>
+        <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+          <div>
+            <p className="font-medium text-gray-900 dark:text-gray-100">
+              Sign-in Provider
+            </p>
+            {user?.provider ? (
+              <p className="text-sm text-green-600 dark:text-green-400">
+                Connected via {user.provider}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Not connected to a provider.
+              </p>
+            )}
+          </div>
+          {!user?.provider && <GoogleLoginButton />}
+        </div>
+
+        <div className="mt-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="font-medium text-gray-900 dark:text-gray-100">
+                Email Permissions
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Grant permission to send emails on your behalf
+              </p>
+            </div>
+            {user?.googleAuth?.refreshToken ? (
+              <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">
+                Permission Granted
+              </span>
+            ) : (
+              <GoogleLoginButton />
+            )}
+          </div>
+
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={handleSendTestEmail}
+            disabled={!user?.googleAuth?.refreshToken}
+          >
+            Send Test Email
+          </Button>
+
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            This will send a test email to verify your permissions are working
+            correctly.
           </p>
-          {user?.provider ? (
-            <p className="text-sm text-green-600 dark:text-green-400">
-              Connected via {user.provider}
-            </p>
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Not connected to a provider.
-            </p>
-          )}
         </div>
-        {!user?.provider && <GoogleLoginButton />}
       </div>
-      <Button variant="outline" className="mt-4" onClick={handleSendEmail}>
-        Send Email Permission
-      </Button>
     </div>
-  </div>
-);
+  );
+};
 
 export const SecuritySetting = ({
   showPassword,

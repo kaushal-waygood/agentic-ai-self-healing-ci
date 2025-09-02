@@ -1,7 +1,4 @@
-import { Button } from '@/components/ui/button';
 import { Navigation } from '@/components/layout/site-header';
-import Link from 'next/link';
-import { CheckCircle, Rocket, Brain, Award, Zap } from 'lucide-react';
 import { Footer } from '@/components/layout/footer';
 import { Hero } from '@/components/home/Hero';
 import BeforeAfter from '@/components/home/BeforeAfter';
@@ -18,7 +15,6 @@ export default function HomePage() {
     <div className="flex flex-col min-h-screen">
       <Navigation />
       <main className="flex-1">
-        {/* Hero Section Redesigned */}
         <Hero />
         <PainPoints />
         <Solutions />
