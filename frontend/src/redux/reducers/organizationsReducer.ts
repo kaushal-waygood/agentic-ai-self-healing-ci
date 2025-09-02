@@ -43,7 +43,6 @@ const organizationsSlice = createSlice({
       }>,
     ) => {
       state.loading = true;
-      console.log('Adding organization member request', _action.payload);
       state.error = null;
     },
     addOrganizationMemberSuccess: (

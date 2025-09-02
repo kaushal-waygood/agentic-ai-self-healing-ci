@@ -1,14 +1,13 @@
-
-import { mockUserProfile } from "./user";
+import { mockUserProfile } from './user';
 
 export type AuditLogAction =
-  | "USER_UPDATE"
-  | "PLAN_CHANGE"
-  | "ORG_UPDATE"
-  | "ADMIN_ACTION"
-  | "LOGIN_ACTION"
-  | "SYSTEM_CONFIG_CHANGE"
-  | "JOB_ACTION";
+  | 'USER_UPDATE'
+  | 'PLAN_CHANGE'
+  | 'ORG_UPDATE'
+  | 'ADMIN_ACTION'
+  | 'LOGIN_ACTION'
+  | 'SYSTEM_CONFIG_CHANGE'
+  | 'JOB_ACTION';
 
 export interface AuditLogEntry {
   id: string;
@@ -22,22 +21,22 @@ export interface AuditLogEntry {
 
 const initialMockAuditLogs: AuditLogEntry[] = [
   {
-    id: "log_1",
+    id: 'log_1',
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    adminId: "primary-admin-001",
-    adminEmail: "iamgde@gmail.com",
-    action: "ORG_UPDATE",
-    targetId: "org_123_state_university",
-    details: "Updated organization plan to enterprise_pro.",
+    adminId: 'primary-admin-001',
+    adminEmail: 'iamgde@gmail.com',
+    action: 'ORG_UPDATE',
+    targetId: 'org_123_state_university',
+    details: 'Updated organization plan to enterprise_pro.',
   },
   {
-    id: "log_2",
+    id: 'log_2',
     timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    adminId: "primary-admin-001",
-    adminEmail: "iamgde@gmail.com",
-    action: "USER_UPDATE",
-    targetId: "user-fay-521699",
-    details: "Reset usage counters for user Fan Gao.",
+    adminId: 'primary-admin-001',
+    adminEmail: 'iamgde@gmail.com',
+    action: 'USER_UPDATE',
+    targetId: 'user-fay-521699',
+    details: 'Reset usage counters for user Fan Gao.',
   },
 ];
 
@@ -48,7 +47,7 @@ declare global {
 
 export let mockAuditLogs: AuditLogEntry[];
 
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === 'production') {
   mockAuditLogs = initialMockAuditLogs;
 } else {
   if (!globalThis.__mockAuditLogs) {
@@ -64,14 +63,14 @@ if (process.env.NODE_ENV === "production") {
 export function logAdminAction(
   action: AuditLogAction,
   targetId: string,
-  details: string
+  details: string,
 ) {
   // Use the currently logged-in admin from mockUserProfile
   const admin = mockUserProfile;
-  
+
   if (admin.role !== 'PrimaryAdmin') {
-      console.warn("Attempted to log an admin action by a non-admin user.");
-      return;
+    console.warn('Attempted to log an admin action by a non-admin user.');
+    return;
   }
 
   const newLog: AuditLogEntry = {
@@ -86,5 +85,4 @@ export function logAdminAction(
 
   // Prepend to the array to keep it in reverse-chronological order
   mockAuditLogs.unshift(newLog);
-  console.log("Admin action logged:", newLog);
 }

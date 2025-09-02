@@ -220,7 +220,6 @@ export function AutoApplyClient() {
   };
 
   const onSubmit = async (data: AutoApplyFormValues) => {
-    console.log('data', data);
     if (!currentPlan) return;
 
     setIsLoading(true);
@@ -358,7 +357,6 @@ export function AutoApplyClient() {
     });
 
     try {
-      console.log('agent', agent);
       const agentInProfile = (mockUserProfile.autoApplyAgents || []).find(
         (a) => a.id === agent.id,
       );
@@ -380,7 +378,6 @@ export function AutoApplyClient() {
     agent: AutoApplySettings,
     isActive: boolean,
   ) => {
-    console.log('handleActivationToggle', agent, isActive);
     const agentInProfile = (mockUserProfile.autoApplyAgents || []).find(
       (a) => a.id === agent.id,
     );
@@ -411,9 +408,7 @@ export function AutoApplyClient() {
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    console.log('handleFileUpload');
     const file = event.target.files?.[0];
-    console.log('file', file);
     if (!file) return;
 
     setIsLoading(true);
@@ -531,10 +526,8 @@ export function AutoApplyClient() {
       | `coverLetterSettings.${keyof AutoApplyFormValues['coverLetterSettings']}`
     )[],
   ) => {
-    console.log('handleGoToNextStep');
     const isValid = await form.trigger(fieldsToValidate);
-    console.log('isValid', isValid);
-
+=
     const nextStepMap: Record<WizardStep, WizardStep> = {
       intro: 'filters',
       filters: 'cv',
@@ -543,7 +536,6 @@ export function AutoApplyClient() {
       coverLetter: 'config',
       config: 'config',
     };
-    console.log('nextStepMap[currentStep]', nextStepMap[currentStep]);
     setWizardStep(nextStepMap[currentStep]);
     // if (isValid) {
     // } else {

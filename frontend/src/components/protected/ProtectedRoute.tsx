@@ -2,7 +2,34 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookie from 'js-cookie';
+
+// Helper function to get cookie value by name
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null; // SSR safety
+
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+
+  if (parts.length === 2) {
+    const cookieValue = parts.pop()?.split(';').shift();
+    return cookieValue || null;
+  }
+  return null;
+}
+
+// Optional: Check if token is valid (not expired)
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false;
+
+  try {
+    // Decode the token to check expiration (JWT format)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expirationTime = payload.exp * 1000; // Convert to milliseconds
+    return Date.now() < expirationTime;
+  } catch (error) {
+    return false;
+  }
+}
 
 export default function ProtectedRoute({
   children,
@@ -14,25 +41,31 @@ export default function ProtectedRoute({
     'loading' | 'authenticated' | 'unauthenticated'
   >('loading');
 
-  // useEffect(() => {
-  //   const token = Cookie.get('accessToken');
+  useEffect(() => {
+    const checkAuth = () => {
+      const accessToken = getCookie('accessToken');
 
-  //   if (!token) {
-  //     console.warn('Authentication failed - no token found');
-  //     setAuthStatus('unauthenticated');
-  //     router.push('/login');
-  //   } else {
-  //     console.log('Authentication successful - token found');
-  //     setAuthStatus('authenticated');
-  //   }
-  // }, [router]);
+      if (accessToken && isTokenValid(accessToken)) {
+        setAuthStatus('authenticated');
+      } else {
+        setAuthStatus('unauthenticated');
+        router.push('/login');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   if (authStatus === 'loading') {
-    return <div>Checking authentication...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Checking authentication...</div>
+      </div>
+    );
   }
 
   if (authStatus === 'unauthenticated') {
-    return null; // The redirect is already handled in useEffect.
+    return null;
   }
 
   return <>{children}</>;

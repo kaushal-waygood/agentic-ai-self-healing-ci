@@ -139,7 +139,6 @@ const IntroWizard: React.FC<IntroWizardProps> = ({
         setLoading(true);
         setError(null);
         const response = await apiInstance.get('/pilotagent/get');
-        console.log('response', response);
 
         if (
           response.data?.success &&

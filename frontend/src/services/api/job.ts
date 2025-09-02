@@ -41,12 +41,10 @@ export const postJobMannalByOrgAdmin = async (data: any) => {
 
 export const getAllJobsByOrgAdmin = async () => {
   const response = await apiInstance.get(`organization/get-job`);
-  console.log('response', response);
   return response;
 };
 
 export const updateJobStatus = async (id: string) => {
-  console.log('id', id);
   const response = await apiInstance.patch(`/jobs/status/${id}`);
   return response;
 };

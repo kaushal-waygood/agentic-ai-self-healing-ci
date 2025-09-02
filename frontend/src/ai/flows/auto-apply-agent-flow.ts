@@ -6,7 +6,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { AutoApplySettings, mockUserProfile, SavedCv, SavedCoverLetter } from '@/lib/data/user';
+import {
+  AutoApplySettings,
+  mockUserProfile,
+  SavedCv,
+  SavedCoverLetter,
+} from '@/lib/data/user';
 import { searchJobsFlow } from './search-jobs-flow';
 import { generateTailoredApplication } from './tailored-application';
 import { mockApplications, MockApplication } from '@/lib/data/applications';
@@ -44,11 +49,14 @@ const AutoApplyAgentOutputSchema = z.object({
   message: z.string(),
 });
 
-export async function triggerAutoApplyAgent(agentId: string, settings: AutoApplySettings) {
+export async function triggerAutoApplyAgent(
+  agentId: string,
+  settings: AutoApplySettings,
+) {
   // This is a "fire-and-forget" call from the client.
   // We don't return the result directly to the UI, as it runs in the background.
   autoApplyAgentFlow({ agentId, settings });
-  return { success: true, message: "Agent triggered." };
+  return { success: true, message: 'Agent triggered.' };
 }
 
 const autoApplyAgentFlow = ai.defineFlow(
@@ -58,46 +66,49 @@ const autoApplyAgentFlow = ai.defineFlow(
     outputSchema: AutoApplyAgentOutputSchema,
   },
   async ({ agentId, settings }) => {
-    console.log(`[AutoApplyAgent] Starting flow for agent: ${agentId} (${settings.name})`);
-
     if (!settings.isActive) {
-      console.log(`[AutoApplyAgent] Agent ${agentId} is not active. Aborting.`);
-      return { applicationsPrepared: 0, message: "Agent is not active." };
+      return { applicationsPrepared: 0, message: 'Agent is not active.' };
     }
 
     // 1. Fetch base CV and Cover Letter template
-    const baseCv = mockUserProfile.savedCvs.find(cv => cv.id === settings.baseCvId);
+    const baseCv = mockUserProfile.savedCvs.find(
+      (cv) => cv.id === settings.baseCvId,
+    );
     if (!baseCv) {
-      console.error(`[AutoApplyAgent] Base CV not found for agent ${agentId}. Aborting.`);
-      throw new Error("Base CV not found.");
+      console.error(
+        `[AutoApplyAgent] Base CV not found for agent ${agentId}. Aborting.`,
+      );
+      throw new Error('Base CV not found.');
     }
 
-    let coverLetterTemplate = "";
-    if (settings.coverLetterSettings.strategy === 'use_template' && settings.coverLetterSettings.templateId) {
-        const cl = mockUserProfile.savedCoverLetters.find(cl => cl.id === settings.coverLetterSettings.templateId);
-        if (cl) coverLetterTemplate = cl.htmlContent;
+    let coverLetterTemplate = '';
+    if (
+      settings.coverLetterSettings.strategy === 'use_template' &&
+      settings.coverLetterSettings.templateId
+    ) {
+      const cl = mockUserProfile.savedCoverLetters.find(
+        (cl) => cl.id === settings.coverLetterSettings.templateId,
+      );
+      if (cl) coverLetterTemplate = cl.htmlContent;
     }
 
     // 2. Search for jobs based on agent's filters
-    console.log(`[AutoApplyAgent] Searching for jobs with filters for agent ${agentId}:`, settings.jobFilters);
     const searchResults = await searchJobsFlow(settings.jobFilters);
-    console.log(`[AutoApplyAgent] Agent ${agentId} found ${searchResults.length} potential jobs.`);
 
     // 3. Filter out jobs that have already been applied to or drafted
-    const appliedJobIds = new Set(mockApplications.map(app => app.jobId));
-    const newJobs = searchResults.filter(job => !appliedJobIds.has(job.id));
-    console.log(`[AutoApplyAgent] Agent ${agentId} found ${newJobs.length} new jobs to process.`);
+    const appliedJobIds = new Set(mockApplications.map((app) => app.jobId));
+    const newJobs = searchResults.filter((job) => !appliedJobIds.has(job.id));
 
     // 4. Process jobs up to the daily limit
     const jobsToProcess = newJobs.slice(0, settings.dailyLimit);
     let applicationsPrepared = 0;
 
     for (const job of jobsToProcess) {
-      console.log(`[AutoApplyAgent] Agent ${agentId} processing job: ${job.title} at ${job.company}`);
-
       // Immediately create a placeholder application for user feedback
       const placeholderId = `app-draft-${job.id}`;
-      let applicationToUpdate = mockApplications.find(app => app.id === placeholderId);
+      let applicationToUpdate = mockApplications.find(
+        (app) => app.id === placeholderId,
+      );
       if (!applicationToUpdate) {
         const placeholderApplication: MockApplication = {
           id: placeholderId,
@@ -110,7 +121,7 @@ const autoApplyAgentFlow = ai.defineFlow(
         mockApplications.unshift(placeholderApplication);
         applicationToUpdate = placeholderApplication;
       }
-      
+
       try {
         // Fetch full job details to get a complete and formatted description
         const detailedJob = await getJobDetails({ jobId: job.id });
@@ -120,10 +131,10 @@ const autoApplyAgentFlow = ai.defineFlow(
 
         let userCvContext = baseCv.htmlContent;
         if (coverLetterTemplate) {
-            userCvContext += `\n\n--- COVER LETTER TEMPLATE/INSTRUCTIONS ---\n${coverLetterTemplate}`;
+          userCvContext += `\n\n--- COVER LETTER TEMPLATE/INSTRUCTIONS ---\n${coverLetterTemplate}`;
         }
         if (settings.coverLetterSettings.instructions) {
-             userCvContext += `\n\n--- SPECIFIC INSTRUCTIONS FROM USER ---\n${settings.coverLetterSettings.instructions}`;
+          userCvContext += `\n\n--- SPECIFIC INSTRUCTIONS FROM USER ---\n${settings.coverLetterSettings.instructions}`;
         }
 
         const tailoredDocs = await generateTailoredApplication({
@@ -135,20 +146,33 @@ const autoApplyAgentFlow = ai.defineFlow(
         });
 
         // Save the generated materials
-        const newCvName = `AI-Drafted CV for ${detailedJob.title.substring(0, 20)}...`;
+        const newCvName = `AI-Drafted CV for ${detailedJob.title.substring(
+          0,
+          20,
+        )}...`;
         const newCv: SavedCv = {
-            id: `cv-${detailedJob.id}`, name: newCvName, htmlContent: tailoredDocs.tailoredCv,
-            createdAt: new Date().toISOString(), jobTitle: detailedJob.title,
+          id: `cv-${detailedJob.id}`,
+          name: newCvName,
+          htmlContent: tailoredDocs.tailoredCv,
+          createdAt: new Date().toISOString(),
+          jobTitle: detailedJob.title,
         };
         mockUserProfile.savedCvs.unshift(newCv);
 
-        const newClName = `AI-Drafted CL for ${detailedJob.title.substring(0, 20)}...`;
+        const newClName = `AI-Drafted CL for ${detailedJob.title.substring(
+          0,
+          20,
+        )}...`;
         const newCl: SavedCoverLetter = {
-            id: `cl-${detailedJob.id}`, name: newClName, htmlContent: tailoredDocs.coverLetter,
-            createdAt: new Date().toISOString(), jobDescription: detailedJob.description,
-            tone: 'Formal', style: 'Concise', 
+          id: `cl-${detailedJob.id}`,
+          name: newClName,
+          htmlContent: tailoredDocs.coverLetter,
+          createdAt: new Date().toISOString(),
+          jobDescription: detailedJob.description,
+          tone: 'Formal',
+          style: 'Concise',
         };
-         mockUserProfile.savedCoverLetters.unshift(newCl);
+        mockUserProfile.savedCoverLetters.unshift(newCl);
 
         // Update the placeholder application with final data
         applicationToUpdate.status = 'AI-Drafted';
@@ -156,19 +180,20 @@ const autoApplyAgentFlow = ai.defineFlow(
         applicationToUpdate.savedCoverLetterId = newCl.id;
         applicationToUpdate.emailDraft = tailoredDocs.emailDraft;
         applicationToUpdate.id = `app-${detailedJob.id}`; // Give it a permanent ID
-        
-        applicationsPrepared++;
-        console.log(`[AutoApplyAgent] Agent ${agentId} successfully prepared application for ${detailedJob.title}.`);
 
+        applicationsPrepared++;
       } catch (error) {
-        console.error(`[AutoApplyAgent] Agent ${agentId} failed to process job ${job.id}:`, error);
+        console.error(
+          `[AutoApplyAgent] Agent ${agentId} failed to process job ${job.id}:`,
+          error,
+        );
         // Mark the draft application as having an error
         if (applicationToUpdate) {
-            applicationToUpdate.status = 'Error';
+          applicationToUpdate.status = 'Error';
         }
       }
     }
-    
+
     // Generate a user notification if any applications were prepared
     if (applicationsPrepared > 0) {
       mockUserProfile.actionItems.unshift({
@@ -181,16 +206,16 @@ const autoApplyAgentFlow = ai.defineFlow(
     }
 
     // Update last run time in user settings for the correct agent
-    const agentToUpdate = mockUserProfile.autoApplyAgents.find(a => a.id === agentId);
-    if(agentToUpdate) {
-        agentToUpdate.lastRun = new Date().toISOString();
-        console.log(`[AutoApplyAgent] Updated last run time for agent ${agentId}.`);
+    const agentToUpdate = mockUserProfile.autoApplyAgents.find(
+      (a) => a.id === agentId,
+    );
+    if (agentToUpdate) {
+      agentToUpdate.lastRun = new Date().toISOString();
     }
 
-    console.log(`[AutoApplyAgent] Flow for agent ${agentId} finished. Prepared ${applicationsPrepared} applications.`);
     return {
       applicationsPrepared,
       message: `Agent run complete. Prepared ${applicationsPrepared} new application(s).`,
     };
-  }
+  },
 );

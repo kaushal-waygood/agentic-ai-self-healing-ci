@@ -236,7 +236,6 @@ const JobPreferencesForm = () => {
     const response = await apiInstance.post('/students/prefered-job/add', {
       formData: payload,
     });
-    console.log('formData', response);
   };
 
   useEffect(() => {

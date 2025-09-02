@@ -107,7 +107,6 @@ const SignupForm = () => {
 
   async function onSubmit(data: SignupFormValues) {
     try {
-      console.log('data', data);
       await apiInstance.post('/user/signup', data);
       successToast(
         'Account created! Please check your email for a verification code.',

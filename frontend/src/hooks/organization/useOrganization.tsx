@@ -101,7 +101,6 @@ export const useOrganization = ({
         });
       } else {
         // Add new member
-        console.log(values);
         dispatch(addOrganizationMemberRequest(values));
 
         toast({
@@ -126,7 +125,6 @@ export const useOrganization = ({
   const handleFilter = (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setSearchTerm(e.target.value); // Update the state with the new value
-      console.log(e.target.value);
 
       dispatch(
         filterOrganizationMemberRequest({

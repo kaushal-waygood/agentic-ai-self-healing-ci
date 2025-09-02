@@ -140,12 +140,10 @@ const jobSlice = createSlice({
     },
 
     updateJobStatusRequest: (state, action: PayloadAction<string>) => {
-      console.log('action.payload', action.payload);
       state.loading = true;
       state.error = null;
     },
     updateJobStatusSuccess: (state, action: PayloadAction<Job>) => {
-      console.log('action.payload', action.payload);
       state.loading = false;
       state.job = action.payload;
     },

@@ -16,8 +16,6 @@ export const TechnologyInput = ({ field }) => {
       e.preventDefault();
       const newTech = inputValue.trim();
 
-      console.log('newTech', newTech);
-
       if (newTech && !technologies.includes(newTech)) {
         onChange([...technologies, newTech]);
       }

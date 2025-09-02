@@ -1,26 +1,31 @@
-'use client';
-
-import { useState } from 'react';
+// app/layout.tsx or app/dashboard/layout.tsx
+import { AppHeader } from '@/components/layout/app-header';
+import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
+import DashboardFooter from '@/components/layout/DashboardFooter';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  SidebarProvider,
   Sidebar,
   SidebarInset,
+  SidebarProvider,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { AppHeader } from '@/components/layout/app-header';
-import { Footer } from '@/components/layout/footer';
-import DashboardFooter from '@/components/layout/DashboardFooter';
-// import ProtectedRoute from '@/components/protected/ProtectedRoute';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const [isVerified, setIsVerified] = useState(false);
-  const currentYear = new Date().getFullYear();
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('accessToken')?.value;
+
+  if (!accessToken) {
+    redirect('/login');
+  }
 
   return (
     <SidebarProvider defaultOpen={true}>
-      {/* Left Sidebar */}
       <Sidebar
         variant="sidebar"
         collapsible="icon"
@@ -30,26 +35,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <AppSidebarContent />
       </Sidebar>
 
-      {/* Sidebar Rail for collapse/expand button */}
       <SidebarRail />
 
-      {/* Main Area */}
       <SidebarInset className="flex flex-col min-h-screen w-full">
-        {/* Top Navbar */}
         <header className="sticky top-0 z-50 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
           <AppHeader />
         </header>
 
-        {/* Page Content */}
         <ScrollArea className="flex-1">
-          <main className="p-4 sm:p-6 lg:p-8">
-            {/* Wrap children in ProtectedRoute if needed */}
-            {/* <ProtectedRoute>{children}</ProtectedRoute> */}
-            {children}
-          </main>
+          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
         </ScrollArea>
 
-        {/* Footer */}
         <DashboardFooter />
       </SidebarInset>
     </SidebarProvider>

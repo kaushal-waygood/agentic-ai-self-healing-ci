@@ -167,16 +167,12 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
     },
   });
 
-  // This is a placeholder for your actual Redux dispatch
   const dispatch = useDispatch();
 
   const { handleSubmit, control, reset, trigger } = form;
 
   const handleFormSubmit = (formData) => {
-    // The formData already has technologies as an array, so no conversion is needed.
     const payload = { ...formData };
-
-    console.log('Form Submitted:', payload);
 
     if (isEdit) {
       dispatch(
@@ -514,12 +510,6 @@ export const AddProject = ({ onCancel, data, isEdit }: any) => {
   const handleFormSubmit = (formData) => {
     const payload = { ...formData };
 
-    console.log(
-      'Is technologies an array?',
-      Array.isArray(payload.technologies),
-    );
-    console.log('Form Submitted:', payload);
-
     if (isEdit) {
       dispatch(
         updateStudentProjectRequest({ data: payload, index: payload._id }),
@@ -845,7 +835,6 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
   }, [isCurrent, setValue]);
 
   const handleFormSubmit = (formData) => {
-    console.log('Form Submitted:', formData._id);
     if (isEdit) {
       dispatch(
         updateStudentExperienceRequest({ data: formData, index: formData._id }),
@@ -1181,9 +1170,7 @@ export const AddSkill = ({ onCancel }: closeProps) => {
   const { handleSubmit, control } = form;
 
   const handleFormSubmit = (data: SkillFormData) => {
-    console.log(data);
     dispatch(addStudentSkillRequest(data));
-    console.log('students', students);
     onCancel();
   };
 

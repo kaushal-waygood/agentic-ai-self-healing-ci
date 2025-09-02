@@ -49,15 +49,10 @@ export const firebaseAuth = async (req, res) => {
       await user.save();
     }
 
-    // 4. Generate tokens using your existing methods
+    // 4. Generate access token only
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
 
-    // 5. Update refresh token in database
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
-
-    // 6. Set secure HTTP-only cookie
+    // 5. Set secure HTTP-only cookie
     const cookieOptions = {
       // httpOnly: true,
       sameSite: 'strict',
@@ -65,9 +60,8 @@ export const firebaseAuth = async (req, res) => {
     };
 
     res.cookie('accessToken', accessToken, cookieOptions);
-    res.cookie('refreshToken', refreshToken, cookieOptions);
 
-    // 7. Send response
+    // 6. Send response
     res.status(200).json({
       success: true,
       accessToken,
@@ -265,9 +259,8 @@ export const verifyEmail = async (req, res) => {
     user.otpExpires = undefined;
     await user.save();
 
-    // Generate tokens
+    // Generate access token only
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
 
     // Set cookies
     const cookieOptions = {
@@ -279,12 +272,10 @@ export const verifyEmail = async (req, res) => {
 
     // Remove sensitive data before sending user info
     user.password = undefined;
-    user.refreshToken = undefined;
 
     return res
       .status(200)
       .cookie('accessToken', accessToken, cookieOptions)
-      .cookie('refreshToken', refreshToken, cookieOptions)
       .json({
         message: 'Email verified successfully',
         accessToken,
@@ -366,6 +357,8 @@ export const resendOtp = async (req, res) => {
 export const signInUser = async (req, res) => {
   const { email, password } = req.body;
 
+  console.log('Sign in attempt:', { email, password });
+
   try {
     if (!email || !password) {
       return res
@@ -373,10 +366,28 @@ export const signInUser = async (req, res) => {
         .json({ message: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email }).select(
-      '+password +refreshToken',
-    );
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    const user = await User.findOne({ email }).select('+password');
+    console.log('Found user:', user);
+
+    if (!user) {
+      console.log('No user found with email:', email);
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // Check if the user has a password (local auth)
+    if (!user.password) {
+      console.log('User has no password (might be Firebase auth)');
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // Compare passwords with detailed logging
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password comparison result:', isPasswordValid);
+    console.log('Input password:', password);
+    console.log('Stored hash:', user.password);
+
+    if (!isPasswordValid) {
+      console.log('Password mismatch');
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -387,16 +398,10 @@ export const signInUser = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
-
-    // ---> MODIFIED SECTION: Save the new refresh token to the database <---
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
 
     // Prepare user object for the response (without sensitive data)
     const userObject = user.toObject();
     delete userObject.password;
-    delete userObject.refreshToken;
 
     const cookieOptions = {
       httpOnly: true,
@@ -408,7 +413,6 @@ export const signInUser = async (req, res) => {
     return res
       .status(200)
       .cookie('accessToken', accessToken, cookieOptions)
-      .cookie('refreshToken', refreshToken, cookieOptions)
       .json({
         message: 'Signed in successfully',
         user: userObject,
@@ -553,67 +557,8 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const refreshAccessToken = async (req, res) => {
-  const incomingRefreshToken = req.cookies.refreshToken;
-
-  if (!incomingRefreshToken) {
-    return res.status(401).json({ message: 'Unauthorized: No token provided' });
-  }
-
-  try {
-    const decoded = jwt.verify(incomingRefreshToken, config.refreshTokenSecret);
-
-    const user = await User.findById(decoded._id).select('+refreshToken');
-
-    if (!user || !user.refreshToken) {
-      return res
-        .status(403)
-        .json({ message: 'Forbidden: Invalid refresh token' });
-    }
-
-    // ---> CRITICAL CHANGE: Use the comparison method <---
-    // Instead of direct string comparison, we now compare the incoming token
-    // with the hashed token stored in the database.
-    const isTokenValid = await user.isRefreshTokenCorrect(incomingRefreshToken);
-
-    if (!isTokenValid) {
-      return res.status(403).json({
-        message: 'Forbidden: Refresh token is invalid or has been used',
-      });
-    }
-
-    // If valid, generate a new access token
-    const newAccessToken = user.generateAccessToken();
-
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    };
-
-    return res
-      .status(200)
-      .cookie('accessToken', newAccessToken, cookieOptions)
-      .json({
-        message: 'Access token refreshed',
-        accessToken: newAccessToken,
-      });
-  } catch (error) {
-    return res
-      .status(403)
-      .json({ message: 'Forbidden: Refresh token is expired or malformed' });
-  }
-};
-
 export const signout = async (req, res) => {
   try {
-    await User.findByIdAndUpdate(
-      req.user._id,
-      { $unset: { refreshToken: 1 } }, // Use $unset to completely remove the field
-      { new: true },
-    );
-
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -621,7 +566,6 @@ export const signout = async (req, res) => {
     };
 
     res.clearCookie('accessToken', cookieOptions);
-    res.clearCookie('refreshToken', cookieOptions);
 
     return res.status(200).json({ message: 'User signed out successfully' });
   } catch (error) {

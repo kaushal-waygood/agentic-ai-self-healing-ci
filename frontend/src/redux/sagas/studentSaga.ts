@@ -88,7 +88,6 @@ import { act } from 'react';
 
 function* getStudentDetailsSaga() {
   try {
-    console.log('saga calling');
     const response: AxiosResponse = yield call(getStudentDetails);
     yield put(getStudentDetailsSuccess(response.data.studentDetails));
   } catch (error: unknown | Error) {
@@ -151,7 +150,6 @@ function* removeStudentExperienceSaga(action: PayloadAction<any>) {
 }
 
 function* updateStudentExperienceSaga(action: PayloadAction<any>) {
-  console.log('updateStudentExperienceSaga', action.payload);
   try {
     const response: AxiosResponse = yield call(
       updateExperience,
@@ -226,7 +224,6 @@ function* removeStudentProjectsSaga(action: PayloadAction<any>) {
 // student Job Preference
 function* updateStudentJobPreferenceSaga(action: PayloadAction<any>) {
   try {
-    console.log(action.payload);
     const response: AxiosResponse = yield call(
       updateJobPreference,
       action.payload,
@@ -239,7 +236,6 @@ function* updateStudentJobPreferenceSaga(action: PayloadAction<any>) {
 
 function* getStudentJobPreferenceSaga() {
   try {
-    console.log('saga calling');
     const response: AxiosResponse = yield call(recommendProfileJob);
     yield put(getStudentJobPreferenceSuccess(response.data.preferences));
   } catch (error: unknown | Error) {

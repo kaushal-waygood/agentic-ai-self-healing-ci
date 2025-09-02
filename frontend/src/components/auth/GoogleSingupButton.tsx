@@ -22,7 +22,6 @@ export function GoogleSignInButton({ form }) {
 
       // 3. Verify with backend
       const response = await apiInstance.post('/user/google/auth', { idToken });
-      console.log('response', response);
 
       // 4. Handle success (redirect or update state)
       window.location.href = '/dashboard'; // Example redirect
