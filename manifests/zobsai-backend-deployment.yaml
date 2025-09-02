@@ -48,6 +48,6 @@ spec:
   ports:
     - port: 8080        # Service port
       targetPort: 8080  # Container port
-      nodePort: 30080   # External port on the node (must be between 30000–32767)
+      nodePort: 30070  # External port on the node (must be between 30000–32767)
   type: NodePort
 
