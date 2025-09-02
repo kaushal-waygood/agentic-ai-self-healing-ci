@@ -33,7 +33,6 @@ const JobApplicationForm = () => {
   // Monitor Firebase auth state
   useState(() => {
     const auth = getAuth();
-    console.log(auth);
     onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         currentUser
@@ -74,7 +73,6 @@ const JobApplicationForm = () => {
     }
   };
 
-  console.log(user);
 
   if (!user) {
     return <div>Please sign in to continue</div>;

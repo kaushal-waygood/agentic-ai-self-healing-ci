@@ -587,7 +587,6 @@ const ResultStep = ({
                     variant="ghost"
                     size="icon"
                     className="bg-white/20 text-white hover:bg-white/30"
-                    onClick={() => console.log('Download CV clicked')} // Placeholder for actual download
                   >
                     <Download className="w-5 h-5" />
                   </InternalEditableMaterialButton>

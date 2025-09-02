@@ -68,12 +68,6 @@ export default function ResetPasswordPage() {
   });
 
   async function onSubmit(data: ResetPasswordValues) {
-    console.log('Reset password data:', {
-      token,
-      email,
-      newPassword: data.password,
-      confirmPassword: data.confirmPassword,
-    });
     if (!token) {
       toast({
         title: 'Error',

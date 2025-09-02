@@ -153,14 +153,11 @@ const Page = () => {
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                console.log('Submit event triggered');
 
                 try {
                   const isValid = await form.trigger();
-                  console.log('Form valid:', isValid, form.formState.errors);
 
                   if (isValid) {
-                    console.log('Calling onSubmit');
                     await onSubmit(form.getValues());
                   }
                 } catch (error) {
@@ -215,7 +212,6 @@ const Page = () => {
                       <QuillJs
                         content={field.value}
                         onContentChange={(content) => {
-                          console.log('Editor content changed:', content);
                           field.onChange(content);
                         }}
                       />
