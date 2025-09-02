@@ -26,8 +26,6 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
     setAnimateIn(true);
   }, []);
 
-  console.log('resume', loadSavedCv);
-
   const handleLoadCv = async (savedCv: any, index: number) => {
     setLoadingIndex(index);
     setTimeout(() => {

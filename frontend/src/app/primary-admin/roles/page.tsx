@@ -1,11 +1,9 @@
-
-import { RolesManagementClient } from "@/components/admin/roles-management-client";
-import { PageHeader } from "@/components/common/page-header";
-import { mockAdminRoles } from "@/lib/data/user";
-import { ShieldAlert } from "lucide-react";
+import { RolesManagementClient } from '@/components/admin/roles-management-client';
+import { PageHeader } from '@/components/common/page-header';
+import { mockAdminRoles } from '@/lib/data/user';
+import { ShieldAlert } from 'lucide-react';
 
 export default function RolesDashboardPage() {
-  console.log(mockAdminRoles)
   return (
     <>
       <PageHeader

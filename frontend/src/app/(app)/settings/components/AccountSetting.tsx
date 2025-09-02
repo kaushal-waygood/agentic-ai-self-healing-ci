@@ -1,3 +1,18 @@
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import GoogleLoginButton from '../GoogleLoginButton';
+import {
+  Eye,
+  EyeOff,
+  Zap,
+  Bell,
+  Sparkles,
+  Smartphone,
+  Mail,
+  Check,
+} from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,169 +24,368 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { KeyRound, Lock, UserCircle } from 'lucide-react';
-import Link from 'next/link';
-import React from 'react';
-import GoogleLoginButton from '../GoogleLoginButton';
 
-const AccountSetting = ({
-  isLinked,
-  setCrntPassword,
-  setNewPassword,
-  setConfirmPassword,
-  showNotImplementedToast,
-  handleDisconnectAccount,
-  handleSendEmail,
-  provider,
-}: any) => {
-  return (
-    <Card className="shadow-lg lg:col-span-2">
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2">
-          <UserCircle className="h-5 w-5 text-primary" />
-          Account Settings
-        </CardTitle>
-        <CardDescription>
-          Manage your login, security, and personal data options.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
-          <h4 className="font-medium mb-1">Profile Information</h4>
-          <Button variant="outline" asChild>
-            <Link href="/profile">Edit Profile Details</Link>
-          </Button>
-          <p className="text-xs text-muted-foreground mt-1">
-            Update your name, job preferences, CV, and narratives.
-          </p>
+// Account Setting Component
+export const AccountSetting = ({ user, handleSendEmail }) => (
+  <div className="space-y-6">
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        Profile Information
+      </h4>
+      <div className="grid gap-4">
+        <div className="group">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Full Name
+          </label>
+          <Input
+            type="text"
+            defaultValue={user?.name || ''}
+            className="bg-gray-50 dark:bg-gray-700"
+          />
         </div>
-        <Separator />
+        <div className="group">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Email Address
+          </label>
+          <Input
+            type="email"
+            defaultValue={user?.email || ''}
+            readOnly
+            className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+          />
+        </div>
+        <Button variant="outline" asChild>
+          <a href="/profile">Edit Full Profile</a>
+        </Button>
+      </div>
+    </div>
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        Linked Accounts & Permissions
+      </h4>
+      <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
         <div>
-          <h4 className="font-medium mb-1">Change Password</h4>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline">
-                <KeyRound className="mr-2 h-4 w-4" />
-                Set New Password
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Change Your Password</AlertDialogTitle>
-                <AlertDialogDescription>
-                  In a real application, you would enter your current and new
-                  password here.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-4 py-4">
-                <Input
-                  type="password"
-                  placeholder="Current Password"
-                  onChange={(e) => setCrntPassword(e.target.value)}
-                />
-                <Input
-                  type="password"
-                  placeholder="New Password"
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <Input
-                  type="password"
-                  placeholder="Confirm New Password"
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+          <p className="font-medium text-gray-900 dark:text-gray-100">
+            Sign-in Provider
+          </p>
+          {user?.provider ? (
+            <p className="text-sm text-green-600 dark:text-green-400">
+              Connected via {user.provider}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Not connected to a provider.
+            </p>
+          )}
+        </div>
+        {!user?.provider && <GoogleLoginButton />}
+      </div>
+      <Button variant="outline" className="mt-4" onClick={handleSendEmail}>
+        Send Email Permission
+      </Button>
+    </div>
+  </div>
+);
+
+// Security Setting Component
+export const SecuritySetting = ({
+  showPassword,
+  setCurrentPassword,
+  setShowPassword,
+  newPassword,
+  setNewPassword,
+  passwordStrength,
+  setConfirmNewPassword,
+  handleChangePassword,
+}) => (
+  <div className="space-y-6">
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        Change Password
+      </h4>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Current Password
+          </label>
+          <div className="relative">
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter current password"
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+            <button
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            New Password
+          </label>
+          <Input
+            type="password"
+            placeholder="Enter new password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          {newPassword && (
+            <div className="mt-2">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Strength:
+                </span>
+                <span
+                  className={`text-sm font-medium ${
+                    passwordStrength < 50
+                      ? 'text-red-500'
+                      : passwordStrength < 75
+                      ? 'text-yellow-500'
+                      : 'text-green-500'
+                  }`}
+                >
+                  {passwordStrength < 50
+                    ? 'Weak'
+                    : passwordStrength < 75
+                    ? 'Medium'
+                    : 'Strong'}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    passwordStrength < 50
+                      ? 'bg-red-500'
+                      : passwordStrength < 75
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{ width: `${passwordStrength}%` }}
                 />
               </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <Button
-                  type="submit"
-                  onClick={() => showNotImplementedToast('Change Password')}
-                >
-                  Change Password
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <p className="text-xs text-muted-foreground mt-1">
-            It's a good idea to use a strong password that you're not using
-            elsewhere.
-          </p>
-        </div>
-        <Separator />
-        <div>
-          <h4 className="font-medium mb-1">Two-Factor Authentication (2FA)</h4>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline">
-                <Lock className="mr-2 h-4 w-4" />
-                Enable 2FA
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  Enable Two-Factor Authentication
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Add an extra layer of security to your account. You'll be
-                  asked for a verification code from your authenticator app when
-                  you log in. This feature is not implemented in the demo.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => showNotImplementedToast('Enable 2FA')}
-                >
-                  Continue
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <p className="text-xs text-muted-foreground mt-1">
-            Add an extra layer of security to your account for peace of mind.
-          </p>
-        </div>
-        <Separator />
-        <div>
-          <Button variant="outline" onClick={handleSendEmail}>
-            Send Email
-          </Button>
-          <h4 className="font-medium mb-1">Linked Email Accounts</h4>
-          {isLinked ? (
-            <div className="flex items-center gap-4">
-              <p className="text-sm font-medium">
-                Connected to:{' '}
-                <span className="text-primary font-semibold">{provider}</span>
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDisconnectAccount}
-              >
-                Disconnect
-              </Button>
             </div>
-          ) : (
-            <GoogleLoginButton />
           )}
-          <p className="text-xs text-muted-foreground mt-1">
-            Connect your Gmail or Outlook to send applications directly from
-            CareerPilot.
-          </p>
         </div>
-      </CardContent>
-    </Card>
-  );
-};
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Confirm New Password
+          </label>
+          <Input
+            type="password"
+            placeholder="Confirm new password"
+            onChange={(e) => setConfirmNewPassword(e.target.value)}
+          />
+        </div>
+        <Button
+          onClick={handleChangePassword}
+          className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+        >
+          Update Password
+        </Button>
+      </div>
+    </div>
+  </div>
+);
 
-export default AccountSetting;
+// Notification Components
+const NotificationToggle = ({
+  id,
+  title,
+  description,
+  icon: Icon,
+  value,
+  handleNotificationChange,
+}) => (
+  <div className="group flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800">
+    <div className="flex items-center space-x-3">
+      <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+        <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+      </div>
+      <div>
+        <h4 className="font-medium text-gray-900 dark:text-gray-100">
+          {title}
+        </h4>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {description}
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={() => handleNotificationChange(id)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 cursor-pointer ${
+        value
+          ? 'bg-gradient-to-r from-blue-500 to-purple-600'
+          : 'bg-gray-300 dark:bg-gray-600'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-lg ${
+          value ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  </div>
+);
+
+export const NotificationSettings = ({
+  notifications,
+  handleNotificationChange,
+}) => (
+  <div className="grid gap-4">
+    <NotificationToggle
+      id="jobAlerts"
+      title="Job Alerts"
+      description="Get notified about new job opportunities"
+      icon={Zap}
+      value={notifications.jobAlerts}
+      handleNotificationChange={handleNotificationChange}
+    />
+    <NotificationToggle
+      id="applicationUpdates"
+      title="Application Updates"
+      description="Track your application status changes"
+      icon={Bell}
+      value={notifications.applicationUpdates}
+      handleNotificationChange={handleNotificationChange}
+    />
+    <NotificationToggle
+      id="promotionalEmails"
+      title="Platform News & Offers"
+      description="Updates on new features and special offers"
+      icon={Sparkles}
+      value={notifications.promotionalEmails}
+      handleNotificationChange={handleNotificationChange}
+    />
+    <NotificationToggle
+      id="pushNotifications"
+      title="Push Notifications"
+      description="Instant alerts on your device"
+      icon={Smartphone}
+      value={notifications.pushNotifications}
+      handleNotificationChange={handleNotificationChange}
+    />
+    <NotificationToggle
+      id="emailDigest"
+      title="Weekly Digest"
+      description="Summary of your activity and opportunities"
+      icon={Mail}
+      value={notifications.emailDigest}
+      handleNotificationChange={handleNotificationChange}
+    />
+    <NotificationToggle
+      id="smsAlerts"
+      title="SMS Alerts"
+      description="Critical updates via text message"
+      icon={Smartphone}
+      value={notifications.smsAlerts}
+      handleNotificationChange={handleNotificationChange}
+    />
+  </div>
+);
+
+// Appearance Components
+const ThemeButton = ({ isActive, onClick, gradient, label }) => (
+  <button
+    onClick={onClick}
+    className={`relative p-4 rounded-xl border-2 transition-all duration-300 hover:scale-105 ${
+      isActive
+        ? 'border-blue-500 shadow-lg shadow-blue-500/25'
+        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+    }`}
+  >
+    <div className={`w-full h-16 rounded-lg ${gradient} mb-2`} />
+    <span
+      className={`text-sm font-medium ${
+        isActive
+          ? 'text-blue-600 dark:text-blue-400'
+          : 'text-gray-600 dark:text-gray-300'
+      }`}
+    >
+      {label}
+    </span>
+    {isActive && (
+      <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1">
+        <Check className="h-3 w-3 text-white" />
+      </div>
+    )}
+  </button>
+);
+
+export const AppearanceSettings = ({ mounted, theme, setTheme }) => (
+  <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-6">
+      Theme Selection
+    </h4>
+    {!mounted ? (
+      <div className="grid grid-cols-3 gap-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <ThemeButton
+          label="Light"
+          isActive={theme === 'light'}
+          onClick={() => setTheme('light')}
+          gradient="bg-gradient-to-br from-white to-gray-100 border border-gray-200"
+        />
+        <ThemeButton
+          label="Dark"
+          isActive={theme === 'dark'}
+          onClick={() => setTheme('dark')}
+          gradient="bg-gradient-to-br from-gray-800 to-gray-900"
+        />
+        <ThemeButton
+          label="System"
+          isActive={theme === 'system'}
+          onClick={() => setTheme('system')}
+          gradient="bg-gradient-to-br from-gray-500 to-gray-900"
+        />
+      </div>
+    )}
+  </div>
+);
+
+// Danger Zone Component
+export const DangerSettings = ({ handleDeleteAccount }) => (
+  <div className="p-6 rounded-xl border-2 border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10">
+    <h4 className="font-semibold text-red-900 dark:text-red-100 mb-2">
+      Delete Account
+    </h4>
+    <p className="text-red-700 dark:text-red-300 text-sm mb-4">
+      Permanently delete your CareerPilot account and all associated data. This
+      action cannot be undone.
+    </p>
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive">Delete Account</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action is permanent and cannot be undone. This will permanently
+            delete your account and remove all of your data from our servers.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive hover:bg-destructive/90"
+            onClick={handleDeleteAccount}
+          >
+            Yes, delete my account
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </div>
+);

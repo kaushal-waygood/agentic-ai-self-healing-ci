@@ -276,8 +276,6 @@ export function ApplicationWizardClient() {
   const { jobs, loading, selectedJob } = useJobs({ searchParams });
   const { defaultValues } = useProfile();
 
-  console.log('selectedJob', selectedJob);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -540,10 +538,8 @@ export function ApplicationWizardClient() {
     mode: CvContext['mode'],
     value?: string | File,
   ) => {
-    console.log('handleCvContextSubmit');
     setCvContext({ mode, value: student, name: '' });
-    console.log('student', student);
-    console.log(cvContext);
+
     if (mode === 'profile') {
       console.log(cvContext);
     }
@@ -616,7 +612,6 @@ export function ApplicationWizardClient() {
 
   const handleClContextSubmit = async () => {
     const { clSource, pastedCl, savedClId } = clForm.getValues();
-    console.log('handleClContextSubmit', { clSource, pastedCl, savedClId });
 
     let context: ClContext = { mode: 'skip' };
 
@@ -640,7 +635,6 @@ export function ApplicationWizardClient() {
   };
 
   const handleGenerate = async () => {
-    console.log('cvContext', cvContext?.value);
     if (!cvContext) {
       toast({
         variant: 'destructive',
@@ -665,7 +659,6 @@ export function ApplicationWizardClient() {
       } else if (cvContext.mode === 'upload' && cvContext.value) {
         // If value is a File object, append directly
         if (cvContext?.value) {
-          console.log('cvContext.value', cvContext.value);
           formData.append('cv', cvContext.value);
           formData.append('useProfile', 'false');
         }
@@ -697,7 +690,6 @@ export function ApplicationWizardClient() {
             ? `File: ${value.name} (${value.size} bytes)`
             : value;
       }
-      console.log('FormData contents:', formDataObj);
 
       // 4. Make API call with proper headers
       const response = await apiInstance.post(
@@ -811,7 +803,6 @@ export function ApplicationWizardClient() {
       htmlCoverLetter: tailoredCl,
     });
 
-    console.log(response);
     toast({
       title: 'Email Sent',
       description: 'An email has been sent to your linked account.',
@@ -1577,7 +1568,6 @@ export function ApplicationWizardClient() {
   );
 
   const renderStep = () => {
-    console.log('wizardStep', wizardStep);
     switch (wizardStep) {
       case 'loading':
         return renderLoadingStep();

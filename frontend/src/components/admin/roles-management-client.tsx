@@ -80,17 +80,12 @@ export function RolesManagementClient({
 }: RolesManagementClientProps) {
   const { toast } = useToast();
 
-  console.log('RolesManagementClient initialized with initialRoles:', initialRoles);
-
-
   const dispatch = useDispatch();
   const { user } = useSelector((state: any) => state.auth);
 
   const [roles, setRoles] = useState(initialRoles);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<AdminRole | null>(null);
-
-  console.log('roles', roles);
 
   useEffect(() => {
     dispatch(getProfileRequest());
