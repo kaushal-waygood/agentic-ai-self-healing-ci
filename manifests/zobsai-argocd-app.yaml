@@ -4,9 +4,16 @@ metadata:
   name: zobsai
   namespace: monitoring
   annotations:
+    # Track backend and frontend images
     argocd-image-updater.argoproj.io/image-list: zobsai-backend=ghcr.io/zobsai-com/zobsai-backend, zobsai-frontend=ghcr.io/zobsai-com/zobsai-frontend
+    
+    # Always pick the latest tag
     argocd-image-updater.argoproj.io/zobsai-backend.update-strategy: latest
     argocd-image-updater.argoproj.io/zobsai-frontend.update-strategy: latest
+
+    # Commit updated image tags back to Git
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
   source:
