@@ -357,8 +357,6 @@ export const resendOtp = async (req, res) => {
 export const signInUser = async (req, res) => {
   const { email, password } = req.body;
 
-  console.log('Sign in attempt:', { email, password });
-
   try {
     if (!email || !password) {
       return res
@@ -367,7 +365,6 @@ export const signInUser = async (req, res) => {
     }
 
     const user = await User.findOne({ email }).select('+password');
-    console.log('Found user:', user);
 
     if (!user) {
       console.log('No user found with email:', email);

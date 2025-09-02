@@ -9,7 +9,6 @@ const initialState: AuthState = {
   token: null,
   message: '',
   loading: false,
-  googleAuth: false,
   error: null,
 };
 
@@ -92,9 +91,9 @@ const authSlice = createSlice({
       state.error = null;
     },
     setUserGoogleAuth: (state, action) => {
-      console.log(state.user);
+      console.log('setUserGoogleAuth', action.payload);
       if (state.user) {
-        state.googleAuth = action.payload;
+        state.user.googleAuth = action.payload;
       }
     },
   },
