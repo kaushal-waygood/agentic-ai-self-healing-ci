@@ -63,6 +63,10 @@ app.use(
 app.use(cookieParser());
 app.use(morgan('dev'));
 
+app.get('/', (req,res)=>{
+  res.send("Hello Comrade")
+})
+
 // 5. Route Middleware
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/job-role', jobRoleRoutes);
