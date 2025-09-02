@@ -9,6 +9,7 @@ const initialState: AuthState = {
   token: null,
   message: '',
   loading: false,
+  googleAuth: false,
   error: null,
 };
 
@@ -90,6 +91,12 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = null;
     },
+    setUserGoogleAuth: (state, action) => {
+      console.log(state.user);
+      if (state.user) {
+        state.googleAuth = action.payload;
+      }
+    },
   },
 });
 
@@ -109,5 +116,6 @@ export const {
   changePasswordSuccess,
   changePasswordFailure,
   logout,
+  setUserGoogleAuth,
 } = authSlice.actions;
 export default authSlice.reducer;
