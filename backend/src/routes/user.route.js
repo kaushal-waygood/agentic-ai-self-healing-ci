@@ -6,7 +6,6 @@ import {
   signInUser,
   signout,
   signUpUser,
-  // refreshAccessToken,
   changePassword,
   verifyEmail,
   firebaseAuth,
@@ -14,10 +13,9 @@ import {
   forgotPassword,
   resetPassword,
 } from '../controllers/user.controller.js';
-import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
+import { authMiddleware } from '../middlewares/auth.middleware.js';
 import { google } from 'googleapis';
 import { User } from '../models/User.model.js';
-import { sendJobApplicationViaEmail } from '../controllers/student.controller.js';
 
 const router = Router();
 
@@ -28,49 +26,30 @@ const SCOPES = [
 
 // Google OAuth2 setup
 const oauth2Client = new google.auth.OAuth2(
-  '584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com',
-  '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',
-  'http://localhost:8080/api/v1/user/oauth2callback',
+  process.env.GOOGLE_CLIENT_ID ||
+    '584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com',
+  process.env.GOOGLE_CLIENT_SECRET || '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',
+  process.env.GOOGLE_REDIRECT_URI ||
+    'http://localhost:8080/api/v1/user/oauth2callback',
 );
 
 // Start the OAuth flow
-router.get('/auth/google', (req, res) => {
+router.get('/auth/google', authMiddleware, (req, res) => {
+  // <-- Add authMiddleware
+  // Get user ID from the authenticated request
+  const userId = req.user._id.toString();
+
   const url = oauth2Client.generateAuthUrl({
-    access_type: 'offline', // Important for getting a refresh token
-    prompt: 'consent', // Ensures the user is prompted for consent every time
+    access_type: 'offline',
+    prompt: 'consent',
     scope: SCOPES,
+    state: userId,
   });
+  console.log('Redirecting to Google OAuth:', url);
   res.redirect(url);
 });
 
-// Gmail Send Email Helper
-const sendTestEmail = async (auth) => {
-  const gmail = google.gmail({ version: 'v1', auth });
-
-  const rawMessage = [
-    'From: "Me" <me>',
-    'To: thesiddiqui7@gmail.com',
-    'Subject: Gmail API Test ✅',
-    '',
-    'Hello, this is a test email sent using the Gmail API via OAuth2.',
-  ].join('\n');
-
-  const encodedMessage = Buffer.from(rawMessage)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-
-  await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: {
-      raw: encodedMessage,
-    },
-  });
-};
-
 router.post('/send-email', authMiddleware, async (req, res) => {
-  // authMiddleware should attach the authenticated user to req.user
   if (!req.user) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -84,19 +63,27 @@ router.post('/send-email', authMiddleware, async (req, res) => {
       });
     }
 
-    // 1. Set credentials on the OAuth client using the stored refresh token
-    oauth2Client.setCredentials({
+    // Create a new OAuth2 client instance for this request
+    const userOAuthClient = new google.auth.OAuth2(
+      oauth2Client._clientId,
+      oauth2Client._clientSecret,
+      oauth2Client.redirectUri,
+    );
+
+    // Set credentials using the stored refresh token
+    userOAuthClient.setCredentials({
       refresh_token: user.googleAuth.refreshToken,
     });
 
-    // 2. The googleapis library will automatically use the refresh token
-    // to get a new access token if the old one is expired.
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    // Get a new access token
+    const { credentials } = await userOAuthClient.refreshAccessToken();
+    userOAuthClient.setCredentials(credentials);
 
-    // 3. Construct the email message (RFC 2822 format)
+    const gmail = google.gmail({ version: 'v1', auth: userOAuthClient });
+
     const rawMessage = [
-      `From: "Me" <${user.email}>`, // Use the user's actual email address
-      'To: thesiddiqui7@gmail.com', // The recipient
+      `From: "Me" <${user.email}>`,
+      'To: thesiddiqui7@gmail.com',
       'Subject: Email Sent On Your Behalf via API ✅',
       '',
       'Hello,',
@@ -104,10 +91,8 @@ router.post('/send-email', authMiddleware, async (req, res) => {
       'This email was sent programmatically from your account using the permissions you granted in the application.',
     ].join('\n');
 
-    // Base64-url encode the message
     const encodedMessage = Buffer.from(rawMessage).toString('base64url');
 
-    // 4. Send the email
     await gmail.users.messages.send({
       userId: 'me',
       requestBody: {
@@ -126,58 +111,77 @@ router.post('/send-email', authMiddleware, async (req, res) => {
 
 router.get('/oauth2callback', async (req, res) => {
   const { code } = req.query;
+  console.log('OAuth callback received with code:', code ? 'Yes' : 'No');
 
   if (!code) {
+    console.error('No authorization code received');
     return res.redirect('http://localhost:3000/settings?error=auth_failed');
   }
 
   try {
-    // 1. Exchange the authorization code for tokens
+    // Exchange the authorization code for tokens
+    console.log('Exchanging code for tokens...');
     const { tokens } = await oauth2Client.getToken(code);
+    console.log('Tokens received:', tokens ? 'Yes' : 'No');
+
+    if (!tokens.access_token) {
+      throw new Error('No access token received from Google');
+    }
+
+    // Set the credentials on the main client
     oauth2Client.setCredentials(tokens);
 
-    // 2. Get user's email address from Google to identify them
-    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+    // Get user info using the access token
+    console.log('Fetching user info from Google...');
+    const oauth2 = google.oauth2({
+      version: 'v2',
+      auth: oauth2Client, // Use the client with set credentials
+    });
+
     const { data: userInfo } = await oauth2.userinfo.get();
+    console.log('User info received:', userInfo);
+
     const userEmail = userInfo.email;
 
     if (!userEmail) {
       throw new Error('Could not retrieve email from Google.');
     }
 
-    // 3. Find the user in your database
+    // Find the user in your database
+    console.log('Looking for user with email:', userEmail);
     const user = await User.findOne({ email: userEmail });
 
     if (!user) {
-      // Important: This flow is for existing users to link their Google account.
-      // It's not a sign-up flow.
+      console.error('User not found in database with email:', userEmail);
       return res.redirect(
         'http://localhost:3000/settings?error=user_not_found',
       );
     }
 
-    // 4. Securely save the tokens to the user's record in the database
-    // Only store the refresh_token, as it's long-lived.
+    // Save the refresh token
+    console.log('Saving refresh token for user:', userEmail);
     user.googleAuth = {
       refreshToken: tokens.refresh_token,
+      accessToken: tokens.access_token,
+      expiryDate: tokens.expiry_date,
     };
     await user.save();
 
-    // 5. Redirect back to the frontend with a success message
+    console.log('OAuth flow completed successfully for user:', userEmail);
     res.redirect('http://localhost:3000/settings?success=google_connected');
   } catch (err) {
-    console.error('Error during OAuth callback:', err);
+    console.error('Error during OAuth callback:', err.message, err.stack);
     res.redirect('http://localhost:3000/settings?error=auth_failed');
   }
 });
 
+// Other routes remain the same
 router.post('/google/auth', firebaseAuth);
 router.post('/signup', signUpUser);
 router.post('/verify', verifyEmail);
 router.post('/signin', signInUser);
 router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, getUserProfile);
-// router.get('/refresh-token', authMiddleware, refreshAccessToken);
 router.patch('/me/password/change', authMiddleware, changePassword);
 router.post('/resend-otp', authMiddleware, resendOtp);
 router.post('/forgot-password', forgotPassword);

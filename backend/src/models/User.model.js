@@ -4,6 +4,7 @@ import { Schema, model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
+import crypto from 'crypto'; // Added for password reset token
 
 const userSchema = new Schema(
   {
@@ -15,6 +16,13 @@ const userSchema = new Schema(
       enum: ['firebase', 'local'],
       default: 'local',
     },
+    // +++++++++++++ START: ADDED FOR GOOGLE OAUTH +++++++++++++
+    googleAuth: {
+      refreshToken: { type: String },
+      accessToken: { type: String },
+      expiryDate: { type: Number },
+    },
+    // +++++++++++++  END: ADDED FOR GOOGLE OAUTH  +++++++++++++
     tokens: {
       access_token: String,
       scope: String,
@@ -104,7 +112,11 @@ const userSchema = new Schema(
 
 // Password hashing middleware
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password') || this.authMethod !== 'local')
+  if (
+    !this.isModified('password') ||
+    !this.password ||
+    this.authMethod !== 'local'
+  )
     return next();
 
   try {

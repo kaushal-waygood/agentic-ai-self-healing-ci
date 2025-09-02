@@ -24,26 +24,37 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useSelector, useDispatch } from 'react-redux';
-import { setUserGoogleAuth } from '@/redux/reducers/authReducer';
+import {
+  setUserGoogleAuth,
+  getProfileRequest,
+} from '@/redux/reducers/authReducer';
 import { RootState } from '@/redux/rootReducer';
 
 // Google Login Button Component
-const GoogleLoginButton = ({ onSuccess, onError }) => {
+const GoogleLoginButton = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleLogin = () => {
+    setIsLoading(true);
     window.location.href = 'http://localhost:8080/api/v1/user/auth/google';
+
+    // Reset loading state after 5 seconds in case the redirect fails
+    setTimeout(() => setIsLoading(false), 5000);
   };
 
-  return <Button onClick={handleLogin}>Connect Google</Button>;
+  return (
+    <Button onClick={handleLogin} disabled={isLoading}>
+      {isLoading ? 'Connecting...' : 'Connect Google'}
+    </Button>
+  );
 };
 
-// Main Account Settings Component
-export const AccountSetting = ({ handleSendEmail }: any) => {
-  const { user, message, error } = useSelector(
-    (state: RootState) => state.auth,
-  );
+export const AccountSetting = () => {
+  const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const [statusMessage, setStatusMessage] = useState('');
   const [isError, setIsError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handle OAuth callback parameters
   useEffect(() => {
@@ -52,23 +63,24 @@ export const AccountSetting = ({ handleSendEmail }: any) => {
     const error = urlParams.get('error');
 
     if (success === 'google_connected') {
-      setStatusMessage('Google account successfully connected!');
+      setStatusMessage(
+        'Google account successfully connected! You can now send emails from your original email address.',
+      );
       setIsError(false);
 
       // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
 
-      // In a real app, you might want to refetch user data here
-      // For now, we'll simulate updating the user state
-      dispatch(setUserGoogleAuth({ connected: true }));
+      // Refresh user data to get the updated googleAuth status
+      dispatch(getProfileRequest());
     }
 
     if (error) {
       let errorMessage = 'Failed to connect Google account';
       if (error === 'user_not_found') {
-        errorMessage = 'No account found with your Google email';
+        errorMessage = 'User not found. Please try again.';
       } else if (error === 'auth_failed') {
-        errorMessage = 'Authentication failed';
+        errorMessage = 'Authentication failed. Please try again.';
       }
 
       setStatusMessage(errorMessage);
@@ -82,6 +94,7 @@ export const AccountSetting = ({ handleSendEmail }: any) => {
   // Handle sending test email
   const handleSendTestEmail = async () => {
     try {
+      setIsLoading(true);
       setStatusMessage('Sending email...');
       setIsError(false);
 
@@ -108,6 +121,47 @@ export const AccountSetting = ({ handleSendEmail }: any) => {
     } catch (err) {
       setStatusMessage('Network error. Please try again.');
       setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle disconnecting Google account
+  const handleDisconnectGoogle = async () => {
+    try {
+      setIsLoading(true);
+      setStatusMessage('Disconnecting Google account...');
+      setIsError(false);
+
+      const response = await fetch(
+        'http://localhost:8080/api/v1/user/disconnect-google',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatusMessage(
+          data.message || 'Google account disconnected successfully!',
+        );
+        setIsError(false);
+        // Update local state
+        dispatch(setUserGoogleAuth(null));
+      } else {
+        setStatusMessage(data.message || 'Failed to disconnect Google account');
+        setIsError(true);
+      }
+    } catch (err) {
+      setStatusMessage('Network error. Please try again.');
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -117,7 +171,9 @@ export const AccountSetting = ({ handleSendEmail }: any) => {
       {statusMessage && (
         <div
           className={`p-4 rounded-lg ${
-            isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+            isError
+              ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
+              : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200'
           }`}
         >
           {statusMessage}
@@ -149,6 +205,10 @@ export const AccountSetting = ({ handleSendEmail }: any) => {
               readOnly
               className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              This is your primary email address that will be used for sending
+              emails.
+            </p>
           </div>
           <Button variant="outline" asChild>
             <a href="/profile">Edit Full Profile</a>
@@ -158,57 +218,63 @@ export const AccountSetting = ({ handleSendEmail }: any) => {
 
       <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Linked Accounts & Permissions
+          Gmail Permissions
         </h4>
-        <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-          <div>
-            <p className="font-medium text-gray-900 dark:text-gray-100">
-              Sign-in Provider
-            </p>
-            {user?.provider ? (
-              <p className="text-sm text-green-600 dark:text-green-400">
-                Connected via {user.provider}
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Not connected to a provider.
-              </p>
-            )}
-          </div>
-          {!user?.provider && <GoogleLoginButton />}
-        </div>
 
         <div className="mt-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-medium text-gray-900 dark:text-gray-100">
-                Email Permissions
+                Gmail Integration
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Grant permission to send emails on your behalf
+                {user?.googleAuth?.refreshToken
+                  ? 'Connected to send emails from your account'
+                  : 'Connect your Google account to send emails'}
               </p>
             </div>
             {user?.googleAuth?.refreshToken ? (
-              <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">
-                Permission Granted
+              <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full dark:bg-green-900 dark:text-green-200">
+                Connected
               </span>
             ) : (
               <GoogleLoginButton />
             )}
           </div>
 
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={handleSendTestEmail}
-            disabled={!user?.googleAuth?.refreshToken}
-          >
-            Send Test Email
-          </Button>
+          {user?.googleAuth?.refreshToken && (
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-md">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Note:</strong> Emails will be sent from your original
+                email address ({user.email}) using Gmail's sending capabilities.
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSendTestEmail}
+              disabled={!user?.googleAuth?.refreshToken || isLoading}
+            >
+              {isLoading ? 'Sending...' : 'Send Test Email'}
+            </Button>
+
+            {user?.googleAuth?.refreshToken && (
+              <Button
+                variant="destructive"
+                onClick={handleDisconnectGoogle}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Disconnecting...' : 'Disconnect Google'}
+              </Button>
+            )}
+          </div>
 
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            This will send a test email to verify your permissions are working
-            correctly.
+            {user?.googleAuth?.refreshToken
+              ? 'This will send a test email to verify your Gmail permissions are working correctly.'
+              : 'Connect your Google account to enable sending emails through our platform using your Gmail account.'}
           </p>
         </div>
       </div>
