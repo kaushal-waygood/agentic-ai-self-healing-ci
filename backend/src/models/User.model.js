@@ -17,7 +17,6 @@ const userSchema = new Schema(
     },
     tokens: {
       access_token: String,
-      refresh_token: String,
       scope: String,
       token_type: String,
       expiry_date: Number,
@@ -51,10 +50,6 @@ const userSchema = new Schema(
     },
     jobRole: {
       type: String,
-    },
-    refreshToken: {
-      type: String,
-      select: false, // It's good practice to hide this from default queries
     },
     role: {
       type: String,
@@ -121,18 +116,6 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-userSchema.pre('save', async function (next) {
-  // Hash the token only if it has been modified (or is new) and is not null
-  if (!this.isModified('refreshToken') || !this.refreshToken) return next();
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.refreshToken = await bcrypt.hash(this.refreshToken, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
 // Access token generation
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
@@ -145,24 +128,6 @@ userSchema.methods.generateAccessToken = function () {
     config.accessTokenSecret,
     {
       expiresIn: config.accessTokenExpiry || '7d',
-    },
-  );
-};
-
-userSchema.methods.isRefreshTokenCorrect = async function (token) {
-  return await bcrypt.compare(token, this.refreshToken);
-};
-
-// Refresh token generation
-userSchema.methods.generateRefreshToken = function () {
-  return jwt.sign(
-    {
-      _id: this._id,
-      email: this.email,
-    },
-    config.refreshTokenSecret,
-    {
-      expiresIn: config.refreshTokenExpiry || '30d',
     },
   );
 };

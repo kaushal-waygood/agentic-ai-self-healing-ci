@@ -17,7 +17,6 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     loginRequest: (state) => {
-      console.log('Login request initiated');
       state.loading = true;
       state.error = null;
     },
@@ -71,7 +70,6 @@ const authSlice = createSlice({
     },
 
     changePasswordRequest: (state, action: PayloadAction<any>) => {
-      console.log('action.payload', action.payload);
       state.loading = true;
       state.error = null;
     },

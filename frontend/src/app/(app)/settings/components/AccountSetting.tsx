@@ -25,7 +25,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-// Account Setting Component
 export const AccountSetting = ({ user, handleSendEmail }) => (
   <div className="space-y-6">
     <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
@@ -87,7 +86,6 @@ export const AccountSetting = ({ user, handleSendEmail }) => (
   </div>
 );
 
-// Security Setting Component
 export const SecuritySetting = ({
   showPassword,
   setCurrentPassword,
@@ -97,7 +95,7 @@ export const SecuritySetting = ({
   passwordStrength,
   setConfirmNewPassword,
   handleChangePassword,
-}) => (
+}: any) => (
   <div className="space-y-6">
     <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -194,7 +192,6 @@ export const SecuritySetting = ({
   </div>
 );
 
-// Notification Components
 const NotificationToggle = ({
   id,
   title,
@@ -202,7 +199,7 @@ const NotificationToggle = ({
   icon: Icon,
   value,
   handleNotificationChange,
-}) => (
+}: any) => (
   <div className="group flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800">
     <div className="flex items-center space-x-3">
       <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
@@ -234,10 +231,37 @@ const NotificationToggle = ({
   </div>
 );
 
+const ThemeButton = ({ isActive, onClick, gradient, label }: any) => (
+  <button
+    onClick={onClick}
+    className={`relative p-4 rounded-xl border-2 transition-all duration-300 hover:scale-105 ${
+      isActive
+        ? 'border-blue-500 shadow-lg shadow-blue-500/25'
+        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+    }`}
+  >
+    <div className={`w-full h-16 rounded-lg ${gradient} mb-2`} />
+    <span
+      className={`text-sm font-medium ${
+        isActive
+          ? 'text-blue-600 dark:text-blue-400'
+          : 'text-gray-600 dark:text-gray-300'
+      }`}
+    >
+      {label}
+    </span>
+    {isActive && (
+      <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1">
+        <Check className="h-3 w-3 text-white" />
+      </div>
+    )}
+  </button>
+);
+
 export const NotificationSettings = ({
   notifications,
   handleNotificationChange,
-}) => (
+}: any) => (
   <div className="grid gap-4">
     <NotificationToggle
       id="jobAlerts"
@@ -290,35 +314,7 @@ export const NotificationSettings = ({
   </div>
 );
 
-// Appearance Components
-const ThemeButton = ({ isActive, onClick, gradient, label }) => (
-  <button
-    onClick={onClick}
-    className={`relative p-4 rounded-xl border-2 transition-all duration-300 hover:scale-105 ${
-      isActive
-        ? 'border-blue-500 shadow-lg shadow-blue-500/25'
-        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-    }`}
-  >
-    <div className={`w-full h-16 rounded-lg ${gradient} mb-2`} />
-    <span
-      className={`text-sm font-medium ${
-        isActive
-          ? 'text-blue-600 dark:text-blue-400'
-          : 'text-gray-600 dark:text-gray-300'
-      }`}
-    >
-      {label}
-    </span>
-    {isActive && (
-      <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1">
-        <Check className="h-3 w-3 text-white" />
-      </div>
-    )}
-  </button>
-);
-
-export const AppearanceSettings = ({ mounted, theme, setTheme }) => (
+export const AppearanceSettings = ({ mounted, theme, setTheme }: any) => (
   <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
     <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-6">
       Theme Selection
@@ -354,8 +350,7 @@ export const AppearanceSettings = ({ mounted, theme, setTheme }) => (
   </div>
 );
 
-// Danger Zone Component
-export const DangerSettings = ({ handleDeleteAccount }) => (
+export const DangerSettings = ({ handleDeleteAccount }: any) => (
   <div className="p-6 rounded-xl border-2 border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10">
     <h4 className="font-semibold text-red-900 dark:text-red-100 mb-2">
       Delete Account

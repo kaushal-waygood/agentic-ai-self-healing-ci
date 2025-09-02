@@ -186,7 +186,7 @@ export function CvGeneratorClient() {
         });
       }
     } catch (error) {
-      console.log('error', error);
+      console.error('error', error);
       toast({
         variant: 'destructive',
         title: 'Error Processing Job',
@@ -208,7 +208,6 @@ export function CvGeneratorClient() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log('Selected file:', file); // Debugging
 
     if (!file) {
       console.error('No file selected');
@@ -240,7 +239,6 @@ export function CvGeneratorClient() {
     const reader = new FileReader();
 
     reader.onloadend = () => {
-      console.log('File read completed');
       handleSetCvSource('upload', {
         value: reader.result as string,
         name: file.name,
@@ -452,10 +450,6 @@ export function CvGeneratorClient() {
     setActiveCvToSave({ ...generatedCvOutput, cv: currentCvContent });
     setCvNameForSavingInput(`CV for ${jobContext?.title || 'Job'}`);
     setIsNamingDialogDisplayed(true);
-
-    console.log('activeCvToSave', activeCvToSave.cv);
-    console.log('cvNameForSavingInput', cvNameForSavingInput);
-    console.log('isNamingDialogDisplayed', isNamingDialogDisplayed);
   };
 
   const confirmSaveNamedCv = async () => {
@@ -473,7 +467,6 @@ export function CvGeneratorClient() {
       `students/resume/saved/${savedCv._id}`,
     );
 
-    console.log('repsonse', repsonse.data.html);
     setCurrentCvContent(repsonse.data.html);
     setGeneratedCvOutput({
       cv: savedCv.html,
@@ -483,15 +476,11 @@ export function CvGeneratorClient() {
         'ATS score not available for this saved version.',
     });
 
-    console.log('generatedCvOutput', generatedCvOutput);
-
     setJobContext({
       mode: 'title',
       value: savedCv.htmlCVTitle,
       title: savedCv.htmlCVTitle,
     });
-
-    console.log('currentCvContent', jobContext);
 
     setWizardStep('result');
     toast({

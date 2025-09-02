@@ -6,7 +6,7 @@ import {
   signInUser,
   signout,
   signUpUser,
-  refreshAccessToken,
+  // refreshAccessToken,
   changePassword,
   verifyEmail,
   firebaseAuth,
@@ -177,7 +177,7 @@ router.post('/verify', verifyEmail);
 router.post('/signin', signInUser);
 router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, getUserProfile);
-router.get('/refresh-token', authMiddleware, refreshAccessToken);
+// router.get('/refresh-token', authMiddleware, refreshAccessToken);
 router.patch('/me/password/change', authMiddleware, changePassword);
 router.post('/resend-otp', authMiddleware, resendOtp);
 router.post('/forgot-password', forgotPassword);

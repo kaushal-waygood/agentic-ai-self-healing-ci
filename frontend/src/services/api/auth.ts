@@ -34,7 +34,6 @@ export const changePassword = async (payload: {
   newPassword: string;
   confirmPassword: string;
 }) => {
-  console.log('payload', payload);
   const response = await apiInstance.patch('/user/me/password/change', payload);
   return response;
 };
@@ -47,7 +46,6 @@ export const sendEmailPermit = async (payload: {
   jobTitle: String;
   emailDraft: String;
 }) => {
-  console.log('payload', payload);
   const response = await apiInstance.post('/user/send-email', {
     senderEmail: payload.email,
     recieverEmail: payload.recieverEmail,

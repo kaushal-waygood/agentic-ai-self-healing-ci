@@ -39,12 +39,10 @@ const studentSlice = createSlice({
   reducers: {
     // student Details
     getStudentDetailsRequest: (state) => {
-      console.log('getStudentDetailsRequest');
       state.loading = true;
       state.error = null;
     },
     getStudentDetailsSuccess: (state, action: PayloadAction<any[]>) => {
-      console.log('getStudentDetailsSuccess', action.payload);
       state.loading = false;
       state.students = action.payload;
     },
@@ -123,7 +121,6 @@ const studentSlice = createSlice({
     },
 
     updateStudentExperienceRequest: (state, action: PayloadAction<any>) => {
-      console.log('action.payload', action.payload);
       state.loading = true;
       state.error = null;
     },
@@ -142,7 +139,6 @@ const studentSlice = createSlice({
     },
 
     removeStudentExperienceRequest: (state) => {
-      console.log('removeStudentExperienceRequest');
       state.loading = true;
       state.error = null;
     },
@@ -187,7 +183,6 @@ const studentSlice = createSlice({
     },
 
     updateStudentProjectRequest: (state, action: PayloadAction<any>) => {
-      console.log('action.payload', action.payload);
       state.loading = true;
       state.error = null;
     },

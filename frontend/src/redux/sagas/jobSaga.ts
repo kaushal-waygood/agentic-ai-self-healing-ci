@@ -69,7 +69,7 @@ function* getAllJobsSaga(
       }),
     );
   } catch (error: unknown | Error) {
-    console.log(error);
+    console.error(error);
 
     yield put(
       getAllJobsFailure((error as Error).message || 'Failed to fetch jobs'),
@@ -92,7 +92,6 @@ function* postJobMannalByOrgAdminSaga(action: PayloadAction<any>) {
       postJobMannalByOrgAdmin,
       action.payload,
     );
-    console.log(response);
     yield put(postJobMannalByOrgAdminSuccess(response.data.job));
   } catch (error: unknown | Error) {
     yield put(postJobMannalByOrgAdminFailiure((error as Error).message));
@@ -102,7 +101,6 @@ function* postJobMannalByOrgAdminSaga(action: PayloadAction<any>) {
 function* getAllJobPostsByOrgAdminSaga() {
   try {
     const response: AxiosResponse = yield call(getAllJobsByOrgAdmin);
-    console.log(response);
     yield put(getAllJobPostsByOrgAdminSuccess(response.data.jobs));
   } catch (error: unknown | Error) {
     yield put(getAllJobPostsByOrgAdminFailure((error as Error).message));
@@ -111,7 +109,6 @@ function* getAllJobPostsByOrgAdminSaga() {
 
 function* updateJobStatusSaga(action: PayloadAction<any>) {
   try {
-    console.log(action.payload);
     const response: AxiosResponse = yield call(updateJobStatus, action.payload);
     yield put(updateJobStatusSuccess(response.data.job));
   } catch (error: unknown | Error) {

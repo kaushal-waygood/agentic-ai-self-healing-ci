@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import {
   Bell,
@@ -40,46 +42,12 @@ const AppHeader = () => {
   const [currentPath, setCurrentPath] = useState('/dashboard');
   const router = useRouter();
 
-  // Mock data
-  const user = {
-    fullName: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: null,
-    usage: {
-      aiJobApply: 15,
-      aiCvGenerator: 8,
-      aiCoverLetterGenerator: 12,
-      applications: 25,
-    },
-    actionItems: [
-      {
-        id: '1',
-        type: 'application',
-        summary: 'Application for Senior Developer at TechCorp was viewed',
-        date: '2024-01-20T10:30:00Z',
-        isRead: false,
-        href: '/applications/1',
-      },
-      {
-        id: '2',
-        type: 'recommendation',
-        summary: 'New job matches found for your profile',
-        date: '2024-01-19T15:45:00Z',
-        isRead: false,
-        href: '/jobs',
-      },
-      {
-        id: '3',
-        type: 'reward',
-        summary: 'Congratulations! You earned the "Active Applicant" badge',
-        date: '2024-01-18T09:20:00Z',
-        isRead: true,
-        href: '/profile',
-      },
-    ],
-    scheduledPlanChange: false,
-  };
+  // Redux state
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { students } = useSelector((state: RootState) => state.student);
+  const dispatch = useDispatch();
 
+  // Mock data for plan, replace with actual data when available
   const effectivePlan = {
     id: 'pro',
     name: 'Pro',
@@ -91,9 +59,6 @@ const AppHeader = () => {
       applicationLimit: 100,
     },
   };
-
-  const dispatch = useDispatch();
-  const { students } = useSelector((state: RootState) => state.student);
 
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
@@ -110,7 +75,18 @@ const AppHeader = () => {
     setMounted(true);
   }, []);
 
-  const unreadCount = user.actionItems.filter((item) => !item.isRead).length;
+  const handleMenuToggle = (menu: 'plan' | 'notification' | 'user') => {
+    setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
+    setIsNotificationOpen(
+      menu === 'notification' ? !isNotificationOpen : false,
+    );
+    setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
+  };
+
+  // Safely calculate unread count
+  const unreadCount = (user?.actionItems || []).filter(
+    (item) => !item.isRead,
+  ).length;
 
   const getPlanIcon = (planId) => {
     switch (planId) {
@@ -186,6 +162,21 @@ const AppHeader = () => {
     } catch (error) {}
   };
 
+  if (!user) {
+    return (
+      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="flex h-16 items-center justify-between px-6 animate-pulse">
+          <div className="h-8 w-24 bg-slate-200 rounded-md"></div>
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-8 bg-slate-200 rounded-full"></div>
+            <div className="h-8 w-8 bg-slate-200 rounded-full"></div>
+            <div className="h-8 w-8 bg-slate-200 rounded-full"></div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full  bg-white/95 backdrop-blur-md shadow-sm">
       <div className="flex h-16 items-center justify-between px-6">
@@ -200,7 +191,7 @@ const AppHeader = () => {
           {mounted && (
             <div className="relative">
               <button
-                onClick={() => setIsPlanOpen(!isPlanOpen)}
+                onClick={() => handleMenuToggle('plan')}
                 className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 transition-all duration-200 border border-yellow-300"
               >
                 <Star className="w-4 h-4" />
@@ -229,22 +220,22 @@ const AppHeader = () => {
                   <div className="p-6 space-y-4">
                     <UsageTracker
                       label="AI Applications"
-                      used={user.usage.aiJobApply}
+                      used={user?.usage?.aiJobApply || 0}
                       limit={effectivePlan.limits.aiJobApply}
                     />
                     <UsageTracker
                       label="AI CV Generations"
-                      used={user.usage.aiCvGenerator}
+                      used={user?.usage?.aiCvGenerator || 0}
                       limit={effectivePlan.limits.aiCvGenerator}
                     />
                     <UsageTracker
                       label="AI Cover Letters"
-                      used={user.usage.aiCoverLetterGenerator}
+                      used={user?.usage?.aiCoverLetterGenerator || 0}
                       limit={effectivePlan.limits.aiCoverLetterGenerator}
                     />
                     <UsageTracker
                       label="Tracked Applications"
-                      used={user.usage.applications}
+                      used={user?.usage?.applications || 0}
                       limit={effectivePlan.limits.applicationLimit}
                     />
                   </div>
@@ -267,7 +258,7 @@ const AppHeader = () => {
           {/* Notifications */}
           <div className="relative">
             <button
-              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              onClick={() => handleMenuToggle('notification')}
               className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
             >
               <Bell className="w-5 h-5 text-slate-600" />
@@ -287,8 +278,8 @@ const AppHeader = () => {
                 </div>
 
                 <div className="max-h-96 overflow-y-auto">
-                  {user.actionItems.length > 0 ? (
-                    user.actionItems.map((item, index) => (
+                  {(user?.actionItems || []).length > 0 ? (
+                    (user?.actionItems || []).map((item, index) => (
                       <div
                         key={item.id}
                         className={`p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100 cursor-pointer ${
@@ -338,11 +329,11 @@ const AppHeader = () => {
           {/* User Menu */}
           <div className="relative">
             <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              onClick={() => handleMenuToggle('user')}
               className="flex items-center space-x-2 p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
             >
               <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                {user.fullName.charAt(0)}
+                {(user?.fullName || ' ').charAt(0)}
               </div>
               <ChevronDown className="w-4 h-4 text-slate-600 hidden sm:block" />
             </button>
@@ -353,14 +344,14 @@ const AppHeader = () => {
                 <div className="p-4 border-b border-slate-100">
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {user.fullName.charAt(0)}
+                      {(user?.fullName || ' ').charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-slate-900 truncate">
-                        {user.fullName}
+                        {user?.fullName || 'Guest'}
                       </p>
                       <p className="text-sm text-slate-500 truncate">
-                        {user.email}
+                        {user?.email || ''}
                       </p>
                     </div>
                   </div>
@@ -368,7 +359,7 @@ const AppHeader = () => {
 
                 {/* Menu items */}
                 <div className="py-2">
-                  {user.scheduledPlanChange && (
+                  {user?.scheduledPlanChange && (
                     <button className="w-full px-4 py-3 text-left hover:bg-yellow-50 transition-colors duration-200 flex items-center space-x-3">
                       <AlertTriangle className="w-4 h-4 text-yellow-600" />
                       <span className="text-yellow-700 font-medium">

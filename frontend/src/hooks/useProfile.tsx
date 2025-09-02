@@ -347,7 +347,6 @@ export const useProfile = () => {
   const handlePersonalInfoSubmit = (
     data: Pick<ProfileFormValues, 'fullName' | 'email'>,
   ) => {
-    console.log('Personal Info:', data);
     toast({
       title: 'Personal Information Updated',
       description: 'Your personal information has been saved successfully.',
@@ -357,7 +356,6 @@ export const useProfile = () => {
   const handleCareerDetailsSubmit = (
     data: Pick<ProfileFormValues, 'jobPreference' | 'skills'>,
   ) => {
-    console.log('Career Details:', data);
     toast({
       title: 'Career Details Updated',
       description: 'Your career details have been saved successfully.',
@@ -411,7 +409,6 @@ export const useProfile = () => {
   const toggleEmailEdit = () => setIsEmailEditable((prev) => !prev);
 
   const handlePersonalInfoEdit = async (handle: string) => {
-    console.log('handle', handle);
     if (handle === 'fullName') {
       const response: AxiosResponse = await apiInstance.patch(
         '/students/fullname/update',
@@ -455,7 +452,6 @@ export const useProfile = () => {
   const handleFileChange = async (selectedFile) => {
     if (selectedFile) {
       setFile(selectedFile);
-      console.log('Selected file:', selectedFile);
     }
   };
 

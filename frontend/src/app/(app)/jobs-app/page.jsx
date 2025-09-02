@@ -73,7 +73,6 @@ const JobApplicationForm = () => {
     }
   };
 
-
   if (!user) {
     return <div>Please sign in to continue</div>;
   }

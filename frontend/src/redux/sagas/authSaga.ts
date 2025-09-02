@@ -48,7 +48,6 @@ function* signupSaga(
 ): SagaIterator {
   try {
     const response = yield call(signup, action.payload);
-    console.log('Signup response:', response);
 
     const { data } = response;
 
@@ -67,7 +66,6 @@ function* getUserProfileSaga(): SagaIterator {
     const userProfile = response.data;
     yield put(getProfileSuccess(userProfile));
   } catch (error: unknown) {
-    console.log('Error fetching user profile:', error);
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to fetch user profile';
     yield put(getProfileFailure(errorMessage));
@@ -76,11 +74,9 @@ function* getUserProfileSaga(): SagaIterator {
 
 function* changePasswordSaga(action: PayloadAction<any>): SagaIterator {
   try {
-    console.log(action.payload);
     const response = yield call(changePassword, action.payload);
     yield put(changePasswordSuccess(response.data));
   } catch (error: unknown) {
-    console.log('Error changing password:', error);
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to change password';
     yield put(changePasswordFailure(errorMessage));

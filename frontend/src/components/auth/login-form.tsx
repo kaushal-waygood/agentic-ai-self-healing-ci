@@ -75,7 +75,6 @@ const LoginForm = () => {
     defaultValues: { email: '' },
   });
 
-  // --- All Event Handlers and Effects Remain Unchanged ---
   async function onSubmit(data: LoginFormValues) {
     try {
       dispatch(loginRequest(data));

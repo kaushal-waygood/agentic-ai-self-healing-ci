@@ -153,7 +153,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     });
 
     setCalculateScore(response.data);
-    console.log('calculateScore', calculateScore);
     if (!canUseProFeatures) {
       toast({
         variant: 'destructive',
