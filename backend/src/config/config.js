@@ -2,8 +2,9 @@
 
 export const config = {
   port: process.env.PORT || 8080,
-  accessTokenSecret: process.env.ACCESS_TOKEN_SECRET || '  ',
-  accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY || '15m', // 15 minutes
+  accessTokenSecret:
+    process.env.ACCESS_TOKEN_SECRET || 'your_access_token_secret',
+  accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY || '7d',
   // Refresh token configuration
   refreshTokenSecret:
     process.env.REFRESH_TOKEN_SECRET || 'your_refresh_token_secret',

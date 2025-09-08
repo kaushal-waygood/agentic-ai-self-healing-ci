@@ -1,33 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import {
-  UploadCloud,
-  FileText,
-  Wand2,
-  Star,
-  Info,
-  List,
-  Eye,
-  Loader2,
-  Briefcase,
-  User,
-  FileSignature,
-  ArrowLeft,
-  ChevronsRight,
-  Save,
-} from 'lucide-react';
-import { generateCv, CVGenerationOutput } from '@/ai/flows/cv-generation';
+
+import { CVGenerationOutput } from '@/ai/flows/cv-generation';
 import { mockUserProfile, SavedCv } from '@/lib/data/user';
 import {
   AlertDialog,
@@ -41,35 +17,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { AnimatePresence, motion } from 'framer-motion';
 import { mockJobListings } from '@/lib/data/jobs';
-import { extractJobDetails } from '@/ai/flows/extract-job-details-flow';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Button } from '../ui/button';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
-import { EditableMaterial } from '../application/editable-material';
-import { mockSubscriptionPlans } from '@/lib/data/subscriptions';
-import Link from 'next/link';
-import { ToastAction } from '../ui/toast';
-import { Separator } from '../ui/separator';
-import { add } from 'date-fns';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { useDispatch } from 'react-redux';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import apiInstance from '@/services/api';
-import {
-  generateCVByJobDescriptionRequest,
-  savedStudentResumeRequest,
-} from '@/redux/reducers/aiReducer';
+import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
 import JobWizard from './components/JobWizard';
 import CVGeneratorClient from './CVGeneratorClient';
 import ContextWizard from './ContextWizard';
 import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
 import GeneratedCV from './GeneratedCV';
 import SavedCvs from './components/SavedCvs';
-
-// --- Types and Schemas ---
 
 type WizardStep = 'job' | 'cv' | 'context' | 'generating' | 'result';
 type JobContext = {
@@ -107,12 +67,10 @@ export function CvGeneratorClient() {
   const [activeCvToSave, setActiveCvToSave] =
     useState<CVGenerationOutput | null>(null);
 
-  // State for Job Context Step
   const [pastedJobDescription, setPastedJobDescription] = useState('');
   const [enteredJobTitle, setEnteredJobTitle] = useState('');
   const [selectedJobId, setSelectedJobId] = useState('');
 
-  // State for CV Source Step
   const [selectedSavedCvId, setSelectedSavedCvId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -306,7 +264,6 @@ export function CvGeneratorClient() {
       return;
     }
 
-    // Check if student data is available
     if (!student) {
       toast({
         variant: 'destructive',
@@ -322,108 +279,75 @@ export function CvGeneratorClient() {
     setCurrentCvContent('');
 
     try {
-      let response;
+      let response: CVGenerationOutput | null = null;
+      const formData = new FormData();
 
-      // Handle different job context modes
+      // --- This part is the same, building the FormData ---
       if (jobContext.mode === 'paste') {
-        // JD-based CV generation
-        const formData = new FormData();
-
         formData.append('jobDescription', jobContext.description);
+        // ... (rest of the logic for paste mode)
+      } else if (jobContext.mode === 'title') {
+        formData.append('title', jobContext.title);
+      }
 
-        if (cvSource.mode === 'profile') {
-          formData.append('useProfile', 'true');
-        } else if (cvSource.mode === 'upload') {
-          // Convert data URI to blob if needed
-          const blob = await fetch(cvSource.value).then((r) => r.blob());
-          formData.append('cv', blob, cvSource.name);
-        } else if (cvSource.mode === 'saved') {
-          // Create a blob from saved CV content
-          const blob = new Blob([cvSource.value], { type: 'text/html' });
-          formData.append('cv', blob, 'saved_cv.html');
-        }
+      if (cvSource.mode === 'profile') {
+        formData.append('useProfile', 'true');
+      } else if (cvSource.mode === 'upload') {
+        const blob = await fetch(cvSource.value).then((r) => r.blob());
+        // Use 'cv' as the key to match your backend multer config
+        formData.append('cv', blob, cvSource.name);
+      } else if (cvSource.mode === 'saved') {
+        const blob = new Blob([cvSource.value], { type: 'text/html' });
+        formData.append('cv', blob, 'saved_cv.html');
+      }
 
-        // Add additional narratives if provided
-        if (additionalNarratives) {
-          formData.append('finalTouch', additionalNarratives);
-        }
+      if (additionalNarratives) {
+        formData.append('finalTouch', additionalNarratives);
+      }
 
-        const apiResponse = await apiInstance.post(
-          'students/resume/generate/jd',
-          formData,
-        );
+      let apiEndpoint = '';
+      if (jobContext.mode === 'paste') {
+        apiEndpoint = 'students/resume/generate/jd';
+      } else if (jobContext.mode === 'title') {
+        apiEndpoint = 'students/resume/generate/jobtitle';
+      }
 
-        // Handle HTML response
+      const apiResponse = await apiInstance.post(apiEndpoint, formData);
+
+      if (apiResponse.data && typeof apiResponse.data === 'object') {
+        // This handles the JSON response from the 'jobtitle' route
+        response = {
+          cv: apiResponse.data.cv,
+          atsScore: apiResponse.data.atsScore,
+          atsSuggestion: apiResponse.data.atsSuggestion,
+        };
+      } else {
+        // This handles a raw HTML response (fallback for 'jd' route if it behaves differently)
         response = {
           cv: apiResponse.data,
           atsScore: 0,
-          atsScoreReasoning: 'ATS score not calculated for JD-based generation',
-        };
-      } else if (jobContext.mode === 'title') {
-        const formData = new FormData();
-
-        formData.append('title', jobContext.title);
-
-        if (cvSource.mode === 'profile') {
-          formData.append('useProfile', 'true');
-        } else if (cvSource.mode === 'upload') {
-          // Convert data URI to blob if needed
-          const blob = await fetch(cvSource.value).then((r) => r.blob());
-          formData.append('cv', blob, cvSource.name);
-        } else if (cvSource.mode === 'saved') {
-          // Create a blob from saved CV content
-          const blob = new Blob([cvSource.value], { type: 'text/html' });
-          formData.append('cv', blob, 'saved_cv.html');
-        }
-
-        // Add additional narratives if provided
-        if (additionalNarratives) {
-          formData.append('finalTouch', additionalNarratives);
-        }
-
-        const apiResponse = await apiInstance.post(
-          'students/resume/generate/jobtitle',
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          },
-        );
-
-        // Handle HTML response
-        response = {
-          cv: apiResponse.data,
-          atsScore: 0, // You might want to calculate this from the API
-          atsScoreReasoning: 'ATS score not calculated for JD-based generation',
+          atsSuggestion:
+            'ATS analysis not available for this generation method.',
         };
       }
 
-      // Save the generated CV
       const newAutoSavedCv: SavedCv = {
         id: `auto-${Date.now()}`,
-        name: `Draft for '${jobContext.title.substring(
-          0,
-          25,
-        )}...' - ${new Date().toLocaleString()}`,
+        name: `Draft for '${jobContext.title.substring(0, 25)}...'`,
         htmlContent: response.cv,
         atsScore: response.atsScore ?? 0,
-        atsScoreReasoning:
-          response.atsScoreReasoning ?? 'ATS score not available',
+        atsScoreReasoning: response.atsSuggestion ?? 'N/A',
         createdAt: new Date().toISOString(),
         jobTitle: jobContext.title,
       };
 
-      const updatedSavedCvs = [newAutoSavedCv, ...savedCvsList];
-      setSavedCvsList(updatedSavedCvs);
-
+      setSavedCvsList((prev) => [newAutoSavedCv, ...prev]);
       setGeneratedCvOutput(response);
       setCurrentCvContent(response.cv);
 
       toast({
         title: 'CV Generated & Auto-saved!',
-        description:
-          'Your new CV draft has been added to your saved list below.',
+        description: 'Your new CV draft has been added to your saved list.',
       });
       setWizardStep('result');
     } catch (error) {
@@ -434,12 +358,24 @@ export function CvGeneratorClient() {
         description:
           error.response?.data?.error ||
           error.message ||
-          'Failed to generate CV',
+          'Failed to generate CV. Please check the server logs.',
       });
-      setWizardStep('context');
+      setWizardStep('context'); // Go back to the context step on failure
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const regenerateCv = async () => {
+    const response = await apiInstance.post('/students/resume/generate/jd', {
+      jobContextString: JSON.stringify(jobContext),
+      studentData: JSON.stringify(student),
+      finalTouch: additionalNarratives,
+      previousCVJson: JSON.stringify(generatedCvOutput),
+    });
+
+    setGeneratedCvOutput(response.data);
+    setCurrentCvContent(response.data.cv);
   };
 
   const handleInitiateSave = () => {
@@ -554,6 +490,7 @@ export function CvGeneratorClient() {
           generatedCvOutput={generatedCvOutput}
           handleInitiateSave={handleInitiateSave}
           setCurrentCvContent={setCurrentCvContent}
+          handleRegenerate={regenerateCv}
         />
       )}
 

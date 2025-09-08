@@ -9,20 +9,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { RootState } from '@/redux/rootReducer';
 import { changePasswordRequest } from '@/redux/reducers/authReducer';
 
-// Services & Other Components
 import { sendEmailPermit } from '@/services/api/auth';
 
-// Icons from Lucide React
 import { Bell, Palette, Trash2, UserCircle, Shield } from 'lucide-react';
+import { AccountSetting } from './components/AccountSettings';
 import {
-  AccountSetting,
   AppearanceSettings,
   DangerSettings,
   NotificationSettings,
   SecuritySetting,
 } from './components/AccountSetting';
 
-// Main Component
 export default function SettingsView() {
   // Hooks
   const { toast } = useToast();

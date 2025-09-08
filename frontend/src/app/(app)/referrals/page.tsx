@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { getProfileRequest } from '@/redux/reducers/authReducer';
 
-// UI Components
+// UI Components (These remain unchanged)
 const Card = ({ children, className = '', hover = true }) => (
   <div
     className={`bg-white rounded-2xl border border-slate-200 shadow-lg ${
@@ -87,21 +87,23 @@ const Skeleton = ({ className = '' }) => (
 export default function ReferralsPage() {
   const [referralLink, setReferralLink] = useState('');
   const [copied, setCopied] = useState(false);
-  const [shareClicked, setShareClicked] = useState({});
+  // NEW: State to check if Web Share API is supported
+  const [isShareSupported, setIsShareSupported] = useState(false);
 
   const dispatch = useDispatch();
   const { user, loading } = useSelector((state: RootState) => state.auth);
 
-  // Fetch user profile on component mount
   useEffect(() => {
     dispatch(getProfileRequest());
+    // NEW: Check for Web Share API support on component mount
+    if (navigator.share) {
+      setIsShareSupported(true);
+    }
   }, [dispatch]);
 
-  // Generate referral link only after user data is available
   useEffect(() => {
     if (user?.referralCode) {
-      // Replace with your actual domain
-      const link = `https://yourapp.com/signup?ref=${user.referralCode}`;
+      const link = `${window.location.origin}/signup?ref=${user.referralCode}`;
       setReferralLink(link);
     }
   }, [user]);
@@ -117,33 +119,28 @@ export default function ReferralsPage() {
     }
   };
 
-  const handleSocialShare = (platform) => {
+  // NEW: Generic share handler using the Web Share API
+  const handleShare = async () => {
     if (!referralLink) return;
-    setShareClicked((prev) => ({ ...prev, [platform]: true }));
-    setTimeout(
-      () => setShareClicked((prev) => ({ ...prev, [platform]: false })),
-      1000,
-    );
-    const text = encodeURIComponent(
-      `🚀 I'm using CareerPilot to supercharge my job search with AI. You should check it out! Use my link to get started:`,
-    );
-    let url = '';
-    if (platform === 'twitter') {
-      url = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(
-        referralLink,
-      )}`;
-    } else if (platform === 'linkedin') {
-      url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-        referralLink,
-      )}`;
-    }
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+
+    const shareData = {
+      title: 'Join me on CareerPilot!',
+      text: `🚀 I'm using CareerPilot to supercharge my job search with AI. You should check it out! Use my link to get started:`,
+      url: referralLink,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        console.log('Referral link shared successfully!');
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
     }
   };
 
-  // Handle loading and null user state to prevent build crashes
   if (loading || !user) {
+    // ... Skeleton loading state remains unchanged ...
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
         <div className="max-w-7xl mx-auto">
@@ -164,7 +161,7 @@ export default function ReferralsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Stats Overview */}
+        {/* Stats Overview remains unchanged */}
         <div className="grid gap-6 md:grid-cols-3 mb-8">
           <Card>
             <CardHeader>
@@ -287,6 +284,7 @@ export default function ReferralsPage() {
                           ? 'bg-green-50 border-green-300 text-green-600'
                           : ''
                       }
+                      title="Copy link"
                     >
                       {copied ? (
                         <CheckCircle2 className="h-4 w-4" />
@@ -303,32 +301,30 @@ export default function ReferralsPage() {
                 </div>
               </div>
 
+              {/* MODIFIED: Updated Quick Share Section */}
               <div className="space-y-3">
                 <p className="text-sm font-medium text-gray-700">
                   Quick Share:
                 </p>
-                <div className="flex gap-3">
+                {isShareSupported ? (
                   <Button
                     variant="secondary"
-                    size="sm"
-                    onClick={() => handleSocialShare('twitter')}
-                    className={shareClicked.twitter ? 'scale-95' : ''}
+                    size="default"
+                    onClick={handleShare}
+                    className="w-full md:w-auto"
                   >
-                    <Share2 className="mr-2 h-4 w-4" /> Share on X
+                    <Share2 className="mr-2 h-4 w-4" /> Share via...
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleSocialShare('linkedin')}
-                    className={shareClicked.linkedin ? 'scale-95' : ''}
-                  >
-                    <Share2 className="mr-2 h-4 w-4" /> LinkedIn
-                  </Button>
-                </div>
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    Use the copy button to share your link on desktop.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
 
+          {/* Reward Structure Card remains unchanged */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
@@ -390,7 +386,7 @@ export default function ReferralsPage() {
           </Card>
         </div>
 
-        {/* How It Works */}
+        {/* How It Works section remains unchanged */}
         <Card
           hover={false}
           className="bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 border-purple-200"

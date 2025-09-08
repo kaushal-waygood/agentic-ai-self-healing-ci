@@ -3,14 +3,15 @@
 'use client';
 
 import Link from 'next/link';
+// MODIFIED: Import useState
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Cookies from 'js-cookie';
 
-// ICONS (Added new icons for consistency)
+// ICONS
 import {
   Building,
   MailCheck,
@@ -24,11 +25,11 @@ import {
   FileText,
 } from 'lucide-react';
 
-// YOUR UTILS AND SERVICES (ensure paths are correct)
+// UTILS AND SERVICES
 import apiInstance from '@/services/api';
 import { errorToast, successToast } from '@/utils/toasts';
 
-// UI COMPONENTS (ensure paths are correct)
+// UI COMPONENTS
 import {
   Form,
   FormControl,
@@ -38,10 +39,10 @@ import {
   FormMessage,
 } from '../ui/form';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Button } from '../ui/button'; // Button is used for its base, but styled with classNames
-import { Input } from '../ui/input'; // Input is used for its base, but styled with classNames
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
-// --- Zod Schema (Unchanged) ---
+// Zod Schema
 const signupFormSchema = z
   .object({
     accountType: z.enum(['individual', 'institution'], {
@@ -66,13 +67,14 @@ const signupFormSchema = z
 type SignupFormValues = z.infer<typeof signupFormSchema>;
 
 const SignupForm = () => {
-  // --- All State and Logic Hooks Remain Unchanged ---
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [storedEmail, setStoredEmail] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [focusedField, setFocusedField] = useState('');
+  // NEW: State to track if the referral code came from the URL
+  const [isRefCodeFromUrl, setIsRefCodeFromUrl] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
@@ -92,7 +94,15 @@ const SignupForm = () => {
     name: 'accountType',
   });
 
-  // --- All Event Handlers and Effects Remain Unchanged ---
+  // MODIFIED: useEffect to also set the disabled state
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      form.setValue('referredBy', refCode);
+      setIsRefCodeFromUrl(true); // <-- Set state to true
+    }
+  }, [searchParams, form]);
+
   useEffect(() => {
     const pendingEmail = localStorage.getItem('pendingVerificationEmail');
     if (pendingEmail) {
@@ -135,7 +145,7 @@ const SignupForm = () => {
       setSignupSuccess(false);
       setStoredEmail('');
       setVerificationCode('');
-      router.push('/login'); // Redirect to login after successful verification
+      router.push('/login');
     } catch (error) {
       errorToast('Invalid verification code. Please try again.');
     } finally {
@@ -153,9 +163,9 @@ const SignupForm = () => {
     }
   };
 
-  // --- THEME APPLIED: Main wrapper, background, and animated blobs ---
   return (
     <div className="mt-16 w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8 relative overflow-hidden">
+      {/* ... Blobs and other wrapper divs are unchanged ... */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full filter blur-3xl opacity-40 animate-pulse hidden sm:block"></div>
         <div
@@ -163,10 +173,9 @@ const SignupForm = () => {
           style={{ animationDelay: '2s' }}
         ></div>
       </div>
-
       <div className="relative z-10 w-full max-w-md">
         {signupSuccess ? (
-          // --- THEME APPLIED: Verification Card ---
+          // ... Verification JSX is unchanged ...
           <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
             <div className="text-center mb-8">
               <div className="relative inline-block mb-6">
@@ -235,6 +244,7 @@ const SignupForm = () => {
           </div>
         ) : (
           <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
+            {/* ... Form Header JSX is unchanged ... */}
             <div className="text-center mb-8">
               <div className="relative inline-block mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
@@ -256,7 +266,7 @@ const SignupForm = () => {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
-                {/* --- THEME APPLIED: Radio Group --- */}
+                {/* ... Other FormFields are unchanged ... */}
                 <FormField
                   control={form.control}
                   name="accountType"
@@ -308,7 +318,6 @@ const SignupForm = () => {
                   )}
                 />
 
-                {/* --- THEME APPLIED: All Form Fields with Icons --- */}
                 {accountType === 'institution' && (
                   <FormField
                     control={form.control}
@@ -457,7 +466,10 @@ const SignupForm = () => {
                             className="pl-12 w-full bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600"
                             placeholder="Enter code here"
                             {...field}
-                            disabled={form.formState.isSubmitting}
+                            // MODIFIED: Disable if submitting OR if code came from URL
+                            disabled={
+                              form.formState.isSubmitting || isRefCodeFromUrl
+                            }
                           />
                         </div>
                       </FormControl>

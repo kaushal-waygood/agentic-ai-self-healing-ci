@@ -354,7 +354,7 @@ const AppSidebarContent = () => {
               <button
                 className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors duration-200"
                 onClick={() => {
-                  route.push('/subscription');
+                  route.push('/subscriptions');
                 }}
               >
                 Upgrade Now

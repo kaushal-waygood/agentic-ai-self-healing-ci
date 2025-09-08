@@ -82,6 +82,7 @@ import ClGenerator from './cl-generator';
 import CustomizeWizard from './customizeWizard';
 import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
 import SavedCoverLetters from './components/SavedCl';
+import GeneratedCoverLetter from './components/GeneratedCoverLetter';
 
 // Wizard related types
 type WizardStep =
@@ -545,41 +546,16 @@ export function CoverLetterGeneratorClient() {
         );
       case 'generating':
         return <SleekLoadingCard />;
+
       case 'result':
         return (
-          <Card className="flex flex-col items-center justify-center text-center p-12 w-full min-h-[400px]">
-            <ChevronsRight className="h-16 w-16 text-primary mb-4" />
-            <h2 className="text-2xl font-headline font-semibold">
-              Letter Generated!
-            </h2>
-            <p className="text-muted-foreground mt-2 max-w-xs">
-              Your new cover letter is ready. Look right to review and edit your
-              letter.
-            </p>
-            <CardFooter>
-              <Button variant="ghost" onClick={() => setWizardStep('job')}>
-                <ArrowLeft className="mr-2" />
-                Start Over
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleInitiateSave}
-                disabled={!generatedCvOutput || isLoading}
-              >
-                <Archive className="mr-2 h-4 w-4" /> Save Final Version
-              </Button>
-            </CardFooter>
-            <div className="lg:sticky lg:top-4">
-              <EditableMaterial
-                editorId="cover-letter-editor"
-                title="Cover Letter"
-                content={generatedCvOutput}
-                setContent={setGeneratedCoverLetter}
-                isHtml
-              />
-            </div>
-          </Card>
+          <GeneratedCoverLetter
+            generatedLetter={generatedCvOutput} // <-- FIX 1: Pass the state that holds the API response
+            setGeneratedLetter={setCurrentCvContent} // <-- FIX 2: Pass the updater for the editable content
+            handleInitiateSave={handleInitiateSave}
+            // handleRegenerate={regenerateLetter} // Pass the regenerate function
+            // customizationOptions={customizationOptions} // Pass the customization options
+          />
         );
       default:
         return null;

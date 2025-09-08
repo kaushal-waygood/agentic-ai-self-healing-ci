@@ -1,29 +1,15 @@
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import {
   Briefcase,
   Loader2,
   User,
-  Target,
-  Zap,
-  UploadCloud,
   ArrowLeft,
-  FileText,
   Check,
   Clock,
-  Shield,
-  Upload,
+  ChevronDown,
+  Calendar,
+  UploadCloud,
 } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 
 const CVGeneratorClient = ({
   handleFileInputUploadClick,
@@ -39,9 +25,10 @@ const CVGeneratorClient = ({
   setWizardStep,
 }: any) => {
   const [dragActive, setDragActive] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [expandedCv, setExpandedCv] = useState(null);
 
-  const handleDrag = (e) => {
+  // Drag and drop handlers
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === 'dragenter' || e.type === 'dragover') {
@@ -51,299 +38,276 @@ const CVGeneratorClient = ({
     }
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      handleFileUpload({ target: { files: [file] } });
-    }
-  };
-
-  const getCvTypeIcon = (type) => {
-    switch (type) {
-      case 'technical':
-        return <FileText className="h-4 w-4 text-blue-500" />;
-      case 'startup':
-        return <Zap className="h-4 w-4 text-purple-500" />;
-      case 'senior':
-        return <Target className="h-4 w-4 text-green-500" />;
-      default:
-        return <FileText className="h-4 w-4 text-gray-500" />;
+      // Pass the event-like object to the handler
+      handleFileUpload({ target: { files: e.dataTransfer.files } });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-100 flex items-center justify-center">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-start p-4">
       <div className="w-full">
-        {/* Progress Indicator */}
+        {/* Progress indicator */}
         <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <Check className="h-4 w-4 text-white" />
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                <Check className="w-4 h-4" />
               </div>
-              <span className="text-sm font-medium text-green-600">
-                Job Context
+              <span className="ml-2 text-sm font-medium text-green-600">
+                Job Details
               </span>
             </div>
-            <div className="w-12 h-0.5 bg-gradient-to-r from-green-500 to-purple-500"></div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">2</span>
+            <div className="w-16 h-0.5 bg-gradient-to-r from-green-500 to-blue-500"></div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                2
               </div>
-              <span className="text-sm font-medium text-purple-600">
-                Your CV
+              <span className="ml-2 text-sm font-medium text-blue-600">
+                CV Context
               </span>
             </div>
-            <div className="w-12 h-0.5 bg-gray-200"></div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-500 font-bold text-sm">3</span>
+            <div className="w-16 h-0.5 bg-gray-200"></div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">
+                3
               </div>
-              <span className="text-sm text-gray-500">Generate</span>
+              <span className="ml-2 text-sm font-medium text-gray-500">
+                Generate
+              </span>
             </div>
           </div>
         </div>
 
-        <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-purple-500/10 rounded-3xl overflow-hidden">
+        {/* Main Card */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
           {/* Header */}
-          <CardHeader className="bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-white" />
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
+            <h2 className="text-3xl font-bold mb-2">CV Context Selection</h2>
+            <p className="text-blue-100">
+              Choose the background source for your tailored CV.
+            </p>
+          </div>
+
+          {/* Content */}
+          <div className="p-8 space-y-8">
+            {/* Saved CVs Section */}
+            {mockUserProfile.savedCvs?.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                  <Briefcase className="w-5 h-5 mr-2 text-blue-500" />
+                  Your Saved CVs
+                </h3>
+
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                  {mockUserProfile.savedCvs.map((cv: any) => (
+                    <div
+                      key={cv.id}
+                      className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
+                        selectedSavedCvId === cv.id
+                          ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg'
+                          : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
+                      }`}
+                      onClick={() => setSelectedSavedCvId(cv.id)}
+                    >
+                      <div className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div
+                              className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
+                                selectedSavedCvId === cv.id
+                                  ? 'border-blue-500 bg-blue-500'
+                                  : 'border-gray-300 group-hover:border-blue-400'
+                              }`}
+                            >
+                              {selectedSavedCvId === cv.id && (
+                                <div className="w-full h-full bg-white rounded-full scale-50"></div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-800 text-lg">
+                                {cv.name}
+                              </h4>
+                              <div className="flex items-center mt-1">
+                                <span className="text-sm text-gray-500 flex items-center">
+                                  <Clock className="w-4 h-4 mr-1.5" />
+                                  Updated {cv.lastModified}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedCv(
+                                expandedCv === cv.id ? null : cv.id,
+                              );
+                            }}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            <ChevronDown
+                              className={`w-5 h-5 transition-transform ${
+                                expandedCv === cv.id ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {expandedCv === cv.id && (
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <Calendar className="w-4 h-4 mr-2" />
+                              Created:{' '}
+                              <span className="ml-1 font-medium">
+                                {cv.lastModified}
+                              </span>
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              This CV will be used as the context for AI
+                              generation.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedSavedCvId === cv.id && (
+                        <div className="absolute top-0 right-0 w-0 h-0 border-l-[20px] border-l-transparent border-t-[20px] border-t-blue-500">
+                          <Check className="absolute -top-4 -right-3 w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <CardTitle className="text-2xl font-bold">
-                  Step 2: Provide Your CV
-                </CardTitle>
+
+                {selectedSavedCvId && (
+                  <button
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
+                    onClick={() =>
+                      handleSetCvSource('saved', {
+                        value:
+                          mockUserProfile.savedCvs.find(
+                            (c: any) => c.id === selectedSavedCvId,
+                          )?.htmlContent || '',
+                        name:
+                          mockUserProfile.savedCvs.find(
+                            (c: any) => c.id === selectedSavedCvId,
+                          )?.name || '',
+                      })
+                    }
+                  >
+                    Use Selected CV
+                  </button>
+                )}
               </div>
-              <CardDescription className="text-purple-100 text-base">
-                Choose your professional background source to create the perfect
-                tailored CV.
-              </CardDescription>
+            )}
+
+            {/* Separator */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-500 font-medium">
+                  or choose alternative
+                </span>
+              </div>
             </div>
-          </CardHeader>
 
-          <CardContent className="p-8 space-y-8">
-            {/* Upload Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <UploadCloud className="h-5 w-5 text-purple-500" />
-                Upload CV File
-              </h3>
+            {/* Alternative Options */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Use Profile */}
+              <button
+                className="group p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all duration-300 text-left"
+                onClick={handleUseProfile}
+                disabled={isLoading}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-green-100 group-hover:bg-green-200 rounded-full flex items-center justify-center transition-colors">
+                    <User className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">
+                      Use My Profile
+                    </h4>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Use your current profile information.
+                    </p>
+                  </div>
+                </div>
+              </button>
 
+              {/* Upload New CV with Drag & Drop */}
               <div
-                className={`relative border-2 border-dashed rounded-2xl p-8 transition-all duration-300 ${
-                  dragActive
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50/30'
+                className={`relative group p-6 border-2 border-dashed rounded-xl transition-all duration-300 text-left cursor-pointer ${
+                  isLoading
+                    ? 'border-blue-300 bg-blue-50'
+                    : dragActive
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
+                onClick={handleFileInputUploadClick}
               >
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
-                    <Upload className="h-8 w-8 text-white" />
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    className="mb-4 h-12 px-8 text-base font-semibold rounded-xl border-2 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300"
-                    onClick={handleFileInputUploadClick}
-                    disabled={isLoading}
-                  >
-                    {isLoading && loadingMessage ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2 h-5 w-5" />
-                        {loadingMessage}
-                      </>
-                    ) : (
-                      <>
-                        <UploadCloud className="mr-2 h-5 w-5" />
-                        Choose File or Drag & Drop
-                      </>
-                    )}
-                  </Button>
-
-                  <p className="text-sm text-gray-600 mb-2">
-                    Supports PDF, DOC, DOCX, PNG, JPG formats
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Maximum file size: 10MB
-                  </p>
-
-                  {uploadProgress > 0 && uploadProgress < 100 && (
-                    <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                  )}
-                </div>
-
                 <input
                   type="file"
-                  className="hidden"
                   ref={fileInputRef}
-                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                  className="hidden"
                   onChange={handleFileUpload}
+                  accept=".pdf,.doc,.docx,.png,.jpg"
+                  disabled={isLoading}
                 />
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-              <span className="text-sm font-medium text-gray-500 bg-white px-4 py-2 rounded-lg border">
-                OR
-              </span>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-            </div>
-
-            {/* Profile Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <User className="h-5 w-5 text-purple-500" />
-                Use Existing Profile
-              </h3>
-
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                    <User className="h-6 w-6 text-white" />
+                <div className="flex items-center space-x-3">
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                      isLoading || dragActive
+                        ? 'bg-blue-200'
+                        : 'bg-blue-100 group-hover:bg-blue-200'
+                    }`}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                    ) : (
+                      <UploadCloud className="w-6 h-6 text-blue-600" />
+                    )}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">
-                      {mockUserProfile.name}
+                    <h4 className="font-semibold text-gray-800">
+                      {isLoading && loadingMessage
+                        ? loadingMessage
+                        : dragActive
+                        ? 'Drop file here!'
+                        : 'Upload New CV'}
                     </h4>
-                    <p className="text-sm text-gray-600">
-                      {mockUserProfile.email}
+                    <p className="text-sm text-gray-500 mt-1">
+                      {isLoading
+                        ? 'Please wait...'
+                        : 'PDF, DOC, DOCX, PNG, JPG'}
                     </p>
                   </div>
                 </div>
-
-                <Button
-                  className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-[1.02]"
-                  onClick={handleUseProfile}
-                  disabled={isLoading}
-                >
-                  {isLoading && loadingMessage === 'Loading your profile...' ? (
-                    <>
-                      <Loader2 className="animate-spin mr-2 h-5 w-5" />
-                      Loading Profile...
-                    </>
-                  ) : (
-                    <>
-                      <User className="mr-2 h-5 w-5" />
-                      Use My Profile Data
-                    </>
-                  )}
-                </Button>
               </div>
             </div>
-
-            {/* Saved CVs Section */}
-            {mockUserProfile.savedCvs?.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Briefcase className="h-5 w-5 text-purple-500" />
-                  Previously Saved CVs
-                </h3>
-
-                <RadioGroup
-                  value={selectedSavedCvId}
-                  onValueChange={setSelectedSavedCvId}
-                  className="space-y-3"
-                >
-                  {mockUserProfile.savedCvs.map((cv) => (
-                    <Label
-                      key={cv.id}
-                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:bg-purple-50 hover:border-purple-300 ${
-                        selectedSavedCvId === cv.id
-                          ? 'bg-purple-50 border-purple-500 shadow-lg'
-                          : 'border-gray-200 hover:shadow-md'
-                      }`}
-                    >
-                      <RadioGroupItem
-                        value={cv.id}
-                        id={cv.id}
-                        className="text-purple-500"
-                      />
-                      <div className="flex-1 flex items-center gap-3">
-                        {getCvTypeIcon(cv.type)}
-                        <div className="flex-1">
-                          <div className="font-semibold text-gray-900">
-                            {cv.name}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            Updated {cv.lastModified}
-                          </div>
-                        </div>
-                      </div>
-                    </Label>
-                  ))}
-                </RadioGroup>
-
-                <Button
-                  className={`w-full h-12 font-semibold rounded-xl transition-all duration-300 transform hover:scale-[1.02] ${
-                    selectedSavedCvId
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}
-                  onClick={() =>
-                    handleSetCvSource('saved', {
-                      value:
-                        mockUserProfile.savedCvs.find(
-                          (c) => c.id === selectedSavedCvId,
-                        )?.htmlContent || '',
-                      name:
-                        mockUserProfile.savedCvs.find(
-                          (c) => c.id === selectedSavedCvId,
-                        )?.name || '',
-                    })
-                  }
-                  disabled={!selectedSavedCvId}
-                >
-                  <FileText className="mr-2 h-5 w-5" />
-                  Use Selected CV
-                </Button>
-              </div>
-            )}
-          </CardContent>
+          </div>
 
           {/* Footer */}
-          <CardFooter className="bg-gray-50/80 backdrop-blur-xl border-t border-gray-100">
-            <div className="flex items-center justify-between w-full">
-              <Button
-                variant="ghost"
-                onClick={() => setWizardStep('job')}
-                className="h-12 px-6 rounded-xl hover:bg-white/80 transition-all duration-300"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Job Context
-              </Button>
+          <div className="bg-gray-50 px-8 py-4 flex justify-between items-center border-t">
+            <button
+              className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
+              onClick={() => setWizardStep('job')}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Job Details</span>
+            </button>
 
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Shield className="h-4 w-4 text-green-500" />
-                Your data is secure and encrypted
-              </div>
-            </div>
-          </CardFooter>
-        </Card>
-
-        {/* Security Notice */}
-        <div className="text-center mt-6">
-          <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-lg">
-            <Shield className="h-4 w-4 text-green-500" />
-            All uploads are processed securely and deleted after optimization
+            <div className="text-sm text-gray-500">Step 2 of 3</div>
           </div>
         </div>
       </div>

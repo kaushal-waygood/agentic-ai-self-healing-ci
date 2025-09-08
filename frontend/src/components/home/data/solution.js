@@ -143,26 +143,6 @@ export const painPoints = [
     bgColor: 'from-yellow-50 to-orange-50',
     solution: 'Tailored for each job',
   },
-  {
-    icon: Frown,
-    title: 'Application Burnout',
-    description:
-      'Mental exhaustion from repetitive application processes and constant rejections.',
-    stat: 'High Burnout',
-    color: 'from-gray-500 to-slate-500',
-    bgColor: 'from-gray-50 to-slate-50',
-    solution: 'Stress-free automation',
-  },
-  {
-    icon: AlertTriangle,
-    title: 'Missing Opportunities',
-    description:
-      "New job postings filled within 24-48 hours while you're still crafting applications.",
-    stat: '48 Hour Window',
-    color: 'from-indigo-500 to-purple-500',
-    bgColor: 'from-indigo-50 to-purple-50',
-    solution: 'Apply within minutes',
-  },
 ];
 
 export const beforeStats = [
