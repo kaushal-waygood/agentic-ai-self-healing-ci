@@ -271,6 +271,11 @@ export function Pricing() {
       </div>
 
       {/* Floating background elements */}
+      <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-r from-blue-400/5 to-purple-400/5 rounded-full blur-3xl animate-pulse" />
+      <div
+        className="absolute bottom-32 right-20 w-80 h-80 bg-gradient-to-r from-emerald-400/5 to-blue-400/5 rounded-full blur-3xl animate-pulse"
+        style={{ animationDelay: '2s' }}
+      />
     </section>
   );
 }
