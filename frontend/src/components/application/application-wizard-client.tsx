@@ -635,6 +635,7 @@ export function ApplicationWizardClient() {
   };
 
   const handleGenerate = async () => {
+    console.log('-----------handleGenerate----------');
     if (!cvContext) {
       toast({
         variant: 'destructive',
@@ -657,18 +658,10 @@ export function ApplicationWizardClient() {
       } else if (cvContext.mode === 'saved' && cvContext.value) {
         formData.append('savedCVId', cvContext.value);
       } else if (cvContext.mode === 'upload' && cvContext.value) {
-        // If value is a File object, append directly
-        if (cvContext?.value) {
+        if (cvContext?.value instanceof File) {
+          // FIX: Use the key 'cv' to match the backend multer configuration (upload.single('cv')).
           formData.append('cv', cvContext.value);
           formData.append('useProfile', 'false');
-        }
-        // If value is a data URL string (for backward compatibility)
-        else if (typeof cvContext.value === 'string') {
-          const blob = await fetch(cvContext.value).then((r) => r.blob());
-          const file = new File([blob], cvContext.name || 'cv.pdf', {
-            type: blob.type,
-          });
-          formData.append('cv', file);
         }
       }
 
@@ -691,11 +684,15 @@ export function ApplicationWizardClient() {
             : value;
       }
 
+      console.log('Form data:', formDataObj);
+
       // 4. Make API call with proper headers
       const response = await apiInstance.post(
         '/students/applications/tailor',
         formDataObj,
       );
+
+      // console.log('Full response:', response);
 
       const result = response.data;
       setRefinedCv(result.data.tailoredCV);
@@ -794,10 +791,12 @@ export function ApplicationWizardClient() {
   };
 
   const handleSendEmail = () => {
+    console.log('handleSendEmail', jobContext);
+    console.log(student?.email, 'thesiddiqui7@gmail.com', jobContext?.jobTitle);
     const response = apiInstance.post('/user/send-email', {
       senderEmail: student?.email,
       recieverEmail: 'thesiddiqui7@gmail.com',
-      subject: jobContext?.title,
+      subject: jobContext?.jobTitle,
       bodyHtml: emailDraft,
       htmlResume: refinedCv,
       htmlCoverLetter: tailoredCl,

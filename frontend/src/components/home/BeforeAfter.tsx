@@ -267,35 +267,6 @@ export default function BeforeAfter() {
             </div>
           </div>
         </div>
-
-        {/* Arrow Transition */}
-        <div className="flex justify-center mb-12 md:mb-20">
-          <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full p-4 md:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 cursor-pointer group">
-            <ArrowRight className="w-6 h-6 md:w-8 md:h-8 text-gray-400 group-hover:text-blue-500 transition-colors duration-300" />
-          </div>
-        </div>
-
-        {/* Results Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          <ResultCard
-            value="15x"
-            label="Higher Response Rate"
-            delay={200}
-            gradient="hover:bg-gradient-to-br hover:from-purple-50 hover:to-pink-50"
-          />
-          <ResultCard
-            value="100+"
-            label="Applications Per Day"
-            delay={400}
-            gradient="hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50"
-          />
-          <ResultCard
-            value="85%"
-            label="ATS Pass Rate"
-            delay={600}
-            gradient="hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50"
-          />
-        </div>
       </div>
 
       <style jsx>{`

@@ -18,6 +18,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast'; // Assuming you have a toast hook
+import apiInstance from '@/services/api';
 
 interface EditableMaterialProps {
   content: string;
@@ -26,6 +27,7 @@ interface EditableMaterialProps {
   editorId: string;
   isHtml?: boolean;
   className?: string;
+  handleRegenerate: string;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
@@ -34,7 +36,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   title,
   editorId,
   isHtml = false,
-}) => {
+}: any) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -112,34 +114,45 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     toast({ title: 'Generating PDF...' });
 
     try {
-      const response = await fetch(
-        'http://localhost:8080/api/v1/students/pdf/generate-pdf',
+      const response = await apiInstance.post(
+        'students/pdf/generate-pdf',
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            html: contentToPrint.innerHTML,
-            title: title,
-          }),
+          html: contentToPrint.innerHTML,
+          title: title,
+        },
+        {
+          responseType: 'blob', // This tells axios to handle the response as a blob
         },
       );
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`PDF generation failed: ${response.statusText}`);
       }
 
-      const blob = await response.blob();
+      // Create blob from response data
+      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
+
       const a = document.createElement('a');
       a.href = url;
       a.download = `CareerPilot_${title.replace(/ /g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
+
       window.URL.revokeObjectURL(url);
+
+      toast({
+        title: 'PDF downloaded successfully!',
+        description: 'Your document is ready.',
+      });
     } catch (error) {
       console.error('PDF Download Error:', error);
-      toast({ variant: 'destructive', title: 'PDF Download Failed' });
+      toast({
+        variant: 'destructive',
+        title: 'PDF Download Failed',
+        description: 'Please try again later.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -177,8 +190,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     toast({ title: 'DOCX download started!' });
   };
 
-  // --- RICH TEXT FORMATTING ---
-
   const formatText = (command: string, value: string | null = null) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
@@ -199,6 +210,15 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   };
 
+  const handleRegenerate = async () => {
+    const response = await apiInstance.post('/students/resume/regenerate', {
+      jobContextString: JSON.stringify(content),
+      previousCVJson: JSON.stringify(content),
+    });
+
+    console.log(response.data);
+  };
+
   // --- RENDER ---
   return (
     <div
@@ -213,45 +233,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       >
         {/* Header & Toolbar */}
         <div className="bg-white/80 backdrop-blur-sm rounded-t-2xl border border-b-0 border-gray-200/80 shadow-lg z-10">
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-8 py-4 sm:py-6 text-white rounded-t-2xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <FileText className="w-8 h-8" />
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold">
-                    {title} Editor
-                  </h1>
-                  <div className="flex items-center space-x-4 mt-2 text-sm text-indigo-100">
-                    <span className="flex items-center">{wordCount} words</span>
-                    {lastSaved && (
-                      <span className="hidden sm:flex items-center">
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Saved {lastSaved.toLocaleTimeString()}
-                      </span>
-                    )}
-                    {hasUnsavedChanges && (
-                      <span className="flex items-center text-yellow-200">
-                        <AlertCircle className="w-4 h-4 mr-1" />
-                        Unsaved
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <button
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition"
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="w-4 h-4" />
-                  ) : (
-                    <Maximize2 className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
           {isEditing && (
             <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-8 py-2">
               <div className="flex items-center space-x-2 flex-wrap">
@@ -311,7 +292,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
               ref={editorRef}
               contentEditable={isEditing}
               suppressContentEditableWarning={true}
-              className={`flex-grow w-full border-2 rounded-xl bg-white p-6 overflow-y-auto focus:outline-none min-h-[400px] ${
+              className={`flex-grow w-full border-2 rounded-xl bg-white p-6 overflow-y-auto text-left focus:outline-none min-h-[400px] ${
                 isEditing
                   ? 'border-indigo-300 shadow-inner ring-4 ring-indigo-50'
                   : 'border-gray-200'
@@ -371,6 +352,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                   <ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />
                 )}
               </button>
+              <button onClick={handleRegenerate}> Regenerate</button>
               <button
                 onClick={handleDownloadDocx}
                 disabled={!isHtml || !content || isLoading}

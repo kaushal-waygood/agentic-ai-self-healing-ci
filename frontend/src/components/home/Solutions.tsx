@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Sparkles,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 // Sample data for the solutions cards
@@ -73,20 +74,6 @@ const solutions = [
     ],
     demo: 'See Analytics Dashboard',
     color: 'from-emerald-600 to-green-600',
-  },
-  {
-    icon: Globe,
-    title: 'Personal Branding',
-    stat: 'Pro-level Profile',
-    description:
-      'Build a professional online presence with our AI-powered tools that create and optimize your profiles and portfolios.',
-    features: [
-      'LinkedIn optimization',
-      'Bio generator',
-      'Personal website builder',
-    ],
-    demo: 'See Branding Solutions',
-    color: 'from-green-600 to-lime-600',
   },
 ];
 
@@ -284,14 +271,16 @@ export const Solutions = () => {
                       </div>
 
                       {/* Demo Badge */}
-                      <div
+                      <Link
+                        href="/login"
+                        target="_blank"
                         className={`mt-4 inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-2 bg-purple-100/50 backdrop-blur-sm rounded-full text-purple-700 text-sm font-medium transform transition-all duration-300 ${
                           isActive ? 'scale-105 bg-purple-100' : 'scale-100'
                         }`}
                       >
                         <Play className="w-3 h-3" />
                         <span>{solution.demo}</span>
-                      </div>
+                      </Link>
                     </div>
 
                     {/* Interactive Arrow */}
@@ -309,27 +298,6 @@ export const Solutions = () => {
               </div>
             );
           })}
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="text-center">
-          <div className="inline-flex flex-col md:flex-row items-center gap-6 md:gap-8 bg-white/50 backdrop-blur-xl border border-white/60 rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105">
-            <div className="text-center md:text-left">
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3">
-                Experience All Solutions
-              </h3>
-              <p className="text-sm md:text-base text-gray-600 max-w-md mx-auto md:mx-0">
-                Start your free trial and see how AI can revolutionize your job
-                search in just 2 minutes.
-              </p>
-            </div>
-
-            <button className="bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 hover:from-purple-700 hover:via-blue-700 hover:to-cyan-700 text-white px-6 py-3 md:px-10 md:py-5 rounded-2xl font-bold text-base md:text-lg shadow-xl hover:shadow-2xl transform hover:scale-110 transition-all duration-300 flex items-center justify-center gap-2 md:gap-3 group w-full md:w-auto">
-              <Target className="w-5 h-5 md:w-6 md:h-6" />
-              Start Free Trial
-              <ArrowRight className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
         </div>
       </div>
     </section>

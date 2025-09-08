@@ -11,9 +11,6 @@ logs/
 *.log
 *.log.*
 
-# dotenv environment variables
-.env
-# .env.*.local
 
 # OS-specific
 .DS_Store

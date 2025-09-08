@@ -8,6 +8,27 @@ import admin from '../config/firebase.js';
 import { transporter } from '../utils/transporter.js';
 import bcrypt from 'bcryptjs';
 import redisClient from '../config/redis.js';
+// import { oauth2Client, SCOPES } from '../config/googleConsole.js';
+import { google } from 'googleapis';
+import puppeteer from 'puppeteer';
+//
+import MailComposer from 'nodemailer/lib/mail-composer/index.js';
+const GOOGLE_CLIENT_ID =
+  '584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com';
+const GOOGLE_CLIENT_SECRET = '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';
+const REDIRECT_URI = 'http://127.0.0.1:8080/api/v1/user/oauth2callback';
+
+export const SCOPES = [
+  'https://www.googleapis.com/auth/userinfo.email', // Added to get user's email
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/gmail.send',
+];
+
+export const oauth2Client = new google.auth.OAuth2(
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  REDIRECT_URI,
+);
 
 export const firebaseAuth = async (req, res) => {
   try {
@@ -267,7 +288,7 @@ export const verifyEmail = async (req, res) => {
       // httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (change from 30 days)
     };
 
     // Remove sensitive data before sending user info
@@ -377,12 +398,7 @@ export const signInUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Compare passwords with detailed logging
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('Password comparison result:', isPasswordValid);
-    console.log('Input password:', password);
-    console.log('Stored hash:', user.password);
-
     if (!isPasswordValid) {
       console.log('Password mismatch');
       return res.status(401).json({ message: 'Invalid email or password' });
@@ -401,10 +417,10 @@ export const signInUser = async (req, res) => {
     delete userObject.password;
 
     const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false,
       sameSite: 'Strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/', // <-- ADD THIS LINE
     };
 
     return res
@@ -455,7 +471,7 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     // 5. Create reset URL
-    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}&email=${email}`;
+    const resetUrl = `http://127.0.0.1:3000/reset-password?token=${resetToken}&email=${email}`;
 
     // 6. Send email with reset link
     const mailOptions = {
@@ -636,8 +652,295 @@ export const changePassword = async (req, res) => {
   }
 };
 
-export const emailPermission = async (req, res) => {
-  const { _id } = req.user;
+// --- This function is correct, no changes needed ---
+const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
+  if (!html) {
+    throw new Error('HTML content is required.');
+  }
+
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: 'networkidle0' });
+
+  const pdfBuffer = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    margin: {
+      top: '10mm',
+      right: '15mm',
+      bottom: '15mm',
+      left: '15mm',
+    },
+    ...options, // allow overriding via options
+  });
+
+  await browser.close();
+  return pdfBuffer;
+};
+
+// --- REFACTORED sendEmails FUNCTION ---
+export const sendEmails = async (req, res) => {
+  const {
+    recieverEmail,
+    subject,
+    bodyHtml,
+    htmlResume: resumeHtml,
+    htmlCoverLetter: coverLetterHtml,
+  } = req.body;
+
+  // 1. Validation and User Authorization
+  if (!req.user) {
+    return res
+      .status(401)
+      .json({ message: 'Unauthorized. No user session found.' });
+  }
+  if (!recieverEmail || !subject || !bodyHtml) {
+    return res.status(400).json({
+      message: 'Missing required fields: receiverEmail, subject, and bodyHtml.',
+    });
+  }
+
   try {
-  } catch (error) {}
+    const user = await User.findById(req.user._id);
+    if (!user || !user.googleAuth?.refreshToken) {
+      return res.status(400).json({
+        message: 'Google account not linked or permission not granted.',
+      });
+    }
+
+    // 2. Set up OAuth2 client for the user
+    const userOAuthClient = new google.auth.OAuth2(
+      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET,
+      REDIRECT_URI,
+    );
+    userOAuthClient.setCredentials({
+      refresh_token: user.googleAuth.refreshToken,
+    });
+    await userOAuthClient.refreshAccessToken(); // Ensures access token is fresh
+
+    const gmail = google.gmail({ version: 'v1', auth: userOAuthClient });
+
+    // 3. Prepare attachments by converting HTML to PDF
+    const attachments = [];
+    if (resumeHtml) {
+      console.log('Converting resume HTML to PDF...');
+      const resumePdfBuffer = await convertHtmlToPdf(resumeHtml);
+      attachments.push({
+        filename: 'resume.pdf',
+        content: resumePdfBuffer,
+        contentType: 'application/pdf',
+      });
+      console.log('Resume PDF conversion complete.');
+    }
+    if (coverLetterHtml) {
+      console.log('Converting cover letter HTML to PDF...');
+      const coverLetterPdfBuffer = await convertHtmlToPdf(coverLetterHtml);
+      attachments.push({
+        filename: 'cover_letter.pdf',
+        content: coverLetterPdfBuffer,
+        contentType: 'application/pdf',
+      });
+      console.log('Cover letter PDF conversion complete.');
+    }
+
+    // 4. Use Nodemailer's MailComposer to build the MIME message
+    const mailOptions = {
+      from: `"${user.name || 'User'}" <${user.email}>`,
+      to: recieverEmail,
+      subject: subject,
+      html: bodyHtml,
+      attachments: attachments, // Add the generated PDFs
+    };
+
+    const mail = new MailComposer(mailOptions);
+    const rawMessageBuffer = await mail.compile().build(); // Compiles to a Buffer
+
+    // 5. Encode the message for the Gmail API (base64url)
+    const encodedMessage = rawMessageBuffer
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    // 6. Send the email via Gmail API
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: {
+        raw: encodedMessage,
+      },
+    });
+
+    res.status(200).json({ message: 'Email has been sent successfully!' });
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    if (error.response?.data?.error === 'invalid_grant') {
+      return res
+        .status(401)
+        .json({ message: 'Authentication failed. Please re-authenticate.' });
+    }
+    res
+      .status(500)
+      .json({ message: 'An error occurred while trying to send the email.' });
+  }
+};
+
+export const oAuth2Callback = async (req, res) => {
+  const { code, state: userId } = req.query;
+  console.log(
+    'OAuth callback received. Code:',
+    code ? 'Yes' : 'No',
+    'UserID:',
+    userId,
+  );
+
+  if (!code) {
+    console.error('No authorization code received from Google.');
+    return res.redirect(
+      'http://127.0.0.1:3000/settings?error=auth_failed_no_code',
+    );
+  }
+
+  if (!userId) {
+    console.error('No state (userId) received from Google.');
+    return res.redirect(
+      'http://127.0.0.1:3000/settings?error=auth_failed_no_state',
+    );
+  }
+
+  try {
+    console.log('Exchanging authorization code for tokens...');
+    const { tokens } = await oauth2Client.getToken(code);
+    console.log('Tokens received:', tokens ? 'Yes' : 'No');
+
+    if (!tokens.access_token || !tokens.refresh_token) {
+      console.error('Incomplete tokens received from Google:', tokens);
+      throw new Error(
+        'Access token or refresh token was not received from Google.',
+      );
+    }
+
+    oauth2Client.setCredentials(tokens);
+
+    // Get user info (email) to confirm identity
+    console.log('Fetching user info from Google...');
+    const oauth2 = google.oauth2({
+      version: 'v2',
+      auth: oauth2Client,
+    });
+    const { data: userInfo } = await oauth2.userinfo.get();
+    console.log('User info received:', userInfo);
+
+    const userEmail = userInfo.email;
+    if (!userEmail) {
+      throw new Error('Could not retrieve email from Google user profile.');
+    }
+
+    // Find the user in your database using the ID passed in the 'state' parameter
+    console.log(`Looking for user with ID: ${userId}`);
+    const user = await User.findById(userId);
+
+    if (!user) {
+      console.error(`User not found in database with ID: ${userId}`);
+      return res.redirect(
+        'http://127.0.0.1:3000/settings?error=user_not_found',
+      );
+    }
+
+    // Optional: Check if the email from Google matches the user's email in your DB
+    if (user.email !== userEmail) {
+      console.warn(
+        `Mismatched emails. DB: ${user.email}, Google: ${userEmail}. Proceeding with user ID.`,
+      );
+    }
+
+    // Save the refresh token and other auth details to the user's record
+    console.log(`Saving Google tokens for user: ${user.email}`);
+    user.googleAuth = {
+      refreshToken: tokens.refresh_token,
+      accessToken: tokens.access_token,
+      expiryDate: tokens.expiry_date,
+    };
+    await user.save();
+
+    console.log('OAuth flow completed successfully for user:', user.email);
+    res.redirect('http://127.0.0.1:3000/settings?success=google_connected');
+  } catch (err) {
+    console.error(
+      'Error during OAuth callback process:',
+      err.message,
+      err.stack,
+    );
+    res.redirect('http://127.0.0.1:3000/settings?error=auth_failed_internal');
+  }
+};
+
+export const authGoogle = async (req, res) => {
+  // The userId from your app's own authentication (e.g., JWT) is passed in the state.
+  // This helps associate the Google account with the correct user upon callback.
+  const userId = req.user._id.toString();
+
+  try {
+    const url = oauth2Client.generateAuthUrl({
+      access_type: 'offline', // Required to get a refresh token
+      prompt: 'consent', // Ensures the user is prompted for consent every time
+      scope: SCOPES,
+      state: userId, // Pass the internal user ID to the callback
+    });
+
+    console.log('Redirecting to Google OAuth:', url);
+    res.redirect(url);
+  } catch (error) {
+    console.error('Error generating Google auth URL:', error);
+    res.status(500).json({ message: 'An error occurred during Google OAuth.' });
+  }
+};
+
+export const disconnectGoogle = async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    // 1. Find the user in your database
+    const user = await User.findById(req.user._id);
+
+    // 2. Check if they have a refresh token to revoke
+    const refreshToken = user?.googleAuth?.refreshToken;
+    if (!refreshToken) {
+      return res.status(400).json({
+        message: 'Google account is not connected or already disconnected.',
+      });
+    }
+
+    // 3. Tell Google to revoke the token
+    // We wrap this in a try/catch because it might fail if the user already
+    // revoked it from their Google account, but we still want to clean up our DB.
+    try {
+      await oauth2Client.revokeToken(refreshToken);
+      console.log(`Successfully revoked token for user: ${user.email}`);
+    } catch (revokeError) {
+      console.warn(
+        `Failed to revoke token for ${user.email}, but proceeding with DB cleanup. Error:`,
+        revokeError.message,
+      );
+    }
+
+    // 4. Remove the googleAuth details from the user's record
+    user.googleAuth = undefined; // Or user.googleAuth = null;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Google account has been successfully disconnected.',
+    });
+  } catch (error) {
+    console.error('Error during Google account disconnection:', error);
+    res.status(500).json({
+      message: 'An error occurred while trying to disconnect the account.',
+    });
+  }
 };

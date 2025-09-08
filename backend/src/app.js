@@ -24,8 +24,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: process.env.CORS_ORIGINS?.split(',') || [
-      'http://localhost:3000',
-      'http://localhost:3001',
+      'http://127.0.0.1:3000',
       'http://144.91.114.195:30090',
     ],
     credentials: true,
@@ -40,18 +39,7 @@ app.use(
 );
 
 // 3. Request Parsing Middleware
-app.use(
-  express.json({
-    limit: '10mb', // Increase payload limit if needed
-    verify: (req, res, buf) => {
-      try {
-        JSON.parse(buf.toString());
-      } catch (e) {
-        throw createHttpError(400, 'Invalid JSON payload');
-      }
-    },
-  }),
-);
+app.use(express.json({ limit: '1000mb' }));
 
 app.use(
   express.urlencoded({

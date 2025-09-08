@@ -18,6 +18,7 @@ import {
   getSingleStudentHTMLLetter,
   createTailoredApply,
   calculateJobMatchScore,
+  regenerateCV,
 } from '../controllers/ai.controller.js';
 
 const router = Router();
@@ -34,8 +35,8 @@ router.get('/resume/convert', authMiddleware, isStudent, convertDataIntoHTML);
 
 router.post(
   '/resume/generate/jd',
-  // authMiddleware,
-  // isStudent,
+  authMiddleware,
+  isStudent,
   upload.single('cv'),
   generateCVByJD,
 );
@@ -55,6 +56,8 @@ router.post(
   upload.single('cv'),
   generateCVByTitle,
 );
+
+router.post('/resume/regenerate', authMiddleware, isStudent, regenerateCV);
 
 router.post(
   '/coverletter/generate/jd',
@@ -108,6 +111,7 @@ router.post(
   '/applications/tailor',
   authMiddleware,
   isStudent,
+  upload.single('cv'),
   createTailoredApply,
 );
 

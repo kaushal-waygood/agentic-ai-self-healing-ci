@@ -38,6 +38,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
 
 // --- ZOD SCHEMAS (Unchanged) ---
 const loginFormSchema = z.object({
@@ -62,6 +64,9 @@ const LoginForm = () => {
   const { toast } = useToast();
   const router = useRouter();
   const dispatch = useDispatch();
+  const { user, loading, error } = useSelector(
+    (state: RootState) => state.auth,
+  );
   const [isForgotPasswordSubmitting, setIsForgotPasswordSubmitting] =
     useState(false);
 
@@ -78,8 +83,11 @@ const LoginForm = () => {
   async function onSubmit(data: LoginFormValues) {
     try {
       dispatch(loginRequest(data));
+
       successToast('Login successful! Redirecting to your dashboard...');
-      router.push('/dashboard');
+      if (user) {
+        router.push('/dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
       toast({

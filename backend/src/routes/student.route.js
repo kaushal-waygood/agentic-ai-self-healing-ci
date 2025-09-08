@@ -153,7 +153,6 @@ router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
 router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
 router.post('/autopilot/toggle', authMiddleware, isStudent, toggleAutopilot);
 
-
 router.post('/pdf/generate-pdf', async (req, res) => {
   const { html, title } = req.body;
 
@@ -189,7 +188,7 @@ router.post('/pdf/generate-pdf', async (req, res) => {
       `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.pdf"`,
     );
 
-    console.log('Successfully generated and sent PDF.');
+    console.log('Successfully generated and sent PDF.', pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error) {
     console.error('PDF Generation Error:', error);

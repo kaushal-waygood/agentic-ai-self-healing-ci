@@ -5,9 +5,9 @@ import { config } from '../config/config.js';
 
 export const authMiddleware = (req, res, next) => {
   const accessToken = req.cookies.accessToken;
-  const refreshToken = req.cookies.refreshToken;
+  // const refreshToken = req.cookies.refreshToken;
 
-  if (!accessToken && !refreshToken) {
+  if (!accessToken) {
     return res.status(401).json({ message: 'Access Token is missing' });
   }
 

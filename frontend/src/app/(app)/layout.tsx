@@ -1,4 +1,3 @@
-// app/layout.tsx or app/dashboard/layout.tsx
 import { AppHeader } from '@/components/layout/app-header';
 import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
 import DashboardFooter from '@/components/layout/DashboardFooter';
@@ -9,20 +8,23 @@ import {
   SidebarProvider,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { cookies } from 'next/headers';
+import { getToken } from '@/utils/cookieToken';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers'; // Import cookies here
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get('accessToken')?.value;
+  const cookieStore = await cookies(); // Await cookies() since it returns a Promise
+  const token = getToken(cookieStore); // Pass the store to the utility function
 
-  if (!accessToken) {
+  if (!token) {
     redirect('/login');
   }
+
+  console.log(token);
 
   return (
     <SidebarProvider defaultOpen={true}>
