@@ -682,15 +682,20 @@ const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
   return pdfBuffer;
 };
 
-// --- REFACTORED sendEmails FUNCTION ---
 export const sendEmails = async (req, res) => {
   const {
-    recieverEmail,
     subject,
     bodyHtml,
     htmlResume: resumeHtml,
     htmlCoverLetter: coverLetterHtml,
   } = req.body;
+
+  const receiverEmails = [
+    'infozobsai@gmail.com',
+    'prakhar@zobsai.com',
+    'shadab@zobsai.com',
+    'rahul@zobsai.com',
+  ];
 
   // 1. Validation and User Authorization
   if (!req.user) {
@@ -698,9 +703,18 @@ export const sendEmails = async (req, res) => {
       .status(401)
       .json({ message: 'Unauthorized. No user session found.' });
   }
-  if (!recieverEmail || !subject || !bodyHtml) {
+
+  // ✨ Updated validation to check for a non-empty array
+  if (
+    !receiverEmails ||
+    !Array.isArray(receiverEmails) ||
+    receiverEmails.length === 0 ||
+    !subject ||
+    !bodyHtml
+  ) {
     return res.status(400).json({
-      message: 'Missing required fields: receiverEmail, subject, and bodyHtml.',
+      message:
+        'Missing required fields: receiverEmails (must be a non-empty array), subject, and bodyHtml.',
     });
   }
 
@@ -725,7 +739,7 @@ export const sendEmails = async (req, res) => {
 
     const gmail = google.gmail({ version: 'v1', auth: userOAuthClient });
 
-    // 3. Prepare attachments by converting HTML to PDF
+    // 3. Prepare attachments by converting HTML to PDF (no changes here)
     const attachments = [];
     if (resumeHtml) {
       console.log('Converting resume HTML to PDF...');
@@ -751,23 +765,23 @@ export const sendEmails = async (req, res) => {
     // 4. Use Nodemailer's MailComposer to build the MIME message
     const mailOptions = {
       from: `"${user.name || 'User'}" <${user.email}>`,
-      to: recieverEmail,
+      to: receiverEmails, // ✨ Pass the array of emails directly here
       subject: subject,
       html: bodyHtml,
-      attachments: attachments, // Add the generated PDFs
+      attachments: attachments,
     };
 
     const mail = new MailComposer(mailOptions);
-    const rawMessageBuffer = await mail.compile().build(); // Compiles to a Buffer
+    const rawMessageBuffer = await mail.compile().build();
 
-    // 5. Encode the message for the Gmail API (base64url)
+    // 5. Encode the message for the Gmail API (no changes here)
     const encodedMessage = rawMessageBuffer
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
-    // 6. Send the email via Gmail API
+    // 6. Send the email via Gmail API (no changes here)
     await gmail.users.messages.send({
       userId: 'me',
       requestBody: {
@@ -775,7 +789,9 @@ export const sendEmails = async (req, res) => {
       },
     });
 
-    res.status(200).json({ message: 'Email has been sent successfully!' });
+    res
+      .status(200)
+      .json({ message: 'Email has been sent successfully to all recipients!' });
   } catch (error) {
     console.error('Failed to send email:', error);
     if (error.response?.data?.error === 'invalid_grant') {
@@ -941,6 +957,87 @@ export const disconnectGoogle = async (req, res) => {
     console.error('Error during Google account disconnection:', error);
     res.status(500).json({
       message: 'An error occurred while trying to disconnect the account.',
+    });
+  }
+};
+
+export const testSendEmail = async (req, res) => {
+  // --- All parameters are hardcoded for the test ---
+  const receiverEmails = [
+    'infozobsai@gmail.com',
+    'prakhar@zobsai.com',
+    'shadab@zobsai.com',
+    'rahul@zobsai.com',
+  ];
+  const subject = 'Test Email from the Application';
+  const bodyHtml =
+    '<h1>Hello!</h1><p>This is a test email to confirm that the Gmail API integration is working correctly. No action is required.</p>';
+  // ---
+
+  // 1. User Authorization (still required to know who is sending)
+  if (!req.user) {
+    return res
+      .status(401)
+      .json({ message: 'Unauthorized. No user session found.' });
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user || !user.googleAuth?.refreshToken) {
+      return res.status(400).json({
+        message: 'Google account not linked or permission not granted.',
+      });
+    }
+
+    // 2. Set up OAuth2 client for the user
+    const userOAuthClient = new google.auth.OAuth2(
+      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET,
+      REDIRECT_URI,
+    );
+    userOAuthClient.setCredentials({
+      refresh_token: user.googleAuth.refreshToken,
+    });
+    await userOAuthClient.refreshAccessToken(); // Ensures access token is fresh
+
+    const gmail = google.gmail({ version: 'v1', auth: userOAuthClient });
+
+    // 3. Prepare the email message (no attachments for this simple test)
+    const mailOptions = {
+      from: `"${user.name || 'Test User'}" <${user.email}>`,
+      to: receiverEmails,
+      subject: subject,
+      html: bodyHtml,
+    };
+
+    const mail = new MailComposer(mailOptions);
+    const rawMessageBuffer = await mail.compile().build();
+
+    // 4. Encode the message for the Gmail API
+    const encodedMessage = rawMessageBuffer
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    // 5. Send the email via Gmail API
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: {
+        raw: encodedMessage,
+      },
+    });
+
+    res.status(200).json({ message: 'Test email has been sent successfully!' });
+  } catch (error) {
+    console.error('Failed to send test email:', error);
+    if (error.response?.data?.error === 'invalid_grant') {
+      return res
+        .status(401)
+        .json({ message: 'Authentication failed. Please re-authenticate.' });
+    }
+    res.status(500).json({
+      message: 'An error occurred while trying to send the test email.',
     });
   }
 };

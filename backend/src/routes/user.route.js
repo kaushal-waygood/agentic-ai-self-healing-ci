@@ -24,6 +24,7 @@ const router = Router();
 // Start the OAuth flow
 router.get('/auth/google', authMiddleware, authGoogle);
 router.post('/send-email', authMiddleware, sendEmails);
+router.post('/send-test-email', authMiddleware, sendEmails);
 router.get('/oauth2callback', oAuth2Callback);
 router.post('/google/disconnect', authMiddleware, disconnectGoogle);
 
