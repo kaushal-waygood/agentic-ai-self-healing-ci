@@ -25,6 +25,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGINS?.split(',') || [
       'http://127.0.0.1:3000',
+      'http://localhost:3000',
       'http://144.91.114.195:30090',
     ],
     credentials: true,

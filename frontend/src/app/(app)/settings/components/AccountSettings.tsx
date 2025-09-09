@@ -13,9 +13,11 @@ import apiInstance from '@/services/api';
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
 
+  const { user } = useSelector((state: RootState) => state.auth);
+
   const handleLogin = () => {
     setIsLoading(true);
-    window.location.href = 'http://127.0.0.1:8080/api/v1/user/auth/google';
+    window.location.href = `http://127.0.0.1:8080/api/v1/user/auth/google/${user._id}`;
 
     // Reset loading state after 5 seconds in case the redirect fails
     setTimeout(() => setIsLoading(false), 5000);
@@ -78,7 +80,7 @@ export const AccountSetting = () => {
       setStatusMessage('Sending email...');
       setIsError(false);
 
-      const response = await apiInstance.post('/user/send-email', {});
+      const response = await apiInstance.post('/user/send-test-email', {});
 
       const data = await response.data;
       console.log(data);
@@ -127,6 +129,8 @@ export const AccountSetting = () => {
       setIsLoading(false);
     }
   };
+
+  console.log(user);
 
   return (
     <div className="space-y-6">
