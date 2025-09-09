@@ -9,7 +9,20 @@ import redisClient from '../config/redis.js';
 import { google } from 'googleapis';
 import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
-import { SCOPES, oauth2Client } from '../config/googleConsole.js';
+// import { SCOPES, oauth2Client } from '../config/googleConsole.js';
+
+export const SCOPES = [
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/gmail.send',
+];
+
+// Use environment variables instead of hardcoded values
+export const oauth2Client = new google.auth.OAuth2(
+  '433624775795-8jhe519p7bncje5e7hl17m3rh5ttmkng.apps.googleusercontent.com',
+  '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',
+    'http://127.0.0.1:8080/api/v1/user/oauth2callback',
+);
 
 const originUrl = 'http://127.0.0.1:3000' || 'http://localhost:3000';
 
@@ -866,7 +879,6 @@ export const oAuth2Callback = async (req, res) => {
 
 export const authGoogle = async (req, res) => {
   const userId = req.params.id;
-  // const userId = req.user._id.toString();
 
   try {
     const url = oauth2Client.generateAuthUrl({
@@ -874,9 +886,11 @@ export const authGoogle = async (req, res) => {
       prompt: 'consent',
       scope: SCOPES,
       state: userId,
+      redirect_uri: oauth2Client.redirect_uri, // Add this line
     });
 
-    console.log('Redirecting to Google OAuth:', url);
+    console.log('Generated OAuth URL:', url);
+    console.log('Using redirect_uri:', oauth2Client.redirect_uri);
     res.redirect(url);
   } catch (error) {
     console.error('Error generating Google auth URL:', error);

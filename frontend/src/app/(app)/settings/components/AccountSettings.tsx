@@ -10,6 +10,8 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import apiInstance from '@/services/api';
 
+const NEXT_PUBLIC_API_URL = 'https://api.zobsai.com';
+
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,9 +19,8 @@ const GoogleLoginButton = () => {
 
   const handleLogin = () => {
     setIsLoading(true);
-    window.location.href = `http://127.0.0.1:8080/api/v1/user/auth/google/${user._id}`;
+    window.location.href = `${NEXT_PUBLIC_API_URL}/api/v1/user/auth/google/${user._id}`;
 
-    // Reset loading state after 5 seconds in case the redirect fails
     setTimeout(() => setIsLoading(false), 5000);
   };
 
@@ -62,7 +63,7 @@ export const AccountSetting = () => {
       if (error === 'user_not_found') {
         errorMessage = 'User not found. Please try again.';
       } else if (error === 'auth_failed') {
-        errorMessage = 'Authentication failed. Please try again.';
+        errorMessage = 'Authentication fai  led. Please try again.';
       }
 
       setStatusMessage(errorMessage);

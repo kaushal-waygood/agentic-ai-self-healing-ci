@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Sparkles,
   Zap,
-  Play,
   Users,
   Target,
   TrendingUp,
@@ -15,7 +14,6 @@ import { useState, useEffect } from 'react';
 
 export const Hero = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [currentStat, setCurrentStat] = useState(0);
 
   const stats = [
@@ -131,11 +129,11 @@ export const Hero = () => {
               {features.map((feature, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-3 p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/40 hover:bg-white/40 transition-all duration-300 hover:scale-105 cursor-pointer group"
+                  className="flex items-center gap-4 p-5 bg-white/40 backdrop-blur-md rounded-2xl border border-white/50 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer group"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full group-hover:scale-150 transition-transform duration-300" />
-                  <span className="text-sm font-medium text-gray-700">
+                  <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full group-hover:scale-150 transition-transform duration-300" />
+                  <span className="text-md font-semibold text-gray-800">
                     {feature}
                   </span>
                 </div>
@@ -144,25 +142,12 @@ export const Hero = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-6">
-              <Button className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <Button className="w-full group relative overflow-hidden bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-8 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <span className="relative flex items-center gap-2">
                   Start Free Trial
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
-              </Button>
-
-              <Button
-                variant="outline"
-                className="group px-8 py-4 text-lg font-semibold bg-white/40 backdrop-blur-sm border-2 border-purple-200 hover:border-purple-400 hover:bg-white/60 transition-all duration-300 transform hover:scale-105"
-                onClick={() => setIsVideoPlaying(!isVideoPlaying)}
-              >
-                <Play
-                  className={`w-5 h-5 mr-2 transition-transform duration-300 ${
-                    isVideoPlaying ? 'rotate-90' : ''
-                  }`}
-                />
-                Watch Demo
               </Button>
             </div>
 

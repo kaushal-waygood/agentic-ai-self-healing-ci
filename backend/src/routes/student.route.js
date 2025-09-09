@@ -34,7 +34,7 @@ import {
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 
 const router = Router();
 
@@ -163,7 +163,8 @@ router.post('/pdf/generate-pdf', async (req, res) => {
   try {
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome-stable', // Adjust path as needed
     });
     const page = await browser.newPage();
 

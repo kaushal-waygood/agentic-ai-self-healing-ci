@@ -7,8 +7,6 @@ export const authMiddleware = (req, res, next) => {
   const accessToken =
     req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
 
-  console.log('Access Token:', accessToken);
-
   if (!accessToken) {
     return res.status(401).json({ message: 'Access Token is missing' });
   }
