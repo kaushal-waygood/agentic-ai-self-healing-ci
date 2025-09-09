@@ -10,22 +10,14 @@ import {
 } from '@/components/ui/sidebar';
 import { getToken } from '@/utils/cookieToken';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers'; // Import cookies here
+import { cookies } from 'next/headers';
+import { SessionChecker } from '@/utils/SessionChecker'; // 1. Import the component
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies(); // Await cookies() since it returns a Promise
-  const token = getToken(cookieStore); // Pass the store to the utility function
-
-  if (!token) {
-    redirect('/login');
-  }
-
-  console.log(token);
-
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar
@@ -45,7 +37,12 @@ export default async function DashboardLayout({
         </header>
 
         <ScrollArea className="flex-1">
-          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+          {/* 2. Wrap the main content with SessionChecker */}
+          <SessionChecker>
+            {/* --- CLIENT-SIDE CHECK (runs after page loads) --- */}
+            {/* The SessionChecker will now verify localStorage in the browser */}
+            <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+          </SessionChecker>
         </ScrollArea>
 
         <DashboardFooter />

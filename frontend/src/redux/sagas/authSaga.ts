@@ -25,7 +25,8 @@ function* loginSaga(
   try {
     const response = yield call(login, action.payload);
 
-    const { user, token } = response.data;
+    const { user, accessToken: token } = response.data;
+    localStorage.setItem('accessToken', token);
     yield put(loginSuccess({ user, token }));
   } catch (error: unknown) {
     const errorMessage =
