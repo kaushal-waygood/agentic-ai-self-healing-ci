@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from 'react-redux';
 const firebaseConfig = {
   apiKey: 'AIzaSyDvwUH477o1QDT58ku4H41DFaGXD6_d4CA',
   authDomain: 'vs-code-466406.firebaseapp.com',
-  projectId: 'vs-code-466406',
+  projectId: 'zobsai-592f0',
   storageBucket: 'vs-code-466406.firebasestorage.app',
   messagingSenderId: '584491493872',
   appId: '1:584491493872:web:3b27632cba8fb301021535',

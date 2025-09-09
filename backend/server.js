@@ -2,11 +2,11 @@
 
 import app from './src/app.js';
 import dotenv from 'dotenv';
+dotenv.config();
+
 import connectDb from './src/config/db.js';
 import { config } from './src/config/config.js';
 import { startCronJobs } from './src/config/cron-config.js';
-
-dotenv.config();
 
 connectDb();
 
