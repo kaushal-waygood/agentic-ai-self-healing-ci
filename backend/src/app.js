@@ -52,7 +52,7 @@ app.use(
 app.use(cookieParser());
 app.use(morgan('dev'));
 
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.send('Hello from the server!');
 });
 
