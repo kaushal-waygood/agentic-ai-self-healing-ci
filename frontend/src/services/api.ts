@@ -1,11 +1,35 @@
-import axios from 'axios';
+'use client';
 
-export const frontendURL = process.env.NEXT_PUBLIC_FRONTEND_URL;
+import axios from 'axios';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'http://144.91.114.195:30070'
-    : 'http://144.91.114.195:30070';
+    : 'http://127.0.0.1:8080';
+
+// Safe localStorage access with error handling
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return localStorage.getItem(key);
+      }
+      return null;
+    } catch (error) {
+      console.warn('localStorage access error:', error);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(key, value);
+      }
+    } catch (error) {
+      console.warn('localStorage access error:', error);
+    }
+  },
+};
 
 const apiInstance = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,
@@ -18,12 +42,12 @@ const apiInstance = axios.create({
 apiInstance.interceptors.request.use((config) => {
   if (config.data instanceof FormData) {
     config.headers['Content-Type'] = 'multipart/form-data';
-  } else {
+  } else if (!config.headers['Content-Type']) {
     config.headers['Content-Type'] = 'application/json';
   }
 
   // Add access token to requests if it exists
-  const accessToken = localStorage.getItem('accessToken');
+  const accessToken = safeLocalStorage.getItem('accessToken');
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`;
   }
