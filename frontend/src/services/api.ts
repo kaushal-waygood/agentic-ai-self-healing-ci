@@ -4,8 +4,8 @@ import axios from 'axios';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
-    ? 'http://144.91.114.195:30070'
-    : 'http://144.91.114.195:30070';
+    ? 'http://127.0.0.1:8080'
+    : 'http://127.0.0.1:8080';
 
 // Safe localStorage access with error handling
 const safeLocalStorage = {

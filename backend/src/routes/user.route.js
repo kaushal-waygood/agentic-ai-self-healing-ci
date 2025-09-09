@@ -16,15 +16,16 @@ import {
   sendEmails,
   oAuth2Callback,
   disconnectGoogle,
+  testSendEmail,
 } from '../controllers/user.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
 // Start the OAuth flow
-router.get('/auth/google', authMiddleware, authGoogle);
+router.get('/auth/google/:id', authGoogle);
 router.post('/send-email', authMiddleware, sendEmails);
-router.post('/send-test-email', authMiddleware, sendEmails);
+router.post('/send-test-email', authMiddleware, testSendEmail);
 router.get('/oauth2callback', oAuth2Callback);
 router.post('/google/disconnect', authMiddleware, disconnectGoogle);
 

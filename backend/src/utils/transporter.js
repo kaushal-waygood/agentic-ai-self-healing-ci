@@ -17,7 +17,7 @@ const createTransporter = () => {
 
   return nodemailer.createTransport({
     service: 'gmail',
-    port: parseInt(process.env.EMAIL_PORT) || 587,
+    port: parseInt(process.env.EMAIL_PORT) || 2525,
     secure: process.env.EMAIL_SECURE === 'true',
     auth: {
       user: process.env.EMAIL_USER,
@@ -26,9 +26,9 @@ const createTransporter = () => {
     tls: {
       rejectUnauthorized: process.env.NODE_ENV === 'production',
     },
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 5000, // 5 seconds
-    socketTimeout: 10000, // 10 seconds
+    // connectionTimeout: 10000, // 10 seconds
+    // greetingTimeout: 5000, // 5 seconds
+    // socketTimeout: 10000, // 10 seconds
   });
 };
 
