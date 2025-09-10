@@ -18,17 +18,52 @@ import {
   Rocket,
   Eye,
   MousePointer,
+  Award,
 } from 'lucide-react';
 
+const stats = [
+  { icon: Users, value: '10,000+', label: 'Happy Users', theme: 'blue' },
+  {
+    icon: TrendingUp,
+    value: '2.5M+',
+    label: 'Applications Sent',
+    theme: 'purple',
+  },
+  { icon: Target, value: '87%', label: 'Success Rate', theme: 'emerald' },
+  { icon: Award, value: '4.9/5', label: 'User Rating', theme: 'orange' },
+];
+
+// FIXED: Added the missing helper function
+const getThemeClasses = (theme) => {
+  const themes = {
+    blue: {
+      gradient: 'from-blue-500 to-blue-600',
+      text: 'text-blue-600',
+      hover: 'hover:bg-blue-50',
+    },
+    purple: {
+      gradient: 'from-purple-500 to-purple-600',
+      text: 'text-purple-600',
+      hover: 'hover:bg-purple-50',
+    },
+    emerald: {
+      gradient: 'from-emerald-500 to-emerald-600',
+      text: 'text-emerald-600',
+      hover: 'hover:bg-emerald-50',
+    },
+    orange: {
+      gradient: 'from-orange-500 to-orange-600',
+      text: 'text-orange-600',
+      hover: 'hover:bg-orange-50',
+    },
+  };
+  return themes[theme] || themes.blue; // Default to blue theme
+};
+
 export function CTA() {
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 23,
-    minutes: 45,
-    seconds: 32,
-  });
   const [isVisible, setIsVisible] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [hoveredButton, setHoveredButton] = useState(null);
+  const [hoveredCard, setHoveredCard] = useState(null);
   const [particlePositions, setParticlePositions] = useState([]);
   const sectionRef = useRef(null);
 
@@ -42,39 +77,8 @@ export function CTA() {
       y: Math.random() * 100,
       size: Math.random() * 4 + 2,
       speed: Math.random() * 2 + 1,
-      direction: Math.random() * 360,
     }));
     setParticlePositions(particles);
-
-    // Countdown timer
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        let { hours, minutes, seconds } = prev;
-
-        if (seconds > 0) {
-          seconds--;
-        } else {
-          seconds = 59;
-          if (minutes > 0) {
-            minutes--;
-          } else {
-            minutes = 59;
-            if (hours > 0) {
-              hours--;
-            } else {
-              // Reset to 24 hours
-              hours = 23;
-              minutes = 59;
-              seconds = 59;
-            }
-          }
-        }
-
-        return { hours, minutes, seconds };
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -94,18 +98,6 @@ export function CTA() {
       return () => section.removeEventListener('mousemove', handleMouseMove);
     }
   }, []);
-
-  const benefits = [
-    { icon: Clock, text: 'Setup in 2 minutes', color: 'emerald' },
-    { icon: Shield, text: 'No credit card required', color: 'blue' },
-    { icon: Trophy, text: '30-day money-back guarantee', color: 'purple' },
-  ];
-
-  const socialProof = [
-    { icon: Users, number: '10,000+', label: 'Active Users' },
-    { icon: TrendingUp, number: '85%', label: 'Success Rate' },
-    { icon: Target, number: '2.4M+', label: 'Applications Sent' },
-  ];
 
   return (
     <section
@@ -208,31 +200,30 @@ export function CTA() {
             applications while you prepare for interviews and negotiate offers.
           </p>
 
-          {/* Social Proof Cards */}
-          <div
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-3xl mx-auto"
-            style={{
-              transform: `translateY(${isVisible ? 0 : 40}px)`,
-              opacity: isVisible ? 1 : 0,
-              transitionDelay: '0.8s',
-            }}
-          >
-            {socialProof.map((item, index) => (
-              <div
-                key={index}
-                className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 hover:bg-white/15 hover:scale-105 transition-all duration-300 group"
-              >
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl group-hover:rotate-12 transition-transform duration-300">
-                    <item.icon className="w-6 h-6 text-white" />
+          {/* Stats Section */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat, index) => {
+              const theme = getThemeClasses(stat.theme);
+              const IconComponent = stat.icon;
+              return (
+                <div
+                  key={index}
+                  className={`group bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-2 cursor-pointer`}
+                >
+                  <div
+                    className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br ${theme.gradient} rounded-2xl mb-4 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-6`}
+                  >
+                    <IconComponent className="w-8 h-8 text-white" />
+                  </div>
+                  <div className={`text-3xl font-bold mb-1 text-white`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-gray-400 group-hover:text-white transition-colors duration-300 font-medium">
+                    {stat.label}
                   </div>
                 </div>
-                <div className="text-3xl font-black text-white mb-2">
-                  {item.number}
-                </div>
-                <div className="text-gray-300 text-sm">{item.label}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -265,43 +256,6 @@ export function CTA() {
         .animate-gradient {
           background-size: 300% 300%;
           animation: gradient 4s ease infinite;
-        }
-
-        /* Custom pulse animation */
-        @keyframes custom-pulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-
-        /* Shimmer effect */
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-
-        /* Enhanced transitions */
-        .transition-all {
-          transition-property: all;
-          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Glassmorphism enhancements */
-        .backdrop-blur-xl {
-          backdrop-filter: blur(20px);
-        }
-
-        /* Button hover effects */
-        .group:hover .group-hover\\:rotate-12 {
-          transform: rotate(12deg);
         }
       `}</style>
     </section>

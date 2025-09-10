@@ -117,7 +117,7 @@ export default function BeforeAfter() {
   );
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 py-16 md:py-20 relative overflow-hidden">
+    <section className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 py-8 md:py-8 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute top-10 md:top-20 left-5 md:left-10 w-24 h-24 md:w-32 md:h-32 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse" />
       <div
@@ -156,39 +156,6 @@ export default function BeforeAfter() {
           </p>
         </div>
 
-        {/* Interactive Toggle */}
-        <div className="flex justify-center mb-12 md:mb-16">
-          <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-gray-200 w-full max-w-sm md:max-w-md mx-auto">
-            <div
-              className={`absolute top-2 h-10 md:h-12 bg-gradient-to-r rounded-xl transition-all duration-500 ease-out ${
-                activeTab === 'before'
-                  ? 'left-2 w-[calc(50%-8px)] from-red-500 to-red-600'
-                  : 'left-[calc(50%+4px)] w-[calc(50%-8px)] from-emerald-500 to-emerald-600'
-              }`}
-            />
-            <button
-              onClick={() => setActiveTab('before')}
-              className={`relative z-10 w-1/2 py-2 md:py-3 rounded-xl font-semibold transition-colors duration-300 ${
-                activeTab === 'before'
-                  ? 'text-white'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Before
-            </button>
-            <button
-              onClick={() => setActiveTab('after')}
-              className={`relative z-10 w-1/2 py-2 md:py-3 rounded-xl font-semibold transition-colors duration-300 ${
-                activeTab === 'after'
-                  ? 'text-white'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              After
-            </button>
-          </div>
-        </div>
-
         {/* Comparison Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 mb-12 md:mb-20">
           {/* Before Card */}
@@ -198,6 +165,7 @@ export default function BeforeAfter() {
                 ? 'scale-100 opacity-100 lg:scale-105'
                 : 'scale-95 opacity-60'
             }`}
+            onClick={() => setActiveTab('before')}
           >
             <div className="bg-white/90 backdrop-blur-sm border border-red-200 rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-500 to-red-600" />
@@ -236,6 +204,7 @@ export default function BeforeAfter() {
                 ? 'scale-100 opacity-100 lg:scale-105'
                 : 'scale-95 opacity-60'
             }`}
+            onClick={() => setActiveTab('after')}
           >
             <div className="bg-white/90 backdrop-blur-sm border border-emerald-200 rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-500 to-emerald-600" />

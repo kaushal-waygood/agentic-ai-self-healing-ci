@@ -4,14 +4,12 @@ import { config } from 'dotenv';
 
 config();
 
-// Validate environment variables
 const validateEnvVars = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
     throw new Error('SMTP credentials are missing in environment variables');
   }
 };
 
-// Create transporter with enhanced configuration
 const createTransporter = () => {
   validateEnvVars();
 
@@ -34,7 +32,6 @@ const createTransporter = () => {
 
 const transporter = createTransporter();
 
-// Enhanced verification with retries
 const verifyTransporter = async (maxAttempts = 3) => {
   let attempts = 0;
 
@@ -60,13 +57,11 @@ const verifyTransporter = async (maxAttempts = 3) => {
   }
 };
 
-// Initialize the transporter
 verifyTransporter().catch((err) => {
   console.error('Critical SMTP initialization error:', err);
   process.exit(1); // Exit if email service is critical for your app
 });
 
-// Enhanced email sending with better error handling
 export const sendEmailWithRetry = async (mailOptions, maxRetries = 3) => {
   if (!isValidEmail(mailOptions.to)) {
     throw new Error(`Invalid recipient email: ${mailOptions.to}`);
