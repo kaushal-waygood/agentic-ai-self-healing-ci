@@ -16,8 +16,6 @@ import {
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
-// Sample data for the solutions cards
-// In your project, this would be imported from './data/solution'
 const solutions = [
   {
     icon: Brain,
@@ -129,7 +127,7 @@ export const Solutions = () => {
   };
 
   return (
-    <section className="relative py-16 md:py-32 bg-gradient-to-br from-white via-blue-50/30 to-purple-50/50 overflow-hidden">
+    <section className="relative py-16 md:py-20 bg-gradient-to-br from-white via-blue-50/30 to-purple-50/50 overflow-hidden">
       {/* Dynamic Background Effects */}
       <div className="absolute inset-0">
         <div
@@ -169,15 +167,15 @@ export const Solutions = () => {
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         {/* Header Section */}
-        <div className="text-center mb-12 md:mb-20">
-          <div className="inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-green-100/50 backdrop-blur-sm border border-green-200/50 rounded-full mb-4 md:mb-8">
+        <div className="text-center mb-12 md:mb-16">
+          <div className="inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-green-100/50 backdrop-blur-sm border border-green-200/50 rounded-full mb-6 md:mb-8">
             <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600 animate-pulse" />
             <span className="text-green-700 font-semibold text-sm md:text-base">
               AI-Powered Solutions
             </span>
           </div>
 
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 leading-tight">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
             <span className="text-gray-900">Meet Your</span>
             <br />
             <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
@@ -196,7 +194,7 @@ export const Solutions = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-20 items-center mb-12 md:mb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
           {solutions.map((solution, index) => {
             const IconComponent = solution.icon;
             const isActive = activeDemo === index;
@@ -226,43 +224,43 @@ export const Solutions = () => {
                     isActive ? 'bg-white/80 border-purple-200' : ''
                   }`}
                 >
-                  <div className="flex flex-col md:flex-row items-start gap-4">
+                  <div className="flex flex-col md:flex-row items-start gap-5">
                     {/* Icon */}
                     <div
-                      className={`w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br ${solution.color} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}
+                      className={`w-14 h-14 bg-gradient-to-br ${solution.color} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 flex-shrink-0`}
                     >
-                      <IconComponent className="w-6 h-6 md:w-7 md:h-7 text-white" />
+                      <IconComponent className="w-7 h-7 text-white" />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1">
-                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-2 md:mb-3">
-                        <h3 className="text-lg md:text-xl font-bold text-gray-900">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-2">
+                        <h3 className="text-xl font-bold text-gray-900">
                           {solution.title}
                         </h3>
                         <div
-                          className={`px-2 py-1 mt-2 md:mt-0 bg-gradient-to-r ${solution.color} rounded-full text-white text-xs font-bold transform group-hover:scale-105 transition-all duration-300`}
+                          className={`px-3 py-1 mt-2 md:mt-0 bg-gradient-to-r ${solution.color} rounded-full text-white text-xs font-bold transform group-hover:scale-105 transition-all duration-300`}
                         >
                           {solution.stat}
                         </div>
                       </div>
 
-                      <p className="text-sm md:text-base text-gray-600 mb-2 md:mb-4 leading-relaxed">
+                      <p className="text-base text-gray-600 mb-3 leading-relaxed">
                         {solution.description}
                       </p>
 
                       {/* Features List */}
                       <div
-                        className={`space-y-1 md:space-y-2 transform transition-all duration-500 ${
+                        className={`space-y-1.5 transform transition-all duration-500 ${
                           hoveredCard === index
                             ? 'opacity-100 translate-y-0'
-                            : 'opacity-0 translate-y-2 md:translate-y-4'
+                            : 'opacity-0 translate-y-3'
                         }`}
                       >
                         {solution.features.map((feature, featureIndex) => (
                           <div
                             key={featureIndex}
-                            className="flex items-center gap-2 text-xs md:text-sm text-gray-500"
+                            className="flex items-center gap-2 text-sm text-gray-500"
                           >
                             <div className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
                             <span>{feature}</span>
@@ -274,7 +272,7 @@ export const Solutions = () => {
                       <Link
                         href="/login"
                         target="_blank"
-                        className={`mt-4 inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-2 bg-purple-100/50 backdrop-blur-sm rounded-full text-purple-700 text-sm font-medium transform transition-all duration-300 ${
+                        className={`mt-3 inline-flex items-center gap-2 px-4 py-2 bg-purple-100/50 backdrop-blur-sm rounded-full text-purple-700 text-sm font-medium transform transition-all duration-300 ${
                           isActive ? 'scale-105 bg-purple-100' : 'scale-100'
                         }`}
                       >

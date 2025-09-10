@@ -29,7 +29,7 @@ export const PainPoints = () => {
   }, []);
 
   return (
-    <section className="relative py-32 bg-gradient-to-br from-slate-50 via-red-50/30 to-orange-50/30 overflow-hidden">
+    <section className="relative py-8 bg-gradient-to-br from-slate-50 via-red-50/30 to-orange-50/30 overflow-hidden">
       {/* Dynamic Background Effects */}
       <div className="absolute inset-0">
         <div
@@ -78,10 +78,9 @@ export const PainPoints = () => {
           </div>
 
           <h2 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-            <span className="text-gray-900">The Job Search</span>
-            <br />
+            <span className="text-gray-900">Job Search </span>{' '}
             <span className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 bg-clip-text text-transparent animate-pulse">
-              Struggle Is Real
+              Is Struggle
             </span>
           </h2>
 

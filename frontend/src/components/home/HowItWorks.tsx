@@ -4,344 +4,221 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Settings,
   Zap,
-  ArrowRight,
   Play,
   Rocket,
   Sparkles,
   CheckCircle,
-  Clock,
-  BarChart3,
-  MousePointer,
-  Users,
-  FileText,
-  Target,
   TrendingUp,
-  ArrowDown, // Added for vertical flow on mobile
-  Download,
-  Send,
+  FileText,
+  ArrowRight,
   Star,
-  Globe,
-  Shield,
+  Clock,
 } from 'lucide-react';
 
+// Data for the steps remains unchanged
 const steps = [
   {
     step: 1,
     icon: Settings,
     title: 'Profile Setup',
-    highlight: '2-Minute Setup',
     description:
       'Quickly create your professional profile by uploading your resume. Our AI instantly analyzes your skills and experience.',
     time: '2 mins',
-    stats: '100% Data Accuracy',
     gradient: 'from-blue-500 to-purple-500',
     lightGradient: 'from-blue-100 to-purple-100',
     color: 'blue',
-    features: ['Smart Resume Parsing', 'Skill Extraction', 'Industry Matching'],
+    successRate: 98,
   },
   {
     step: 2,
     icon: Zap,
     title: 'AI Automation',
-    highlight: 'Job Discovery',
     description:
       'Our AI finds jobs that are a perfect fit for your profile, saving you hours of searching on different job boards.',
     time: 'Auto-Run',
-    stats: '500+ Jobs Found',
     gradient: 'from-purple-500 to-emerald-500',
     lightGradient: 'from-purple-100 to-emerald-100',
     color: 'purple',
-    features: ['Multi-Platform Search', 'Smart Filtering', 'Real-time Updates'],
+    successRate: 94,
   },
   {
     step: 3,
     icon: FileText,
     title: 'Resume Customization',
-    highlight: 'ATS-Friendly',
     description:
       'For every job, ZobsAI customizes your resume to beat the ATS and highlights your relevant skills.',
     time: 'Per Job',
-    stats: '85% ATS Pass Rate',
     gradient: 'from-emerald-500 to-cyan-500',
     lightGradient: 'from-emerald-100 to-cyan-100',
     color: 'emerald',
-    features: [
-      'Keyword Optimization',
-      'Format Adaptation',
-      'Skill Highlighting',
-    ],
+    successRate: 85,
   },
   {
     step: 4,
     icon: Rocket,
     title: 'Automated Application',
-    highlight: 'One-Click Apply',
     description:
       'Apply to jobs directly from our platform. Our system fills out forms and submits your tailored resume for you.',
     time: 'Instant',
-    stats: '100+ Daily Applies',
     gradient: 'from-cyan-500 to-blue-500',
     lightGradient: 'from-cyan-100 to-blue-100',
     color: 'cyan',
-    features: ['Auto Form Fill', 'Cover Letter Gen', 'Follow-up Tracking'],
+    successRate: 92,
   },
 ];
 
 export function HowItWorks() {
   const [activeStep, setActiveStep] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [hoveredCard, setHoveredCard] = useState(null);
-  const sectionRef = useRef(null);
+  const intervalRef = useRef(null);
 
-  useEffect(() => {
-    setIsVisible(true);
-
-    const interval = setInterval(() => {
+  // Function to start the autoplaying carousel
+  const startAutoPlay = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
       setActiveStep((prev) => (prev + 1) % steps.length);
     }, 4000);
+  };
 
-    return () => clearInterval(interval);
+  // Function to stop the autoplay
+  const stopAutoPlay = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  // Start autoplay on component mount
+  useEffect(() => {
+    startAutoPlay();
+    return () => stopAutoPlay(); // Cleanup on unmount
   }, []);
 
+  // Update progress bar when activeStep changes
   useEffect(() => {
     setProgress((activeStep + 1) * 25);
   }, [activeStep]);
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (sectionRef.current) {
-        const rect = sectionRef.current.getBoundingClientRect();
-        setMousePosition({
-          x: ((e.clientX - rect.left) / rect.width) * 100,
-          y: ((e.clientY - rect.top) / rect.height) * 100,
-        });
-      }
-    };
-
-    const section = sectionRef.current;
-    if (section) {
-      section.addEventListener('mousemove', handleMouseMove);
-      return () => section.removeEventListener('mousemove', handleMouseMove);
-    }
-  }, []);
-
+  // A more focused, reusable card component for each step
   const StepCard = ({ step, index, isActive }) => {
     const IconComponent = step.icon;
-    const isHovered = hoveredCard === index;
 
     return (
       <div
-        className={`relative group cursor-pointer transition-all duration-700 transform-gpu ${
+        className={`group relative cursor-pointer transition-all duration-500 transform h-full ${
           isActive ? 'scale-105 md:scale-110 z-20' : 'hover:scale-105 z-10'
         }`}
-        style={{
-          transform: `translateY(${isVisible ? 0 : 50}px) scale(${
-            isActive ? 1.1 : isVisible ? 1 : 0.9
-          }) rotateX(${isHovered ? '5deg' : '0deg'})`,
-          opacity: isVisible ? (isActive ? 1 : 0.8) : 0,
-          transitionDelay: `${index * 150}ms`,
-          perspective: '1000px',
-        }}
         onMouseEnter={() => {
           setActiveStep(index);
-          setHoveredCard(index);
+          stopAutoPlay();
         }}
-        onMouseLeave={() => setHoveredCard(null)}
+        onMouseLeave={() => {
+          startAutoPlay();
+        }}
       >
-        {/* Horizontal Connecting Line for Desktop */}
+        {/* Connection Lines for Desktop */}
         {index < steps.length - 1 && (
-          <div className="hidden lg:block absolute top-20 left-full w-full z-0">
-            <div className="h-1 bg-gray-200 rounded-full overflow-hidden relative">
+          <div className="hidden lg:block absolute top-24 left-full w-full">
+            <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
               <div
                 className={`h-full bg-gradient-to-r ${
                   step.gradient
-                } transition-all duration-1500 ${
+                } transition-all duration-1000 ease-out ${
                   activeStep > index ? 'w-full' : 'w-0'
                 }`}
               />
-              <div
-                className={`absolute top-1/2 -translate-y-1/2 w-1 h-1 bg-white rounded-full transition-all duration-1500 ${
-                  activeStep > index
-                    ? 'left-1/4 opacity-100'
-                    : 'left-0 opacity-0'
-                }`}
-                style={{ animationDelay: '0.3s' }}
-              />
-              <div
-                className={`absolute top-1/2 -translate-y-1/2 w-1 h-1 bg-white rounded-full transition-all duration-1500 ${
-                  activeStep > index
-                    ? 'left-3/4 opacity-100'
-                    : 'left-0 opacity-0'
-                }`}
-                style={{ animationDelay: '0.6s' }}
-              />
-            </div>
-            <div
-              className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-gradient-to-r ${
-                step.gradient
-              } rounded-full transition-all duration-1500 shadow-lg ${
-                activeStep > index ? 'left-full -translate-x-4' : 'left-0'
-              }`}
-            >
-              <div className="absolute inset-1 bg-white rounded-full animate-pulse" />
             </div>
           </div>
         )}
 
-        {/* Vertical Connecting Line for Mobile/Tablet */}
-        {index < steps.length - 1 && (
-          <div className="block lg:hidden absolute bottom-0 left-1/2 -translate-x-1/2 h-12 w-px bg-gradient-to-b from-transparent via-gray-300 to-gray-300" />
-        )}
-
+        {/* Card Container */}
         <div
-          className={`relative bg-white/90 backdrop-blur-xl border-2 rounded-3xl overflow-hidden transition-all duration-500 ${
+          className={`relative bg-white/95 backdrop-blur-xl border-2 rounded-3xl overflow-hidden transition-all duration-500 shadow-xl h-full flex flex-col ${
             isActive
-              ? `border-${step.color}-300 shadow-2xl shadow-${step.color}-200/40`
-              : 'border-white/30 shadow-lg hover:shadow-2xl'
+              ? `border-${step.color}-300 shadow-2xl shadow-${step.color}-200/50`
+              : `border-transparent group-hover:border-${step.color}-300 group-hover:shadow-xl`
           }`}
-          style={{
-            background: isHovered
-              ? `linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)`
-              : undefined,
-          }}
         >
+          {/* Card Header */}
           <div
-            className={`h-24 md:h-28 bg-gradient-to-br ${step.lightGradient} relative overflow-hidden`}
-            style={{
-              background: isHovered
-                ? `linear-gradient(135deg, var(--tw-gradient-from), var(--tw-gradient-to))`
-                : undefined,
-            }}
+            className={`h-28 bg-gradient-to-br ${step.lightGradient} relative overflow-hidden flex-shrink-0`}
           >
             <div
               className={`absolute inset-0 bg-gradient-to-br ${
                 step.gradient
-              } opacity-0 ${
-                isActive
-                  ? 'opacity-30'
-                  : isHovered
-                  ? 'opacity-20'
-                  : 'group-hover:opacity-15'
-              } transition-all duration-500`}
+              } opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${
+                isActive ? 'opacity-30' : ''
+              }`}
             />
-            <div className="absolute inset-0 overflow-hidden">
-              {[...Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute w-1 h-1 bg-white/40 rounded-full animate-float"
-                  style={{
-                    top: `${20 + i * 10}%`,
-                    left: `${15 + i * 8}%`,
-                    animationDelay: `${i * 0.5}s`,
-                    animationDuration: `${3 + i * 0.2}s`,
-                  }}
-                />
-              ))}
-            </div>
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+            <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
               <div
-                className={`w-12 h-12 md:w-16 md:h-16 bg-gradient-to-r ${
+                className={`w-16 h-16 bg-gradient-to-r ${
                   step.gradient
-                } rounded-3xl flex items-center justify-center shadow-xl border-4 border-white ${
-                  isActive ? 'animate-bounce' : isHovered ? 'animate-pulse' : ''
+                } rounded-3xl flex items-center justify-center shadow-xl border-4 border-white transition-transform duration-300 group-hover:scale-105 ${
+                  isActive ? 'animate-bounce scale-110' : ''
                 }`}
               >
-                <span className="text-white font-black text-lg md:text-xl">
+                <span className="text-white font-black text-xl">
                   {step.step}
                 </span>
               </div>
             </div>
-          </div>
-          <div className="p-6 md:p-8 pt-10 md:pt-12">
-            <div className="flex items-center justify-between mb-6">
-              <div
-                className={`p-3 md:p-4 bg-gradient-to-br ${
-                  step.lightGradient
-                } rounded-2xl border-2 border-${
-                  step.color
-                }-200 group-hover:scale-110 ${
-                  isActive ? 'scale-110 rotate-3' : ''
-                } transition-all duration-300 shadow-lg`}
-              >
-                <IconComponent
-                  className={`w-6 h-6 md:w-7 md:h-7 text-${step.color}-600`}
-                />
-              </div>
-              <div
-                className={`px-3 py-1 md:px-4 md:py-2 bg-gradient-to-r ${step.gradient} text-white text-xs md:text-sm font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300`}
-              >
-                {step.time}
-              </div>
+            <div className="absolute top-4 right-4 flex items-center gap-1 px-2 py-1 bg-white/80 rounded-full shadow border">
+              <Star className={`w-3 h-3 text-${step.color}-500 fill-current`} />
+              <span className={`text-xs font-bold text-${step.color}-700`}>
+                {step.successRate}%
+              </span>
             </div>
-            <div className="text-center mb-6">
-              <h3 className="text-xl md:text-2xl font-bold mb-2 md:mb-3 text-gray-800">
+          </div>
+
+          {/* Card Content */}
+          <div className="p-6 pt-12 text-center flex flex-col flex-grow">
+            <div className="flex-grow">
+              <div className="flex justify-between items-center mb-4">
+                <div
+                  className={`p-4 bg-white rounded-2xl border-2 shadow-sm transition-transform duration-300 group-hover:scale-105 ${
+                    isActive
+                      ? `scale-110 rotate-6 border-${step.color}-200`
+                      : 'border-gray-100'
+                  }`}
+                >
+                  <IconComponent className={`w-7 h-7 text-${step.color}-600`} />
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-bold rounded-full">
+                  <Clock className="w-4 h-4" />
+                  <span>{step.time}</span>
+                </div>
+              </div>
+              <h3 className="text-2xl font-black text-gray-800 mb-2">
                 {step.title}
               </h3>
-              <div
-                className={`inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-2 bg-gradient-to-r ${step.lightGradient} rounded-full mb-4 shadow-sm border border-${step.color}-200`}
-              >
-                <Sparkles
-                  className={`w-4 h-4 text-${step.color}-500 animate-pulse`}
-                />
-                <span
-                  className={`text-sm md:text-base font-semibold text-${step.color}-700`}
-                >
-                  {step.highlight}
-                </span>
-              </div>
-              <p className="text-gray-600 text-sm md:text-base leading-relaxed mb-4 md:mb-5">
+              <p className="text-gray-600 leading-relaxed">
                 {step.description}
               </p>
-              <div
-                className={`inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-3 bg-white border-2 border-${step.color}-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300`}
-              >
-                <BarChart3
-                  className={`w-4 h-4 md:w-5 md:h-5 text-${step.color}-500`}
-                />
-                <span
-                  className={`text-sm md:text-base font-bold text-${step.color}-700`}
-                >
-                  {step.stats}
-                </span>
-              </div>
             </div>
-            {isHovered && (
-              <div className="space-y-2 mb-4 animate-fade-in-up">
-                {step.features.map((feature, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 text-sm text-gray-600"
-                  >
-                    <div
-                      className={`w-2 h-2 bg-gradient-to-r ${step.gradient} rounded-full`}
-                    />
-                    <span>{feature}</span>
-                  </div>
-                ))}
+
+            {/* Bottom section for hover button OR active indicator */}
+            <div className="mt-auto pt-6 min-h-[68px]">
+              <div className="hidden group-hover:block animate-fade-in-up">
+                <button
+                  className={`w-full py-3 bg-gradient-to-r ${step.gradient} text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300 flex items-center justify-center gap-2 group/btn`}
+                >
+                  Try This Step
+                  <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                </button>
               </div>
-            )}
-            {isActive && (
-              <div className="space-y-3 animate-fade-in-up">
-                <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
-                  <CheckCircle className="w-4 h-4 animate-bounce" />
-                  <span>Step completed automatically</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-                  <div
-                    className={`h-full bg-gradient-to-r ${step.gradient} rounded-full transition-all duration-2000 relative overflow-hidden`}
-                    style={{ width: '100%' }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+
+              {isActive && (
+                <div className="animate-fade-in-up">
+                  <div className="flex items-center gap-2 text-emerald-600 text-sm font-semibold bg-emerald-50 rounded-lg p-3">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Step Active</span>
+                    <TrendingUp className="w-4 h-4 ml-auto" />
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-          <div
-            className={`absolute inset-0 bg-gradient-to-br ${step.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none`}
-          />
         </div>
       </div>
     );
@@ -349,72 +226,45 @@ export function HowItWorks() {
 
   return (
     <section
-      ref={sectionRef}
-      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 py-16 md:py-24 relative overflow-hidden"
-      style={{
-        background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(59, 130, 246, 0.1) 0%, transparent 50%), linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #f3e8ff 100%)`,
-      }}
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-purple-50/40 py-20 md:py-28 relative overflow-hidden"
+      id="how-it-works"
     >
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-20 w-48 h-48 sm:w-96 sm:h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-float opacity-60" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-200/50 rounded-full blur-3xl animate-float" />
         <div
-          className="absolute bottom-32 right-20 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-emerald-400/20 to-cyan-400/20 rounded-full blur-3xl animate-float opacity-60"
+          className="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-200/50 rounded-full blur-3xl animate-float"
           style={{ animationDelay: '2s', animationDirection: 'reverse' }}
         />
-        <div
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] h-[600px] bg-gradient-to-r from-purple-300/10 to-pink-300/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '8s' }}
-        />
       </div>
-      <div className="container mx-auto px-4 md:px-8 relative z-10">
-        <div className="text-center mb-16 md:mb-20">
-          <div className="inline-flex items-center gap-3 bg-white/90 backdrop-blur-xl border border-white/50 rounded-full px-4 py-2 sm:px-6 sm:py-3 mb-8 shadow-xl hover:scale-105 transition-all duration-300">
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full">
-              <Play className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-gray-700 text-base sm:text-lg">
-              How It Works
-            </span>
-            <Sparkles className="w-5 h-5 text-purple-500 animate-pulse" />
-          </div>
-          {/* Modified font sizes for responsiveness */}
-          <h2 className="text-4xl sm:text-5xl md:text-7xl font-black mb-6 leading-tight">
-            How{' '}
+
+      <div className="container mx-auto px-6 md:px-8 relative z-10">
+        <header className="text-center mb-20 md:mb-24">
+          <h2 className="text-5xl sm:text-6xl md:text-7xl font-black mb-6 tracking-tight">
+            Meet your Job{' '}
             <span className="text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text animate-gradient">
-              ZobsAI
-            </span>{' '}
-            <span className="text-gray-900">Works</span>
+              AI Assistant
+            </span>
           </h2>
-          <p className="text-base md:text-lg lg:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed mb-10">
+          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Transform your job search with AI-powered automation that works
-            while you sleep
+            while you sleep.
           </p>
-          <div className="max-w-2xl mx-auto mb-12">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-sm font-semibold text-gray-500">
-                Progress
-              </span>
-              <span className="text-sm font-bold text-blue-600">
-                {progress}% Complete
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner relative">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
-                style={{ width: `${progress}%` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
-              </div>
-              <div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg transition-all duration-1000"
-                style={{ left: `${Math.max(0, progress - 2)}%` }}
-              />
+        </header>
+
+        {/* Progress Bar */}
+        <div className="max-w-3xl mx-auto mb-20">
+          <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-full transition-all duration-1000 ease-out relative"
+              style={{ width: `${progress}%` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
             </div>
           </div>
         </div>
 
-        {/* Modified grid layout and gap for responsiveness */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-12 md:gap-8 mb-16 md:mb-24">
+        {/* Steps Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:items-stretch gap-10">
           {steps.map((step, index) => (
             <StepCard
               key={index}
@@ -426,21 +276,21 @@ export function HowItWorks() {
         </div>
       </div>
 
-      {/* No changes needed for the style block */}
+      {/* Simplified Styles */}
       <style jsx>{`
         @keyframes float {
           0%,
           100% {
-            transform: translateY(0px) rotate(0deg);
+            transform: translateY(0px);
           }
           50% {
-            transform: translateY(-12px) rotate(2deg);
+            transform: translateY(-20px);
           }
         }
         @keyframes fade-in-up {
           from {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(20px);
           }
           to {
             opacity: 1;
@@ -464,43 +314,31 @@ export function HowItWorks() {
             background-position: 100% 50%;
           }
         }
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
         .animate-float {
-          animation: float 6s ease-in-out infinite;
+          animation: float 8s ease-in-out infinite;
+        }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.5s ease-out;
         }
         .animate-shimmer {
-          animation: shimmer 2s infinite;
+          animation: shimmer 2.5s infinite;
         }
         .animate-gradient {
           background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
+          animation: gradient 4s ease infinite;
         }
-        .glass {
-          background: rgba(255, 255, 255, 0.25);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.18);
-        }
-        .card-hover:hover {
-          transform: translateY(-8px) rotateX(5deg);
-          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        html {
-          scroll-behavior: smooth;
-        }
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-          background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: linear-gradient(45deg, #3b82f6, #8b5cf6);
-          border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(45deg, #2563eb, #7c3aed);
+        @media (prefers-reduced-motion: reduce) {
+          .animate-float,
+          .animate-fade-in-up,
+          .animate-shimmer,
+          .animate-gradient,
+          .animate-bounce {
+            animation: none;
+          }
+          .transition-all,
+          .transition-transform {
+            transition: none;
+          }
         }
       `}</style>
     </section>

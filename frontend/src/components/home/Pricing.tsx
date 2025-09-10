@@ -70,6 +70,7 @@ export function Pricing() {
         }}
         onMouseEnter={() => setHoveredPlan(index)}
         onMouseLeave={() => setHoveredPlan(null)}
+        id="pricing"
       >
         {/* Popular Glow Effect */}
         {plan.popular && (
