@@ -1,13 +1,15 @@
 'use client';
 
-import { AlertTriangle, ArrowRight, Zap } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Router, Zap } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { painPoints } from './data/solution';
+import { useRouter } from 'next/navigation';
 
 export const PainPoints = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [activeCard, setActiveCard] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -80,7 +82,7 @@ export const PainPoints = () => {
           <h2 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             <span className="text-gray-900">Job Search </span>{' '}
             <span className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 bg-clip-text text-transparent animate-pulse">
-              Is Struggle
+              Struggle is Real
             </span>
           </h2>
 
@@ -165,6 +167,7 @@ export const PainPoints = () => {
 
                 {/* Solution Preview */}
                 <button
+                  onClick={() => router.push('/singup')}
                   className={`mt-6 p-4 bg-green-50 backdrop-blur-sm w-full border border-green-200 rounded-xl transform transition-all duration-500 ${
                     activeCard === index
                       ? 'opacity-100 translate-y-0'
