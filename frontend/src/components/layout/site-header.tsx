@@ -135,7 +135,10 @@ export const Navigation = () => {
                 >
                   Sign In
                 </Link>
-                <Button className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm">
+                <Button
+                  onClick={() => router.push('/signup')}
+                  className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm"
+                >
                   Start Free Trial
                 </Button>
               </>
@@ -211,7 +214,10 @@ export const Navigation = () => {
                     >
                       Sign In
                     </Link>
-                    <Button className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <Button
+                      onClick={() => router.push('/signup')}
+                      className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    >
                       Start Free Trial
                     </Button>
                   </>
