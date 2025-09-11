@@ -9,7 +9,6 @@ const API_BASE_URL =
     ? 'https://api.zobsai.com'
     : 'https://api.zobsai.com';
 
-// Safe localStorage access with error handling
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     try {
@@ -22,6 +21,7 @@ const safeLocalStorage = {
       return null;
     }
   },
+
   setItem: (key: string, value: string): void => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
