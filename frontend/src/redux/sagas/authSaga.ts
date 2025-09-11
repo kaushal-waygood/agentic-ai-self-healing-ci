@@ -16,8 +16,17 @@ import {
   changePasswordRequest,
   changePasswordSuccess,
   changePasswordFailure,
+  logoutSuccess,
+  logoutFailure,
+  logoutRequest,
 } from '../reducers/authReducer';
-import { changePassword, getProfile, login, signup } from '@/services/api/auth';
+import {
+  changePassword,
+  getProfile,
+  login,
+  logout,
+  signup,
+} from '@/services/api/auth';
 
 function* loginSaga(
   action: PayloadAction<{ email: string; password: string }>,
@@ -84,9 +93,21 @@ function* changePasswordSaga(action: PayloadAction<any>): SagaIterator {
   }
 }
 
+function* logoutSaga(): SagaIterator {
+  try {
+    const response = yield call(logout);
+    localStorage.removeItem('accessToken');
+    yield put(logoutSuccess());
+  } catch (error) {
+    console.log(error);
+    yield put(logoutFailure(error));
+  }
+}
+
 export function* watchAuth(): SagaIterator {
   yield takeLatest(loginRequest.type, loginSaga);
   yield takeLatest(signupRequest.type, signupSaga);
   yield takeLatest(getProfileRequest.type, getUserProfileSaga);
   yield takeLatest(changePasswordRequest.type, changePasswordSaga);
+  yield takeLatest(logoutRequest.type, logoutSaga);
 }

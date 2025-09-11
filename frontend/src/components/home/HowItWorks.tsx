@@ -251,18 +251,6 @@ export function HowItWorks() {
           </p>
         </header>
 
-        {/* Progress Bar */}
-        <div className="max-w-3xl mx-auto mb-20">
-          <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-full transition-all duration-1000 ease-out relative"
-              style={{ width: `${progress}%` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
-            </div>
-          </div>
-        </div>
-
         {/* Steps Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:items-stretch gap-10">
           {steps.map((step, index) => (

@@ -33,6 +33,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { getStudentDetails } from '@/services/api/student';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
+import { logoutRequest } from '@/redux/reducers/authReducer';
 
 const AppHeader = () => {
   const [mounted, setMounted] = useState(false);
@@ -155,11 +156,16 @@ const AppHeader = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await apiInstance.get('/user/signout');
-      if (response.status === 200) {
-        router.push('/login');
-      }
-    } catch (error) {}
+      dispatch(logoutRequest());
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: 'Logout Failed',
+        description: 'Failed to logout. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (!user) {

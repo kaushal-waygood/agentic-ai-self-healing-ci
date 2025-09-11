@@ -140,18 +140,6 @@ export const Hero = () => {
               ))}
             </div>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6">
-              <Button className="w-full group relative overflow-hidden bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-8 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative flex items-center gap-2">
-                  Start Free Trial
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </Button>
-            </div>
-
-            {/* Trust Indicators */}
             <div className="flex items-center gap-8 pt-4">
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-2">
@@ -175,6 +163,19 @@ export const Hero = () => {
                 <span>Setup in 2 minutes</span>
               </div>
             </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-6">
+              <Button className="w-full group relative overflow-hidden bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-8 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="relative flex items-center gap-2">
+                  Start Free Trial
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </Button>
+            </div>
+
+            {/* Trust Indicators */}
           </div>
 
           {/* Right Content - Interactive Dashboard Preview */}

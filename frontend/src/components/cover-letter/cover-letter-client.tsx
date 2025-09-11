@@ -179,19 +179,22 @@ export function CoverLetterGeneratorClient() {
     dispatch(getStudentDetailsRequest());
   }, [generatedCvOutput]);
 
-  const handleSetJobContext = async (mode: 'paste' | 'select' | 'title') => {
+  const handleSetJobContext = async (
+    mode: 'paste' | 'select' | 'title',
+    value: string,
+  ) => {
     setIsLoading(true);
     setLoadingMessage('Processing job context...');
     let context: JobContext | null = null;
     try {
-      if (mode === 'select' && selectedJobId) {
-        const job = mockJobListings.find((j) => j.id === selectedJobId);
-        if (job)
+      if (mode === 'select' && value) {
+        setSelectedJobId(value);
+        if (value._id)
           context = {
             mode,
-            value: job.id,
-            title: job.title,
-            description: job.description,
+            value: value._id,
+            title: value.title,
+            description: value.description,
           };
       } else if (mode === 'paste' && pastedJobDesc) {
         context = {
@@ -421,6 +424,38 @@ export function CoverLetterGeneratorClient() {
               'Content-Type': 'multipart/form-data',
             },
           },
+        );
+
+        // Handle HTML response
+        response = {
+          letter: apiResponse.data,
+        };
+      } else if (jobContext.mode === 'select') {
+        console.log(jobContext.value);
+        const formData = new FormData();
+
+        formData.append('jobId', jobContext.value);
+
+        if (cvSource.mode === 'profile') {
+          formData.append('useProfile', 'true');
+        } else if (cvSource.mode === 'upload') {
+          // Convert data URI to blob if needed
+          const blob = await fetch(cvSource.value).then((r) => r.blob());
+          formData.append('cv', blob, cvSource.name);
+        } else if (cvSource.mode === 'saved') {
+          // Create a blob from saved CV content
+          const blob = new Blob([cvSource.value], { type: 'text/html' });
+          formData.append('cv', blob, 'saved_cv.html');
+        }
+
+        // Add additional narratives if provided
+        if (additionalNarratives) {
+          formData.append('finalTouch', additionalNarratives);
+        }
+
+        const apiResponse = await apiInstance.post(
+          'students/coverletter/generate/jobId',
+          formData,
         );
 
         // Handle HTML response

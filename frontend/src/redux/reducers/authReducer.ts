@@ -83,13 +83,26 @@ const authSlice = createSlice({
       state.error = action.payload;
     },
 
-    logout: (state) => {
+    //
+    logoutRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    logoutSuccess: (state) => {
+      state.loading = false;
       state.isAuthenticated = false;
       state.user = null;
       state.token = null;
-      state.loading = false;
       state.error = null;
+      console.log('logoutSuccess');
+      localStorage.removeItem('accessToken');
+      // localStorage.removeItem('token');
     },
+    logoutFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     setUserGoogleAuth: (state, action) => {
       console.log('setUserGoogleAuth', action.payload);
       if (state.user) {
@@ -114,7 +127,10 @@ export const {
   changePasswordRequest,
   changePasswordSuccess,
   changePasswordFailure,
-  logout,
+
+  logoutRequest,
+  logoutSuccess,
+  logoutFailure,
   setUserGoogleAuth,
 } = authSlice.actions;
 export default authSlice.reducer;

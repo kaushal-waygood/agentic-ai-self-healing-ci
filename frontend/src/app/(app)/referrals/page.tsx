@@ -10,12 +10,14 @@ import {
   Star,
   Award,
   CheckCircle2,
+  Shield,
+  Gem,
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { getProfileRequest } from '@/redux/reducers/authReducer';
 
-// UI Components (These remain unchanged)
+// --- UI Components ---
 const Card = ({ children, className = '', hover = true }) => (
   <div
     className={`bg-white rounded-2xl border border-slate-200 shadow-lg ${
@@ -84,10 +86,54 @@ const Skeleton = ({ className = '' }) => (
   <div className={`animate-pulse bg-slate-200 rounded-lg ${className}`} />
 );
 
+// --- Referral Logic ---
+const referralTiers = [
+  { name: 'Bronze', threshold: 0, icon: Shield, color: 'text-orange-600' },
+  { name: 'Silver', threshold: 5, icon: Star, color: 'text-gray-500' },
+  { name: 'Gold', threshold: 10, icon: Award, color: 'text-yellow-500' },
+  { name: 'Platinum', threshold: 20, icon: Gem, color: 'text-blue-500' },
+  { name: 'Diamond', threshold: 50, icon: Gem, color: 'text-purple-500' },
+];
+
+const getReferralTier = (referralCount: number) => {
+  let currentTier = referralTiers[0];
+  let nextTier = referralTiers[1];
+
+  for (let i = 0; i < referralTiers.length; i++) {
+    if (referralCount >= referralTiers[i].threshold) {
+      currentTier = referralTiers[i];
+      if (i < referralTiers.length - 1) {
+        nextTier = referralTiers[i + 1];
+      } else {
+        nextTier = currentTier; // Max rank reached
+      }
+    }
+  }
+
+  const isMaxRank = currentTier.name === nextTier.name;
+  const progressStart = currentTier.threshold;
+  const progressEnd = nextTier.threshold;
+
+  const neededForNext = isMaxRank ? 0 : progressEnd - referralCount;
+
+  const progressPercent = isMaxRank
+    ? 100
+    : Math.floor(
+        ((referralCount - progressStart) / (progressEnd - progressStart)) * 100,
+      );
+
+  return {
+    ...currentTier,
+    nextTierName: nextTier.name,
+    neededForNext,
+    progressPercent,
+    isMaxRank,
+  };
+};
+
 export default function ReferralsPage() {
   const [referralLink, setReferralLink] = useState('');
   const [copied, setCopied] = useState(false);
-  // NEW: State to check if Web Share API is supported
   const [isShareSupported, setIsShareSupported] = useState(false);
 
   const dispatch = useDispatch();
@@ -95,7 +141,6 @@ export default function ReferralsPage() {
 
   useEffect(() => {
     dispatch(getProfileRequest());
-    // NEW: Check for Web Share API support on component mount
     if (navigator.share) {
       setIsShareSupported(true);
     }
@@ -119,20 +164,16 @@ export default function ReferralsPage() {
     }
   };
 
-  // NEW: Generic share handler using the Web Share API
   const handleShare = async () => {
     if (!referralLink) return;
-
     const shareData = {
-      title: 'Join me on CareerPilot!',
-      text: `🚀 I'm using CareerPilot to supercharge my job search with AI. You should check it out! Use my link to get started:`,
+      title: 'Join me on ZobsAI!',
+      text: `🚀 I'm using ZobsAI to supercharge my job search with AI. Use my link to get started:`,
       url: referralLink,
     };
-
     try {
       if (navigator.share) {
         await navigator.share(shareData);
-        console.log('Referral link shared successfully!');
       }
     } catch (err) {
       console.error('Share failed:', err);
@@ -140,7 +181,6 @@ export default function ReferralsPage() {
   };
 
   if (loading || !user) {
-    // ... Skeleton loading state remains unchanged ...
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
         <div className="max-w-7xl mx-auto">
@@ -158,10 +198,13 @@ export default function ReferralsPage() {
     );
   }
 
+  const currentTier = getReferralTier(user.referralCount || 0);
+  const RankIcon = currentTier.icon;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Stats Overview remains unchanged */}
+        {/* --- Stats Overview --- */}
         <div className="grid gap-6 md:grid-cols-3 mb-8">
           <Card>
             <CardHeader>
@@ -171,14 +214,21 @@ export default function ReferralsPage() {
                 </div>
                 Your Referrals
               </CardTitle>
-              <CardDescription>
-                Friends you've successfully referred
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end gap-4 text-3xl font-bold ">
+              <div className="text-3xl font-bold">
                 {user?.referralCount || 0}
               </div>
+              {!currentTier.isMaxRank && (
+                <div className="mt-2">
+                  <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${currentTier.progressPercent}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -190,16 +240,13 @@ export default function ReferralsPage() {
                 </div>
                 Credits Earned
               </CardTitle>
-              <CardDescription>
-                Application credits from referrals
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2 text-3xl font-bold ">
+              <div className="text-3xl font-bold">
                 {(user?.referralCount || 0) * 15}
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                15 credits per successful referral
+              <p className="text-xs text-gray-500 mt-1">
+                15 credits per referral
               </p>
             </CardContent>
           </Card>
@@ -212,29 +259,37 @@ export default function ReferralsPage() {
                 </div>
                 Referral Rank
               </CardTitle>
-              <CardDescription>Your current achievement level</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
-                <div className="text-2xl font-bold text-purple-600">Gold</div>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4].map((star) => (
-                    <Star
-                      key={star}
-                      className="h-4 w-4 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                  <Star className="h-4 w-4 text-gray-300" />
+                <RankIcon className={`h-6 w-6 ${currentTier.color}`} />
+                <div className={`text-2xl font-bold ${currentTier.color}`}>
+                  {currentTier.name}
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                2 more referrals to reach Platinum
-              </p>
+              {currentTier.isMaxRank ? (
+                <p className="text-sm text-purple-600 font-semibold mt-2">
+                  🎉 You've reached the highest rank!
+                </p>
+              ) : (
+                <>
+                  <div className="w-full bg-slate-200 rounded-full h-2 my-2">
+                    <div
+                      className="bg-gradient-to-r from-purple-400 to-purple-600 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${currentTier.progressPercent}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    <strong>{currentTier.neededForNext}</strong> more referrals
+                    to reach <strong>{currentTier.nextTierName}</strong>
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Referral Section */}
+        {/* --- Main Referral Section --- */}
         <div className="grid gap-6 lg:grid-cols-2 mb-8">
           <Card className="lg:col-span-1">
             <CardHeader>
@@ -252,28 +307,15 @@ export default function ReferralsPage() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-2">
-                    Your unique referral code:
-                  </p>
-                  <span className="font-mono p-2 bg-slate-100 rounded-md text-slate-700">
-                    {user?.referralCode || '...'}
-                  </span>
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">
-                    Your referral link:
+                    Your unique referral link:
                   </p>
                   <div className="flex gap-2">
-                    {!referralLink ? (
-                      <Skeleton className="h-12 flex-grow" />
-                    ) : (
-                      <Input
-                        type="text"
-                        value={referralLink}
-                        readOnly
-                        className="flex-1 font-mono text-sm"
-                      />
-                    )}
+                    <Input
+                      type="text"
+                      value={referralLink}
+                      readOnly
+                      className="flex-1 font-mono text-sm"
+                    />
                     <Button
                       variant="outline"
                       size="icon"
@@ -300,8 +342,6 @@ export default function ReferralsPage() {
                   )}
                 </div>
               </div>
-
-              {/* MODIFIED: Updated Quick Share Section */}
               <div className="space-y-3">
                 <p className="text-sm font-medium text-gray-700">
                   Quick Share:
@@ -317,14 +357,13 @@ export default function ReferralsPage() {
                   </Button>
                 ) : (
                   <p className="text-xs text-gray-500">
-                    Use the copy button to share your link on desktop.
+                    Use the copy button to share your link.
                   </p>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Reward Structure Card remains unchanged */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
@@ -345,7 +384,7 @@ export default function ReferralsPage() {
                       Each Referral
                     </p>
                     <p className="text-sm text-gray-600">
-                      Friend signs up & becomes active
+                      Friend signs up & gets active
                     </p>
                   </div>
                   <div className="text-right">
@@ -373,7 +412,7 @@ export default function ReferralsPage() {
                       Premium Upgrade
                     </p>
                     <p className="text-sm text-gray-600">
-                      Friend subscribes to Pro plan
+                      Friend subscribes to a Pro plan
                     </p>
                   </div>
                   <div className="text-right">
@@ -386,7 +425,7 @@ export default function ReferralsPage() {
           </Card>
         </div>
 
-        {/* How It Works section remains unchanged */}
+        {/* --- How It Works Section --- */}
         <Card
           hover={false}
           className="bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 border-purple-200"
@@ -402,8 +441,7 @@ export default function ReferralsPage() {
                 </div>
                 <h4 className="font-semibold text-gray-900">Share Your Link</h4>
                 <p className="text-sm text-gray-600">
-                  Send your unique referral link to friends, colleagues, or
-                  social media
+                  Send your unique link to friends or colleagues.
                 </p>
               </div>
               <div className="text-center space-y-3">
@@ -412,7 +450,7 @@ export default function ReferralsPage() {
                 </div>
                 <h4 className="font-semibold text-gray-900">Friend Signs Up</h4>
                 <p className="text-sm text-gray-600">
-                  They create an account using your referral code or link
+                  They create an account using your referral link.
                 </p>
               </div>
               <div className="text-center space-y-3">
@@ -421,7 +459,7 @@ export default function ReferralsPage() {
                 </div>
                 <h4 className="font-semibold text-gray-900">They Get Active</h4>
                 <p className="text-sm text-gray-600">
-                  Your friend applies for jobs or subscribes to a plan
+                  Your friend applies for jobs or subscribes.
                 </p>
               </div>
               <div className="text-center space-y-3">
@@ -432,7 +470,7 @@ export default function ReferralsPage() {
                   You Earn Credits
                 </h4>
                 <p className="text-sm text-gray-600">
-                  Receive 15 application credits instantly, plus bonuses!
+                  Receive 15 credits instantly, plus bonuses!
                 </p>
               </div>
             </div>

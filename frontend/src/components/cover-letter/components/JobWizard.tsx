@@ -19,7 +19,96 @@ import {
   Target,
   Zap,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
+import { MapPin, DollarSign } from 'lucide-react';
+import { getAllSavedJobs } from '@/services/api/student';
+
+// Define the structure of the job object for type safety
+interface Job {
+  _id: string;
+  title: string;
+  company: string;
+  logo?: string;
+  jobAddress: string;
+  salary: {
+    min: number;
+    max: number;
+    period: string;
+  };
+  jobTypes: string[];
+}
+
+interface JobCardProps {
+  job: Job;
+}
+
+// Helper function to format the salary range
+const formatSalary = (salary: Job['salary']) => {
+  if (!salary || (salary.min === 0 && salary.max === 0)) {
+    return 'Not Disclosed';
+  }
+  const formatValue = (value: number) => `$${Math.round(value / 1000)}k`;
+  const periodMap: { [key: string]: string } = {
+    YEAR: 'yr',
+    MONTH: 'mo',
+    HOUR: 'hr',
+  };
+
+  return `${formatValue(salary.min)} - ${formatValue(salary.max)} / ${
+    periodMap[salary.period] || 'yr'
+  }`;
+};
+
+export const JobCard = ({ job }: JobCardProps) => {
+  return (
+    <div className="w-full bg-white border border-gray-200 rounded-2xl p-4 transition-all duration-300 hover:border-blue-400 hover:shadow-lg">
+      <div className="flex items-start gap-4">
+        {/* Company Logo or Fallback */}
+        <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+          {job.logo ? (
+            <img
+              src={job.logo}
+              alt={`${job.company} logo`}
+              className="w-full h-full object-contain rounded-lg"
+            />
+          ) : (
+            <span className="text-xl font-bold text-gray-500">
+              {job.company.charAt(0)}
+            </span>
+          )}
+        </div>
+
+        {/* Job Details */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-gray-500 truncate">{job.company}</p>
+          <h3 className="text-lg font-bold text-gray-800 truncate">
+            {job.title}
+          </h3>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-gray-400" />
+              <span>{job.jobAddress}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-gray-400" />
+              <span>{formatSalary(job.salary)}</span>
+            </div>
+            {job.jobTypes && job.jobTypes.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Briefcase className="w-4 h-4 text-gray-400" />
+                <span className="capitalize">
+                  {job.jobTypes[0].toLowerCase()}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const JobWizard = ({
   isLoading,
@@ -30,6 +119,7 @@ const JobWizard = ({
   setEnteredJobTitle,
 }: any) => {
   const [activeTab, setActiveTab] = useState('paste');
+  const [savedJobs, setSavedJobs] = useState([]);
 
   const tabData = [
     {
@@ -42,7 +132,7 @@ const JobWizard = ({
     {
       value: 'select',
       icon: Briefcase,
-      label: 'Select Role',
+      label: 'Select Saved Jobs',
       description: 'Choose from templates',
       gradient: 'from-purple-500 to-pink-400',
     },
@@ -54,6 +144,20 @@ const JobWizard = ({
       gradient: 'from-green-500 to-emerald-400',
     },
   ];
+
+  useEffect(() => {
+    const fetchSavedJobs = async () => {
+      try {
+        const response = await getAllSavedJobs();
+        // Ensure the response data structure is correctly accessed
+        setSavedJobs(response.data?.savedJobs || []);
+      } catch (error) {
+        console.error('Error fetching saved jobs:', error);
+      }
+    };
+
+    fetchSavedJobs();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -179,22 +283,32 @@ const JobWizard = ({
 
               {/* Select Tab */}
               <TabsContent value="select" className="space-y-6">
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <Briefcase className="h-10 w-10 text-white" />
+                {savedJobs.length > 0 ? (
+                  <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2">
+                    {savedJobs.map((job: any) => (
+                      <div
+                        key={job._id} // Corrected: Use _id for the key
+                        onClick={() => handleSetJobContext('select', job)}
+                        className="cursor-pointer transition-transform transform hover:scale-[1.02]"
+                      >
+                        <JobCard job={job} />
+                      </div>
+                    ))}
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                    Coming Soon
-                  </h3>
-                  <p className="text-gray-600 text-lg max-w-md mx-auto mb-6">
-                    We're crafting a collection of job templates to make your CV
-                    optimization lightning fast.
-                  </p>
-                  <div className="inline-flex items-center gap-2 text-purple-600 font-medium">
-                    <Sparkles className="h-4 w-4" />
-                    Stay tuned for updates
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+                      <Briefcase className="h-10 w-10 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                      No Saved Jobs
+                    </h3>
+                    <p className="text-gray-600 text-lg max-w-md mx-auto">
+                      You haven't saved any jobs yet. Saved jobs will appear
+                      here for quick CV generation.
+                    </p>
                   </div>
-                </div>
+                )}
               </TabsContent>
 
               {/* Title Tab */}

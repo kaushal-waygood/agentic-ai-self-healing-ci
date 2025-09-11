@@ -104,3 +104,8 @@ export const updateJobPrefered = async (data: any) => {
   });
   return response;
 };
+
+export const getAllSavedJobs = async () => {
+  const response = await apiInstance.get('/students/jobs/saved');
+  return response;
+};

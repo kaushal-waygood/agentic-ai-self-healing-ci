@@ -10,6 +10,17 @@ import {
 import debounce from 'debounce';
 import { Job } from '@/redux/types/jobType';
 
+type FilterState = {
+  page: number;
+  query: string;
+  country: string;
+  city: string;
+  datePosted: string;
+  employmentType: string[];
+  experience: string[];
+  append?: boolean; // For infinite scroll
+};
+
 export const useJobs = () => {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -22,7 +33,7 @@ export const useJobs = () => {
     error,
     pagination,
     filters: reduxFilters,
-  } = useSelector((state: any) => state.jobs);
+  } = useSelector((state: RootState) => state.jobs);
 
   // Local state
   const [filterModal, setFilterModal] = useState(false);
@@ -46,9 +57,17 @@ export const useJobs = () => {
         console.error('Failed to fetch job metadata:', err);
       }
     };
-
     fetchJobMetadata();
   }, []);
+
+  const handleFilterChange = useCallback(
+    debounce((newFilters: Partial<FilterState>) => {
+      // Merge new changes with existing filters from Redux and reset to page 1
+      const updatedFilters = { ...reduxFilters, ...newFilters, page: 1 };
+      dispatch(getAllJobsRequest(updatedFilters));
+    }, 500),
+    [dispatch, reduxFilters],
+  );
 
   // Fetch jobs on initial mount or when page changes
   useEffect(() => {
@@ -107,12 +126,22 @@ export const useJobs = () => {
   // Page change — only modify `page` in URL
   const handlePageChange = useCallback(
     (page: number) => {
-      const params = new URLSearchParams();
-      params.set('page', page.toString());
-      router.push(`?${params.toString()}`, { scroll: false });
+      dispatch(setCurrentPage(page));
+      dispatch(getAllJobsRequest({ ...reduxFilters, page }));
+      // Scroll to the top of the job list
+      document.querySelector('.lg\\:col-span-5 > div')?.scrollTo(0, 0);
     },
-    [router],
+    [dispatch, reduxFilters],
   );
+
+  const loadMoreJobs = useCallback(() => {
+    if (!loading && pagination.page < pagination.totalPages) {
+      const nextPage = pagination.page + 1;
+      dispatch(
+        getAllJobsRequest({ ...reduxFilters, page: nextPage, append: true }),
+      );
+    }
+  }, [dispatch, loading, pagination, reduxFilters]);
 
   // Filter change — does not touch URL
   const applySearchFilters = useCallback(
@@ -134,11 +163,19 @@ export const useJobs = () => {
   );
 
   // Reset all filters
-  const resetAllFilters = useCallback(() => {
-    // dispatch(resetReduxFilters());
-    router.push('?page=1');
+  const resetFilters = useCallback(() => {
+    const initialFilters = {
+      page: 1,
+      query: '',
+      country: '',
+      city: '',
+      datePosted: '',
+      employmentType: [],
+      experience: [],
+    };
+    dispatch(getAllJobsRequest(initialFilters));
     setFilterModal(false);
-  }, [dispatch, router]);
+  }, [dispatch]);
 
   // On job card click, just load the details without modifying URL
   const handleCardClick = useCallback(async (slug: string) => {
@@ -167,6 +204,11 @@ export const useJobs = () => {
     [dispatch],
   );
 
+  useEffect(() => {
+    const page = Number(searchParams.get('page') || '1');
+    dispatch(getAllJobsRequest({ ...reduxFilters, page }));
+  }, [dispatch]); // Removed searchParams to prevent re-fetching on irrelevant URL changes
+
   return {
     // State
     filterModal,
@@ -189,7 +231,10 @@ export const useJobs = () => {
     handleSearchInput,
     handlePageChange,
     applySearchFilters,
-    resetFilters: resetAllFilters,
+    resetFilters,
     handleCardClick,
+
+    handleFilterChange,
+    loadMoreJobs,
   };
 };
