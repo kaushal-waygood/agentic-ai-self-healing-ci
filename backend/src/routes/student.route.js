@@ -35,6 +35,8 @@ import {
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import puppeteer from 'puppeteer';
+import pkg from 'generic-pool';
+const { GenericPool } = pkg;
 
 const router = Router();
 
@@ -160,14 +162,29 @@ router.post('/pdf/generate-pdf', async (req, res) => {
     return res.status(400).json({ message: 'HTML content is required.' });
   }
 
+  let browser;
   try {
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
+      protocolTimeout: 120000,
     });
-    const page = await browser.newPage();
 
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const page = await browser.newPage();
+    page.setDefaultTimeout(60000);
+
+    // Use 'load' instead of 'networkidle0' for better reliability
+    await page.setContent(html, {
+      waitUntil: 'load',
+      timeout: 30000,
+    });
+
+    // Removed the waitForTimeout call - 'load' should be sufficient
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -178,6 +195,7 @@ router.post('/pdf/generate-pdf', async (req, res) => {
         bottom: '15mm',
         left: '15mm',
       },
+      timeout: 30000,
     });
 
     await browser.close();
@@ -192,7 +210,19 @@ router.post('/pdf/generate-pdf', async (req, res) => {
     res.send(pdfBuffer);
   } catch (error) {
     console.error('PDF Generation Error:', error);
-    res.status(500).json({ message: 'Failed to generate PDF.' });
+
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
+    }
+
+    res.status(500).json({
+      message: 'Failed to generate PDF.',
+      error: error.message,
+    });
   }
 });
 

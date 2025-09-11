@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/layout/theme-provider';
 import StoreProvider from '../redux/storeProvider';
 
 export const metadata: Metadata = {
-  title: 'CareerPilot - Your AI Job Application Assistant',
+  title: 'Zobsai - Your AI Job Application Assistant',
   description:
     'Streamline your job application process with AI-powered tools and automation.',
 };
@@ -20,6 +20,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
+        applicationsSent
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"

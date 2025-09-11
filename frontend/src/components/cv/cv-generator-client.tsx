@@ -103,20 +103,23 @@ export function CvGeneratorClient() {
     }
   }, [studentError, toast]);
 
-  const handleSetJobContext = async (mode: 'select' | 'paste' | 'title') => {
+  const handleSetJobContext = async (
+    mode: 'select' | 'paste' | 'title',
+    value: string,
+  ) => {
     let context: JobContext | null = null;
     setIsLoading(true);
     setLoadingMessage('Processing job context...');
     try {
-      if (mode === 'select' && selectedJobId) {
-        const job = mockJobListings.find((j) => j.id === selectedJobId);
-        if (job)
+      if (mode === 'select' && value._id) {
+        if (value._id) {
           context = {
             mode,
-            value: selectedJobId,
-            title: job.title,
-            description: job.description,
+            value: value._id,
+            title: value.title,
+            description: value.description,
           };
+        }
       } else if (mode === 'paste' && pastedJobDescription) {
         context = {
           mode,
@@ -282,12 +285,12 @@ export function CvGeneratorClient() {
       let response: CVGenerationOutput | null = null;
       const formData = new FormData();
 
-      // --- This part is the same, building the FormData ---
       if (jobContext.mode === 'paste') {
         formData.append('jobDescription', jobContext.description);
-        // ... (rest of the logic for paste mode)
       } else if (jobContext.mode === 'title') {
         formData.append('title', jobContext.title);
+      } else if (jobContext.mode === 'select') {
+        formData.append('jobId', jobContext.value);
       }
 
       if (cvSource.mode === 'profile') {
@@ -310,6 +313,9 @@ export function CvGeneratorClient() {
         apiEndpoint = 'students/resume/generate/jd';
       } else if (jobContext.mode === 'title') {
         apiEndpoint = 'students/resume/generate/jobtitle';
+      } else if (jobContext.mode === 'select') {
+        console.log('jobContext.value', jobContext.value);
+        apiEndpoint = `students/resume/generate/jobId`;
       }
 
       const apiResponse = await apiInstance.post(apiEndpoint, formData);

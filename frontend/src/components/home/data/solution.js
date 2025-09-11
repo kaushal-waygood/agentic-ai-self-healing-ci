@@ -159,66 +159,141 @@ export const afterStats = [
   { icon: CheckCircle, text: 'More interviews, less stress', negative: false },
 ];
 
-export const plans = [
-  {
-    name: 'Starter',
-    price: 29,
-    period: '/month',
-    description: 'Perfect for individual job seekers starting their search',
-    applications: '50 applications/day',
-    popular: false,
-    icon: Rocket,
-    color: 'blue',
-    features: [
-      'AI resume tailoring',
-      'Basic cover letter generation',
-      'LinkedIn & Indeed integration',
-      'ATS score calculator',
-      'Email support',
-      'Basic analytics dashboard',
+export const pricingData = {
+  individual: {
+    weekly: {
+      plans: [
+        {
+          name: 'Basic',
+          icon: Rocket,
+          color: 'blue',
+          prices: {
+            usd: 2.49,
+            inr: 99,
+          },
+          features: [
+            { name: 'CV Creation', value: '1' },
+            { name: 'Cover Letter', value: '1' },
+            { name: 'AI Tailored Application', value: '1' },
+            { name: 'AI Auto-Apply Agent', value: '1' },
+            { name: 'Auto-Apply Daily limit', value: '2' },
+            { name: 'Total Auto Apply Application', value: '3' },
+            { name: 'Normal Application', value: 'Unlimited' },
+          ],
+        },
+        {
+          name: 'Pro',
+          icon: Star,
+          color: 'purple',
+          popular: true,
+          prices: {
+            usd: 'Pro ($)', // Placeholder as per screenshot
+            inr: 'Pro (Rs)', // Placeholder as per screenshot
+          },
+          features: [
+            { name: 'CV Creation', value: '2' },
+            { name: 'Cover Letter', value: '2' },
+            { name: 'AI Tailored Application', value: '2' },
+            { name: 'AI Auto-Apply Agent', value: '2' },
+            { name: 'Auto-Apply Daily limit', value: '3' },
+            { name: 'Total Auto Apply Application', value: '20' },
+            { name: 'Normal Application', value: 'Unlimited' },
+          ],
+        },
+      ],
+    },
+    monthly: {
+      plans: [
+        {
+          name: 'Basic',
+          icon: Rocket,
+          color: 'blue',
+          prices: {
+            monthly: { usd: 0.0, inr: 0 },
+            quarterly: { usd: 0, inr: 0 },
+            halfYearly: { usd: 0, inr: 0 },
+            annual: { usd: 0, inr: 0 },
+          },
+          features: [
+            { name: 'CV Creation', value: '2' },
+            { name: 'Cover Letter', value: '2' },
+            { name: 'AI Tailored Application', value: '2' },
+            { name: 'AI Auto-Apply Agent', value: '1' },
+            { name: 'Auto-Apply Daily limit', value: '2' },
+            { name: 'Total Auto Apply Application', value: '12' },
+            { name: 'Normal Application', value: 'Unlimited' },
+          ],
+        },
+        {
+          name: 'Pro',
+          icon: Star,
+          color: 'purple',
+          popular: true,
+          prices: {
+            monthly: { usd: 9.99, inr: 499 },
+            quarterly: { usd: 23.98, inr: 1198 },
+            halfYearly: { usd: 47.95, inr: 2395 },
+            annual: { usd: 95.9, inr: 4790 },
+          },
+          features: [
+            { name: 'CV Creation', value: '10' },
+            { name: 'Cover Letter', value: '10' },
+            { name: 'AI Tailored Application', value: '10' },
+            { name: 'AI Auto-Apply Agent', value: '10' },
+            { name: 'Auto-Apply Daily limit', value: '10' },
+            { name: 'Total Auto Apply Application', value: '120' },
+            { name: 'Normal Application', value: 'Unlimited' },
+          ],
+        },
+      ],
+    },
+  },
+  enterprise: {
+    plans: [
+      {
+        name: 'Plus',
+        icon: Rocket,
+        color: 'blue',
+        prices: {
+          monthly: { usd: 0, inr: 0 },
+          quarterly: { usd: 0, inr: 0 },
+          halfYearly: { usd: 0, inr: 0 },
+          annual: { usd: 0, inr: 0 },
+        },
+        features: [
+          { name: 'CV Creation', value: '1' },
+          { name: 'Cover Letter', value: '1' },
+          { name: 'AI Tailored Application', value: '1' },
+          { name: 'AI Auto-Apply Agent', value: '1' },
+          { name: 'Auto-Apply Daily limit', value: '2' },
+          { name: 'Total Auto Apply', value: '12' },
+          { name: 'Normal Application', value: 'Unlimited' },
+        ],
+      },
+      {
+        name: 'Pro',
+        icon: Crown,
+        color: 'emerald',
+        popular: true,
+        prices: {
+          monthly: { usd: 5.0, inr: 250 },
+          quarterly: { usd: 11.99, inr: 599 },
+          halfYearly: { usd: 23.98, inr: 1198 },
+          annual: { usd: 47.95, inr: 2395 },
+        },
+        features: [
+          { name: 'CV Creation', value: '20' },
+          { name: 'Cover Letter', value: '20' },
+          { name: 'AI Tailored Application', value: '20' },
+          { name: 'AI Auto-Apply Agent', value: '15' },
+          { name: 'Auto-Apply Daily limit', value: '10' },
+          { name: 'Total Auto Apply', value: '120' },
+          { name: 'Normal Application', value: 'Unlimited' },
+        ],
+      },
     ],
   },
-  {
-    name: 'Professional',
-    price: 59,
-    period: '/month',
-    description: 'Ideal for active job seekers who want maximum reach',
-    applications: '150 applications/day',
-    popular: true,
-    icon: Star,
-    color: 'purple',
-    features: [
-      'Everything in Starter',
-      'Advanced cover letter AI',
-      '50+ job platform integration',
-      'Priority job matching',
-      'Advanced analytics & insights',
-      'Priority support',
-      'Custom job filters',
-      'Interview preparation tips',
-    ],
-  },
-  {
-    name: 'Enterprise',
-    price: 99,
-    period: '/month',
-    description: 'For serious professionals and career changers',
-    applications: 'Unlimited applications/day',
-    popular: false,
-    icon: Crown,
-    color: 'emerald',
-    features: [
-      'Everything in Professional',
-      'Unlimited applications',
-      'Personal AI job coach',
-      'Executive-level optimization',
-      'White-glove onboarding',
-      'Dedicated account manager',
-      'Custom integrations',
-      'Advanced reporting & ROI tracking',
-    ],
-  },
-];
+};
 
 export const steps = [
   {

@@ -9,9 +9,6 @@ import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
-import { useDispatch } from 'react-redux';
-import { useSelector } from 'react-redux';
-import { getStudentJobPreferenceRequest } from '@/redux/reducers/studentReducer';
 import { Loader2, Search } from 'lucide-react';
 import { Pagination } from '@/components/utils/Pagination';
 
@@ -21,13 +18,13 @@ export default function JobsPage() {
     loading,
     error,
     pagination,
-    loadMoreJobs, // Use this for infinite scroll
+    loadMoreJobs,
     filters,
     setFilterModal,
     employmentTypes,
     experienceLevels,
     filterModal,
-    handleSearchChange,
+    handleFilterChange, // Use the new unified handler
     handlePageChange,
     resetFilters,
   } = useJobs();
@@ -35,13 +32,11 @@ export default function JobsPage() {
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
-
-  // Ref for the Intersection Observer to target the loader at the bottom
   const observerRef = useRef(null);
 
   const fetchJobDetails = async (slug: string) => {
     try {
-      setSelectedJob(null); // Clear previous job to show a loading state
+      setSelectedJob(null);
       const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
       setSelectedJob(response.data.singleJob);
     } catch (err) {
@@ -57,20 +52,14 @@ export default function JobsPage() {
     }
   };
 
-  // Redux logic
-  const dispatch = useDispatch();
-  useEffect(() => {
-    dispatch(getStudentJobPreferenceRequest());
-  }, [dispatch]);
-
-  // Auto-select first job on desktop
   useEffect(() => {
     if (!isMobile && jobs.length > 0 && !selectedJob) {
-      setSelectedJob(jobs[0]);
+      if (!jobs.some((job) => job._id === selectedJob?._id)) {
+        setSelectedJob(jobs[0]);
+      }
     }
-  }, [jobs, isMobile]);
+  }, [jobs, isMobile, selectedJob]);
 
-  // Intersection Observer callback
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [target] = entries;
@@ -85,21 +74,14 @@ export default function JobsPage() {
     [loading, pagination, loadMoreJobs],
   );
 
-  // Effect to set up and clean up the Intersection Observer
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
       threshold: 1.0,
     });
-
     const currentObserverRef = observerRef.current;
-    if (currentObserverRef) {
-      observer.observe(currentObserverRef);
-    }
-
+    if (currentObserverRef) observer.observe(currentObserverRef);
     return () => {
-      if (currentObserverRef) {
-        observer.unobserve(currentObserverRef);
-      }
+      if (currentObserverRef) observer.unobserve(currentObserverRef);
     };
   }, [handleObserver]);
 
@@ -109,22 +91,15 @@ export default function JobsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30">
       <div className="container mx-auto px-4 py-6">
-        <div className="text-center mb-8">
-          <p className="text-gray-600 text-lg">
-            Discover opportunities that match your skills and aspirations
-          </p>
-        </div>
-
         <SearchFilters
           initialFilters={filters}
-          onSearchChange={handleSearchChange}
+          onSearchChange={handleFilterChange} // Pass the unified handler
           onOpenFilterModal={() => setFilterModal(true)}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-5">
-            <div className="space-y-1 h-[calc(100vh-220px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100">
-              {/* Initial page loading state */}
+            <div className="space-y-2 h-[calc(100vh-220px)] overflow-y-auto pr-2 scrollbar-thin">
               {loading && pagination.page === 1
                 ? Array.from({ length: 5 }).map((_, index) => (
                     <JobCardSkeleton key={index} />
@@ -137,9 +112,7 @@ export default function JobsPage() {
                       onClick={() => handleCardClick(job.slug)}
                     />
                   ))}
-
-              {/* Loader element for the observer to watch */}
-              <div ref={observerRef} className="flex justify-center p-4">
+              <div ref={observerRef} className="flex justify-center p-4 h-12">
                 {loading && pagination.page > 1 && (
                   <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
                 )}
@@ -148,26 +121,28 @@ export default function JobsPage() {
           </div>
 
           <div className="lg:col-span-7 hidden lg:block">
-            <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-gray-100">
+            <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border border-gray-200">
-                  <div className="w-32 h-32 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mb-6">
-                    <Search className="w-16 h-16 text-purple-400" />
+                <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-white rounded-2xl border border-gray-200">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mb-6">
+                    <Search className="w-12 h-12 text-purple-400" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-700 mb-2">
                     Select a job to view details
                   </h3>
-                  <p className="text-gray-500 max-w-md">
-                    Click on any position to see detailed information.
+                  <p className="text-gray-500 max-w-sm">
+                    Click on any position from the list to see the detailed
+                    information, requirements, and responsibilities.
                   </p>
                 </div>
               )}
             </div>
           </div>
         </div>
-        {pagination.totalPages > 1 && (
+
+        {!isMobile && pagination.totalPages > 1 && (
           <div className="mt-8 flex justify-center">
             <Pagination
               currentPage={pagination.page}
@@ -183,9 +158,8 @@ export default function JobsPage() {
           employmentTypes={employmentTypes}
           experienceLevels={experienceLevels}
           filters={filters}
-          onFilterChange={handleSearchChange}
+          onFilterChange={handleFilterChange} // Pass the same unified handler
           onReset={resetFilters}
-          onApply={() => setFilterModal(false)}
         />
       </div>
 
@@ -198,7 +172,7 @@ export default function JobsPage() {
           border-radius: 10px;
         }
         .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #a855f7, #3b82f6);
+          background: linear-gradient(to bottom, #c084fc, #60a5fa);
           border-radius: 10px;
         }
       `}</style>

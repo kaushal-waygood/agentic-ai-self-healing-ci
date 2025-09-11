@@ -10,6 +10,7 @@ type Student = {
   loading: boolean;
   error: string | null;
   jobPreference: any;
+  savedJobs: string[];
 };
 
 type EducationFormData = {
@@ -28,6 +29,7 @@ const initialState: Student = {
   educations: [],
   projects: [],
   experiences: [],
+  savedJobs: [],
   jobPreference: null,
   loading: false,
   error: null,
@@ -307,6 +309,31 @@ const studentSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    getAllSavedJobsRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    // In your studentReducer.ts file...
+
+    getAllSavedJobsSuccess: (state, action: PayloadAction<any>) => {
+      // Log the entire action to see the payload structure
+      console.log('Full action in reducer:', action);
+
+      // CORRECTED LINE:
+      // Assuming the array of jobs is inside a key, like 'data' or directly in the payload.
+      // Check if the payload is the array itself, or if it's nested.
+      const jobsArray = Array.isArray(action.payload)
+        ? action.payload
+        : action.payload.data || [];
+
+      state.loading = false;
+      state.savedJobs = jobsArray;
+    },
+    getAllSavedJobsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -375,5 +402,9 @@ export const {
   updateJobPreferedByStudentRequest,
   updateJobPreferedByStudentSuccess,
   updateJobPreferedByStudentFailure,
+
+  getAllSavedJobsRequest,
+  getAllSavedJobsSuccess,
+  getAllSavedJobsFailure,
 } = studentSlice.actions;
 export default studentSlice.reducer;

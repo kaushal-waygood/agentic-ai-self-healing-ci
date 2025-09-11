@@ -22,7 +22,7 @@ const solutions = [
     title: 'AI-Powered Resume',
     stat: '90% Match',
     description:
-      'Our AI analyzes job descriptions and customizes your resume to get past ATS filters and land you more interviews.',
+      'Our AI analyzes job descriptions and customizes your resume to get past ATS filters.',
     features: [
       'Keyword optimization',
       'Action verb suggestions',
@@ -36,7 +36,7 @@ const solutions = [
     title: 'Instant Cover Letters',
     stat: '85% Faster',
     description:
-      'Generate a personalized cover letter for any job in seconds, tailored to highlight your most relevant skills and experience.',
+      'Generate a personalized cover letter for any job in seconds, tailored to your skills.',
     features: [
       'Personalized content',
       'Tone adjustments',
@@ -50,7 +50,7 @@ const solutions = [
     title: 'Automated Job Applications',
     stat: '4X Applications',
     description:
-      'Apply to multiple jobs at once with one click, without filling out repetitive forms. Our AI handles the busywork for you.',
+      'Apply to multiple jobs at once with one click, without filling out repetitive forms.',
     features: [
       'Automatic form filling',
       'Application tracking',
@@ -64,7 +64,7 @@ const solutions = [
     title: 'Performance Analytics',
     stat: '60% More Effective',
     description:
-      'Track your application success rates, get insights into your resume performance, and optimize your strategy with data.',
+      'Track your application success rates and get insights into your resume performance.',
     features: [
       'Interview success rate',
       'Resume views tracker',
@@ -102,21 +102,19 @@ export const Solutions = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Determine if it's a mobile device to control hover/click behavior
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   const handleCardClick = (index: number) => {
     setActiveDemo(index);
-    // On mobile, also set the "hovered" state to true for a consistent look
     if (isMobile) {
       setHoveredCard(index);
     }
   };
 
   const handleMouseEnter = (index: number) => {
-    // Only apply hover effect on non-mobile devices
     if (!isMobile) {
       setHoveredCard(index);
+      setActiveDemo(index); // Also set active demo on hover for desktop
     }
   };
 
@@ -131,70 +129,45 @@ export const Solutions = () => {
       {/* Dynamic Background Effects */}
       <div className="absolute inset-0">
         <div
-          className="absolute w-64 h-64 md:w-96 md:h-96 bg-gradient-to-br from-purple-400/20 to-blue-500/20 rounded-full blur-3xl animate-pulse"
+          className="absolute w-96 h-96 bg-gradient-to-br from-purple-400/20 to-blue-500/20 rounded-full blur-3xl animate-pulse"
           style={{
             left: `${15 + mousePosition.x * 0.02}%`,
             top: `${10 + mousePosition.y * 0.02}%`,
-            transform: `translate(-50%, -50%)`,
           }}
         />
         <div
-          className="absolute w-52 h-52 md:w-80 md:h-80 bg-gradient-to-br from-cyan-400/15 to-emerald-500/15 rounded-full blur-3xl animate-pulse"
+          className="absolute w-80 h-80 bg-gradient-to-br from-cyan-400/15 to-emerald-500/15 rounded-full blur-3xl animate-pulse"
           style={{
             right: `${20 + mousePosition.x * 0.015}%`,
             bottom: `${15 + mousePosition.y * 0.015}%`,
-            transform: `translate(50%, 50%)`,
             animationDelay: '2s',
           }}
         />
-
-        {/* Success Particles */}
-        {Array.from({ length: 25 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute animate-float"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 4}s`,
-              animationDuration: `${3 + Math.random() * 2}s`,
-            }}
-          >
-            <Sparkles className="w-4 h-4 text-purple-400/30" />
-          </div>
-        ))}
       </div>
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         {/* Header Section */}
         <div className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-green-100/50 backdrop-blur-sm border border-green-200/50 rounded-full mb-6 md:mb-8">
-            <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600 animate-pulse" />
-            <span className="text-green-700 font-semibold text-sm md:text-base">
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-100/50 backdrop-blur-sm border border-green-200/50 rounded-full mb-8">
+            <CheckCircle className="w-5 h-5 text-green-600 animate-pulse" />
+            <span className="text-green-700 font-semibold text-base">
               AI-Powered Solutions
             </span>
           </div>
-
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
             <span className="text-gray-900">Meet Your</span>
-            <br />
-            <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
               AI Job Search Assistant
             </span>
           </h2>
-
-          <p className="text-base md:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-            ZobsAI transforms every aspect of your job search with cutting-edge
-            AI technology, turning the tedious process into an{' '}
-            <span className="font-semibold text-purple-600">
-              automated success machine
-            </span>
-            .
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            ZobsAI transforms your job search with AI, turning the tedious
+            process into an automated success machine.
           </p>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
+        {/* Main Content Grid - Updated for 4 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {solutions.map((solution, index) => {
             const IconComponent = solution.icon;
             const isActive = activeDemo === index;
@@ -202,95 +175,88 @@ export const Solutions = () => {
             return (
               <div
                 key={index}
-                className={`relative group cursor-pointer transform transition-all duration-500 ${
-                  hoveredCard === index ? 'scale-105 z-20' : 'scale-100 z-10'
-                } ${isActive ? 'ring-2 ring-purple-400/50' : ''}`}
+                className={`relative group cursor-pointer transform transition-all duration-300 ${
+                  isActive ? 'scale-105 z-20' : 'z-10'
+                }`}
                 onClick={() => handleCardClick(index)}
                 onMouseEnter={() => handleMouseEnter(index)}
                 onMouseLeave={handleMouseLeave}
               >
                 {/* Background Glow */}
                 <div
-                  className={`absolute inset-0 bg-gradient-to-r ${
+                  className={`absolute -inset-1 bg-gradient-to-r ${
                     solution.color
-                  } rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-all duration-500 transform ${
-                    hoveredCard === index ? 'scale-110' : 'scale-100'
+                  } rounded-xl blur-lg opacity-0 transition-all duration-300 ${
+                    isActive ? 'opacity-30' : 'group-hover:opacity-20'
                   }`}
                 />
 
                 {/* Main Card */}
                 <div
-                  className={`relative bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-lg group-hover:shadow-xl transition-all duration-500 ${
-                    isActive ? 'bg-white/80 border-purple-200' : ''
+                  className={`relative bg-white/70 backdrop-blur-xl border rounded-xl p-5 shadow-lg transition-all duration-300 h-full ${
+                    isActive
+                      ? 'border-purple-300'
+                      : 'border-white/50 group-hover:border-purple-200'
                   }`}
                 >
-                  <div className="flex flex-col md:flex-row items-start gap-5">
+                  <div className="flex items-start gap-4">
                     {/* Icon */}
                     <div
-                      className={`w-14 h-14 bg-gradient-to-br ${solution.color} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 flex-shrink-0`}
+                      className={`w-12 h-12 bg-gradient-to-br ${
+                        solution.color
+                      } rounded-lg flex items-center justify-center shadow-md transform transition-all duration-300 flex-shrink-0 ${
+                        isActive
+                          ? 'scale-110 rotate-3'
+                          : 'group-hover:scale-105'
+                      }`}
                     >
-                      <IconComponent className="w-7 h-7 text-white" />
+                      <IconComponent className="w-6 h-6 text-white" />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1">
-                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-2">
-                        <h3 className="text-xl font-bold text-gray-900">
-                          {solution.title}
-                        </h3>
-                        <div
-                          className={`px-3 py-1 mt-2 md:mt-0 bg-gradient-to-r ${solution.color} rounded-full text-white text-xs font-bold transform group-hover:scale-105 transition-all duration-300`}
-                        >
-                          {solution.stat}
-                        </div>
-                      </div>
-
-                      <p className="text-base text-gray-600 mb-3 leading-relaxed">
-                        {solution.description}
-                      </p>
-
-                      {/* Features List */}
+                      <h3 className="text-lg font-bold text-gray-900 mb-0.5">
+                        {solution.title}
+                      </h3>
                       <div
-                        className={`space-y-1.5 transform transition-all duration-500 ${
-                          hoveredCard === index
-                            ? 'opacity-100 translate-y-0'
-                            : 'opacity-0 translate-y-3'
-                        }`}
+                        className={`px-2 py-0.5 mb-2 inline-block bg-gradient-to-r ${solution.color} rounded-full text-white text-xs font-bold`}
                       >
-                        {solution.features.map((feature, featureIndex) => (
-                          <div
-                            key={featureIndex}
-                            className="flex items-center gap-2 text-sm text-gray-500"
-                          >
-                            <div className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
-                            <span>{feature}</span>
-                          </div>
-                        ))}
+                        {solution.stat}
                       </div>
-
-                      {/* Demo Badge */}
-                      <Link
-                        href="/login"
-                        target="_blank"
-                        className={`mt-3 inline-flex items-center gap-2 px-4 py-2 bg-purple-100/50 backdrop-blur-sm rounded-full text-purple-700 text-sm font-medium transform transition-all duration-300 ${
-                          isActive ? 'scale-105 bg-purple-100' : 'scale-100'
-                        }`}
-                      >
-                        <Play className="w-3 h-3" />
-                        <span>{solution.demo}</span>
-                      </Link>
                     </div>
+                  </div>
 
-                    {/* Interactive Arrow */}
-                    <div
-                      className={`transform transition-all duration-300 ${
-                        hoveredCard === index
-                          ? 'opacity-100 translate-x-0'
-                          : 'opacity-0 translate-x-4'
-                      }`}
+                  <p className="text-sm text-gray-600 my-3 leading-relaxed">
+                    {solution.description}
+                  </p>
+
+                  {/* Features List & Demo Link Container */}
+                  <div
+                    className={`transition-all duration-500 overflow-hidden ${
+                      isActive
+                        ? 'max-h-40 opacity-100 mt-3'
+                        : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <div className="space-y-1.5 mb-3">
+                      {solution.features.map((feature, featureIndex) => (
+                        <div
+                          key={featureIndex}
+                          className="flex items-center gap-2 text-xs text-gray-500"
+                        >
+                          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Link
+                      href="/login"
+                      target="_blank"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100/50 rounded-full text-purple-700 text-xs font-medium hover:bg-purple-100 transition-colors"
                     >
-                      <ArrowRight className="w-5 h-5 text-purple-600" />
-                    </div>
+                      <Play className="w-3 h-3" />
+                      <span>{solution.demo}</span>
+                    </Link>
                   </div>
                 </div>
               </div>
