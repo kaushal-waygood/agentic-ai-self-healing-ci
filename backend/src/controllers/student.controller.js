@@ -8,18 +8,9 @@ import path from 'path';
 import { safeUnlink, __dirname } from '../utils/fileUploadingManaging.js';
 import calculateExperience from '../utils/calculateExperience.js';
 import mongoose from 'mongoose';
-import axios from 'axios';
-import {
-  extractExperience,
-  extractQualificationsFromDescription,
-  extractResponsibilitiesFromDescription,
-} from '../utils/exprienceExtractor.js';
 import { google } from 'googleapis';
 import pkg from 'base64url';
-const { encode } = pkg;
 import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
-// import { createAttachment } from '../utils/generatePdfFromHtml.js';
-import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 import redisClient from '../config/redis.js';
 
 import {

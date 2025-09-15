@@ -18,7 +18,7 @@ export const authMiddleware = (req, res, next) => {
         .json({ message: 'Invalid or expired access token' });
     }
 
-    req.user = decoded; // Attach user info to request object
+    req.user = decoded;
 
     next();
   });
@@ -40,6 +40,7 @@ export const isOrgAdmin = (req, res, next) => {
   next();
 };
 export const isSuperAdmin = (req, res, next) => {
+  console.log(req.user.role);
   if (req.user.role !== 'super-admin') {
     return res
       .status(403)

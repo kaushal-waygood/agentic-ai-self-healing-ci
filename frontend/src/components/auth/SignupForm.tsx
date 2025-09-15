@@ -3,7 +3,6 @@
 'use client';
 
 import Link from 'next/link';
-// MODIFIED: Import useState
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
@@ -23,6 +22,8 @@ import {
   Sparkles,
   KeyRound,
   FileText,
+  Eye, // Added
+  EyeOff, // Added
 } from 'lucide-react';
 
 // UTILS AND SERVICES
@@ -41,6 +42,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { GoogleSignInButton } from './GoogleSingupButton';
 
 // Zod Schema
 const signupFormSchema = z
@@ -71,8 +73,10 @@ const SignupForm = () => {
   const [verificationCode, setVerificationCode] = useState('');
   const [storedEmail, setStoredEmail] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  // NEW: State to track if the referral code came from the URL
   const [isRefCodeFromUrl, setIsRefCodeFromUrl] = useState(false);
+  // State for password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -94,12 +98,11 @@ const SignupForm = () => {
     name: 'accountType',
   });
 
-  // MODIFIED: useEffect to also set the disabled state
   useEffect(() => {
     const refCode = searchParams.get('ref');
     if (refCode) {
       form.setValue('referredBy', refCode);
-      setIsRefCodeFromUrl(true); // <-- Set state to true
+      setIsRefCodeFromUrl(true);
     }
   }, [searchParams, form]);
 
@@ -136,16 +139,22 @@ const SignupForm = () => {
     if (!verificationCode || !storedEmail) return;
     setIsVerifying(true);
     try {
-      await apiInstance.post('/user/verify', {
+      const response = await apiInstance.post('/user/verify', {
         email: storedEmail,
         otp: verificationCode,
       });
-      successToast('Your account has been verified successfully!');
-      localStorage.removeItem('pendingVerificationEmail');
-      setSignupSuccess(false);
-      setStoredEmail('');
-      setVerificationCode('');
-      router.push('/login');
+
+      if (response.status === 200) {
+        localStorage.removeItem('pendingVerificationEmail');
+        localStorage.setItem('accessToken', response.data.accessToken);
+        setSignupSuccess(false);
+        setStoredEmail('');
+        setVerificationCode('');
+        successToast('Your account has been verified successfully!');
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
+      }
     } catch (error) {
       errorToast('Invalid verification code. Please try again.');
     } finally {
@@ -164,8 +173,7 @@ const SignupForm = () => {
   };
 
   return (
-    <div className="mt-16 w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8 relative overflow-hidden">
-      {/* ... Blobs and other wrapper divs are unchanged ... */}
+    <div className="w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center py-16 md:py-24 px-4 sm:px-6 md:px-8 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full filter blur-3xl opacity-40 animate-pulse hidden sm:block"></div>
         <div
@@ -173,27 +181,26 @@ const SignupForm = () => {
           style={{ animationDelay: '2s' }}
         ></div>
       </div>
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-lg">
         {signupSuccess ? (
-          // ... Verification JSX is unchanged ...
-          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <div className="text-center mb-8">
+          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-8 sm:p-12 shadow-2xl">
+            <div className="text-center mb-10">
               <div className="relative inline-block mb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
-                  <MailCheck className="h-8 w-8 text-white" />
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-lg">
+                  <MailCheck className="h-10 w-10 text-white" />
                 </div>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Verify Your Email
               </h1>
-              <p className="text-gray-500 text-sm leading-relaxed">
+              <p className="text-gray-500 text-base leading-relaxed">
                 We've sent a verification code to{' '}
                 <span className="font-medium text-gray-700">{storedEmail}</span>
                 .
               </p>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-6">
               <div className="space-y-4">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
@@ -204,13 +211,13 @@ const SignupForm = () => {
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value)}
                     disabled={isVerifying}
-                    className="w-full pl-12 pr-4 py-3 bg-white/50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full pl-12 pr-4 h-14 text-base bg-white/50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all duration-300"
                   />
                 </div>
                 <Button
                   onClick={handleVerification}
                   disabled={!verificationCode || isVerifying}
-                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-purple-200"
+                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-purple-200"
                 >
                   {isVerifying ? 'Verifying...' : 'Verify Account'}
                 </Button>
@@ -226,7 +233,7 @@ const SignupForm = () => {
               </div>
             </div>
 
-            <div className="mt-8 text-center text-sm">
+            <div className="mt-10 text-center text-sm">
               <p className="text-gray-600">
                 Wrong email?{' '}
                 <button
@@ -243,36 +250,34 @@ const SignupForm = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
-            {/* ... Form Header JSX is unchanged ... */}
-            <div className="text-center mb-8">
+          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-8 sm:p-12 shadow-2xl">
+            <div className="text-center mb-10">
               <div className="relative inline-block mb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
-                  <Rocket className="h-8 w-8 text-white" />
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-lg">
+                  <Rocket className="h-10 w-10 text-white" />
                 </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
-                  <Sparkles className="h-3 w-3 text-yellow-800" />
+                <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
+                  <Sparkles className="h-4 w-4 text-yellow-800" />
                 </div>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Create an Account
               </h1>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-500 text-base">
                 Join us and let's get started.
               </p>
             </div>
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
+                className="space-y-6"
               >
-                {/* ... Other FormFields are unchanged ... */}
                 <FormField
                   control={form.control}
                   name="accountType"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel className="text-gray-700">
+                      <FormLabel className="text-gray-700 font-medium">
                         I am signing up as...
                       </FormLabel>
                       <FormControl>
@@ -291,9 +296,9 @@ const SignupForm = () => {
                             </FormControl>
                             <FormLabel
                               htmlFor="r1"
-                              className="flex flex-col items-center justify-between rounded-xl border-2 border-gray-200 bg-white/50 p-4 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer"
+                              className="flex flex-col items-center justify-between rounded-xl border-2 border-gray-200 bg-white/50 p-5 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer transition-all duration-300"
                             >
-                              <UserPlus className="mb-2 h-6 w-6" /> Individual
+                              <UserPlus className="mb-2 h-7 w-7" /> Individual
                             </FormLabel>
                           </FormItem>
                           <FormItem>
@@ -306,9 +311,9 @@ const SignupForm = () => {
                             </FormControl>
                             <FormLabel
                               htmlFor="r2"
-                              className="flex flex-col items-center justify-between rounded-xl border-2 border-gray-200 bg-white/50 p-4 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer"
+                              className="flex flex-col items-center justify-between rounded-xl border-2 border-gray-200 bg-white/50 p-5 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer transition-all duration-300"
                             >
-                              <Building className="mb-2 h-6 w-6" /> Institution
+                              <Building className="mb-2 h-7 w-7" /> Institution
                             </FormLabel>
                           </FormItem>
                         </RadioGroup>
@@ -324,7 +329,7 @@ const SignupForm = () => {
                     name="organizationName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700">
+                        <FormLabel className="text-gray-700 font-medium">
                           Institution Name
                         </FormLabel>
                         <FormControl>
@@ -333,7 +338,7 @@ const SignupForm = () => {
                               <Building className="h-5 w-5" />
                             </div>
                             <Input
-                              className="pl-12 w-full bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600"
+                              className="pl-12 w-full h-14 text-base bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
                               placeholder="e.g., State University"
                               {...field}
                             />
@@ -350,7 +355,7 @@ const SignupForm = () => {
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">
+                      <FormLabel className="text-gray-700 font-medium">
                         Your Full Name
                       </FormLabel>
                       <FormControl>
@@ -359,7 +364,7 @@ const SignupForm = () => {
                             <User className="h-5 w-5" />
                           </div>
                           <Input
-                            className="pl-12 w-full bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600"
+                            className="pl-12 w-full h-14 text-base bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
                             placeholder="John Doe"
                             {...field}
                             disabled={form.formState.isSubmitting}
@@ -376,7 +381,7 @@ const SignupForm = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">
+                      <FormLabel className="text-gray-700 font-medium">
                         Your Email Address
                       </FormLabel>
                       <FormControl>
@@ -385,7 +390,7 @@ const SignupForm = () => {
                             <Mail className="h-5 w-5" />
                           </div>
                           <Input
-                            className="pl-12 w-full bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600"
+                            className="pl-12 w-full h-14 text-base bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
                             placeholder="name@example.com"
                             {...field}
                             disabled={form.formState.isSubmitting}
@@ -402,19 +407,32 @@ const SignupForm = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">Password</FormLabel>
+                      <FormLabel className="text-gray-700 font-medium">
+                        Password
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
                             <Lock className="h-5 w-5" />
                           </div>
                           <Input
-                            className="pl-12 w-full bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600"
-                            type="password"
+                            className="pl-12 pr-12 w-full h-14 text-base bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                            type={showPassword ? 'text' : 'password'}
                             placeholder="••••••••"
                             {...field}
                             disabled={form.formState.isSubmitting}
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
                         </div>
                       </FormControl>
                       <FormMessage className="text-red-500 text-xs" />
@@ -427,7 +445,7 @@ const SignupForm = () => {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">
+                      <FormLabel className="text-gray-700 font-medium">
                         Confirm Password
                       </FormLabel>
                       <FormControl>
@@ -436,12 +454,25 @@ const SignupForm = () => {
                             <Lock className="h-5 w-5" />
                           </div>
                           <Input
-                            className="pl-12 w-full bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600"
-                            type="password"
+                            className="pl-12 pr-12 w-full h-14 text-base bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                            type={showConfirmPassword ? 'text' : 'password'}
                             placeholder="••••••••"
                             {...field}
                             disabled={form.formState.isSubmitting}
                           />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowConfirmPassword(!showConfirmPassword)
+                            }
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
                         </div>
                       </FormControl>
                       <FormMessage className="text-red-500 text-xs" />
@@ -454,7 +485,7 @@ const SignupForm = () => {
                   name="referredBy"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">
+                      <FormLabel className="text-gray-700 font-medium">
                         Referral Code (Optional)
                       </FormLabel>
                       <FormControl>
@@ -463,10 +494,9 @@ const SignupForm = () => {
                             <FileText className="h-5 w-5" />
                           </div>
                           <Input
-                            className="pl-12 w-full bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600"
+                            className="pl-12 w-full h-14 text-base bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
                             placeholder="Enter code here"
                             {...field}
-                            // MODIFIED: Disable if submitting OR if code came from URL
                             disabled={
                               form.formState.isSubmitting || isRefCodeFromUrl
                             }
@@ -481,19 +511,52 @@ const SignupForm = () => {
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
-                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-purple-200"
+                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-purple-200"
                 >
                   {form.formState.isSubmitting ? (
                     'Creating Account...'
                   ) : (
                     <>
-                      <UserPlus className="mr-2 h-4 w-4" /> Sign Up
+                      <UserPlus className="mr-2 h-5 w-5" /> Sign Up
                     </>
                   )}
                 </Button>
               </form>
             </Form>
-            <div className="mt-8 text-center text-sm">
+
+            <div className="relative my-10">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white/80 px-4 text-gray-500 rounded-full backdrop-blur-sm">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <GoogleSignInButton form={form} />
+
+            <div className="mt-10 text-center text-sm">
+              <p className="text-gray-600">
+                By signing up, you agree to our{' '}
+                <Link
+                  href="/terms"
+                  className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
+                >
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link
+                  href="/privacy"
+                  className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            </div>
+            <div className="mt-4 text-center text-sm">
               <p className="text-gray-600">
                 Already have an account?&nbsp;
                 <Link

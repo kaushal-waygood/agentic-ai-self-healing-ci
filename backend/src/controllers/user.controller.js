@@ -21,7 +21,7 @@ export const SCOPES = [
 export const oauth2Client = new google.auth.OAuth2(
   '433624775795-8jhe519p7bncje5e7hl17m3rh5ttmkng.apps.googleusercontent.com',
   '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',
-    'http://127.0.0.1:8080/api/v1/user/oauth2callback',
+  'http://127.0.0.1:8080/api/v1/user/oauth2callback',
 );
 
 const originUrl = 'http://127.0.0.1:3000' || 'http://localhost:3000';

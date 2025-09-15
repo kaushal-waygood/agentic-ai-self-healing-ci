@@ -1,269 +1,332 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
+  User,
+  GraduationCap,
+  FileCheck,
+  Search,
+  DollarSign,
+  Plane,
+  CheckCircle,
+  Clock,
+  ArrowRight,
   Brain,
   FileText,
   Send,
   BarChart3,
-  Globe,
-  Target,
-  Play,
-  Pause,
-  ArrowRight,
-  CheckCircle,
-  Sparkles,
 } from 'lucide-react';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
 
-const solutions = [
+const journeySteps = [
   {
+    id: 1,
+    title: 'AI-Powered Job Matches',
     icon: Brain,
+    description:
+      'Our AI analyzes job descriptions and customizes your resume to get past ATS filters and land you more interviews.',
+    color: 'from-pink-400 to-rose-400',
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
+    position: 'left',
+    status: '90% Match',
+    demo: 'Start Matching',
+  },
+  {
+    id: 2,
     title: 'AI-Powered Resume',
-    stat: '90% Match',
+    icon: Brain,
     description:
-      'Our AI analyzes job descriptions and customizes your resume to get past ATS filters.',
-    features: [
-      'Keyword optimization',
-      'Action verb suggestions',
-      'ATS score analysis',
-    ],
-    demo: 'See Resume Customization',
-    color: 'from-purple-600 to-blue-600',
+      'Our AI analyzes job descriptions and customizes your resume to get past ATS filters and land you more interviews.',
+    color: 'from-pink-400 to-rose-400',
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
+    position: 'right',
+    status: '90% Match',
+    demo: 'Try Resume AI',
   },
   {
-    icon: FileText,
+    id: 3,
     title: 'Instant Cover Letters',
-    stat: '85% Faster',
+    icon: FileText,
     description:
-      'Generate a personalized cover letter for any job in seconds, tailored to your skills.',
-    features: [
-      'Personalized content',
-      'Tone adjustments',
-      'Multi-format export',
-    ],
-    demo: 'See Cover Letter Demo',
-    color: 'from-blue-600 to-cyan-600',
+      'Generate a personalized cover letter for any job in seconds, tailored to highlight your most relevant skills and experience.',
+    color: 'from-amber-400 to-yellow-400',
+    bgColor: 'bg-amber-50',
+    borderColor: 'border-amber-200',
+    position: 'left',
+    status: '85% Faster',
+    demo: 'Try Cover Letter AI',
   },
   {
+    id: 4,
+    title: 'Auto Job Applications',
     icon: Send,
-    title: 'Automated Job Applications',
-    stat: '4X Applications',
     description:
-      'Apply to multiple jobs at once with one click, without filling out repetitive forms.',
-    features: [
-      'Automatic form filling',
-      'Application tracking',
-      'Smart scheduling',
-    ],
-    demo: 'See Job Apply Demo',
-    color: 'from-cyan-600 to-emerald-600',
+      'Document preparation, essay writing, and application submission guidance',
+    color: 'from-yellow-400 to-lime-400',
+    bgColor: 'bg-yellow-50',
+    borderColor: 'border-yellow-200',
+    position: 'right',
+    status: 'upcoming',
+    demo: 'Watch Auto-Apply',
   },
   {
+    id: 5,
+    title: 'Smart Analytics',
     icon: BarChart3,
-    title: 'Performance Analytics',
-    stat: '60% More Effective',
     description:
-      'Track your application success rates and get insights into your resume performance.',
-    features: [
-      'Interview success rate',
-      'Resume views tracker',
-      'Keyword performance',
-    ],
-    demo: 'See Analytics Dashboard',
-    color: 'from-emerald-600 to-green-600',
+      'Track your application success rates, get insights into your resume performance, and optimize your strategy with data.',
+    color: 'from-lime-400 to-green-400',
+    bgColor: 'bg-lime-50',
+    borderColor: 'border-lime-200',
+    position: 'left',
+    status: '60% Better Results',
+    demo: 'Try Cover Letter AI',
   },
 ];
 
-export const Solutions = () => {
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
-  const [activeDemo, setActiveDemo] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isPlaying, setIsPlaying] = useState(true);
+export function Solutions() {
+  const [activeStep, setActiveStep] = useState(2);
+  const [hoveredStep, setHoveredStep] = useState(null);
+  const [progress, setProgress] = useState(25);
 
   useEffect(() => {
-    if (!isPlaying) return;
-
-    const interval = setInterval(() => {
-      setActiveDemo((prev) => (prev + 1) % solutions.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth) * 100,
-        y: (e.clientY / window.innerHeight) * 100,
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) return 0;
+        return prev + 0.5;
       });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, 100);
+    return () => clearInterval(timer);
   }, []);
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-
-  const handleCardClick = (index: number) => {
-    setActiveDemo(index);
-    if (isMobile) {
-      setHoveredCard(index);
-    }
+  const getStatusIcon = (step) => {
+    if (step.status === 'completed') return CheckCircle;
+    if (step.status === 'active') return Clock;
+    return step.icon;
   };
 
-  const handleMouseEnter = (index: number) => {
-    if (!isMobile) {
-      setHoveredCard(index);
-      setActiveDemo(index); // Also set active demo on hover for desktop
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (!isMobile) {
-      setHoveredCard(null);
-    }
+  const getStatusColor = (step) => {
+    if (step.status === 'completed') return 'text-green-500';
+    if (step.status === 'active') return 'text-orange-500';
+    return 'text-gray-400';
   };
 
   return (
-    <section className="relative py-16 md:py-20 bg-gradient-to-br from-white via-blue-50/30 to-purple-50/50 overflow-hidden">
-      {/* Dynamic Background Effects */}
-      <div className="absolute inset-0">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 py-12 px-4">
+      {/* Background Effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse" />
         <div
-          className="absolute w-96 h-96 bg-gradient-to-br from-purple-400/20 to-blue-500/20 rounded-full blur-3xl animate-pulse"
-          style={{
-            left: `${15 + mousePosition.x * 0.02}%`,
-            top: `${10 + mousePosition.y * 0.02}%`,
-          }}
+          className="absolute bottom-20 right-10 w-80 h-80 bg-gradient-to-br from-pink-400/10 to-amber-400/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '2s' }}
         />
         <div
-          className="absolute w-80 h-80 bg-gradient-to-br from-cyan-400/15 to-emerald-500/15 rounded-full blur-3xl animate-pulse"
-          style={{
-            right: `${20 + mousePosition.x * 0.015}%`,
-            bottom: `${15 + mousePosition.y * 0.015}%`,
-            animationDelay: '2s',
-          }}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-cyan-400/5 to-green-400/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '4s' }}
         />
       </div>
 
-      <div className="container mx-auto px-4 md:px-6 relative z-10">
-        {/* Header Section */}
-        <div className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-100/50 backdrop-blur-sm border border-green-200/50 rounded-full mb-8">
-            <CheckCircle className="w-5 h-5 text-green-600 animate-pulse" />
-            <span className="text-green-700 font-semibold text-base">
-              AI-Powered Solutions
+      <div className="max-w-6xl mx-auto relative z-10">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-100/80 to-purple-100/80 backdrop-blur-lg border border-blue-200/50 rounded-full mb-8 shadow-lg">
+            <GraduationCap className="w-5 h-5 text-blue-600" />
+            <span className="text-blue-800 font-bold">
+              AI-Powered Solutions{' '}
             </span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-            <span className="text-gray-900">Meet Your</span>
-            <span className="block bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              AI Job Search Assistant
+
+          <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight">
+            <span className="text-gray-900">Meet Your</span>{' '}
+            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              AI Job Search Assistant{' '}
             </span>
-          </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            ZobsAI transforms your job search with AI, turning the tedious
-            process into an automated success machine.
+          </h1>
+
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Follow our comprehensive 6-step process to ensure that you achieve
+            success in your study abroad journey
           </p>
         </div>
 
-        {/* Main Content Grid - Updated for 4 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {solutions.map((solution, index) => {
-            const IconComponent = solution.icon;
-            const isActive = activeDemo === index;
+        {/* Journey Steps */}
+        <div className="relative">
+          {/* Central Timeline */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-gradient-to-b from-blue-200 via-purple-200 to-pink-200 rounded-full" />
 
-            return (
-              <div
-                key={index}
-                className={`relative group cursor-pointer transform transition-all duration-300 ${
-                  isActive ? 'scale-105 z-20' : 'z-10'
-                }`}
-                onClick={() => handleCardClick(index)}
-                onMouseEnter={() => handleMouseEnter(index)}
-                onMouseLeave={handleMouseLeave}
-              >
-                {/* Background Glow */}
-                <div
-                  className={`absolute -inset-1 bg-gradient-to-r ${
-                    solution.color
-                  } rounded-xl blur-lg opacity-0 transition-all duration-300 ${
-                    isActive ? 'opacity-30' : 'group-hover:opacity-20'
-                  }`}
-                />
+          <div className="space-y-12">
+            {journeySteps.map((step, index) => {
+              const IconComponent = step.icon;
+              const StatusIconComponent = getStatusIcon(step);
+              const isLeft = step.position === 'left';
+              const isActive = activeStep === step.id;
+              const isHovered = hoveredStep === step.id;
+              const isCompleted = step.status === 'completed';
 
-                {/* Main Card */}
+              return (
                 <div
-                  className={`relative bg-white/70 backdrop-blur-xl border rounded-xl p-5 shadow-lg transition-all duration-300 h-full ${
-                    isActive
-                      ? 'border-purple-300'
-                      : 'border-white/50 group-hover:border-purple-200'
-                  }`}
+                  key={step.id}
+                  className="relative flex items-center justify-center"
+                  onMouseEnter={() => setHoveredStep(step.id)}
+                  onMouseLeave={() => setHoveredStep(null)}
                 >
-                  <div className="flex items-start gap-4">
-                    {/* Icon */}
+                  {/* Step Number Circle */}
+                  <div className="absolute left-1/2 transform -translate-x-1/2 z-20">
                     <div
-                      className={`w-12 h-12 bg-gradient-to-br ${
-                        solution.color
-                      } rounded-lg flex items-center justify-center shadow-md transform transition-all duration-300 flex-shrink-0 ${
-                        isActive
-                          ? 'scale-110 rotate-3'
-                          : 'group-hover:scale-105'
+                      className={`w-16 h-16 rounded-full border-4 border-white shadow-xl transition-all duration-500 cursor-pointer transform ${
+                        isActive || isHovered ? 'scale-110' : 'scale-100'
+                      } ${
+                        isCompleted
+                          ? 'bg-gradient-to-br from-green-400 to-emerald-500'
+                          : isActive
+                          ? `bg-gradient-to-br ${step.color}`
+                          : 'bg-white hover:bg-gray-50'
                       }`}
+                      onClick={() => setActiveStep(step.id)}
                     >
-                      <IconComponent className="w-6 h-6 text-white" />
-                    </div>
+                      <div className="w-full h-full rounded-full flex items-center justify-center">
+                        <span
+                          className={`text-2xl font-black transition-colors duration-300 ${
+                            isCompleted
+                              ? 'text-white'
+                              : isActive
+                              ? 'text-white'
+                              : 'text-gray-600'
+                          }`}
+                        >
+                          {step.id}
+                        </span>
+                      </div>
 
-                    {/* Content */}
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-900 mb-0.5">
-                        {solution.title}
-                      </h3>
+                      {/* Pulse Effect for Active Step */}
+                      {isActive && (
+                        <div
+                          className={`absolute inset-0 rounded-full bg-gradient-to-br ${step.color} opacity-30 animate-ping`}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Step Content Card */}
+                  <div
+                    className={`w-full max-w-md transition-all duration-500 transform cursor-pointer ${
+                      isLeft ? 'mr-auto pr-24' : 'ml-auto pl-24'
+                    } ${isActive || isHovered ? 'scale-105' : 'scale-100'}`}
+                    onClick={() => setActiveStep(step.id)}
+                  >
+                    <div
+                      className={`relative p-8 rounded-3xl border-2 transition-all duration-500 backdrop-blur-lg ${
+                        isActive
+                          ? `${step.bgColor} ${step.borderColor} shadow-2xl`
+                          : 'bg-white/70 border-white/50 shadow-lg hover:shadow-xl'
+                      } ${isHovered ? 'shadow-2xl border-gray-300' : ''}`}
+                    >
+                      {/* Background Gradient Effect */}
                       <div
-                        className={`px-2 py-0.5 mb-2 inline-block bg-gradient-to-r ${solution.color} rounded-full text-white text-xs font-bold`}
+                        className={`absolute inset-0 rounded-3xl opacity-0 transition-all duration-500 ${
+                          isActive || isHovered ? 'opacity-10' : ''
+                        } bg-gradient-to-br ${step.color} blur-xl`}
+                      />
+
+                      <div className="relative z-10">
+                        {/* Header */}
+                        <div className="flex items-start gap-4 mb-4">
+                          <div
+                            className={`p-3 rounded-2xl transition-all duration-500 ${
+                              isActive
+                                ? `bg-gradient-to-br ${step.color} shadow-lg`
+                                : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                          >
+                            <IconComponent
+                              className={`w-6 h-6 transition-colors duration-300 ${
+                                isActive ? 'text-white' : 'text-gray-600'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                              {step.title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm">
+                              <StatusIconComponent
+                                className={`w-4 h-4 ${getStatusColor(step)}`}
+                              />
+                              <span
+                                className={`capitalize font-medium ${getStatusColor(
+                                  step,
+                                )}`}
+                              >
+                                {step.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-gray-700 leading-relaxed mb-4">
+                          {step.description}
+                        </p>
+
+                        {/* Action Button */}
+                        <div className="animate-fadeIn">
+                          <button
+                            className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r ${step.color} text-white font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300`}
+                          >
+                            <span>{step.demo}</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Decorative Elements */}
+                      <div
+                        className={`absolute -top-2 -right-2 w-8 h-8 rounded-full transition-all duration-500 ${
+                          isCompleted
+                            ? 'bg-gradient-to-br from-green-400 to-emerald-500 scale-100'
+                            : 'scale-0'
+                        } flex items-center justify-center`}
                       >
-                        {solution.stat}
+                        <CheckCircle className="w-5 h-5 text-white" />
                       </div>
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-600 my-3 leading-relaxed">
-                    {solution.description}
-                  </p>
-
-                  {/* Features List & Demo Link Container */}
+                  {/* Connection Line to Timeline */}
                   <div
-                    className={`transition-all duration-500 overflow-hidden ${
+                    className={`absolute top-8 w-20 h-0.5 bg-gradient-to-r transition-all duration-500 ${
                       isActive
-                        ? 'max-h-40 opacity-100 mt-3'
-                        : 'max-h-0 opacity-0'
-                    }`}
-                  >
-                    <div className="space-y-1.5 mb-3">
-                      {solution.features.map((feature, featureIndex) => (
-                        <div
-                          key={featureIndex}
-                          className="flex items-center gap-2 text-xs text-gray-500"
-                        >
-                          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Link
-                      href="/login"
-                      target="_blank"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100/50 rounded-full text-purple-700 text-xs font-medium hover:bg-purple-100 transition-colors"
-                    >
-                      <Play className="w-3 h-3" />
-                      <span>{solution.demo}</span>
-                    </Link>
-                  </div>
+                        ? step.color
+                            .replace('from-', 'from-')
+                            .replace('to-', 'to-')
+                        : 'from-gray-200 to-gray-300'
+                    } ${isLeft ? 'right-1/2 mr-8' : 'left-1/2 ml-8'}`}
+                  />
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
-    </section>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+      `}</style>
+    </div>
   );
-};
+}

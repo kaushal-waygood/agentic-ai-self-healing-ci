@@ -20,7 +20,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        applicationsSent
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"

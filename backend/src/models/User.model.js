@@ -96,7 +96,34 @@ const userSchema = new Schema(
     passwordResetExpires: {
       type: Date,
     },
+    plan: {
+      type: Schema.Types.ObjectId,
+      ref: 'Plan',
+    },
+
+    currentPlan: {
+      type: Schema.Types.ObjectId,
+      ref: 'Plan',
+    },
+    currentPurchase: {
+      type: Schema.Types.ObjectId,
+      ref: 'Purchase',
+    },
+    usageLimits: {
+      cvCreation: { type: Number, default: 0 },
+      coverLetter: { type: Number, default: 0 },
+      aiApplication: { type: Number, default: 0 },
+      autoApply: { type: Number, default: 0 },
+    },
+    usageCounters: {
+      cvCreation: { type: Number, default: 0 },
+      coverLetter: { type: Number, default: 0 },
+      aiApplication: { type: Number, default: 0 },
+      autoApply: { type: Number, default: 0 },
+      lastReset: { type: Date, default: Date.now },
+    },
   },
+
   {
     timestamps: true,
     versionKey: false,

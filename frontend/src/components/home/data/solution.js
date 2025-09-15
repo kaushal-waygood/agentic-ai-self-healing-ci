@@ -112,6 +112,7 @@ export const painPoints = [
     color: 'from-red-500 to-orange-500',
     bgColor: 'from-red-50 to-orange-50',
     solution: 'AI completes in 2 minutes',
+    button: 'Get Started',
   },
   {
     icon: FileX,
@@ -122,6 +123,7 @@ export const painPoints = [
     color: 'from-purple-500 to-pink-500',
     bgColor: 'from-purple-50 to-pink-50',
     solution: 'ATS-optimized applications',
+    button: 'Get Started',
   },
   {
     icon: TrendingDown,
