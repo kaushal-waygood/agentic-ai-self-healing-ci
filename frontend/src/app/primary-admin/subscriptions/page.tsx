@@ -1,8 +1,8 @@
-
-import { SubscriptionsClient } from "@/components/admin/subscriptions-client";
-import { PageHeader } from "@/components/common/page-header";
-import { mockSubscriptionPlans } from "@/lib/data/subscriptions";
-import { DollarSign } from "lucide-react";
+import { SubscriptionsClient } from '@/components/admin/subscriptions-client';
+import { PageHeader } from '@/components/common/page-header';
+import { Pricing } from '@/components/home/Pricing';
+import { mockSubscriptionPlans } from '@/lib/data/subscriptions';
+import { DollarSign } from 'lucide-react';
 
 export default function SubscriptionsDashboardPage() {
   return (
@@ -12,7 +12,8 @@ export default function SubscriptionsDashboardPage() {
         description="View and edit all subscription plans available on the platform."
         icon={DollarSign}
       />
-      <SubscriptionsClient initialPlans={mockSubscriptionPlans} />
+      {/* <SubscriptionsClient initialPlans={mockSubscriptionPlans} /> */}
+      <Pricing />
     </>
   );
 }

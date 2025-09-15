@@ -207,7 +207,7 @@ export function Testimonials() {
   const currentTheme = getThemeClasses(testimonials[activeIndex].theme);
 
   return (
-    <section className="py-24 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 relative overflow-hidden">
+    <section className="py-8 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 relative overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-blue-600 via-purple-600 to-emerald-600 rounded-full blur-3xl"></div>
@@ -217,20 +217,8 @@ export function Testimonials() {
       <div className="container mx-auto px-6 relative z-10">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 border border-gray-200 shadow-sm mb-6">
-            <div className="flex gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                />
-              ))}
-            </div>
-            <span className="text-sm font-medium text-gray-600">
-              4.9/5 from 10,000+ users
-            </span>
-          </div>
-          <h2 className="text-5xl font-bold mb-6 text-gray-800">
+          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 border border-gray-200 shadow-sm mb-6"></div>
+          <h2 className="text-4xl font-bold mb-6 text-gray-800">
             Success Stories from{' '}
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent">
               Real Users
@@ -322,17 +310,6 @@ export function Testimonials() {
               );
             })}
           </Swiper>
-
-          {/* Custom Navigation & Pagination */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center w-full">
-            <button className="swiper-button-prev-custom text-gray-600 hover:text-blue-500 transition-colors">
-              <ChevronLeft className="w-8 h-8" />
-            </button>
-            <div className="swiper-custom-pagination !relative !w-auto mx-8"></div>
-            <button className="swiper-button-next-custom text-gray-600 hover:text-blue-500 transition-colors">
-              <ChevronRight className="w-8 h-8" />
-            </button>
-          </div>
         </div>
       </div>
 

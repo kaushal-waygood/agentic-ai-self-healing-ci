@@ -7,9 +7,8 @@ console.log(process.env.NEXT_PUBLIC_NODE_ENV);
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
-    : 'https://api.zobsai.com';
+    : 'http://127.0.0.1:8080';
 
-// Safe localStorage access with error handling
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     try {
@@ -22,6 +21,7 @@ const safeLocalStorage = {
       return null;
     }
   },
+
   setItem: (key: string, value: string): void => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {

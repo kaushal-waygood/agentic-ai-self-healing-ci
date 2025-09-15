@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   TrendingUp,
   Clock,
@@ -10,9 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { beforeStats, afterStats } from './data/solution';
-
-// NOTE: I've added sample data for beforeStats and afterStats to make this a runnable example.
-// In your project, you'd keep the original import statement.
+import { useRouter } from 'next/navigation';
 const beforeStats = [
   { icon: Clock, text: 'Hours spent customizing resumes' },
   { icon: ArrowRight, text: 'Manual job searching' },
@@ -32,13 +30,15 @@ export default function BeforeAfter() {
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredStat, setHoveredStat] = useState(null);
 
+  const router = useRouter();
+
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
   const StatCard = ({ stat, index, type }) => (
     <div
-      className={`group relative overflow-hidden rounded-xl p-3 md:p-4 transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 cursor-pointer ${
+      className={`group relative overflow-hidden rounded-xl p-3 transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 cursor-pointer ${
         type === 'before'
           ? 'bg-gradient-to-br from-red-50 to-red-100 border border-red-200 hover:shadow-lg hover:shadow-red-200/50'
           : 'bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 hover:shadow-lg hover:shadow-emerald-200/50'
@@ -53,7 +53,7 @@ export default function BeforeAfter() {
       onMouseEnter={() => setHoveredStat(`${type}-${index}`)}
       onMouseLeave={() => setHoveredStat(null)}
     >
-      <div className="flex items-center gap-2 md:gap-3 relative z-10">
+      <div className="flex items-center gap-3 relative z-10">
         <div
           className={`p-2 rounded-lg transition-all duration-300 ${
             type === 'before'
@@ -61,10 +61,10 @@ export default function BeforeAfter() {
               : 'bg-emerald-500 text-white group-hover:bg-emerald-600'
           }`}
         >
-          <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
+          <stat.icon className="w-5 h-5" />
         </div>
         <span
-          className={`text-sm md:text-base font-medium transition-colors duration-300 ${
+          className={`text-base font-medium transition-colors duration-300 ${
             type === 'before'
               ? 'text-red-700 group-hover:text-red-800'
               : 'text-emerald-700 group-hover:text-emerald-800'
@@ -85,57 +85,31 @@ export default function BeforeAfter() {
 
       {/* Sparkle effect on hover */}
       {hoveredStat === `${type}-${index}` && (
-        <Sparkles className="absolute top-2 right-2 w-3 h-3 md:w-4 md:h-4 text-yellow-400 animate-pulse" />
+        <Sparkles className="absolute top-2 right-2 w-4 h-4 text-yellow-400 animate-pulse" />
       )}
-    </div>
-  );
-
-  const ResultCard = ({ value, label, delay, gradient }) => (
-    <div
-      className={`relative overflow-hidden bg-white rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 cursor-pointer group ${gradient}`}
-      style={{
-        animationDelay: `${delay}ms`,
-        transform: isVisible
-          ? 'translateY(0) scale(1)'
-          : 'translateY(30px) scale(0.9)',
-        opacity: isVisible ? 1 : 0,
-      }}
-    >
-      <div className="relative z-10">
-        <div className="text-4xl md:text-5xl font-black mb-2 md:mb-3 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent group-hover:from-purple-500 group-hover:to-blue-500 transition-all duration-300">
-          {value}
-        </div>
-        <div className="text-gray-600 font-medium text-sm md:text-lg">
-          {label}
-        </div>
-      </div>
-
-      {/* Animated background blob */}
-      <div className="absolute -top-4 -right-4 w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-purple-400/20 to-blue-400/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
-      <div className="absolute -bottom-4 -left-4 w-24 h-24 md:w-32 md:h-32 bg-gradient-to-tr from-pink-400/20 to-yellow-400/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
     </div>
   );
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 py-8 md:py-8 relative overflow-hidden">
       {/* Animated background elements */}
-      <div className="absolute top-10 md:top-20 left-5 md:left-10 w-24 h-24 md:w-32 md:h-32 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse" />
       <div
-        className="absolute bottom-10 md:bottom-20 right-5 md:right-10 w-32 h-32 md:w-40 md:h-40 bg-gradient-to-r from-pink-400/10 to-yellow-400/10 rounded-full blur-3xl animate-pulse"
+        className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-r from-pink-400/10 to-yellow-400/10 rounded-full blur-3xl animate-pulse"
         style={{ animationDelay: '1s' }}
       />
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         {/* Header */}
-        <div className="text-center mb-12 md:mb-20">
-          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full px-4 py-2 md:px-6 md:py-2 mb-4 md:mb-6 shadow-lg">
-            <Zap className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
-            <span className="text-xs md:text-sm font-medium text-gray-700">
+        <div className="text-center mb-10 md:mb-16">
+          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full px-5 py-2 mb-5 shadow-lg">
+            <Zap className="w-5 h-5 text-yellow-500" />
+            <span className="text-sm font-medium text-gray-700">
               Transformation Story
             </span>
           </div>
 
-          <h2 className="text-4xl md:text-6xl font-black mb-4 md:mb-6 leading-tight">
+          <h2 className="text-4xl md:text-6xl font-black mb-5 leading-tight">
             The{' '}
             <span className="text-transparent bg-gradient-to-r from-red-500 to-red-600 bg-clip-text">
               Before
@@ -149,7 +123,7 @@ export default function BeforeAfter() {
             </span>
           </h2>
 
-          <p className="text-base md:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+          <p className="text-lg text-gray-600 max-w-4xl mx-auto leading-relaxed">
             Witness the revolutionary transformation in job search efficiency
             and success rates when you harness the power of AI-driven
             automation.
@@ -157,7 +131,7 @@ export default function BeforeAfter() {
         </div>
 
         {/* Comparison Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 mb-12 md:mb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
           {/* Before Card */}
           <div
             className={`transition-all duration-700 ${
@@ -167,24 +141,24 @@ export default function BeforeAfter() {
             }`}
             onClick={() => setActiveTab('before')}
           >
-            <div className="bg-white/90 backdrop-blur-sm border border-red-200 rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
+            <div className="bg-white/90 backdrop-blur-sm border border-red-200 rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-500 to-red-600" />
 
-              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                <div className="p-2 md:p-3 bg-red-500 rounded-2xl shadow-lg">
-                  <Clock className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-red-500 rounded-2xl shadow-lg">
+                  <Clock className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl md:text-3xl font-bold text-red-600">
+                  <h3 className="text-2xl md:text-3xl font-bold text-red-600">
                     Before ZobsAI
                   </h3>
-                  <p className="text-red-400 font-medium text-sm md:text-base">
+                  <p className="text-red-400 font-medium text-base">
                     The Struggle Era
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {beforeStats.map((stat, index) => (
                   <StatCard
                     key={index}
@@ -206,24 +180,24 @@ export default function BeforeAfter() {
             }`}
             onClick={() => setActiveTab('after')}
           >
-            <div className="bg-white/90 backdrop-blur-sm border border-emerald-200 rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
+            <div className="bg-white/90 backdrop-blur-sm border border-emerald-200 rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-500 to-emerald-600" />
 
-              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                <div className="p-2 md:p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg">
-                  <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg">
+                  <TrendingUp className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl md:text-3xl font-bold text-emerald-600">
+                  <h3 className="text-2xl md:text-3xl font-bold text-emerald-600">
                     After ZobsAI
                   </h3>
-                  <p className="text-emerald-400 font-medium text-sm md:text-base">
+                  <p className="text-emerald-400 font-medium text-base">
                     The Success Era
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {afterStats.map((stat, index) => (
                   <StatCard
                     key={index}
@@ -234,6 +208,29 @@ export default function BeforeAfter() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="text-center mt-20">
+          <div className="inline-flex items-center gap-4 p-8 bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 rounded-3xl shadow-2xl text-white">
+            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-lg">
+              <TrendingUp className="w-8 h-8" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-2xl font-bold mb-2">
+                Ready to Start Your Journey?
+              </h3>
+              <p className="text-white/90">
+                Join thousands of students who achieved their dreams
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/signup')}
+              className="px-8 py-4 bg-white text-emerald-700 font-bold rounded-xl hover:bg-gray-50 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl"
+            >
+              Get Started
+            </button>
           </div>
         </div>
       </div>
@@ -249,22 +246,8 @@ export default function BeforeAfter() {
           }
         }
 
-        @keyframes pulse-glow {
-          0%,
-          100% {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-          }
-          50% {
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
-          }
-        }
-
         .animate-float {
           animation: float 6s ease-in-out infinite;
-        }
-
-        .animate-pulse-glow {
-          animation: pulse-glow 2s ease-in-out infinite;
         }
       `}</style>
     </section>

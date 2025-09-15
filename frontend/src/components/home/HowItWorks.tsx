@@ -14,8 +14,9 @@ import {
   Star,
   Clock,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-// Data for the steps remains unchanged
+// Data for the steps with updated, more interactive button text
 const steps = [
   {
     step: 1,
@@ -28,6 +29,7 @@ const steps = [
     lightGradient: 'from-blue-100 to-purple-100',
     color: 'blue',
     successRate: 98,
+    button: 'Create Your Profile', // Changed
   },
   {
     step: 2,
@@ -40,6 +42,7 @@ const steps = [
     lightGradient: 'from-purple-100 to-emerald-100',
     color: 'purple',
     successRate: 94,
+    button: 'Discover Jobs', // Changed
   },
   {
     step: 3,
@@ -52,6 +55,7 @@ const steps = [
     lightGradient: 'from-emerald-100 to-cyan-100',
     color: 'emerald',
     successRate: 85,
+    button: 'Optimize for ATS', // Changed
   },
   {
     step: 4,
@@ -64,6 +68,7 @@ const steps = [
     lightGradient: 'from-cyan-100 to-blue-100',
     color: 'cyan',
     successRate: 92,
+    button: 'Launch Auto-Apply', // Changed
   },
 ];
 
@@ -71,6 +76,7 @@ export function HowItWorks() {
   const [activeStep, setActiveStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef(null);
+  const router = useRouter();
 
   // Function to start the autoplaying carousel
   const startAutoPlay = () => {
@@ -201,22 +207,13 @@ export function HowItWorks() {
             <div className="mt-auto pt-6 min-h-[68px]">
               <div className="hidden group-hover:block animate-fade-in-up">
                 <button
+                  onClick={() => router.push('/signup')}
                   className={`w-full py-3 bg-gradient-to-r ${step.gradient} text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300 flex items-center justify-center gap-2 group/btn`}
                 >
-                  Try This Step
+                  {step.button}
                   <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
                 </button>
               </div>
-
-              {isActive && (
-                <div className="animate-fade-in-up">
-                  <div className="flex items-center gap-2 text-emerald-600 text-sm font-semibold bg-emerald-50 rounded-lg p-3">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Step Active</span>
-                    <TrendingUp className="w-4 h-4 ml-auto" />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -226,7 +223,7 @@ export function HowItWorks() {
 
   return (
     <section
-      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-purple-50/40 py-20 md:py-28 relative overflow-hidden"
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-purple-50/40 py-8 md:py-8 relative overflow-hidden"
       id="how-it-works"
     >
       <div className="absolute inset-0 overflow-hidden">

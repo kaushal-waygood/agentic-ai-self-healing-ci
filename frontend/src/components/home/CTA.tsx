@@ -151,24 +151,6 @@ export function CTA() {
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto text-center">
-          {/* Floating Badge */}
-          <div
-            className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-6 py-3 mb-8 shadow-2xl hover:scale-105 transition-all duration-500 group"
-            style={{
-              transform: `translateY(${isVisible ? 0 : -30}px)`,
-              opacity: isVisible ? 1 : 0,
-              transitionDelay: '0.2s',
-            }}
-          >
-            <div className="p-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full group-hover:rotate-12 transition-transform duration-300">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-emerald-400 font-bold text-lg">
-              Ready to Transform Your Career?
-            </span>
-            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-          </div>
-
           {/* Main Headline */}
           <h2
             className="text-6xl lg:text-8xl font-black mb-8 leading-tight text-white"

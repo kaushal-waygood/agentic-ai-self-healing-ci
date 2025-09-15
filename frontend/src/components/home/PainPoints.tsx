@@ -167,7 +167,7 @@ export const PainPoints = () => {
 
                 {/* Solution Preview */}
                 <button
-                  onClick={() => router.push('/singup')}
+                  onClick={() => router.push('/signup')}
                   className={`mt-6 p-4 bg-green-50 backdrop-blur-sm w-full border border-green-200 rounded-xl transform transition-all duration-500 ${
                     activeCard === index
                       ? 'opacity-100 translate-y-0'

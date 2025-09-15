@@ -8,6 +8,7 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  Router,
 } from 'lucide-react';
 import { platforms } from './data/solution'; // Assuming data is in this file
 
@@ -17,9 +18,11 @@ import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import { useRouter } from 'next/navigation';
 
 export function Platforms() {
   const swiperRef = useRef(null);
+  const router = useRouter();
 
   const PlatformCard = ({ platform }) => {
     return (
@@ -72,8 +75,11 @@ export function Platforms() {
 
             {/* "Connect" button appears at the bottom on hover */}
             <div className="mt-auto h-12 flex items-end">
-              <button className="w-full py-3 bg-gray-800 text-white font-bold rounded-xl shadow-lg hover:bg-gray-900 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
-                Connect
+              <button
+                onClick={() => router.push('/signup')}
+                className="w-full py-3 bg-gray-800 text-white font-bold rounded-xl shadow-lg hover:bg-gray-900 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0"
+              >
+                Let's Apply
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -84,7 +90,7 @@ export function Platforms() {
   };
 
   return (
-    <section className="py-24 bg-slate-50 relative overflow-hidden">
+    <section className="py-8 bg-slate-50 relative overflow-hidden">
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-40"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-slate-50/80 to-slate-50"></div>
@@ -138,17 +144,6 @@ export function Platforms() {
               </SwiperSlide>
             ))}
           </Swiper>
-
-          {/* Custom Navigation & Pagination */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center w-full max-w-md">
-            <button className="swiper-button-prev-platforms p-2 rounded-full bg-white/50 backdrop-blur-sm shadow-md hover:bg-white transition-colors">
-              <ChevronLeft className="w-6 h-6 text-gray-700" />
-            </button>
-            <div className="swiper-pagination-platforms !relative !w-auto mx-4"></div>
-            <button className="swiper-button-next-platforms p-2 rounded-full bg-white/50 backdrop-blur-sm shadow-md hover:bg-white transition-colors">
-              <ChevronRight className="w-6 h-6 text-gray-700" />
-            </button>
-          </div>
         </div>
       </div>
 

@@ -14,6 +14,7 @@ import jobRoutes from './routes/job.route.js';
 import studentRoutes from './routes/student.route.js';
 import aiRoutes from './routes/ai.route.js';
 import agentRoutes from './routes/autopilotAgent.route.js';
+import planRoutes from './routes/plan.route.js';
 
 const app = express();
 
@@ -58,6 +59,14 @@ app.get('/api', (req, res) => {
   res.send('Hello from the server!');
 });
 
+app.get('/heath-check', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Server is healthy',
+    data: Date.now().toString(),
+  });
+});
+
 // 5. Route Middleware
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/job-role', jobRoleRoutes);
@@ -66,6 +75,7 @@ app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/students', studentRoutes);
 app.use('/api/v1/students', aiRoutes);
 app.use('/api/v1/pilotagent', agentRoutes);
+app.use('/api/v1/plan', planRoutes);
 
 // 6. 404 Handler
 app.use((req, res, next) => {
