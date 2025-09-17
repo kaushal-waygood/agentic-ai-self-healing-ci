@@ -25,7 +25,7 @@ import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import apiInstance from '@/services/api';
 import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
 import JobWizard from './components/JobWizard';
-import CVGeneratorClient from './CVGeneratorClient';
+import CVGeneratorClient from './CVGeneratorClient'; // Renamed for clarity from CVGeneratorClient
 import ContextWizard from './ContextWizard';
 import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
 import GeneratedCV from './GeneratedCV';
@@ -105,21 +105,19 @@ export function CvGeneratorClient() {
 
   const handleSetJobContext = async (
     mode: 'select' | 'paste' | 'title',
-    value: string,
+    value: any,
   ) => {
     let context: JobContext | null = null;
     setIsLoading(true);
     setLoadingMessage('Processing job context...');
     try {
       if (mode === 'select' && value._id) {
-        if (value._id) {
-          context = {
-            mode,
-            value: value._id,
-            title: value.title,
-            description: value.description,
-          };
-        }
+        context = {
+          mode,
+          value: value._id,
+          title: value.title,
+          description: value.description,
+        };
       } else if (mode === 'paste' && pastedJobDescription) {
         context = {
           mode,
@@ -175,7 +173,6 @@ export function CvGeneratorClient() {
       return;
     }
 
-    // Basic file validation
     const validTypes = [
       'application/pdf',
       'image/png',
@@ -183,7 +180,6 @@ export function CvGeneratorClient() {
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
-    // const maxSize = 5 * 1024 * 1024; // 5MB
 
     if (!validTypes.includes(file.type)) {
       toast({
@@ -206,7 +202,6 @@ export function CvGeneratorClient() {
       });
       setIsLoading(false);
 
-      // Reset file input to allow selecting same file again
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -297,7 +292,6 @@ export function CvGeneratorClient() {
         formData.append('useProfile', 'true');
       } else if (cvSource.mode === 'upload') {
         const blob = await fetch(cvSource.value).then((r) => r.blob());
-        // Use 'cv' as the key to match your backend multer config
         formData.append('cv', blob, cvSource.name);
       } else if (cvSource.mode === 'saved') {
         const blob = new Blob([cvSource.value], { type: 'text/html' });
@@ -314,23 +308,27 @@ export function CvGeneratorClient() {
       } else if (jobContext.mode === 'title') {
         apiEndpoint = 'students/resume/generate/jobtitle';
       } else if (jobContext.mode === 'select') {
-        console.log('jobContext.value', jobContext.value);
         apiEndpoint = `students/resume/generate/jobId`;
       }
 
       const apiResponse = await apiInstance.post(apiEndpoint, formData);
 
-      if (apiResponse.data && typeof apiResponse.data === 'object') {
-        // This handles the JSON response from the 'jobtitle' route
+      const responseData = apiResponse.data.data || apiResponse.data;
+
+      if (responseData && typeof responseData === 'object') {
+        await apiInstance.post('/plan/usage', {
+          feature: 'cv-creation',
+          creditsUsed: 1,
+          action: 'generate',
+        });
         response = {
-          cv: apiResponse.data.cv,
-          atsScore: apiResponse.data.atsScore,
-          atsSuggestion: apiResponse.data.atsSuggestion,
+          cv: responseData.cv,
+          atsScore: responseData.atsScore,
+          atsSuggestion: responseData.atsSuggestion,
         };
       } else {
-        // This handles a raw HTML response (fallback for 'jd' route if it behaves differently)
         response = {
-          cv: apiResponse.data,
+          cv: responseData,
           atsScore: 0,
           atsSuggestion:
             'ATS analysis not available for this generation method.',
@@ -366,22 +364,16 @@ export function CvGeneratorClient() {
           error.message ||
           'Failed to generate CV. Please check the server logs.',
       });
-      setWizardStep('context'); // Go back to the context step on failure
+      setWizardStep('context');
     } finally {
       setIsLoading(false);
     }
   };
 
   const regenerateCv = async () => {
-    const response = await apiInstance.post('/students/resume/generate/jd', {
-      jobContextString: JSON.stringify(jobContext),
-      studentData: JSON.stringify(student),
-      finalTouch: additionalNarratives,
-      previousCVJson: JSON.stringify(generatedCvOutput),
-    });
-
-    setGeneratedCvOutput(response.data);
-    setCurrentCvContent(response.data.cv);
+    // This function needs to be implemented fully based on your backend capabilities
+    toast({ title: 'Regenerating...', description: 'Please wait.' });
+    await handleGenerate(); // For now, just re-run the original generation
   };
 
   const handleInitiateSave = () => {
@@ -395,40 +387,70 @@ export function CvGeneratorClient() {
   };
 
   const confirmSaveNamedCv = async () => {
-    const response = await apiInstance.post('students/resume/save/html', {
-      title: cvNameForSavingInput,
-      html: activeCvToSave.cv,
-    });
-
-    toast({ title: 'CV Saved!' });
-    setIsNamingDialogDisplayed(false);
+    if (!activeCvToSave || !cvNameForSavingInput.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Save',
+        description: 'CV name cannot be empty.',
+      });
+      return;
+    }
+    try {
+      await apiInstance.post('students/resume/save/html', {
+        title: cvNameForSavingInput,
+        html: activeCvToSave.cv,
+      });
+      toast({ title: 'CV Saved Successfully!' });
+      dispatch(savedStudentResumeRequest()); // Refresh saved CVs list
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save the CV.',
+      });
+    } finally {
+      setIsNamingDialogDisplayed(false);
+      setActiveCvToSave(null);
+      setCvNameForSavingInput('');
+    }
   };
 
-  const loadSavedCv = async (savedCv: SavedCv) => {
-    const repsonse = await apiInstance.get(
-      `students/resume/saved/${savedCv._id}`,
-    );
+  const loadSavedCv = async (savedCv) => {
+    try {
+      const response = await apiInstance.get(
+        `students/resume/saved/${savedCv._id}`,
+      );
 
-    setCurrentCvContent(repsonse.data.html);
-    setGeneratedCvOutput({
-      cv: savedCv.html,
-      atsScore: savedCv.atsScore ?? 0,
-      atsScoreReasoning:
-        savedCv.atsScoreReasoning ??
-        'ATS score not available for this saved version.',
-    });
+      const loadedData = response.data.data;
 
-    setJobContext({
-      mode: 'title',
-      value: savedCv.htmlCVTitle,
-      title: savedCv.htmlCVTitle,
-    });
+      setCurrentCvContent(loadedData.html);
+      setGeneratedCvOutput({
+        cv: loadedData.html,
+        atsScore: loadedData.atsScore ?? 0,
+        atsSuggestion:
+          loadedData.atsSuggestion ??
+          'ATS score not available for this saved version.',
+      });
 
-    setWizardStep('result');
-    toast({
-      title: 'CV Loaded',
-      description: `"${savedCv.name}" is now in the editor.`,
-    });
+      setJobContext({
+        mode: 'title',
+        value: loadedData.title,
+        title: loadedData.title,
+        description: '',
+      });
+
+      setWizardStep('result');
+      toast({
+        title: 'CV Loaded',
+        description: `"${loadedData.title}" is now in the editor.`,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Load CV',
+        description: 'Please try again.',
+      });
+    }
   };
 
   const renderStep = () => {
@@ -472,6 +494,16 @@ export function CvGeneratorClient() {
       case 'generating':
         return <SleekLoadingCard />;
 
+      case 'result':
+        return (
+          <GeneratedCV
+            generatedCvOutput={generatedCvOutput}
+            handleInitiateSave={handleInitiateSave}
+            setCurrentCvContent={setCurrentCvContent}
+            handleRegenerate={regenerateCv}
+            setWizardStep={setWizardStep}
+          />
+        );
       default:
         return null;
     }
@@ -490,15 +522,6 @@ export function CvGeneratorClient() {
           {renderStep()}
         </motion.div>
       </AnimatePresence>
-
-      {wizardStep === 'result' && generatedCvOutput && (
-        <GeneratedCV
-          generatedCvOutput={generatedCvOutput}
-          handleInitiateSave={handleInitiateSave}
-          setCurrentCvContent={setCurrentCvContent}
-          handleRegenerate={regenerateCv}
-        />
-      )}
 
       <SavedCvs resume={resume} loadSavedCv={loadSavedCv} />
 

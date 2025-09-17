@@ -109,6 +109,7 @@ export const generateCVByJD = async (req, res) => {
 
 export const generateCVByJobId = async (req, res) => {
   const { jobId } = req.body;
+
   if (!jobId) {
     return res.status(400).json({ error: 'Job ID is required' });
   }

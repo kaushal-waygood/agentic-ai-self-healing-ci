@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
   }
 
   useEffect(() => {
-    const token = Cookies.get('accessToken');
+    const token = localStorage.get('accessToken');
     if (token) {
       router.push('/dashboard');
     }

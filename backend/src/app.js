@@ -15,6 +15,7 @@ import studentRoutes from './routes/student.route.js';
 import aiRoutes from './routes/ai.route.js';
 import agentRoutes from './routes/autopilotAgent.route.js';
 import planRoutes from './routes/plan.route.js';
+import formRoutes from './routes/form.route.js';
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use('/api/v1/students', studentRoutes);
 app.use('/api/v1/students', aiRoutes);
 app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
+app.use('/api/v1/form', formRoutes);
 
 // 6. 404 Handler
 app.use((req, res, next) => {

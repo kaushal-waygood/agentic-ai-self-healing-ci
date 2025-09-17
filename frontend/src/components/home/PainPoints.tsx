@@ -88,7 +88,7 @@ export const PainPoints = () => {
 
           <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
             Traditional job applications are broken. Job seekers face an uphill
-            battle that wastes
+            battle that wastes{' '}
             <span className="font-semibold text-red-600">
               time, energy, and opportunities
             </span>

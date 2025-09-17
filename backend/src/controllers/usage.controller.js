@@ -74,6 +74,24 @@ export const getUserUsage = async (req, res) => {
   }
 };
 
+export const getUserUsageLimits = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+
+    res.status(200).json({
+      success: true,
+      data: user.usageLimits,
+    });
+  } catch (error) {
+    console.error('Error fetching usage limits:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 const checkUsageLimit = async (userId, feature, creditsUsed) => {
   const user = await User.findById(userId);
   if (!user) return false;

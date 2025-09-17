@@ -14,7 +14,6 @@ import {
   Check,
   Sparkles,
   Target,
-  Zap,
   FileText,
   User,
   Lightbulb,
@@ -30,23 +29,72 @@ const ContextWizard = ({
   setAdditionalNarratives,
   setWizardStep,
   handleGenerate,
-}: any) => {
+}) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSuggestions, setSelectedSuggestions] = useState([]);
 
   const suggestions = [
-    { id: 1, text: 'Leadership experience', icon: Target, color: 'blue' },
-    { id: 2, text: 'Problem-solving skills', icon: Lightbulb, color: 'yellow' },
-    { id: 3, text: 'Team collaboration', icon: User, color: 'green' },
-    { id: 4, text: 'Innovation mindset', icon: Star, color: 'purple' },
-    { id: 5, text: 'Results-driven', icon: TrendingUp, color: 'orange' },
-    { id: 6, text: 'Industry expertise', icon: Award, color: 'red' },
+    {
+      id: 1,
+      text: 'Highlight my leadership experience',
+      icon: Target,
+      color: 'blue',
+    },
+    {
+      id: 2,
+      text: 'Emphasize my problem-solving skills',
+      icon: Lightbulb,
+      color: 'yellow',
+    },
+    {
+      id: 3,
+      text: 'Showcase team collaboration abilities',
+      icon: User,
+      color: 'green',
+    },
+    {
+      id: 4,
+      text: 'Focus on my innovation mindset',
+      icon: Star,
+      color: 'purple',
+    },
+    {
+      id: 5,
+      text: 'Feature my results-driven approach',
+      icon: TrendingUp,
+      color: 'orange',
+    },
+    {
+      id: 6,
+      text: 'Mention my specific industry expertise',
+      icon: Award,
+      color: 'red',
+    },
   ];
 
-  const toggleSuggestion = (id) => {
+  // FIX: This function now updates the parent's `additionalNarratives` state
+  const toggleSuggestion = (suggestion) => {
+    const suggestionTextWithPeriod = `${suggestion.text}.`;
+    const isCurrentlySelected = selectedSuggestions.includes(suggestion.id);
+
     setSelectedSuggestions((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+      isCurrentlySelected
+        ? prev.filter((sId) => sId !== suggestion.id)
+        : [...prev, suggestion.id],
     );
+
+    setAdditionalNarratives((currentNarratives) => {
+      if (isCurrentlySelected) {
+        // It's being deselected, so remove the text.
+        let newText = currentNarratives.replace(suggestionTextWithPeriod, '');
+        newText = newText.replace(/\s\s+/g, ' ').trim(); // Clean up extra spaces
+        return newText;
+      } else {
+        // It's being selected, so add the text.
+        // Add a space if there's already text.
+        return `${currentNarratives} ${suggestionTextWithPeriod}`.trim();
+      }
+    });
   };
 
   const getColorClasses = (color, selected) => {
@@ -73,10 +121,15 @@ const ContextWizard = ({
     return colors[color] || colors.blue;
   };
 
+  const handleGenerateClick = async () => {
+    setIsGenerating(true);
+    await handleGenerate();
+    setIsGenerating(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 flex items-center justify-center">
       <div className="w-full">
-        {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -109,7 +162,6 @@ const ContextWizard = ({
         </div>
 
         <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-indigo-500/10 rounded-3xl overflow-hidden">
-          {/* Header */}
           <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
@@ -131,7 +183,6 @@ const ContextWizard = ({
           </CardHeader>
 
           <CardContent className="p-8 space-y-8">
-            {/* Quick Suggestions */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-indigo-500" />
@@ -146,7 +197,7 @@ const ContextWizard = ({
                   return (
                     <button
                       key={suggestion.id}
-                      onClick={() => toggleSuggestion(suggestion.id)}
+                      onClick={() => toggleSuggestion(suggestion)} // FIX: Pass the whole suggestion object
                       className={`p-3 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
                         isSelected
                           ? `${getColorClasses(
@@ -180,7 +231,6 @@ const ContextWizard = ({
               )}
             </div>
 
-            {/* Divider */}
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
               <span className="text-sm font-medium text-gray-500 bg-white px-4 py-2 rounded-lg border">
@@ -189,7 +239,6 @@ const ContextWizard = ({
               <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
             </div>
 
-            {/* Custom Narratives */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-indigo-500" />
@@ -232,7 +281,6 @@ Examples:
               </div>
             </div>
 
-            {/* AI Enhancement Preview */}
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
@@ -251,7 +299,6 @@ Examples:
             </div>
           </CardContent>
 
-          {/* Footer */}
           <CardFooter className="bg-gray-50/80 backdrop-blur-xl border-t border-gray-100 p-6">
             <div className="flex items-center justify-between w-full">
               <Button
@@ -261,12 +308,12 @@ Examples:
                 disabled={isGenerating}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to CV Upload
+                Back to CV Selection
               </Button>
 
               <Button
                 size="lg"
-                onClick={handleGenerate}
+                onClick={handleGenerateClick}
                 disabled={isGenerating}
                 className={`h-14 px-8 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
                   isGenerating
@@ -290,7 +337,6 @@ Examples:
           </CardFooter>
         </Card>
 
-        {/* Footer Message */}
         <div className="text-center mt-8">
           <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-lg">
             <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" />

@@ -2,12 +2,6 @@
 
 import React from 'react';
 import {
-  FileText,
-  Send,
-  Bot,
-  FilePlus2,
-  Wand2,
-  Search,
   Award,
   TrendingUp,
   ArrowRight,
@@ -17,24 +11,10 @@ import {
   Play,
   Filter,
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
+
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-
-// Mock data for Recharts, you will replace this with your actual data
-const mockApplicationData = [
-  { status: 'Sent', applications: 12, color: '#8b5cf6' },
-  { status: 'Reviewed', applications: 8, color: '#3b82f6' },
-  { status: 'Interview', applications: 3, color: '#06b6d4' },
-  { status: 'Rejected', applications: 1, color: '#ef4444' },
-];
+import useProfileCompletion from '@/hooks/useProfileCompletion';
 
 export function StatCard({
   title,
@@ -45,7 +25,7 @@ export function StatCard({
   color = 'purple',
   actionText,
   actionLink,
-}) {
+}: any) {
   const colorClasses = {
     purple:
       'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700',
@@ -135,7 +115,7 @@ export function ToolkitButton({
   description,
   href,
   color = 'purple',
-}) {
+}: any) {
   const colorClasses = {
     purple: 'hover:bg-purple-50 border-purple-200 text-purple-600',
     blue: 'hover:bg-blue-50 border-blue-200 text-blue-600',
@@ -175,29 +155,57 @@ export function ToolkitButton({
   );
 }
 
-export function ProfileReadinessCard({ score, checks }) {
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-500';
-  };
+export function ProfileReadinessCard() {
+  const { data, isLoading, error } = useProfileCompletion();
 
-  const getProgressColor = (score) => {
-    if (score >= 80) return 'from-green-400 to-green-600';
-    if (score >= 60) return 'from-yellow-400 to-yellow-600';
-    return 'from-red-400 to-red-600';
-  };
-
-  if (score === null || checks === null) {
+  // Show a loading state while the data is being fetched
+  if (isLoading || !data) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-        <div className="flex flex-col items-center justify-center h-[200px] text-center text-muted-foreground border-2 border-dashed rounded-lg">
+        <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 border-2 border-dashed rounded-lg">
           <p className="font-medium">Loading profile data...</p>
           <p className="text-sm">This may take a moment.</p>
         </div>
       </div>
     );
   }
+
+  // Handle potential errors during the fetch
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex flex-col items-center justify-center h-[200px] text-center text-red-500 border-2 border-dashed border-red-200 rounded-lg">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm">Could not fetch profile readiness.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // MODIFIED: Create a mapping to select which 4 of the 8 categories to display.
+  // This maps the API response keys (e.g., 'coreProfile') to the labels you want to show.
+  const checklistItems = [
+    { key: 'coreProfile', label: 'Basic Info & Preferences' },
+    { key: 'workExperience', label: 'Work Experience' },
+    { key: 'education', label: 'Education Details' },
+    { key: 'skills', label: 'Skills (10+ recommended)' },
+  ];
+
+  // MODIFIED: Use the percentage from the API data
+  const score = data.percentage;
+  const checks = data.categories;
+
+  const getScoreColor = (scoreValue) => {
+    if (scoreValue >= 80) return 'text-green-600';
+    if (scoreValue >= 60) return 'text-yellow-600';
+    return 'text-red-500';
+  };
+
+  const getProgressColor = (scoreValue) => {
+    if (scoreValue >= 80) return 'from-green-400 to-green-600';
+    if (scoreValue >= 60) return 'from-yellow-400 to-yellow-600';
+    return 'from-red-400 to-red-600';
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
@@ -218,7 +226,7 @@ export function ProfileReadinessCard({ score, checks }) {
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Progress Bar - Now driven by API data */}
       <div className="relative w-full h-3 bg-gray-200 rounded-full mb-6 overflow-hidden">
         <div
           className={`h-full bg-gradient-to-r ${getProgressColor(
@@ -228,26 +236,21 @@ export function ProfileReadinessCard({ score, checks }) {
         />
       </div>
 
-      {/* Checklist */}
+      {/* Checklist - Now maps over our selected items */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {[
-          { key: 'core', label: 'Basic Info & Preferences' },
-          { key: 'experience', label: 'Work Experience' },
-          { key: 'education', label: 'Education Details' },
-          { key: 'skills', label: 'Skills (10+ recommended)' },
-        ].map(({ key, label }) => (
+        {checklistItems.map(({ key, label }) => (
           <div
             key={key}
             className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
           >
             <CheckCircle2
-              className={`w-5 h-5 ${
+              className={`w-5 h-5 transition-colors duration-300 ${
                 checks?.[key] ? 'text-green-600' : 'text-gray-300'
               }`}
             />
             <span
-              className={`text-sm ${
-                checks?.[key] ? 'text-gray-900' : 'text-gray-500'
+              className={`text-sm transition-colors duration-300 ${
+                checks?.[key] ? 'text-gray-900 font-medium' : 'text-gray-500'
               }`}
             >
               {label}
