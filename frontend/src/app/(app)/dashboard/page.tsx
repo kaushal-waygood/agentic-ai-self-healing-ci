@@ -335,7 +335,7 @@ export default function DashboardPage() {
   useEffect(() => {
     dispatch(getProfileRequest());
     setUser(authUser);
-  }, [dispatch, authUser]);
+  }, [dispatch]);
 
   useEffect(() => {
     const fetchStats = async () => {
