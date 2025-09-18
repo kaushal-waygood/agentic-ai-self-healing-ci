@@ -215,8 +215,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       jobContextString: JSON.stringify(content),
       previousCVJson: JSON.stringify(content),
     });
-
-    console.log(response.data);
   };
 
   // --- RENDER ---

@@ -4,6 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import StoreProvider from '../redux/storeProvider';
+import { Navigation } from '@/components/layout/site-header';
+import { Footer } from '@/components/layout/footer';
 
 export const metadata: Metadata = {
   title: 'Zobsai - Your AI Job Application Assistant',
@@ -45,7 +47,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <StoreProvider>
+            {/* <Navigation /> */}
+
             {children}
+            <Footer />
             <Toaster />
             <Analytics />
           </StoreProvider>

@@ -8,6 +8,55 @@ export const createPurchase = async (req, res) => {
     const { planId, period, paymentGateway, paymentId } = req.body;
     const userId = req.user._id;
 
+    // --- START: ADDED VALIDATION LOGIC ---
+
+    // 1. Fetch the user and their currently populated purchase details
+    const user = await User.findById(userId).populate('currentPurchase');
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
+    }
+
+    // 2. Check if there is an active purchase that has not expired
+    if (user.currentPurchase && user.currentPurchase.endDate > new Date()) {
+      const { usageLimits, usageCounters } = user;
+      let hasReachedLimit = false;
+
+      // 3. If plan is active, check if usage limits have been reached
+      if (usageLimits && usageCounters) {
+        const limitsToCheck = [
+          'cvCreation',
+          'coverLetter',
+          'aiApplication',
+          'autoApply',
+        ];
+        for (const limit of limitsToCheck) {
+          // Check if a feature limit exists (is not unlimited) and has been met or exceeded
+          if (
+            usageLimits[limit] !== -1 &&
+            usageCounters[limit] >= usageLimits[limit]
+          ) {
+            hasReachedLimit = true;
+            break; // A limit has been reached, so they are allowed to buy a new plan
+          }
+        }
+      }
+
+      // 4. Block purchase only if the plan is active AND no usage limits have been reached
+      if (!hasReachedLimit) {
+        return res.status(403).json({
+          success: false,
+          message:
+            'You already have an active plan. You can purchase a new one once it expires or you exhaust your usage limits.',
+          data: {
+            currentPlanEnds: user.currentPurchase.endDate,
+          },
+        });
+      }
+    }
+    // --- END: ADDED VALIDATION LOGIC ---
+
     // Get the plan
     const plan = await Plan.findById(planId);
     if (!plan) {
@@ -69,14 +118,13 @@ export const createPurchase = async (req, res) => {
 
     await purchase.save();
 
-    // Update user's current plan and purchase
-    await User.findByIdAndUpdate(userId, {
-      currentPlan: planId,
-      currentPurchase: purchase._id,
-    });
+    // Update user's current plan and purchase using the already fetched user object
+    user.currentPlan = planId;
+    user.currentPurchase = purchase._id;
+    await user.save();
 
     // Set usage limits based on plan features
-    await setUserUsageLimits(userId, plan);
+    await setUserUsageLimits(userId, plan, period); // Pass period to set correct limits
 
     res.status(201).json({
       success: true,
@@ -92,10 +140,13 @@ export const createPurchase = async (req, res) => {
   }
 };
 
-// Helper function to set user usage limits
-const setUserUsageLimits = async (userId, plan) => {
-  const weeklyVariant = plan.billingVariants.find((v) => v.period === 'Weekly');
-  if (!weeklyVariant) return;
+// MODIFIED: This function now accepts a 'period' to set the correct limits
+const setUserUsageLimits = async (userId, plan, period) => {
+  // Find the variant corresponding to the purchased period
+  const purchasedVariant = plan.billingVariants.find(
+    (v) => v.period === period,
+  );
+  if (!purchasedVariant) return;
 
   const limits = {
     cvCreation: 0,
@@ -104,8 +155,9 @@ const setUserUsageLimits = async (userId, plan) => {
     autoApply: 0,
   };
 
-  weeklyVariant.features.forEach((feature) => {
-    const value = feature.value === 'Unlimited' ? -1 : parseInt(feature.value);
+  purchasedVariant.features.forEach((feature) => {
+    const value =
+      feature.value === 'Unlimited' ? -1 : parseInt(feature.value, 10);
 
     switch (feature.name) {
       case 'CV Creation':
@@ -140,7 +192,7 @@ export const getUserPurchases = async (req, res) => {
     const userId = req.user._id;
 
     const purchases = await Purchase.find({ user: userId })
-      .populate('plan')
+      .populate('plan', 'planType') // Populate only the fields you need
       .sort({ createdAt: -1 });
 
     res.status(200).json({

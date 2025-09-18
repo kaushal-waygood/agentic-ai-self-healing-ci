@@ -6,16 +6,13 @@ import {
   LogOut,
   UserCircle,
   Settings,
-  Gem,
   Star,
   AlertTriangle,
-  Home,
   Search,
   FileText,
   Bot,
   ChevronDown,
   Crown,
-  Shield,
   CreditCard,
   HelpCircle,
   ChevronRight,
@@ -29,47 +26,58 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useDispatch } from 'react-redux';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { logoutRequest } from '@/redux/reducers/authReducer';
-import apiInstance from '@/services/api'; // Import your API instance
+import apiInstance from '@/services/api';
 
-// For clarity, the CommandPalette is defined as a separate component within the same file.
+// CommandPalette Component
 const CommandPalette = ({ setIsSearchOpen }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
   const siteConfig = {
     sidebarNav: [
-      { title: 'AI CV Generator', href: '/cv-generator', icon: FileText },
+      {
+        title: 'AI CV Generator',
+        href: '/dashboard/cv-generator',
+        icon: FileText,
+      },
       {
         title: 'Cover Letter Studio',
-        href: '/cover-letter-generator',
+        href: '/dashboard/cover-letter-generator',
         icon: Newspaper,
       },
-      { title: 'AI Auto Apply', href: '/ai-auto-apply', icon: Bot },
+      { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
       {
         title: 'Organization',
-        href: '/organization',
+        href: '/dashboard/organization',
         icon: Users,
         adminOnly: true,
       },
-      { title: 'Search Jobs', href: '/search-jobs', icon: Search },
-      { title: 'My Applications', href: '/applications', icon: FileCheck2 },
-      { title: 'Application Wizard', href: '/apply', icon: Wand2 },
-      { title: 'Subscriptions', href: '/subscriptions', icon: DollarSign },
-      { title: 'Refer & Earn', href: '/referrals', icon: Gift },
+      { title: 'Search Jobs', href: '/dashboard/search-jobs', icon: Search },
+      {
+        title: 'My Applications',
+        href: '/dashboard/applications',
+        icon: FileCheck2,
+      },
+      { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
+      {
+        title: 'Subscriptions',
+        href: '/dashboard/subscriptions',
+        icon: DollarSign,
+      },
+      { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
     ],
   };
 
   const commandItems = useMemo(
     () => [
       ...siteConfig.sidebarNav,
-      { title: 'Profile', href: '/profile', icon: UserCircle },
-      { title: 'Settings', href: '/settings', icon: Settings },
-      { title: 'Help & Support', href: '/support', icon: LifeBuoy },
+      { title: 'Profile', href: '/dashboard/profile', icon: UserCircle },
+      { title: 'Settings', href: '/dashboard/settings', icon: Settings },
+      { title: 'Help & Support', href: '/dashboard/support', icon: LifeBuoy },
     ],
     [],
   );
@@ -97,7 +105,9 @@ const CommandPalette = ({ setIsSearchOpen }) => {
           setIsSearchOpen(false);
         }
       } else {
-        router.push(`/search-jobs?query=${encodeURIComponent(searchQuery)}`);
+        router.push(
+          `/dashboard/search-jobs?query=${encodeURIComponent(searchQuery)}`,
+        );
         setIsSearchOpen(false);
       }
     }
@@ -130,7 +140,9 @@ const CommandPalette = ({ setIsSearchOpen }) => {
         <div className="max-h-96 overflow-y-auto p-2">
           {searchQuery && !searchQuery.startsWith('/') ? (
             <Link
-              href={`/search-jobs?query=${encodeURIComponent(searchQuery)}`}
+              href={`/dashboard/search-jobs?query=${encodeURIComponent(
+                searchQuery,
+              )}`}
               onClick={() => setIsSearchOpen(false)}
               className="flex items-center space-x-4 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
             >
@@ -181,15 +193,19 @@ const CommandPalette = ({ setIsSearchOpen }) => {
   );
 };
 
+// Main AppHeader Component
 const AppHeader = () => {
   const [mounted, setMounted] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
-
+  const [usageLimits, setUsageLimits] = useState({
+    cvCreation: 0,
+    coverLetter: 0,
+    aiApplication: 0,
+    autoApply: 0,
+  });
   const [usageData, setUsageData] = useState({
     aiJobApply: 0,
     aiCvGenerator: 0,
@@ -197,8 +213,10 @@ const AppHeader = () => {
     applications: 0,
   });
 
-  const { user } = useSelector((state: RootState) => state.auth);
+  const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useDispatch();
+  const { user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -214,34 +232,27 @@ const AppHeader = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const effectivePlan = {
-    id: 'pro',
-    name: 'Pro',
-    icon: 'Star',
-    limits: {
-      aiJobApply: 50,
-      aiCvGenerator: 25,
-      aiCoverLetterGenerator: 30,
-      applicationLimit: 100,
-    },
-  };
+  // This useEffect runs once on component mount for initial setup.
+  // The empty dependency array [] ensures it only runs a single time.
+  useEffect(() => {
+    setMounted(true);
+    dispatch(getStudentDetailsRequest()); // Fetches user details (/me)
+  }, []); // MODIFIED: Changed dependency to empty array
 
+  // This useEffect fetches usage data ONLY when the user's ID changes.
   useEffect(() => {
     const fetchUsage = async () => {
-      if (!user) return;
-
       try {
         const response = await apiInstance.get('/plan/usage');
-        if (response.data && response.data.success) {
+        if (response.data?.success) {
           const usageLogs = response.data.data;
-
           const totals = usageLogs.reduce(
             (acc, log) => {
               switch (log.feature) {
                 case 'cv-creation':
                   acc.aiCvGenerator += log.creditsUsed;
                   break;
-                case 'cover-letter-creation':
+                case 'cover-letter':
                   acc.aiCoverLetterGenerator += log.creditsUsed;
                   break;
                 case 'auto-apply':
@@ -269,16 +280,32 @@ const AppHeader = () => {
       }
     };
 
-    fetchUsage();
-  }, [user]);
+    const fetchPlanLimits = async () => {
+      try {
+        const response = await apiInstance.get('/plan/usage-limit');
+        if (response.data?.success) {
+          setUsageLimits(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch plan limits:', error);
+      }
+    };
 
-  useEffect(() => {
-    dispatch(getStudentDetailsRequest());
-  }, [dispatch]);
+    if (user?._id) {
+      fetchUsage();
+      fetchPlanLimits();
+    }
+  }, [user?._id]);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const effectivePlanLimits = useMemo(
+    () => ({
+      aiJobApply: usageLimits.aiApplication,
+      aiCvGenerator: usageLimits.cvCreation,
+      aiCoverLetterGenerator: usageLimits.coverLetter,
+      applicationLimit: usageLimits.autoApply,
+    }),
+    [usageLimits],
+  );
 
   const closeAllMenus = () => {
     setIsNotificationOpen(false);
@@ -318,7 +345,7 @@ const AppHeader = () => {
   };
 
   const UsageTracker = ({ label, used, limit }) => {
-    const percentage = limit === -1 ? 0 : (used / limit) * 100;
+    const percentage = limit > 0 ? (used / limit) * 100 : 0;
     const isUnlimited = limit === -1;
 
     return (
@@ -371,10 +398,7 @@ const AppHeader = () => {
 
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md shadow-sm">
         <div className="flex h-16 items-center justify-between px-6">
-          <div className="flex items-center space-x-3">
-            {/* Breadcrumbs or page title can go here */}
-          </div>
-
+          <div className="flex items-center space-x-3"></div>
           <div className="flex flex-1 justify-center px-4">
             <button
               onClick={() => setIsSearchOpen(true)}
@@ -389,7 +413,6 @@ const AppHeader = () => {
               </kbd>
             </button>
           </div>
-
           <div className="flex items-center space-x-3">
             {mounted && (
               <div className="relative">
@@ -420,22 +443,22 @@ const AppHeader = () => {
                       <UsageTracker
                         label="AI Applications"
                         used={usageData.aiJobApply}
-                        limit={effectivePlan.limits.aiJobApply}
+                        limit={effectivePlanLimits.aiJobApply}
                       />
                       <UsageTracker
                         label="AI CV Generations"
                         used={usageData.aiCvGenerator}
-                        limit={effectivePlan.limits.aiCvGenerator}
+                        limit={effectivePlanLimits.aiCvGenerator}
                       />
                       <UsageTracker
                         label="AI Cover Letters"
                         used={usageData.aiCoverLetterGenerator}
-                        limit={effectivePlan.limits.aiCoverLetterGenerator}
+                        limit={effectivePlanLimits.aiCoverLetterGenerator}
                       />
                       <UsageTracker
                         label="Tracked Applications"
                         used={usageData.applications}
-                        limit={effectivePlan.limits.applicationLimit}
+                        limit={effectivePlanLimits.applicationLimit}
                       />
                     </div>
                     <div className="p-4 border-t border-slate-100">
@@ -472,7 +495,7 @@ const AppHeader = () => {
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {(user?.actionItems || []).length > 0 ? (
-                      (user?.actionItems || []).map((item, index) => (
+                      user.actionItems.map((item, index) => (
                         <div
                           key={item.id}
                           className={`p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100 cursor-pointer ${
@@ -554,31 +577,31 @@ const AppHeader = () => {
                       </button>
                     )}
                     <Link
-                      href="/profile"
+                      href="/dashboard/profile"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
-                      <UserCircle className="w-4 h-4 text-slate-600" />
+                      <UserCircle className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Profile</span>
                     </Link>
                     <Link
-                      href="/settings"
+                      href="/dashboard/settings"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
-                      <Settings className="w-4 h-4 text-slate-600" />
+                      <Settings className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Settings</span>
                     </Link>
                     <Link
-                      href="/billing"
+                      href="/dashboard/billing"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
-                      <CreditCard className="w-4 h-4 text-slate-600" />
+                      <CreditCard className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Billing</span>
                     </Link>
                     <Link
-                      href="/support"
+                      href="/dashboard/support"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
-                      <HelpCircle className="w-4 h-4 text-slate-600" />
+                      <HelpCircle className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Help</span>
                     </Link>
                   </div>

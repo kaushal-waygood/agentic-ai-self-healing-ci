@@ -9,6 +9,7 @@ export const generateCVCore = async (req, res, jobContextString) => {
   try {
     const { _id } = req.user;
     const { useProfile, finalTouch } = req.body;
+    console.log(req.body);
     let studentData;
 
     // Step 2: Determine data source (Common Logic)

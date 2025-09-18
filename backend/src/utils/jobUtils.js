@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { config } from '../config/config.js';
 
 export async function getFallbackJobsFromRapidAPI(req, res, preferences) {

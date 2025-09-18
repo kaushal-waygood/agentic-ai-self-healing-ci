@@ -13,7 +13,7 @@ export const config = {
   rapidJobApi: 'https://jsearch.p.rapidapi.com/search',
   rapidApiKey:
     process.env.RAPID_API_KEY ||
-    'ac604e5de3msh7ca8160c3a74f81p1cc1a1jsn7f7db4c40d75',
+    '481481f3c2msh0f834e29ff85a12p112cf0jsnf6269e369239',
   rapidApiHost: 'jsearch.p.rapidapi.com',
 
   redisHost: process.env.REDIS_HOST || '127.0.0.1',

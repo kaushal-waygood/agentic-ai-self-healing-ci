@@ -13,7 +13,11 @@ import {
   createPurchase,
   getUserPurchases,
 } from '../controllers/purchase.controller.js';
-import { getUserUsage, trackUsage } from '../controllers/usage.controller.js';
+import {
+  getUserUsage,
+  getUserUsageLimits,
+  trackUsage,
+} from '../controllers/usage.controller.js';
 
 const router = Router();
 
@@ -27,5 +31,6 @@ router.get('/perchased', authMiddleware, getUserPurchases);
 
 router.post('/usage', authMiddleware, trackUsage);
 router.get('/usage', authMiddleware, getUserUsage);
+router.get('/usage-limit', authMiddleware, getUserUsageLimits);
 
 export default router;

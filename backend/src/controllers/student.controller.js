@@ -1198,7 +1198,6 @@ export const getRecommendedJobs = async (req, res) => {
     const studentId = req.user._id;
     const { page = 1, limit = 10 } = req.query;
 
-    // Get student preferences
     const student = await Student.findById(studentId).select('jobPreferences');
     if (!student) {
       return res.status(404).json({
@@ -1209,10 +1208,8 @@ export const getRecommendedJobs = async (req, res) => {
 
     const preferences = student.jobPreferences;
 
-    // Build the filter based on preferences
     const filter = { isActive: true };
 
-    // Location filters
     if (preferences.isRemote) {
       filter.isRemote = true;
     } else {
@@ -1231,7 +1228,6 @@ export const getRecommendedJobs = async (req, res) => {
       }
     }
 
-    // Job type filters
     if (
       preferences.preferedJobTypes &&
       preferences.preferedJobTypes.length > 0
@@ -1239,7 +1235,6 @@ export const getRecommendedJobs = async (req, res) => {
       filter.jobTypes = { $in: preferences.preferedJobTypes };
     }
 
-    // Job title filters
     if (
       preferences.preferedJobTitles &&
       preferences.preferedJobTitles.length > 0

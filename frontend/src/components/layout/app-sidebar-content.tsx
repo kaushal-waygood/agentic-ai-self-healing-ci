@@ -5,60 +5,40 @@ import {
   Rocket,
   Pin,
   PinOff,
-  Home,
-  Search,
   FileText,
   Bot,
-  Settings,
   Users,
-  BarChart3,
-  Star,
-  ChevronLeft,
   ChevronRight,
-  Sparkles,
   Zap,
   Crown,
-  Shield,
-  MessageSquare,
-  LifeBuoy,
-  UserCircle,
   Gift,
-  DollarSign,
   Newspaper,
   Wand2,
   FileCheck2,
-  LayoutDashboard,
-  Diamond,
   Building2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useDispatch } from 'react-redux';
-import { useSelector } from 'react-redux';
-import { getProfileRequest } from '@/redux/reducers/authReducer';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
+import { useSidebar } from '@/app/(app)/layout'; // Assuming DashboardLayout exports this
 
-const AppSidebarContent = () => {
+// MODIFIED: The component now accepts `isCollapsed` as a prop
+const AppSidebarContent = ({ isCollapsed }) => {
+  const { isPinned, setPinned } = useSidebar(); // Get state from context
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isPinned, setIsPinned] = useState(true);
-  const [mounted, setMounted] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState(null);
   const route = useRouter();
-
-  const dispatch = useDispatch();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
+  const [hoveredItem, setHoveredItem] = useState(null);
 
-  useEffect(() => {
-    // dispatch(getProfileRequest());
-  }, [dispatch]);
-
+  // This user object can stay as it is
   const user = {
     role: 'User',
     fullName: authUser?.fullName || 'Guest User',
     plan: 'Free',
   };
 
+  // This config can stay as it is
   const siteConfig = {
     name: 'ZobsAI',
     sidebarNav: [
@@ -72,16 +52,8 @@ const AppSidebarContent = () => {
         href: '/dashboard/cover-letter-generator',
         icon: Newspaper,
       },
-      {
-        title: 'AI Auto Apply',
-        href: '/dashboard/ai-auto-apply',
-        icon: Bot,
-      },
-      {
-        title: 'Application Wizard',
-        href: '/dashboard/apply',
-        icon: Wand2,
-      },
+      { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
+      { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
       {
         title: 'My Applications',
         href: '/dashboard/applications',
@@ -93,33 +65,12 @@ const AppSidebarContent = () => {
         icon: Users,
         adminOnly: true,
       },
-
-      {
-        title: 'Refer & Earn',
-        href: '/dashboard/referrals',
-        icon: Gift,
-      },
+      { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
     ],
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // MODIFIED: When unpinning, the sidebar should immediately collapse.
-  const handlePinToggle = () => {
-    const newPinnedState = !isPinned;
-    setIsPinned(newPinnedState);
-    if (!newPinnedState) {
-      setIsCollapsed(true);
-    }
-  };
-
-  const handleCollapseToggle = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
   const getPlanIcon = (plan) => {
+    // This function can stay as it is
     switch (plan) {
       case 'Free':
         return Zap;
@@ -133,13 +84,12 @@ const AppSidebarContent = () => {
   };
 
   const getPlanColor = (plan) => {
+    // This function can stay as it is
     switch (plan) {
       case 'Free':
         return 'from-slate-400 to-slate-600';
       case 'Pro':
         return 'from-yellow-400 to-yellow-600';
-      case 'Platinum':
-        return 'from-purple-400 to-purple-600';
       case 'OrgAdmin':
         return 'from-blue-400 to-blue-600';
       default:
@@ -148,13 +98,9 @@ const AppSidebarContent = () => {
   };
 
   return (
+    // MODIFIED: Removed width and hover handlers. Width is now `w-full` to fill the parent <aside>.
     <div
-      className={`h-screen overflow-y-auto transition-all duration-300 ${
-        isCollapsed ? 'w-20' : 'w-64'
-      } flex flex-col relative bg-gradient-to-br from-slate-50 to-white border-r border-slate-200`}
-      // NEW: Event handlers for hover functionality when unpinned
-      onMouseEnter={() => !isPinned && setIsCollapsed(false)}
-      onMouseLeave={() => !isPinned && setIsCollapsed(true)}
+      className={`h-screen overflow-y-auto transition-all duration-300 w-full flex flex-col relative bg-gradient-to-br from-slate-50 to-white border-r border-slate-200`}
     >
       <div className="absolute inset-0 overflow-hidden -z-10">
         <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-purple-200/30 to-blue-200/30 rounded-full blur-2xl animate-pulse"></div>
@@ -202,7 +148,7 @@ const AppSidebarContent = () => {
           {!isCollapsed && (
             <div className="flex items-center space-x-1">
               <button
-                onClick={handlePinToggle}
+                onClick={() => setPinned(!isPinned)} // MODIFIED: Use the function from context
                 className={`p-2 rounded-lg transition-all duration-200 ${
                   isPinned
                     ? 'text-purple-600 bg-purple-100 hover:bg-purple-200'
@@ -318,7 +264,7 @@ const AppSidebarContent = () => {
                 </p>
                 <button
                   className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors duration-200"
-                  onClick={() => route.push('/subscriptions')}
+                  onClick={() => route.push('/dashboard/subscriptions')}
                 >
                   Upgrade Now
                 </button>
@@ -327,9 +273,8 @@ const AppSidebarContent = () => {
           </div>
         ) : (
           <div className="flex justify-center">
-            {/* NEW: Expand button for pinned state */}
             <button
-              onClick={handleCollapseToggle}
+              onClick={() => setPinned(true)} // MODIFIED: This button should expand and pin the sidebar
               className="w-full h-12 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors duration-200"
               title="Expand sidebar"
             >
@@ -340,6 +285,7 @@ const AppSidebarContent = () => {
       </div>
 
       <style jsx>{`
+        /* Your styles can remain unchanged */
         @keyframes slideInLeft {
           from {
             opacity: 0;

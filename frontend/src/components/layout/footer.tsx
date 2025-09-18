@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import './styles/footer.css'; // Import the new CSS file
 import { footerLinks, socialLinks } from '@/services/dummy/Footer';
+import Link from 'next/link';
 
 export function Footer() {
   const [isVisible, setIsVisible] = useState(false);
@@ -82,8 +83,8 @@ export function Footer() {
           transitionDelay: `${index * 50 + section * 200}ms`,
         }}
       >
-        <a
-          href="#"
+        <Link
+          href={item.link ? item.link : ''}
           className="group flex items-center gap-2 text-gray-400 hover:text-white transition-all duration-300 py-1 rounded-lg hover:bg-white/5 px-2 -mx-2"
           onMouseEnter={() => setHoveredLink(`${section}-${index}`)}
           onMouseLeave={() => setHoveredLink(null)}
@@ -118,7 +119,7 @@ export function Footer() {
             </span>
           )}
           <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        </a>
+        </Link>
       </li>
     );
   };

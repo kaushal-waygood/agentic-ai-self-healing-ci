@@ -6,6 +6,12 @@ The visual style should be clean, professional, and inspired by the classic Harv
 **User's CV Data (JSON):**
 ${studentData}
 
+**User's New Instructions for Generation (Final Touch):**
+${
+  finalTouch ||
+  'No new instructions provided. Please generate the CV based on your expertise.'
+}
+
 ---
 
 **YOUR TASKS:**

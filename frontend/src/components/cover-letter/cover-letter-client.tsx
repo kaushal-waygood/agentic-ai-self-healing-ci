@@ -464,15 +464,22 @@ export function CoverLetterGeneratorClient() {
         };
       }
 
-      setGeneratedCvOutput(response.letter);
-      setCurrentCvContent(response.letter);
+      if (response?.letter) {
+        await apiInstance.post('/plan/usage', {
+          feature: 'cover-letter',
+          creditsUsed: 1,
+          action: 'generate',
+        });
+        setGeneratedCvOutput(response.letter);
+        setCurrentCvContent(response.letter);
 
-      toast({
-        title: 'CV Generated & Auto-saved!',
-        description:
-          'Your new CV draft has been added to your saved list below.',
-      });
-      setWizardStep('result');
+        toast({
+          title: 'CV Generated & Auto-saved!',
+          description:
+            'Your new CV draft has been added to your saved list below.',
+        });
+        setWizardStep('result');
+      }
     } catch (error) {
       console.error('Generation error:', error);
       toast({

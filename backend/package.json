@@ -41,6 +41,8 @@
     "express": "^5.1.0",
     "firebase-admin": "^13.4.0",
     "generic-pool": "^3.9.0",
+    "google-auth-library": "^10.3.0",
+    "google-spreadsheet": "^5.0.2",
     "googleapis": "^154.1.0",
     "helmet": "^8.1.0",
     "http-errors": "^2.0.0",
