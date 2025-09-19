@@ -12,18 +12,21 @@ import { Solutions } from '@/components/home/Solutions';
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-1">
-        <Hero />
-        <PainPoints />
-        <Solutions />
-        <BeforeAfter />
-        <HowItWorks />
-        <Platforms />
-        <Pricing />
-        <Testimonials />
-        <CTA />
-      </main>
+    <div>
+      <Navigation />
+      <div className="flex flex-col min-h-screen">
+        <main className="flex-1">
+          <Hero />
+          <PainPoints />
+          <Solutions />
+          <BeforeAfter />
+          <HowItWorks />
+          <Platforms />
+          <Pricing />
+          <Testimonials />
+          <CTA />
+        </main>
+      </div>
     </div>
   );
 }

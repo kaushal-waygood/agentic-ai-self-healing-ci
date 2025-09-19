@@ -1,8 +1,8 @@
 /** @format */
 import { Schema, model } from 'mongoose';
 
-// A reusable sub-schema for currency-specific pricing
-const priceSchema = new Schema(
+// A reusable sub-schema for currency-specific price values
+const priceValueSchema = new Schema(
   {
     usd: { type: Number, required: true },
     inr: { type: Number, required: true },
@@ -10,25 +10,40 @@ const priceSchema = new Schema(
   { _id: false },
 );
 
-// A reusable sub-schema for individual features and their limits
-const featureSchema = new Schema(
+// NEW: An updated price schema to hold both actual and effective (discounted) prices
+const priceSchema = new Schema(
   {
-    name: { type: String, required: true },
-    value: { type: String, required: true }, // e.g., "10/mo", "Unlimited", "✓"
+    effective: {
+      type: priceValueSchema,
+      required: true,
+      description: 'The final price the customer pays (the discounted price).',
+    },
+    actual: {
+      type: priceValueSchema,
+      required: false, // This is optional; only include it if there is a discount.
+      description:
+        'The original price, to be shown as struck-through on the UI.',
+    },
   },
   { _id: false },
 );
 
-// A sub-schema to define each billing option (e.g., weekly, monthly)
-// This is the core of the flexible design
+const featureSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    value: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 const billingVariantSchema = new Schema(
   {
     period: {
       type: String,
       required: true,
       enum: ['Weekly', 'Monthly', 'Quarterly', 'HalfYearly', 'Annual'],
-      description: 'The billing cycle for this variant.',
     },
+    // UPDATED: This now uses the new, more detailed price schema
     price: {
       type: priceSchema,
       required: true,
@@ -36,10 +51,9 @@ const billingVariantSchema = new Schema(
     features: {
       type: [featureSchema],
       required: true,
-      description: 'The specific limits and features for this billing period.',
     },
     discountLabel: {
-      type: String, // e.g., "Save 20%"
+      type: String,
       optional: true,
     },
   },
@@ -52,20 +66,20 @@ const planSchema = new Schema(
       type: String,
       required: [true, 'PlanType is required.'],
       unique: true,
-      enum: ['Free', 'Basic', 'Pro', 'Enterprise'], // Corresponds to plans like "Basic", "Pro"
+      enum: ['Free', 'Weekly', 'Pro', 'Enterprise'],
     },
     popular: {
       type: Boolean,
       default: false,
-      description: 'Highlight this plan on the UI.',
     },
-    // The array of billing options for this plan
     billingVariants: {
       type: [billingVariantSchema],
       required: true,
     },
     displayOrder: {
       type: Number,
+      unique: true, // Enforcing uniqueness at the database level is best practice.
+      required: [true, 'Display order is required.'], // Added required based on your controller logic.
     },
   },
   {

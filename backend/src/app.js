@@ -16,6 +16,7 @@ import aiRoutes from './routes/ai.route.js';
 import agentRoutes from './routes/autopilotAgent.route.js';
 import planRoutes from './routes/plan.route.js';
 import formRoutes from './routes/form.route.js';
+import { handleStripeWebhook } from './controllers/plan.controller.js';
 
 const app = express();
 
@@ -40,6 +41,13 @@ app.use(
       'Accept',
     ],
   }),
+);
+
+// This route uses a raw body parser to ensure the Stripe signature can be verified.
+app.post(
+  '/api/v1/plan/payment/webhook',
+  express.raw({ type: 'application/json' }),
+  handleStripeWebhook,
 );
 
 // 3. Request Parsing Middleware

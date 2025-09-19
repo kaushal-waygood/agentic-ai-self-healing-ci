@@ -28,7 +28,7 @@ export const footerLinks = {
   support: [
     { name: 'Help Center', badge: null },
     { name: 'Getting Started', badge: null, link: '/signup' },
-    { name: 'Community', badge: null, link: '/' },
+    { name: 'Community', badge: null, link: 'https://wa.link/h30hgg' },
     { name: 'Report Bug', badge: null, link: '/bug-report' },
   ],
   legal: [

@@ -16,93 +16,93 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-router.post('/bug-report', upload.array('attachment'), async (req, res) => {
-  const files = req.files || [];
+  router.post('/bug-report', upload.array('attachment'), async (req, res) => {
+    const files = req.files || [];
 
-  try {
-    const { name, email, bugTitle, description, severity } = req.body;
+    try {
+      const { name, email, bugTitle, description, severity } = req.body;
 
-    const uploadPromises = files.map((file) => {
-      const isImage = file.mimetype.startsWith('image');
-      const isVideo = file.mimetype.startsWith('video');
+      const uploadPromises = files.map((file) => {
+        const isImage = file.mimetype.startsWith('image');
+        const isVideo = file.mimetype.startsWith('video');
 
-      const options = {
-        folder: 'bug-reports',
-        access_mode: 'public',
-        // MODIFIED: Use 'raw' for non-image/non-video files
-        resource_type: isImage ? 'image' : isVideo ? 'video' : 'raw',
-      };
+        const options = {
+          folder: 'bug-reports',
+          access_mode: 'public',
+          // MODIFIED: Use 'raw' for non-image/non-video files
+          resource_type: isImage ? 'image' : isVideo ? 'video' : 'raw',
+        };
 
-      return cloudinary.uploader.upload(file.path, options);
-    });
-
-    const uploadResults = await Promise.all(uploadPromises);
-
-    const attachmentUrls = uploadResults
-      .map((result) => result.secure_url)
-      .join('\n');
-
-    const newBugReport = new BugReport({
-      name,
-      email,
-      bugTitle,
-      description,
-      severity,
-      attachments: attachmentUrlArray, // Save the array of URLs
-    });
-    await newBugReport.save();
-
-    // Authenticate with Google Sheets
-    const serviceAccountAuth = new JWT({
-      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-
-    const doc = new GoogleSpreadsheet(
-      process.env.GOOGLE_SHEET_ID,
-      serviceAccountAuth,
-    );
-    await doc.loadInfo();
-    const sheet = doc.sheetsByTitle['bug report'];
-
-    if (!sheet) {
-      return res.status(404).json({ message: "Sheet 'bug report' not found." });
-    }
-
-    // Save data to the sheet
-    await sheet.addRow({
-      Timestamp: new Date().toISOString(),
-      Name: name,
-      Email: email,
-      'Bug Title': bugTitle,
-      Severity: severity,
-      Description: description,
-      Attachments: attachmentUrls,
-    });
-
-    return res
-      .status(201)
-      .json({ message: 'Bug report submitted successfully!' });
-  } catch (error) {
-    console.error('Error in bug report API:', error);
-    return res.status(500).json({
-      message: 'An internal server error occurred.',
-      error: error.message,
-    });
-  } finally {
-    if (files.length > 0) {
-      console.log('Cleaning up temporary files...');
-      files.forEach((file) => {
-        try {
-          fs.unlinkSync(file.path);
-        } catch (cleanupError) {
-          console.error(`Failed to delete file ${file.path}:`, cleanupError);
-        }
+        return cloudinary.uploader.upload(file.path, options);
       });
+
+      const uploadResults = await Promise.all(uploadPromises);
+
+      const attachmentUrls = uploadResults
+        .map((result) => result.secure_url)
+        .join('\n');
+
+      const newBugReport = new BugReport({
+        name,
+        email,
+        bugTitle,
+        description,
+        severity,
+        attachments: attachmentUrlArray, // Save the array of URLs
+      });
+      await newBugReport.save();
+
+      // Authenticate with Google Sheets
+      const serviceAccountAuth = new JWT({
+        email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+
+      const doc = new GoogleSpreadsheet(
+        process.env.GOOGLE_SHEET_ID,
+        serviceAccountAuth,
+      );
+      await doc.loadInfo();
+      const sheet = doc.sheetsByTitle['bug report'];
+
+      if (!sheet) {
+        return res.status(404).json({ message: "Sheet 'bug report' not found." });
+      }
+
+      // Save data to the sheet
+      await sheet.addRow({
+        Timestamp: new Date().toISOString(),
+        Name: name,
+        Email: email,
+        'Bug Title': bugTitle,
+        Severity: severity,
+        Description: description,
+        Attachments: attachmentUrls,
+      });
+
+      return res
+        .status(201)
+        .json({ message: 'Bug report submitted successfully!' });
+    } catch (error) {
+      console.error('Error in bug report API:', error);
+      return res.status(500).json({
+        message: 'An internal server error occurred.',
+        error: error.message,
+      });
+    } finally {
+      if (files.length > 0) {
+        console.log('Cleaning up temporary files...');
+        files.forEach((file) => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (cleanupError) {
+            console.error(`Failed to delete file ${file.path}:`, cleanupError);
+          }
+        });
+      }
     }
-  }
-});
+  });
 
 router.post('/contact', async (req, res) => {
   try {
