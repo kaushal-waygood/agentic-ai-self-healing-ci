@@ -223,7 +223,11 @@ export const getSinglePlan = async (req, res) => {
   }
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+console.log('process.env.STRIPE_WEBHOOK_SECRET', process.env.STRIPE_SECRET_KEY);
+
+const stripe = new Stripe(
+  'sk_test_51S91qQIdYj6K0osborBNLjiksqgiuBB60ddQbCjcDbthPQFIjdcs5uRxTopCBj3c3umGvz3QdEJ53xwStj6yHMNE00gbzvfRAh',
+);
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export const createPaymentIntent = async (req, res) => {
@@ -344,7 +348,6 @@ export const handleStripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
-  // 1. Verify the event came from Stripe
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, stripeWebhookSecret);
   } catch (err) {
@@ -391,7 +394,7 @@ export const handleStripeWebhook = async (req, res) => {
             inr: variant.price.effective.inr,
           },
         },
-        amountPaid: paymentIntent.amount / 100, // Stripe amount is in cents
+        amountPaid: paymentIntent.amount / 100,
         currency: currency,
         paymentStatus: 'completed',
         paymentGateway: 'stripe',
@@ -462,7 +465,6 @@ export const handleStripeWebhook = async (req, res) => {
     }
   }
 
-  // 5. Acknowledge receipt of the event to Stripe
   res.status(200).json({ received: true });
 };
 
