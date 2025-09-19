@@ -1,7 +1,9 @@
 import {
   cleanupIndexes,
+  createPaymentIntent,
   createPlan,
   getAllPlans,
+  getSinglePlan,
   updatePlan,
 } from '../controllers/plan.controller.js';
 import { Router } from 'express';
@@ -32,5 +34,7 @@ router.get('/perchased', authMiddleware, getUserPurchases);
 router.post('/usage', authMiddleware, trackUsage);
 router.get('/usage', authMiddleware, getUserUsage);
 router.get('/usage-limit', authMiddleware, getUserUsageLimits);
+router.get('/:id', getSinglePlan);
+router.post('/payment/create-intent', authMiddleware, createPaymentIntent);
 
 export default router;
