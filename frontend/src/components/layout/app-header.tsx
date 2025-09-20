@@ -31,6 +31,7 @@ import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
+import { set } from 'lodash';
 
 // CommandPalette Component
 const CommandPalette = ({ setIsSearchOpen }) => {
@@ -115,7 +116,7 @@ const CommandPalette = ({ setIsSearchOpen }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 "
       onClick={() => setIsSearchOpen(false)}
     >
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fadeIn"></div>
@@ -212,6 +213,8 @@ const AppHeader = () => {
     aiCoverLetterGenerator: 0,
     applications: 0,
   });
+
+  const [planType, setPlanType] = useState('free');
 
   const router = useRouter();
   const pathname = usePathname();
@@ -392,12 +395,25 @@ const AppHeader = () => {
     );
   }
 
+  useEffect(() => {
+    const getActivePlan = async () => {
+      try {
+        const response = await apiInstance.get('/plan/get-user-plan-type');
+        setPlanType(response.data.data.planType);
+      } catch (error) {
+        console.error('Failed to fetch active plan:', error);
+      }
+    };
+
+    getActivePlan();
+  }, []);
+
   return (
     <>
       {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
 
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="flex h-16 items-center justify-between px-6">
+        <div className="flex items-center justify-between px-6 py-6 ">
           <div className="flex items-center space-x-3"></div>
           <div className="flex flex-1 justify-center px-4">
             <button
@@ -422,7 +438,7 @@ const AppHeader = () => {
                 >
                   <Star className="w-4 h-4" />
                   <span className="text-sm font-medium hidden sm:inline">
-                    Pro
+                    {planType}
                   </span>
                   <ChevronDown className="w-3 h-3" />
                 </button>

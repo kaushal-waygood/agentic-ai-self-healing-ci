@@ -223,8 +223,6 @@ export const getSinglePlan = async (req, res) => {
   }
 };
 
-console.log('process.env.STRIPE_WEBHOOK_SECRET', process.env.STRIPE_SECRET_KEY);
-
 const stripe = new Stripe(
   'sk_test_51S91qQIdYj6K0osborBNLjiksqgiuBB60ddQbCjcDbthPQFIjdcs5uRxTopCBj3c3umGvz3QdEJ53xwStj6yHMNE00gbzvfRAh',
 );
@@ -343,7 +341,6 @@ const calculateEndDate = (period) => {
   return date;
 };
 
-// --- The New Webhook Handler ---
 export const handleStripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
@@ -483,5 +480,224 @@ export const getPaymentStatus = async (req, res) => {
   } catch (error) {
     console.error('Error fetching payment status:', error);
     res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+};
+
+export const getActivePlan = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Authentication required.' });
+    }
+
+    const user = await User.findById(userId).populate({
+      path: 'currentPurchase',
+      populate: {
+        path: 'plan',
+        model: 'Plan',
+      },
+    });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found.' });
+    }
+
+    // 3. Check if an active, non-expired purchase exists.
+    const hasActivePlan =
+      user.currentPurchase &&
+      user.currentPurchase.plan &&
+      user.currentPurchase.isActive &&
+      user.currentPurchase.endDate > new Date();
+
+    if (hasActivePlan) {
+      // User has an active plan. Return its details.
+      const activePlan = user.currentPurchase.plan;
+      const purchaseDetails = user.currentPurchase;
+
+      return res.status(200).json({
+        success: true,
+        message: 'Active plan details fetched successfully.',
+        data: {
+          isActive: true,
+          planId: activePlan._id,
+          planType: activePlan.planType,
+          startDate: purchaseDetails.startDate,
+          endDate: purchaseDetails.endDate,
+          usageLimits: user.usageLimits, // Also return their current limits
+          usageCounters: user.usageCounters, // And their current usage
+        },
+      });
+    } else {
+      // User does not have an active plan or it has expired.
+      return res.status(200).json({
+        success: true,
+        message: 'No active plan found.',
+        data: {
+          isActive: false,
+          planType: 'No Active Plan', // Default to 'Free' plan if no active subscription
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching active plan:', error);
+    res
+      .status(500)
+      .json({ success: false, message: 'An internal server error occurred.' });
+  }
+};
+
+export const createSimplePurchase = async (req, res) => {
+  const { planId, period } = req.body;
+  const userId = req.user._id;
+
+  if (!userId) {
+    return res
+      .status(401)
+      .json({ success: false, message: 'User not authenticated.' });
+  }
+
+  if (!planId || !period) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Plan ID and period are required.' });
+  }
+
+  // Retry logic for TransientTransactionError (WriteConflict)
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const user = await User.findById(userId)
+        .populate('currentPurchase')
+        .session(session);
+      if (!user) {
+        throw new Error('User not found.');
+      }
+
+      if (user.currentPurchase && user.currentPurchase.endDate > new Date()) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(403).json({
+          success: false,
+          message: 'You already have an active plan.',
+          data: { currentPlanEnds: user.currentPurchase.endDate },
+        });
+      }
+
+      const plan = await Plan.findById(planId).session(session).lean();
+      if (!plan) {
+        throw new Error('Plan not found.');
+      }
+
+      const variant = plan.billingVariants.find((v) => v.period === period);
+      if (!variant) {
+        throw new Error('Invalid billing period for this plan.');
+      }
+
+      // Deactivate any previous active purchases for this user
+      await Purchase.updateMany(
+        { user: userId, isActive: true },
+        { $set: { isActive: false } },
+        { session },
+      );
+
+      // Create a new Purchase record
+      const newPurchase = new Purchase({
+        user: userId,
+        plan: planId,
+        billingVariant: {
+          period: period,
+          price: {
+            usd: variant.price.effective.usd,
+            inr: variant.price.effective.inr,
+          },
+        },
+        amountPaid: 0,
+        currency: 'usd',
+        paymentStatus: 'completed',
+        paymentGateway: 'none',
+        paymentId: `free-${userId}-${Date.now()}`,
+        startDate: new Date(),
+        endDate: calculateEndDate(period),
+        isActive: true,
+      });
+      await newPurchase.save({ session });
+
+      const usageLimitMap = {
+        'CV Creation': 'cvCreation',
+        'Cover Letter': 'coverLetter',
+        'AI Tailored Application': 'aiApplication',
+        'Auto-Apply Daily limit': 'autoApply',
+      };
+
+      const newUsageLimits = {};
+      variant.features.forEach((feature) => {
+        const limitKey = usageLimitMap[feature.name];
+        if (limitKey) {
+          newUsageLimits[limitKey] =
+            feature.value.toLowerCase() === 'unlimited'
+              ? -1
+              : parseInt(feature.value, 10);
+        }
+      });
+
+      user.currentPlan = planId;
+      user.currentPurchase = newPurchase._id;
+      user.usageLimits = newUsageLimits;
+      user.usageCounters = {
+        cvCreation: 0,
+        coverLetter: 0,
+        aiApplication: 0,
+        autoApply: 0,
+        lastReset: new Date(),
+      };
+
+      await user.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // If successful, send response and exit the loop
+      return res.status(201).json({
+        success: true,
+        message: 'Plan activated successfully.',
+        data: {
+          purchaseId: newPurchase._id,
+          planId: plan._id,
+          endDate: newPurchase.endDate,
+        },
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+
+      // Check if the error is a transient transaction error (like WriteConflict)
+      if (
+        error.errorLabels &&
+        error.errorLabels.includes('TransientTransactionError') &&
+        attempt < maxRetries
+      ) {
+        console.log(
+          `Write conflict encountered. Retrying transaction... Attempt ${
+            attempt + 1
+          }`,
+        );
+        // The loop will automatically continue to the next attempt
+      } else {
+        // If it's not a retryable error or we've exhausted retries, send a final error response
+        console.error('Error creating simple purchase:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'An internal server error occurred.',
+        });
+      }
+    }
   }
 };

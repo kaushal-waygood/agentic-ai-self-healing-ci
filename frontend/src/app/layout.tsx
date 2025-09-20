@@ -47,10 +47,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <StoreProvider>
-            {/* <Navigation /> */}
-
             {children}
-            <Footer />
             <Toaster />
             <Analytics />
           </StoreProvider>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { JobListing } from '@/lib/data/jobs';
 import {
   Card,
@@ -11,6 +11,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import ReactMarkdown from 'react-markdown';
 import {
   MapPin,
   Briefcase,
@@ -309,7 +310,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           Job Description
         </h2>
         <div className="prose prose-gray max-w-none text-gray-600 leading-relaxed">
-          <FormattedText text={job.description} />
+          <div dangerouslySetInnerHTML={{ __html: job.description }}></div>
         </div>
       </div>
 
