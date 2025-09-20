@@ -22,6 +22,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { useSidebar } from '@/app/(app)/layout'; // Assuming DashboardLayout exports this
+import apiInstance from '@/services/api';
 
 // MODIFIED: The component now accepts `isCollapsed` as a prop
 const AppSidebarContent = ({ isCollapsed }) => {
@@ -30,13 +31,24 @@ const AppSidebarContent = ({ isCollapsed }) => {
   const route = useRouter();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [planType, setPlanType] = useState('Free');
 
   // This user object can stay as it is
   const user = {
     role: 'User',
     fullName: authUser?.fullName || 'Guest User',
-    plan: 'Free',
+    plan: planType,
   };
+
+  useEffect(() => {
+    const fetchUserPlanType = async () => {
+      const response = await apiInstance.get('/plan/get-user-plan-type');
+      console.log('response', response.data);
+      setPlanType(response.data.data.planType);
+    };
+
+    fetchUserPlanType();
+  }, []);
 
   // This config can stay as it is
   const siteConfig = {

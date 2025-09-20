@@ -40,7 +40,7 @@ const purchaseSchema = new Schema(
     },
     paymentGateway: {
       type: String,
-      enum: ['stripe', 'razorpay', 'paypal', 'manual'],
+      enum: ['stripe', 'razorpay', 'paypal', 'manual', 'none'],
     },
     paymentId: {
       type: String,

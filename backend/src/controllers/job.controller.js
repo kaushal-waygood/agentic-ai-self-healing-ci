@@ -11,6 +11,7 @@ import {
 } from '../utils/exprienceExtractor.js';
 import redisClient from '../config/redis.js';
 import { config } from '../config/config.js';
+import { genAI } from '../config/gemini.js';
 
 export const postManualJob = async (req, res) => {
   const { _id } = req.user;
@@ -291,6 +292,32 @@ export const fetchAndSaveRapidJobsUseLater = async (req, res) => {
   }
 };
 
+const formatJobDescriptionWithAI = (rawDescription) => {
+  if (!rawDescription || rawDescription.trim() === '') {
+    return rawDescription;
+  }
+
+  // This prompt is crucial. It tells the AI exactly how to format the text.
+  const prompt = `
+    You are an expert HR content formatter. Your task is to take the following raw job description text and reformat it into clean, well-structured HTML.
+
+    Follow these rules strictly:
+    1.  Use <h2> headings for major sections like "Responsibilities", "Qualifications", "Skills", or "Requirements".
+    1.5 Use valide spacing like <br> padding or margin and more use your creativity
+    2.  Use <ul> and <li> tags for bulleted lists.
+    3.  Use <strong> tags to make key technologies, skills, and important phrases bold (e.g., "Java 11+", "Spring Boot", "Angular 17+", "Microservices").
+    4.  Do NOT add any information that is not present in the original text.
+    5.  Do NOT write any introductory or concluding paragraphs. Only output the formatted HTML.
+
+    Here is the raw text:
+    ---
+    ${rawDescription}
+    ---
+  `;
+
+  return genAI(prompt);
+};
+
 export const fetchAndSaveRapidJobs = async (req, res) => {
   const { query } = req.body;
 
@@ -305,7 +332,7 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
       params: {
         query,
         page: 1,
-        num_pages: 20,
+        num_pages: 1,
       },
       headers: {
         'X-RapidAPI-Key': config.rapidApiKey,
@@ -331,6 +358,9 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
       );
 
       if (!existing) {
+        const formattedDescription = await formatJobDescriptionWithAI(
+          job.job_description,
+        );
         const newJob = new Job({
           jobId: job.job_id,
           origin: 'EXTERNAL',
@@ -338,7 +368,7 @@ export const fetchAndSaveRapidJobs = async (req, res) => {
           experience: experience,
           qualification: qualifications,
           title: job.job_title,
-          description: job.job_description,
+          description: formattedDescription,
           responsibilities,
           qualifications,
           jobTypes: job.job_employment_types,
