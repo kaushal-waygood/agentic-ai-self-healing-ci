@@ -22,20 +22,11 @@ spec:
           ports:
             - containerPort: 8080
           envFrom:
+            - configMapRef:
+                name: zobsai-backend-config
             - secretRef:
                 name: zobsai-backend-secrets
-          env:
-            # Override any local .env values
-            - name: REDIS_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: zobsai-backend-secrets
-                  key: REDIS_HOST
-            - name: REDIS_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: zobsai-backend-secrets
-                  key: REDIS_PORT
+
 ---
 apiVersion: v1
 kind: Service
