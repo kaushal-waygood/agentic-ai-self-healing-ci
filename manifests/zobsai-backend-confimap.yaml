@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zobsai-backend-config
+  namespace: zobsai
+data:
+  REDIS_HOST: "zobsai-redis.zobsai.svc.cluster.local"
+  REDIS_PORT: "6379"
+  EMAIL_HOST: "smtp.gmail.com"
+  EMAIL_PORT: "2525"
+  EMAIL_SECURE: "false"
