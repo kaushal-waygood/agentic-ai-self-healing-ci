@@ -5,7 +5,7 @@ import axios from 'axios';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
-    : 'http://127.0.0.1:8080';
+    : 'https://api.zobsai.com';
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
