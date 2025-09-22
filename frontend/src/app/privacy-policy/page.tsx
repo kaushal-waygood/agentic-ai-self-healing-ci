@@ -1,19 +1,13 @@
 'use client';
 
 import React from 'react';
-import {
-  ShieldCheck,
-  Database,
-  Users,
-  Lock,
-  UserCheck,
-  FileClock,
-  Mail,
-  CheckCircle,
-} from 'lucide-react';
+import { Mail, CheckCircle } from 'lucide-react';
+// Make sure this path is correct for your project structure
 import { Navigation } from '@/components/layout/site-header';
+// Import the data from the file you just created
+import { privacyData } from '@/services/dummy/privacy-policy';
 
-// A small helper component for consistent section styling
+// This is the same reusable component from your original file
 const PolicySection = ({
   icon: Icon,
   title,
@@ -21,20 +15,88 @@ const PolicySection = ({
   iconTextColor,
   children,
 }) => (
-  <section className="mb-10">
-    <div className="flex items-center mb-4">
+  <section className="mb-10 last:mb-0">
+    <div className="flex items-start sm:items-center mb-4">
       <div
-        className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${iconBgColor} shadow-sm`}
+        className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${iconBgColor} shadow-sm`}
       >
         <Icon className={`w-6 h-6 ${iconTextColor}`} />
       </div>
-      <h2 className="text-3xl font-bold text-gray-900">{title}</h2>
+      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{title}</h2>
     </div>
-    <div className="pl-16 space-y-4 text-gray-700 leading-relaxed">
+    <div className="pl-0 sm:pl-16 space-y-4 text-gray-700 leading-relaxed">
       {children}
     </div>
   </section>
 );
+
+// Helper function to render different content types from our data file
+const renderContent = (contentBlock) => {
+  switch (contentBlock.type) {
+    case 'paragraph':
+      return <p>{contentBlock.text}</p>;
+    case 'subheading':
+      return (
+        <p className="font-semibold italic text-gray-600">
+          {contentBlock.text}
+        </p>
+      );
+    case 'nestedList':
+      return (
+        <div className="mt-4">
+          <h4 className="font-bold text-lg text-gray-800 mb-2">
+            {contentBlock.title}
+          </h4>
+          <ul className="space-y-3">
+            {contentBlock.items.map((item, index) => (
+              <li key={index} className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <div>
+                  <strong className="text-gray-800">{item.title}</strong>
+                  <span className="ml-1">{item.text}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    case 'table':
+      return (
+        <div className="overflow-x-auto my-6">
+          <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+            <thead className="bg-gray-50">
+              <tr>
+                {contentBlock.headers.map((header, index) => (
+                  <th
+                    key={index}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {contentBlock.rows.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={cellIndex}
+                      className="px-6 py-4 whitespace-normal text-sm text-gray-800"
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    default:
+      return null;
+  }
+};
 
 export default function PrivacyPolicyPage() {
   return (
@@ -55,160 +117,27 @@ export default function PrivacyPolicyPage() {
               Privacy Policy
             </h1>
             <p className="text-xl text-gray-600">
-              Last Updated: September 16, 2025
+              Last Updated: {privacyData.lastUpdated}
             </p>
           </header>
 
           {/* Main Content Card */}
-          <main className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-3xl p-8 md:p-12 border border-gray-200 shadow-xl">
-            <PolicySection
-              icon={ShieldCheck}
-              title="Our Commitment to Privacy"
-              iconBgColor="bg-blue-50"
-              iconTextColor="text-blue-600"
-            >
-              <p>
-                Your privacy is critically important to us. At [Your Company
-                Name], we have a few fundamental principles: We are thoughtful
-                about the personal information we ask you to provide and the
-                personal information that we collect about you through the
-                operation of our services. We store personal information for
-                only as long as we have a reason to keep it. We aim for full
-                transparency on how we gather, use, and share your personal
-                information.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              icon={Database}
-              title="Information We Collect"
-              iconBgColor="bg-lime-50"
-              iconTextColor="text-lime-600"
-            >
-              <p>
-                We only collect information about you if we have a reason to do
-                so—for example, to provide our Services, to communicate with
-                you, or to make our Services better. We collect this information
-                from three sources: if and when you provide information to us,
-                automatically through operating our Services, and from outside
-                sources.
-              </p>
-              <ul className="space-y-3 mt-4">
-                <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                  <span>
-                    <strong>Account Information:</strong> We ask for basic
-                    information from you in order to set up your account. For
-                    example, we require individuals who sign up for an account
-                    to provide a username and email address.
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                  <span>
-                    <strong>Transactional Information:</strong> If you purchase
-                    something from us, we collect information to process the
-                    transaction, such as your name, credit card information, and
-                    contact information.
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                  <span>
-                    <strong>Usage Information:</strong> We collect information
-                    about your usage of our Services. For example, we collect
-                    information about the actions that site administrators and
-                    users perform on a site.
-                  </span>
-                </li>
-              </ul>
-            </PolicySection>
-
-            <PolicySection
-              icon={Users}
-              title="How and Why We Use Information"
-              iconBgColor="bg-pink-50"
-              iconTextColor="text-pink-600"
-            >
-              <p>
-                We use information about you for the purposes listed below: to
-                provide our Services, to ensure quality, maintain safety, and
-                improve our Services, to market our Services and measure, gauge,
-                and improve the effectiveness of our marketing, and to protect
-                our Services, our users, and the public.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              icon={Lock}
-              title="Data Security"
-              iconBgColor="bg-amber-50"
-              iconTextColor="text-amber-600"
-            >
-              <p>
-                While no online service is 100% secure, we work very hard to
-                protect information about you against unauthorized access, use,
-                alteration, or destruction, and take reasonable measures to do
-                so, such as monitoring our Services for potential
-                vulnerabilities and attacks.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              icon={UserCheck}
-              title="Your Rights & Choices"
-              iconBgColor="bg-green-50"
-              iconTextColor="text-green-600"
-            >
-              <p>
-                You have several choices available when it comes to information
-                about you: You can limit the information that you provide. You
-                can access and update your information through your account
-                settings. You have the right to deactivate your account. You can
-                also opt out of our marketing communications at any time.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              icon={FileClock}
-              title="Changes to This Policy"
-              iconBgColor="bg-gray-100"
-              iconTextColor="text-gray-600"
-            >
-              <p>
-                Although most changes are likely to be minor, we may change our
-                Privacy Policy from time to time. We encourage visitors to
-                frequently check this page for any changes to its Privacy
-                Policy. Your continued use of the Services after any change in
-                this Privacy Policy will constitute your acceptance of such
-                change.
-              </p>
-            </PolicySection>
-
-            {/* Contact Section */}
-            <div className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-200">
-              <div className="flex items-center">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mr-4 bg-white shadow-sm">
-                  <Mail className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-blue-800">
-                    Contact Us
-                  </h3>
-                  <p className="text-gray-600">
-                    If you have any questions about this Privacy Policy, please
-                    contact us at{' '}
-                    <a
-                      href="mailto:privacy@yourcompany.com"
-                      className="font-medium text-blue-600 hover:underline"
-                    >
-                      privacy@yourcompany.com
-                    </a>
-                    .
-                  </p>
-                </div>
-              </div>
-            </div>
+          <main className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-3xl p-6 md:p-12 border border-gray-200 shadow-xl">
+            {privacyData.sections.map((section) => (
+              <PolicySection
+                key={section.id}
+                icon={section.icon}
+                title={section.title}
+                iconBgColor={section.iconBgColor}
+                iconTextColor={section.iconTextColor}
+              >
+                {section.content.map((block, index) => (
+                  <React.Fragment key={index}>
+                    {renderContent(block)}
+                  </React.Fragment>
+                ))}
+              </PolicySection>
+            ))}
           </main>
         </div>
       </div>

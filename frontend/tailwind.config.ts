@@ -143,6 +143,10 @@ export default {
         'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
         float: 'float 6s ease-in-out infinite',
       },
+      fontFamily: {
+        sans: ['var(--font-poppins)'],
+        heading: ['var(--font-pt-sans)'],
+      },
     },
   },
   plugins: [require('tailwindcss-animate')],
