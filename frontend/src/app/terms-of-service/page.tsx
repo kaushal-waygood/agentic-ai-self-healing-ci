@@ -1,41 +1,54 @@
 'use client';
 
 import React from 'react';
-import {
-  FileText,
-  UserCircle,
-  ShieldAlert,
-  Copyright,
-  XCircle,
-  AlertTriangle,
-  RefreshCw,
-  Mail,
-  CheckCircle,
-} from 'lucide-react';
+import { Mail, XCircle } from 'lucide-react';
 import { Navigation } from '@/components/layout/site-header';
+import { termsData } from '@/services/dummy/terms-of-service';
 
-// Reusable helper component for consistent section styling
+// This is the same reusable component from your original file
 const LegalSection = ({
   icon: Icon,
   title,
   iconBgColor,
   iconTextColor,
   children,
-}) => (
+}: any) => (
   <section className="mb-10 last:mb-0">
-    <div className="flex items-center mb-4">
+    <div className="flex items-start sm:items-center mb-4">
       <div
-        className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${iconBgColor} shadow-sm`}
+        className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${iconBgColor} shadow-sm`}
       >
         <Icon className={`w-6 h-6 ${iconTextColor}`} />
       </div>
-      <h2 className="text-3xl font-bold text-gray-900">{title}</h2>
+      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{title}</h2>
     </div>
-    <div className="pl-16 space-y-4 text-gray-700 leading-relaxed">
+    <div className="pl-0 sm:pl-16 space-y-4 text-gray-700 leading-relaxed">
       {children}
     </div>
   </section>
 );
+
+// Helper function to render different content types from our data file
+const renderContent = (contentBlock) => {
+  switch (contentBlock.type) {
+    case 'paragraph':
+      // Use dangerouslySetInnerHTML to render HTML tags like <b>
+      return <p dangerouslySetInnerHTML={{ __html: contentBlock.text }} />;
+    case 'list':
+      return (
+        <ul className="space-y-3 mt-4">
+          {contentBlock.items.map((item, index) => (
+            <li key={index} className="flex items-start">
+              <XCircle className="w-5 h-5 text-rose-500 mr-3 mt-1 flex-shrink-0" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      );
+    default:
+      return null;
+  }
+};
 
 export default function TermsAndConditionsPage() {
   return (
@@ -56,129 +69,31 @@ export default function TermsAndConditionsPage() {
               Terms and Conditions
             </h1>
             <p className="text-xl text-gray-600">
-              Last Updated: September 16, 2025
+              Last Updated: {termsData.lastUpdated}
             </p>
           </header>
 
           {/* Main Content Card */}
-          <main className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-3xl p-8 md:p-12 border border-gray-200 shadow-xl">
-            <LegalSection
-              icon={FileText}
-              title="Agreement to Terms"
-              iconBgColor="bg-blue-50"
-              iconTextColor="text-blue-600"
-            >
-              <p>
-                Welcome to [Your Company Name]! These Terms and Conditions
-                ("Terms") govern your use of our website and services
-                (collectively, the "Service"). By accessing or using our
-                Service, you agree to be bound by these Terms. If you disagree
-                with any part of the terms, then you may not access the Service.
-              </p>
-            </LegalSection>
+          <main className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-3xl p-6 md:p-12 border border-gray-200 shadow-xl">
+            {/* Loop through the sections from the data file and render them */}
+            {termsData.sections.map((section) => (
+              <LegalSection
+                key={section.id}
+                icon={section.icon}
+                title={section.title}
+                iconBgColor={section.iconBgColor}
+                iconTextColor={section.iconTextColor}
+              >
+                {/* Loop through the content blocks within each section */}
+                {section.content.map((block, index) => (
+                  <React.Fragment key={index}>
+                    {renderContent(block)}
+                  </React.Fragment>
+                ))}
+              </LegalSection>
+            ))}
 
-            <LegalSection
-              icon={UserCircle}
-              title="User Accounts"
-              iconBgColor="bg-pink-50"
-              iconTextColor="text-pink-600"
-            >
-              <p>
-                When you create an account with us, you must provide us with
-                information that is accurate, complete, and current at all
-                times. Failure to do so constitutes a breach of the Terms, which
-                may result in immediate termination of your account on our
-                Service. You are responsible for safeguarding the password that
-                you use to access the Service and for any activities or actions
-                under your password.
-              </p>
-            </LegalSection>
-
-            <LegalSection
-              icon={ShieldAlert}
-              title="Acceptable Use"
-              iconBgColor="bg-lime-50"
-              iconTextColor="text-lime-600"
-            >
-              <p>
-                You agree not to use the Service for any unlawful purpose or any
-                purpose prohibited under this clause. You agree not to use the
-                Service in any way that could damage the Service, the business
-                of [Your Company Name], or any user.
-              </p>
-              <ul className="space-y-3 mt-4">
-                <li className="flex items-start">
-                  <XCircle className="w-5 h-5 text-rose-500 mr-3 mt-1 flex-shrink-0" />
-                  <span>
-                    You may not harass, abuse, or threaten others or otherwise
-                    violate any person's legal rights.
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <XCircle className="w-5 h-5 text-rose-500 mr-3 mt-1 flex-shrink-0" />
-                  <span>
-                    You may not violate any intellectual property rights of
-                    [Your Company Name] or any third party.
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <XCircle className="w-5 h-5 text-rose-500 mr-3 mt-1 flex-shrink-0" />
-                  <span>
-                    You may not upload or otherwise disseminate any computer
-                    viruses or other software that may damage the property of
-                    another.
-                  </span>
-                </li>
-              </ul>
-            </LegalSection>
-
-            <LegalSection
-              icon={Copyright}
-              title="Intellectual Property"
-              iconBgColor="bg-amber-50"
-              iconTextColor="text-amber-600"
-            >
-              <p>
-                The Service and its original content, features, and
-                functionality are and will remain the exclusive property of
-                [Your Company Name] and its licensors. The Service is protected
-                by copyright, trademark, and other laws of both the [Your
-                Country] and foreign countries.
-              </p>
-            </LegalSection>
-
-            <LegalSection
-              icon={AlertTriangle}
-              title="Limitation of Liability"
-              iconBgColor="bg-yellow-50"
-              iconTextColor="text-yellow-600"
-            >
-              <p>
-                In no event shall [Your Company Name], nor its directors,
-                employees, partners, agents, suppliers, or affiliates, be liable
-                for any indirect, incidental, special, consequential or punitive
-                damages, including without limitation, loss of profits, data,
-                use, goodwill, or other intangible losses, resulting from your
-                access to or use of or inability to access or use the Service.
-              </p>
-            </LegalSection>
-
-            <LegalSection
-              icon={RefreshCw}
-              title="Changes to Terms"
-              iconBgColor="bg-gray-100"
-              iconTextColor="text-gray-600"
-            >
-              <p>
-                We reserve the right, at our sole discretion, to modify or
-                replace these Terms at any time. If a revision is material we
-                will provide at least 30 days' notice prior to any new terms
-                taking effect. What constitutes a material change will be
-                determined at our sole discretion.
-              </p>
-            </LegalSection>
-
-            {/* Contact Section */}
+            {/* Contact Section (kept separate as it's a unique final block) */}
             <div className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-200">
               <div className="flex items-center">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center mr-4 bg-white shadow-sm">
@@ -189,13 +104,13 @@ export default function TermsAndConditionsPage() {
                     Contact Us
                   </h3>
                   <p className="text-gray-600">
-                    If you have any questions about these Terms, please contact
-                    us at{' '}
+                    In order to resolve a complaint or to receive further
+                    information, please contact us at:{' '}
                     <a
-                      href="mailto:support@yourcompany.com"
+                      href="mailto:support@zobsai.com"
                       className="font-medium text-blue-600 hover:underline"
                     >
-                      support@yourcompany.com
+                      support@zobsai.com
                     </a>
                     .
                   </p>
