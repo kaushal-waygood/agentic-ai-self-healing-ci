@@ -11,8 +11,91 @@ import {
   ShieldCheck,
   BarChart2,
   Megaphone,
+  Share2,
+  FunctionSquare,
 } from 'lucide-react';
+// Make sure this path is correct for your project structure
 import { Navigation } from '@/components/layout/site-header';
+
+// Data for the sections, making the component dynamic
+const policyData = [
+  {
+    id: 'introduction',
+    icon: Cookie,
+    title: 'Introduction & What Are Cookies?',
+    iconBgColor: 'bg-amber-50',
+    iconTextColor: 'text-amber-600',
+    content: [
+      'Zobsai ("we," "us," or "our") uses cookies and similar tracking technologies on our website at zobsai.com (the "Website"), our web application (the "App"), and related services (collectively, the "Services"). This Cookie Policy explains what these technologies are, how we use them, and your choices regarding their use. It supplements our Privacy Policy.',
+      'Cookies are small text files placed on your device (e.g., computer, smartphone) when you visit a website. They help websites remember your preferences, analyze usage, and enable features. Similar technologies include web beacons, pixels, tags, local storage, and scripts.',
+    ],
+  },
+  {
+    id: 'types',
+    icon: ListChecks,
+    title: 'Types of Cookies We Use',
+    iconBgColor: 'bg-lime-50',
+    iconTextColor: 'text-lime-600',
+    content:
+      'We categorize cookies based on purpose. Below is a list of cookies we use, their purposes, and whether consent is required under applicable laws. Essential cookies do not require consent, but others do (e.g., under GDPR).',
+    subsections: [
+      {
+        icon: ShieldCheck,
+        iconColor: 'text-green-500',
+        title: 'Strictly Necessary (Essential) Cookies',
+        text: 'These are required for the Services to function properly, such as maintaining your session, enabling logins, securing the site, and facilitating core features. Without them, the Services may not work.',
+      },
+      {
+        icon: BarChart2,
+        iconColor: 'text-orange-500',
+        title: 'Performance and Analytics Cookies',
+        text: 'These help us understand how users interact with our Services, measure performance, and improve features. We use aggregated data to optimize AI models and detect issues. Examples include Google Analytics and Hotjar.',
+      },
+      {
+        icon: FunctionSquare,
+        iconColor: 'text-blue-500',
+        title: 'Functional Cookies',
+        text: 'These enhance usability by remembering your preferences (e.g., language, consent choices) and enabling integrations like LinkedIn profile import or Gmail OAuth for auto-applications.',
+      },
+      {
+        icon: Megaphone,
+        iconColor: 'text-pink-500',
+        title: 'Advertising and Targeting Cookies',
+        text: 'These track your browsing for interest-based ads, retargeting, and measuring ad effectiveness. We may "sell" or "share" this data under CCPA/CPRA for personalized marketing. Examples include Meta Pixels and Google Ads.',
+      },
+    ],
+  },
+  {
+    id: 'third-party',
+    icon: Share2,
+    title: 'Third-Party Cookies and Data Sharing',
+    iconBgColor: 'bg-teal-50',
+    iconTextColor: 'text-teal-600',
+    content: [
+      'Third parties (e.g., Google, Meta) may set cookies through our Services and access data for their purposes, subject to their policies. This may involve cross-site tracking. Under CCPA/CPRA, this could be a "sale" or "sharing" of personal information—we provide opt-outs via links in our Privacy Policy.',
+    ],
+  },
+  {
+    id: 'choices',
+    icon: SlidersHorizontal,
+    title: 'Your Choices Regarding Cookies',
+    iconBgColor: 'bg-pink-50',
+    iconTextColor: 'text-pink-600',
+    content: [
+      'We respect your choices. Since we currently do not have a built-in opt-out tool on the Website, you can manage cookies via browser settings (Chrome, Firefox, Safari) and global opt-out tools like the NAI, DAA, or Google Analytics Opt-Out. We also honor browser-based signals like Global Privacy Control (GPC).',
+    ],
+  },
+  {
+    id: 'changes',
+    icon: RefreshCw,
+    title: 'Changes to This Cookie Policy',
+    iconBgColor: 'bg-gray-100',
+    iconTextColor: 'text-gray-600',
+    content: [
+      'We may update this policy to reflect changes in our practices or laws. Updates will be posted here with a revised date. Material changes will be notified via email or a site notice.',
+    ],
+  },
+];
 
 // Reusable helper component for consistent section styling
 const LegalSection = ({
@@ -23,15 +106,15 @@ const LegalSection = ({
   children,
 }) => (
   <section className="mb-10 last:mb-0">
-    <div className="flex items-center mb-4">
+    <div className="flex items-start sm:items-center mb-4">
       <div
-        className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${iconBgColor} shadow-sm`}
+        className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${iconBgColor} shadow-sm`}
       >
         <Icon className={`w-6 h-6 ${iconTextColor}`} />
       </div>
-      <h2 className="text-3xl font-bold text-gray-900">{title}</h2>
+      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{title}</h2>
     </div>
-    <div className="pl-16 space-y-4 text-gray-700 leading-relaxed">
+    <div className="pl-0 sm:pl-16 space-y-4 text-gray-700 leading-relaxed">
       {children}
     </div>
   </section>
@@ -56,130 +139,52 @@ export default function CookiePolicyPage() {
               Cookie Policy
             </h1>
             <p className="text-xl text-gray-600">
-              Last Updated: September 16, 2025
+              Last Updated: September 22, 2025
             </p>
           </header>
 
           {/* Main Content Card */}
-          <main className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-3xl p-8 md:p-12 border border-gray-200 shadow-xl">
-            <LegalSection
-              icon={Cookie}
-              title="What Are Cookies?"
-              iconBgColor="bg-amber-50"
-              iconTextColor="text-amber-600"
-            >
-              <p>
-                Cookies are small text files that are placed on your computer or
-                mobile device when you visit a website. They are widely used to
-                make websites work, or work more efficiently, as well as to
-                provide information to the owners of the site. Cookies help us
-                recognize your device and remember information about your visit,
-                like your preferences, settings, and how you use our website.
-              </p>
-            </LegalSection>
+          <main className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-3xl p-6 md:p-12 border border-gray-200 shadow-xl">
+            {policyData.map((section) => (
+              <LegalSection
+                key={section.id}
+                icon={section.icon}
+                title={section.title}
+                iconBgColor={section.iconBgColor}
+                iconTextColor={section.iconTextColor}
+              >
+                {/* Render main content paragraphs */}
+                {Array.isArray(section.content) ? (
+                  section.content.map((paragraph, index) => (
+                    <p key={index}>{paragraph}</p>
+                  ))
+                ) : (
+                  <p>{section.content}</p>
+                )}
 
-            <LegalSection
-              icon={Cog}
-              title="How We Use Cookies"
-              iconBgColor="bg-blue-50"
-              iconTextColor="text-blue-600"
-            >
-              <p>
-                We use cookies for a variety of reasons, like enabling certain
-                functions of the Service, providing analytics, storing your
-                preferences, and enabling advertisement delivery. This helps us
-                to provide you with a good experience when you browse our
-                website and also allows us to improve our site.
-              </p>
-            </LegalSection>
-
-            <LegalSection
-              icon={ListChecks}
-              title="Types of Cookies We Use"
-              iconBgColor="bg-lime-50"
-              iconTextColor="text-lime-600"
-            >
-              <p>
-                We use both session and persistent cookies on our Service and we
-                use different types of cookies to run the Service:
-              </p>
-              <ul className="space-y-4 mt-4">
-                <li className="flex items-start">
-                  <ShieldCheck className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                  <div>
-                    <strong className="text-gray-900">
-                      Essential Cookies:
-                    </strong>
-                    <p>
-                      These are necessary for the website to function and cannot
-                      be switched off in our systems. They are usually only set
-                      in response to actions made by you which amount to a
-                      request for services, such as setting your privacy
-                      preferences, logging in, or filling in forms.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <BarChart2 className="w-6 h-6 text-orange-500 mr-3 mt-1 flex-shrink-0" />
-                  <div>
-                    <strong className="text-gray-900">
-                      Performance and Analytics Cookies:
-                    </strong>
-                    <p>
-                      These cookies allow us to count visits and traffic sources
-                      so we can measure and improve the performance of our site.
-                      They help us to know which pages are the most and least
-                      popular and see how visitors move around the site.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <Megaphone className="w-6 h-6 text-pink-500 mr-3 mt-1 flex-shrink-0" />
-                  <div>
-                    <strong className="text-gray-900">
-                      Marketing Cookies:
-                    </strong>
-                    <p>
-                      These cookies may be set through our site by our
-                      advertising partners. They may be used by those companies
-                      to build a profile of your interests and show you relevant
-                      adverts on other sites.
-                    </p>
-                  </div>
-                </li>
-              </ul>
-            </LegalSection>
-
-            <LegalSection
-              icon={SlidersHorizontal}
-              title="Your Choices Regarding Cookies"
-              iconBgColor="bg-pink-50"
-              iconTextColor="text-pink-600"
-            >
-              <p>
-                You have the right to decide whether to accept or reject
-                cookies. You can exercise your cookie preferences by setting or
-                amending your web browser controls to accept or refuse cookies.
-                If you choose to reject cookies, you may still use our website
-                though your access to some functionality and areas of our
-                website may be restricted.
-              </p>
-            </LegalSection>
-
-            <LegalSection
-              icon={RefreshCw}
-              title="Changes to This Cookie Policy"
-              iconBgColor="bg-gray-100"
-              iconTextColor="text-gray-600"
-            >
-              <p>
-                We may update this Cookie Policy from time to time in order to
-                reflect, for example, changes to the cookies we use or for other
-                operational, legal, or regulatory reasons. Please therefore
-                re-visit this Cookie Policy regularly to stay informed about our
-                use of cookies and related technologies.
-              </p>
-            </LegalSection>
+                {/* Render subsections if they exist (e.g., for "Types of Cookies") */}
+                {section.subsections && (
+                  <ul className="space-y-4 mt-4">
+                    {section.subsections.map((sub, index) => {
+                      const SubIcon = sub.icon;
+                      return (
+                        <li key={index} className="flex items-start">
+                          <SubIcon
+                            className={`w-6 h-6 ${sub.iconColor} mr-3 mt-1 flex-shrink-0`}
+                          />
+                          <div>
+                            <strong className="text-gray-900">
+                              {sub.title}:
+                            </strong>
+                            <p className="mt-1">{sub.text}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </LegalSection>
+            ))}
 
             {/* Contact Section */}
             <div className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-200">
@@ -192,13 +197,19 @@ export default function CookiePolicyPage() {
                     Contact Us
                   </h3>
                   <p className="text-gray-600">
-                    If you have any questions about our use of cookies, please
-                    contact us at{' '}
+                    Questions? Email us at{' '}
                     <a
-                      href="mailto:cookies@yourcompany.com"
+                      href="mailto:support@zobsai.com"
                       className="font-medium text-blue-600 hover:underline"
                     >
-                      cookies@yourcompany.com
+                      support@zobsai.com
+                    </a>{' '}
+                    or our Data Protection Officer at{' '}
+                    <a
+                      href="mailto:dpo@zobsai.com"
+                      className="font-medium text-blue-600 hover:underline"
+                    >
+                      dpo@zobsai.com
                     </a>
                     .
                   </p>
