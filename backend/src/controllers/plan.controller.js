@@ -223,6 +223,12 @@ export const getSinglePlan = async (req, res) => {
   }
 };
 
+console.log(
+  'process.env.STRIPE_WEBHOOK_SECRET',
+  process.env.STRIPE_WEBHOOK_SECRET,
+  'process.env.STRIPE_SECRET_KEY',
+  process.env.STRIPE_SECRET_KEY,
+);
 const stripe = new Stripe(
   'sk_test_51S91qQIdYj6K0osborBNLjiksqgiuBB60ddQbCjcDbthPQFIjdcs5uRxTopCBj3c3umGvz3QdEJ53xwStj6yHMNE00gbzvfRAh',
 );
@@ -231,7 +237,7 @@ const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 export const createPaymentIntent = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { planId, period, currency = 'usd' } = req.body; // Default to 'usd' if no currency is sent
+    const { planId, period, currency = 'usd' } = req.body;
 
     if (!userId) {
       return res.status(401).json({
