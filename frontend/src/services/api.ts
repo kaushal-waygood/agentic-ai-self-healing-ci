@@ -2,6 +2,8 @@
 
 import axios from 'axios';
 
+console.log(process.env.NEXT_PUBLIC_NODE_ENV);
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
@@ -56,4 +58,3 @@ apiInstance.interceptors.request.use((config) => {
 });
 
 export default apiInstance;
-
