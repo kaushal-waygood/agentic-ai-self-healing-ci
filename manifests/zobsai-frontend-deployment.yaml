@@ -27,6 +27,8 @@ spec:
             - name: REACT_APP_API_URL
               value: "http://zobsai-backend.zobsai.svc.cluster.local:8000"
           envFrom:
+            - configMapRef:
+                name: zobsai-frontend-config
             - secretRef:
                 name: zobsai-frontend-secrets
 ---
@@ -36,11 +38,10 @@ metadata:
   name: zobsai-frontend
   namespace: zobsai
 spec:
+  type: NodePort
   selector:
     app: zobsai-frontend
-  type: NodePort              # changed from LoadBalancer
   ports:
-    - port: 3000              # Service port
-      targetPort: 3000        # Container port
-      nodePort: 30090         # NodePort (must be 30000-32767)
-
+    - port: 3000          # Service port
+      targetPort: 3000    # Container port
+      nodePort: 30090     # NodePort (30000-32767)
