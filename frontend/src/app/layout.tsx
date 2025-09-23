@@ -61,13 +61,10 @@ export default async function RootLayout({ children }) {
           {/* This provider now handles Redux Persist correctly */}
           <StoreProvider>
             <div className="flex flex-col min-h-screen">
-              <Navigation />
               <main className="flex-grow">{children}</main>
-              <Footer />
             </div>
             <Toaster />
             <Analytics />
-            <CookieConsent />
           </StoreProvider>
         </ThemeProvider>
       </body>
