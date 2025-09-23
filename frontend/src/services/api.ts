@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 
-console.log(process.env.NEXT_PUBLIC_NODE_ENV);
+console.log('API_BASE_URL:', process.env.NEXT_PUBLIC_NODE_ENV);
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
