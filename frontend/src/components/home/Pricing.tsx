@@ -195,46 +195,50 @@ export function Pricing() {
               ))}
             </div>
 
-            {/* Bottom CTA Section */}
-            <div className="text-center">
-              <div className="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 max-w-4xl mx-auto shadow-xl">
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                  Need a custom solution?
-                </h3>
-                <p className="text-gray-600 mb-6 text-lg">
-                  We offer tailored enterprise solutions with custom
-                  integrations, dedicated support, and volume discounts.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <button className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 transform hover:scale-105">
-                    Contact Sales
-                  </button>
-                  <button className="border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-xl font-semibold hover:border-purple-300 hover:text-purple-600 transition-all duration-300 hover:bg-purple-50">
-                    Schedule Demo
-                  </button>
+            {isSubscriptionPage ? (
+              <div>
+                {/* Bottom CTA Section */}
+                <div className="text-center">
+                  <div className="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 max-w-4xl mx-auto shadow-xl">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                      Need a custom solution?
+                    </h3>
+                    <p className="text-gray-600 mb-6 text-lg">
+                      We offer tailored enterprise solutions with custom
+                      integrations, dedicated support, and volume discounts.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      <button className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 transform hover:scale-105">
+                        Contact Sales
+                      </button>
+                      <button className="border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-xl font-semibold hover:border-purple-300 hover:text-purple-600 transition-all duration-300 hover:bg-purple-50">
+                        Schedule Demo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* FAQ Teaser */}
+                <div className="text-center mt-12">
+                  <p className="text-gray-600">
+                    Have questions? Check our{' '}
+                    <a
+                      href="#faq"
+                      className="text-purple-600 font-semibold hover:text-purple-700 underline decoration-purple-300 underline-offset-2"
+                    >
+                      FAQ section
+                    </a>{' '}
+                    or{' '}
+                    <a
+                      href="#contact"
+                      className="text-purple-600 font-semibold hover:text-purple-700 underline decoration-purple-300 underline-offset-2"
+                    >
+                      contact support
+                    </a>
+                  </p>
                 </div>
               </div>
-            </div>
-
-            {/* FAQ Teaser */}
-            <div className="text-center mt-12">
-              <p className="text-gray-600">
-                Have questions? Check our{' '}
-                <a
-                  href="#faq"
-                  className="text-purple-600 font-semibold hover:text-purple-700 underline decoration-purple-300 underline-offset-2"
-                >
-                  FAQ section
-                </a>{' '}
-                or{' '}
-                <a
-                  href="#contact"
-                  className="text-purple-600 font-semibold hover:text-purple-700 underline decoration-purple-300 underline-offset-2"
-                >
-                  contact support
-                </a>
-              </p>
-            </div>
+            ) : null}
           </>
         )}
       </div>
