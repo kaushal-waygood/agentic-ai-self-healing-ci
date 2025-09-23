@@ -23,7 +23,7 @@ spec:
             - containerPort: 3000
           env:
             - name: REACT_APP_API_URL
-              value: "http://zobsai-backend.zobsai.svc.cluster.local:8000"
+              value: "http://zobsai-backend.zobsai.svc.cluster.local:8080"
           envFrom:
             - configMapRef:
                 name: zobsai-frontend-config
