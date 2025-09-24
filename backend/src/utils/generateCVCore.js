@@ -4,6 +4,10 @@ import path from 'path';
 import pdfParse from 'pdf-parse';
 import { genAI } from '../config/gemini.js';
 import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const generateCVCore = async (req, res, jobContextString) => {
   try {
