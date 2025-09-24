@@ -17,25 +17,16 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend
-          image: ghcr.io/zobsai-com/zobsai-backend:fc615652856ea1ebeb14ac88bc244a93d4d85716
+          image: ghcr.io/zobsai-com/zobsai-backend:8cb719a5192ad3f67c26f8e4c18eb84cf67f9108
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
+            - configMapRef:
+                name: zobsai-backend-config
             - secretRef:
                 name: zobsai-backend-secrets
-          env:
-            # Override any local .env values
-            - name: REDIS_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: zobsai-backend-secrets
-                  key: REDIS_HOST
-            - name: REDIS_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: zobsai-backend-secrets
-                  key: REDIS_PORT
+
 ---
 apiVersion: v1
 kind: Service
