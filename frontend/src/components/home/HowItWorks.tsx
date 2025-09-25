@@ -6,6 +6,7 @@ import {
   Zap,
   Play,
   Rocket,
+  User,
   Sparkles,
   CheckCircle,
   TrendingUp,
@@ -13,6 +14,7 @@ import {
   ArrowRight,
   Star,
   Clock,
+  Brain,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -223,7 +225,7 @@ export function HowItWorks() {
 
   return (
     <section
-      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-purple-50/40 py-8 md:py-8 relative overflow-hidden"
+      className=" bg-gradient-to-br from-slate-50 via-blue-50/40 to-purple-50/40 py-8 md:py-20 relative overflow-hidden"
       id="how-it-works"
     >
       <div className="absolute inset-0 overflow-hidden">
@@ -236,7 +238,13 @@ export function HowItWorks() {
 
       <div className="container mx-auto px-6 md:px-8 relative z-10">
         <header className="text-center mb-20 md:mb-24">
-          <h2 className="text-5xl sm:text-6xl md:text-7xl font-black mb-6 tracking-tight">
+          <div className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-full px-6 py-3 mb-8 shadow-md">
+            <Brain className="w-6 h-6 text-blue-500" />
+            <span className="text-lg font-bold text-gray-700 uppercase">
+              AI Assistant
+            </span>
+          </div>
+          <h2 className="text-5xl sm:text-6xl lg:text-6xl font-black mb-6 tracking-tight">
             Meet your Job{' '}
             <span className="text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text animate-gradient">
               AI Assistant
