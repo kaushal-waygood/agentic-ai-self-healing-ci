@@ -14,7 +14,7 @@ export default function HomePage() {
   return (
     <div>
       <Navigation />
-      <div className="flex flex-col min-h-screen">
+      <div className=" flex flex-col min-h-screen">
         <main className="flex-1">
           <Hero />
           <PainPoints />

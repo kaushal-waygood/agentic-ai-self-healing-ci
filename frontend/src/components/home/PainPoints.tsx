@@ -73,13 +73,13 @@ export const PainPoints = () => {
         {/* Header Section */}
         <div className="text-center mb-20">
           <div className="inline-flex items-center gap-3 px-6 py-3 bg-red-100/50 backdrop-blur-sm border border-red-200/50 rounded-full mb-8 animate-pulse">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <span className="text-red-700 font-semibold">
+            <AlertTriangle className="w-6 h-6 text-red-600" />
+            <span className="text-lg text-red-700 font-bold uppercase">
               Job Search Reality Check
             </span>
           </div>
 
-          <h2 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          <h2 className="text-5xl sm:text-6xl lg:text-6xl font-bold mb-6 leading-tight">
             <span className="text-gray-900">Job Search </span>{' '}
             <span className="bg-gradient-to-r from-red-600 via-orange-600 to-red-700 bg-clip-text text-transparent animate-pulse">
               Struggle is Real
@@ -168,7 +168,7 @@ export const PainPoints = () => {
                 {/* Solution Preview */}
                 <button
                   onClick={() => router.push('/signup')}
-                  className={`mt-6 p-4 bg-green-50 backdrop-blur-sm w-full border border-green-200 rounded-xl transform transition-all duration-500 ${
+                  className={`mt-6 p-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white backdrop-blur-sm w-full border border-green-200 rounded-xl transform transition-all duration-500 ${
                     activeCard === index
                       ? 'opacity-100 translate-y-0'
                       : 'opacity-0 translate-y-4 pointer-events-none'

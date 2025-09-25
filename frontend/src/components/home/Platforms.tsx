@@ -90,7 +90,10 @@ export function Platforms() {
   };
 
   return (
-    <section className="py-8 bg-slate-50 relative overflow-hidden">
+    <section
+      className="py-8 bg-slate-50 relative overflow-hidden"
+      id="platforms"
+    >
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-40"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-slate-50/80 to-slate-50"></div>
@@ -99,11 +102,11 @@ export function Platforms() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-full px-6 py-3 mb-8 shadow-md">
             <Globe className="w-6 h-6 text-blue-500" />
-            <span className="text-lg font-bold text-gray-700">
+            <span className="text-lg font-bold text-gray-700 uppercase">
               Platform Integration
             </span>
           </div>
-          <h2 className="text-5xl md:text-7xl font-black mb-6 leading-tight tracking-tighter">
+          <h2 className="text-5xl sm:text-6xl lg:text-6xl font-black mb-6 leading-tight tracking-tighter">
             Apply Everywhere from{' '}
             <span className="text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text">
               One Platform

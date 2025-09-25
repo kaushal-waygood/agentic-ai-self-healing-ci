@@ -29,7 +29,7 @@ export const Navigation = () => {
   }, []);
 
   const navItems = [
-    { name: 'Features', href: '#features' },
+    { name: 'Features', href: '#platforms' },
     { name: 'How it Works', href: '#how-it-works' },
     { name: 'Pricing', href: '#pricing' },
     { name: 'Success Stories', href: '#testimonials' },
@@ -53,7 +53,7 @@ export const Navigation = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/5 backdrop-blur-3xl border-b border-white/10 shadow-2xl py-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/50 backdrop-blur-3xl border-b border-white/10 shadow-2xl py-4">
       {/* Enhanced background gradients */}
       <div className="absolute inset-0 bg-gradient-to-r from-violet-500/8 via-indigo-500/6 to-cyan-400/8"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/5 to-transparent"></div>

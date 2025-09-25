@@ -131,13 +131,13 @@ export function Solutions() {
         {/* Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-100/80 to-purple-100/80 backdrop-blur-lg border border-blue-200/50 rounded-full mb-8 shadow-lg">
-            <GraduationCap className="w-5 h-5 text-blue-600" />
-            <span className="text-blue-800 font-bold">
+            <GraduationCap className="w-6 h-6 text-blue-600" />
+            <span className="text-lg text-blue-800 font-bold uppercase">
               AI-Powered Solutions{' '}
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight">
+          <h1 className="text-5xl sm:text-6xl lg:text-6xl font-black mb-6 leading-tight">
             <span className="text-gray-900">Meet Your</span>{' '}
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               AI Job Search Assistant{' '}
@@ -153,7 +153,7 @@ export function Solutions() {
         {/* Journey Steps */}
         <div className="relative">
           {/* Central Timeline */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-gradient-to-b from-blue-200 via-purple-200 to-pink-200 rounded-full" />
+          <div className="hidden sm:block absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-gradient-to-b from-blue-200 via-purple-200 to-pink-200 rounded-full" />
 
           <div className="space-y-12">
             {journeySteps.map((step, index) => {
@@ -172,7 +172,7 @@ export function Solutions() {
                   onMouseLeave={() => setHoveredStep(null)}
                 >
                   {/* Step Number Circle */}
-                  <div className="absolute left-1/2 transform -translate-x-1/2 z-20">
+                  <div className="hidden sm:block absolute left-1/2 transform -translate-x-1/2 z-20">
                     <div
                       className={`w-16 h-16 rounded-full border-4 border-white shadow-xl transition-all duration-500 cursor-pointer transform ${
                         isActive || isHovered ? 'scale-110' : 'scale-100'
@@ -187,7 +187,7 @@ export function Solutions() {
                     >
                       <div className="w-full h-full rounded-full flex items-center justify-center">
                         <span
-                          className={`text-2xl font-black transition-colors duration-300 ${
+                          className={` text-2xl font-black transition-colors duration-300 ${
                             isCompleted
                               ? 'text-white'
                               : isActive
@@ -211,7 +211,7 @@ export function Solutions() {
                   {/* Step Content Card */}
                   <div
                     className={`w-full max-w-md transition-all duration-500 transform cursor-pointer ${
-                      isLeft ? 'mr-auto pr-24' : 'ml-auto pl-24'
+                      isLeft ? 'sm:mr-auto sm:pr-24' : 'sm:ml-auto sm:pl-24'
                     } ${isActive || isHovered ? 'scale-105' : 'scale-100'}`}
                     onClick={() => setActiveStep(step.id)}
                   >
@@ -296,7 +296,7 @@ export function Solutions() {
 
                   {/* Connection Line to Timeline */}
                   <div
-                    className={`absolute top-8 w-20 h-0.5 bg-gradient-to-r transition-all duration-500 ${
+                    className={`hidden sm:block absolute top-8 w-20 h-0.5 bg-gradient-to-r transition-all duration-500 ${
                       isActive
                         ? step.color
                             .replace('from-', 'from-')
