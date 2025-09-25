@@ -91,15 +91,15 @@ export function Pricing() {
       <div className="container mx-auto px-6 relative z-10">
         {/* Enhanced Header */}
         <header className="text-center mb-16 max-w-5xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-purple-200 rounded-full px-4 py-2 mb-6 shadow-sm">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-semibold text-purple-700">
+          <div className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-full px-6 py-3 mb-8 shadow-md">
+            <Sparkles className="w-6 h-6 text-purple-600" />
+            <span className="text-lg font-bold text-purple-700 uppercase">
               Choose Your Plan
             </span>
             <Sparkles className="w-4 h-4 text-purple-600" />
           </div>
 
-          <h2 className="text-5xl md:text-6xl font-black mb-6 bg-gradient-to-r from-gray-900 via-purple-800 to-indigo-800 bg-clip-text text-transparent leading-tight">
+          <h2 className="text-5xl sm:text-6xl lg:text-6xl font-black mb-6 bg-gradient-to-r from-gray-900 via-purple-800 to-indigo-800 bg-clip-text text-transparent leading-tight">
             Find Your Perfect Plan
           </h2>
 

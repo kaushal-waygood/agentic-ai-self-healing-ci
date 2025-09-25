@@ -10,8 +10,11 @@ import {
   Users,
   Target,
   Award,
+  User,
   Play,
   Pause,
+  Globe,
+  MessageSquareText,
 } from 'lucide-react';
 
 // Import Swiper React components and styles
@@ -207,7 +210,10 @@ export function Testimonials() {
   const currentTheme = getThemeClasses(testimonials[activeIndex].theme);
 
   return (
-    <section className="py-8 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 relative overflow-hidden">
+    <section
+      className="py-8 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 relative overflow-hidden"
+      id="testimonials"
+    >
       {/* Background elements */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-blue-600 via-purple-600 to-emerald-600 rounded-full blur-3xl"></div>
@@ -217,8 +223,13 @@ export function Testimonials() {
       <div className="container mx-auto px-6 relative z-10">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 border border-gray-200 shadow-sm mb-6"></div>
-          <h2 className="text-4xl font-bold mb-6 text-gray-800">
+          <div className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-full px-6 py-3 mb-8 shadow-md">
+            <User className="w-6 h-6 text-blue-500" />
+            <span className="text-lg font-bold text-gray-700 uppercase">
+              Testimonials
+            </span>
+          </div>
+          <h2 className="text-5xl sm:text-6xl lg:text-6xl font-bold mb-6 text-gray-800">
             Success Stories from{' '}
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent">
               Real Users
