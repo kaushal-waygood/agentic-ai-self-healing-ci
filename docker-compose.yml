@@ -40,6 +40,8 @@ services:
       dockerfile: Dockerfile
     container_name: hsa-frontend
     restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_NODE_ENV=production
     ports:
       - '3000:80' # Nginx runs on 80 internally
     depends_on:

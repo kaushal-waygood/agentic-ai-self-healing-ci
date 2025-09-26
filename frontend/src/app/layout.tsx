@@ -5,11 +5,9 @@ import { Toaster } from '@/components/ui/toaster';
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import StoreProvider from '../redux/storeProvider';
-import { Navigation } from '@/components/layout/site-header';
-import { Footer } from '@/components/layout/footer';
 import Script from 'next/script';
 import { cookies } from 'next/headers';
-import CookieConsent from '@/components/CookieConsent';
+import CookieConsent from '@/components/CookieConsent'; // Ensure this path is correct
 import { poppins, pt_sans } from './fonts';
 
 export const metadata: Metadata = {
@@ -18,19 +16,34 @@ export const metadata: Metadata = {
     'Streamline your job application process with AI-powered tools and automation.',
 };
 
-export default async function RootLayout({ children }) {
-  const cookieStorePromise = cookies();
-  const [cookieStore] = [await cookieStorePromise];
-  const consent = cookieStore.get('cc_accepted_categories');
-  const hasAnalyticsConsent = !!consent?.value.includes('analytics');
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // 1. Read the cookie set by the CookieConsent component
+  const cookieStore = cookies();
+  const consentCookie = cookieStore.get('cookie_consent');
+
+  let hasAnalyticsConsent = false;
+
+  // 2. Safely parse the JSON and check for the 'analytics' property
+  if (consentCookie) {
+    try {
+      const consentData = JSON.parse(consentCookie.value);
+      if (consentData.analytics === true) {
+        hasAnalyticsConsent = true;
+      }
+    } catch (e) {
+      console.error('Could not parse cookie consent JSON:', e);
+    }
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
-      <body
-        className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
-      >
-        {hasAnalyticsConsent && 'G-6RKXBX7Y5K' && (
+      <head>
+        {/* 3. This conditional logic now works correctly with the new component */}
+        {hasAnalyticsConsent && (
           <>
             <Script
               strategy="afterInteractive"
@@ -50,7 +63,10 @@ export default async function RootLayout({ children }) {
             />
           </>
         )}
-
+      </head>
+      <body
+        className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -65,6 +81,9 @@ export default async function RootLayout({ children }) {
             <Analytics />
           </StoreProvider>
         </ThemeProvider>
+
+        {/* 4. Add the CookieConsent component here */}
+        <CookieConsent />
       </body>
     </html>
   );

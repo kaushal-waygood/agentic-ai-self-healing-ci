@@ -1,9 +1,12 @@
 'use client';
 import { Button } from '@/components/ui/button';
+import { RootState } from '@/redux/rootReducer';
 import { Menu, X, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
 // Helper function to get a cookie by name from the browser
 const getCookie = (name: string): string | undefined => {
@@ -39,7 +42,13 @@ export const Navigation = () => {
     if (searchQuery.trim()) {
       const encodedQuery = encodeURIComponent(searchQuery.trim());
       setSearchQuery('');
-      router.push(`/search-jobs?query=${encodedQuery}`);
+
+      if (token) {
+        router.push(`/dashboard/search-jobs?query=${encodedQuery}`);
+      } else {
+        router.push(`/search-jobs?query=${encodedQuery}`);
+      }
+
       setIsOpen(false);
     }
   };
@@ -53,7 +62,7 @@ export const Navigation = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/50 backdrop-blur-3xl border-b border-white/10 shadow-2xl py-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/50 backdrop-blur-3xl border-b border-black/10 border-b-1 py-4">
       {/* Enhanced background gradients */}
       <div className="absolute inset-0 bg-gradient-to-r from-violet-500/8 via-indigo-500/6 to-cyan-400/8"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/5 to-transparent"></div>
