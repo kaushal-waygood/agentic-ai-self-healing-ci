@@ -1,23 +1,23 @@
-# 1. Use a Node.js version that matches your dependencies (v20+)
-FROM node:20-alpine
+FROM node:18-alpine
 
 # Set the working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
-# 2. Install dependencies and resolve peer conflicts
-RUN npm install --legacy-peer-deps
+# Install dependencies (this creates a separate layer that's cached)
+RUN npm install
 
-# Copy the rest of your application code
+# Copy the rest of your application's source code
 COPY . .
 
-# 3. Build the application with increased memory
-RUN NODE_OPTIONS=--max-old-space-size=8192 npm run build
+# Build your Next.js application
+RUN npm run build
 
 # Expose the port the app runs on
 EXPOSE 3000
 
 # The command to start the application
-CMD ["npm", "start"]
+CMD ["npm", "run", "start"]
+
