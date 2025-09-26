@@ -5,7 +5,7 @@ import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
 import { useJobs } from '@/hooks/jobs/useJobs';
 import { useMediaQuery } from '@/hooks/jobs/useMediaQuery';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
@@ -33,6 +33,9 @@ export default function JobsPage() {
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const observerRef = useRef(null);
+
+  const pathname = usePathname();
+  console.log(pathname);
 
   const fetchJobDetails = async (slug: string) => {
     try {
@@ -89,7 +92,11 @@ export default function JobsPage() {
     return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30">
+    <div
+      className={`min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30  {${
+        pathname === '/search-jobs' ? '' : 'pt-20'
+      }}`}
+    >
       <div className="container mx-auto px-4 py-6">
         <SearchFilters
           initialFilters={filters}

@@ -2,6 +2,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import JobsPage from '@/components/jobs/JobPage';
+import { Navigation } from '@/components/layout/site-header';
 
 export const metadata: Metadata = {
   title: 'Search Jobs | Find Your Next Career Opportunity',
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
 export default function SearchJobsPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
+      <Navigation />
       <JobsPage />
     </Suspense>
   );
