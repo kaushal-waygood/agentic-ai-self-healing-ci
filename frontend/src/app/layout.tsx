@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -18,7 +19,6 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  // Check for cookie consent on the server. This is the correct way.
   const cookieStorePromise = cookies();
   const [cookieStore] = [await cookieStorePromise];
   const consent = cookieStore.get('cc_accepted_categories');
@@ -30,7 +30,6 @@ export default async function RootLayout({ children }) {
       <body
         className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
-        {/* Conditionally load Google Analytics scripts using the environment variable */}
         {hasAnalyticsConsent && 'G-6RKXBX7Y5K' && (
           <>
             <Script
@@ -58,7 +57,6 @@ export default async function RootLayout({ children }) {
           enableSystem
           disableTransitionOnChange
         >
-          {/* This provider now handles Redux Persist correctly */}
           <StoreProvider>
             <div className="flex flex-col min-h-screen">
               <main className="flex-grow">{children}</main>
