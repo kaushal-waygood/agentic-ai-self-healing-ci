@@ -55,6 +55,7 @@ const authSlice = createSlice({
     },
 
     getProfileRequest: (state) => {
+      console.log('getProfileRequest');
       state.loading = true;
       state.error = null;
     },

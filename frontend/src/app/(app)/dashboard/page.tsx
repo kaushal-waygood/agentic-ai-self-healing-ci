@@ -26,7 +26,7 @@ import {
   CheckCircle2,
   Target,
   Play,
-  Bookmark, // Icon for Saved Jobs
+  Bookmark,
 } from 'lucide-react';
 import Link from 'next/link';
 import { mockApplications } from '@/lib/data/applications';
@@ -59,6 +59,7 @@ import {
 } from 'recharts';
 
 // --- Reusable Dashboard Components ---
+// (StatCard, ToolkitButton, ProfileReadinessCard, ActionItemCard components remain the same)
 
 export function StatCard({
   title,
@@ -75,7 +76,6 @@ export function StatCard({
     cyan: 'from-cyan-500 to-cyan-600',
     green: 'from-green-500 to-green-600',
   };
-
   return (
     <div className="group relative overflow-hidden rounded-xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <div
@@ -129,7 +129,6 @@ export function ToolkitButton({
     cyan: 'from-cyan-100 to-cyan-200',
     green: 'from-green-100 to-green-200',
   };
-
   return (
     <Link href={href} passHref>
       <button
@@ -162,7 +161,6 @@ export function ToolkitButton({
 
 export function ProfileReadinessCard() {
   const { data, isLoading, error } = useProfileCompletion();
-
   if (isLoading || !data) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -172,7 +170,6 @@ export function ProfileReadinessCard() {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -182,29 +179,24 @@ export function ProfileReadinessCard() {
       </div>
     );
   }
-
   const checklistItems = [
     { key: 'coreProfile', label: 'Basic Info & Preferences' },
     { key: 'workExperience', label: 'Work Experience' },
     { key: 'education', label: 'Education Details' },
     { key: 'skills', label: 'Skills (10+ recommended)' },
   ];
-
   const score = data.percentage;
   const checks = data.categories;
-
   const getScoreColor = (scoreValue) => {
     if (scoreValue >= 80) return 'text-green-600';
     if (scoreValue >= 60) return 'text-yellow-600';
     return 'text-red-500';
   };
-
   const getProgressColor = (scoreValue) => {
     if (scoreValue >= 80) return 'from-green-400 to-green-600';
     if (scoreValue >= 60) return 'from-yellow-400 to-yellow-600';
     return 'from-red-400 to-red-600';
   };
-
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
       <div className="flex items-center justify-between mb-6">
@@ -223,7 +215,6 @@ export function ProfileReadinessCard() {
           <p className="text-sm text-gray-500">Complete</p>
         </div>
       </div>
-
       <div className="relative w-full h-3 bg-gray-200 rounded-full mb-6 overflow-hidden">
         <div
           className={`h-full bg-gradient-to-r ${getProgressColor(
@@ -232,7 +223,6 @@ export function ProfileReadinessCard() {
           style={{ width: `${score}%` }}
         />
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {checklistItems.map(({ key, label }) => (
           <div
@@ -269,7 +259,6 @@ export function ActionItemCard({ item, onMarkAsRead }) {
         return <Bell className="w-5 h-5 text-gray-500" />;
     }
   };
-
   const getTypeColor = (type) => {
     switch (type) {
       case 'reward':
@@ -280,7 +269,6 @@ export function ActionItemCard({ item, onMarkAsRead }) {
         return 'border-l-gray-400 bg-gray-50';
     }
   };
-
   return (
     <Link href={item.href} passHref>
       <div
@@ -318,7 +306,6 @@ export function ActionItemCard({ item, onMarkAsRead }) {
 // --- Main Dashboard Page Component ---
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<UserProfile | null>(null);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [stats, setStats] = useState({
     applicationsSent: 0,
@@ -330,13 +317,19 @@ export default function DashboardPage() {
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
   const dispatch = useDispatch();
+  // Use the user from Redux as the single source of truth for authentication
   const { user: authUser } = useSelector((state: any) => state.auth);
 
-  useEffect(() => {
-    dispatch(getProfileRequest());
-    setUser(authUser);
-  }, [dispatch]);
+  // --- CORRECTED EFFECTS ---
 
+  // Effect 1: Fetch the user's profile if it's not already in the Redux store.
+  useEffect(() => {
+    if (!authUser) {
+      dispatch(getProfileRequest());
+    }
+  }, [dispatch, authUser]);
+
+  // Effect 2: Fetch dashboard stats, but ONLY after `authUser` is available.
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -385,10 +378,13 @@ export default function DashboardPage() {
       }
     };
 
-    fetchStats();
-    // Mock action items for demonstration until API is ready
-    setActionItems(mockUserProfile.actionItems || []);
-  }, []);
+    // This guard clause prevents the API call from being made without authentication.
+    if (authUser) {
+      fetchStats();
+      // Mock action items for demonstration until API is ready
+      setActionItems(mockUserProfile.actionItems || []);
+    }
+  }, [authUser]); // This dependency array solves the race condition.
 
   const handleMarkAsRead = (id: string) => {
     setActionItems((prevItems) =>
@@ -401,17 +397,16 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <LayoutDashboard className="w-8 h-8 mr-3 text-purple-600" />
-              Job Search Dashboard
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Welcome back, {user?.fullName || 'User'}! Here's your job
-              application progress.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+            <LayoutDashboard className="w-8 h-8 mr-3 text-purple-600" />
+            Job Search Dashboard
+          </h1>
+          {/* MODIFIED: Use `authUser` directly from Redux */}
+          <p className="text-gray-600 mt-1">
+            Welcome back, {authUser?.fullName || 'User'}! Here's your job
+            application progress.
+          </p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3 mb-8">

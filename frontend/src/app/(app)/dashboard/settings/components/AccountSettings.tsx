@@ -10,7 +10,7 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import apiInstance from '@/services/api';
 
-const NEXT_PUBLIC_API_URL = 'https://api.zobsai.com';
+const NEXT_PUBLIC_API_URL = 'http://127.0.0.1:8080';
 
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +55,7 @@ export const AccountSetting = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
 
       // Refresh user data to get the updated googleAuth status
-      dispatch(getProfileRequest());
+      // dispatch(getProfileRequest());
     }
 
     if (error) {
@@ -131,7 +131,7 @@ export const AccountSetting = () => {
     }
   };
 
-  console.log(user);
+  console.log(' user', user);
 
   return (
     <div className="space-y-6">

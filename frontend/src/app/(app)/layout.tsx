@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import React, {
+  useState,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+} from 'react';
 import { usePathname } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
@@ -9,26 +15,44 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SessionChecker } from '@/utils/SessionChecker';
 import { Footer } from '@/components/layout/footer';
 
-const SidebarContext = createContext({
-  isOpen: false,
-  isPinned: false,
+// 1. Define the shape of the context data for TypeScript
+interface SidebarContextType {
+  isOpen: boolean;
+  isPinned: boolean;
+  toggle: () => void;
+  setPinned: (pinned: boolean) => void;
+}
+
+// 2. Create the context with a default value.
+// This is used if a component tries to access the context without a Provider above it.
+const SidebarContext = createContext<SidebarContextType>({
+  isOpen: true,
+  isPinned: true,
   toggle: () => {},
-  setPinned: (pinned: boolean) => {},
+  setPinned: () => {},
 });
 
+// 3. Create a custom hook for cleaner access to the context in child components
 export const useSidebar = () => useContext(SidebarContext);
 
+// 4. The main layout component
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // --- HOOKS ---
+  // All hooks are called unconditionally at the top level of the component.
+  // This is the most important rule to follow to prevent the "fewer hooks" error.
   const pathname = usePathname();
-  const isDashboardPage = pathname.startsWith('/dashboard');
-
   const [isOpen, setIsOpen] = useState(true);
   const [isPinned, setPinned] = useState(true);
 
+  // --- DERIVED STATE ---
+  // Simple variables are derived from hook results after all hooks have been called.
+  const isDashboardPage = pathname.startsWith('/dashboard');
+
+  // --- EVENT HANDLERS ---
   const toggle = () => {
     setIsOpen(!isOpen);
   };
@@ -47,22 +71,37 @@ export default function DashboardLayout({
 
   const handleSetPinned = (pinned: boolean) => {
     setPinned(pinned);
+    // If the sidebar is unpinned, it should close.
     if (!pinned) {
       setIsOpen(false);
+    } else {
+      // If it's pinned, it should be open.
+      setIsOpen(true);
     }
   };
 
+  // OPTIMIZATION: Memoize the context value to prevent consumers from
+  // re-rendering unnecessarily when the layout component itself re-renders.
+  const contextValue = useMemo(
+    () => ({
+      isOpen,
+      isPinned,
+      toggle,
+      setPinned: handleSetPinned,
+    }),
+    [isOpen, isPinned],
+  );
+
+  // --- RENDER ---
   return (
-    <SidebarContext.Provider
-      value={{ isOpen, isPinned, toggle, setPinned: handleSetPinned }}
-    >
+    <SidebarContext.Provider value={contextValue}>
       <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
+        {/* Conditional rendering logic is safe to use here, inside the JSX */}
         {isDashboardPage && (
           <aside
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            // MODIFIED: The width now correctly depends on the 'isOpen' state
-            className={`transition-all duration-300 ease-in-out border-r bg-white dark:bg-gray-900 ${
+            className={`transition-all duration-300 ease-in-out flex-shrink-0 border-r bg-white dark:bg-gray-900 ${
               isOpen ? 'w-64' : 'w-20'
             }`}
           >
