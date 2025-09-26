@@ -21,7 +21,7 @@ export const SCOPES = [
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  'http://api.zobsai.com/api/v1/user/oauth2callback',
+  'https://api.zobsai.com/api/v1/user/oauth2callback',
 );
 
 const originUrl = 'https://www.zobsai.com';
