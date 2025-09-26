@@ -145,8 +145,8 @@ export function Solutions() {
           </h1>
 
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Follow our comprehensive 6-step process to ensure that you achieve
-            success in your study abroad journey
+            Follow our comprehensive 5-step process to ensure that you achieve
+            success in your <b>JOB SEARCH</b>
           </p>
         </div>
 

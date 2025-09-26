@@ -19,38 +19,50 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
-import { useSidebar } from '@/app/(app)/layout'; // Assuming DashboardLayout exports this
+import { useSidebar } from '@/app/(app)/layout';
 import apiInstance from '@/services/api';
 
-// MODIFIED: The component now accepts `isCollapsed` as a prop
-const AppSidebarContent = ({ isCollapsed }) => {
-  const { isPinned, setPinned } = useSidebar(); // Get state from context
+export const AppSidebarContent = ({ isCollapsed }) => {
+  const { isPinned, setPinned } = useSidebar();
   const pathname = usePathname();
-  const route = useRouter();
+  const router = useRouter();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
   const [hoveredItem, setHoveredItem] = useState(null);
-  const [planType, setPlanType] = useState('Free');
+  const [planType, setPlanType] = useState('Free'); // Default plan
+
+  // --- DATA FETCHING ---
+  // MODIFIED: This effect now depends on `authUser`.
+  // It will only run AFTER the user is successfully loaded into the Redux store,
+  // which prevents the 401 error caused by the race condition.
+  useEffect(() => {
+    const fetchUserPlanType = async () => {
+      try {
+        const response = await apiInstance.get('/plan/get-user-plan-type');
+        if (response.data?.data?.planType) {
+          setPlanType(response.data.data.planType);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user plan:', error);
+        // This can happen if the token is expired. You might want to
+        // add logic here to log the user out.
+      }
+    };
+
+    // Guard clause: Only fetch the data if we have an authenticated user.
+    if (authUser) {
+      fetchUserPlanType();
+    }
+  }, [authUser]); // The dependency array is key to solving the issue.
 
   // This user object can stay as it is
   const user = {
-    role: 'User',
+    role: authUser?.role || 'User',
     fullName: authUser?.fullName || 'Guest User',
     plan: planType,
   };
 
-  useEffect(() => {
-    const fetchUserPlanType = async () => {
-      const response = await apiInstance.get('/plan/get-user-plan-type');
-      console.log('response', response.data);
-      setPlanType(response.data.data.planType);
-    };
-
-    fetchUserPlanType();
-  }, []);
-
-  // This config can stay as it is
   const siteConfig = {
     name: 'ZobsAI',
     sidebarNav: [
@@ -82,7 +94,6 @@ const AppSidebarContent = ({ isCollapsed }) => {
   };
 
   const getPlanIcon = (plan) => {
-    // This function can stay as it is
     switch (plan) {
       case 'Free':
         return Zap;
@@ -96,7 +107,6 @@ const AppSidebarContent = ({ isCollapsed }) => {
   };
 
   const getPlanColor = (plan) => {
-    // This function can stay as it is
     switch (plan) {
       case 'Free':
         return 'from-slate-400 to-slate-600';
@@ -110,10 +120,7 @@ const AppSidebarContent = ({ isCollapsed }) => {
   };
 
   return (
-    // MODIFIED: Removed width and hover handlers. Width is now `w-full` to fill the parent <aside>.
-    <div
-      className={`h-screen overflow-y-auto transition-all duration-300 w-full flex flex-col relative bg-gradient-to-br from-slate-50 to-white border-r border-slate-200`}
-    >
+    <div className="h-screen overflow-y-auto w-full flex flex-col relative bg-gradient-to-br from-slate-50 to-white border-r border-slate-200">
       <div className="absolute inset-0 overflow-hidden -z-10">
         <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-purple-200/30 to-blue-200/30 rounded-full blur-2xl animate-pulse"></div>
         <div
@@ -158,30 +165,26 @@ const AppSidebarContent = ({ isCollapsed }) => {
             )}
           </Link>
           {!isCollapsed && (
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={() => setPinned(!isPinned)} // MODIFIED: Use the function from context
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  isPinned
-                    ? 'text-purple-600 bg-purple-100 hover:bg-purple-200'
-                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                }`}
-                title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
-              >
-                {isPinned ? (
-                  <PinOff className="w-4 h-4" />
-                ) : (
-                  <Pin className="w-4 h-4" />
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => setPinned(!isPinned)}
+              className={`p-2 rounded-lg transition-all duration-200 ${
+                isPinned
+                  ? 'text-purple-600 bg-purple-100 hover:bg-purple-200'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+              }`}
+              title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+            >
+              {isPinned ? (
+                <PinOff className="w-4 h-4" />
+              ) : (
+                <Pin className="w-4 h-4" />
+              )}
+            </button>
           )}
         </div>
       </div>
 
-      <div
-        className={`flex-1 p-3 space-y-2 relative transition-all duration-300 overflow-y-auto scrollbar-hide`}
-      >
+      <nav className="flex-1 p-3 space-y-2 overflow-y-auto scrollbar-hide">
         {siteConfig.sidebarNav.map((item, index) => {
           if (item.adminOnly && user?.role !== 'OrgAdmin') return null;
           const Icon = item.icon;
@@ -225,7 +228,7 @@ const AppSidebarContent = ({ isCollapsed }) => {
                 </div>
                 {!isCollapsed && (
                   <span
-                    className={`flex-1 text-left transition-all duration-200 ${
+                    className={`flex-1 text-left ${
                       isActive ? 'font-semibold' : 'font-medium'
                     }`}
                   >
@@ -234,9 +237,6 @@ const AppSidebarContent = ({ isCollapsed }) => {
                 )}
                 {!isCollapsed && isHovered && !isActive && (
                   <ChevronRight className="w-4 h-4 text-slate-400 animate-pulse" />
-                )}
-                {isActive && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-xl blur-sm -z-10"></div>
                 )}
               </Link>
               {isCollapsed && isHovered && (
@@ -248,19 +248,17 @@ const AppSidebarContent = ({ isCollapsed }) => {
             </div>
           );
         })}
-      </div>
+      </nav>
 
       <div className="relative p-4 border-t border-slate-200/50 mt-auto">
         {!isCollapsed ? (
           <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl flex-1 min-w-0">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-slate-900 truncate text-sm capitalize">
-                    {user.fullName}
-                  </p>
-                  <p className="text-xs text-slate-500">Welcome back!</p>
-                </div>
+            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-900 truncate text-sm capitalize">
+                  {user.fullName}
+                </p>
+                <p className="text-xs text-slate-500">Welcome back!</p>
               </div>
             </div>
             {user.plan !== 'Pro' && user.plan !== 'OrgAdmin' && (
@@ -272,11 +270,11 @@ const AppSidebarContent = ({ isCollapsed }) => {
                   </span>
                 </div>
                 <p className="text-xs text-purple-100 mb-3">
-                  Upgrade to get unlimited AI generations and premium features.
+                  Upgrade to get unlimited AI generations.
                 </p>
                 <button
-                  className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors duration-200"
-                  onClick={() => route.push('/dashboard/subscriptions')}
+                  className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors"
+                  onClick={() => router.push('/dashboard/subscriptions')}
                 >
                   Upgrade Now
                 </button>
@@ -286,8 +284,8 @@ const AppSidebarContent = ({ isCollapsed }) => {
         ) : (
           <div className="flex justify-center">
             <button
-              onClick={() => setPinned(true)} // MODIFIED: This button should expand and pin the sidebar
-              className="w-full h-12 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors duration-200"
+              onClick={() => setPinned(true)}
+              className="w-full h-12 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
               title="Expand sidebar"
             >
               <ChevronRight className="w-6 h-6" />
@@ -297,7 +295,6 @@ const AppSidebarContent = ({ isCollapsed }) => {
       </div>
 
       <style jsx>{`
-        /* Your styles can remain unchanged */
         @keyframes slideInLeft {
           from {
             opacity: 0;
@@ -329,5 +326,3 @@ const AppSidebarContent = ({ isCollapsed }) => {
     </div>
   );
 };
-
-export { AppSidebarContent };
