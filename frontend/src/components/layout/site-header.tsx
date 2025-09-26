@@ -69,20 +69,18 @@ export const Navigation = () => {
 
       <div className="relative container mx-auto px-6">
         <div className="flex items-center justify-between h-18">
-          {/* Enhanced Logo */}
           <div className="flex items-center">
             <div className="relative group">
-              {/* Glow effect */}
-              <div className="absolute -inset-2 bg-gradient-to-r from-violet-600/30 via-indigo-600/30 to-cyan-600/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-
-              {/* Main logo */}
               <div className="relative flex items-center space-x-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
                 <div className="w-8 h-8 bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg">
                   <Sparkles className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 bg-clip-text text-transparent">
+                <Link
+                  href={'/'}
+                  className="text-2xl font-bold bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 bg-clip-text text-transparent"
+                >
                   ZobsAI
-                </h1>
+                </Link>
               </div>
             </div>
           </div>
