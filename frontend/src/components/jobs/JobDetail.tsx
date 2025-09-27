@@ -154,20 +154,20 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     });
 
     setCalculateScore(response.data);
-    if (!canUseProFeatures) {
-      toast({
-        variant: 'destructive',
-        title: 'Upgrade to Pro',
-        description:
-          'AI Match Score is a Pro feature. Please upgrade your plan to use it.',
-        action: (
-          <ToastAction altText="Upgrade" asChild>
-            <Link href="/subscriptions">Upgrade</Link>
-          </ToastAction>
-        ),
-      });
-      return;
-    }
+    // if (!canUseProFeatures) {
+    //   toast({
+    //     variant: 'destructive',
+    //     title: 'Upgrade to Pro',
+    //     description:
+    //       'AI Match Score is a Pro feature. Please upgrade your plan to use it.',
+    //     action: (
+    //       <ToastAction altText="Upgrade" asChild>
+    //         <Link href="/subscriptions">Upgrade</Link>
+    //       </ToastAction>
+    //     ),
+    //   });
+    //   return;
+    // }
 
     setIsLoadingScore(true);
     setMatchScoreResult(null);
