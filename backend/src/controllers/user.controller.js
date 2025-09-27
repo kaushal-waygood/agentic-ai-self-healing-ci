@@ -374,50 +374,52 @@ export const signInUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    // 1. Basic validation
     if (!email || !password) {
       return res
         .status(400)
         .json({ message: 'Email and password are required' });
     }
 
+    // 2. Find the user and include the password for comparison
     const user = await User.findOne({ email }).select('+password');
 
-    if (!user) {
-      console.log('No user found with email:', email);
+    // 3. Check if user exists and password is correct
+    // Note: This assumes you have a method like 'isPasswordCorrect' on your User schema.
+    // If not, you would use: const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Check if the user has a password (local auth)
-    if (!user.password) {
-      console.log('User has no password (might be Firebase auth)');
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      console.log('Password mismatch');
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
+    // 4. Check if the user's email is verified
     if (!user.isEmailVerified) {
       return res
         .status(403)
         .json({ message: 'Please verify your email before signing in.' });
     }
 
-    const accessToken = user.generateAccessToken();
+    // 5. Generate the access token
+    const accessToken = user.generateAccessToken(); // Assumes you have this method on your User model
 
-    // Prepare user object for the response (without sensitive data)
+    // 6. Prepare user object for the response (without sensitive data)
     const userObject = user.toObject();
     delete userObject.password;
 
+    // 7. Define cookie options with production settings
     const cookieOptions = {
       httpOnly: true,
-      sameSite: 'Strict',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/', // <-- ADD THIS LINE
     };
 
+    // Apply secure settings ONLY in production
+    if (process.env.NODE_ENV === 'production') {
+      cookieOptions.secure = true;
+      cookieOptions.sameSite = 'Lax'; // 'Lax' is suitable for subdomains
+      cookieOptions.domain = 'api.zobsai.com'; // CRITICAL: Sets cookie for all subdomains of zobsai.com
+    }
+
+    // 8. Send the response with the cookie
     return res
       .status(200)
       .cookie('accessToken', accessToken, cookieOptions)
