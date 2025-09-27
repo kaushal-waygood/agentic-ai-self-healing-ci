@@ -383,10 +383,49 @@ export const getSingleStudentHTMLLetter = async (req, res) => {
   }
 };
 
+import { fileURLToPath } from 'url';
+import mammoth from 'mammoth';
+import Tesseract from 'tesseract.js';
+
+const __filename = fileURLToPath(import.meta.url);
+
+// Helper function to extract text from a buffer based on MIME type
+const extractTextFromBuffer = async (file) => {
+  const { buffer, mimetype } = file;
+  let extractedText = '';
+
+  if (mimetype === 'application/pdf') {
+    const parsedPDF = await pdfParse(buffer);
+    extractedText = parsedPDF.text;
+  } else if (
+    mimetype ===
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    mimetype === 'application/msword'
+  ) {
+    const result = await mammoth.extractRawText({ buffer });
+    extractedText = result.value;
+  } else if (mimetype.startsWith('image/')) {
+    const {
+      data: { text },
+    } = await Tesseract.recognize(buffer, 'eng');
+    extractedText = text;
+  } else {
+    throw new Error(
+      'Unsupported file type for CV. Please use PDF, DOCX, or an image.',
+    );
+  }
+  return extractedText;
+};
+
 export const createTailoredApply = async (req, res) => {
   const { _id } = req.user;
   const {
+    // Job details can come as an ID or as raw text
     jobId,
+    jobTitle,
+    companyName,
+    jobDescription,
+    // CV/CL sources
     useProfile,
     savedCVId,
     savedCoverLetterId,
@@ -394,68 +433,59 @@ export const createTailoredApply = async (req, res) => {
     finalTouch,
   } = req.body;
 
-  console.log(req.files);
-
   try {
-    // Step 1: Validate required inputs
-    if (!jobId) {
-      return res.status(400).json({ error: 'Job ID is required' });
-    }
+    let jobDetails;
 
-    // Step 2: Fetch job details
-    const job = await Job.findById(jobId);
-    if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
+    // --- MODIFICATION START ---
+    // Step 1: Determine Job Source and Validate
+    // The frontend can send either a jobId (for selected jobs) or the full text
+    // (for pasted or uploaded job descriptions).
+    if (jobId) {
+      const jobFromDb = await Job.findById(jobId);
+      if (!jobFromDb) {
+        return res.status(404).json({ error: 'Job not found in database' });
+      }
+      jobDetails = jobFromDb;
+    } else if (jobTitle && companyName && jobDescription) {
+      // Job details were sent as text (from a paste or client-side file parse)
+      jobDetails = {
+        title: jobTitle,
+        company: companyName,
+        description: jobDescription,
+      };
+    } else {
+      // If neither is provided, then it's a bad request.
+      return res.status(400).json({
+        error:
+          'Job information is required. Provide either a jobId or the jobTitle, companyName, and jobDescription.',
+      });
     }
+    // --- MODIFICATION END ---
 
     let studentData;
     let cvContent;
     let coverLetterContent;
 
-    // Step 3: Determine CV source
-    if (useProfile) {
+    // Step 2: Determine CV source
+    if (useProfile === 'true') {
       const student = await Student.findById(_id);
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
       }
-      studentData = student;
-    } else if (savedCVId) {
-      const savedCV = await SavedCV.findOne({ _id: savedCVId, user: _id });
-      if (!savedCV) {
-        return res.status(404).json({ error: 'Saved CV not found' });
-      }
-      cvContent = savedCV.content;
+      studentData = student; // This will be JSON stringified later
     } else if (req.file) {
-      const filePath = path.join(
-        __dirname,
-        '..',
-        '..',
-        'public',
-        'pdf',
-        req.file.filename,
-      );
-
-      try {
-        const dataBuffer = fs.readFileSync(filePath);
-        const parsedPDF = await pdfParse(dataBuffer);
-        cvContent = parsedPDF.text;
-        console.log('cvContent', cvContent);
-      } finally {
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
+      // Assumes multer is configured for memoryStorage
+      cvContent = await extractTextFromBuffer(req.file);
     } else {
       return res.status(400).json({
-        error: 'Either useProfile, savedCVId, or CV file must be provided',
+        error: 'A CV source is required (profile, saved CV, or file upload).',
       });
     }
 
-    // Step 4: Determine cover letter source
+    // Step 3: Determine cover letter source
     if (savedCoverLetterId) {
-      const savedCL = await Student.findOne({
-        _id,
-      }).coverLetter.find((cl) => cl._id.toString() === savedCoverLetterId);
+      const studentWithCL = await Student.findById(_id).select('coverLetter');
+      const savedCL = studentWithCL?.coverLetter.id(savedCoverLetterId);
       if (!savedCL) {
         return res.status(404).json({ error: 'Saved cover letter not found' });
       }
@@ -464,40 +494,34 @@ export const createTailoredApply = async (req, res) => {
       coverLetterContent = coverLetterText;
     }
 
-    // Step 5: Prepare data for AI
+    // Step 4: Prepare data for AI
     const applicationData = {
       job: {
-        title: job.title,
-        company: job.company,
-        description: job.description,
+        title: jobDetails.title,
+        company: jobDetails.company,
+        description: jobDetails.description,
       },
-      candidate: studentData || {
-        cv: cvContent,
-      },
+      // Ensure candidate data is structured correctly for the prompts
+      candidate: studentData
+        ? JSON.stringify(studentData)
+        : JSON.stringify({ cv: cvContent }),
       coverLetter: coverLetterContent,
       preferences: finalTouch,
     };
 
-    // Step 6: Generate each component with separate prompts
+    // Step 5: Generate each component with separate prompts
     const [cvResponse, coverLetterResponse, emailResponse] = await Promise.all([
       genAIWithRetry(generateCVPrompts(applicationData)),
       genAIWithRetry(generateCoverLetterPrompts(applicationData)),
       genAIWithRetry(generateEmailPrompt(applicationData)),
     ]);
 
-    // Step 7: Process AI responses
-    let tailoredCV, tailoredCoverLetter, applicationEmail;
+    // Step 6: Process AI responses
+    const tailoredCV = processCVResponse(cvResponse);
+    const tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
+    const applicationEmail = processEmailResponse(emailResponse);
 
-    try {
-      tailoredCV = processCVResponse(cvResponse);
-      tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
-      applicationEmail = processEmailResponse(emailResponse);
-    } catch (err) {
-      console.error('Error processing AI responses:', err);
-      return res.status(500).json({ error: 'Failed to process AI responses' });
-    }
-
-    // Step 8: Return results
+    // Step 7: Return results
     res.json({
       success: true,
       data: {

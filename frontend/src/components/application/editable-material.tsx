@@ -376,7 +376,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                   <ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />
                 )}
               </button>
-              <button onClick={handleRegenerate}> Regenerate</button>
               <button
                 onClick={handleDownloadDocx}
                 disabled={!isHtml || !content || isLoading}

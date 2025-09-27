@@ -50,6 +50,7 @@
     "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.30",
+    "mammoth": "^1.11.0",
     "mongoose": "^8.16.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
