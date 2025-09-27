@@ -1,4 +1,3 @@
-// src/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -6,8 +5,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import StoreProvider from '../redux/storeProvider';
 import Script from 'next/script';
-import { cookies } from 'next/headers';
-import CookieConsent from '@/components/CookieConsent'; // Ensure this path is correct
+import { cookies } from 'next/headers'; // This is a dynamic function
 import { poppins, pt_sans } from './fonts';
 
 export const metadata: Metadata = {
@@ -16,18 +14,20 @@ export const metadata: Metadata = {
     'Streamline your job application process with AI-powered tools and automation.',
 };
 
+// By making the component 'async', we enable the use of server-side hooks like cookies().
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // 1. Read the cookie set by the CookieConsent component
+  // This is the correct, official way to read cookies in a Server Component.
+  // The Next.js framework understands this call and automatically makes this
+  // component dynamically rendered on the server at request time.
   const cookieStore = cookies();
   const consentCookie = cookieStore.get('cookie_consent');
 
   let hasAnalyticsConsent = false;
 
-  // 2. Safely parse the JSON and check for the 'analytics' property
   if (consentCookie) {
     try {
       const consentData = JSON.parse(consentCookie.value);
@@ -35,6 +35,7 @@ export default async function RootLayout({
         hasAnalyticsConsent = true;
       }
     } catch (e) {
+      // It's good practice to handle potential JSON parsing errors.
       console.error('Could not parse cookie consent JSON:', e);
     }
   }
@@ -42,7 +43,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* 3. This conditional logic now works correctly with the new component */}
+        {/* This conditional rendering based on a cookie is a perfect use case for a dynamic Server Component. */}
         {hasAnalyticsConsent && (
           <>
             <Script
@@ -81,9 +82,6 @@ export default async function RootLayout({
             <Analytics />
           </StoreProvider>
         </ThemeProvider>
-
-        {/* 4. Add the CookieConsent component here */}
-        <CookieConsent />
       </body>
     </html>
   );
