@@ -11,6 +11,8 @@ import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
+console.log(process.env.NODE_ENV);
+
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/gmail.modify',
@@ -69,6 +71,7 @@ export const firebaseAuth = async (req, res) => {
 
     const cookieOptions = {
       // httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
