@@ -1,3 +1,5 @@
+import { genAI } from '../config/gemini.js';
+
 export const calculateJobMatch = async (job, student) => {
   // rawResponse is declared here to be accessible in the catch block
   let rawResponse = '';

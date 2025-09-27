@@ -409,7 +409,7 @@ export const signInUser = async (req, res) => {
     delete userObject.password;
 
     const cookieOptions = {
-      httpOnly: false,
+      httpOnly: true,
       sameSite: 'Strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/', // <-- ADD THIS LINE

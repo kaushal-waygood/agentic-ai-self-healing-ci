@@ -10,7 +10,6 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   // 1. Retrieve the authentication token from the request's cookies.
   const token = request.cookies.get('accessToken')?.value;
-  console.log(token);
 
   // 2. Get the requested path from the URL.
   const { pathname } = request.nextUrl;

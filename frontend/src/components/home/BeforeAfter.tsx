@@ -222,7 +222,7 @@ export default function BeforeAfter() {
                 Ready to Start Your Journey?
               </h3>
               <p className="text-white/90">
-                Join thousands of students who achieved their dreams
+                Join thousands of applicants who achieved their dreams
               </p>
             </div>
             <button
