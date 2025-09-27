@@ -36,7 +36,6 @@ import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import puppeteer from 'puppeteer';
 import pkg from 'generic-pool';
-const { GenericPool } = pkg;
 
 const router = Router();
 
@@ -224,6 +223,73 @@ router.post('/pdf/generate-pdf', async (req, res) => {
       error: error.message,
     });
   }
+});
+
+// Your Express router logic
+
+// Your Express router logic
+import { spawn } from 'child_process';
+
+// Your Express router logic
+router.post('/docx/generate-docx', (req, res) => {
+  const { html, title } = req.body;
+
+  if (!html) {
+    return res.status(400).json({ message: 'HTML content is required.' });
+  }
+
+  // Define the command and its arguments.
+  // Note: spawn expects arguments as an array of strings.
+  const pandoc = spawn('pandoc', ['-f', 'html', '-t', 'docx']);
+
+  // We will collect the output chunks of the DOCX file in this array.
+  const docxChunks = [];
+  const errorChunks = [];
+
+  // Listen for data coming from Pandoc's output stream (the generated file).
+  pandoc.stdout.on('data', (chunk) => {
+    docxChunks.push(chunk);
+  });
+
+  // Listen for any errors that Pandoc might throw.
+  pandoc.stderr.on('data', (chunk) => {
+    errorChunks.push(chunk);
+  });
+
+  // When the Pandoc process finishes, this event is fired.
+  pandoc.on('close', (code) => {
+    // If Pandoc exited with an error code or we captured error messages...
+    if (code !== 0 || errorChunks.length > 0) {
+      const errorMessage = Buffer.concat(errorChunks).toString();
+      console.error(`Pandoc Error (code ${code}): ${errorMessage}`);
+      return res.status(500).json({
+        message: 'Failed to generate DOCX file using Pandoc.',
+        error: errorMessage,
+      });
+    }
+
+    // If successful, combine all the collected chunks into a single buffer.
+    const docxBuffer = Buffer.concat(docxChunks);
+
+    // Set the response headers to trigger a download.
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.docx"`,
+    );
+
+    // Send the final DOCX file buffer.
+    console.log('Successfully generated DOCX with Pandoc via child_process.');
+    res.send(docxBuffer);
+  });
+
+  // Write your HTML content to Pandoc's input stream.
+  pandoc.stdin.write(html);
+  // Close the input stream to signal that you're done sending data.
+  pandoc.stdin.end();
 });
 
 export default router;

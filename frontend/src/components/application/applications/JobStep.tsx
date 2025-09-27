@@ -1,145 +1,180 @@
-import { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, UploadCloud } from 'lucide-react';
-import { JobListing } from '@/lib/data/jobs'; // Adjust this import path as needed
+'use client';
 
+import { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Loader2,
+  UploadCloud,
+  List,
+  ClipboardPaste,
+  Briefcase,
+} from 'lucide-react';
+
+// Assuming JobListing type is defined elsewhere, e.g., in '@/lib/data/jobs'
+interface JobListing {
+  id: string;
+  title: string;
+  company: string;
+}
+
+// Props for the JobStep component
 type JobStepProps = {
   isLoading: boolean;
   loadingMessage: string;
   jobListings: JobListing[];
-  onSubmit: (mode: 'select' | 'paste' | 'upload', value: File | string) => void;
+  handleJobContextSubmit: (
+    mode: 'select' | 'paste' | 'upload',
+    value: File | string,
+  ) => void;
 };
+
+// A reusable container for each option (Select, Paste, Upload)
+const OptionCard = ({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) => (
+  <div className="rounded-2xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-lg">
+    <div className="flex items-center mb-4">
+      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200 flex items-center justify-center mr-4">
+        <Icon className="w-5 h-5 text-slate-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+    </div>
+    <div className="space-y-4">{children}</div>
+  </div>
+);
 
 export function JobStep({
   isLoading,
   loadingMessage,
-  jobListings,
-  onSubmit,
+  jobListings = [], // Default to empty array for safe mapping
+  handleJobContextSubmit,
 }: JobStepProps) {
   const [pastedJobDesc, setPastedJobDesc] = useState('');
   const [selectedJobId, setSelectedJobId] = useState('');
   const jobDescFileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Step 1: Provide the Job Description</CardTitle>
-        <CardDescription>
-          Select a job, paste the details, or upload a file.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* --- SELECT JOB --- */}
-        <div>
-          <Label htmlFor="job-select">Select from Saved/Found Jobs</Label>
-          <RadioGroup
-            id="job-select"
-            value={selectedJobId}
-            onValueChange={setSelectedJobId}
-            className="mt-2 space-y-1 max-h-40 overflow-y-auto border p-2 rounded-md"
-          >
-            {(jobListings || []).slice(0, 10).map((job) => (
-              <Label
-                key={job.id}
-                className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted"
-              >
-                <RadioGroupItem value={job.id} />
-                {job.title} at {job.company}
-              </Label>
-            ))}
-          </RadioGroup>
-          <Button
-            className="w-full mt-2"
-            disabled={!selectedJobId || isLoading}
-            onClick={() => onSubmit('select', selectedJobId)}
-          >
-            Use Selected Job
-          </Button>
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 font-sans">
+      {/* Header Section */}
+      <div className="text-center mb-8">
+        <div className="relative inline-flex items-center justify-center w-16 h-16 mb-4 bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl shadow-sm">
+          <Briefcase className="w-8 h-8 text-purple-600" />
         </div>
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">
+          Step 1: The Job Description
+        </h2>
+        <p className="text-slate-600 text-lg max-w-md mx-auto">
+          Start by providing the job you're applying for.
+        </p>
+      </div>
 
-        {/* --- SEPARATOR --- */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+      {/* Main Content Area */}
+      <div className="space-y-6">
+        {/* Option 1: Select from a List */}
+        <OptionCard title="Select a Saved Job" icon={List}>
+          <div className="space-y-2 max-h-48 overflow-y-auto rounded-lg bg-slate-50/50 p-2 border border-slate-200">
+            {jobListings.length > 0 ? (
+              jobListings.slice(0, 10).map((job) => (
+                <label
+                  key={job.id}
+                  className={`flex items-center gap-4 p-3 rounded-lg cursor-pointer transition-all duration-200 border-2 ${
+                    selectedJobId === job.id
+                      ? 'bg-purple-50 border-purple-400 shadow-sm'
+                      : 'bg-white border-transparent hover:bg-slate-100'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="job-selection"
+                    value={job.id}
+                    checked={selectedJobId === job.id}
+                    onChange={(e) => setSelectedJobId(e.target.value)}
+                    className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-slate-300"
+                  />
+                  <div>
+                    <span className="font-semibold text-slate-800">
+                      {job.title}
+                    </span>
+                    <span className="text-slate-600"> at {job.company}</span>
+                  </div>
+                </label>
+              ))
+            ) : (
+              <div className="text-center p-4 text-slate-500">
+                No saved jobs found.
+              </div>
+            )}
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or</span>
-          </div>
-        </div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <button
+              onClick={() => handleJobContextSubmit('select', selectedJobId)}
+              disabled={!selectedJobId || isLoading}
+              className="w-full p-4 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-xl font-bold text-md shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Use Selected Job
+            </button>
+          </motion.div>
+        </OptionCard>
 
-        {/* --- PASTE JOB --- */}
-        <div>
-          <Label htmlFor="job-paste">Paste Job Description</Label>
-          <Textarea
-            id="job-paste"
+        {/* Option 2: Paste Description */}
+        <OptionCard title="Paste Job Details" icon={ClipboardPaste}>
+          <textarea
             placeholder="Paste the full job description here..."
-            className="mt-2 min-h-[150px]"
+            className="w-full min-h-[150px] p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-shadow"
             value={pastedJobDesc}
             onChange={(e) => setPastedJobDesc(e.target.value)}
           />
-          <Button
-            className="w-full mt-2"
-            disabled={!pastedJobDesc || isLoading}
-            onClick={() => onSubmit('paste', pastedJobDesc)}
-          >
-            Use Pasted Description
-          </Button>
-        </div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <button
+              onClick={() => handleJobContextSubmit('paste', pastedJobDesc)}
+              disabled={!pastedJobDesc || isLoading}
+              className="w-full p-4 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-xl font-bold text-md shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Use Pasted Description
+            </button>
+          </motion.div>
+        </OptionCard>
 
-        {/* --- SEPARATOR --- */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or</span>
-          </div>
-        </div>
-
-        {/* --- UPLOAD JOB --- */}
-        <div>
-          <Button
-            className="w-full"
-            variant="outline"
+        {/* Option 3: Upload File */}
+        <OptionCard title="Upload a File" icon={UploadCloud}>
+          <button
             onClick={() => jobDescFileInputRef.current?.click()}
             disabled={isLoading}
+            className="w-full p-4 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-semibold text-md hover:bg-slate-200 transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading && loadingMessage ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />{' '}
+                <Loader2 className="mr-2 h-5 w-5 text-purple-600 animate-spin" />
                 {loadingMessage}
               </>
             ) : (
               <>
-                <UploadCloud className="mr-2 h-4 w-4" /> Upload Job Description
-                File
+                <UploadCloud className="mr-2 h-5 w-5 text-purple-500" />
+                Upload Job Description File
               </>
             )}
-          </Button>
+          </button>
           <input
             type="file"
             ref={jobDescFileInputRef}
             onChange={(e) =>
-              e.target.files?.[0] && onSubmit('upload', e.target.files[0])
+              e.target.files?.[0] &&
+              handleJobContextSubmit('upload', e.target.files[0])
             }
             className="hidden"
-            accept=".pdf,.png,.jpg,.jpeg"
+            accept=".pdf,.png,.jpg,.jpeg,.txt,.docx"
           />
-          <p className="text-xs text-muted-foreground text-center mt-1">
-            PDF, PNG, JPG supported
+          <p className="text-xs text-slate-500 text-center">
+            PDF, PNG, JPG, DOCX, and TXT are supported.
           </p>
-        </div>
-      </CardContent>
-    </Card>
+        </OptionCard>
+      </div>
+    </div>
   );
 }

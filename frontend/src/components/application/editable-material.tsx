@@ -158,36 +158,61 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   };
 
-  // Download content as a DOCX file
-  const handleDownloadDocx = () => {
-    const htmlDocx = (window as any).htmlDocx;
-    if (!htmlDocx) {
-      toast({
-        variant: 'destructive',
-        title: 'DOCX Export Error',
-        description: 'The html-docx-js library is not available.',
-      });
-      console.error(
-        'html-docx-js is not loaded. Please add the script tag to your HTML file.',
-      );
-      return;
-    }
-
+  // **MODIFIED FUNCTION**
+  // Download content as a DOCX by calling the backend API
+  const handleDownloadDocx = async () => {
     const contentToExport = editorRef.current;
     if (!contentToExport) return;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${contentToExport.innerHTML}</body></html>`;
-    const docxBlob = htmlDocx.asBlob(html);
+    setIsLoading(true);
+    toast({ title: 'Generating DOCX...' });
 
-    const url = window.URL.createObjectURL(docxBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `CareerPilot_${title.replace(/ /g, '_')}.docx`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-    toast({ title: 'DOCX download started!' });
+    try {
+      const response = await apiInstance.post(
+        '/students/docx/generate-docx', // Your backend endpoint
+        {
+          html: contentToExport.innerHTML,
+          title: title,
+        },
+        {
+          responseType: 'blob', // This is crucial for handling file responses
+        },
+      );
+
+      if (response.status !== 200) {
+        throw new Error(`DOCX generation failed: ${response.statusText}`);
+      }
+
+      // Create a blob with the correct DOCX MIME type
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link to trigger the download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CareerPilot_${title.replace(/ /g, '_')}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove(); // Clean up the link element
+
+      window.URL.revokeObjectURL(url); // Clean up the blob URL
+
+      toast({
+        title: 'DOCX downloaded successfully!',
+        description: 'Your document is ready.',
+      });
+    } catch (error) {
+      console.error('DOCX Download Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'DOCX Download Failed',
+        description: 'Could not generate the document. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatText = (command: string, value: string | null = null) => {
@@ -211,6 +236,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   };
 
   const handleRegenerate = async () => {
+    // This function logic remains unchanged
     const response = await apiInstance.post('/students/resume/regenerate', {
       jobContextString: JSON.stringify(content),
       previousCVJson: JSON.stringify(content),
@@ -350,13 +376,16 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                   <ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />
                 )}
               </button>
-              <button onClick={handleRegenerate}> Regenerate</button>
               <button
                 onClick={handleDownloadDocx}
                 disabled={!isHtml || !content || isLoading}
                 className="flex items-center px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition transform hover:scale-105 disabled:opacity-50"
               >
-                <Download className="w-4 h-4 mr-2" />
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
                 DOCX
                 {!canUsePremiumFeatures && (
                   <ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />

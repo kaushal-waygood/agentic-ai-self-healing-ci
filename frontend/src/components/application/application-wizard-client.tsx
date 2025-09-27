@@ -86,6 +86,7 @@ import SleekClStep from './applications/wizard/steps/ClStep';
 import { GenerateStep } from './applications/wizard/steps/GenerateStep';
 import SleekLoadingCard from './applications/wizard/steps/LoadingStep';
 import ResultStep from './applications/wizard/steps/result/ResultStep';
+import { JobStep } from './applications/JobStep';
 
 // Types for Wizard State
 type WizardStep =
@@ -107,7 +108,7 @@ type JobContext = {
 
 type CvContext = {
   mode: 'upload' | 'profile' | 'create' | 'saved';
-  value: string; // Can be file data URI, 'profile', or CV ID
+  value: string | File; // Can be file data URI, 'profile', or CV ID
   name: string;
 };
 
@@ -431,9 +432,10 @@ export function ApplicationWizardClient() {
   }, [saveApplicationState]);
 
   useEffect(() => {
-    const initialize = async () => {
-      setCurrentApplication(selectedJob);
+    const initialize = () => {
+      // Check if a job is already selected from a URL query
       if (selectedJob) {
+        setCurrentApplication(selectedJob);
         setJobContext({
           mode: 'select',
           jobId: selectedJob._id,
@@ -441,12 +443,23 @@ export function ApplicationWizardClient() {
           companyName: selectedJob.company,
           jobDescription: selectedJob.description,
         });
+        // If a job is pre-selected, move to the CV step
+        setWizardStep('cv');
+      } else {
+        // If no job is in the URL, start at the 'job' step to select one
+        const newAppId = `app-new-${Date.now()}`;
+        setCurrentApplication({ id: newAppId } as MockApplication);
+        setWizardStep('job');
       }
-      setWizardStep('cv');
     };
 
-    initialize();
-  }, [searchParams, selectedJob]);
+    // Wait until the initial job loading is complete
+    if (loading) {
+      setWizardStep('loading');
+    } else {
+      initialize();
+    }
+  }, [searchParams, selectedJob, loading]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -478,11 +491,11 @@ export function ApplicationWizardClient() {
     try {
       let context: JobContext;
       if (mode === 'select' && typeof value === 'string') {
-        const job = await getJobDetails({ jobId: value });
+        const job = jobs.find((j) => j._id === value);
         if (!job) throw new Error('Job details could not be found.');
         context = {
           mode,
-          jobId: job.id,
+          jobId: job._id,
           jobTitle: job.title,
           companyName: job.company,
           jobDescription: job.description,
@@ -513,7 +526,6 @@ export function ApplicationWizardClient() {
       } else {
         throw new Error('Invalid job context submission.');
       }
-      // Fix: Set the entire context object, not just the title
       setJobContext(context);
       // Reset subsequent steps whenever a new job context is set
       setCvContext(null);
@@ -538,10 +550,18 @@ export function ApplicationWizardClient() {
     mode: CvContext['mode'],
     value?: string | File,
   ) => {
-    setCvContext({ mode, value: student, name: '' });
-
+    // FIX: Correctly use the `value` parameter passed to the function.
     if (mode === 'profile') {
-      console.log(cvContext);
+      setCvContext({ mode, value: 'profile', name: 'Your Zobsai Profile' });
+    } else if (value) {
+      const cvName =
+        typeof value === 'string'
+          ? resume?.find((r) => r._id === value)?.name || 'Saved CV'
+          : value.name;
+      setCvContext({ mode, value, name: cvName });
+    } else {
+      console.error('handleCvContextSubmit called without a value.');
+      return;
     }
     setWizardStep('cl');
   };
@@ -635,13 +655,24 @@ export function ApplicationWizardClient() {
   };
 
   const handleGenerate = async () => {
-    console.log('-----------handleGenerate----------');
     if (!cvContext) {
       toast({
         variant: 'destructive',
         title: 'Missing CV',
-        description: 'Please provide your CV before generating',
+        description: 'Please provide your CV before generating.',
       });
+      return;
+    }
+
+    // Guard clause: Ensure job context exists.
+    if (!jobContext) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Job Information',
+        description:
+          'Job details are missing. Please go back and select a job.',
+      });
+      setWizardStep('job');
       return;
     }
 
@@ -651,22 +682,38 @@ export function ApplicationWizardClient() {
     try {
       const formData = new FormData();
 
-      formData.append('jobId', selectedJob._id);
-
-      if (cvContext.mode === 'profile') {
-        formData.append('useProfile', 'true');
-      } else if (cvContext.mode === 'saved' && cvContext.value) {
-        formData.append('savedCVId', cvContext.value);
-      } else if (cvContext.mode === 'upload' && cvContext.value) {
-        if (cvContext?.value instanceof File) {
-          // FIX: Use the key 'cv' to match the backend multer configuration (upload.single('cv')).
-          formData.append('cv', cvContext.value);
-          formData.append('useProfile', 'false');
-        }
+      // Handle both 'select' (with ID) and 'paste'/'upload' (with text) modes.
+      if (jobContext.jobId) {
+        // This covers the 'select' case where a job is chosen from the list.
+        formData.append('jobId', jobContext.jobId);
+      } else {
+        // This covers 'paste' and 'upload' cases where there is no ID.
+        // The backend must be able to handle these fields instead of an ID.
+        formData.append('jobTitle', jobContext.jobTitle);
+        formData.append('companyName', jobContext.companyName);
+        formData.append('jobDescription', jobContext.jobDescription);
       }
 
+      // Append CV context
+      if (cvContext.mode === 'profile') {
+        formData.append('useProfile', 'true');
+      } else if (
+        cvContext.mode === 'saved' &&
+        typeof cvContext.value === 'string'
+      ) {
+        formData.append('savedCVId', cvContext.value);
+      } else if (
+        cvContext.mode === 'upload' &&
+        cvContext.value instanceof File
+      ) {
+        // Use the key 'cv' to match the backend multer configuration.
+        formData.append('cv', cvContext.value);
+        formData.append('useProfile', 'false');
+      }
+
+      // Append Cover Letter context
       if (clContext) {
-        if (clContext.mode === 'saved' && clContext.value) {
+        if (clContext.mode === 'saved' && typeof clContext.value === 'string') {
           formData.append('savedCoverLetterId', clContext.value);
         } else if (clContext.mode === 'paste' && clContext.value) {
           formData.append('coverLetterText', clContext.value);
@@ -675,24 +722,12 @@ export function ApplicationWizardClient() {
 
       formData.append('finalTouch', 'Tailor for ATS optimization');
 
-      // PROPER DEBUGGING - Convert FormData to inspectable object
-      const formDataObj = {};
-      for (const [key, value] of formData.entries()) {
-        formDataObj[key] =
-          value instanceof File
-            ? `File: ${value.name} (${value.size} bytes)`
-            : value;
-      }
-
-      console.log('Form data:', formDataObj);
-
-      // 4. Make API call with proper headers
+      // Pass the actual `formData` object to the API call.
+      // `apiInstance` (axios) needs the FormData instance to set the correct headers for file uploads.
       const response = await apiInstance.post(
         '/students/applications/tailor',
-        formDataObj,
+        formData,
       );
-
-      // console.log('Full response:', response);
 
       const result = response.data;
       setRefinedCv(result.data.tailoredCV);
@@ -707,19 +742,19 @@ export function ApplicationWizardClient() {
       setWizardStep('result');
     } catch (error) {
       console.error('Full error:', {
-        message: error.message,
-        response: error.response?.data,
-        config: error.config,
+        message: (error as Error).message,
+        response: (error as any).response?.data,
+        config: (error as any).config,
       });
 
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
         description:
-          error.response?.data?.message ||
+          (error as any).response?.data?.message ||
           'Failed to generate application. Please try again.',
       });
-      setWizardStep('cl');
+      setWizardStep('cl'); // Go back to the previous step on failure
     } finally {
       setIsLoading(false);
     }
@@ -737,18 +772,19 @@ export function ApplicationWizardClient() {
       'image/png',
       'image/jpeg',
       'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
 
     if (!validTypes.includes(file.type)) {
       toast({
         variant: 'destructive',
         title: 'Invalid File Type',
-        description: 'Please upload a PDF, PNG, JPG, or Word document',
+        description: 'Please upload a PDF, PNG, JPG, or Word document.',
       });
       return;
     }
 
-    // Store the File object directly instead of converting to data URL
+    // Store the File object directly
     setCvContext({ mode: 'upload', value: file, name: file.name });
     setWizardStep('cl');
   };
@@ -810,7 +846,16 @@ export function ApplicationWizardClient() {
 
   const StyledCard = (props) => (
     <motion.div variants={containerVariants}>
-      <Card className="bg-white border-slate-700 backdrop-blur-sm" {...props} />
+      {/* FIX: Updated className to implement a dark theme that matches the UI screenshot.
+        - Removed 'bg-white' which was causing a style conflict.
+        - Added 'bg-slate-900/80' for a semi-transparent dark background.
+        - Added 'border-slate-800' for a more subtle border color.
+        - Added 'text-slate-50' to set a light default text color for child components.
+      */}
+      <Card
+        className="bg-slate-900/80 border-slate-800 backdrop-blur-sm text-slate-50"
+        {...props}
+      />
     </motion.div>
   );
 
@@ -827,120 +872,12 @@ export function ApplicationWizardClient() {
   );
 
   const renderJobStep = () => (
-    <StyledCard>
-      <CardHeader>
-        <CardTitle>Step 1: Provide the Job Description</CardTitle>
-        <CardDescription>
-          Select a job, paste the details, or upload a file.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <motion.div variants={itemVariants}>
-          <Label htmlFor="job-select" className="text-slate-300">
-            Select from Saved/Found Jobs
-          </Label>
-          <RadioGroup
-            id="job-select"
-            value={selectedJobId}
-            onValueChange={setSelectedJobId}
-            className="mt-2 space-y-1 max-h-40 overflow-y-auto border border-slate-700 p-2 rounded-md"
-          >
-            {(mockJobListings || []).slice(0, 10).map((job) => (
-              <Label
-                key={job.id}
-                className="flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors hover:bg-slate-800 has-[:checked]:bg-purple-600/20 has-[:checked]:border-purple-500 border border-transparent"
-              >
-                <RadioGroupItem value={job.id} />
-                {job.title} at {job.company}
-              </Label>
-            ))}
-          </RadioGroup>
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white"
-              disabled={!selectedJobId || isLoading}
-              onClick={() => handleJobContextSubmit('select', selectedJobId)}
-            >
-              Use Selected Job
-            </Button>
-          </motion.div>
-        </motion.div>
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-slate-700" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-slate-900 px-2 text-slate-500">Or</span>
-          </div>
-        </div>
-        <motion.div variants={itemVariants}>
-          <Label htmlFor="job-paste" className="text-slate-300">
-            Paste Job Description
-          </Label>
-          <Textarea
-            id="job-paste"
-            placeholder="Paste the full job description here..."
-            className="mt-2 min-h-[150px] bg-slate-800 border-slate-600 focus:border-purple-500"
-            value={pastedJobDesc}
-            onChange={(e) => setPastedJobDesc(e.target.value)}
-          />
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white"
-              disabled={!pastedJobDesc || isLoading}
-              onClick={() => handleJobContextSubmit('paste', pastedJobDesc)}
-            >
-              Use Pasted Description
-            </Button>
-          </motion.div>
-        </motion.div>
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-slate-700" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-slate-900 px-2 text-slate-500">Or</span>
-          </div>
-        </div>
-        <motion.div
-          variants={itemVariants}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Button
-            className="w-full bg-slate-800 border border-slate-600 hover:bg-slate-700"
-            variant="outline"
-            onClick={() => jobDescFileInputRef.current?.click()}
-            disabled={isLoading}
-          >
-            {isLoading && loadingMessage ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />{' '}
-                {loadingMessage}
-              </>
-            ) : (
-              <>
-                <UploadCloud className="mr-2 h-4 w-4 text-purple-400" /> Upload
-                Job Description File
-              </>
-            )}
-          </Button>
-          <input
-            type="file"
-            ref={jobDescFileInputRef}
-            onChange={(e) =>
-              e.target.files?.[0] &&
-              handleJobContextSubmit('upload', e.target.files[0])
-            }
-            className="hidden"
-            accept=".pdf,.png,.jpg,.jpeg"
-          />
-          <p className="text-xs text-slate-500 text-center mt-1">
-            PDF, PNG, JPG supported
-          </p>
-        </motion.div>
-      </CardContent>
-    </StyledCard>
+    <JobStep
+      isLoading={isLoading}
+      loadingMessage={loadingMessage}
+      jobListings={jobs || []}
+      handleJobContextSubmit={handleJobContextSubmit}
+    />
   );
 
   const renderCvStep = () => (
