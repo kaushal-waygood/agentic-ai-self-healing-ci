@@ -277,8 +277,7 @@ export const verifyEmail = async (req, res) => {
 
     // Set cookies
     const cookieOptions = {
-      // httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
       sameSite: 'Strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (change from 30 days)
     };
@@ -566,7 +565,6 @@ export const signout = async (req, res) => {
   try {
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
     };
 
