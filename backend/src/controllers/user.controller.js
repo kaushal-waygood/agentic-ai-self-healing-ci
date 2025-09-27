@@ -11,6 +11,8 @@ import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
+console.log(process.env.NODE_ENV);
+
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/gmail.modify',
@@ -69,6 +71,7 @@ export const firebaseAuth = async (req, res) => {
 
     const cookieOptions = {
       // httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
@@ -277,7 +280,8 @@ export const verifyEmail = async (req, res) => {
 
     // Set cookies
     const cookieOptions = {
-      httpOnly: true,
+      // httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (change from 30 days)
     };
@@ -565,6 +569,7 @@ export const signout = async (req, res) => {
   try {
     const cookieOptions = {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
     };
 
