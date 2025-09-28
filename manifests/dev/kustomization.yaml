@@ -7,7 +7,7 @@ resources:
   - zobsai-frontend-deployment-dev.yaml
   - zobsai-frontend-config-dev.yaml
   - zobsai-frontend-secrets-dev.yaml
-  - ../zobsai-redis.yaml
+  - zobsai-redis-dev.yaml
   - ../zobsai-ingress-dev.yaml
 
 namespace: dev-zobsai
