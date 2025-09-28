@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zobsai-backend
+  namespace: dev-zobsai
+labels:
+  app: zobsai-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zobsai-backend
+  template:
+    metadata:
+      labels:
+        app: zobsai-backend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: backend
+          image: ghcr.io/zobsai-com/zobsai-backend:ffd99309f01ddde0440f25c98843f320dd5a1b53
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: zobsai-backend-config
+            - secretRef:
+                name: zobsai-backend-secrets

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zobsai-backend-config
+  namespace: dev-zobsai
+data:
+  # Add dev-specific backend config values here
+  SAMPLE_KEY: "dev-value"
