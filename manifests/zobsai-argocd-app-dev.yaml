@@ -9,15 +9,14 @@ metadata:
     # Always pick the latest tag
     argocd-image-updater.argoproj.io/zobsai-backend.update-strategy: latest
     argocd-image-updater.argoproj.io/zobsai-frontend.update-strategy: latest
-
-  # Commit updated image tags back to Git (use the dev branch for the dev app)
-  argocd-image-updater.argoproj.io/write-back-method: git
-  argocd-image-updater.argoproj.io/git-branch: deploy/dev-zobsai-app
+    # Commit updated image tags back to Git (use the dev branch for the dev app)
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: deploy/dev-zobsai-app
 spec:
   project: default
   source:
     repoURL: https://github.com/ZobsAI-com/zobsai.git
-  targetRevision: deploy/dev-zobsai-app
+    targetRevision: deploy/dev-zobsai-app
     path: manifests
   destination:
     server: https://kubernetes.default.svc
