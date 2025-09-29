@@ -11,7 +11,7 @@ metadata:
     argocd-image-updater.argoproj.io/zobsai-frontend.update-strategy: latest
     # Commit updated image tags back to Git (use the dev branch for the dev app)
     argocd-image-updater.argoproj.io/write-back-method: git
-    argocd-image-updater.argoproj.io/git-branch: deploy/dev-zobsai-app
+    argocd-image-updater.argoproj.io/git-branch: develop
 spec:
   project: default
   source:
