@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: zobsai-backend
   namespace: dev-zobsai
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
 labels:
   app: zobsai-backend
 spec:
@@ -40,5 +42,5 @@ spec:
   ports:
     - port: 8080        # Service port
       targetPort: 8080  # Container port
-      nodePort: 30050  # External port on the node (must be between 30000–32767)
+      nodePort: 30050   # External port on the node (must be between 30000–32767)
   type: NodePort
