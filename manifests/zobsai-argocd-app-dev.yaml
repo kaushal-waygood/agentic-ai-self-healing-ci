@@ -16,7 +16,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/ZobsAI-com/zobsai.git
-    targetRevision: deploy/dev-zobsai-app
+    targetRevision: develop
     path: manifests/overlays/dev
   destination:
     server: https://kubernetes.default.svc
