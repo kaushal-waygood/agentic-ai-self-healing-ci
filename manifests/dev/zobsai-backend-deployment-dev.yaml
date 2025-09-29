@@ -1,3 +1,5 @@
+---
+# Backend Deployment & Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,8 +7,8 @@ metadata:
   namespace: dev-zobsai
   annotations:
     argocd.argoproj.io/compare-options: IgnoreExtraneous
-labels:
-  app: zobsai-backend
+  labels:
+    app: zobsai-backend
 spec:
   replicas: 1
   selector:
@@ -40,7 +42,7 @@ spec:
   selector:
     app: zobsai-backend
   ports:
-    - port: 8080        # Service port
-      targetPort: 8080  # Container port
-      nodePort: 30050   # External port on the node (must be between 30000–32767)
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30050
   type: NodePort
