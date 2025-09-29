@@ -28,3 +28,17 @@ spec:
                 name: zobsai-backend-config
             - secretRef:
                 name: zobsai-backend-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zobsai-backend
+  namespace: dev-zobsai
+spec:
+  selector:
+    app: zobsai-backend
+  ports:
+    - port: 8080        # Service port
+      targetPort: 8080  # Container port
+      nodePort: 30050  # External port on the node (must be between 30000–32767)
+  type: NodePort
