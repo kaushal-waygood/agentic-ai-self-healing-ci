@@ -3,15 +3,7 @@ kind: Application
 metadata:
   name: zobsai-dev
   namespace: monitoring
-  annotations:
-    # Track backend and frontend images
-    argocd-image-updater.argoproj.io/image-list: zobsai-backend=ghcr.io/zobsai-com/zobsai-backend, zobsai-frontend=ghcr.io/zobsai-com/zobsai-frontend
-    # Always pick the latest tag
-    argocd-image-updater.argoproj.io/zobsai-backend.update-strategy: latest
-    argocd-image-updater.argoproj.io/zobsai-frontend.update-strategy: latest
-    # Commit updated image tags back to Git (use the dev branch for the dev app)
-    argocd-image-updater.argoproj.io/write-back-method: git
-    argocd-image-updater.argoproj.io/git-branch: develop
+  # Removed argocd-image-updater annotations because CI/CD will handle image updates
 spec:
   project: default
   source:
