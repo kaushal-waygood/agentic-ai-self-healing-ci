@@ -28,3 +28,17 @@ spec:
                 name: zobsai-frontend-config
             - secretRef:
                 name: zobsai-frontend-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zobsai-frontend
+  namespace: zobsai
+spec:
+  type: NodePort
+  selector:
+    app: zobsai-frontend
+  ports:
+    - port: 3000 # Service port
+      targetPort: 3000 # Container port
+      nodePort: 30030 # NodePort (30000-32767)
