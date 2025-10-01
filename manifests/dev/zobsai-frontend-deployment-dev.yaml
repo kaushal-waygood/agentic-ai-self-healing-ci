@@ -41,6 +41,6 @@ spec:
   selector:
     app: zobsai-frontend
   ports:
-    - port: 3000        # Service port
-      targetPort: 3000  # Container port
-      nodePort: 30030   # NodePort (optional, can be omitted)
+    - port: 3000 # Service port
+      targetPort: 3000 # Container port
+      nodePort: 30030 # NodePort (optional, can be omitted)
