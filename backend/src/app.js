@@ -5,6 +5,8 @@ import cors from 'cors';
 import morgan from 'morgan';
 import createHttpError from 'http-errors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 
 // Import routes
 import userRoutes from './routes/user.route.js';
@@ -20,17 +22,38 @@ import { handleStripeWebhook } from './controllers/plan.controller.js';
 
 const app = express();
 
+const compressionOptions = {
+  level: 9,
+  brotli: {
+    enable: false,
+  },
+};
+
 // 1. Security Middleware
 app.use(helmet());
+app.use(compression(compressionOptions));
 
-// 2. CORS Configuration
+// 2. Rate Limiting Middleware  👈 ADD THIS SECTION
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per `window` (per 15 minutes)
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: 'Too many requests from this IP, please try again after 15 minutes.',
+});
+
+// Apply the rate limiting middleware to all requests
+app.use(limiter);
+
+// 3. CORS Configuration (was 2)
 app.use(
   cors({
     origin: process.env.CORS_ORIGINS?.split(',') || [
       'http://127.0.0.1:3000',
       'http://localhost:3000',
       'http://144.91.114.195:30090',
-      'https://zobsai.com',
+      'https://api.dev.zobsai.com',
+      'https://api.zobsai.com',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -50,7 +73,7 @@ app.post(
   handleStripeWebhook,
 );
 
-// 3. Request Parsing Middleware
+// 4. Request Parsing Middleware (was 3)
 app.use(express.json({ limit: '1000mb' }));
 
 app.use(
@@ -60,7 +83,7 @@ app.use(
   }),
 );
 
-// 4. Other Middleware
+// 5. Other Middleware (was 4)
 app.use(cookieParser());
 app.use(morgan('dev'));
 
@@ -76,7 +99,7 @@ app.get('/heath-check', (req, res) => {
   });
 });
 
-// 5. Route Middleware
+// 6. Route Middleware (was 5)
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/job-role', jobRoleRoutes);
 app.use('/api/v1/organization', organizationRoutes);
@@ -87,12 +110,12 @@ app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
 
-// 6. 404 Handler
+// 7. 404 Handler (was 6)
 app.use((req, res, next) => {
   next(createHttpError(404, 'Endpoint not found'));
 });
 
-// 7. Error Handling Middleware
+// 8. Error Handling Middleware (was 7)
 app.use((err, req, res, next) => {
   console.error(err); // Log the error for debugging
 

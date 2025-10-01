@@ -16,6 +16,7 @@ import {
   Wand2,
   FileCheck2,
   Building2,
+  Search,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -66,6 +67,11 @@ export const AppSidebarContent = ({ isCollapsed }) => {
   const siteConfig = {
     name: 'ZobsAI',
     sidebarNav: [
+      {
+        title: 'Job Search',
+        href: '/search-jobs',
+        icon: Search,
+      },
       {
         title: 'AI CV Generator',
         href: '/dashboard/cv-generator',
