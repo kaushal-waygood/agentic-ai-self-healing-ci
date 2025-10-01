@@ -10,3 +10,4 @@ data:
   NEXT_PUBLIC_API_URL: 'https://api.dev.zobsai.com'  # HTTPS for dev
   REACT_APP_API_URL: 'https://api.dev.zobsai.com'    # Optional, for legacy code
 
+
