@@ -7,5 +7,6 @@ data:
   NEXT_PUBLIC_NODE_ENV: 'production'
   NEXT_PUBLIC_GOOGLE_CLIENT_ID: '584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com'
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_51S91qQIdYj6K0osbkzgNmVJQ8Pt2AXyFFri0f84jMsrRKLdc15qIw3aiN7eLMdktmDxgqeH8shl3784s9QVUXUPs00RM7BbtaS'
-  REACT_APP_API_URL: 'http://zobsai-backend.dev-zobsai.svc.cluster.local:8080'
-  NEXT_PUBLIC_API_URL: 'http://zobsai-backend.dev-zobsai.svc.cluster.local:8080'
+  REACT_APP_API_URL: 'https://api.dev.zobsai.com'
+  NEXT_PUBLIC_API_URL: 'https://api.dev.zobsai.com'
+
