@@ -7,7 +7,7 @@ console.log('API_BASE_URL:', process.env.NEXT_PUBLIC_NODE_ENV);
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
-    : 'http://dev.api.zobsai.com';
+    : 'http://api.dev.zobsai.com';
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
