@@ -11,5 +11,4 @@ resources:
   - zobsai-ingress-dev.yaml
 
 namespace: dev-zobsai
-
 # refreshed overlay: 2025-09-28T23:46:00Z
