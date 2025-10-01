@@ -6,7 +6,8 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: traefik
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    cert-manager.io/cluster-issuer: letsencrypt-staging
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # <-- switch to prod after testing
+    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   tls:
     - hosts:
@@ -38,7 +39,8 @@ spec:
                 name: zobsai-frontend
                 port:
                   number: 3000
-    # Backend (dev)
+
+    # Backend (dev API)
     - host: api.dev.zobsai.com
       http:
         paths:
