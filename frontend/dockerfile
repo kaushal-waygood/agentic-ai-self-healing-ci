@@ -16,6 +16,7 @@ RUN if [ -f package-lock.json ]; then npm install; else npm install; fi
 
 # Copy the rest of your application
 COPY . .
+ENV NODE_ENV=production
 
 # Increase Node.js memory to prevent "heap out of memory"
 ENV NODE_OPTIONS="--max-old-space-size=4096"
