@@ -3,8 +3,10 @@ kind: Deployment
 metadata:
   name: zobsai-frontend
   namespace: dev-zobsai
-labels:
-  app: zobsai-frontend
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+  labels:
+    app: zobsai-frontend
 spec:
   replicas: 1
   selector:
@@ -19,7 +21,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: frontend
-          image: ghcr.io/zobsai-com/zobsai-frontend:ffd99309f01ddde0440f25c98843f320dd5a1b53
+          image: ghcr.io/zobsai-com/zobsai-frontend:47ecfce62e9d47161171f8093b965161a920ce33
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -28,3 +30,17 @@ spec:
                 name: zobsai-frontend-config
             - secretRef:
                 name: zobsai-frontend-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zobsai-frontend
+  namespace: dev-zobsai
+spec:
+  type: NodePort
+  selector:
+    app: zobsai-frontend
+  ports:
+    - port: 3000        # Service port
+      targetPort: 3000  # Container port
+      nodePort: 30030   # NodePort (optional, can be omitted)

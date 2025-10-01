@@ -1,10 +1,14 @@
+---
+# Backend Deployment & Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zobsai-backend
   namespace: dev-zobsai
-labels:
-  app: zobsai-backend
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+  labels:
+    app: zobsai-backend
 spec:
   replicas: 1
   selector:
@@ -19,7 +23,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend
-          image: ghcr.io/zobsai-com/zobsai-backend:ffd99309f01ddde0440f25c98843f320dd5a1b53
+          image: ghcr.io/zobsai-com/zobsai-backend:47ecfce62e9d47161171f8093b965161a920ce33
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -28,3 +32,17 @@ spec:
                 name: zobsai-backend-config
             - secretRef:
                 name: zobsai-backend-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zobsai-backend
+  namespace: dev-zobsai
+spec:
+  selector:
+    app: zobsai-backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30050
+  type: NodePort
