@@ -22,16 +22,11 @@ import { handleStripeWebhook } from './controllers/plan.controller.js';
 
 const app = express();
 
-const compressionOptions = {
-  level: 9,
-  brotli: {
-    enable: false,
-  },
-};
+
 
 // 1. Security Middleware
 app.use(helmet());
-app.use(compression(compressionOptions));
+app.use(compression());
 
 // 2. Rate Limiting Middleware  👈 ADD THIS SECTION
 const limiter = rateLimit({
@@ -52,7 +47,7 @@ app.use(
       'http://127.0.0.1:3000',
       'http://localhost:3000',
       'http://144.91.114.195:30090',
-      'https://api.dev.zobsai.com',
+      'http://api.dev.zobsai.com',
       'https://api.zobsai.com',
     ],
     credentials: true,
