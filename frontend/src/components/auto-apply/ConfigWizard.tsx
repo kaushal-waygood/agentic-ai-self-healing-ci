@@ -18,13 +18,12 @@ import {
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { ArrowLeft, Check, Loader2, Gauge, Shield } from 'lucide-react';
-import apiInstance from '@/services/api';
 
 const ConfigWizard = ({ form, currentPlan, setWizardStep, isLoading }: any) => {
-  // This function call is kept as is to preserve original functionality.
-  const handleSaveAgent = async () => {
-    form.handleSubmit();
-  };
+  // REMOVED the handleSaveAgent function
+  // const handleSaveAgent = async () => {
+  //   form.handleSubmit();
+  // };
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -141,7 +140,7 @@ const ConfigWizard = ({ form, currentPlan, setWizardStep, isLoading }: any) => {
             <Button
               type="submit"
               disabled={isLoading}
-              onClick={handleSaveAgent}
+              // REMOVED onClick={handleSaveAgent}
               className="h-12 px-6 rounded-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:scale-100"
             >
               {isLoading ? (
