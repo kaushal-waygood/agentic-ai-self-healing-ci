@@ -16,6 +16,6 @@ export const config = {
     '481481f3c2msh0f834e29ff85a12p112cf0jsnf6269e369239',
   rapidApiHost: 'jsearch.p.rapidapi.com',
 
-  redisHost: process.env.REDIS_HOST || '127.0.0.1',
+  redisHost: process.env.REDIS_HOST || '144.91.114.195',
   redisPort: process.env.REDIS_PORT || 6379,
 };
