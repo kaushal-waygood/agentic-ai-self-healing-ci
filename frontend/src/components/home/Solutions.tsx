@@ -16,6 +16,7 @@ import {
   Send,
   BarChart3,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const journeySteps = [
   {
@@ -89,6 +90,7 @@ export function Solutions() {
   const [activeStep, setActiveStep] = useState(2);
   const [hoveredStep, setHoveredStep] = useState(null);
   const [progress, setProgress] = useState(25);
+  const route = useRouter();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -273,6 +275,7 @@ export function Solutions() {
                         {/* Action Button */}
                         <div className="animate-fadeIn">
                           <button
+                            onClick={() => route.push('/signup')}
                             className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r ${step.color} text-white font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300`}
                           >
                             <span>{step.demo}</span>
