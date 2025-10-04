@@ -98,6 +98,13 @@ export default function DashboardLayout({
     [isOpen, isPinned],
   );
 
+  console.log(
+    'process.envs',
+    process.env.NEXT_PUBLIC_NODE_ENV,
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  );
+
   return (
     <SidebarContext.Provider value={contextValue}>
       {/* ADDED: Conditionally render the CommandPalette here, outside the main layout div */}
