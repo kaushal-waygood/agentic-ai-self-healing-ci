@@ -174,7 +174,7 @@ export const PainPoints = () => {
                       : 'opacity-0 translate-y-4 pointer-events-none'
                   }`}
                 >
-                  Try This
+                  {point.button}
                 </button>
 
                 {/* Interactive Elements */}
