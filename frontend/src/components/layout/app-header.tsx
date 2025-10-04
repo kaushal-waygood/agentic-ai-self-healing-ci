@@ -33,8 +33,8 @@ import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
 import { set } from 'lodash';
 
-// CommandPalette Component
-const CommandPalette = ({ setIsSearchOpen }) => {
+// CommandPalette Component - Now exported
+export const CommandPalette = ({ setIsSearchOpen }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
@@ -195,12 +195,11 @@ const CommandPalette = ({ setIsSearchOpen }) => {
 };
 
 // Main AppHeader Component
-const AppHeader = () => {
+const AppHeader = ({ setIsSearchOpen }) => {
   const [mounted, setMounted] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [usageLimits, setUsageLimits] = useState({
     cvCreation: 0,
     coverLetter: 0,
@@ -221,26 +220,11 @@ const AppHeader = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setIsSearchOpen((open) => !open);
-      }
-      if (e.key === 'Escape') {
-        setIsSearchOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // This useEffect runs once on component mount for initial setup.
-  // The empty dependency array [] ensures it only runs a single time.
   useEffect(() => {
     setMounted(true);
-    dispatch(getStudentDetailsRequest()); // Fetches user details (/me)
-  }, []); // MODIFIED: Changed dependency to empty array
+    dispatch(getStudentDetailsRequest());
+  }, [dispatch]);
 
   // This useEffect fetches usage data ONLY when the user's ID changes.
   useEffect(() => {
@@ -410,8 +394,6 @@ const AppHeader = () => {
 
   return (
     <>
-      {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
-
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md shadow-sm">
         <div className="flex items-center justify-between px-6 py-6 ">
           <div className="flex items-center space-x-3"></div>

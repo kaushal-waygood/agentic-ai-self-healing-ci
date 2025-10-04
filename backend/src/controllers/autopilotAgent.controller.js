@@ -358,6 +358,7 @@ export const getSinglePilotAgent = async (req, res) => {
 };
 
 export const removeAutoPilotAgent = async (req, res) => {
+  console.log(req.user);
   if (!req.user?._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
     return res.status(400).json({
       success: false,
@@ -390,7 +391,7 @@ export const removeAutoPilotAgent = async (req, res) => {
     // Find the agent index
     const agentIndex = student.autopilotAgent.findIndex((a) => {
       console.log(`Agent ID: ${a.agentId}, Target ID: ${agentId}`);
-      return a.agentId === agentId;
+      return a.agentId.toString() === agentId;
     });
 
     console.log(`Agent index: ${agentIndex}`);

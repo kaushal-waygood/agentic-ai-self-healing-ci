@@ -2,11 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
-import {
-  getAllJobsRequest,
-  setCurrentPage,
-  // resetFilters as resetReduxFilters,
-} from '@/redux/reducers/jobReducer';
+import { getAllJobsRequest, setCurrentPage } from '@/redux/reducers/jobReducer';
 import debounce from 'debounce';
 import { Job } from '@/redux/types/jobType';
 
@@ -72,11 +68,13 @@ export const useJobs = () => {
   // Fetch jobs on initial mount or when page changes
   useEffect(() => {
     const page = Number(searchParams.get('page') || '1');
+
+    console.log('page', page);
     dispatch(setCurrentPage(page));
     dispatch(
       getAllJobsRequest({
         page,
-        query: '', // Clean search
+        query: '',
         country: '',
         city: '',
         datePosted: '',
@@ -206,7 +204,12 @@ export const useJobs = () => {
 
   useEffect(() => {
     const page = Number(searchParams.get('page') || '1');
-    dispatch(getAllJobsRequest({ ...reduxFilters, page }));
+    const pageQuery = searchParams.get('query');
+
+    console.log('page', pageQuery);
+    dispatch(
+      getAllJobsRequest({ ...reduxFilters, page, query: pageQuery || '' }),
+    );
   }, [dispatch]); // Removed searchParams to prevent re-fetching on irrelevant URL changes
 
   return {

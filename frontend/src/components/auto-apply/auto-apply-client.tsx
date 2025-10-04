@@ -527,25 +527,29 @@ export function AutoApplyClient() {
       | `coverLetterSettings.${keyof AutoApplyFormValues['coverLetterSettings']}`
     )[],
   ) => {
+    // 1. Trigger validation for the current step's fields
     const isValid = await form.trigger(fieldsToValidate);
 
-    const nextStepMap: Record<WizardStep, WizardStep> = {
-      intro: 'filters',
-      filters: 'cv',
-      cv: 'coverLetter',
-      createCv: 'cv',
-      coverLetter: 'config',
-      config: 'config',
-    };
-    setWizardStep(nextStepMap[currentStep]);
-    // if (isValid) {
-    // } else {
-    //   toast({
-    //     variant: 'destructive',
-    //     title: 'Incomplete Step',
-    //     description: 'Please fill out all required fields before proceeding.',
-    //   });
-    // }
+    // 2. ONLY proceed if the validation passes
+    if (isValid) {
+      const nextStepMap: Record<WizardStep, WizardStep> = {
+        intro: 'filters',
+        filters: 'cv',
+        cv: 'coverLetter',
+        createCv: 'cv',
+        coverLetter: 'config',
+        config: 'config',
+      };
+      // The step change now correctly happens inside the 'if' block
+      setWizardStep(nextStepMap[currentStep]);
+    } else {
+      // 3. If validation fails, show the user an error message
+      toast({
+        variant: 'destructive',
+        title: 'Incomplete Step',
+        description: 'Please fill out all required fields before proceeding.',
+      });
+    }
   };
 
   const filtersWatch = form.watch([

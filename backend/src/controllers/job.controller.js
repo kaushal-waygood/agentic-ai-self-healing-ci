@@ -12,6 +12,7 @@ import {
 import redisClient from '../config/redis.js';
 import { config } from '../config/config.js';
 import { genAI } from '../config/gemini.js';
+import { fetchAndSaveJobsService } from '../utils/fetchAndSaveJobsService.js';
 
 export const postManualJob = async (req, res) => {
   const { _id } = req.user;
@@ -438,91 +439,82 @@ export const getAllJobs = async (req, res) => {
       limit = 10,
     } = req.query;
 
-    const cacheKey = `jobs:filtered:${query}:${country}:${city}:${datePosted}:${employmentType}:${experience}:${page}:${limit}`;
+    console.log(
+      `Fetching jobs with query: ${query}, country: ${country}, city: ${city}, datePosted: ${datePosted}, employmentType: ${employmentType}, experience: ${experience}, page: ${page}, limit: ${limit}`,
+    );
 
-    const result = await redisClient.withCache(cacheKey, 1800, async () => {
-      const filter = {};
+    const filter = {};
 
-      if (query) {
-        filter.$or = [
-          { title: { $regex: query, $options: 'i' } },
-          { description: { $regex: query, $options: 'i' } },
-          { company: { $regex: query, $options: 'i' } },
-        ];
+    if (query) {
+      filter.$or = [
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } },
+        { company: { $regex: query, $options: 'i' } },
+      ];
+    }
+
+    if (country) filter.country = { $regex: country, $options: 'i' };
+    if (city) filter['location.city'] = { $regex: city, $options: 'i' };
+
+    if (datePosted) {
+      const dateNow = new Date();
+      let dateFilter;
+      switch (datePosted) {
+        case '1':
+          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 1));
+          break;
+        case '3':
+          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 3));
+          break;
+        case '7':
+          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 7));
+          break;
+        case '30':
+          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 30));
+          break;
+        default:
+          break;
       }
+      if (dateFilter) filter.createdAt = { $gte: dateFilter };
+    }
 
-      // Location filters
-      if (country) {
-        filter.country = { $regex: country, $options: 'i' };
-      }
+    if (employmentType) {
+      const employmentTypes = employmentType.split(',');
+      filter.jobTypes = { $in: employmentTypes };
+    }
 
-      if (city) {
-        filter['location.city'] = { $regex: city, $options: 'i' };
-      }
+    if (experience) {
+      filter.experience = { $gte: experience };
+    }
 
-      // Date posted filter
-      if (datePosted) {
-        const dateNow = new Date();
-        let dateFilter;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        switch (datePosted) {
-          case '1': // Last 24 hours
-            dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 1));
-            break;
-          case '3': // Last 3 days
-            dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 3));
-            break;
-          case '7': // Last week
-            dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 7));
-            break;
-          case '30': // Last month
-            dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 30));
-            break;
-          default:
-            break;
-        }
+    const [jobs, total] = await Promise.all([
+      Job.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Job.countDocuments(filter),
+    ]);
 
-        if (dateFilter) {
-          filter.createdAt = { $gte: dateFilter };
-        }
-      }
-
-      // Employment type filter (can be multiple)
-      if (employmentType) {
-        const employmentTypes = employmentType.split(',');
-        filter.jobTypes = { $in: employmentTypes };
-      }
-
-      // Experience level filter (can be multiple)
-      if (experience) {
-        filter.experience = { $gte: experience };
-      }
-
-      const skip = (parseInt(page) - 1) * parseInt(limit);
-
-      const [jobs, total] = await Promise.all([
-        Job.find(filter)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(parseInt(limit)),
-        Job.countDocuments(filter),
-      ]);
-
-      return {
-        jobs,
-        pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(total / limit),
-        },
-      };
-    });
+    // ======================= TRIGGER FETCH EVERY TIME ========================
+    if (query) {
+      console.log(`Triggering background fetch for query: "${query}"`);
+      fetchAndSaveJobsService(query).catch((err) => {
+        console.error('Background job fetch failed:', err.message);
+      });
+    }
+    // ========================================================================
 
     res.status(200).json({
       success: true,
-      jobs: result.jobs,
-      pagination: result.pagination,
+      jobs,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error('Error fetching filtered jobs:', error);

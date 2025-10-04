@@ -12,6 +12,30 @@ dotenv.config();
 
 const numCPUs = os.cpus().length;
 
+console.log(
+  process.env.NODE_ENV,
+  process.env.MONGO_URL,
+  process.env.PORT,
+  process.env.REDIS_HOST,
+  process.env.REDIS_PORT,
+  process.env.RAPID_API_KEY,
+  process.env.GOOGLE_API_KEY,
+  process.env.STRIPE_SECRET_KEY,
+  process.env.STRIPE_WEBHOOK_SECRET,
+  process.env.FIREBASE_PROJECT_ID,
+  process.env.FIREBASE_PRIVATE_KEY,
+  process.env.FIREBASE_CLIENT_EMAIL,
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URL,
+  process.env.GOOGLE_REFRESH_TOKEN,
+  process.env.EMAIL_HOST,
+  process.env.EMAIL_PORT,
+  process.env.EMAIL_USERNAME,
+  process.env.EMAIL_PASSWORD,
+  process.env.EMAIL_FROM,
+);
+
 if (cluster.isPrimary) {
   console.log(
     `✅ Primary ${process.pid} is running in ${process.env.NODE_ENV} mode`,

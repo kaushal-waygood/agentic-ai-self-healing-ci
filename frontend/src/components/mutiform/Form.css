@@ -1,0 +1,325 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.form-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.form-step {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.step-header {
+  padding: 20px 25px;
+  background: linear-gradient(90deg, #8a2387, #e94057, #f27121);
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.step-header h2 {
+  margin: 0 0 5px 0;
+  font-size: 1.5rem;
+}
+.step-header p {
+  margin: 0;
+  opacity: 0.9;
+}
+
+.form-card {
+  background-color: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+input[type='text'],
+input[type='number'],
+select,
+textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #8a2387;
+  box-shadow: 0 0 0 2px rgba(138, 35, 135, 0.2);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+.employment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.employment-option,
+.strategy-option {
+  padding: 15px;
+  border: 2px solid #eee;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.employment-option input,
+.strategy-option input {
+  display: none;
+}
+.employment-option.selected,
+.strategy-option.selected {
+  border-color: #e94057;
+  background-color: #fff8f9;
+}
+.employment-option small,
+.strategy-option small {
+  font-weight: 400;
+  color: #666;
+}
+
+.form-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.back-btn,
+.next-btn,
+.submit-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.back-btn {
+  background-color: #f0f0f0;
+  color: #555;
+}
+.next-btn {
+  background: #e94057;
+  color: white;
+}
+.submit-btn {
+  background: #8a2387;
+  color: white;
+}
+.next-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+.back-btn:disabled {
+  background-color: #f0f0f0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* --- Styles for Step 0: Intro/Dashboard --- */
+.intro-step {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.dashboard-header-main {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.dashboard-header-main h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+.dashboard-header-main p {
+  font-size: 1.1rem;
+  color: #555;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+}
+.stat-card {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+.stat-card span {
+  display: block;
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+.stat-card strong {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+.agents-panel {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+.agents-panel-header {
+  padding: 20px;
+  background-image: linear-gradient(to right, #6e48ff, #8a2be2);
+  color: white;
+  position: relative;
+}
+.agents-panel-header h2 {
+  margin: 0 0 5px 0;
+}
+.agents-panel-header p {
+  margin: 0;
+  opacity: 0.9;
+}
+.hide-stats-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.agents-panel-body {
+  padding: 20px;
+}
+.no-agents-configured {
+  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: #666;
+}
+.robot-icon {
+  font-size: 3rem;
+  background-color: #f0f0f0;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.no-agents-configured h3 {
+  margin: 10px 0 0 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+.no-agents-configured p {
+  margin: 0;
+  max-width: 300px;
+}
+.dashboard-actions {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+.create-agent-btn {
+  background-color: #6e48ff;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* --- Styles for Agent List in Step 0 --- */
+.agent-list-container {
+  width: 100%;
+}
+
+.agent-list-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 15px 10px 15px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #888;
+  border-bottom: 1px solid #eee;
+}
+
+.agent-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.agent-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.agent-list-item:last-child {
+  border-bottom: none;
+}
+
+.agent-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.agent-target {
+  font-size: 0.9rem;
+  color: #666;
+  background-color: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* Make the actions button float to the right when there are agents */
+.dashboard-actions {
+  display: flex;
+  justify-content: flex-end; /* This pushes the button to the right */
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
