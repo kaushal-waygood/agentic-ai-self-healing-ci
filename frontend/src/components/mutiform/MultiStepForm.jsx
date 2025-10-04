@@ -12,6 +12,7 @@ const MultiStepForm = () => {
   const [step, setStep] = useState(0);
   // State to hold the list of created agents
   const [agents, setAgents] = useState([]);
+  const [editingAgentId, setEditingAgentId] = useState(null); // Track agent being edited
 
   const initialFormData = {
     agentName: '',
@@ -36,6 +37,35 @@ const MultiStepForm = () => {
     setFormData({ ...formData, [input]: value });
   };
 
+  const handleDeleteAgent = async (agentId) => {
+    if (window.confirm('Are you sure you want to delete this agent?')) {
+      try {
+        // 1. Wait for the API call to complete successfully
+        await apiInstance.delete(`/pilotagent/delete/${agentId}`);
+
+        // 2. Only update the UI state after a successful deletion
+        setAgents(agents.filter((agent) => agent._id !== agentId));
+        alert('Agent deleted successfully.');
+      } catch (error) {
+        // 3. If the API fails, show an error and do NOT change the UI
+        console.error('Failed to delete agent:', error);
+        alert('Error: Could not delete the agent. Please try again.');
+      }
+    }
+  };
+
+  const handleEditAgent = (agentId) => {
+    const agentToEdit = agents.find((agent) => agent.id === agentId);
+    if (agentToEdit) {
+      // Merge fetched agent data with the initial state
+      // This ensures all fields, especially arrays like employmentTypes, are present.
+      setFormData({ ...initialFormData, ...agentToEdit });
+
+      setEditingAgentId(agentId);
+      setStep(1);
+    }
+  };
+
   const handleCheckboxChange = (e) => {
     const { value, checked } = e.target;
     let newEmploymentTypes = [...formData.employmentTypes];
@@ -51,52 +81,58 @@ const MultiStepForm = () => {
     setFormData({ ...formData, cvFile: e.target.files[0] });
   };
 
-  // --- UPDATED SUBMIT FUNCTION ---
-  // --- UPDATED SUBMIT FUNCTION TO HANDLE FILE UPLOAD ---
   const handleSubmit = async () => {
-    // 1. Create a FormData object to send file and text data together
     const submissionData = new FormData();
-
-    // 2. Append all the text fields from your form
     submissionData.append('agentName', formData.agentName);
     submissionData.append('jobTitle', formData.jobTitle);
     submissionData.append('country', formData.country);
     submissionData.append('isRemote', formData.isRemote);
     submissionData.append('maxApplications', formData.maxApplications);
-    // You might want to stringify arrays or objects
     submissionData.append(
       'employmentType',
       JSON.stringify(formData.employmentTypes),
     );
-
-    // 3. Append the CV file if it exists
     if (formData.cvFile) {
       submissionData.append('cv', formData.cvFile, formData.cvFile.name);
     }
 
-    console.log('Final Form Data Prepared for Upload:', submissionData);
-
-    // 4. Send the data to your server endpoint (replace with your actual API)
     try {
-      const response = await apiInstance.post(
-        '/pilotagent/create',
-        submissionData,
-      );
+      // --- UPDATE an existing agent ---
+      if (editingAgentId) {
+        const response = await apiInstance.put(
+          `/pilotagent/update/${editingAgentId}`,
+          submissionData,
+        );
+        const updatedAgent = response.data; // Assuming the API returns the updated agent
 
-      const data = await response.data;
-      console.log('Response from backend:', data);
+        // On successful API response, THEN update the local state
+        setAgents(
+          agents.map((agent) =>
+            agent.id === editingAgentId ? updatedAgent : agent,
+          ),
+        );
+        alert(`Agent "${formData.agentName}" has been updated successfully!`);
+        setEditingAgentId(null);
+      }
+      // --- CREATE a new agent ---
+      else {
+        const response = await apiInstance.post(
+          '/pilotagent/create',
+          submissionData,
+        );
+        const newAgent = response.data; // Assuming the API returns the newly created agent
 
-      // --- This is your existing logic for after a successful submission ---
-      // Create a new agent object to display in the list (without the file object)
-      const { cvFile, ...agentDisplayData } = formData;
-      const newAgent = { ...agentDisplayData, id: Date.now() };
+        // On successful API response, THEN update the local state
+        setAgents((prevAgents) => [...prevAgents, newAgent]);
+        alert(`Agent "${formData.agentName}" has been created successfully!`);
+      }
 
-      alert(`Agent "${formData.agentName}" has been created successfully!`);
+      // Reset form and return to dashboard on success
       setFormData(initialFormData);
       setStep(0);
     } catch (error) {
-      console.error('Error uploading agent data:', error);
-      alert('There was an error creating the agent. Please try again.');
+      console.error('Error submitting agent data:', error);
+      alert('There was an error saving the agent. Please try again.');
     }
   };
 
@@ -118,10 +154,18 @@ const MultiStepForm = () => {
     switch (step) {
       case 0:
         // Pass the agents list to the intro component
-        return <Step0_Intro nextStep={nextStep} agents={agents} />;
+        return (
+          <Step0_Intro
+            nextStep={nextStep}
+            agents={agents}
+            onEdit={handleEditAgent}
+            onDelete={handleDeleteAgent}
+          />
+        );
       case 1:
         return (
           <Step1AgentConfig
+            isEditing={!!editingAgentId}
             nextStep={nextStep}
             prevStep={prevStep}
             handleChange={handleChange}

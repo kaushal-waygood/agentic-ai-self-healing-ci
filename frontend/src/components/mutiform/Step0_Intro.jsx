@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Step0_Intro = ({ nextStep, agents }) => {
+const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
   const [showStats, setShowStats] = useState(true);
   const hasAgents = agents && agents.length > 0;
   const totalAgents = agents.length;
@@ -19,7 +19,7 @@ const Step0_Intro = ({ nextStep, agents }) => {
 
       {/* Stats Grid with hover effects */}
       {showStats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 animate-slide-up">
+        <div className="flex flex-wrap gap-4 justify-center w-full max-w-4xl mx-auto animate-slide-up">
           {[
             {
               label: 'Total Agents',
@@ -49,7 +49,7 @@ const Step0_Intro = ({ nextStep, agents }) => {
           ].map((stat, idx) => (
             <div
               key={idx}
-              className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-gray-100"
+              className="bg-white w-32 text-center rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-gray-100"
             >
               <div className="text-sm text-gray-500 mb-2">{stat.label}</div>
               <div
@@ -72,12 +72,7 @@ const Step0_Intro = ({ nextStep, agents }) => {
               Manage and monitor your automated job application agents
             </p>
           </div>
-          <button
-            onClick={() => setShowStats(!showStats)}
-            className="absolute top-6 right-6 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105"
-          >
-            {showStats ? 'Hide Stats' : 'Show Stats'}
-          </button>
+
           {/* Decorative circles */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
@@ -100,34 +95,84 @@ const Step0_Intro = ({ nextStep, agents }) => {
               </p>
             </div>
           ) : (
-            // Agent list with enhanced design
             <div className="space-y-4 animate-slide-up">
-              <div className="flex justify-between items-center px-4 pb-3 border-b border-gray-200">
-                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+              {/* --- HEADER FOR THE LIST --- */}
+              <div className="grid grid-cols-3 items-center px-4 pb-3 border-b border-gray-200">
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide col-span-1">
                   Agent Name
                 </span>
-                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide col-span-1">
                   Target Role
                 </span>
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide col-span-1 text-right">
+                  Actions
+                </span>
               </div>
+
+              {/* --- AGENT LIST --- */}
               <ul className="space-y-3">
                 {agents.map((agent, idx) => (
                   <li
                     key={agent.id}
-                    className="flex justify-between items-center p-4 rounded-xl bg-gradient-to-r from-gray-50 to-white border border-gray-100 hover:border-purple-200 hover:shadow-md transition-all duration-200 group"
+                    className="grid grid-cols-3 items-center p-4 rounded-xl bg-gradient-to-r from-gray-50 to-white border border-gray-100 hover:border-purple-200 hover:shadow-md transition-all duration-200 group"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
-                    <div className="flex items-center gap-3">
+                    {/* Agent Name */}
+                    <div className="flex items-center gap-3 col-span-1">
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                        {agent.agentName.charAt(0).toUpperCase()}
+                        {agent.agentName?.charAt(0).toUpperCase()}{' '}
                       </div>
                       <span className="font-semibold text-gray-800 group-hover:text-purple-600 transition-colors">
                         {agent.agentName}
                       </span>
                     </div>
-                    <span className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-lg text-sm font-medium">
+
+                    {/* Target Role */}
+                    <span className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-lg text-sm font-medium justify-self-start col-span-1">
                       {agent.jobTitle}
                     </span>
+
+                    {/* --- NEW: ACTION BUTTONS --- */}
+                    <div className="flex items-center justify-end gap-3 col-span-1">
+                      <button
+                        onClick={() => onEdit(agent.id)}
+                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
+                        title="Edit Agent"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => onDelete(agent.agentId)}
+                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
+                        title="Delete Agent"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

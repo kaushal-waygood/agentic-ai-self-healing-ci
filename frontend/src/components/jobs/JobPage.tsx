@@ -35,12 +35,12 @@ export default function JobsPage() {
   const observerRef = useRef(null);
 
   const pathname = usePathname();
-  console.log(pathname);
 
   const fetchJobDetails = async (slug: string) => {
     try {
       setSelectedJob(null);
       const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
+      console.log('Fetched job details:', response.data);
       setSelectedJob(response.data.singleJob);
     } catch (err) {
       console.error('Failed to fetch job details:', err);

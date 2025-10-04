@@ -1,16 +1,13 @@
-import { PageHeader } from '@/components/common/page-header';
-import { AutoApplyClient } from '@/components/auto-apply/auto-apply-client';
-import { Bot } from 'lucide-react';
+import React from 'react';
+import MultiStepForm from '@/components/mutiform/MultiStepForm';
+import '@/components/mutiform/Form.css';
 
-export default function AiAutoApplyPage() {
+function App() {
   return (
-    <>
-      {/* <PageHeader
-        title="AI Auto Apply Agent"
-        description="Configure your personal AI agent to find and prepare job applications for you."
-        icon={Bot}
-      /> */}
-      <AutoApplyClient />
-    </>
+    <div className="App">
+      <MultiStepForm />
+    </div>
   );
 }
+
+export default App;

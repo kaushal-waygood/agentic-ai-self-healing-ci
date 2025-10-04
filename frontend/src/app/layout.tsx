@@ -14,15 +14,11 @@ export const metadata: Metadata = {
     'Streamline your job application process with AI-powered tools and automation.',
 };
 
-// By making the component 'async', we enable the use of server-side hooks like cookies().
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // This is the correct, official way to read cookies in a Server Component.
-  // The Next.js framework understands this call and automatically makes this
-  // component dynamically rendered on the server at request time.
   const cookieStore = cookies();
   const consentCookie = cookieStore.get('cookie_consent');
 
@@ -35,7 +31,6 @@ export default async function RootLayout({
         hasAnalyticsConsent = true;
       }
     } catch (e) {
-      // It's good practice to handle potential JSON parsing errors.
       console.error('Could not parse cookie consent JSON:', e);
     }
   }
