@@ -47,7 +47,7 @@ app.use(
       'http://127.0.0.1:3000',
       'http://localhost:3000',
       'http://144.91.114.195:30090',
-      'http://api.dev.zobsai.com',
+      'https://api.dev.zobsai.com',
       'https://api.zobsai.com',
     ],
     credentials: true,
