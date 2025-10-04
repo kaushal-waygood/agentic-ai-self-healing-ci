@@ -62,7 +62,7 @@ export const Navigation = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/50 backdrop-blur-3xl border-b border-black/10 border-b-1 py-4">
+    <nav className="sticky top-0 left-0 right-0 z-50 bg-white/50 backdrop-blur-3xl border-b border-black/10 border-b-1 py-4">
       {/* Enhanced background gradients */}
       <div className="absolute inset-0 bg-gradient-to-r from-violet-500/8 via-indigo-500/6 to-cyan-400/8"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/5 to-transparent"></div>

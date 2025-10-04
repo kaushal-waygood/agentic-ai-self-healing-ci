@@ -167,7 +167,7 @@ export const Hero = () => {
       </div>
 
       {/* Main Content with Increased Spacing */}
-      <div className="container mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 relative z-10 pt-32 pb-20 sm:pt-40 sm:pb-24 lg:py-32">
+      <div className="container mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 relative z-10 pb-20 sm:pt-10 sm:pb-24 lg:pt-5">
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 xl:gap-24 items-center">
           {/* Left Content with Enhanced Spacing */}
           <div
@@ -179,12 +179,12 @@ export const Hero = () => {
           >
             <div className="space-y-8">
               <h1 className="text-5xl sm:text-6xl  lg:text-6xl  font-extrabold leading-[1.1] tracking-wide">
-                <span className="block bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent animate-gradient-x mb-2">
+                <span className="block bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent animate-gradient-x mb-2 pb-2">
                   Start Applying
                 </span>
                 <span className=" text-gray-900">with </span>
                 <span className=" bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent animate-gradient-x mb-2">
-                  ZOBSAI{' '}
+                  ZobsAI{' '}
                 </span>
               </h1>
               <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 max-w-2xl leading-relaxed mx-auto lg:mx-0 font-medium">

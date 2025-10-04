@@ -294,6 +294,7 @@ export function Footer() {
                       transitionDelay: `${sectionIndex * 100}ms`,
                     }}
                   >
+                    <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" />
                     {section.charAt(0).toUpperCase() + section.slice(1)}
                   </h4>
                   <ul className="space-y-3">
