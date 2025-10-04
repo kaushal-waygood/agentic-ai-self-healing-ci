@@ -97,7 +97,7 @@ export default function JobsPage() {
         pathname === '/search-jobs' ? '' : 'pt-20'
       }}`}
     >
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-8 pt-24">
         <SearchFilters
           initialFilters={filters}
           onSearchChange={handleFilterChange} // Pass the unified handler

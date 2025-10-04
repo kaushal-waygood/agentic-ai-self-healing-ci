@@ -22,8 +22,6 @@ import { handleStripeWebhook } from './controllers/plan.controller.js';
 
 const app = express();
 
-
-
 // 1. Security Middleware
 app.use(helmet());
 app.use(compression());
@@ -93,6 +91,37 @@ app.get('/heath-check', (req, res) => {
     data: Date.now().toString(),
   });
 });
+
+console.log(
+  '🌐 NODE_ENV: ',
+  process.env.NODE_ENV,
+  'MONGO_URL: ',
+  process.env.MONGO_URL,
+  'PORT: ',
+  process.env.PORT,
+  'REDIS_HOST: ',
+  process.env.REDIS_HOST,
+  'REDIS_PORT: ',
+  process.env.REDIS_PORT,
+  'RAPID_API_KEY: ',
+  process.env.RAPID_API_KEY,
+  'RAPID_API_HOST: ',
+  process.env.GOOGLE_GENERATIVE_AI_KEY,
+  'STRIPE_SECRET_KEY: ',
+  process.env.STRIPE_SECRET_KEY,
+  'STRIPE_WEBHOOK_SECRET: ',
+  process.env.STRIPE_WEBHOOK_SECRET,
+  'GOOGLE_CLIENT_ID: ',
+  process.env.GOOGLE_CLIENT_ID,
+  'GOOGLE_CLIENT_SECRET: ',
+  process.env.GOOGLE_CLIENT_SECRET,
+  'EMAIL_HOST: ',
+  process.env.EMAIL_HOST,
+  'EMAIL_PORT: ',
+  process.env.EMAIL_PORT,
+  'EMAIL_USER: ',
+  process.env.EMAIL_PASSWORD,
+);
 
 // 6. Route Middleware (was 5)
 app.use('/api/v1/user', userRoutes);

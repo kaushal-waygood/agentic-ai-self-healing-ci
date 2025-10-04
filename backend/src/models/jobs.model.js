@@ -104,7 +104,8 @@ const jobSchema = new Schema(
     appliedStudents: [{ type: Schema.Types.ObjectId, ref: 'Student' }],
 
     queries: [{ type: String }],
-    experience: { type: Number },
+    experience: { type: [String], default: [] },
+
     qualification: [String],
 
     slug: { type: String, unique: true },

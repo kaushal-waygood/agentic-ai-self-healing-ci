@@ -14,6 +14,7 @@ import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
 import DashboardFooter from '@/components/layout/DashboardFooter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Footer } from '@/components/layout/footer';
+import ProtectedRoute from '@/components/protected/ProtectedRoute';
 
 // 1. Define the shape of the context data for TypeScript
 interface SidebarContextType {
@@ -106,39 +107,41 @@ export default function DashboardLayout({
   );
 
   return (
-    <SidebarContext.Provider value={contextValue}>
-      {/* ADDED: Conditionally render the CommandPalette here, outside the main layout div */}
-      {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
+    <ProtectedRoute>
+      <SidebarContext.Provider value={contextValue}>
+        {/* ADDED: Conditionally render the CommandPalette here, outside the main layout div */}
+        {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
 
-      <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
-        {isDashboardPage && (
-          <aside
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            className={`transition-all duration-300 ease-in-out flex-shrink-0 border-r bg-white dark:bg-gray-900 ${
-              isOpen ? 'w-64' : 'w-20'
-            }`}
-          >
-            <AppSidebarContent isCollapsed={!isOpen} />
-          </aside>
-        )}
-
-        <div className="flex flex-1 flex-col w-full">
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
           {isDashboardPage && (
-            <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-              {/* MODIFIED: Pass the state setter down to the header */}
-              <AppHeader setIsSearchOpen={setIsSearchOpen} />
-            </header>
+            <aside
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              className={`transition-all duration-300 ease-in-out flex-shrink-0 border-r bg-white dark:bg-gray-900 ${
+                isOpen ? 'w-64' : 'w-20'
+              }`}
+            >
+              <AppSidebarContent isCollapsed={!isOpen} />
+            </aside>
           )}
 
-          <ScrollArea className="flex-1">
-            <main className="p-4 sm:p-6 lg:p-8">{children}</main>
-            {!isDashboardPage && <Footer />}
-          </ScrollArea>
+          <div className="flex flex-1 flex-col w-full">
+            {isDashboardPage && (
+              <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                {/* MODIFIED: Pass the state setter down to the header */}
+                <AppHeader setIsSearchOpen={setIsSearchOpen} />
+              </header>
+            )}
 
-          {isDashboardPage && <DashboardFooter />}
+            <ScrollArea className="flex-1">
+              <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+              {!isDashboardPage && <Footer />}
+            </ScrollArea>
+
+            {isDashboardPage && <DashboardFooter />}
+          </div>
         </div>
-      </div>
-    </SidebarContext.Provider>
+      </SidebarContext.Provider>
+    </ProtectedRoute>
   );
 }

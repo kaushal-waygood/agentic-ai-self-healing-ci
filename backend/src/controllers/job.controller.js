@@ -439,12 +439,27 @@ export const getAllJobs = async (req, res) => {
       limit = 10,
     } = req.query;
 
-    console.log(
-      `Fetching jobs with query: ${query}, country: ${country}, city: ${city}, datePosted: ${datePosted}, employmentType: ${employmentType}, experience: ${experience}, page: ${page}, limit: ${limit}`,
-    );
+    // --- HYBRID FETCH BLOCK ---
+    if (query) {
+      const existingJobCount = await Job.countDocuments({
+        queries: { $in: [query] },
+      });
 
+      if (existingJobCount === 0) {
+        console.log(
+          `First-time search for "${query}". Waiting for real-time fetch.`,
+        );
+        await fetchAndSaveJobsService(query);
+      } else {
+        console.log(
+          `Existing data found for "${query}". Triggering background fetch.`,
+        );
+        fetchAndSaveJobsService(query); // No 'await' for a fast response
+      }
+    }
+
+    // --- QUERY LOCAL DATABASE ---
     const filter = {};
-
     if (query) {
       filter.$or = [
         { title: { $regex: query, $options: 'i' } },
@@ -452,10 +467,8 @@ export const getAllJobs = async (req, res) => {
         { company: { $regex: query, $options: 'i' } },
       ];
     }
-
     if (country) filter.country = { $regex: country, $options: 'i' };
     if (city) filter['location.city'] = { $regex: city, $options: 'i' };
-
     if (datePosted) {
       const dateNow = new Date();
       let dateFilter;
@@ -477,18 +490,14 @@ export const getAllJobs = async (req, res) => {
       }
       if (dateFilter) filter.createdAt = { $gte: dateFilter };
     }
-
     if (employmentType) {
-      const employmentTypes = employmentType.split(',');
-      filter.jobTypes = { $in: employmentTypes };
+      filter.jobTypes = { $in: employmentType.split(',') };
     }
-
     if (experience) {
-      filter.experience = { $gte: experience };
+      filter.experience = { $in: experience.split(',') };
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-
     const [jobs, total] = await Promise.all([
       Job.find(filter)
         .sort({ createdAt: -1 })
@@ -497,15 +506,7 @@ export const getAllJobs = async (req, res) => {
       Job.countDocuments(filter),
     ]);
 
-    // ======================= TRIGGER FETCH EVERY TIME ========================
-    if (query) {
-      console.log(`Triggering background fetch for query: "${query}"`);
-      fetchAndSaveJobsService(query).catch((err) => {
-        console.error('Background job fetch failed:', err.message);
-      });
-    }
-    // ========================================================================
-
+    // --- SEND RESPONSE ---
     res.status(200).json({
       success: true,
       jobs,
@@ -517,7 +518,7 @@ export const getAllJobs = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching filtered jobs:', error);
+    console.error('Error in getAllJobs controller:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
