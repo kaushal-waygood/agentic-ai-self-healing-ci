@@ -12,112 +12,38 @@ export const extractJobDetailsWithAI = async (rawDescription) => {
 
   // The original prompt asking for markdown text is kept as is.
   const prompt = `
-   You are an expert HR data extraction agent. Your task is to parse the raw, unstructured job description text provided below and extract the key information into a structured, formatted text output.
+  You are an expert HR data extraction agent. Your task is to parse the raw, unstructured job description text provided below and extract the key information into a structured HTML output with specific inline CSS for rich text formatting.
 
-    Follow these rules strictly:
-    1.  The output MUST be a cleanly formatted text using markdown elements where appropriate (e.g., bold for section titles using **text**, bullet points for lists using '- ').
-    2.  Organize the extracted information into sections based on the structure provided below. Add exactly one empty line between each major section (after the last bullet or paragraph of a section and before the next section title) for readability and visual separation.
-    3.  For sections that contain lists (like Responsibilities, Qualifications, Benefits), format them as bullet points starting with '- '. Each distinct point or item from the text should be a separate bullet on its own line. Indent bullet points slightly by ensuring they follow standard markdown indentation (e.g., no leading spaces before the '-', but allow natural rendering for slight inset).
-    4.  If a specific piece of information cannot be found in the text, omit that entire section from the output.
-    5.  Do NOT add any information, sections, or notes that are not present in the original text.
-    6.  Do NOT write any introductory or concluding text. Only output the formatted text.
-    7.  Ignore any irrelevant text like email signatures, confidentiality notices, or boilerplate legal text.
-    8.  Preserve original formatting details like currency symbols, ranges, and parentheses (e.g., for preferred experience). Ensure consistent capitalization and punctuation as in the source.
-    9.  Use bold markdown (**text**) for section titles, followed immediately by a colon if present in the structure (e.g., **Nice-to-Haves:**). Do not add extra spaces or padding around section titles beyond standard markdown. Ensure the overall output has clean left alignment with no unnecessary left/right padding, mimicking a professional document layout.
-    10. For paragraph-style sections (e.g., About Company), use plain text without bullets, wrapping naturally across lines for readability. Add a single empty line after paragraphs before the next section if needed for spacing.
-    11. Ensure bullet points have no extra spaces between them (one per line), but maintain visual flow with the heading directly above the first bullet, no empty line between heading and first bullet.
+Follow these rules strictly:
+The output MUST be a single block of HTML code. Do NOT include <html>, <head>, or <body> tags. The entire output should be wrapped in a single parent <div> for easy embedding.
+Use <div> elements for each major section. To create visual separation between sections, apply a bottom margin of 16px to each section's <div> (e.g., <div style="margin-bottom: 16px;">).
+Section titles (e.g., "Location:", "Key Responsibilities:") MUST be placed within a <p> tag styled to be bold and slightly larger. Use the following style: style="font-size: 16px; font-weight: 700; margin-bottom: 8px;".
+For sections containing lists (like Responsibilities, Qualifications, Benefits), use an unordered list (<ul>) with list items (<li>).
+Style the <ul> tag to have a left padding of 20px for indentation: style="padding-left: 20px; margin: 0;".
+Style each <li> tag to ensure tight spacing between bullet points: style="margin-bottom: 4px;".
+For paragraph-style sections (like About Company), place the text within a <p> tag. Style it with a line height of 1.5 for readability and no extra margins: style="margin: 0; line-height: 1.5;".
+Simple string sections (like Location, Job Type, Pay) should be in a plain <p> tag with no extra margins: style="margin: 0;".
+If a specific piece of information cannot be found in the text, omit that entire section's <div> from the output.
+Do NOT add any information, sections, or HTML comments that are not present in the original text.
+Do NOT write any introductory or concluding text. Only output the formatted HTML code.
+Ignore any irrelevant text like email signatures, confidentiality notices, or boilerplate legal text.
+Preserve original formatting details like currency symbols, ranges, and parentheses.
+Output Structure to follow (only include sections with available data, in this order if present):(Parent <div> wrapping everything)<div style="margin-bottom: 16px;"><p style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Full Job Description</p></div>
 
-    Output Structure to follow (only include sections with available data, in this order if present):
-    **Full Job Description**
+<div style="margin-bottom: 16px;"><p style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Location:</p><p style="margin: 0;">string</p></div>
 
-    **Location:** string
+<div style="margin-bottom: 16px;"><p style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Experience:</p><p style="margin: 0;">string</p></div>
 
-    **Experience:** string
+<div style="margin-bottom: 16px;"><p style="margin: 0; line-height: 1.5;">(Paragraph about the company/role here)</p></div>
 
-    (Paragraph about the company/role here, if present)
+<div style="margin-bottom: 16px;"><p style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Key Responsibilities:</p><ul style="padding-left: 20px; margin: 0;"><li style="margin-bottom: 4px;">string</li><li style="margin-bottom: 4px;">string</li></ul></div>
 
-    **Key Responsibilities:**
-    - string
-    - string
+(Continue this HTML structure for all other potential sections like Requirements, Nice-to-Haves, Job Type, Pay, Benefits, etc.)
 
-    **Requirements:**
-    - string
-    - string
+(Closing parent </div>)
 
-    **Nice-to-Haves:**
-    - string
-    - string
-
-    (Additional extracted sections like Experience details, if separate)
-
-    **Job Type:** string
-
-    **Pay:** string
-
-    **Benefits:**
-    - string
-    - string
-
-    **Application Question(s):**
-    - string
-    - string
-
-    **Experience:**
-    - string
-    - string
-
-    **Work Location:** string
-
-    (Add these additional sections if present in the text, formatted similarly with bold titles and colons:)
-    **Job Title:** string
-
-    **Date Posted:** string
-
-    **Department:** string
-
-    **Business Line:** string
-
-    **Reports To (Direct):** string
-
-    **Reports To (Functional):** string
-
-    **Grade:** string
-
-    **Direct Reports:** number
-
-    **About Company:** string (paragraph format, no bullets)
-
-    **About Role:** string (paragraph format, no bullets)
-
-    **Responsibilities:**
-    - string
-    - string
-
-    **Qualifications:**
-    - string
-    - string
-
-    **Academic Requirements:**
-    - string
-    - string
-
-    **Deliverables:**
-    - string
-    - string
-
-    **Diversity & Inclusion:** string (paragraph format, no bullets)
-
-    **Day-to-Day Tasks:**
-    - string
-    - string
-
-    **Work Mode:** string
-
-    ---
-    Here is the raw text to parse:
-    ---
-    ${rawDescription}
-    ---`;
+Here is the raw text to parse:
+${rawDescription}`;
 
   // --- MODIFICATION ---
   // The logic now parses the markdown response instead of trying to parse JSON.
