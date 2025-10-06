@@ -130,7 +130,7 @@ const LoginForm = () => {
 
   return (
     // THEME CHANGE: Main background changed to a light gradient.
-    <div className="mt-10 h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8 relative overflow-hidden">
+    <div className="mt-[-25px] h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8 relative overflow-hidden">
       {/* THEME CHANGE: Animated blobs softened for a light background. */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full filter blur-3xl opacity-40 animate-pulse hidden sm:block"></div>

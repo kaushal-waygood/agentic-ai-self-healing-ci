@@ -97,7 +97,7 @@ export const PainPoints = () => {
         </div>
 
         {/* Pain Points Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-5 px-4">
           {painPoints.map((point, index) => (
             <div
               key={index}

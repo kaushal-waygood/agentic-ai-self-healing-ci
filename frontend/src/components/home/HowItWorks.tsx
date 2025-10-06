@@ -225,7 +225,7 @@ export function HowItWorks() {
 
   return (
     <section
-      className=" bg-gradient-to-br from-slate-50 via-blue-50/40 to-purple-50/40 py-8 md:py-20 relative overflow-hidden"
+      className=" bg-gradient-to-br from-slate-50 via-blue-50/40 to-purple-50/40 py-8 md:py-10 relative overflow-hidden"
       id="how-it-works"
     >
       <div className="absolute inset-0 overflow-hidden">
@@ -257,7 +257,7 @@ export function HowItWorks() {
         </header>
 
         {/* Steps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:items-stretch gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:items-stretch gap-10 pb-8 ">
           {steps.map((step, index) => (
             <StepCard
               key={index}
