@@ -295,7 +295,11 @@ export function CareerDetailsComponent({
 
           <Separator />
 
-          <Accordion type="multiple" className="w-full space-y-2">
+          <Accordion
+            type="multiple"
+            className="w-full space-y-2"
+            defaultValue="education"
+          >
             {/* ========= EDUCATION SECTION ========= */}
             <AccordionItem value="education" className="border rounded-lg">
               {/* Added 'group' for the icon animation */}

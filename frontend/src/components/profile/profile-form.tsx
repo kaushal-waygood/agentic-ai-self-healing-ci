@@ -269,7 +269,8 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         </CardContent>
       </Card>
 
-      {!isOnboarding && (
+      {/* Account Management section */}
+      {/* {!isOnboarding && (
         <>
           <Separator />
           <div>
@@ -295,7 +296,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
             </div>
           </div>
         </>
-      )}
+      )} */}
 
       {/* add education, project, experience, skill */}
       {addEdu && (

@@ -12,8 +12,8 @@ import {
 
 export const footerLinks = {
   product: [
-    { name: 'Features', badge: null, link: '#features' },
-    { name: 'Pricing', badge: 'Popular', link: '#pricing' },
+    { name: 'Features', badge: null, link: '/#platforms' },
+    { name: 'Pricing', badge: 'Popular', link: '/#pricing' },
     { name: 'Resume Builder', badge: 'New', link: '/signup' },
     { name: 'ATS Scanner', badge: null, link: '/signup' },
     { name: 'Cover Letter AI', badge: null, link: '/signup' },

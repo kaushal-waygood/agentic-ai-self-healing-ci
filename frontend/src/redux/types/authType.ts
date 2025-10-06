@@ -2,7 +2,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   user: null | {
     _id: string;
-    name: string;
+    fullName: string;
     email: string;
     token: string;
     accountType: string;
@@ -16,5 +16,6 @@ export interface AuthState {
 
 export interface LoginPayload {
   email: string;
+
   password: string;
 }

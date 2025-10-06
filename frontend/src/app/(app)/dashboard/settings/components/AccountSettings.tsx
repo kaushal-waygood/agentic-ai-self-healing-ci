@@ -131,7 +131,7 @@ export const AccountSetting = () => {
     }
   };
 
-  console.log(' user', user);
+  console.log(' user in AccountSetting ', user);
 
   return (
     <div className="space-y-6">
@@ -159,8 +159,9 @@ export const AccountSetting = () => {
             </label>
             <Input
               type="text"
-              defaultValue={user?.name || ''}
-              className="bg-gray-50 dark:bg-gray-700"
+              defaultValue={user?.fullName || ''}
+              className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed "
+              readOnly
             />
           </div>
           <div className="group">
@@ -179,7 +180,7 @@ export const AccountSetting = () => {
             </p>
           </div>
           <Button asChild>
-            <a href="/profile">Edit Full Profile</a>
+            <a href="/dashboard/profile">Edit Full Profile</a>
           </Button>
         </div>
       </div>
