@@ -205,7 +205,6 @@ router.post('/pdf/generate-pdf', async (req, res) => {
       `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.pdf"`,
     );
 
-    console.log('Successfully generated and sent PDF.', pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error) {
     console.error('PDF Generation Error:', error);
@@ -281,8 +280,6 @@ router.post('/docx/generate-docx', (req, res) => {
       `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.docx"`,
     );
 
-    // Send the final DOCX file buffer.
-    console.log('Successfully generated DOCX with Pandoc via child_process.');
     res.send(docxBuffer);
   });
 

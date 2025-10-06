@@ -22,7 +22,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
-import { useSidebar } from '@/app/(app)/layout';
+import { useSidebar } from '@/app/(app)/layout-client';
 import apiInstance from '@/services/api';
 
 export const AppSidebarContent = ({ isCollapsed }) => {

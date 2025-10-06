@@ -55,8 +55,10 @@ const jobSlice = createSlice({
   reducers: {
     getAllJobsRequest: (
       state,
+      // ADD: The optional 'append' flag to the payload
       action: PayloadAction<{
         page: number;
+        append?: boolean; // This flag is for infinite scroll
         query?: string;
         country?: string;
         city?: string;
@@ -67,29 +69,40 @@ const jobSlice = createSlice({
     ) => {
       state.loading = true;
       state.error = null;
-      state.pagination.page = action.payload.page;
 
-      // Update filters in state if provided
-      if (action.payload.query !== undefined)
-        state.filters.query = action.payload.query;
-      if (action.payload.country !== undefined)
-        state.filters.country = action.payload.country;
-      if (action.payload.city !== undefined)
-        state.filters.city = action.payload.city;
-      if (action.payload.datePosted !== undefined)
-        state.filters.datePosted = action.payload.datePosted;
-      if (action.payload.employmentType !== undefined)
-        state.filters.employmentType = action.payload.employmentType;
-      if (action.payload.experience !== undefined)
-        state.filters.experience = action.payload.experience;
+      // Only update filters if it's a new request, not an infinite scroll
+      if (!action.payload.append) {
+        state.filters = {
+          query: action.payload.query ?? state.filters.query,
+          country: action.payload.country ?? state.filters.country,
+          city: action.payload.city ?? state.filters.city,
+          datePosted: action.payload.datePosted ?? state.filters.datePosted,
+          employmentType:
+            action.payload.employmentType ?? state.filters.employmentType,
+          experience: action.payload.experience ?? state.filters.experience,
+        };
+      }
     },
     getAllJobsSuccess: (
       state,
-      action: PayloadAction<{ jobs: Job[]; pagination: Pagination }>,
+      // ADD: The optional 'append' flag to the success payload as well
+      action: PayloadAction<{
+        jobs: Job[];
+        pagination: Pagination;
+        append?: boolean;
+      }>,
     ) => {
       state.loading = false;
-      state.jobs = action.payload.jobs;
       state.pagination = action.payload.pagination;
+
+      // --- CHANGED: This is the key logic for appending jobs ---
+      if (action.payload.append) {
+        // If append is true, add new jobs to the existing list
+        state.jobs = [...state.jobs, ...action.payload.jobs];
+      } else {
+        // Otherwise, replace the list (for initial load or filters)
+        state.jobs = action.payload.jobs;
+      }
     },
     getAllJobsFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

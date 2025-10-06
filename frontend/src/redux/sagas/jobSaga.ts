@@ -31,8 +31,10 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import { recommendProfileJob } from '@/services/api/student';
 
 function* getAllJobsSaga(
+  // ADD: The 'append' flag to the action type
   action: PayloadAction<{
     page: number;
+    append?: boolean;
     query?: string;
     country?: string;
     city?: string;
@@ -43,6 +45,8 @@ function* getAllJobsSaga(
 ) {
   try {
     const {
+      // ADD: Destructure the 'append' flag
+      append,
       page,
       query,
       country,
@@ -52,6 +56,7 @@ function* getAllJobsSaga(
       experience,
     } = action.payload;
 
+    // No change to the API call itself
     const response: AxiosResponse = yield call(getAllJobs, {
       page,
       query,
@@ -62,15 +67,16 @@ function* getAllJobsSaga(
       experience: experience?.join(','),
     });
 
+    // CHANGED: Pass the 'append' flag to the success action
     yield put(
       getAllJobsSuccess({
         jobs: response.data.jobs,
         pagination: response.data.pagination,
+        append: append, // Pass the flag along to the reducer
       }),
     );
   } catch (error: unknown | Error) {
     console.error(error);
-
     yield put(
       getAllJobsFailure((error as Error).message || 'Failed to fetch jobs'),
     );
