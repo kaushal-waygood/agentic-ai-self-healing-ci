@@ -25,7 +25,7 @@ import {
 // YOUR UTILS AND SERVICES (ensure paths are correct)
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
-import { successToast } from '@/utils/toasts';
+import { successToast, errorToast } from '@/utils/toasts';
 import { loginRequest } from '@/redux/reducers/authReducer';
 import { GoogleSignInButton } from './GoogleSingupButton';
 
@@ -87,9 +87,12 @@ const LoginForm = () => {
       if (user) {
         router.push('/dashboard');
         successToast('Login successful! Redirecting to your dashboard...');
+      } else {
+        errorToast('Invalid email or password');
       }
     } catch (error) {
       console.error('Login error:', error);
+
       toast({
         title: 'Login Failed',
         description: 'Invalid email or password. Please try again.',

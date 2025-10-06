@@ -71,15 +71,18 @@ const authSlice = createSlice({
     },
 
     changePasswordRequest: (state, action: PayloadAction<any>) => {
+      console.log('Change Password call');
       state.loading = true;
       state.error = null;
     },
     changePasswordSuccess: (state) => {
+      console.log('SUccess');
       state.loading = false;
       state.message = 'Password changed successfully';
       state.error = null;
     },
     changePasswordFailure: (state, action: PayloadAction<string>) => {
+      console.log('FAILES');
       state.loading = false;
       state.error = action.payload;
     },
