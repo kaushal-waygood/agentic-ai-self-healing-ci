@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Bell,
   LogOut,
@@ -15,14 +15,7 @@ import {
   Crown,
   CreditCard,
   HelpCircle,
-  ChevronRight,
-  Newspaper,
-  Wand2,
-  FileCheck2,
-  Users,
-  DollarSign,
-  Gift,
-  LifeBuoy,
+  ChevronRight,  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -31,92 +24,86 @@ import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
-import { set } from 'lodash';
+import { debounce, set } from 'lodash';
 
-// CommandPalette Component - Now exported
+const fetchJobSuggestions = async (query) => {
+  console.log(`Fetching suggestions for: "${query}"`);
+  // Example list of possible job titles on your platform
+  const allPossibleJobs = [
+    'Software Engineer',
+    'Senior Software Developer',
+    'Frontend Developer',
+    'React Developer',
+    'Node.js Developer',
+    'Full-Stack Developer',
+    'Product Manager',
+    'UI/UX Designer',
+    'Data Scientist',
+    'DevOps Engineer',
+  ];
+
+  // Simulate network delay
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  if (!query) {
+    return [];
+  }
+
+  // Filter the list based on the user's query
+  const lowerCaseQuery = query.toLowerCase();
+  return allPossibleJobs.filter((job) =>
+    job.toLowerCase().includes(lowerCaseQuery),
+  );
+};
+
 export const CommandPalette = ({ setIsSearchOpen }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const siteConfig = {
-    sidebarNav: [
-      {
-        title: 'AI CV Generator',
-        href: '/dashboard/cv-generator',
-        icon: FileText,
-      },
-      {
-        title: 'Cover Letter Studio',
-        href: '/dashboard/cover-letter-generator',
-        icon: Newspaper,
-      },
-      { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
-      {
-        title: 'Organization',
-        href: '/dashboard/organization',
-        icon: Users,
-        adminOnly: true,
-      },
-      { title: 'Search Jobs', href: '/dashboard/search-jobs', icon: Search },
-      {
-        title: 'My Applications',
-        href: '/dashboard/applications',
-        icon: FileCheck2,
-      },
-      { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
-      {
-        title: 'Subscriptions',
-        href: '/dashboard/subscriptions',
-        icon: DollarSign,
-      },
-      { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
-    ],
-  };
-
-  const commandItems = useMemo(
-    () => [
-      ...siteConfig.sidebarNav,
-      { title: 'Profile', href: '/dashboard/profile', icon: UserCircle },
-      { title: 'Settings', href: '/dashboard/settings', icon: Settings },
-      { title: 'Help & Support', href: '/dashboard/support', icon: LifeBuoy },
-    ],
+  // --- Debounced API call for suggestions ---
+  const debouncedFetch = useCallback(
+    debounce(async (query) => {
+      if (!query) {
+        setSuggestions([]);
+        setIsLoading(false);
+        return;
+      }
+      const result = await fetchJobSuggestions(query);
+      setSuggestions(result);
+      setIsLoading(false);
+    }, 300), // 300ms delay
     [],
   );
 
-  const filteredItems = useMemo(() => {
-    if (!searchQuery) return commandItems;
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    if (lowerCaseQuery.startsWith('/')) {
-      return commandItems.filter((item) =>
-        item.href.toLowerCase().includes(lowerCaseQuery),
-      );
-    }
-    return [];
-  }, [searchQuery, commandItems]);
+  useEffect(() => {
+    setIsLoading(true);
+    debouncedFetch(searchQuery);
+  }, [searchQuery, debouncedFetch]);
 
   const handleSearchSubmit = (e) => {
+    // Navigates to the search page when Enter is pressed
     if (e.key === 'Enter' && searchQuery) {
       e.preventDefault();
-      if (searchQuery.startsWith('/')) {
-        const firstMatch = commandItems.find((item) =>
-          item.href.toLowerCase().includes(searchQuery.toLowerCase()),
-        );
-        if (firstMatch) {
-          router.push(firstMatch.href);
-          setIsSearchOpen(false);
-        }
-      } else {
-        router.push(
-          `/dashboard/search-jobs?query=${encodeURIComponent(searchQuery)}`,
-        );
-        setIsSearchOpen(false);
-      }
+      router.push(
+        `/dashboard/search-jobs?query=${encodeURIComponent(searchQuery)}`,
+      );
+      setIsSearchOpen(false);
     }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    // Navigates when a suggestion is clicked
+    router.push(
+      `/dashboard/search-jobs?query=${encodeURIComponent(suggestion)}`,
+    );
+    setIsSearchOpen(false);
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 "
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20"
       onClick={() => setIsSearchOpen(false)}
     >
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fadeIn"></div>
@@ -124,12 +111,13 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
         className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 animate-slideDown"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* --- Input Bar --- */}
         <div className="p-3 border-b border-slate-200">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search or type a command (e.g., /cv)..."
+              placeholder="Search for jobs (e.g., 'React Developer')..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchSubmit}
@@ -138,17 +126,24 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
             />
           </div>
         </div>
+
+        {/* --- Suggestions & Results Area --- */}
         <div className="max-h-96 overflow-y-auto p-2">
-          {searchQuery && !searchQuery.startsWith('/') ? (
-            <Link
-              href={`/dashboard/search-jobs?query=${encodeURIComponent(
-                searchQuery,
-              )}`}
-              onClick={() => setIsSearchOpen(false)}
-              className="flex items-center space-x-4 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
-            >
-              <Search className="w-5 h-5 text-blue-500" />
-              <div className="flex-1">
+          {isLoading && (
+            <div className="flex items-center justify-center p-8 text-slate-500">
+              <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              <span>Loading...</span>
+            </div>
+          )}
+
+          {!isLoading && searchQuery && (
+            <>
+              {/* Option to search for the exact text typed */}
+              <div
+                onClick={() => handleSuggestionClick(searchQuery)}
+                className="flex items-center space-x-4 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
+              >
+                <Search className="w-5 h-5 text-blue-500" />
                 <p className="font-medium text-slate-800">
                   Search for jobs:{' '}
                   <span className="text-blue-600 font-semibold">
@@ -156,38 +151,32 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
                   </span>
                 </p>
               </div>
-              <span className="text-xs text-slate-400">Press Enter</span>
-            </Link>
-          ) : filteredItems.length > 0 ? (
-            filteredItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsSearchOpen(false)}
+
+              {/* Render fetched suggestions */}
+              {suggestions.map((suggestion) => (
+                <div
+                  key={suggestion}
+                  onClick={() => handleSuggestionClick(suggestion)}
                   className="flex items-center space-x-4 p-3 rounded-lg hover:bg-slate-100 transition-colors duration-200 cursor-pointer"
                 >
-                  <Icon className="w-5 h-5 text-slate-500" />
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-800">{item.title}</p>
-                    <p className="text-xs text-slate-400">{item.href}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </Link>
-              );
-            })
-          ) : (
+                  <Search className="w-5 h-5 text-slate-500" />
+                  <p className="font-medium text-slate-800">{suggestion}</p>
+                  <ChevronRight className="w-4 h-4 text-slate-400 ml-auto" />
+                </div>
+              ))}
+            </>
+          )}
+
+          {!isLoading && searchQuery && suggestions.length === 0 && (
             <div className="text-center p-8 text-slate-500">
-              <p>No results found for your search.</p>
+              <p>No suggestions found. Press Enter to search.</p>
             </div>
           )}
         </div>
+
         <div className="p-3 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
           <span>Press `Esc` to close</span>
-          <span>
-            Use <kbd className="font-sans">` / `</kbd> for commands
-          </span>
+          <span>Press `Enter` to search</span>
         </div>
       </div>
     </div>

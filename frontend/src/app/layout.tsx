@@ -19,26 +19,25 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = cookies();
-  const consentCookie = cookieStore.get('cookie_consent');
+  // const cookieStore = cookies();
+  // const consentCookie = cookieStore.get('cookie_consent');
 
-  let hasAnalyticsConsent = false;
+  // let hasAnalyticsConsent = false;
 
-  if (consentCookie) {
-    try {
-      const consentData = JSON.parse(consentCookie.value);
-      if (consentData.analytics === true) {
-        hasAnalyticsConsent = true;
-      }
-    } catch (e) {
-      console.error('Could not parse cookie consent JSON:', e);
-    }
-  }
+  // if (consentCookie) {
+  //   try {
+  //     const consentData = JSON.parse(consentCookie.value);
+  //     if (consentData.analytics === true) {
+  //       hasAnalyticsConsent = true;
+  //     }
+  //   } catch (e) {
+  //     console.error('Could not parse cookie consent JSON:', e);
+  //   }
+  // }
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* This conditional rendering based on a cookie is a perfect use case for a dynamic Server Component. */}
+      {/* <head>
         {hasAnalyticsConsent && (
           <>
             <Script
@@ -59,7 +58,7 @@ export default async function RootLayout({
             />
           </>
         )}
-      </head>
+      </head> */}
       <body
         className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >

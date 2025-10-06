@@ -38,6 +38,7 @@ export type JobListing = {
     Benefits?: string[];
   } | null;
   countryCode?: string | null;
+  logo: string | null;
 };
 
 // This array acts as our in-memory database/cache for job listings.
