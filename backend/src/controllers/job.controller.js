@@ -464,7 +464,6 @@ export const getAllJobs = async (req, res) => {
       filter.$or = [
         { title: { $regex: query, $options: 'i' } },
         { description: { $regex: query, $options: 'i' } },
-        { company: { $regex: query, $options: 'i' } },
       ];
     }
     if (country) filter.country = { $regex: country, $options: 'i' };
@@ -495,6 +494,15 @@ export const getAllJobs = async (req, res) => {
     }
     if (experience) {
       filter.experience = { $in: experience.split(',') };
+    }
+
+    if (query) {
+      const matchingJobCount = await Job.countDocuments(filter);
+      if (matchingJobCount < 10) {
+        await fetchAndSaveJobsService(query);
+      } else {
+        fetchAndSaveJobsService(query); // No 'await'
+      }
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -554,6 +562,23 @@ export const getRapidJobs = async (req, res) => {
     res.status(200).json({ success: true, jobs });
   } catch (error) {
     console.error('Error fetching rapid jobs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const getJobFromJobId = async (req, res) => {
+  const { jobId } = req.params;
+  console.log(jobId);
+  try {
+    const job = await Job.find({ jobId });
+    console.log(job);
+
+    res.status(200).json({ success: true, job });
+  } catch (error) {
+    console.error('Error fetching job:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
