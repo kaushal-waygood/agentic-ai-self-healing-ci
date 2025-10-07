@@ -349,7 +349,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         )}
 
       {/* AI Match Score */}
-      <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-xl border-2 border-purple-200 p-6">
+      {/* <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-xl border-2 border-purple-200 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
@@ -371,7 +371,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 {matchScoreResult.matchScore}
               </div>
             </div>
-            {/* You can add back the reasoning, strengths, etc. here */}
+         You can add back the reasoning, strengths, etc. here 
             <p className="text-gray-600 mt-2">{matchScoreResult.reasoning}</p>
           </div>
         ) : (
@@ -398,7 +398,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             )}
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }
