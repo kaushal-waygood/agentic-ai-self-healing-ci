@@ -1097,8 +1097,6 @@ export const getSavedJobs = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = `student:${_id}:savedJobs`;
 
-  console.log('cacheKey', cacheKey, _id);
-
   try {
     const savedJobs = await redisClient.withCache(cacheKey, 1800, async () => {
       const student = await Student.findById(_id).populate({

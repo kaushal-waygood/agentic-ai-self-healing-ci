@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
 import { getAllJobsRequest } from '@/redux/reducers/jobReducer';
 import { RootState } from '@/redux/rootReducer';
@@ -24,23 +24,26 @@ export const useJobs = () => {
   const [employmentTypes, setEmploymentTypes] = useState<string[]>([]);
   const [experienceLevels, setExperienceLevels] = useState<string[]>([]);
 
+  // --- Initial data load based on URL params ---
   useEffect(() => {
     const page = Number(searchParams.get('page') || '1');
     const query = searchParams.get('query') || '';
     const country = searchParams.get('country') || '';
     const city = searchParams.get('city') || '';
+
+    // CHANGED: Dispatch with append: false for initial load
     dispatch(
       getAllJobsRequest({
-        ...reduxFilters,
         page,
         query,
         country,
         city,
+        append: false, // Ensures the list is replaced, not appended to
       }),
     );
   }, [dispatch, searchParams]);
 
-  // --- Fetch metadata for filters (runs only once) ---
+  // --- Fetch metadata for filters (No change here) ---
   useEffect(() => {
     const fetchJobMetadata = async () => {
       try {
@@ -57,25 +60,19 @@ export const useJobs = () => {
     fetchJobMetadata();
   }, []);
 
-  // --- (Unified) Handler for all filter changes ---
+  // --- Filter change handler ---
   const handleFilterChange = useCallback(
     debounce((newFilters: Partial<typeof reduxFilters>) => {
-      // Merge new changes with existing filters and always reset to page 1
-      const updatedFilters = { ...reduxFilters, ...newFilters, page: 1 };
-      dispatch(getAllJobsRequest(updatedFilters));
-      setFilterModal(false); // Close modal if it's open
+      // CHANGED: Dispatch with append: false to reset the list
+      const payload = {
+        ...reduxFilters,
+        ...newFilters,
+        page: 1,
+        append: false,
+      };
+      dispatch(getAllJobsRequest(payload));
+      setFilterModal(false);
     }, 500),
-    [dispatch, reduxFilters],
-  );
-
-  // --- Page change handler ---
-  const handlePageChange = useCallback(
-    (page: number) => {
-      const updatedFilters = { ...reduxFilters, page };
-      dispatch(getAllJobsRequest(updatedFilters));
-      // You can add logic here to scroll the job list to the top
-      document.querySelector('.lg\\:col-span-5 > div')?.scrollTo(0, 0);
-    },
     [dispatch, reduxFilters],
   );
 
@@ -83,6 +80,7 @@ export const useJobs = () => {
   const loadMoreJobs = useCallback(() => {
     if (!loading && pagination.page < pagination.totalPages) {
       const nextPage = pagination.page + 1;
+      // CORRECT: This correctly dispatches with append: true
       dispatch(
         getAllJobsRequest({ ...reduxFilters, page: nextPage, append: true }),
       );
@@ -99,13 +97,15 @@ export const useJobs = () => {
       datePosted: '',
       employmentType: [],
       experience: [],
+      append: false, // CHANGED: Dispatch with append: false to reset the list
     };
     dispatch(getAllJobsRequest(initialFilters));
     setFilterModal(false);
   }, [dispatch]);
 
+  // REMOVED: handlePageChange is not needed for infinite scroll, but can be added back if you have a pagination component.
+
   return {
-    // State
     jobs,
     loading,
     error,
@@ -114,11 +114,8 @@ export const useJobs = () => {
     filterModal,
     employmentTypes,
     experienceLevels,
-
-    // Handlers
     setFilterModal,
     handleFilterChange,
-    handlePageChange,
     loadMoreJobs,
     resetFilters,
   };

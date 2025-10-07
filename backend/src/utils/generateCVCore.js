@@ -46,9 +46,6 @@ export const generateCVCore = async (req, res, jobContextString) => {
 
       try {
         const fileMimeType = req.file.mimetype;
-        console.log(
-          `Processing file: ${req.file.filename} with type: ${fileMimeType}`,
-        );
 
         if (fileMimeType === 'application/pdf') {
           // Handle PDF
@@ -64,17 +61,13 @@ export const generateCVCore = async (req, res, jobContextString) => {
           const result = await mammoth.extractRawText({ path: filePath });
           extractedText = result.value;
         } else if (fileMimeType.startsWith('image/')) {
-          // Handle Images with OCR
-          console.log(`Starting OCR process for ${filePath}...`);
           const {
             data: { text },
           } = await Tesseract.recognize(filePath, 'eng', {
             logger: (m) => console.log(m), // Optional: log progress
           });
           extractedText = text;
-          console.log('OCR process finished.');
         } else {
-          // Handle unsupported types just in case
           return res.status(400).json({
             error:
               'Unsupported file type. Please upload a PDF, DOCX, or an image.',
@@ -83,7 +76,6 @@ export const generateCVCore = async (req, res, jobContextString) => {
 
         studentData = JSON.stringify({ cvContent: extractedText });
       } finally {
-        // IMPORTANT: Always clean up the uploaded file
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }

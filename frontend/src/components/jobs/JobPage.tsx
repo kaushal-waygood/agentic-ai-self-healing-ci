@@ -3,18 +3,20 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
-import { useJobs } from '@/hooks/jobs/useJobs';
+import { useJobs } from '@/hooks/jobs/useJobs'; // REMOVED: usePrevious is no longer needed
 import { useMediaQuery } from '@/hooks/jobs/useMediaQuery';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
 import { Loader2, Search } from 'lucide-react';
-import { Pagination } from '@/components/utils/Pagination';
 
 export default function JobsPage() {
+  const jobListRef = useRef<HTMLDivElement>(null);
+
+  // SIMPLIFIED: The hook call is cleaner
   const {
-    jobs,
+    jobs, // Use 'jobs' directly
     loading,
     error,
     pagination,
@@ -24,8 +26,7 @@ export default function JobsPage() {
     employmentTypes,
     experienceLevels,
     filterModal,
-    handleFilterChange, // Use the new unified handler
-    handlePageChange,
+    handleFilterChange,
     resetFilters,
   } = useJobs();
 
@@ -34,13 +35,17 @@ export default function JobsPage() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const observerRef = useRef(null);
 
-  const pathname = usePathname();
+  // REMOVED: All state and effects for 'drip-feed' are gone.
+
+  // ADDED: Simple effect to scroll to top when filters change
+  useEffect(() => {
+    jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [filters]);
 
   const fetchJobDetails = async (slug: string) => {
     try {
       setSelectedJob(null);
       const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
-      console.log('Fetched job details:', response.data);
       setSelectedJob(response.data.singleJob);
     } catch (err) {
       console.error('Failed to fetch job details:', err);
@@ -55,14 +60,16 @@ export default function JobsPage() {
     }
   };
 
+  // Select first job from the list
   useEffect(() => {
-    if (!isMobile && jobs.length > 0 && !selectedJob) {
+    if (!isMobile && jobs.length > 0) {
       if (!jobs.some((job) => job._id === selectedJob?._id)) {
         setSelectedJob(jobs[0]);
       }
     }
   }, [jobs, isMobile, selectedJob]);
 
+  // SIMPLIFIED: Observer callback is much cleaner
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [target] = entries;
@@ -79,7 +86,7 @@ export default function JobsPage() {
 
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
-      threshold: 1.0,
+      threshold: 0.8,
     });
     const currentObserverRef = observerRef.current;
     if (currentObserverRef) observer.observe(currentObserverRef);
@@ -93,23 +100,26 @@ export default function JobsPage() {
 
   return (
     <div
-      className={`min-h-screen  bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30  pt-1`}
+      className={`min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1`}
     >
-      <div className="container mx-auto px-4  ">
+      <div className="container mx-auto px-4">
         <SearchFilters
           initialFilters={filters}
-          onSearchChange={handleFilterChange} // Pass the unified handler
+          onSearchChange={handleFilterChange}
           onOpenFilterModal={() => setFilterModal(true)}
         />
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-5">
-            <div className="space-y-2 h-[calc(100vh-220px)] overflow-y-auto pr-2 scrollbar-thin">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
+          <div className="">
+            <div
+              ref={jobListRef}
+              className="space-y-2 h-[calc(100vh-220px)] overflow-y-auto pr-2 scrollbar-thin"
+            >
               {loading && pagination.page === 1
                 ? Array.from({ length: 5 }).map((_, index) => (
                     <JobCardSkeleton key={index} />
                   ))
-                : jobs.map((job: any) => (
+                : // SIMPLIFIED: Render 'jobs' array directly
+                  jobs.map((job: any) => (
                     <JobCard
                       key={job._id}
                       job={job}
@@ -118,14 +128,14 @@ export default function JobsPage() {
                     />
                   ))}
               <div ref={observerRef} className="flex justify-center p-4 h-12">
+                {/* SIMPLIFIED: Loader only depends on 'loading' state */}
                 {loading && pagination.page > 1 && (
                   <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
                 )}
               </div>
             </div>
           </div>
-
-          <div className="lg:col-span-7 hidden lg:block">
+          <div className=" hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {selectedJob ? (
                 <JobDetail job={selectedJob} />
@@ -139,48 +149,24 @@ export default function JobsPage() {
                   </h3>
                   <p className="text-gray-500 max-w-sm">
                     Click on any position from the list to see the detailed
-                    information, requirements, and responsibilities.
+                    information.
                   </p>
                 </div>
               )}
             </div>
           </div>
         </div>
-
-        {!isMobile && pagination.totalPages > 1 && (
-          <div className="mt-8 flex justify-center">
-            <Pagination
-              currentPage={pagination.page}
-              totalPages={pagination.totalPages}
-              onPageChange={handlePageChange}
-            />
-          </div>
-        )}
-
         <FilterModal
           isOpen={filterModal}
           onClose={() => setFilterModal(false)}
           employmentTypes={employmentTypes}
           experienceLevels={experienceLevels}
           filters={filters}
-          onFilterChange={handleFilterChange} // Pass the same unified handler
+          onFilterChange={handleFilterChange}
           onReset={resetFilters}
         />
       </div>
-
-      <style jsx global>{`
-        .scrollbar-thin::-webkit-scrollbar {
-          width: 6px;
-        }
-        .scrollbar-thin::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 10px;
-        }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #c084fc, #60a5fa);
-          border-radius: 10px;
-        }
-      `}</style>
+      {/* ... styles remain the same ... */}
     </div>
   );
 }

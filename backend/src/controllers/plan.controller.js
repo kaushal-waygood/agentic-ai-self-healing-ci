@@ -223,12 +223,6 @@ export const getSinglePlan = async (req, res) => {
   }
 };
 
-console.log(
-  'process.env.STRIPE_WEBHOOK_SECRET',
-  process.env.STRIPE_WEBHOOK_SECRET,
-  'process.env.STRIPE_SECRET_KEY',
-  process.env.STRIPE_SECRET_KEY,
-);
 const stripe = new Stripe(
   'sk_test_51S91qQIdYj6K0osborBNLjiksqgiuBB60ddQbCjcDbthPQFIjdcs5uRxTopCBj3c3umGvz3QdEJ53xwStj6yHMNE00gbzvfRAh',
 );

@@ -98,7 +98,6 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.error = null;
-      console.log('logoutSuccess');
       localStorage.removeItem('accessToken');
       // localStorage.removeItem('token');
     },

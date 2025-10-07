@@ -11,8 +11,6 @@ import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
-console.log(process.env.NODE_ENV);
-
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/gmail.modify',
@@ -242,15 +240,12 @@ export const signUpUser = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
-  console.log('Email:', email, 'OTP:', otp);
 
   try {
     // Find user by email
     const user = await User.findOne({ email }).select(
       '+otp +otpExpires +isEmailVerified',
     );
-
-    console.log('User:', user);
 
     // Validation checks
     if (!user) {
@@ -504,7 +499,6 @@ export const forgotPassword = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   const { token, newPassword, confirmPassword, email } = req.body;
-  console.log(req.body);
 
   try {
     // 1. Validate inputs
@@ -519,7 +513,6 @@ export const resetPassword = async (req, res) => {
     // 2. Find user by email
     const user = await User.findOne({ email });
 
-    console.log(user);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -587,7 +580,6 @@ export const signout = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const { _id: userId } = req.user;
-    console.log(userId);
     const cacheKey = `user:profile:${userId}`;
 
     const user = await redisClient.withCache(cacheKey, 3600, async () => {
@@ -617,8 +609,6 @@ export const changePassword = async (req, res) => {
   const { currentPassword, newPassword, confirmNewPassword } = req.body;
   const { _id } = req.user;
 
-  console.log(req.body);
-  console.log(_id);
   try {
     const user = await User.findById(_id);
     if (!user) {
@@ -634,8 +624,6 @@ export const changePassword = async (req, res) => {
     if (newPassword !== confirmNewPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
-
-    console.log(user.password);
 
     const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
     if (!isPasswordCorrect) {
@@ -736,24 +724,20 @@ export const sendEmails = async (req, res) => {
     // 3. Prepare attachments by converting HTML to PDF (no changes here)
     const attachments = [];
     if (resumeHtml) {
-      console.log('Converting resume HTML to PDF...');
       const resumePdfBuffer = await convertHtmlToPdf(resumeHtml);
       attachments.push({
         filename: 'resume.pdf',
         content: resumePdfBuffer,
         contentType: 'application/pdf',
       });
-      console.log('Resume PDF conversion complete.');
     }
     if (coverLetterHtml) {
-      console.log('Converting cover letter HTML to PDF...');
       const coverLetterPdfBuffer = await convertHtmlToPdf(coverLetterHtml);
       attachments.push({
         filename: 'cover_letter.pdf',
         content: coverLetterPdfBuffer,
         contentType: 'application/pdf',
       });
-      console.log('Cover letter PDF conversion complete.');
     }
 
     // 4. Use Nodemailer's MailComposer to build the MIME message
@@ -801,12 +785,6 @@ export const sendEmails = async (req, res) => {
 
 export const oAuth2Callback = async (req, res) => {
   const { code, state: userId } = req.query;
-  console.log(
-    'OAuth callback received. Code:',
-    code ? 'Yes' : 'No',
-    'UserID:',
-    userId,
-  );
 
   if (!code) {
     console.error('No authorization code received from Google.');
@@ -819,9 +797,7 @@ export const oAuth2Callback = async (req, res) => {
   }
 
   try {
-    console.log('Exchanging authorization code for tokens...');
     const { tokens } = await oauth2Client.getToken(code);
-    console.log('Tokens received:', tokens ? 'Yes' : 'No');
 
     if (!tokens.access_token || !tokens.refresh_token) {
       console.error('Incomplete tokens received from Google:', tokens);
@@ -832,38 +808,29 @@ export const oAuth2Callback = async (req, res) => {
 
     oauth2Client.setCredentials(tokens);
 
-    // Get user info (email) to confirm identity
-    console.log('Fetching user info from Google...');
     const oauth2 = google.oauth2({
       version: 'v2',
       auth: oauth2Client,
     });
     const { data: userInfo } = await oauth2.userinfo.get();
-    console.log('User info received:', userInfo);
 
     const userEmail = userInfo.email;
     if (!userEmail) {
       throw new Error('Could not retrieve email from Google user profile.');
     }
 
-    // Find the user in your database using the ID passed in the 'state' parameter
-    console.log(`Looking for user with ID: ${userId}`);
     const user = await User.findById(userId);
 
     if (!user) {
-      console.error(`User not found in database with ID: ${userId}`);
       return res.redirect(`${originUrl}/settings?error=user_not_found`);
     }
 
-    // Optional: Check if the email from Google matches the user's email in your DB
     if (user.email !== userEmail) {
       console.warn(
         `Mismatched emails. DB: ${user.email}, Google: ${userEmail}. Proceeding with user ID.`,
       );
     }
 
-    // Save the refresh token and other auth details to the user's record
-    console.log(`Saving Google tokens for user: ${user.email}`);
     user.googleAuth = {
       refreshToken: tokens.refresh_token,
       accessToken: tokens.access_token,
@@ -871,7 +838,6 @@ export const oAuth2Callback = async (req, res) => {
     };
     await user.save();
 
-    console.log('OAuth flow completed successfully for user:', user.email);
     res.redirect(`${originUrl}/settings?success=google_connected`);
   } catch (err) {
     console.error(
@@ -886,8 +852,6 @@ export const oAuth2Callback = async (req, res) => {
 export const authGoogle = async (req, res) => {
   const userId = req.params.id;
 
-  console.log('User ID:', userId, 'redirect_uri:', oauth2Client.redirect_uri);
-
   try {
     const url = oauth2Client.generateAuthUrl({
       access_type: 'offline',
@@ -896,9 +860,6 @@ export const authGoogle = async (req, res) => {
       state: userId,
       redirect_uri: oauth2Client.redirect_uri, // Add this line
     });
-
-    console.log('Generated OAuth URL:', url);
-    console.log('Using redirect_uri:', oauth2Client.redirect_uri);
     res.redirect(url);
   } catch (error) {
     console.error('Error generating Google auth URL:', error);
@@ -928,7 +889,6 @@ export const disconnectGoogle = async (req, res) => {
     // revoked it from their Google account, but we still want to clean up our DB.
     try {
       await oauth2Client.revokeToken(refreshToken);
-      console.log(`Successfully revoked token for user: ${user.email}`);
     } catch (revokeError) {
       console.warn(
         `Failed to revoke token for ${user.email}, but proceeding with DB cleanup. Error:`,
