@@ -1,5 +1,6 @@
 'use client';
-
+import avatar1 from '@/assets/avatar-1.jpg';
+import avatar2 from '@/assets/avatar-2.jpg';
 import { Button } from '@/components/ui/button';
 import {
   ArrowRight,
@@ -30,6 +31,9 @@ export const Hero = () => {
   const [activeCard, setActiveCard] = useState(0);
   const [animatingJobs, setAnimatingJobs] = useState([]);
   const router = useRouter();
+
+  // avatar array
+  const avatars = [avatar1, avatar2, avatar1, avatar2];
 
   const stats = [
     { number: '500K+', label: 'Applications Sent', icon: Target },
@@ -370,17 +374,10 @@ export const Hero = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 pt-4">
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-4">
-                  {[
-                    '/avatar-1.jpg',
-                    '/avatar-2.jpg',
-                    '/avatar-1.jpg',
-                    '/avatar-2.jpg',
-                  ].map((src, i) => (
+                  {avatars.map((src, i) => (
                     <Image
                       key={i}
                       src={src}
-                      width={48}
-                      height={48}
                       alt={`User avatar ${i + 1}`}
                       className="w-12 h-12 rounded-full border-4 border-white shadow-lg"
                     />

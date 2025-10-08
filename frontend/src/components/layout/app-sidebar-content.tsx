@@ -139,8 +139,11 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         <div className="flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center space-x-3 group">
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+              {/* <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                 <Rocket className="w-6 h-6 text-white animate-pulse" />
+              </div> */}
+              <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
+                <img src="/logo.png" alt="abc" />
               </div>
               <div
                 className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full animate-bounce"
