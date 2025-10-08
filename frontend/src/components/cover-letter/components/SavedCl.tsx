@@ -59,7 +59,7 @@ const SavedCoverLetters = ({
 
   return (
     <div
-      className={`w-full mx-auto transition-all duration-700 ease-out ${
+      className={`max-w-7xl  mx-auto transition-all duration-700 ease-out ${
         animateIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >

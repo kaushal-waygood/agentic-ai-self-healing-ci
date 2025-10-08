@@ -153,7 +153,20 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           </Button>
         </div>
         <div className="p-6 flex justify-between items-center">
-          <div>{/* <Image ... /> */}</div>
+          <div>
+            {/* Company Logo or Fallback Icon */}
+            {job.logo ? (
+              <img
+                src={job.logo}
+                alt={job.company || 'Company Logo'}
+                className="w-16 h-16 object-contain rounded"
+              />
+            ) : (
+              <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-600 rounded">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+            )}
+          </div>
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Button
@@ -182,7 +195,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   onClick={handleGetMatchScore}
                   className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
                 >
-                  Calculate My Match Score
+                  Calculate My Match
                 </Button>
               )}
             </div>

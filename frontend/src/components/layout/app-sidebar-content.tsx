@@ -69,7 +69,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
     sidebarNav: [
       {
         title: 'Job Search',
-        href: '/search-jobs',
+        href: '/dashboard/search-jobs',
         icon: Search,
       },
       {
