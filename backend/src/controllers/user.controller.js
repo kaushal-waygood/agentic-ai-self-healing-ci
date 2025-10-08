@@ -21,10 +21,10 @@ export const SCOPES = [
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  'https://api.zobsai.com/api/v1/user/oauth2callback',
+  `${process.env.BACKEND_URL}/api/v1/user/oauth2callback`,
 );
 
-const originUrl = 'https://www.zobsai.com';
+const originUrl = process.env.FRONTEND_URL;
 
 export const firebaseAuth = async (req, res) => {
   try {
@@ -676,7 +676,10 @@ export const sendEmails = async (req, res) => {
     htmlCoverLetter: coverLetterHtml,
   } = req.body;
 
+  const userEmail = await User.findById(req.user._id).select('email');
+
   const receiverEmails = [
+    userEmail.email,
     'infozobsai@gmail.com',
     'prakhar@zobsai.com',
     'shadab@zobsai.com',
@@ -793,7 +796,9 @@ export const oAuth2Callback = async (req, res) => {
 
   if (!userId) {
     console.error('No state (userId) received from Google.');
-    return res.redirect(`${originUrl}/settings?error=auth_failed_no_state`);
+    return res.redirect(
+      `${originUrl}/dashboard/settings?error=auth_failed_no_state`,
+    );
   }
 
   try {
@@ -860,6 +865,7 @@ export const authGoogle = async (req, res) => {
       state: userId,
       redirect_uri: oauth2Client.redirect_uri, // Add this line
     });
+    console.log('Generated Google auth URL:', url);
     res.redirect(url);
   } catch (error) {
     console.error('Error generating Google auth URL:', error);
@@ -913,7 +919,7 @@ export const disconnectGoogle = async (req, res) => {
 
 export const testSendEmail = async (req, res) => {
   const receiverEmails = [
-    'thesiddiqui7@gmail.com',
+    req.user.email,
     'infozobsai@gmail.com',
     'prakhar@zobsai.com',
     'shadab@zobsai.com',

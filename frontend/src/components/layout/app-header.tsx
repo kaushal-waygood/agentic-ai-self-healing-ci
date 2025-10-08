@@ -1,3 +1,4 @@
+/** @format */
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -15,7 +16,8 @@ import {
   Crown,
   CreditCard,
   HelpCircle,
-  ChevronRight,  Loader2,
+  ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -24,7 +26,7 @@ import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
-import { debounce, set } from 'lodash';
+import { debounce } from 'lodash';
 
 const fetchJobSuggestions = async (query) => {
   console.log(`Fetching suggestions for: "${query}"`);
@@ -273,6 +275,24 @@ const AppHeader = ({ setIsSearchOpen }) => {
     }
   }, [user?._id]);
 
+  // ***** FIXED HOOK *****
+  // This useEffect now sits at the top level with other hooks
+  useEffect(() => {
+    const getActivePlan = async () => {
+      try {
+        const response = await apiInstance.get('/plan/get-user-plan-type');
+        setPlanType(response.data.data.planType);
+      } catch (error) {
+        console.error('Failed to fetch active plan:', error);
+      }
+    };
+
+    // Condition is placed *inside* the effect
+    if (user) {
+      getActivePlan();
+    }
+  }, [user]); // Dependency array ensures it re-runs if the user object changes
+
   const effectivePlanLimits = useMemo(
     () => ({
       aiJobApply: usageLimits.aiApplication,
@@ -353,6 +373,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
     }
   };
 
+  // This conditional return is now safe because all hooks are declared above it.
   if (!user) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
@@ -367,19 +388,6 @@ const AppHeader = ({ setIsSearchOpen }) => {
       </header>
     );
   }
-
-  useEffect(() => {
-    const getActivePlan = async () => {
-      try {
-        const response = await apiInstance.get('/plan/get-user-plan-type');
-        setPlanType(response.data.data.planType);
-      } catch (error) {
-        console.error('Failed to fetch active plan:', error);
-      }
-    };
-
-    getActivePlan();
-  }, []);
 
   return (
     <>
