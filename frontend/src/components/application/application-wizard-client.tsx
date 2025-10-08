@@ -718,7 +718,6 @@ export function ApplicationWizardClient() {
         formData.append('companyName', jobContext.companyName);
 
         if (searchParams.get('slug')) {
-          console.log(searchParams.get('slug'));
           const response = await apiInstance.get(
             `/jobs/find/${searchParams.get('slug')}`,
           );
@@ -1518,11 +1517,26 @@ export function ApplicationWizardClient() {
   );
 
   const renderStep = () => {
+    console.log('wizardStep', wizardStep);
     switch (wizardStep) {
       case 'loading':
         return renderLoadingStep();
       case 'job':
-        return renderJobStep();
+        console.log('jobContext', jobContext);
+        return (
+          <SleekCvStep
+            mockUserProfile={mockUserProfile}
+            handleCvContextSubmit={handleCvContextSubmit}
+            setWizardState={navigateToStep}
+            selectedCvId={selectedCvId}
+            setSelectedCvId={setSelectedCvId}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            wizardStep={wizardStep}
+            setWizardStep={navigateToStep}
+            handleCVContext={handleCVContext}
+          />
+        );
       case 'cv':
         return renderCvStep();
       case 'createCv':
