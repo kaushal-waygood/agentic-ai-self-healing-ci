@@ -11,6 +11,12 @@ import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
+console.log({
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  BACKEND_URL: process.env.BACKEND_URL,
+});
+
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/gmail.modify',
@@ -610,9 +616,16 @@ export const changePassword = async (req, res) => {
   const { _id } = req.user;
 
   try {
-    const user = await User.findById(_id);
+    // *** FIX: Use .select('+password') to retrieve the hashed password ***
+    const user = await User.findById(_id).select('+password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // This check will now work correctly
+    const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     if (currentPassword === newPassword) {
@@ -625,10 +638,6 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
-    if (!isPasswordCorrect) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
     user.password = newPassword;
     await user.save();
     res.status(200).json({ message: 'Password changed successfully' });
