@@ -1,3 +1,4 @@
+import { Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 
 const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
@@ -9,7 +10,10 @@ const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
     <div className="w-full max-w-6xl mx-auto px-4 py-8 space-y-6">
       {/* Header with gradient */}
       <header className="text-center mb-8 animate-fade-in">
-        <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent mb-3">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
+          <Sparkles className="h-8 w-8 text-white" />
+        </div>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
           AI Job Agents Dashboard
         </h1>
         <p className="text-gray-600 text-lg">
@@ -65,7 +69,7 @@ const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
       {/* Main Agent Panel */}
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 animate-fade-in">
         {/* Panel Header with glassmorphism effect */}
-        <div className="relative bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 p-8 text-white">
+        <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-8 text-white">
           <div className="relative z-10">
             <h2 className="text-3xl font-bold mb-2">Your AI Job Agents</h2>
             <p className="text-white/90">
