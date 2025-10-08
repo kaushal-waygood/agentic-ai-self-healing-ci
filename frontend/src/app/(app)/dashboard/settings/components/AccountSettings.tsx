@@ -10,7 +10,7 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import apiInstance from '@/services/api';
 
-const NEXT_PUBLIC_API_URL = 'http://api.dev.zobsai.com';
+const NEXT_PUBLIC_API_URL = 'https://api.dev.zobsai.com';
 
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
