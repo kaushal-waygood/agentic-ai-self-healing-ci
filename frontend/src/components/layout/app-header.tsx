@@ -10,12 +10,15 @@ import {
   AlertTriangle,
   Search,
   FileText,
+  Zap,
+  DiamondIcon,
   Bot,
   ChevronDown,
   Crown,
   CreditCard,
   HelpCircle,
-  ChevronRight,  Loader2,
+  ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -24,7 +27,7 @@ import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
-import { debounce, set } from 'lodash';
+import { debounce, divide, set } from 'lodash';
 
 const fetchJobSuggestions = async (query) => {
   console.log(`Fetching suggestions for: "${query}"`);
@@ -373,6 +376,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
       try {
         const response = await apiInstance.get('/plan/get-user-plan-type');
         setPlanType(response.data.data.planType);
+        console.log(response.data.data.planType);
       } catch (error) {
         console.error('Failed to fetch active plan:', error);
       }
@@ -400,67 +404,321 @@ const AppHeader = ({ setIsSearchOpen }) => {
               </kbd>
             </button>
           </div>
+
           <div className="flex items-center space-x-3">
             {mounted && (
-              <div className="relative">
-                <button
-                  onClick={() => handleMenuToggle('plan')}
-                  className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 transition-all duration-200 border border-yellow-300"
-                >
-                  <Star className="w-4 h-4" />
-                  <span className="text-sm font-medium hidden sm:inline">
-                    {planType}
-                  </span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-                {isPlanOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                    <div className="p-6 bg-gradient-to-r from-yellow-400 to-yellow-600">
-                      <div className="flex items-center space-x-3 text-white">
-                        <Star className="w-6 h-6" />
-                        <div>
-                          <h3 className="font-bold text-lg">Pro Plan</h3>
-                          <p className="text-yellow-100 text-sm">
-                            Your current billing cycle usage
-                          </p>
+              <div>
+                {planType === 'Pro' ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => handleMenuToggle('plan')}
+                      className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 transition-all duration-200 border border-yellow-300"
+                    >
+                      <Crown className="w-4 h-4" />
+                      <span className="text-sm font-medium hidden sm:inline">
+                        {planType}
+                      </span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    {isPlanOpen && (
+                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                        <div className="p-6  bg-gradient-to-r from-yellow-400 to-yellow-600">
+                          <div className="flex items-center space-x-3 text-white">
+                            <Crown className="w-6 h-6" />
+                            <div>
+                              <h3 className="font-bold text-lg">Pro Plan</h3>
+                              <p className="text-yellow-100 text-sm">
+                                Your current billing cycle usage
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <UsageTracker
+                            label="AI Applications"
+                            used={usageData.aiJobApply}
+                            limit={effectivePlanLimits.aiJobApply}
+                          />
+                          <UsageTracker
+                            label="AI CV Generations"
+                            used={usageData.aiCvGenerator}
+                            limit={effectivePlanLimits.aiCvGenerator}
+                          />
+                          <UsageTracker
+                            label="AI Cover Letters"
+                            used={usageData.aiCoverLetterGenerator}
+                            limit={effectivePlanLimits.aiCoverLetterGenerator}
+                          />
+                          <UsageTracker
+                            label="Tracked Applications"
+                            used={usageData.applications}
+                            limit={effectivePlanLimits.applicationLimit}
+                          />
+                        </div>
+                        <div className="p-4 border-t border-slate-100">
+                          <button
+                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+                            onClick={() =>
+                              router.push('/dashboard/subscriptions')
+                            }
+                          >
+                            <Crown className="w-4 h-4" />
+                            <span>Upgrade Plan</span>
+                          </button>
                         </div>
                       </div>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      <UsageTracker
-                        label="AI Applications"
-                        used={usageData.aiJobApply}
-                        limit={effectivePlanLimits.aiJobApply}
-                      />
-                      <UsageTracker
-                        label="AI CV Generations"
-                        used={usageData.aiCvGenerator}
-                        limit={effectivePlanLimits.aiCvGenerator}
-                      />
-                      <UsageTracker
-                        label="AI Cover Letters"
-                        used={usageData.aiCoverLetterGenerator}
-                        limit={effectivePlanLimits.aiCoverLetterGenerator}
-                      />
-                      <UsageTracker
-                        label="Tracked Applications"
-                        used={usageData.applications}
-                        limit={effectivePlanLimits.applicationLimit}
-                      />
-                    </div>
-                    <div className="p-4 border-t border-slate-100">
-                      <button
-                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
-                        onClick={() => router.push('/dashboard/subscriptions')}
-                      >
-                        <Crown className="w-4 h-4" />
-                        <span>Upgrade Plan</span>
-                      </button>
-                    </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <button
+                      onClick={() => handleMenuToggle('plan')}
+                      className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-gray-200 hover:to-gray-300 transition-all duration-200 border border-gray-300"
+                    >
+                      <Zap className="w-4 h-4" />
+                      <span className="text-sm font-medium hidden sm:inline">
+                        {planType}
+                      </span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    {isPlanOpen && (
+                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                        <div className="p-6 bg-gradient-to-r from-gray-400 to-gray-600">
+                          <div className="flex items-center space-x-3 text-white">
+                            <Zap className="w-6 h-6" />
+                            <div>
+                              <h3 className="font-bold text-lg">Free Plan</h3>
+                              <p className="text-yellow-100 text-sm">
+                                Your current billing cycle usage
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <UsageTracker
+                            label="AI Applications"
+                            used={usageData.aiJobApply}
+                            limit={effectivePlanLimits.aiJobApply}
+                          />
+                          <UsageTracker
+                            label="AI CV Generations"
+                            used={usageData.aiCvGenerator}
+                            limit={effectivePlanLimits.aiCvGenerator}
+                          />
+                          <UsageTracker
+                            label="AI Cover Letters"
+                            used={usageData.aiCoverLetterGenerator}
+                            limit={effectivePlanLimits.aiCoverLetterGenerator}
+                          />
+                          <UsageTracker
+                            label="Tracked Applications"
+                            used={usageData.applications}
+                            limit={effectivePlanLimits.applicationLimit}
+                          />
+                        </div>
+                        <div className="p-4 border-t border-slate-100">
+                          <button
+                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+                            onClick={() =>
+                              router.push('/dashboard/subscriptions')
+                            }
+                          >
+                            <Crown className="w-4 h-4" />
+                            <span>Upgrade Plan</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
+
+            {/* {mounted && (
+              <div>
+                {planType === 'Pro' && (
+                  // --- PRO PLAN UI ---
+                  <div className="relative">
+                    <button
+                      onClick={() => handleMenuToggle('plan')}
+                      className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 transition-all duration-200 border border-yellow-300"
+                    >
+                      <Crown className="w-4 h-4" />
+                      <span className="text-sm font-medium hidden sm:inline">
+                        {planType}
+                      </span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    {isPlanOpen && (
+                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                        <div className="p-6 bg-gradient-to-r from-yellow-400 to-yellow-600">
+                          <div className="flex items-center space-x-3 text-white">
+                            <Crown className="w-6 h-6" />
+                            <div>
+                              <h3 className="font-bold text-lg">Pro Plan</h3>
+                              <p className="text-yellow-100 text-sm">
+                                Your current billing cycle usage
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <UsageTracker
+                            label="AI Applications"
+                            used={usageData.aiJobApply}
+                            limit={effectivePlanLimits.aiJobApply}
+                          />
+                          <UsageTracker
+                            label="AI CV Generations"
+                            used={usageData.aiCvGenerator}
+                            limit={effectivePlanLimits.aiCvGenerator}
+                          />
+                          <UsageTracker
+                            label="AI Cover Letters"
+                            used={usageData.aiCoverLetterGenerator}
+                            limit={effectivePlanLimits.aiCoverLetterGenerator}
+                          />
+                          <UsageTracker
+                            label="Tracked Applications"
+                            used={usageData.applications}
+                            limit={effectivePlanLimits.applicationLimit}
+                          />
+                        </div>
+                        <div className="p-4 border-t border-slate-100">
+                          <button
+                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+                            onClick={() =>
+                              router.push('/dashboard/subscriptions')
+                            }
+                          >
+                            <Crown className="w-4 h-4" />
+                            <span>Upgrade Plan</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {planType === 'Weekly' && (
+                  // --- WEEKLY PLAN UI ---
+                  <div className="relative">
+                    <button
+                      onClick={() => handleMenuToggle('plan')}
+                      className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300 transition-all duration-200 border border-green-300"
+                    >
+                      <Zap className="w-4 h-4" />
+                      <span className="text-sm font-medium hidden sm:inline">
+                        {planType}
+                      </span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    {isPlanOpen && (
+                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                        <div className="p-6 bg-gradient-to-r from-green-400 to-green-600">
+                          <div className="flex items-center space-x-3 text-white">
+                            <Zap className="w-6 h-6" />
+                            <div>
+                              <h3 className="font-bold text-lg">Weekly Plan</h3>
+                              <p className="text-green-100 text-sm">
+                                Your current weekly usage
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <UsageTracker
+                            label="AI Applications"
+                            used={usageData.aiJobApply}
+                            limit={effectivePlanLimits.aiJobApply}
+                          />
+                          <UsageTracker
+                            label="AI CV Generations"
+                            used={usageData.aiCvGenerator}
+                            limit={effectivePlanLimits.aiCvGenerator}
+                          />
+                          <UsageTracker
+                            label="AI Cover Letters"
+                            used={usageData.aiCoverLetterGenerator}
+                            limit={effectivePlanLimits.aiCoverLetterGenerator}
+                          />
+                          <UsageTracker
+                            label="Tracked Applications"
+                            used={usageData.applications}
+                            limit={effectivePlanLimits.applicationLimit}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {planType === 'Free' && (
+                  // --- FREE PLAN UI ---
+                  <div className="relative">
+                    <button
+                      onClick={() => handleMenuToggle('plan')}
+                      className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-gray-200 hover:to-gray-300 transition-all duration-200 border border-gray-300"
+                    >
+                      <Zap className="w-4 h-4" />
+                      <span className="text-sm font-medium hidden sm:inline">
+                        {planType}
+                      </span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    {isPlanOpen && (
+                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                        <div className="p-6 bg-gradient-to-r from-gray-400 to-gray-600">
+                          <div className="flex items-center space-x-3 text-white">
+                            <Zap className="w-6 h-6" />
+                            <div>
+                              <h3 className="font-bold text-lg">Free Plan</h3>
+                              <p className="text-yellow-100 text-sm">
+                                Your current billing cycle usage
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          <UsageTracker
+                            label="AI Applications"
+                            used={usageData.aiJobApply}
+                            limit={effectivePlanLimits.aiJobApply}
+                          />
+                          <UsageTracker
+                            label="AI CV Generations"
+                            used={usageData.aiCvGenerator}
+                            limit={effectivePlanLimits.aiCvGenerator}
+                          />
+                          <UsageTracker
+                            label="AI Cover Letters"
+                            used={usageData.aiCoverLetterGenerator}
+                            limit={effectivePlanLimits.aiCoverLetterGenerator}
+                          />
+                          <UsageTracker
+                            label="Tracked Applications"
+                            used={usageData.applications}
+                            limit={effectivePlanLimits.applicationLimit}
+                          />
+                        </div>
+                        <div className="p-4 border-t border-slate-100">
+                          <button
+                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+                            onClick={() =>
+                              router.push('/dashboard/subscriptions')
+                            }
+                          >
+                            <Crown className="w-4 h-4" />
+                            <span>Upgrade Plan</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )} */}
+
             <div className="relative">
               <button
                 onClick={() => handleMenuToggle('notification')}

@@ -874,7 +874,7 @@ export function ApplicationWizardClient() {
 
   // --- Render Functions ---
   const renderLoadingStep = () => (
-    <StyledCard className="min-h-[400px] flex items-center justify-center">
+    <StyledCard className="min-h-[400px]  flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="h-12 w-12 mx-auto animate-spin text-purple-400" />
         <p className="mt-4 text-slate-400">

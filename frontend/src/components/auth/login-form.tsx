@@ -159,8 +159,11 @@ const LoginForm = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="relative inline-block mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center transform transition-all duration-300 hover:rotate-12 shadow-lg">
+              {/* <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center transform transition-all duration-300 hover:rotate-12 shadow-lg">
                 <Rocket className="h-8 w-8 text-white" />
+              </div> */}
+              <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
+                <img src="/logo.png" alt="abc" />
               </div>
               <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
                 <Sparkles className="h-3 w-3 text-yellow-800" />
