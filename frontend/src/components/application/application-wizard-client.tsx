@@ -718,6 +718,7 @@ export function ApplicationWizardClient() {
         formData.append('companyName', jobContext.companyName);
 
         if (searchParams.get('slug')) {
+          console.log(searchParams.get('slug'));
           const response = await apiInstance.get(
             `/jobs/find/${searchParams.get('slug')}`,
           );

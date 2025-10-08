@@ -21,7 +21,7 @@ data:
 
   GOOGLE_CLIENT_ID: '433624775795-6b9tn13tt5ak25lbe8f8i80ckb87so6t.apps.googleusercontent.com'
   GOOGLE_CLIENT_SECRET: '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'
-  BACKEND_URL: 'https://dev.api.zobsai.com'
+  BACKEND_URL: 'https://api.dev.zobsai.com'
   FRONTEND_URL: 'https://dev.zobsai.com'
 
   ACCESS_TOKEN_EXPIRY: '7d'
