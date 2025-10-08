@@ -6,217 +6,33 @@ import {
   ArrowLeft,
   CheckCircle2,
   FileText,
-  Sparkles,
-  Upload,
   Clock,
-  ArrowRight,
 } from 'lucide-react';
-
-// Mock data
 
 const SleekCvStep = ({
   mockUserProfile,
   handleCvContextSubmit,
-  setWizardState,
+  setWizardStep,
   selectedCvId,
   setSelectedCvId,
   isLoading,
-  loadingMessage,
-  wizardStep,
   handleCVContext,
-  setWizardStep,
 }: any) => {
   const cvFileInputRef = useRef(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  console.log('selectedCvId', selectedCvId);
+
+  // **FIX**: This guard clause prevents the component from crashing if mockUserProfile is not ready.
+  if (!mockUserProfile) {
+    console.log('mockUserProfile not ready');
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-slate-600">Loading user profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes pulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.7;
-          }
-        }
-
-        @keyframes glow {
-          0%,
-          100% {
-            box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
-          }
-          50% {
-            box-shadow: 0 0 30px rgba(147, 51, 234, 0.6);
-          }
-        }
-
-        @keyframes shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-
-        .card-entrance {
-          animation: fadeInUp 0.6s ease-out;
-        }
-
-        .staggered-1 {
-          animation-delay: 0.1s;
-        }
-
-        .staggered-2 {
-          animation-delay: 0.2s;
-        }
-
-        .staggered-3 {
-          animation-delay: 0.3s;
-        }
-
-        .hover-lift {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .hover-lift:hover {
-          transform: translateY(-8px);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .gradient-border {
-          position: relative;
-          background: linear-gradient(145deg, #ffffff, #f8fafc);
-          border-radius: 1rem;
-        }
-
-        .gradient-border::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          padding: 2px;
-          background: linear-gradient(145deg, #9333ea, #3b82f6, #06b6d4);
-          border-radius: inherit;
-          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          mask-composite: xor;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-
-        .gradient-border:hover::before {
-          opacity: 1;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #9333ea, #3b82f6);
-          box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3);
-          transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(147, 51, 234, 0.4);
-          animation: glow 2s infinite;
-        }
-
-        .btn-secondary {
-          background: #3b82f6;
-          transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-          background: #2563eb;
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-outline {
-          border: 2px solid #e2e8f0;
-          transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .btn-outline::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(147, 51, 234, 0.1),
-            transparent
-          );
-          transition: left 0.5s;
-        }
-
-        .btn-outline:hover::before {
-          left: 100%;
-        }
-
-        .btn-outline:hover {
-          border-color: #9333ea;
-          background: linear-gradient(
-            135deg,
-            rgba(147, 51, 234, 0.05),
-            rgba(59, 130, 246, 0.05)
-          );
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(147, 51, 234, 0.15);
-        }
-
-        .radio-card {
-          transition: all 0.3s ease;
-          position: relative;
-        }
-
-        .radio-card:hover {
-          background: linear-gradient(135deg, #fafafa, #f1f5f9);
-          transform: translateX(4px);
-        }
-
-        .radio-card.selected {
-          background: linear-gradient(
-            135deg,
-            rgba(147, 51, 234, 0.1),
-            rgba(59, 130, 246, 0.1)
-          );
-          border-color: #9333ea;
-        }
-
-        .loading-shimmer {
-          background: linear-gradient(
-            90deg,
-            #f1f5f9 25%,
-            #e2e8f0 50%,
-            #f1f5f9 75%
-          );
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-        }
-
-        .pulse-animation {
-          animation: pulse 2s infinite;
-        }
-      `}</style>
-
       <div className="max-w-4xl mx-auto">
         <div className="gradient-border hover-lift card-entrance">
           {/* Header */}
@@ -250,7 +66,8 @@ const SleekCvStep = ({
                 Select from Saved CVs
               </label>
               <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg bg-slate-50/50">
-                {mockUserProfile.savedCvs.length > 0 ? (
+                {/* **FIX**: Using optional chaining for extra safety */}
+                {mockUserProfile?.savedCvs?.length > 0 ? (
                   <div className="p-2 space-y-2">
                     {mockUserProfile.savedCvs.map((cv, index) => (
                       <label
@@ -389,7 +206,13 @@ const SleekCvStep = ({
               <input
                 type="file"
                 ref={cvFileInputRef}
-                onChange={handleCVContext}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setUploadedFile(file);
+                    handleCVContext(e);
+                  }
+                }}
                 className="hidden"
                 accept=".pdf,.doc,.docx"
               />
@@ -401,7 +224,7 @@ const SleekCvStep = ({
                   <CheckCircle2 className="w-5 h-5 text-green-600" />
                   <div>
                     <div className="font-medium text-green-800">
-                      File uploaded successfully!
+                      File ready to be processed!
                     </div>
                     <div className="text-sm text-green-600">
                       {uploadedFile.name}
@@ -424,6 +247,99 @@ const SleekCvStep = ({
           </div>
         </div>
       </div>
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .card-entrance {
+          animation: fadeInUp 0.6s ease-out;
+        }
+        .staggered-1 {
+          animation-delay: 0.1s;
+        }
+        .staggered-2 {
+          animation-delay: 0.2s;
+        }
+        .staggered-3 {
+          animation-delay: 0.3s;
+        }
+        .hover-lift {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hover-lift:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .gradient-border {
+          position: relative;
+          background: linear-gradient(145deg, #ffffff, #f8fafc);
+          border-radius: 1rem;
+        }
+        .gradient-border::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          padding: 2px;
+          background: linear-gradient(145deg, #9333ea, #3b82f6, #06b6d4);
+          border-radius: inherit;
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: xor;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .gradient-border:hover::before {
+          opacity: 1;
+        }
+        .btn-primary {
+          background: linear-gradient(135deg, #9333ea, #3b82f6);
+          box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3);
+          transition: all 0.3s ease;
+        }
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(147, 51, 234, 0.4);
+        }
+        .btn-outline {
+          border: 2px solid #e2e8f0;
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+        }
+        .btn-outline:hover {
+          border-color: #9333ea;
+          background: linear-gradient(
+            135deg,
+            rgba(147, 51, 234, 0.05),
+            rgba(59, 130, 246, 0.05)
+          );
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(147, 51, 234, 0.15);
+        }
+        .radio-card {
+          transition: all 0.3s ease;
+          position: relative;
+        }
+        .radio-card:hover {
+          background: linear-gradient(135deg, #fafafa, #f1f5f9);
+          transform: translateX(4px);
+        }
+        .radio-card.selected {
+          background: linear-gradient(
+            135deg,
+            rgba(147, 51, 234, 0.1),
+            rgba(59, 130, 246, 0.1)
+          );
+          border-color: #9333ea;
+        }
+      `}</style>
     </div>
   );
 };
