@@ -28,11 +28,12 @@ import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
-import { debounce, divide, set } from 'lodash';
+import { debounce } from 'lodash';
+
+// --- Helper Functions & Components (defined outside the main component) ---
 
 const fetchJobSuggestions = async (query) => {
   console.log(`Fetching suggestions for: "${query}"`);
-  // Example list of possible job titles on your platform
   const allPossibleJobs = [
     'Software Engineer',
     'Senior Software Developer',
@@ -45,18 +46,36 @@ const fetchJobSuggestions = async (query) => {
     'Data Scientist',
     'DevOps Engineer',
   ];
-
-  // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 300));
-
-  if (!query) {
-    return [];
-  }
-
-  // Filter the list based on the user's query
+  if (!query) return [];
   const lowerCaseQuery = query.toLowerCase();
   return allPossibleJobs.filter((job) =>
     job.toLowerCase().includes(lowerCaseQuery),
+  );
+};
+
+// Moved UsageTracker outside AppHeader to prevent re-creation on every render.
+const UsageTracker = ({ label, used, limit }) => {
+  const percentage = limit > 0 ? (used / limit) * 100 : 0;
+  const isUnlimited = limit === -1;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-slate-700">{label}</span>
+        <span className="text-xs text-slate-500">
+          {isUnlimited ? 'Unlimited' : `${used} / ${limit}`}
+        </span>
+      </div>
+      {!isUnlimited && (
+        <div className="w-full bg-slate-200 rounded-full h-2">
+          <div
+            className="h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500"
+            style={{ width: `${Math.min(percentage, 100)}%` }}
+          />
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -66,7 +85,6 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // --- Debounced API call for suggestions ---
   const debouncedFetch = useCallback(
     debounce(async (query) => {
       if (!query) {
@@ -74,20 +92,19 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
         setIsLoading(false);
         return;
       }
+      setIsLoading(true);
       const result = await fetchJobSuggestions(query);
       setSuggestions(result);
       setIsLoading(false);
-    }, 300), // 300ms delay
+    }, 300),
     [],
   );
 
   useEffect(() => {
-    setIsLoading(true);
     debouncedFetch(searchQuery);
   }, [searchQuery, debouncedFetch]);
 
   const handleSearchSubmit = (e) => {
-    // Navigates to the search page when Enter is pressed
     if (e.key === 'Enter' && searchQuery) {
       e.preventDefault();
       router.push(
@@ -98,7 +115,6 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
   };
 
   const handleSuggestionClick = (suggestion) => {
-    // Navigates when a suggestion is clicked
     router.push(
       `/dashboard/search-jobs?query=${encodeURIComponent(suggestion)}`,
     );
@@ -115,7 +131,6 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
         className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 animate-slideDown"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* --- Input Bar --- */}
         <div className="p-3 border-b border-slate-200">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -130,8 +145,6 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
             />
           </div>
         </div>
-
-        {/* --- Suggestions & Results Area --- */}
         <div className="max-h-96 overflow-y-auto p-2">
           {isLoading && (
             <div className="flex items-center justify-center p-8 text-slate-500">
@@ -139,10 +152,8 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
               <span>Loading...</span>
             </div>
           )}
-
           {!isLoading && searchQuery && (
             <>
-              {/* Option to search for the exact text typed */}
               <div
                 onClick={() => handleSuggestionClick(searchQuery)}
                 className="flex items-center space-x-4 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
@@ -155,8 +166,6 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
                   </span>
                 </p>
               </div>
-
-              {/* Render fetched suggestions */}
               {suggestions.map((suggestion) => (
                 <div
                   key={suggestion}
@@ -170,14 +179,12 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
               ))}
             </>
           )}
-
           {!isLoading && searchQuery && suggestions.length === 0 && (
             <div className="text-center p-8 text-slate-500">
               <p>No suggestions found. Press Enter to search.</p>
             </div>
           )}
         </div>
-
         <div className="p-3 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
           <span>Press `Esc` to close</span>
           <span>Press `Enter` to search</span>
@@ -189,6 +196,8 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 
 // Main AppHeader Component
 const AppHeader = ({ setIsSearchOpen }) => {
+  // --- SECTION 1: HOOKS ---
+  // All hooks are called here at the top level, in the same order on every render.
   const [mounted, setMounted] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -205,7 +214,6 @@ const AppHeader = ({ setIsSearchOpen }) => {
     aiCoverLetterGenerator: 0,
     applications: 0,
   });
-
   const [planType, setPlanType] = useState('free');
 
   const router = useRouter();
@@ -213,19 +221,32 @@ const AppHeader = ({ setIsSearchOpen }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  // This useEffect runs once on component mount for initial setup.
+  const effectivePlanLimits = useMemo(
+    () => ({
+      aiJobApply: usageLimits.aiApplication,
+      aiCvGenerator: usageLimits.cvCreation,
+      aiCoverLetterGenerator: usageLimits.coverLetter,
+      applicationLimit: usageLimits.autoApply,
+    }),
+    [usageLimits],
+  );
+
   useEffect(() => {
     setMounted(true);
     dispatch(getStudentDetailsRequest());
   }, [dispatch]);
 
-  // This useEffect fetches usage data ONLY when the user's ID changes.
   useEffect(() => {
-    const fetchUsage = async () => {
+    const fetchUsageData = async () => {
       try {
-        const response = await apiInstance.get('/plan/usage');
-        if (response.data?.success) {
-          const usageLogs = response.data.data;
+        const [usageRes, limitsRes, planRes] = await Promise.all([
+          apiInstance.get('/plan/usage'),
+          apiInstance.get('/plan/usage-limit'),
+          apiInstance.get('/plan/get-user-plan-type'),
+        ]);
+
+        if (usageRes.data?.success) {
+          const usageLogs = usageRes.data.data;
           const totals = usageLogs.reduce(
             (acc, log) => {
               switch (log.feature) {
@@ -255,72 +276,49 @@ const AppHeader = ({ setIsSearchOpen }) => {
           );
           setUsageData(totals);
         }
+        if (limitsRes.data?.success) setUsageLimits(limitsRes.data.data);
+        if (planRes.data?.success) setPlanType(planRes.data.data.planType);
       } catch (error) {
-        console.error('Failed to fetch usage data:', error);
+        console.error('Failed to fetch user plan data:', error);
       }
     };
 
-    const fetchPlanLimits = async () => {
-      try {
-        const response = await apiInstance.get('/plan/usage-limit');
-        if (response.data?.success) {
-          setUsageLimits(response.data.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch plan limits:', error);
-      }
-    };
-
+    // Conditions are safely placed *inside* the useEffect hook.
     if (user?._id) {
-      fetchUsage();
-      fetchPlanLimits();
+      fetchUsageData();
     }
   }, [user?._id]);
 
-  // ***** FIXED HOOK *****
-  // This useEffect now sits at the top level with other hooks
   useEffect(() => {
-    const getActivePlan = async () => {
-      try {
-        const response = await apiInstance.get('/plan/get-user-plan-type');
-        setPlanType(response.data.data.planType);
-      } catch (error) {
-        console.error('Failed to fetch active plan:', error);
-      }
-    };
+    // Close menus on route change
+    setIsNotificationOpen(false);
+    setIsUserMenuOpen(false);
+    setIsPlanOpen(false);
+  }, [pathname]);
 
-    // Condition is placed *inside* the effect
-    if (user) {
-      getActivePlan();
-    }
-  }, [user]); // Dependency array ensures it re-runs if the user object changes
-
-  const effectivePlanLimits = useMemo(
-    () => ({
-      aiJobApply: usageLimits.aiApplication,
-      aiCvGenerator: usageLimits.cvCreation,
-      aiCoverLetterGenerator: usageLimits.coverLetter,
-      applicationLimit: usageLimits.autoApply,
-    }),
-    [usageLimits],
-  );
-
+  // --- SECTION 2: HANDLERS & LOGIC ---
+  // Regular functions and logic can go here.
   const closeAllMenus = () => {
     setIsNotificationOpen(false);
     setIsUserMenuOpen(false);
     setIsPlanOpen(false);
   };
 
-  useEffect(() => {
-    closeAllMenus();
-  }, [pathname]);
-
-  const handleMenuToggle = (menu: 'plan' | 'notification' | 'user') => {
+  const handleMenuToggle = (menu) => {
     setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
     setIsNotificationOpen(
       menu === 'notification' ? !isNotificationOpen : false,
     );
     setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      dispatch(logoutRequest());
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const unreadCount = (user?.actionItems || []).filter(
@@ -342,40 +340,8 @@ const AppHeader = ({ setIsSearchOpen }) => {
     }
   };
 
-  const UsageTracker = ({ label, used, limit }) => {
-    const percentage = limit > 0 ? (used / limit) * 100 : 0;
-    const isUnlimited = limit === -1;
-
-    return (
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-slate-700">{label}</span>
-          <span className="text-xs text-slate-500">
-            {isUnlimited ? 'Unlimited' : `${used} / ${limit}`}
-          </span>
-        </div>
-        {!isUnlimited && (
-          <div className="w-full bg-slate-200 rounded-full h-2">
-            <div
-              className="h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(percentage, 100)}%` }}
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const handleLogout = async () => {
-    try {
-      dispatch(logoutRequest());
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  // This conditional return is now safe because all hooks are declared above it.
+  // --- SECTION 3: CONDITIONAL RETURN ---
+  // This is the "early return". Because all hooks are defined above, this is safe.
   if (!user) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
@@ -391,22 +357,11 @@ const AppHeader = ({ setIsSearchOpen }) => {
     );
   }
 
-  useEffect(() => {
-    const getActivePlan = async () => {
-      try {
-        const response = await apiInstance.get('/plan/get-user-plan-type');
-        setPlanType(response.data.data.planType);
-        console.log(response.data.data.planType);
-      } catch (error) {
-        console.error('Failed to fetch active plan:', error);
-      }
-    };
-
-    getActivePlan();
-  }, []);
-
+  // --- SECTION 4: MAIN RENDER ---
+  // This JSX is only reached if the early return for !user was not triggered.
   return (
     <>
+      {/* ... Your main header JSX goes here, it remains unchanged ... */}
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md shadow-sm">
         <div className="flex items-center justify-between px-6 py-6 ">
           <div className="flex items-center space-x-3"></div>
@@ -553,191 +508,6 @@ const AppHeader = ({ setIsSearchOpen }) => {
                 )}
               </div>
             )}
-
-            {/* {mounted && (
-              <div>
-                {planType === 'Pro' && (
-                  // --- PRO PLAN UI ---
-                  <div className="relative">
-                    <button
-                      onClick={() => handleMenuToggle('plan')}
-                      className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 transition-all duration-200 border border-yellow-300"
-                    >
-                      <Crown className="w-4 h-4" />
-                      <span className="text-sm font-medium hidden sm:inline">
-                        {planType}
-                      </span>
-                      <ChevronDown className="w-3 h-3" />
-                    </button>
-                    {isPlanOpen && (
-                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                        <div className="p-6 bg-gradient-to-r from-yellow-400 to-yellow-600">
-                          <div className="flex items-center space-x-3 text-white">
-                            <Crown className="w-6 h-6" />
-                            <div>
-                              <h3 className="font-bold text-lg">Pro Plan</h3>
-                              <p className="text-yellow-100 text-sm">
-                                Your current billing cycle usage
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          <UsageTracker
-                            label="AI Applications"
-                            used={usageData.aiJobApply}
-                            limit={effectivePlanLimits.aiJobApply}
-                          />
-                          <UsageTracker
-                            label="AI CV Generations"
-                            used={usageData.aiCvGenerator}
-                            limit={effectivePlanLimits.aiCvGenerator}
-                          />
-                          <UsageTracker
-                            label="AI Cover Letters"
-                            used={usageData.aiCoverLetterGenerator}
-                            limit={effectivePlanLimits.aiCoverLetterGenerator}
-                          />
-                          <UsageTracker
-                            label="Tracked Applications"
-                            used={usageData.applications}
-                            limit={effectivePlanLimits.applicationLimit}
-                          />
-                        </div>
-                        <div className="p-4 border-t border-slate-100">
-                          <button
-                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
-                            onClick={() =>
-                              router.push('/dashboard/subscriptions')
-                            }
-                          >
-                            <Crown className="w-4 h-4" />
-                            <span>Upgrade Plan</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {planType === 'Weekly' && (
-                  // --- WEEKLY PLAN UI ---
-                  <div className="relative">
-                    <button
-                      onClick={() => handleMenuToggle('plan')}
-                      className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300 transition-all duration-200 border border-green-300"
-                    >
-                      <Zap className="w-4 h-4" />
-                      <span className="text-sm font-medium hidden sm:inline">
-                        {planType}
-                      </span>
-                      <ChevronDown className="w-3 h-3" />
-                    </button>
-                    {isPlanOpen && (
-                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                        <div className="p-6 bg-gradient-to-r from-green-400 to-green-600">
-                          <div className="flex items-center space-x-3 text-white">
-                            <Zap className="w-6 h-6" />
-                            <div>
-                              <h3 className="font-bold text-lg">Weekly Plan</h3>
-                              <p className="text-green-100 text-sm">
-                                Your current weekly usage
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          <UsageTracker
-                            label="AI Applications"
-                            used={usageData.aiJobApply}
-                            limit={effectivePlanLimits.aiJobApply}
-                          />
-                          <UsageTracker
-                            label="AI CV Generations"
-                            used={usageData.aiCvGenerator}
-                            limit={effectivePlanLimits.aiCvGenerator}
-                          />
-                          <UsageTracker
-                            label="AI Cover Letters"
-                            used={usageData.aiCoverLetterGenerator}
-                            limit={effectivePlanLimits.aiCoverLetterGenerator}
-                          />
-                          <UsageTracker
-                            label="Tracked Applications"
-                            used={usageData.applications}
-                            limit={effectivePlanLimits.applicationLimit}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {planType === 'Free' && (
-                  // --- FREE PLAN UI ---
-                  <div className="relative">
-                    <button
-                      onClick={() => handleMenuToggle('plan')}
-                      className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-gray-200 hover:to-gray-300 transition-all duration-200 border border-gray-300"
-                    >
-                      <Zap className="w-4 h-4" />
-                      <span className="text-sm font-medium hidden sm:inline">
-                        {planType}
-                      </span>
-                      <ChevronDown className="w-3 h-3" />
-                    </button>
-                    {isPlanOpen && (
-                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                        <div className="p-6 bg-gradient-to-r from-gray-400 to-gray-600">
-                          <div className="flex items-center space-x-3 text-white">
-                            <Zap className="w-6 h-6" />
-                            <div>
-                              <h3 className="font-bold text-lg">Free Plan</h3>
-                              <p className="text-yellow-100 text-sm">
-                                Your current billing cycle usage
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="p-6 space-y-4">
-                          <UsageTracker
-                            label="AI Applications"
-                            used={usageData.aiJobApply}
-                            limit={effectivePlanLimits.aiJobApply}
-                          />
-                          <UsageTracker
-                            label="AI CV Generations"
-                            used={usageData.aiCvGenerator}
-                            limit={effectivePlanLimits.aiCvGenerator}
-                          />
-                          <UsageTracker
-                            label="AI Cover Letters"
-                            used={usageData.aiCoverLetterGenerator}
-                            limit={effectivePlanLimits.aiCoverLetterGenerator}
-                          />
-                          <UsageTracker
-                            label="Tracked Applications"
-                            used={usageData.applications}
-                            limit={effectivePlanLimits.applicationLimit}
-                          />
-                        </div>
-                        <div className="p-4 border-t border-slate-100">
-                          <button
-                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
-                            onClick={() =>
-                              router.push('/dashboard/subscriptions')
-                            }
-                          >
-                            <Crown className="w-4 h-4" />
-                            <span>Upgrade Plan</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )} */}
 
             <div className="relative">
               <button
