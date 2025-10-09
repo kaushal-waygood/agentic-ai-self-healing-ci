@@ -121,7 +121,7 @@ export const Navigation = () => {
                   </button>
                   <input
                     type="text"
-                    placeholder="Search features, docs, help..."
+                    placeholder="Start Job Search (e.g. digital marketing)"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}

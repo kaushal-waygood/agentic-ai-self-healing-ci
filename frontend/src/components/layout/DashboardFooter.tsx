@@ -12,19 +12,19 @@ const DashboardFooter = () => {
 
         <nav className="flex items-center gap-4">
           <a
-            href="#"
+            href="/terms-of-service"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
           >
             Terms
           </a>
           <a
-            href="#"
+            href="/privacy-policy"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
           >
             Privacy
           </a>
           <a
-            href="#"
+            href="/dashboard/support"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
           >
             Support
