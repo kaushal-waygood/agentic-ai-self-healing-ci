@@ -171,6 +171,10 @@ userSchema.methods.generateAccessToken = function () {
   );
 };
 
+userSchema.methods.isPasswordCorrect = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};  
+
 // Password reset token generation
 userSchema.methods.generatePasswordResetToken = function () {
   const resetToken = crypto.randomBytes(20).toString('hex');

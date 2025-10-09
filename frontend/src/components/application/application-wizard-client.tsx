@@ -1517,11 +1517,26 @@ export function ApplicationWizardClient() {
   );
 
   const renderStep = () => {
+    console.log('wizardStep', wizardStep);
     switch (wizardStep) {
       case 'loading':
         return renderLoadingStep();
       case 'job':
-        return renderJobStep();
+        console.log('jobContext', jobContext);
+        return (
+          <SleekCvStep
+            mockUserProfile={mockUserProfile}
+            handleCvContextSubmit={handleCvContextSubmit}
+            setWizardState={navigateToStep}
+            selectedCvId={selectedCvId}
+            setSelectedCvId={setSelectedCvId}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            wizardStep={wizardStep}
+            setWizardStep={navigateToStep}
+            handleCVContext={handleCVContext}
+          />
+        );
       case 'cv':
         return renderCvStep();
       case 'createCv':

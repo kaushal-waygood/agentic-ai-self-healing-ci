@@ -1,47 +1,62 @@
+// app/(auth)/layout.tsx
+
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
-import { Navigation } from '@/components/layout/site-header';
-import { Footer } from '@/components/layout/footer';
 import { useEffect, useState } from 'react';
-import { mockUserProfile } from '@/lib/data/user';
-import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-export default function AuthLayout({
+// You can move these helpers to a shared utils file, e.g., /lib/auth.ts
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() || null;
+  }
+  return null;
+}
+
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expirationTime = payload.exp * 1000;
+    return Date.now() < expirationTime;
+  } catch (error) {
+    return false;
+  }
+}
+
+export default function GuestLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [isVerified, setIsVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // If a user is already logged in, redirect them away from auth pages
-    if (mockUserProfile.email) {
-      const destination =
-        mockUserProfile.role === 'PrimaryAdmin'
-          ? '/primary-admin/dashboard'
-          : '/dashboard';
-      router.push(destination);
+    const accessToken =
+      localStorage.getItem('accessToken') || getCookie('accessToken');
+
+    // If a valid token exists, redirect to the dashboard
+    if (accessToken && isTokenValid(accessToken)) {
+      router.push('/dashboard');
     } else {
-      // If not logged in, allow access to auth pages
-      setIsVerified(true);
+      // Otherwise, the user is not authenticated, so we can show the page
+      setIsLoading(false);
     }
   }, [router]);
 
-  if (!isVerified) {
+  // While checking, show a loading state to prevent flashing the login page
+  if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
       </div>
     );
   }
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Navigation />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </div>
-  );
+  // If not loading and not redirected, show the children (e.g., the Login page)
+  return <>{children}</>;
 }

@@ -1,3 +1,4 @@
+/** @format */
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -276,6 +277,24 @@ const AppHeader = ({ setIsSearchOpen }) => {
     }
   }, [user?._id]);
 
+  // ***** FIXED HOOK *****
+  // This useEffect now sits at the top level with other hooks
+  useEffect(() => {
+    const getActivePlan = async () => {
+      try {
+        const response = await apiInstance.get('/plan/get-user-plan-type');
+        setPlanType(response.data.data.planType);
+      } catch (error) {
+        console.error('Failed to fetch active plan:', error);
+      }
+    };
+
+    // Condition is placed *inside* the effect
+    if (user) {
+      getActivePlan();
+    }
+  }, [user]); // Dependency array ensures it re-runs if the user object changes
+
   const effectivePlanLimits = useMemo(
     () => ({
       aiJobApply: usageLimits.aiApplication,
@@ -356,6 +375,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
     }
   };
 
+  // This conditional return is now safe because all hooks are declared above it.
   if (!user) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">

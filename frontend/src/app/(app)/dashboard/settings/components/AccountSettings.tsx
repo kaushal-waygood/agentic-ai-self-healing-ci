@@ -10,7 +10,7 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import apiInstance from '@/services/api';
 
-const NEXT_PUBLIC_API_URL = 'https://api.zobsai.com';
+const NEXT_PUBLIC_API_URL = 'https://api.dev.zobsai.com';
 
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +34,7 @@ const GoogleLoginButton = () => {
 export const AccountSetting = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  console.log('user', user);
 
   const [statusMessage, setStatusMessage] = useState('');
   const [isError, setIsError] = useState(false);
@@ -55,7 +56,7 @@ export const AccountSetting = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
 
       // Refresh user data to get the updated googleAuth status
-      // dispatch(getProfileRequest());
+      dispatch(getProfileRequest()); // <--- UNCOMMENT THIS LINE
     }
 
     if (error) {
@@ -84,7 +85,6 @@ export const AccountSetting = () => {
       const response = await apiInstance.post('/user/send-test-email', {});
 
       const data = await response.data;
-      console.log(data);
 
       if (response.status === 200) {
         setStatusMessage(data.message || 'Email sent successfully!');
@@ -130,8 +130,6 @@ export const AccountSetting = () => {
       setIsLoading(false);
     }
   };
-
-  console.log(' user in AccountSetting ', user);
 
   return (
     <div className="space-y-6">
@@ -228,7 +226,6 @@ export const AccountSetting = () => {
             >
               {isLoading ? 'Sending...' : 'Send Test Email'}
             </Button>
-
             {user?.googleAuth?.refreshToken && (
               <Button
                 variant="destructive"
