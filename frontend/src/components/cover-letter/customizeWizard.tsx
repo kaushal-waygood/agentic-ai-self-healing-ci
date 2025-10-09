@@ -79,8 +79,8 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
+    <div className="flex items-center justify-center  p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center gap-4">

@@ -128,8 +128,8 @@ const ContextWizard = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 flex items-center justify-center">
-      <div className="w-full">
+    <div className="flex items-center justify-center p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
