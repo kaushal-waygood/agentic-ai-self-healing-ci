@@ -253,8 +253,12 @@ const SignupForm = () => {
           <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-8 sm:p-12 shadow-2xl">
             <div className="text-center mb-10">
               <div className="relative inline-block mb-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-lg">
+                {/* <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-lg">
                   <Rocket className="h-10 w-10 text-white" />
+                </div> */}
+
+                <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
+                  <img src="/logo.png" alt="abc" />
                 </div>
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
                   <Sparkles className="h-4 w-4 text-yellow-800" />

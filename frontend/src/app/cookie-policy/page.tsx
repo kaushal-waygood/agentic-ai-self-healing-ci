@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 // Make sure this path is correct for your project structure
 import { Navigation } from '@/components/layout/site-header';
-
+import { Footer } from '@/components/layout/footer';
 // Data for the sections, making the component dynamic
 const policyData = [
   {
@@ -219,6 +219,7 @@ export default function CookiePolicyPage() {
           </main>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

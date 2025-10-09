@@ -187,7 +187,6 @@ export function Footer() {
             >
               {[
                 { icon: Mail, text: 'hello@zobsai.com', color: 'blue' },
-                { icon: Phone, text: '+1 (555) 123-4567', color: 'emerald' },
                 { icon: MapPin, text: 'San Francisco, CA', color: 'purple' },
               ].map((contact, index) => (
                 <div
@@ -215,14 +214,16 @@ export function Footer() {
               ([section, links], sectionIndex) => (
                 <div key={section}>
                   <h4
-                    className="font-bold text-white mb-6 text-lg flex items-center gap-2"
+                    className="font-bold text-white mb-6 text-lg flex items-center"
                     style={{
                       transform: `translateY(${isVisible ? 0 : 20}px)`,
                       opacity: isVisible ? 1 : 0,
                       transitionDelay: `${sectionIndex * 100}ms`,
                     }}
                   >
-                    <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" />
+                    <div className="" />
+                    {/* dot will displayed if uncomment this */}
+                    {/* <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" /> */}
                     {section.charAt(0).toUpperCase() + section.slice(1)}
                   </h4>
                   <ul className="space-y-3">

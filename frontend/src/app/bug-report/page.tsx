@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import { Navigation } from '@/components/layout/site-header';
+import { Footer } from '@/components/layout/footer';
 
 export default function BugReportPage() {
   const [formData, setFormData] = useState({
@@ -275,6 +276,7 @@ export default function BugReportPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import { Mail, XCircle } from 'lucide-react';
 import { Navigation } from '@/components/layout/site-header';
 import { termsData } from '@/services/dummy/terms-of-service';
-
+import { Footer } from '@/components/layout/footer';
 // This is the same reusable component from your original file
 const LegalSection = ({
   icon: Icon,
@@ -120,6 +120,7 @@ export default function TermsAndConditionsPage() {
           </main>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

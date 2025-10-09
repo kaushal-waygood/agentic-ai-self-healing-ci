@@ -1,4 +1,5 @@
 'use client';
+import ReactMarkdown from 'react-markdown';
 
 import React, { useState, useEffect } from 'react';
 import { JobListing } from '@/lib/data/jobs';
@@ -80,7 +81,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       });
     }
   };
-
+  console.log(job);
   const handleGetMatchScore = async () => {
     setIsModalOpen(true); // Open the modal immediately
     setIsLoadingScore(true);
@@ -121,6 +122,27 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     );
   }
 
+  const normalizeDescription = (desc: string) => {
+    return (
+      desc
+        // turn section titles into h3 markdown headings
+        // .replace(
+        //   /(Job Responsibilities:|Job Qualifications:|Position Title:|Position Description:|Job Description:)/g,
+        //   '### $1',
+        // )
+
+        // Inline labels: "Word:" followed by text on the same line → bold inline
+        // .replace(/(\b[A-Z][A-Za-z ]+):\s*(.+)/g, '**$1:** $2')
+
+        // Any line that ends with ":" becomes a heading
+        .replace(/^(.*?):\s*$/gm, '### $1')
+        .replace(/•\s*/g, '- ') // convert • into markdown list items
+        .replace(/\n\s*\n/g, '\n\n')
+    ); // keep paragraph spacing
+  };
+
+  const formatted = normalizeDescription(job.description);
+
   // --- UI BELOW IS UNCHANGED, ONLY LOGIC FOR RENDERING IS FIXED ---
   return (
     <div className="space-y-6">
@@ -131,7 +153,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             <div className="flex items-center gap-4 text-purple-100">
               <span className="font-semibold">{job.company}</span>
               <span>|</span>
-              <span>{job.jobAddress}</span>
+              <span>{job.location?.city || 'Not speicfied'}</span>
               <span>|</span>
               <span className="capitalize">{job.jobTypes[0]}</span>
             </div>
@@ -228,7 +250,31 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           Job Description
         </h2>
         <div className="prose prose-gray max-w-none text-gray-600 leading-relaxed">
-          <div dangerouslySetInnerHTML={{ __html: job.description }}></div>
+          {/* <div dangerouslySetInnerHTML={{ __html: job.description }}></div> */}
+          <ReactMarkdown
+            components={{
+              // Headings (h3)
+              h3: ({ node, ...props }) => (
+                <h3
+                  className="text-lg font-bold text-gray-900 mt-6 mb-2"
+                  {...props}
+                />
+              ),
+
+              // Lists
+              ul: ({ node, ...props }) => (
+                <ul className="list-disc pl-6 space-y-1" {...props} />
+              ),
+              li: ({ node, ...props }) => (
+                <li className="leading-snug" {...props} />
+              ),
+
+              // Paragraphs
+              p: ({ node, ...props }) => <p className="mb-3" {...props} />,
+            }}
+          >
+            {formatted}
+          </ReactMarkdown>
         </div>
       </div>
 
