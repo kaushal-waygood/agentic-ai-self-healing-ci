@@ -2,8 +2,9 @@
 
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
+import { User } from '../models/User.model.js';
 
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   const accessToken =
     req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
 
@@ -11,17 +12,21 @@ export const authMiddleware = (req, res, next) => {
     return res.status(401).json({ message: 'Access Token is missing' });
   }
 
-  jwt.verify(accessToken, config.accessTokenSecret, (err, decoded) => {
-    if (err) {
-      return res
-        .status(403)
-        .json({ message: 'Invalid or expired access token' });
+  try {
+    const decoded = jwt.verify(accessToken, config.accessTokenSecret);
+
+    const user = await User.findById(decoded.id).select('-password');
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found.' });
     }
 
-    req.user = decoded;
+    req.user = user;
 
     next();
-  });
+  } catch (err) {
+    return res.status(403).json({ message: 'Invalid or expired access token' });
+  }
 };
 
 export const isStudent = (req, res, next) => {

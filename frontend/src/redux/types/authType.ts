@@ -9,6 +9,7 @@ export interface AuthState {
     jobPreference: string;
     organizationName: string;
   };
+  message: string;
   token: string | null;
   loading: boolean;
   error: string | null;

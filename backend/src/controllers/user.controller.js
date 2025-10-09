@@ -9,6 +9,8 @@ import redisClient from '../config/redis.js';
 import { google } from 'googleapis';
 import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
+import jwt from 'jsonwebtoken';
+import { config } from '../config/config.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
 export const SCOPES = [
@@ -872,7 +874,6 @@ export const authGoogle = async (req, res) => {
       state: userId,
       redirect_uri: oauth2Client.redirect_uri, // Add this line
     });
-    console.log('Generated Google auth URL:', url);
     res.redirect(url);
   } catch (error) {
     console.error('Error generating Google auth URL:', error);
@@ -997,9 +998,21 @@ export const testSendEmail = async (req, res) => {
   }
 };
 
+const SERVER_ROOT_URI = process.env.BACKEND_URL;
+const UI_ROOT_URI = process.env.FRONTEND_URL;
+
+// Define the single, correct redirect URI for this flow
+const redirectURI = '/api/v1/user/google/auth/redirect/callback';
+
+const oauth2ClientRedirect = new google.auth.OAuth2(
+  process.env.GOOGLE_AUTH_CLIENT_ID,
+  process.env.GOOGLE_AUTH_CLIENT_SECRET,
+  `${SERVER_ROOT_URI}${redirectURI}`, // Constructs the full, correct callback URL
+);
+
 export const redirectToGoogle = async (req, res) => {
   try {
-    const url = oauth2Client.generateAuthUrl({
+    const url = oauth2ClientRedirect.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
       scope: [
@@ -1010,7 +1023,9 @@ export const redirectToGoogle = async (req, res) => {
     res.redirect(url);
   } catch (error) {
     console.error('Error generating Google auth URL:', error);
-    res.status(500).redirect(`${originUrl}/login?error=google_redirect_failed`);
+    res
+      .status(500)
+      .redirect(`${UI_ROOT_URI}/login?error=google_redirect_failed`);
   }
 };
 
@@ -1020,20 +1035,20 @@ export const handleGoogleCallback = async (req, res) => {
   if (!code) {
     return res
       .status(400)
-      .redirect(`${originUrl}/login?error=missing_auth_code`);
+      .redirect(`${UI_ROOT_URI}/login?error=missing_auth_code`);
   }
 
   try {
-    // 1. Exchange authorization code for tokens
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
+    // Exchange authorization code for tokens using the correct client
+    const { tokens } = await oauth2ClientRedirect.getToken(code);
+    oauth2ClientRedirect.setCredentials(tokens);
 
-    // 2. Get user profile information from Google
+    // Get user profile information from Google
     const { data } = await google.oauth2('v2').userinfo.get({
-      auth: oauth2Client,
+      auth: oauth2ClientRedirect,
     });
 
-    // 3. Find or create a user in your database
+    // Find or create a user in your database
     let user = await User.findOne({ email: data.email });
 
     if (!user) {
@@ -1046,15 +1061,38 @@ export const handleGoogleCallback = async (req, res) => {
       await user.save();
     }
 
-    // 4. Create a JWT for the user session
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
-      expiresIn: '7d',
+    // Create a JWT for the user session
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      config.accessTokenSecret,
+      {
+        expiresIn: '7d',
+      },
+    );
+
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
     });
 
-    // 5. IMPORTANT CHANGE: Redirect to a dedicated frontend callback URL with the token
-    res.redirect(`${originUrl}/auth/callback?token=${token}`);
+    // Redirect to the dedicated frontend callback page with the token
+    res.redirect(
+      `${UI_ROOT_URI}/auth/google/callback?token=${token}&state=${user}`,
+    );
   } catch (error) {
     console.error('Error handling Google callback:', error);
-    res.status(500).redirect(`${originUrl}/login?error=auth_failed`);
+    res.status(500).redirect(`${UI_ROOT_URI}/login?error=auth_failed`);
+  }
+};
+
+// Add this new controller function
+export const getMe = async (req, res) => {
+  const { _id } = req.user;
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
