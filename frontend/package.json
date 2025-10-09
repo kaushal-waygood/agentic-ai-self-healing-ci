@@ -53,7 +53,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "debounce": "^2.2.0",
-    "firebase": "^12.0.0",
+    "firebase": "11",
     "framer-motion": "^11.0.0",
     "genkit": "^1.8.0",
     "html-docx-js": "^0.3.1",
