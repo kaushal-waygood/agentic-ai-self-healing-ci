@@ -8,7 +8,6 @@ import React, {
   useMemo,
 } from 'react';
 import { usePathname } from 'next/navigation';
-// MODIFIED: Import both AppHeader and CommandPalette
 import { AppHeader, CommandPalette } from '@/components/layout/app-header';
 import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
 import DashboardFooter from '@/components/layout/DashboardFooter';
