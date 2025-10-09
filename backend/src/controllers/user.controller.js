@@ -11,12 +11,6 @@ import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
-console.log({
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-  BACKEND_URL: process.env.BACKEND_URL,
-});
-
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/gmail.modify',
@@ -800,7 +794,7 @@ export const oAuth2Callback = async (req, res) => {
 
   if (!code) {
     console.error('No authorization code received from Google.');
-    return res.redirect(`${originUrl}/settings?error=auth_failed_no_code`);
+    return res.redirect(`${originUrl}/dashboard/settings?error=auth_failed_no_code`);
   }
 
   if (!userId) {
@@ -836,7 +830,7 @@ export const oAuth2Callback = async (req, res) => {
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.redirect(`${originUrl}/settings?error=user_not_found`);
+      return res.redirect(`${originUrl}/dashboard/settings?error=user_not_found`);
     }
 
     if (user.email !== userEmail) {
@@ -852,14 +846,14 @@ export const oAuth2Callback = async (req, res) => {
     };
     await user.save();
 
-    res.redirect(`${originUrl}/settings?success=google_connected`);
+    res.redirect(`${originUrl}/dashboard/settings?success=google_connected`);
   } catch (err) {
     console.error(
       'Error during OAuth callback process:',
       err.message,
       err.stack,
     );
-    res.redirect(`${originUrl}/settings?error=auth_failed_internal`);
+    res.redirect(`${originUrl}/dashboard/settings?error=auth_failed_internal`);
   }
 };
 

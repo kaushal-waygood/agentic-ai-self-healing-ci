@@ -12,7 +12,6 @@ dotenv.config();
 
 const numCPUs = os.cpus().length;
 
-
 if (cluster.isPrimary) {
   console.log(
     `✅ Primary ${process.pid} is running in ${process.env.NODE_ENV} mode`,
@@ -29,7 +28,6 @@ if (cluster.isPrimary) {
     cluster.fork();
   });
 } else {
-  // This is a worker process, it already has process.env from the primary.
   connectDb();
 
   app.listen(config.port, () => {
