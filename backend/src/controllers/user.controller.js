@@ -794,7 +794,9 @@ export const oAuth2Callback = async (req, res) => {
 
   if (!code) {
     console.error('No authorization code received from Google.');
-    return res.redirect(`${originUrl}/dashboard/settings?error=auth_failed_no_code`);
+    return res.redirect(
+      `${originUrl}/dashboard/settings?error=auth_failed_no_code`,
+    );
   }
 
   if (!userId) {
@@ -830,7 +832,9 @@ export const oAuth2Callback = async (req, res) => {
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.redirect(`${originUrl}/dashboard/settings?error=user_not_found`);
+      return res.redirect(
+        `${originUrl}/dashboard/settings?error=user_not_found`,
+      );
     }
 
     if (user.email !== userEmail) {
@@ -990,5 +994,67 @@ export const testSendEmail = async (req, res) => {
     res.status(500).json({
       message: 'An error occurred while trying to send the test email.',
     });
+  }
+};
+
+export const redirectToGoogle = async (req, res) => {
+  try {
+    const url = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+      ],
+    });
+    res.redirect(url);
+  } catch (error) {
+    console.error('Error generating Google auth URL:', error);
+    res.status(500).redirect(`${originUrl}/login?error=google_redirect_failed`);
+  }
+};
+
+export const handleGoogleCallback = async (req, res) => {
+  const { code } = req.query;
+
+  if (!code) {
+    return res
+      .status(400)
+      .redirect(`${originUrl}/login?error=missing_auth_code`);
+  }
+
+  try {
+    // 1. Exchange authorization code for tokens
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // 2. Get user profile information from Google
+    const { data } = await google.oauth2('v2').userinfo.get({
+      auth: oauth2Client,
+    });
+
+    // 3. Find or create a user in your database
+    let user = await User.findOne({ email: data.email });
+
+    if (!user) {
+      user = new User({
+        googleId: data.id,
+        name: data.name,
+        email: data.email,
+        profilePicture: data.picture,
+      });
+      await user.save();
+    }
+
+    // 4. Create a JWT for the user session
+    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    // 5. IMPORTANT CHANGE: Redirect to a dedicated frontend callback URL with the token
+    res.redirect(`${originUrl}/auth/callback?token=${token}`);
+  } catch (error) {
+    console.error('Error handling Google callback:', error);
+    res.status(500).redirect(`${originUrl}/login?error=auth_failed`);
   }
 };

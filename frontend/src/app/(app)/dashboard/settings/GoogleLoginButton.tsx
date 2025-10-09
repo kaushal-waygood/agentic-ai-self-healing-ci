@@ -29,7 +29,7 @@ const GoogleLoginButton = () => {
 
   return (
     <Button onClick={handleLogin} disabled={isLoading}>
-      Connect Google
+      Connect Google'}
     </Button>
   );
 };
