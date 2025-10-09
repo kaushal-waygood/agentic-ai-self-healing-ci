@@ -19,6 +19,7 @@ import {
   testSendEmail,
   redirectToGoogle,
   handleGoogleCallback,
+  getMe,
 } from '../controllers/user.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 
@@ -33,6 +34,7 @@ router.post('/google/disconnect', authMiddleware, disconnectGoogle);
 
 router.get('/google/auth/redirect', redirectToGoogle);
 router.get('/google/auth/redirect/callback', handleGoogleCallback);
+router.get('/getme', authMiddleware, getMe);
 
 // Other routes remain the same
 router.post('/google/auth', firebaseAuth);

@@ -19,9 +19,13 @@ import {
   logoutSuccess,
   logoutFailure,
   logoutRequest,
+  getGetMeRequest,
+  getGetMeSuccess,
+  getGetMeFailure,
 } from '../reducers/authReducer';
 import {
   changePassword,
+  getMe,
   getProfile,
   login,
   logout,
@@ -61,7 +65,7 @@ function* signupSaga(
 
     const { data } = response;
 
-    yield put(signupSuccess({ user }));
+    yield put(signupSuccess({ user: data.user, token: data.accessToken }));
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Signup failed';
@@ -94,6 +98,17 @@ function* changePasswordSaga(action: PayloadAction<any>): SagaIterator {
   }
 }
 
+function* getGetMeSaga(): SagaIterator {
+  try {
+    const response = yield call(getMe);
+    yield put(getGetMeSuccess(response.data));
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to fetch user profile';
+    yield put(getGetMeFailure(errorMessage));
+  }
+}
+
 function* logoutSaga(): SagaIterator {
   try {
     const response = yield call(logout);
@@ -111,4 +126,5 @@ export function* watchAuth(): SagaIterator {
   yield takeLatest(getProfileRequest.type, getUserProfileSaga);
   yield takeLatest(changePasswordRequest.type, changePasswordSaga);
   yield takeLatest(logoutRequest.type, logoutSaga);
+  yield takeLatest(getGetMeRequest.type, getGetMeSaga);
 }

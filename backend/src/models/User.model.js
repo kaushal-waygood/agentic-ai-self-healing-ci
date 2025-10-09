@@ -38,6 +38,7 @@ const userSchema = new Schema(
       required: function () {
         return this.authMethod === 'local'; // Only required for local auth
       },
+      default: 'individual',
     },
     fullName: {
       type: String,
@@ -173,7 +174,7 @@ userSchema.methods.generateAccessToken = function () {
 
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
-};  
+};
 
 // Password reset token generation
 userSchema.methods.generatePasswordResetToken = function () {
