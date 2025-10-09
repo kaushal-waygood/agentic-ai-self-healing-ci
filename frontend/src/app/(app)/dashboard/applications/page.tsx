@@ -422,15 +422,15 @@ export default function ApplicationsPage() {
       </div>
       <div className="relative z-10 p-4 sm:p-6 max-w-7xl mx-auto">
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center gap-3 mb-4 p-3 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-white/20">
+          <div className="inline-flex items-center gap-3 mb-4 p-3  dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-white/20">
             <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
               <FileCheck2 className="h-6 w-6 text-white" />
             </div>
             <div className="text-left">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 My Applications
               </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="ttext-gray-600 text-lg max-w-2xl mx-auto">
                 Track your career journey
               </p>
             </div>
@@ -556,7 +556,7 @@ export default function ApplicationsPage() {
         </div>
 
         {filteredApplications.length > 0 && (
-          <div className="mb-6 flex items-center gap-3 p-4 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-white/20">
+          <div className="mb-2 flex items-center gap-3 p-4 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-white/20">
             <div
               className={`relative w-5 h-5 rounded border-2 cursor-pointer transition-all duration-300 ${
                 isSelectAllChecked

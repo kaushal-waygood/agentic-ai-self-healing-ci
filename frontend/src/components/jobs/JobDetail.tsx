@@ -162,8 +162,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 className="w-16 h-16 object-contain rounded"
               />
             ) : (
-              <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-600 rounded">
-                <Sparkles className="w-6 h-6 text-white" />
+              <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
+                <img src="/logo.png" alt="abc" />
               </div>
             )}
           </div>
