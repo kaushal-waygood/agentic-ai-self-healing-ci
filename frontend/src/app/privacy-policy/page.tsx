@@ -6,7 +6,7 @@ import { Mail, CheckCircle } from 'lucide-react';
 import { Navigation } from '@/components/layout/site-header';
 // Import the data from the file you just created
 import { privacyData } from '@/services/dummy/privacy-policy';
-
+import { Footer } from '@/components/layout/footer';
 // This is the same reusable component from your original file
 const PolicySection = ({
   icon: Icon,
@@ -141,6 +141,7 @@ export default function PrivacyPolicyPage() {
           </main>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
