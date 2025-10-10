@@ -12,8 +12,8 @@ resources:
   - zobsai-backend-deployment.yaml
   - zobsai-frontend-deployment.yaml
 
-# Correct way to define labels (map of key-value)
-commonLabels:
+# Use 'labels' instead of deprecated 'commonLabels'
+labels:
   app.kubernetes.io/managed-by: kustomize
   app.kubernetes.io/name: zobsai
 
