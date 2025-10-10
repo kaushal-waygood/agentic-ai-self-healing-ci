@@ -13,7 +13,7 @@ const userSchema = new Schema(
     },
     authMethod: {
       type: String,
-      enum: ['google', 'local'],
+      enum: ['google', 'local', 'firebase'],
       default: 'local',
     },
     googleAuth: {
