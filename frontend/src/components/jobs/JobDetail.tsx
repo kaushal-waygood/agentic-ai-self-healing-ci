@@ -191,7 +191,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2">
-              <Button
+              {/* tailor & apply button  */}
+              {/* <Button
                 asChild
                 className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
               >
@@ -202,7 +203,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   <FilePlus2 className="w-4 h-4" /> Tailor & Apply
                 </Link>
-              </Button>
+              </Button> */}
               {job.applyMethod.url && (
                 <Button
                   onClick={handleApplyOnSite}
