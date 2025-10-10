@@ -254,20 +254,52 @@ export const useProfile = () => {
         excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
       });
     }
-  }, [
-    students,
-    personalInfoForm,
-    careerDetailsForm,
-    narrativesForm,
-    jobSearchForm,
-  ]);
+  }, [students]);
 
-  const defaultValues: Partial<ProfileFormValues> = {
-    fullName: students?.fullName,
-    email: students?.email,
-    phone: students?.phone,
-    jobPreference: students?.jobRole,
-    // ... other default values
+  const defaultValues: ProfileFormValues = {
+    fullName: students.fullName,
+    email: students.email,
+    phone: students.phone,
+    jobPreference: students.jobRole,
+    education: (students.education || []).map((edu) => ({
+      institution: edu.institute || '',
+      degree: edu.degree || '',
+      fieldOfStudy: edu.fieldOfStudy || '',
+      country: edu.country || '',
+      gpa: edu.grade || '',
+      startDate: edu.startDate || '',
+      endDate: edu.endDate || '',
+      _id: edu._id || '',
+      educationId: edu.educationId || '',
+    })),
+    experience: students.experience,
+    projects: (students.projects || []).map((proj) => ({
+      name: proj.projectName || '',
+      description: proj.description || '',
+      technologies: proj.technologies || '',
+      link: proj.link || '',
+      startDate: proj.startDate || '',
+      endDate: proj.endDate || '',
+      isCurrent: proj.isCurrent || false,
+      _id: proj._id || '',
+    })),
+    skills: students.skills || [],
+    // Narratives
+    narrativeChallenges: mockUserProfile.narratives.challenges,
+    narrativeAchievements: mockUserProfile.narratives.achievements,
+    narrativeAppreciation: mockUserProfile.narratives.appreciation,
+    // Job Search Preferences
+    preferredCountry: mockUserProfile.preferredCountry || 'US',
+    preferredLanguage: mockUserProfile.preferredLanguage || 'en',
+    preferredDatePosted: mockUserProfile.preferredDatePosted || 'all',
+    prefersWorkFromHome: mockUserProfile.prefersWorkFromHome || false,
+    preferredEmploymentTypes: mockUserProfile.preferredEmploymentTypes || [],
+    preferredJobRequirements: mockUserProfile.preferredJobRequirements || [],
+    preferredSearchRadius:
+      mockUserProfile.preferredSearchRadius === undefined
+        ? undefined
+        : mockUserProfile.preferredSearchRadius,
+    excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
   };
 
   const handleDeleteSkills = (index: number) => {
