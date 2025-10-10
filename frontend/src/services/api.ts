@@ -48,7 +48,6 @@ apiInstance.interceptors.request.use((config) => {
     config.headers['Content-Type'] = 'application/json';
   }
 
-  // Add access token to requests if it exists
   const accessToken = safeLocalStorage.getItem('accessToken');
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`;
