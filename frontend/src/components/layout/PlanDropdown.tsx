@@ -10,8 +10,8 @@ const planConfig = {
     Icon: Zap,
     title: 'Free Plan',
     buttonClasses:
-      'flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-gray-200 hover:to-gray-300 transition-all duration-200 border border-gray-300',
-    headerClasses: 'p-6 bg-gradient-to-r from-gray-400 to-gray-600',
+      'flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-100 to-gray-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 transition-all duration-200 border border-blue-300',
+    headerClasses: 'p-6 bg-gradient-to-r from-blue-400 to-blue-600',
   },
   Weekly: {
     Icon: Zap,
@@ -85,15 +85,20 @@ const PlanDropdown = ({
               limit={planLimits.applicationLimit}
             />
           </div>
-          <div className="p-4 border-t border-slate-100">
-            <button
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
-              onClick={() => router.push('/dashboard/subscriptions')}
-            >
-              <Crown className="w-4 h-4" />
-              <span>Upgrade Plan</span>
-            </button>
-          </div>
+
+          {planType === 'free' ? (
+            <div className="p-4 border-t border-slate-100">
+              <button
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+                onClick={() => router.push('/dashboard/subscriptions')}
+              >
+                <Crown className="w-4 h-4" />
+                <span>Upgrade Plan</span>
+              </button>
+            </div>
+          ) : (
+            <div></div>
+          )}
         </div>
       )}
     </div>
