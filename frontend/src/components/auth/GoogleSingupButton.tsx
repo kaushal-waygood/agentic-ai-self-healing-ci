@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button'; // Assuming ShadCN UI button
 import { Loader2 } from 'lucide-react';
 
-const API_URL = 'http://127.0.0.1:8080';
+const API_URL = 'https://api.zobsai.com';
 
 export function GoogleSignInButton({ authType = 'login' }) {
   const [isLoading, setIsLoading] = useState(false);
