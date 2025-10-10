@@ -176,7 +176,7 @@ export function Pricing() {
         ) : (
           <>
             {/* Plans Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-start mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start mb-16">
               {pricingData.map((plan, index) => (
                 <div
                   key={plan._id}
