@@ -421,7 +421,9 @@ export function CvGeneratorClient() {
         `students/resume/saved/${savedCv._id}`,
       );
 
-      const loadedData = response.data.data;
+      const loadedData = response.data.html;
+
+      console.log('Loaded CV data:', loadedData);
 
       setCurrentCvContent(loadedData.html);
       setGeneratedCvOutput({
@@ -442,7 +444,7 @@ export function CvGeneratorClient() {
       setWizardStep('result');
       toast({
         title: 'CV Loaded',
-        description: `"${loadedData.title}" is now in the editor.`,
+        description: `"${loadedData.htmlCVTitle}" is now in the editor.`,
       });
     } catch (error) {
       toast({

@@ -6,15 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Eye,
-  List,
-  Calendar,
-  Briefcase,
-  FileText,
-  Sparkles,
-  Download,
-} from 'lucide-react';
+import { Eye, List, FileText, Sparkles } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 const SavedCvs = ({ resume, loadSavedCv }: any) => {

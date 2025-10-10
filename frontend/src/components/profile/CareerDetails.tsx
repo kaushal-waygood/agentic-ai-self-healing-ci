@@ -259,7 +259,7 @@ export function CareerDetailsComponent({
                           <Input
                             {...field}
                             placeholder="e.g., Software Engineer"
-                            readOnly={!isJobPrefEditable}
+                            readOnly={isJobPrefEditable}
                             className={`flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-800 placeholder-gray-400 font-medium ${
                               isJobPrefEditable ? 'text-purple-800' : ''
                             }`}

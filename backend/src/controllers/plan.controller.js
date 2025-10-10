@@ -539,7 +539,7 @@ export const getActivePlan = async (req, res) => {
         message: 'No active plan found.',
         data: {
           isActive: false,
-          planType: 'No Active Plan', // Default to 'Free' plan if no active subscription
+          planType: 'Free', // Default to 'Free' plan if no active subscription
         },
       });
     }
