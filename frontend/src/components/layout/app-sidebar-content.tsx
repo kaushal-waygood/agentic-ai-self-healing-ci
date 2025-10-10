@@ -116,7 +116,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
   const getPlanColor = (plan) => {
     switch (plan) {
       case 'Free':
-        return 'from-slate-400 to-slate-600';
+        return 'from-blue-400 to-blue-600';
       case 'Weekly':
         return 'from-green-400 to-green-600';
       case 'Pro':
