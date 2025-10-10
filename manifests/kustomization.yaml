@@ -12,11 +12,3 @@ resources:
   - zobsai-backend-deployment.yaml
   - zobsai-frontend-deployment.yaml
 
-# Use 'labels' instead of deprecated 'commonLabels'
-
-
-images:
-  - name: ghcr.io/ZobsAI-com/zobsai-backend
-    newTag: latest
-  - name: ghcr.io/ZobsAI-com/zobsai-frontend
-    newTag: latest
