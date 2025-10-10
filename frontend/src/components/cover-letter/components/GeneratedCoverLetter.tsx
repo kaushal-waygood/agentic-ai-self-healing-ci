@@ -29,7 +29,6 @@ const GeneratedCoverLetter = ({
   handleRegenerate,
   customizationOptions, // Pass the customization state here
 }: any) => {
-  console.log('GeneratedLetter', generatedLetter);
   return (
     <div className="min-h-screen  p-4">
       <div className="max-w-7xl mx-auto">
