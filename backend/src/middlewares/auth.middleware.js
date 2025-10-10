@@ -50,6 +50,7 @@ export const isOrgAdmin = (req, res, next) => {
   next();
 };
 export const isSuperAdmin = (req, res, next) => {
+  console.log(req.user.role);
   if (req.user.role !== 'super-admin') {
     return res
       .status(403)

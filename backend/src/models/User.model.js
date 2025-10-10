@@ -13,16 +13,14 @@ const userSchema = new Schema(
     },
     authMethod: {
       type: String,
-      enum: ['google', 'local'], // 'google' is missing here
-      default: 'local', // <-- This is the problem
+      enum: ['google', 'local'],
+      default: 'local',
     },
-    // +++++++++++++ START: ADDED FOR GOOGLE OAUTH +++++++++++++
     googleAuth: {
       refreshToken: { type: String },
       accessToken: { type: String },
       expiryDate: { type: Number },
     },
-    // +++++++++++++  END: ADDED FOR GOOGLE OAUTH  +++++++++++++
     tokens: {
       access_token: String,
       scope: String,

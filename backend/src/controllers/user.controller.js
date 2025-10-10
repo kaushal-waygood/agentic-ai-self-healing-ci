@@ -1109,7 +1109,6 @@ export const getMe = async (req, res) => {
     }
   }
 
-  console.log(_id, id);
   try {
     const user = await User.findById(_id).select('-password');
     res.status(200).json(user);
