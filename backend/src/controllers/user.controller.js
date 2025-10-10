@@ -15,7 +15,6 @@ import { config } from '../config/config.js';
 
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/gmail.send',
 ];
 
@@ -53,7 +52,7 @@ export const firebaseAuth = async (req, res) => {
       // New user - create with default values
       user = await User.create({
         firebaseUid: uid,
-        authMethod: 'firebase',
+        authMethod: 'google',
         email: email.toLowerCase(),
         fullName: name || 'Anonymous',
         avatar: picture || '',
@@ -63,7 +62,7 @@ export const firebaseAuth = async (req, res) => {
       });
     } else if (!user.firebaseUid) {
       user.firebaseUid = uid;
-      user.authMethod = 'firebase';
+      user.authMethod = 'google';
       await user.save();
     }
 
@@ -643,7 +642,6 @@ export const changePassword = async (req, res) => {
   }
 };
 
-// --- This function is correct, no changes needed ---
 const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
   if (!html) {
     throw new Error('HTML content is required.');

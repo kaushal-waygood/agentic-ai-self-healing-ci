@@ -27,7 +27,8 @@ export const Navigation = () => {
 
   // On component mount, check if the access token cookie exists
   useEffect(() => {
-    const accessToken = getCookie('accessToken');
+    const accessToken =
+      localStorage.getItem('accessToken') || getCookie('accessToken');
     setToken(accessToken);
   }, []);
 
