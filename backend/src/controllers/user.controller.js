@@ -998,15 +998,15 @@ export const testSendEmail = async (req, res) => {
   }
 };
 
-const SERVER_ROOT_URI = process.env.BACKEND_URL;
-const UI_ROOT_URI = process.env.FRONTEND_URL;
+const SERVER_ROOT_URI = 'http://127.0.0.1:8080';
+const UI_ROOT_URI = 'http://127.0.0.1:3000';
 
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
 
 const oauth2ClientRedirect = new google.auth.OAuth2(
-  process.env.GOOGLE_AUTH_CLIENT_ID,
-  process.env.GOOGLE_AUTH_CLIENT_SECRET,
+  '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
+  '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',
   `${SERVER_ROOT_URI}${redirectURI}`, // Constructs the full, correct callback URL
 );
 
@@ -1053,10 +1053,16 @@ export const handleGoogleCallback = async (req, res) => {
 
     if (!user) {
       user = new User({
-        googleId: data.id,
-        name: data.name,
+        // FIX 1: Map Google's 'name' to your schema's 'fullName'
+        fullName: data.name,
         email: data.email,
-        profilePicture: data.picture,
+        googleId: data.id, // Assuming you have a googleId field
+        avatar: data.picture,
+
+        // FIX 2: Explicitly set the authMethod to prevent password requirement
+        authMethod: 'google',
+        // The user is considered verified if they signed up via Google
+        isEmailVerified: true,
       });
       await user.save();
     }
@@ -1088,9 +1094,24 @@ export const handleGoogleCallback = async (req, res) => {
 
 // Add this new controller function
 export const getMe = async (req, res) => {
-  const { _id } = req.user;
+  const { id = '', _id = '' } = req.user;
+
+  if (!_id || !id) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  if (id) {
+    try {
+      const user = await User.findById(id).select('-password');
+      res.status(200).json(user);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  console.log(_id, id);
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findById(_id).select('-password');
     res.status(200).json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });

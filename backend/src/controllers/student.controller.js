@@ -21,9 +21,11 @@ import {
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
+  console.log(_id);
 
   try {
     const user = await User.findById(_id);
+    console.log(user);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (user.role !== 'student') {
