@@ -13,16 +13,14 @@ const userSchema = new Schema(
     },
     authMethod: {
       type: String,
-      enum: ['firebase', 'local'],
+      enum: ['google', 'local'],
       default: 'local',
     },
-    // +++++++++++++ START: ADDED FOR GOOGLE OAUTH +++++++++++++
     googleAuth: {
       refreshToken: { type: String },
       accessToken: { type: String },
       expiryDate: { type: Number },
     },
-    // +++++++++++++  END: ADDED FOR GOOGLE OAUTH  +++++++++++++
     tokens: {
       access_token: String,
       scope: String,
@@ -53,9 +51,9 @@ const userSchema = new Schema(
     password: {
       type: String,
       required: function () {
-        return this.authMethod === 'local'; // Only required for local auth
+        // This function returns true if the authMethod is 'local'
+        return this.authMethod === 'local';
       },
-      select: false, // Exclude by default from queries
     },
     jobRole: {
       type: String,

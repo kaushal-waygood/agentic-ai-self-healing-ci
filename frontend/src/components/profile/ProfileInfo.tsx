@@ -22,12 +22,12 @@ const ProfileInfo = ({
   isPhoneEditable,
   toggleEmailEdit,
   setHandleName,
-  handleCancelEdit, // New prop for the cancel button
+  handleCancelEdit,
+  togglePhoneEdit,
 }: any) => {
   return (
     <div className="max-w-full mx-auto p-4 sm:p-6">
       <Card className="relative overflow-hidden shadow-lg border-0 bg-white/60 backdrop-blur-sm">
-        {/* Decorative Background Elements */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/10 to-cyan-400/10 rounded-full -translate-y-16 translate-x-16 blur-xl"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/10 to-purple-400/10 rounded-full translate-y-12 -translate-x-12 blur-xl"></div>
 
@@ -129,7 +129,6 @@ const ProfileInfo = ({
                   </FormItem>
                 )}
               />
-
               {/* Email Field */}
               <FormField
                 control={personalInfoForm.control}
@@ -198,31 +197,31 @@ const ProfileInfo = ({
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={personalInfoForm.control}
                 name="phone"
                 render={({ field }) => (
                   <FormItem className="group">
                     <FormLabel className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                      <Phone className="h-4 w-4 text-cyan-500" />
-                      Phone Number{' '}
+                      <Phone className="h-4 w-4 text-green-500" />{' '}
+                      {/* Changed color for distinction */}
+                      Phone Number
                     </FormLabel>
                     <div
                       className={`flex items-center gap-3 p-1 pr-2 rounded-xl border-2 transition-all duration-300 ${
-                        isEmailEditable
-                          ? 'border-cyan-400 bg-white shadow-md ring-2 ring-cyan-100'
-                          : 'border-gray-200 bg-gray-50 group-hover:border-cyan-300 group-hover:bg-white'
+                        isPhoneEditable // <-- CORRECT
+                          ? 'border-green-400 bg-white shadow-md ring-2 ring-green-100'
+                          : 'border-gray-200 bg-gray-50 group-hover:border-green-300 group-hover:bg-white'
                       }`}
                     >
                       <FormControl>
                         <Input
                           {...field}
-                          type="email"
+                          type="tel"
                           placeholder="+91 1234567890"
-                          readOnly={!isEmailEditable}
+                          readOnly={!isPhoneEditable} // <-- CORRECT
                           className={`flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-800 placeholder-gray-400 font-medium ${
-                            isEmailEditable ? 'text-cyan-800' : ''
+                            isPhoneEditable ? 'text-green-800' : ''
                           }`}
                         />
                       </FormControl>
@@ -253,9 +252,9 @@ const ProfileInfo = ({
                           <Button
                             type="button"
                             size="icon"
-                            onClick={toggleEmailEdit}
+                            onClick={togglePhoneEdit} // <-- CORRECT
                             variant="outline"
-                            className="h-8 w-8 bg-white/50 rounded-full border-gray-300 group-hover:border-cyan-400 group-hover:text-cyan-500"
+                            className="h-8 w-8 bg-white/50 rounded-full border-gray-300 group-hover:border-green-400 group-hover:text-green-500"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>

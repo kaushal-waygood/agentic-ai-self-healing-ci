@@ -89,6 +89,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handleEmail,
     setHandleEmail,
     handleDeleteProject,
+    togglePhoneEdit,
 
     //form
     personalInfoForm,
@@ -197,6 +198,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         handlePersonalInfoSubmit={handlePersonalInfoSubmit}
         handlePersonalInfoEdit={handlePersonalInfoEdit}
         personalInfoForm={personalInfoForm}
+        setHandleName={setHandleName}
+        setHandleEmail={setHandleEmail}
+        togglePhoneEdit={togglePhoneEdit}
       />
 
       {/* Career Details Card */}
