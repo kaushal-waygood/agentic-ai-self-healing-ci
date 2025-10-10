@@ -13,9 +13,7 @@ resources:
   - zobsai-frontend-deployment.yaml
 
 # Use 'labels' instead of deprecated 'commonLabels'
-labels:
-  app.kubernetes.io/managed-by: kustomize
-  app.kubernetes.io/name: zobsai
+
 
 images:
   - name: ghcr.io/ZobsAI-com/zobsai-backend
