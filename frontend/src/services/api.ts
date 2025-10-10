@@ -6,7 +6,7 @@ console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_NODE_ENV);
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
-    ? process.env.NEXT_PUBLIC_API_URL
+    ? "https://api.zobsai.com"
     : 'http://127.0.0.1:8080';
 
 const safeLocalStorage = {
