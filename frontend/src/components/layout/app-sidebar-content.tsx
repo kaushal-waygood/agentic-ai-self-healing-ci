@@ -117,8 +117,12 @@ export const AppSidebarContent = ({ isCollapsed }) => {
     switch (plan) {
       case 'Free':
         return 'from-slate-400 to-slate-600';
+      case 'Weekly':
+        return 'from-green-400 to-green-600';
       case 'Pro':
         return 'from-yellow-400 to-yellow-600';
+      case 'Monthly':
+        return 'from-purple-400 to-purple-600';
       case 'OrgAdmin':
         return 'from-blue-400 to-blue-600';
       default:
@@ -271,25 +275,28 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 <p className="text-xs text-slate-500">Welcome back!</p>
               </div>
             </div>
-            {user.plan !== 'Pro' && user.plan !== 'OrgAdmin' && (
-              <div className="p-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Zap className="w-4 h-4" />
-                  <span className="font-semibold text-sm">
-                    Unlock More Features
-                  </span>
+            {user.plan !== 'Pro' &&
+              user.plan !== 'OrgAdmin' &&
+              user.plan !== 'Monthly' &&
+              user.plan !== 'Weekly' && (
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Zap className="w-4 h-4" />
+                    <span className="font-semibold text-sm">
+                      Unlock More Features
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-100 mb-3">
+                    Upgrade to get unlimited AI generations.
+                  </p>
+                  <button
+                    className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors"
+                    onClick={() => router.push('/dashboard/subscriptions')}
+                  >
+                    Upgrade Now
+                  </button>
                 </div>
-                <p className="text-xs text-purple-100 mb-3">
-                  Upgrade to get unlimited AI generations.
-                </p>
-                <button
-                  className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors"
-                  onClick={() => router.push('/dashboard/subscriptions')}
-                >
-                  Upgrade Now
-                </button>
-              </div>
-            )}
+              )}
           </div>
         ) : (
           <div className="flex justify-center">

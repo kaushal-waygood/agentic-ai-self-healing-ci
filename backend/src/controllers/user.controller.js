@@ -998,8 +998,8 @@ export const testSendEmail = async (req, res) => {
   }
 };
 
-const SERVER_ROOT_URI = 'http://127.0.0.1:8080';
-const UI_ROOT_URI = 'http://127.0.0.1:3000';
+const SERVER_ROOT_URI = process.env.BACKEND_URL;
+const UI_ROOT_URI = process.env.FRONTEND_URL;
 
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
