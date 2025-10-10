@@ -345,7 +345,7 @@ export function CareerDetailsComponent({
                     <Button
                       type="button"
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevent accordion from toggling
+                        e.stopPropagation();
                         setAddEdu(true);
                       }}
                       className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
@@ -353,7 +353,6 @@ export function CareerDetailsComponent({
                       <PlusCircle className="mr-2 h-5 w-5" />
                       Add Education
                     </Button>
-                    {/* Added consistent chevron icon */}
                     <ChevronDown className="h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180" />
                   </div>
                 </div>
