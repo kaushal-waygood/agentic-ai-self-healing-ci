@@ -2,13 +2,7 @@
 
 import { PageHeader } from '@/components/common/page-header';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+
 import {
   LayoutDashboard,
   Send,
@@ -29,18 +23,7 @@ import {
   Bookmark,
 } from 'lucide-react';
 import Link from 'next/link';
-import { mockApplications } from '@/lib/data/applications';
-import {
-  mockUserProfile,
-  UserProfile,
-  ActionItem,
-  mockOrganizations,
-  planTierOrder,
-} from '@/lib/data/user';
-import {
-  mockSubscriptionPlans,
-  SubscriptionPlan,
-} from '@/lib/data/subscriptions';
+import { mockUserProfile, ActionItem } from '@/lib/data/user';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -48,7 +31,6 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
-// Recharts imports
 import {
   BarChart,
   Bar,
@@ -57,9 +39,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-
-// --- Reusable Dashboard Components ---
-// (StatCard, ToolkitButton, ProfileReadinessCard, ActionItemCard components remain the same)
 
 export function StatCard({
   title,
@@ -302,8 +281,6 @@ export function ActionItemCard({ item, onMarkAsRead }) {
     </Link>
   );
 }
-
-// --- Main Dashboard Page Component ---
 
 export default function DashboardPage() {
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);

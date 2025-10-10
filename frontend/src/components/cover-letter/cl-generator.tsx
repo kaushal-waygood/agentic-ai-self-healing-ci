@@ -24,8 +24,8 @@ const ClGenerator = ({
   const [expandedCv, setExpandedCv] = useState(null);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="w-full">
+    <div className="p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Progress indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-4">
@@ -79,7 +79,7 @@ const ClGenerator = ({
               </h3>
 
               <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                {mockUserProfile.savedCvs.map((cv) => (
+                {mockUserProfile.savedCvs.map((cv: any) => (
                   <div
                     key={cv.id}
                     className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
@@ -109,7 +109,7 @@ const ClGenerator = ({
                             </h4>
                             <div className="flex items-center space-x-4 mt-1">
                               <span className="text-sm text-gray-500 flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
+                                <Calendar className="w-4 h-4 mr-1.5" />
                                 {cv.lastModified}
                               </span>
                               <div className="flex space-x-1">
@@ -172,7 +172,7 @@ const ClGenerator = ({
 
               {selectedSavedCvId && (
                 <button
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
+                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
                   onClick={() =>
                     handleSetCvContext('saved', {
                       value:

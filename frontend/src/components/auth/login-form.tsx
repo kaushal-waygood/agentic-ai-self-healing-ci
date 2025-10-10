@@ -25,7 +25,7 @@ import {
 // YOUR UTILS AND SERVICES (ensure paths are correct)
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
-import { successToast } from '@/utils/toasts';
+import { successToast, errorToast } from '@/utils/toasts';
 import { loginRequest } from '@/redux/reducers/authReducer';
 import { GoogleSignInButton } from './GoogleSingupButton';
 
@@ -87,9 +87,12 @@ const LoginForm = () => {
       if (user) {
         router.push('/dashboard');
         successToast('Login successful! Redirecting to your dashboard...');
+      } else {
+        errorToast('Invalid email or password');
       }
     } catch (error) {
       console.error('Login error:', error);
+
       toast({
         title: 'Login Failed',
         description: 'Invalid email or password. Please try again.',
@@ -130,7 +133,7 @@ const LoginForm = () => {
 
   return (
     // THEME CHANGE: Main background changed to a light gradient.
-    <div className="mt-10 h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8 relative overflow-hidden">
+    <div className="mt-[-25px] h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8 relative overflow-hidden">
       {/* THEME CHANGE: Animated blobs softened for a light background. */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full filter blur-3xl opacity-40 animate-pulse hidden sm:block"></div>
@@ -156,8 +159,11 @@ const LoginForm = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="relative inline-block mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center transform transition-all duration-300 hover:rotate-12 shadow-lg">
+              {/* <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center transform transition-all duration-300 hover:rotate-12 shadow-lg">
                 <Rocket className="h-8 w-8 text-white" />
+              </div> */}
+              <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
+                <img src="/logo.png" alt="abc" />
               </div>
               <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
                 <Sparkles className="h-3 w-3 text-yellow-800" />

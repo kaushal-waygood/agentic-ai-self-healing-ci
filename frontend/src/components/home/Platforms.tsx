@@ -26,7 +26,7 @@ export function Platforms() {
 
   const PlatformCard = ({ platform }) => {
     return (
-      <div className="h-full p-1">
+      <div className="h-full p-1 ">
         {' '}
         {/* Padding for hover effect */}
         <div className="relative bg-white/50 backdrop-blur-2xl border border-white/20 rounded-3xl overflow-hidden h-full transition-all duration-300 group shadow-lg hover:shadow-2xl hover:border-white/40">
@@ -91,7 +91,7 @@ export function Platforms() {
 
   return (
     <section
-      className="py-8 bg-slate-50 relative overflow-hidden"
+      className="py-8  bg-slate-50 relative overflow-hidden"
       id="platforms"
     >
       {/* Background Grid Pattern */}
@@ -139,7 +139,7 @@ export function Platforms() {
               640: { slidesPerView: 2, spaceBetween: 24 },
               1024: { slidesPerView: 3, spaceBetween: 32 },
             }}
-            className="!pb-20" // Add padding for pagination and navigation
+            className="!pb-8" // Add padding for pagination and navigation
           >
             {platforms.map((platform, index) => (
               <SwiperSlide key={index} className="h-auto">

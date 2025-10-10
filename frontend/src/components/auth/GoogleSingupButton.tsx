@@ -1,62 +1,59 @@
-import { useState } from 'react';
-import { auth, googleProvider } from '@/lib/firebase-client';
-import { signInWithPopup } from 'firebase/auth';
-import axios from 'axios';
-import { Button } from '../ui/button';
-import { Loader2 } from 'lucide-react';
-import apiInstance from '@/services/api';
+'use client';
 
-export function GoogleSignInButton({ form }) {
+import { useState } from 'react';
+import { Button } from '@/components/ui/button'; // Assuming ShadCN UI button
+import { Loader2 } from 'lucide-react';
+
+const API_URL = 'http://127.0.0.1:8080';
+
+export function GoogleSignInButton({ authType = 'login' }) {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleAuth = () => {
     setIsLoading(true);
-    try {
-      // 1. Sign in with Google
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
 
-      // 2. Get ID token
-      const idToken = await user.getIdToken();
+    // 1. Define the backend endpoint that starts the Google OAuth flow.
+    const googleAuthUrl = `${API_URL}/api/v1/user/google/auth/redirect`;
 
-      // 3. Verify with backend
-      const response = await apiInstance.post('/user/google/auth', { idToken });
-      localStorage.setItem('accessToken', response.data.accessToken);
+    // 2. Redirect the user's browser to your backend.
+    window.location.href = googleAuthUrl;
 
-      // 4. Handle success (redirect or update state)
-      window.location.href = '/dashboard'; // Example redirect
-    } catch (error) {
-      console.error('Google login error:', error);
-      if (error.code === 'auth/popup-closed-by-user') {
-        // User closed the popup - no action needed
-      } else {
-        alert(`Login failed: ${error.message}`);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    // 3. Fallback to reset loading state if redirect fails (unlikely)
+    setTimeout(() => setIsLoading(false), 5000);
   };
+
+  // Determine button text based on the authType prop
+  const buttonText =
+    authType === 'signup' ? 'Sign up with Google' : 'Login with Google';
+  const loadingText =
+    authType === 'signup'
+      ? 'Redirecting to Google...'
+      : 'Redirecting to Google...';
 
   return (
     <Button
-      onClick={handleGoogleLogin}
+      onClick={handleGoogleAuth}
       variant="outline"
-      className="w-full h-12 bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 
-                 transition-all duration-200 ease-in-out transform hover:scale-[1.02] 
+      className="w-full h-12 bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400
+                 transition-all duration-200 ease-in-out transform hover:scale-[1.02]
                  focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm hover:shadow-md
-                 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
-      disabled={isLoading || form?.formState?.isSubmitting}
+                 disabled:opacity-60 disabled:cursor-not-allowed"
+      disabled={isLoading}
     >
       {isLoading ? (
         <div className="flex items-center justify-center gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-          <span className="text-gray-700 font-medium">
-            Signing in with Google...
-          </span>
+          <span className="text-gray-700 font-medium">{loadingText}</span>
         </div>
       ) : (
         <div className="flex items-center justify-center gap-3">
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+          {/* Google Icon SVG */}
+          <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
               fill="#4285F4"
@@ -75,7 +72,7 @@ export function GoogleSignInButton({ form }) {
             />
           </svg>
           <span className="text-gray-700 font-medium text-base">
-            Continue with Google
+            {buttonText}
           </span>
         </div>
       )}

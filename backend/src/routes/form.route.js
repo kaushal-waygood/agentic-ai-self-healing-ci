@@ -92,7 +92,6 @@ cloudinary.config({
       });
     } finally {
       if (files.length > 0) {
-        console.log('Cleaning up temporary files...');
         files.forEach((file) => {
           try {
             fs.unlinkSync(file.path);

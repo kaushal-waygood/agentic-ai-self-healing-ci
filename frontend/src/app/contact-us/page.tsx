@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Footer } from '@/components/layout/footer';
+
 import {
   Mail,
   Phone,
@@ -54,7 +56,7 @@ export default function ContactPage() {
   return (
     <div>
       <Navigation />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 pt-12">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 ">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-lime-200 to-green-200 rounded-full filter blur-3xl opacity-40 animate-pulse"></div>
@@ -62,16 +64,16 @@ export default function ContactPage() {
           <div className="absolute top-40 left-40 w-60 h-60 bg-gradient-to-r from-pink-200 to-rose-200 rounded-full filter blur-3xl opacity-40 animate-pulse delay-2000"></div>
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-16">
+        <div className="relative z-10 container mx-auto px-4 py-5">
           {/* Header Section */}
           <div className="text-center mb-16">
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
               Get In Touch
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            {/* <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Ready to start your next project? Let's create something amazing
               together.
-            </p>
+            </p> */}
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
@@ -94,12 +96,12 @@ export default function ContactPage() {
                     <div>
                       <p className="text-gray-600 text-sm">Email</p>
                       <p className="text-gray-900 font-medium">
-                        hello@yourcompany.com
+                        hello@zobsai.com
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center group">
+                  {/* <div className="flex items-center group">
                     <div className="w-12 h-12 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300 shadow-md">
                       <Phone className="w-6 h-6 text-white" />
                     </div>
@@ -109,7 +111,7 @@ export default function ContactPage() {
                         +1 (555) 123-4567
                       </p>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="flex items-center group">
                     <div className="w-12 h-12 bg-gradient-to-r from-pink-400 to-rose-400 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300 shadow-md">
@@ -231,24 +233,10 @@ export default function ContactPage() {
               )}
             </div>
           </div>
-
-          {/* Bottom CTA Section */}
-          <div className="text-center mt-16">
-            <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 max-w-3xl mx-auto shadow-md">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Ready to Start Your Project?
-              </h3>
-              <p className="text-gray-700 mb-6">
-                Join hundreds of satisfied clients who've brought their ideas to
-                life with our help.
-              </p>
-              <button className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-bold py-3 px-8 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                Schedule a Free Consultation
-              </button>
-            </div>
-          </div>
         </div>
       </div>
+      {/* footer  */}
+      <Footer />
     </div>
   );
 }

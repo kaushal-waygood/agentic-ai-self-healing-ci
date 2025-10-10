@@ -1,6 +1,7 @@
+/** @format */
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Bell,
   LogOut,
@@ -10,19 +11,15 @@ import {
   AlertTriangle,
   Search,
   FileText,
+  Zap,
+  DiamondIcon,
   Bot,
   ChevronDown,
   Crown,
   CreditCard,
   HelpCircle,
   ChevronRight,
-  Newspaper,
-  Wand2,
-  FileCheck2,
-  Users,
-  DollarSign,
-  Gift,
-  LifeBuoy,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -31,92 +28,103 @@ import { RootState } from '@/redux/rootReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
-import { set } from 'lodash';
+import { debounce } from 'lodash';
+import PlanDropdown from './PlanDropdown';
 
-// CommandPalette Component
-const CommandPalette = ({ setIsSearchOpen }) => {
+// --- Helper Functions & Components (defined outside the main component) ---
+
+const fetchJobSuggestions = async (query) => {
+  console.log(`Fetching suggestions for: "${query}"`);
+  const allPossibleJobs = [
+    'Software Engineer',
+    'Senior Software Developer',
+    'Frontend Developer',
+    'React Developer',
+    'Node.js Developer',
+    'Full-Stack Developer',
+    'Product Manager',
+    'UI/UX Designer',
+    'Data Scientist',
+    'DevOps Engineer',
+  ];
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (!query) return [];
+  const lowerCaseQuery = query.toLowerCase();
+  return allPossibleJobs.filter((job) =>
+    job.toLowerCase().includes(lowerCaseQuery),
+  );
+};
+
+// Moved UsageTracker outside AppHeader to prevent re-creation on every render.
+const UsageTracker = ({ label, used, limit }) => {
+  const percentage = limit > 0 ? (used / limit) * 100 : 0;
+  const isUnlimited = limit === -1;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-slate-700">{label}</span>
+        <span className="text-xs text-slate-500">
+          {isUnlimited ? 'Unlimited' : `${used} / ${limit}`}
+        </span>
+      </div>
+      {!isUnlimited && (
+        <div className="w-full bg-slate-200 rounded-full h-2">
+          <div
+            className="h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500"
+            style={{ width: `${Math.min(percentage, 100)}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const CommandPalette = ({ setIsSearchOpen }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const siteConfig = {
-    sidebarNav: [
-      {
-        title: 'AI CV Generator',
-        href: '/dashboard/cv-generator',
-        icon: FileText,
-      },
-      {
-        title: 'Cover Letter Studio',
-        href: '/dashboard/cover-letter-generator',
-        icon: Newspaper,
-      },
-      { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
-      {
-        title: 'Organization',
-        href: '/dashboard/organization',
-        icon: Users,
-        adminOnly: true,
-      },
-      { title: 'Search Jobs', href: '/dashboard/search-jobs', icon: Search },
-      {
-        title: 'My Applications',
-        href: '/dashboard/applications',
-        icon: FileCheck2,
-      },
-      { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
-      {
-        title: 'Subscriptions',
-        href: '/dashboard/subscriptions',
-        icon: DollarSign,
-      },
-      { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
-    ],
-  };
-
-  const commandItems = useMemo(
-    () => [
-      ...siteConfig.sidebarNav,
-      { title: 'Profile', href: '/dashboard/profile', icon: UserCircle },
-      { title: 'Settings', href: '/dashboard/settings', icon: Settings },
-      { title: 'Help & Support', href: '/dashboard/support', icon: LifeBuoy },
-    ],
+  const debouncedFetch = useCallback(
+    debounce(async (query) => {
+      if (!query) {
+        setSuggestions([]);
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      const result = await fetchJobSuggestions(query);
+      setSuggestions(result);
+      setIsLoading(false);
+    }, 300),
     [],
   );
 
-  const filteredItems = useMemo(() => {
-    if (!searchQuery) return commandItems;
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    if (lowerCaseQuery.startsWith('/')) {
-      return commandItems.filter((item) =>
-        item.href.toLowerCase().includes(lowerCaseQuery),
-      );
-    }
-    return [];
-  }, [searchQuery, commandItems]);
+  useEffect(() => {
+    debouncedFetch(searchQuery);
+  }, [searchQuery, debouncedFetch]);
 
   const handleSearchSubmit = (e) => {
     if (e.key === 'Enter' && searchQuery) {
       e.preventDefault();
-      if (searchQuery.startsWith('/')) {
-        const firstMatch = commandItems.find((item) =>
-          item.href.toLowerCase().includes(searchQuery.toLowerCase()),
-        );
-        if (firstMatch) {
-          router.push(firstMatch.href);
-          setIsSearchOpen(false);
-        }
-      } else {
-        router.push(
-          `/dashboard/search-jobs?query=${encodeURIComponent(searchQuery)}`,
-        );
-        setIsSearchOpen(false);
-      }
+      router.push(
+        `/dashboard/search-jobs?query=${encodeURIComponent(searchQuery)}`,
+      );
+      setIsSearchOpen(false);
     }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    router.push(
+      `/dashboard/search-jobs?query=${encodeURIComponent(suggestion)}`,
+    );
+    setIsSearchOpen(false);
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 "
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20"
       onClick={() => setIsSearchOpen(false)}
     >
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fadeIn"></div>
@@ -129,7 +137,7 @@ const CommandPalette = ({ setIsSearchOpen }) => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search or type a command (e.g., /cv)..."
+              placeholder="Search for jobs (e.g., 'React Developer')..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchSubmit}
@@ -139,16 +147,19 @@ const CommandPalette = ({ setIsSearchOpen }) => {
           </div>
         </div>
         <div className="max-h-96 overflow-y-auto p-2">
-          {searchQuery && !searchQuery.startsWith('/') ? (
-            <Link
-              href={`/dashboard/search-jobs?query=${encodeURIComponent(
-                searchQuery,
-              )}`}
-              onClick={() => setIsSearchOpen(false)}
-              className="flex items-center space-x-4 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
-            >
-              <Search className="w-5 h-5 text-blue-500" />
-              <div className="flex-1">
+          {isLoading && (
+            <div className="flex items-center justify-center p-8 text-slate-500">
+              <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              <span>Loading...</span>
+            </div>
+          )}
+          {!isLoading && searchQuery && (
+            <>
+              <div
+                onClick={() => handleSuggestionClick(searchQuery)}
+                className="flex items-center space-x-4 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
+              >
+                <Search className="w-5 h-5 text-blue-500" />
                 <p className="font-medium text-slate-800">
                   Search for jobs:{' '}
                   <span className="text-blue-600 font-semibold">
@@ -156,38 +167,28 @@ const CommandPalette = ({ setIsSearchOpen }) => {
                   </span>
                 </p>
               </div>
-              <span className="text-xs text-slate-400">Press Enter</span>
-            </Link>
-          ) : filteredItems.length > 0 ? (
-            filteredItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsSearchOpen(false)}
+              {suggestions.map((suggestion) => (
+                <div
+                  key={suggestion}
+                  onClick={() => handleSuggestionClick(suggestion)}
                   className="flex items-center space-x-4 p-3 rounded-lg hover:bg-slate-100 transition-colors duration-200 cursor-pointer"
                 >
-                  <Icon className="w-5 h-5 text-slate-500" />
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-800">{item.title}</p>
-                    <p className="text-xs text-slate-400">{item.href}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </Link>
-              );
-            })
-          ) : (
+                  <Search className="w-5 h-5 text-slate-500" />
+                  <p className="font-medium text-slate-800">{suggestion}</p>
+                  <ChevronRight className="w-4 h-4 text-slate-400 ml-auto" />
+                </div>
+              ))}
+            </>
+          )}
+          {!isLoading && searchQuery && suggestions.length === 0 && (
             <div className="text-center p-8 text-slate-500">
-              <p>No results found for your search.</p>
+              <p>No suggestions found. Press Enter to search.</p>
             </div>
           )}
         </div>
         <div className="p-3 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
           <span>Press `Esc` to close</span>
-          <span>
-            Use <kbd className="font-sans">` / `</kbd> for commands
-          </span>
+          <span>Press `Enter` to search</span>
         </div>
       </div>
     </div>
@@ -195,12 +196,13 @@ const CommandPalette = ({ setIsSearchOpen }) => {
 };
 
 // Main AppHeader Component
-const AppHeader = () => {
+const AppHeader = ({ setIsSearchOpen }) => {
+  // --- SECTION 1: HOOKS ---
+  // All hooks are called here at the top level, in the same order on every render.
   const [mounted, setMounted] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [usageLimits, setUsageLimits] = useState({
     cvCreation: 0,
     coverLetter: 0,
@@ -213,7 +215,6 @@ const AppHeader = () => {
     aiCoverLetterGenerator: 0,
     applications: 0,
   });
-
   const [planType, setPlanType] = useState('free');
 
   const router = useRouter();
@@ -221,34 +222,32 @@ const AppHeader = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setIsSearchOpen((open) => !open);
-      }
-      if (e.key === 'Escape') {
-        setIsSearchOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  const effectivePlanLimits = useMemo(
+    () => ({
+      aiJobApply: usageLimits.aiApplication,
+      aiCvGenerator: usageLimits.cvCreation,
+      aiCoverLetterGenerator: usageLimits.coverLetter,
+      applicationLimit: usageLimits.autoApply,
+    }),
+    [usageLimits],
+  );
 
-  // This useEffect runs once on component mount for initial setup.
-  // The empty dependency array [] ensures it only runs a single time.
   useEffect(() => {
     setMounted(true);
-    dispatch(getStudentDetailsRequest()); // Fetches user details (/me)
-  }, []); // MODIFIED: Changed dependency to empty array
+    dispatch(getStudentDetailsRequest());
+  }, [dispatch]);
 
-  // This useEffect fetches usage data ONLY when the user's ID changes.
   useEffect(() => {
-    const fetchUsage = async () => {
+    const fetchUsageData = async () => {
       try {
-        const response = await apiInstance.get('/plan/usage');
-        if (response.data?.success) {
-          const usageLogs = response.data.data;
+        const [usageRes, limitsRes, planRes] = await Promise.all([
+          apiInstance.get('/plan/usage'),
+          apiInstance.get('/plan/usage-limit'),
+          apiInstance.get('/plan/get-user-plan-type'),
+        ]);
+
+        if (usageRes.data?.success) {
+          const usageLogs = usageRes.data.data;
           const totals = usageLogs.reduce(
             (acc, log) => {
               switch (log.feature) {
@@ -278,54 +277,49 @@ const AppHeader = () => {
           );
           setUsageData(totals);
         }
+        if (limitsRes.data?.success) setUsageLimits(limitsRes.data.data);
+        if (planRes.data?.success) setPlanType(planRes.data.data.planType);
       } catch (error) {
-        console.error('Failed to fetch usage data:', error);
+        console.error('Failed to fetch user plan data:', error);
       }
     };
 
-    const fetchPlanLimits = async () => {
-      try {
-        const response = await apiInstance.get('/plan/usage-limit');
-        if (response.data?.success) {
-          setUsageLimits(response.data.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch plan limits:', error);
-      }
-    };
-
+    // Conditions are safely placed *inside* the useEffect hook.
     if (user?._id) {
-      fetchUsage();
-      fetchPlanLimits();
+      fetchUsageData();
     }
   }, [user?._id]);
 
-  const effectivePlanLimits = useMemo(
-    () => ({
-      aiJobApply: usageLimits.aiApplication,
-      aiCvGenerator: usageLimits.cvCreation,
-      aiCoverLetterGenerator: usageLimits.coverLetter,
-      applicationLimit: usageLimits.autoApply,
-    }),
-    [usageLimits],
-  );
+  useEffect(() => {
+    // Close menus on route change
+    setIsNotificationOpen(false);
+    setIsUserMenuOpen(false);
+    setIsPlanOpen(false);
+  }, [pathname]);
 
+  // --- SECTION 2: HANDLERS & LOGIC ---
+  // Regular functions and logic can go here.
   const closeAllMenus = () => {
     setIsNotificationOpen(false);
     setIsUserMenuOpen(false);
     setIsPlanOpen(false);
   };
 
-  useEffect(() => {
-    closeAllMenus();
-  }, [pathname]);
-
-  const handleMenuToggle = (menu: 'plan' | 'notification' | 'user') => {
+  const handleMenuToggle = (menu) => {
     setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
     setIsNotificationOpen(
       menu === 'notification' ? !isNotificationOpen : false,
     );
     setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      dispatch(logoutRequest());
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const unreadCount = (user?.actionItems || []).filter(
@@ -347,39 +341,8 @@ const AppHeader = () => {
     }
   };
 
-  const UsageTracker = ({ label, used, limit }) => {
-    const percentage = limit > 0 ? (used / limit) * 100 : 0;
-    const isUnlimited = limit === -1;
-
-    return (
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-slate-700">{label}</span>
-          <span className="text-xs text-slate-500">
-            {isUnlimited ? 'Unlimited' : `${used} / ${limit}`}
-          </span>
-        </div>
-        {!isUnlimited && (
-          <div className="w-full bg-slate-200 rounded-full h-2">
-            <div
-              className="h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(percentage, 100)}%` }}
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const handleLogout = async () => {
-    try {
-      dispatch(logoutRequest());
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
+  // --- SECTION 3: CONDITIONAL RETURN ---
+  // This is the "early return". Because all hooks are defined above, this is safe.
   if (!user) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
@@ -395,23 +358,11 @@ const AppHeader = () => {
     );
   }
 
-  useEffect(() => {
-    const getActivePlan = async () => {
-      try {
-        const response = await apiInstance.get('/plan/get-user-plan-type');
-        setPlanType(response.data.data.planType);
-      } catch (error) {
-        console.error('Failed to fetch active plan:', error);
-      }
-    };
-
-    getActivePlan();
-  }, []);
-
+  // --- SECTION 4: MAIN RENDER ---
+  // This JSX is only reached if the early return for !user was not triggered.
   return (
     <>
-      {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
-
+      {/* ... Your main header JSX goes here, it remains unchanged ... */}
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md shadow-sm">
         <div className="flex items-center justify-between px-6 py-6 ">
           <div className="flex items-center space-x-3"></div>
@@ -429,67 +380,16 @@ const AppHeader = () => {
               </kbd>
             </button>
           </div>
+
           <div className="flex items-center space-x-3">
-            {mounted && (
-              <div className="relative">
-                <button
-                  onClick={() => handleMenuToggle('plan')}
-                  className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 transition-all duration-200 border border-yellow-300"
-                >
-                  <Star className="w-4 h-4" />
-                  <span className="text-sm font-medium hidden sm:inline">
-                    {planType}
-                  </span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-                {isPlanOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                    <div className="p-6 bg-gradient-to-r from-yellow-400 to-yellow-600">
-                      <div className="flex items-center space-x-3 text-white">
-                        <Star className="w-6 h-6" />
-                        <div>
-                          <h3 className="font-bold text-lg">Pro Plan</h3>
-                          <p className="text-yellow-100 text-sm">
-                            Your current billing cycle usage
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      <UsageTracker
-                        label="AI Applications"
-                        used={usageData.aiJobApply}
-                        limit={effectivePlanLimits.aiJobApply}
-                      />
-                      <UsageTracker
-                        label="AI CV Generations"
-                        used={usageData.aiCvGenerator}
-                        limit={effectivePlanLimits.aiCvGenerator}
-                      />
-                      <UsageTracker
-                        label="AI Cover Letters"
-                        used={usageData.aiCoverLetterGenerator}
-                        limit={effectivePlanLimits.aiCoverLetterGenerator}
-                      />
-                      <UsageTracker
-                        label="Tracked Applications"
-                        used={usageData.applications}
-                        limit={effectivePlanLimits.applicationLimit}
-                      />
-                    </div>
-                    <div className="p-4 border-t border-slate-100">
-                      <button
-                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
-                        onClick={() => router.push('/dashboard/subscriptions')}
-                      >
-                        <Crown className="w-4 h-4" />
-                        <span>Upgrade Plan</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            <PlanDropdown
+              planType={planType}
+              isOpen={isPlanOpen}
+              onToggle={() => handleMenuToggle('plan')}
+              usageData={usageData}
+              planLimits={effectivePlanLimits}
+            />
+
             <div className="relative">
               <button
                 onClick={() => handleMenuToggle('notification')}

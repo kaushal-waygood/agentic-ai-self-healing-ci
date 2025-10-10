@@ -29,9 +29,8 @@ const GeneratedCoverLetter = ({
   handleRegenerate,
   customizationOptions, // Pass the customization state here
 }: any) => {
-  console.log('GeneratedLetter', generatedLetter);
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-100 p-4">
+    <div className="min-h-screen  p-4">
       <div className="max-w-7xl mx-auto">
         {/* Success Banner */}
         <div className="mb-8 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-6 shadow-lg">

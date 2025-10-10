@@ -12,6 +12,7 @@ import {
   getAllExperiences,
   getJobDetailBySlug,
   toggleJobStatus,
+  getJobFromJobId,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -20,6 +21,8 @@ import {
 } from '../middlewares/auth.middleware.js';
 
 const router = Router();
+
+router.get('/job/:jobId', getJobFromJobId);
 
 router.post('/mannual', authMiddleware, isOrgAdmin, postManualJob);
 router.post('/rapid', fetchAndSaveRapidJobs);

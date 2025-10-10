@@ -16,12 +16,13 @@ import {
   Wand2,
   FileCheck2,
   Building2,
+  Search,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
-import { useSidebar } from '@/app/(app)/layout';
+import { useSidebar } from '@/app/(app)/layout-client';
 import apiInstance from '@/services/api';
 
 export const AppSidebarContent = ({ isCollapsed }) => {
@@ -67,6 +68,11 @@ export const AppSidebarContent = ({ isCollapsed }) => {
     name: 'ZobsAI',
     sidebarNav: [
       {
+        title: 'Job Search',
+        href: '/dashboard/search-jobs',
+        icon: Search,
+      },
+      {
         title: 'AI CV Generator',
         href: '/dashboard/cv-generator',
         icon: FileText,
@@ -77,7 +83,8 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         icon: Newspaper,
       },
       { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
-      { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
+      // uncomment below code to show "Application Wizard" on sidebar
+      // { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
       {
         title: 'My Applications',
         href: '/dashboard/applications',
@@ -109,9 +116,13 @@ export const AppSidebarContent = ({ isCollapsed }) => {
   const getPlanColor = (plan) => {
     switch (plan) {
       case 'Free':
-        return 'from-slate-400 to-slate-600';
+        return 'from-blue-400 to-blue-600';
+      case 'Weekly':
+        return 'from-green-400 to-green-600';
       case 'Pro':
         return 'from-yellow-400 to-yellow-600';
+      case 'Monthly':
+        return 'from-purple-400 to-purple-600';
       case 'OrgAdmin':
         return 'from-blue-400 to-blue-600';
       default:
@@ -133,8 +144,11 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         <div className="flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center space-x-3 group">
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+              {/* <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                 <Rocket className="w-6 h-6 text-white animate-pulse" />
+              </div> */}
+              <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
+                <img src="/logo.png" alt="abc" />
               </div>
               <div
                 className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full animate-bounce"
@@ -261,25 +275,28 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 <p className="text-xs text-slate-500">Welcome back!</p>
               </div>
             </div>
-            {user.plan !== 'Pro' && user.plan !== 'OrgAdmin' && (
-              <div className="p-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Zap className="w-4 h-4" />
-                  <span className="font-semibold text-sm">
-                    Unlock More Features
-                  </span>
+            {user.plan !== 'Pro' &&
+              user.plan !== 'OrgAdmin' &&
+              user.plan !== 'Monthly' &&
+              user.plan !== 'Weekly' && (
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Zap className="w-4 h-4" />
+                    <span className="font-semibold text-sm">
+                      Unlock More Features
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-100 mb-3">
+                    Upgrade to get unlimited AI generations.
+                  </p>
+                  <button
+                    className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors"
+                    onClick={() => router.push('/dashboard/subscriptions')}
+                  >
+                    Upgrade Now
+                  </button>
                 </div>
-                <p className="text-xs text-purple-100 mb-3">
-                  Upgrade to get unlimited AI generations.
-                </p>
-                <button
-                  className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-2 rounded-lg transition-colors"
-                  onClick={() => router.push('/dashboard/subscriptions')}
-                >
-                  Upgrade Now
-                </button>
-              </div>
-            )}
+              )}
           </div>
         ) : (
           <div className="flex justify-center">

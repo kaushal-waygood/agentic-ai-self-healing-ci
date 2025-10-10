@@ -14,14 +14,15 @@ import {
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import { Navigation } from '@/components/layout/site-header';
+import { Footer } from '@/components/layout/footer';
 
 export default function BugReportPage() {
   const [formData, setFormData] = useState({
-    name: 'arsalan',
-    email: 'arsalan@gmail.com',
-    bugTitle: 'but title',
-    description: 'bug description',
-    severity: 'low',
+    name: '',
+    email: '',
+    bugTitle: '',
+    description: '',
+    severity: '',
   });
   const [files, setFiles] = useState([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -94,7 +95,7 @@ export default function BugReportPage() {
   return (
     <div>
       <Navigation />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 pt-12">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 ">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-lime-200 to-green-200 rounded-full filter blur-3xl opacity-40 animate-pulse"></div>
@@ -102,7 +103,7 @@ export default function BugReportPage() {
           <div className="absolute top-40 left-40 w-60 h-60 bg-gradient-to-r from-pink-200 to-rose-200 rounded-full filter blur-3xl opacity-40 animate-pulse delay-2000"></div>
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-16">
+        <div className="relative z-10 container mx-auto px-4 py-5">
           {/* Header Section */}
           <div className="text-center mb-16">
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
@@ -275,6 +276,7 @@ export default function BugReportPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

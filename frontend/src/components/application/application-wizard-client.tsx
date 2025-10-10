@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -236,6 +236,7 @@ const itemVariants = {
 export function ApplicationWizardClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { toast } = useToast();
 
   // Wizard State
@@ -292,6 +293,15 @@ export function ApplicationWizardClient() {
   } = useSelector((state: RootState) => state.ai);
 
   const dispatch = useDispatch();
+
+  const navigateToStep = useCallback(
+    (step: WizardStep) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('step', step);
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
 
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
@@ -431,9 +441,26 @@ export function ApplicationWizardClient() {
     saveApplicationState();
   }, [saveApplicationState]);
 
+  const isInitialized = useRef(false);
   useEffect(() => {
-    const initialize = () => {
-      // Check if a job is already selected from a URL query
+    const stepFromUrl = searchParams.get('step') as WizardStep;
+    const validSteps: WizardStep[] = [
+      'job',
+      'cv',
+      'createCv',
+      'cl',
+      'generate',
+      'result',
+    ];
+
+    // If data is still loading, enforce the loading state.
+    if (loading) {
+      setWizardStep('loading');
+      return;
+    }
+
+    // Set up initial application context only once after loading is done.
+    if (!loading && !isInitialized.current) {
       if (selectedJob) {
         setCurrentApplication(selectedJob);
         setJobContext({
@@ -443,23 +470,27 @@ export function ApplicationWizardClient() {
           companyName: selectedJob.company,
           jobDescription: selectedJob.description,
         });
-        // If a job is pre-selected, move to the CV step
-        setWizardStep('cv');
-      } else {
-        // If no job is in the URL, start at the 'job' step to select one
+      } else if (!currentApplication) {
         const newAppId = `app-new-${Date.now()}`;
         setCurrentApplication({ id: newAppId } as MockApplication);
-        setWizardStep('job');
       }
-    };
-
-    // Wait until the initial job loading is complete
-    if (loading) {
-      setWizardStep('loading');
-    } else {
-      initialize();
+      isInitialized.current = true;
     }
-  }, [searchParams, selectedJob, loading]);
+
+    // If a valid step is in the URL, sync the state to it.
+    // This handles direct navigation, browser back/forward, and redirects.
+    if (stepFromUrl && validSteps.includes(stepFromUrl)) {
+      setWizardStep(stepFromUrl);
+    } else {
+      // Otherwise, this is the initial load without a valid step.
+      // We must decide where to start and navigate there (which updates the URL).
+      if (selectedJob) {
+        navigateToStep('cv');
+      } else {
+        navigateToStep('job');
+      }
+    }
+  }, [searchParams, loading, selectedJob, navigateToStep, currentApplication]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -530,7 +561,7 @@ export function ApplicationWizardClient() {
       // Reset subsequent steps whenever a new job context is set
       setCvContext(null);
       setClContext(null);
-      setWizardStep('cv');
+      navigateToStep('cv');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -550,7 +581,6 @@ export function ApplicationWizardClient() {
     mode: CvContext['mode'],
     value?: string | File,
   ) => {
-    // FIX: Correctly use the `value` parameter passed to the function.
     if (mode === 'profile') {
       setCvContext({ mode, value: 'profile', name: 'Your Zobsai Profile' });
     } else if (value) {
@@ -563,7 +593,7 @@ export function ApplicationWizardClient() {
       console.error('handleCvContextSubmit called without a value.');
       return;
     }
-    setWizardStep('cl');
+    navigateToStep('cl');
   };
 
   const handleCreateCvFormSubmit = async (data: CvDetailsValues) => {
@@ -617,7 +647,7 @@ export function ApplicationWizardClient() {
         title: 'CV Created & Selected!',
         description: 'Your new CV is ready to be used.',
       });
-      setWizardStep('cv');
+      navigateToStep('cv');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -651,7 +681,7 @@ export function ApplicationWizardClient() {
     }
 
     setClContext(context);
-    setWizardStep('generate');
+    navigateToStep('generate');
   };
 
   const handleGenerate = async () => {
@@ -664,7 +694,6 @@ export function ApplicationWizardClient() {
       return;
     }
 
-    // Guard clause: Ensure job context exists.
     if (!jobContext) {
       toast({
         variant: 'destructive',
@@ -672,29 +701,32 @@ export function ApplicationWizardClient() {
         description:
           'Job details are missing. Please go back and select a job.',
       });
-      setWizardStep('job');
+      navigateToStep('job');
       return;
     }
 
     setIsLoading(true);
-    setWizardStep('generate');
+    navigateToStep('generate');
 
     try {
       const formData = new FormData();
 
-      // Handle both 'select' (with ID) and 'paste'/'upload' (with text) modes.
       if (jobContext.jobId) {
-        // This covers the 'select' case where a job is chosen from the list.
         formData.append('jobId', jobContext.jobId);
       } else {
-        // This covers 'paste' and 'upload' cases where there is no ID.
-        // The backend must be able to handle these fields instead of an ID.
         formData.append('jobTitle', jobContext.jobTitle);
         formData.append('companyName', jobContext.companyName);
-        formData.append('jobDescription', jobContext.jobDescription);
+
+        if (searchParams.get('slug')) {
+          const response = await apiInstance.get(
+            `/jobs/find/${searchParams.get('slug')}`,
+          );
+          formData.append('jobDescription', response.data.description);
+        } else {
+          formData.append('jobDescription', jobContext.jobDescription);
+        }
       }
 
-      // Append CV context
       if (cvContext.mode === 'profile') {
         formData.append('useProfile', 'true');
       } else if (
@@ -706,12 +738,10 @@ export function ApplicationWizardClient() {
         cvContext.mode === 'upload' &&
         cvContext.value instanceof File
       ) {
-        // Use the key 'cv' to match the backend multer configuration.
         formData.append('cv', cvContext.value);
         formData.append('useProfile', 'false');
       }
 
-      // Append Cover Letter context
       if (clContext) {
         if (clContext.mode === 'saved' && typeof clContext.value === 'string') {
           formData.append('savedCoverLetterId', clContext.value);
@@ -722,8 +752,6 @@ export function ApplicationWizardClient() {
 
       formData.append('finalTouch', 'Tailor for ATS optimization');
 
-      // Pass the actual `formData` object to the API call.
-      // `apiInstance` (axios) needs the FormData instance to set the correct headers for file uploads.
       const response = await apiInstance.post(
         '/students/applications/tailor',
         formData,
@@ -739,7 +767,7 @@ export function ApplicationWizardClient() {
         description: 'Your tailored documents are ready for review.',
       });
 
-      setWizardStep('result');
+      navigateToStep('result');
     } catch (error) {
       console.error('Full error:', {
         message: (error as Error).message,
@@ -754,7 +782,7 @@ export function ApplicationWizardClient() {
           (error as any).response?.data?.message ||
           'Failed to generate application. Please try again.',
       });
-      setWizardStep('cl'); // Go back to the previous step on failure
+      navigateToStep('cl');
     } finally {
       setIsLoading(false);
     }
@@ -784,9 +812,8 @@ export function ApplicationWizardClient() {
       return;
     }
 
-    // Store the File object directly
     setCvContext({ mode: 'upload', value: file, name: file.name });
-    setWizardStep('cl');
+    navigateToStep('cl');
   };
 
   const handleSaveAndFinish = () => {
@@ -800,25 +827,17 @@ export function ApplicationWizardClient() {
   };
 
   const handleStartNew = () => {
-    // Reset all context
     setJobContext(null);
     setCvContext(null);
     setClContext(null);
-
-    // Reset results
     setRefinedCv('');
     setTailoredCl('');
     setEmailDraft('');
 
-    // Create a new application context
     const newAppId = `app-new-${Date.now()}`;
     setCurrentApplication({ id: newAppId } as MockApplication);
 
-    // Go back to the first step
-    setWizardStep('job');
-
-    // Clean up URL
-    router.push('/apply');
+    router.push('/apply?step=job');
 
     toast({
       title: 'New Application Started',
@@ -846,12 +865,6 @@ export function ApplicationWizardClient() {
 
   const StyledCard = (props) => (
     <motion.div variants={containerVariants}>
-      {/* FIX: Updated className to implement a dark theme that matches the UI screenshot.
-        - Removed 'bg-white' which was causing a style conflict.
-        - Added 'bg-slate-900/80' for a semi-transparent dark background.
-        - Added 'border-slate-800' for a more subtle border color.
-        - Added 'text-slate-50' to set a light default text color for child components.
-      */}
       <Card
         className="bg-slate-900/80 border-slate-800 backdrop-blur-sm text-slate-50"
         {...props}
@@ -861,7 +874,7 @@ export function ApplicationWizardClient() {
 
   // --- Render Functions ---
   const renderLoadingStep = () => (
-    <StyledCard className="min-h-[400px] flex items-center justify-center">
+    <StyledCard className="min-h-[400px]  flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="h-12 w-12 mx-auto animate-spin text-purple-400" />
         <p className="mt-4 text-slate-400">
@@ -884,13 +897,13 @@ export function ApplicationWizardClient() {
     <SleekCvStep
       mockUserProfile={mockUserProfile}
       handleCvContextSubmit={handleCvContextSubmit}
-      setWizardState={setWizardStep}
+      setWizardState={navigateToStep}
       selectedCvId={selectedCvId}
       setSelectedCvId={setSelectedCvId}
       isLoading={isLoading}
       loadingMessage={loadingMessage}
       wizardStep={wizardStep}
-      setWizardStep={setWizardStep}
+      setWizardStep={navigateToStep}
       handleCVContext={handleCVContext}
     />
   );
@@ -1433,7 +1446,7 @@ export function ApplicationWizardClient() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setWizardStep('cv')}
+              onClick={() => navigateToStep('cv')}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
@@ -1468,7 +1481,7 @@ export function ApplicationWizardClient() {
     <SleekClStep
       clForm={clForm}
       handleClContextSubmit={handleClContextSubmit}
-      setWizardStep={setWizardStep}
+      setWizardStep={navigateToStep}
       mockUserProfile={mockUserProfile}
       itemVariants={itemVariants}
     />
@@ -1481,7 +1494,7 @@ export function ApplicationWizardClient() {
       cvContext={cvContext}
       clContext={clContext}
       handleGenerate={handleGenerate}
-      setWizardStep={setWizardStep}
+      setWizardStep={navigateToStep}
     />
   );
 
@@ -1496,7 +1509,7 @@ export function ApplicationWizardClient() {
       setTailoredCl={setTailoredCl}
       emailDraft={emailDraft}
       setEmailDraft={setEmailDraft}
-      setWizardStep={setWizardStep}
+      setWizardStep={navigateToStep}
       handleSendEmail={handleSendEmail}
       handleSaveAndFinish={handleSaveAndFinish}
       handleStartNew={handleStartNew}
@@ -1504,11 +1517,26 @@ export function ApplicationWizardClient() {
   );
 
   const renderStep = () => {
+    console.log('wizardStep', wizardStep);
     switch (wizardStep) {
       case 'loading':
         return renderLoadingStep();
       case 'job':
-        return renderJobStep();
+        console.log('jobContext', jobContext);
+        return (
+          <SleekCvStep
+            mockUserProfile={mockUserProfile}
+            handleCvContextSubmit={handleCvContextSubmit}
+            setWizardState={navigateToStep}
+            selectedCvId={selectedCvId}
+            setSelectedCvId={setSelectedCvId}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            wizardStep={wizardStep}
+            setWizardStep={navigateToStep}
+            handleCVContext={handleCVContext}
+          />
+        );
       case 'cv':
         return renderCvStep();
       case 'createCv':

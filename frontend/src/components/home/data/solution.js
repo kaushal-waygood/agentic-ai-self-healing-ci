@@ -112,7 +112,7 @@ export const painPoints = [
     color: 'from-red-500 to-orange-500',
     bgColor: 'from-red-50 to-orange-50',
     solution: 'AI completes in 2 minutes',
-    button: 'Get Started',
+    button: 'Apply Smarter',
   },
   {
     icon: FileX,
@@ -123,7 +123,7 @@ export const painPoints = [
     color: 'from-purple-500 to-pink-500',
     bgColor: 'from-purple-50 to-pink-50',
     solution: 'ATS-optimized applications',
-    button: 'Get Started',
+    button: 'Boost My Resume',
   },
   {
     icon: TrendingDown,
@@ -134,6 +134,7 @@ export const painPoints = [
     color: 'from-blue-500 to-cyan-500',
     bgColor: 'from-blue-50 to-cyan-50',
     solution: 'Smart targeting increases to 15%',
+    button: 'Get More Replies',
   },
   {
     icon: UserX,
@@ -144,6 +145,7 @@ export const painPoints = [
     color: 'from-yellow-500 to-orange-500',
     bgColor: 'from-yellow-50 to-orange-50',
     solution: 'Tailored for each job',
+    button: 'Tailor My Resume',
   },
 ];
 

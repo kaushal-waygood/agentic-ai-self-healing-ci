@@ -10,7 +10,6 @@ export const sendJobApplicationEmail = async ({
   recipientEmail,
 }) => {
   try {
-    console.log('Sending job application email...', student);
     if (!jobData?.job) throw new Error('Invalid job data');
     if (!senderEmail) {
       throw new Error(
@@ -26,13 +25,9 @@ export const sendJobApplicationEmail = async ({
     oauth2Client.setCredentials(user.tokens);
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
-    console.log('Generating application content with AI...');
-
     const rawAiResponse = await genAI(
       generateApplicationContentPrompt(jobData, student),
     );
-
-    console.log('Extracting JSON from AI response...', rawAiResponse);
 
     const jsonMatch = rawAiResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     const jsonString = jsonMatch ? jsonMatch[1] : rawAiResponse; // Use the extracted part, or the raw response as a fallback

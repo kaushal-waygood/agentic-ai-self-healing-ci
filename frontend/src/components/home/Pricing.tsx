@@ -65,7 +65,7 @@ export function Pricing() {
 
   return (
     <section
-      className="relative pt-16 md:pt-16 bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/40 overflow-hidden"
+      className="relative pt-16 md:pt-8 bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/40 overflow-hidden"
       id="pricing"
     >
       {/* Background Elements */}
@@ -176,7 +176,7 @@ export function Pricing() {
         ) : (
           <>
             {/* Plans Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-start mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start mb-16">
               {pricingData.map((plan, index) => (
                 <div
                   key={plan._id}

@@ -75,26 +75,52 @@ export const studentDetails = async (req, res) => {
 
 // update Full Name
 export const updateFullName = async (req, res) => {
-  const { fullName } = req.body;
+  const { fullName, phone, email } = req.body;
   const { _id } = req.user;
 
   // Validation
-  if (!fullName || typeof fullName !== 'string') {
-    return res.status(400).json({ message: 'Valid full name is required' });
-  }
+  // if (!fullName || !phone) {
+  //   return res.status(400).json({ message: 'Valid full name is required' });
+  // }
+
+  let result;
 
   try {
     // Atomic update operation
-    const result = await Student.findByIdAndUpdate(
-      _id,
-      {
-        $set: {
-          fullName: fullName,
-          updatedAt: new Date(), // Optional: add update timestamp
+    if (fullName) {
+      result = await Student.findByIdAndUpdate(
+        _id,
+        {
+          $set: {
+            fullName: fullName,
+            updatedAt: new Date(), // Optional: add update timestamp
+          },
         },
-      },
-      { new: true }, // Return the updated document
-    );
+        { new: true }, // Return the updated document
+      );
+    } else if (phone) {
+      result = await Student.findByIdAndUpdate(
+        _id,
+        {
+          $set: {
+            phone: phone,
+            updatedAt: new Date(), // Optional: add update timestamp
+          },
+        },
+        { new: true }, // Return the updated document
+      );
+    } else if (email) {
+      result = await Student.findByIdAndUpdate(
+        _id,
+        {
+          $set: {
+            email: email,
+            updatedAt: new Date(), // Optional: add update timestamp
+          },
+        },
+        { new: true }, // Return the updated document
+      );
+    }
 
     if (!result) {
       return res.status(404).json({ message: 'Student not found' });
@@ -1096,8 +1122,6 @@ export const savedJobs = async (req, res) => {
 export const getSavedJobs = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = `student:${_id}:savedJobs`;
-
-  console.log('cacheKey', cacheKey, _id);
 
   try {
     const savedJobs = await redisClient.withCache(cacheKey, 1800, async () => {

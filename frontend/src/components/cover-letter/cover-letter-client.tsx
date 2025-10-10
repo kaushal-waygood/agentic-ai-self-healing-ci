@@ -530,11 +530,6 @@ export function CoverLetterGeneratorClient() {
   const loadSavedLetter = (savedLetter: SavedCoverLetter) => {
     setGeneratedCvOutput(savedLetter.coverLetter);
 
-    // customizationForm.reset({
-    //   tone: savedLetter.tone,
-    //   style: savedLetter.style,
-    //   personalStory: savedLetter.personalStory,
-    // });
     setJobContext({
       mode: 'paste',
       value: savedLetter.jobDescription,
@@ -545,7 +540,7 @@ export function CoverLetterGeneratorClient() {
     setWizardStep('result');
     toast({
       title: 'Letter Loaded',
-      description: `"${savedLetter.name}" is now in the editor.`,
+      description: `"${savedLetter.coverLetterTitle}" is now in the editor.`,
     });
   };
 

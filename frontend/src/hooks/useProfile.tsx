@@ -1,17 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, UseFormReturn } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { mockUserProfile } from '@/lib/data/user';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  createContext,
-  useContext,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getStudentDetailsRequest,
   getStudentResumeRequest,
@@ -94,19 +87,13 @@ const profileFormSchema = z.object({
   jobPreference: z.string().min(2, {
     message: 'Job preference must be at least 2 characters.',
   }),
-
-  // Rich profile data
   education: z.array(educationEntrySchema).optional(),
   experience: z.array(experienceEntrySchema).optional(),
   projects: z.array(projectEntrySchema).optional(),
   skills: z.string().optional(),
-
-  // Narratives
   narrativeChallenges: z.string().optional(),
   narrativeAchievements: z.string().optional(),
   narrativeAppreciation: z.string().optional(),
-
-  // Job Search Preferences
   preferredCountry: z.string().optional(),
   preferredLanguage: z.string().optional(),
   preferredDatePosted: z
@@ -129,10 +116,6 @@ const profileFormSchema = z.object({
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
-
-export interface ProfileFormProps {
-  isOnboarding?: boolean;
-}
 
 export const useProfile = () => {
   const { toast } = useToast();
@@ -161,7 +144,7 @@ export const useProfile = () => {
   const [deleteProj, setDeleteProj] = useState(false);
   const [deleteSkill, setDeleteSkill] = useState(false);
 
-  const [expandedIndex, setExpandedIndex] = useState(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const [deleteEduIndex, setDeleteEduIndex] = useState(0);
   const [deleteExpIndex, setDeleteExpIndex] = useState(0);
@@ -172,21 +155,17 @@ export const useProfile = () => {
   const [isEmailEditable, setIsEmailEditable] = useState(false);
   const [isPhoneEditable, setIsPhoneEditable] = useState(false);
   const [isJobPrefEditable, setIsJobPrefEditable] = useState(false);
-  const [handleName, setHandleName] = useState('');
-  const [handleEmail, setHandleEmail] = useState('');
-  const [handlePhone, setHandlePhone] = useState('');
-  const [handleJobPreference, setHandleJobPreference] = useState('');
 
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const personalInfoForm = useForm<
     Pick<ProfileFormValues, 'fullName' | 'email' | 'phone'>
   >({
     resolver: zodResolver(
-      profileFormSchema.pick({ fullName: true, email: true }),
+      profileFormSchema.pick({ fullName: true, email: true, phone: true }),
     ),
     mode: 'onChange',
   });
@@ -333,7 +312,7 @@ export const useProfile = () => {
     setDeleteExp(false);
   };
 
-  const handleDeleteProject = (index) => {
+  const handleDeleteProject = (index: number) => {
     dispatch(removeStudentProjectRequest(index));
     setDeleteProj(false);
   };
@@ -343,7 +322,6 @@ export const useProfile = () => {
     setDeleteEdu(false);
   };
 
-  // The rest of the handlers remain the same as they correctly use the dispatch function.
   const handlePersonalInfoSubmit = (
     data: Pick<ProfileFormValues, 'fullName' | 'email'>,
   ) => {
@@ -375,14 +353,9 @@ export const useProfile = () => {
   };
 
   useEffect(() => {
-    const fetchStudentDetails = async () => {
-      try {
-        dispatch(getStudentDetailsRequest());
-      } catch (error) {
-        console.error('Error fetching student details:', error);
-      }
+    const fetchStudentDetails = () => {
+      dispatch(getStudentDetailsRequest());
     };
-
     fetchStudentDetails();
   }, [dispatch]);
 
@@ -394,76 +367,75 @@ export const useProfile = () => {
     dispatch(updateStudentSkillRequest({ index, level }));
   };
 
-  const toggleExpand = (index) => {
+  const toggleExpand = (index: number) => {
     setExpandedIndex(expandedIndex === index ? null : index);
   };
 
-  const handleEdit = (index) => {
+  const handleEdit = (index: number) => {
     setEditProjIndex(index);
   };
 
-  const toggleNameEdit = () => {
-    setIsNameEditable((prev) => !prev);
-    setIsEmailEditable(false);
-  };
+  const toggleNameEdit = () => setIsNameEditable((prev) => !prev);
   const toggleEmailEdit = () => setIsEmailEditable((prev) => !prev);
+  const togglePhoneEdit = () => setIsPhoneEditable((prev) => !prev);
 
-  const handlePersonalInfoEdit = async (handle: string) => {
-    if (handle === 'fullName') {
-      const response: AxiosResponse = await apiInstance.patch(
-        '/students/fullname/update',
-        {
-          fullName: handleName,
-        },
-      );
+  const handleCancelEdit = (fieldName: 'fullName' | 'email' | 'phone') => {
+    personalInfoForm.reset();
+    if (fieldName === 'fullName') setIsNameEditable(false);
+    if (fieldName === 'email') setIsEmailEditable(false);
+    if (fieldName === 'phone') setIsPhoneEditable(false);
+  };
 
-      setIsNameEditable(false);
-      setHandleName('');
-      toast({
-        title: 'Personal Information Updated',
-        description: 'Your personal information has been saved successfully.',
-      });
-    } else if (handle === 'email') {
-      const response: AxiosResponse = await apiInstance.patch(
-        '/students/email/update',
-        {
-          email: handleEmail,
-        },
-      );
-
-      setIsEmailEditable(false);
-      setHandleEmail('');
-    } else if (handle === 'jobPreference') {
-      dispatch(updateStudentJobPreferenceRequest(handleJobPreference));
-      setIsJobPrefEditable((prev) => !prev);
-    } else if (handle === 'phone') {
-      const response: AxiosResponse = await apiInstance.patch(
-        '/students/email/update',
-        {
-          email: handleEmail,
-        },
-      );
-
-      setIsPhoneEditable(false);
-      setHandlePhone('');
+  const handlePersonalInfoEdit = async (
+    fieldName: 'fullName' | 'email' | 'phone' | 'jobPreference',
+  ) => {
+    console.log(fieldName, personalInfoForm.getValues(fieldName));
+    try {
+      if (fieldName === 'fullName') {
+        const fullName = personalInfoForm.getValues('fullName');
+        await apiInstance.patch('/students/fullname/update', { fullName });
+        setIsNameEditable(false);
+        toast({ title: 'Full Name Updated' });
+      } else if (fieldName === 'email') {
+        const email = personalInfoForm.getValues('email');
+        console.log(email);
+        await apiInstance.patch('/students/fullname/update', { email });
+        setIsEmailEditable(false);
+        toast({ title: 'Email Updated' });
+      } else if (fieldName === 'phone') {
+        const phone = personalInfoForm.getValues('phone');
+        console.log('phone', phone);
+        await apiInstance.patch('/students/fullname/update', { phone });
+        setIsPhoneEditable(false);
+        toast({ title: 'Phone Number Updated' });
+      } else if (fieldName === 'jobPreference') {
+        const jobPreference = careerDetailsForm.getValues('jobPreference');
+        console.log('jobPreference', jobPreference);
+        await apiInstance.post('/students/job-role/update', {
+          jobRole: jobPreference,
+        });
+        setIsJobPrefEditable(false);
+        toast({ title: 'Job Preference Updated' });
+      }
+    } catch (err) {
+      console.error(`Failed to update ${fieldName}:`, err);
+      toast({ title: `Error updating ${fieldName}`, variant: 'destructive' });
     }
   };
 
-  const handleFileChange = async (selectedFile) => {
+  const handleFileChange = (selectedFile: File | null) => {
     if (selectedFile) {
       setFile(selectedFile);
     }
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!file) return;
-
     setIsUploading(true);
     const formData = new FormData();
     formData.append('cv', file);
-
     try {
-      dispatch(getStudentResumeRequest(formData));
+      dispatch(getStudentResumeRequest(formData as any));
     } catch (error) {
       console.error('Error uploading file:', error);
     } finally {
@@ -479,33 +451,30 @@ export const useProfile = () => {
   };
 
   const handleButtonClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    fileInputRef.current?.click();
   };
 
-  const handleDragEnter = useCallback((e) => {
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback((e) => {
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   }, []);
 
-  const handleDragOver = useCallback((e) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
 
-  const handleDrop = useCallback((e) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       handleFileChange(files[0]);
@@ -513,9 +482,9 @@ export const useProfile = () => {
   }, []);
 
   return {
-    //state
     isNameEditable,
     isEmailEditable,
+    isPhoneEditable,
     isJobPrefEditable,
     setIsJobPrefEditable,
     addEdu,
@@ -560,16 +529,9 @@ export const useProfile = () => {
     setEditExpIndex,
     setEditProjIndex,
     setEditSkillIndex,
-    handleName,
-    setHandleName,
-    handleEmail,
-    setHandleEmail,
-    handleJobPreference,
-    setHandleJobPreference,
     handleDeleteSkills,
     handleDeleteExp,
     handleDeleteProject,
-
     file,
     setFile,
     isDragging,
@@ -585,18 +547,13 @@ export const useProfile = () => {
     handleButtonClick,
     handleRemoveFile,
     handleUpload,
-
-    //form
     personalInfoForm,
     careerDetailsForm,
     narrativesForm,
     jobSearchForm,
-
-    //handlers
     handlePersonalInfoSubmit,
     handleCareerDetailsSubmit,
     handleNarrativesSubmit,
-
     onCancel,
     deleteEducation,
     handleLevelChange,
@@ -604,10 +561,9 @@ export const useProfile = () => {
     handleEdit,
     toggleNameEdit,
     toggleEmailEdit,
+    togglePhoneEdit,
     handlePersonalInfoEdit,
-
+    handleCancelEdit,
     defaultValues,
-
-    //functions
   };
 };

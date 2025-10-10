@@ -1,32 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useRouter, useSearchParams } from 'next/navigation';
-import apiInstance from '@/services/api';
-import {
-  getAllJobsRequest,
-  setCurrentPage,
-  // resetFilters as resetReduxFilters,
-} from '@/redux/reducers/jobReducer';
-import debounce from 'debounce';
-import { Job } from '@/redux/types/jobType';
+'use client';
 
-type FilterState = {
-  page: number;
-  query: string;
-  country: string;
-  city: string;
-  datePosted: string;
-  employmentType: string[];
-  experience: string[];
-  append?: boolean; // For infinite scroll
-};
+import { useState, useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'next/navigation';
+import { debounce } from 'lodash';
+import { getAllJobsRequest } from '@/redux/reducers/jobReducer';
+import { RootState } from '@/redux/rootReducer';
+import apiInstance from '@/services/api';
 
 export const useJobs = () => {
   const dispatch = useDispatch();
-  const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Redux state
   const {
     jobs,
     loading,
@@ -35,15 +20,30 @@ export const useJobs = () => {
     filters: reduxFilters,
   } = useSelector((state: RootState) => state.jobs);
 
-  // Local state
   const [filterModal, setFilterModal] = useState(false);
   const [employmentTypes, setEmploymentTypes] = useState<string[]>([]);
   const [experienceLevels, setExperienceLevels] = useState<string[]>([]);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const jobListRef = useRef<HTMLDivElement>(null);
-  const jobDetailRef = useRef<HTMLDivElement>(null);
 
-  // Fetch metadata
+  // --- Initial data load based on URL params ---
+  useEffect(() => {
+    const page = Number(searchParams.get('page') || '1');
+    const query = searchParams.get('query') || '';
+    const country = searchParams.get('country') || '';
+    const city = searchParams.get('city') || '';
+
+    // CHANGED: Dispatch with append: false for initial load
+    dispatch(
+      getAllJobsRequest({
+        page,
+        query,
+        country,
+        city,
+        append: false, // Ensures the list is replaced, not appended to
+      }),
+    );
+  }, [dispatch, searchParams]);
+
+  // --- Fetch metadata for filters (No change here) ---
   useEffect(() => {
     const fetchJobMetadata = async () => {
       try {
@@ -60,109 +60,34 @@ export const useJobs = () => {
     fetchJobMetadata();
   }, []);
 
+  // --- Filter change handler ---
   const handleFilterChange = useCallback(
-    debounce((newFilters: Partial<FilterState>) => {
-      // Merge new changes with existing filters from Redux and reset to page 1
-      const updatedFilters = { ...reduxFilters, ...newFilters, page: 1 };
-      dispatch(getAllJobsRequest(updatedFilters));
+    debounce((newFilters: Partial<typeof reduxFilters>) => {
+      // CHANGED: Dispatch with append: false to reset the list
+      const payload = {
+        ...reduxFilters,
+        ...newFilters,
+        page: 1,
+        append: false,
+      };
+      dispatch(getAllJobsRequest(payload));
+      setFilterModal(false);
     }, 500),
     [dispatch, reduxFilters],
   );
 
-  // Fetch jobs on initial mount or when page changes
-  useEffect(() => {
-    const page = Number(searchParams.get('page') || '1');
-    dispatch(setCurrentPage(page));
-    dispatch(
-      getAllJobsRequest({
-        page,
-        query: '', // Clean search
-        country: '',
-        city: '',
-        datePosted: '',
-        employmentType: [],
-        experience: [],
-      }),
-    );
-  }, [dispatch, searchParams]);
-
-  useEffect(() => {
-    const fetchSingleJob = async () => {
-      try {
-        const jobId = searchParams.get('slug');
-        if (jobId) {
-          const response = await apiInstance.get(`/jobs/find?slug=${jobId}`);
-          setSelectedJob(response.data.singleJob);
-        }
-      } catch (err) {
-        console.error('Failed to fetch single job:', err);
-      }
-    };
-
-    if (searchParams.has('slug')) {
-      fetchSingleJob();
-    }
-  }, []);
-
-  // Search input (does not update URL)
-  const handleSearchInput = useCallback(
-    async (value: string) => {
-      // Just call API or dispatch if needed — avoid query param
-      dispatch(
-        getAllJobsRequest({
-          page: 1,
-          query: value,
-          country: '',
-          city: '',
-          datePosted: '',
-          employmentType: [],
-          experience: [],
-        }),
-      );
-    },
-    [dispatch],
-  );
-
-  // Page change — only modify `page` in URL
-  const handlePageChange = useCallback(
-    (page: number) => {
-      dispatch(setCurrentPage(page));
-      dispatch(getAllJobsRequest({ ...reduxFilters, page }));
-      // Scroll to the top of the job list
-      document.querySelector('.lg\\:col-span-5 > div')?.scrollTo(0, 0);
-    },
-    [dispatch, reduxFilters],
-  );
-
+  // --- Infinite scroll handler ---
   const loadMoreJobs = useCallback(() => {
     if (!loading && pagination.page < pagination.totalPages) {
       const nextPage = pagination.page + 1;
+      // CORRECT: This correctly dispatches with append: true
       dispatch(
         getAllJobsRequest({ ...reduxFilters, page: nextPage, append: true }),
       );
     }
   }, [dispatch, loading, pagination, reduxFilters]);
 
-  // Filter change — does not touch URL
-  const applySearchFilters = useCallback(
-    (newFilters: { [key: string]: string | string[] }) => {
-      dispatch(
-        getAllJobsRequest({
-          page: 1,
-          query: '',
-          country: '',
-          city: '',
-          datePosted: '',
-          employmentType: newFilters.employmentType || [],
-          experience: newFilters.experience || [],
-        }),
-      );
-      setFilterModal(false);
-    },
-    [dispatch],
-  );
-
-  // Reset all filters
+  // --- Reset all filters ---
   const resetFilters = useCallback(() => {
     const initialFilters = {
       page: 1,
@@ -172,69 +97,26 @@ export const useJobs = () => {
       datePosted: '',
       employmentType: [],
       experience: [],
+      append: false, // CHANGED: Dispatch with append: false to reset the list
     };
     dispatch(getAllJobsRequest(initialFilters));
     setFilterModal(false);
   }, [dispatch]);
 
-  // On job card click, just load the details without modifying URL
-  const handleCardClick = useCallback(async (slug: string) => {
-    try {
-      const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
-      setSelectedJob(response.data.singleJob);
-    } catch (err) {
-      console.error('Failed to fetch job details:', err);
-    }
-  }, []);
-
-  const handleSearchChange = useCallback(
-    debounce((filters: FilterState) => {
-      dispatch(
-        getAllJobsRequest({
-          page: 1,
-          query: filters.query,
-          country: filters.country,
-          city: filters.city,
-          datePosted: filters.datePosted,
-          employmentType: [],
-          experience: [],
-        }),
-      );
-    }, 500),
-    [dispatch],
-  );
-
-  useEffect(() => {
-    const page = Number(searchParams.get('page') || '1');
-    dispatch(getAllJobsRequest({ ...reduxFilters, page }));
-  }, [dispatch]); // Removed searchParams to prevent re-fetching on irrelevant URL changes
+  // REMOVED: handlePageChange is not needed for infinite scroll, but can be added back if you have a pagination component.
 
   return {
-    // State
-    filterModal,
-    filters: reduxFilters,
-    employmentTypes,
-    experienceLevels,
     jobs,
     loading,
     error,
     pagination,
-    selectedJob,
-
-    // Refs
-    jobListRef,
-    jobDetailRef,
-    handleSearchChange,
-
-    // Handlers
+    filters: reduxFilters,
+    filterModal,
+    employmentTypes,
+    experienceLevels,
     setFilterModal,
-    handleSearchInput,
-    handlePageChange,
-    applySearchFilters,
-    resetFilters,
-    handleCardClick,
-
     handleFilterChange,
     loadMoreJobs,
+    resetFilters,
   };
 };

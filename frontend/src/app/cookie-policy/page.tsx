@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 // Make sure this path is correct for your project structure
 import { Navigation } from '@/components/layout/site-header';
-
+import { Footer } from '@/components/layout/footer';
 // Data for the sections, making the component dynamic
 const policyData = [
   {
@@ -124,7 +124,7 @@ export default function CookiePolicyPage() {
   return (
     <div>
       <Navigation />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-hidden pt-16">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-hidden ">
         {/* Animated background elements */}
         <div className="absolute inset-0 -z-0">
           <div className="absolute top-20 right-20 w-80 h-80 bg-gradient-to-r from-pink-200 to-rose-200 rounded-full filter blur-3xl opacity-40 animate-pulse"></div>
@@ -132,10 +132,10 @@ export default function CookiePolicyPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 rounded-full filter blur-3xl opacity-30 animate-pulse delay-500"></div>
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-16 md:py-24">
+        <div className="relative z-10 container mx-auto px-4 py-10 md:py-5">
           {/* Header Section */}
-          <header className="text-center mb-16">
-            <h1 className="text-5xl md:text-7xl font-black text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+          <header className="text-center mb-5">
+            <h1 className="text-5xl sm:text-6xl lg:text-6xl font-black text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
               Cookie Policy
             </h1>
             <p className="text-xl text-gray-600">
@@ -219,6 +219,7 @@ export default function CookiePolicyPage() {
           </main>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

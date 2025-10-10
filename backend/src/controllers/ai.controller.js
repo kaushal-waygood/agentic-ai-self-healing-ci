@@ -350,7 +350,6 @@ export const getStudentHTMLLetter = async (req, res) => {
   const { _id } = req.user;
   try {
     const student = await Student.findById(_id);
-    // console.log(student.coverLetter);
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }

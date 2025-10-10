@@ -91,7 +91,7 @@ export default function SettingsView() {
 
   // Handlers
   const handleSectionChange = (section: string) => {
-    router.push(`/settings?tab=${section}`);
+    router.push(`/dashboard/settings?tab=${section}`);
   };
 
   const handleNotificationChange = (id: keyof typeof notifications) => {
@@ -99,6 +99,7 @@ export default function SettingsView() {
   };
 
   const handleChangePassword = () => {
+    console.log(currentPassword, newPassword, confirmNewPassword);
     if (newPassword !== confirmNewPassword) {
       toast({
         title: 'Error',

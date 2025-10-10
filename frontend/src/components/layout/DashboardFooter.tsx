@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import React from 'react';
 
 const DashboardFooter = () => {
@@ -11,24 +12,24 @@ const DashboardFooter = () => {
         </div>
 
         <nav className="flex items-center gap-4">
-          <a
-            href="#"
+          <Link
+            href="/dashboard/terms-of-service"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
           >
             Terms
-          </a>
-          <a
-            href="#"
+          </Link>
+          <Link
+            href="/dashboard/privacy-policy"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
           >
             Privacy
-          </a>
-          <a
-            href="#"
+          </Link>
+          <Link
+            href="/dashboard/support"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
           >
             Support
-          </a>
+          </Link>
         </nav>
       </div>
     </footer>

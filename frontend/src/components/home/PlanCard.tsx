@@ -1,6 +1,15 @@
 'use client';
 
-import { ArrowRight, Building2, Check, Crown, Star, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  Building2,
+  Check,
+  Clock,
+  Crown,
+  Repeat,
+  Star,
+  Zap,
+} from 'lucide-react';
 import { useState } from 'react';
 
 // --- Interfaces for type safety ---
@@ -21,7 +30,7 @@ interface BillingVariant {
 
 interface Plan {
   _id: string;
-  planType: 'Free' | 'Basic' | 'Pro' | 'Enterprise' | 'Weekly';
+  planType: 'Free' | 'Basic' | 'Pro' | 'Monthly' | 'Enterprise' | 'Weekly';
   popular: boolean;
   billingVariants: BillingVariant[];
 }
@@ -40,6 +49,7 @@ type ColorKey = 'blue' | 'green' | 'purple' | 'indigo';
 const planIcons: Record<PlanType, React.ElementType> = {
   Free: Zap,
   Basic: Zap,
+  Monthly: Zap,
   Weekly: Zap,
   Pro: Crown,
   Enterprise: Building2,
@@ -48,6 +58,7 @@ const planIcons: Record<PlanType, React.ElementType> = {
 const planColors: Record<PlanType, ColorKey> = {
   Free: 'blue',
   Basic: 'green',
+  Monthly: 'purple',
   Weekly: 'green',
   Pro: 'purple',
   Enterprise: 'indigo',

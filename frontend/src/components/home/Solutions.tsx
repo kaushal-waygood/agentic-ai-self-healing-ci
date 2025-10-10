@@ -16,6 +16,7 @@ import {
   Send,
   BarChart3,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const journeySteps = [
   {
@@ -23,7 +24,7 @@ const journeySteps = [
     title: 'AI-Powered Job Matches',
     icon: Brain,
     description:
-      'Our AI analyzes job descriptions and customizes your resume to get past ATS filters and land you more interviews.',
+      'Smart AI algorithms deliver job opportunities tailored to your skills, experience, and career goals.',
     color: 'from-pink-400 to-rose-400',
     bgColor: 'bg-pink-50',
     borderColor: 'border-pink-200',
@@ -62,7 +63,7 @@ const journeySteps = [
     title: 'Auto Job Applications',
     icon: Send,
     description:
-      'Document preparation, essay writing, and application submission guidance',
+      'Search jobs, tailor your documents and apply for jobs while you focus on other important stuffs',
     color: 'from-yellow-400 to-lime-400',
     bgColor: 'bg-yellow-50',
     borderColor: 'border-yellow-200',
@@ -81,7 +82,7 @@ const journeySteps = [
     borderColor: 'border-lime-200',
     position: 'left',
     status: '60% Better Results',
-    demo: 'Try Cover Letter AI',
+    demo: 'Start Job Application',
   },
 ];
 
@@ -89,6 +90,7 @@ export function Solutions() {
   const [activeStep, setActiveStep] = useState(2);
   const [hoveredStep, setHoveredStep] = useState(null);
   const [progress, setProgress] = useState(25);
+  const route = useRouter();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -273,6 +275,7 @@ export function Solutions() {
                         {/* Action Button */}
                         <div className="animate-fadeIn">
                           <button
+                            onClick={() => route.push('/signup')}
                             className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r ${step.color} text-white font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300`}
                           >
                             <span>{step.demo}</span>

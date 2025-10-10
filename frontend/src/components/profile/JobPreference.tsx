@@ -690,9 +690,9 @@ const JobPreferencesForm = () => {
 
         {/* Action Buttons */}
         <div className="flex justify-center gap-4 mt-8">
-          <button className="px-8 py-4 bg-gradient-to-r from-slate-400 to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-slate-400/30 hover:shadow-xl hover:shadow-slate-400/40 transform hover:scale-105 transition-all duration-300">
+          {/* <button className="px-8 py-4 bg-gradient-to-r from-slate-400 to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-slate-400/30 hover:shadow-xl hover:shadow-slate-400/40 transform hover:scale-105 transition-all duration-300">
             Save Draft
-          </button>
+          </button> */}
           <button
             onClick={handleSavePreferences}
             className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"

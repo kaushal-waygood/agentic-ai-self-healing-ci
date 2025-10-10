@@ -3,16 +3,22 @@ import slugify from 'slugify';
 
 const jobSchema = new Schema(
   {
+    // --- Core Identifiers ---
     jobId: { type: String, required: true, unique: true },
-    origin: { type: String, enum: ['HOSTED', 'EXTERNAL'] },
+    origin: { type: String, enum: ['HOSTED', 'EXTERNAL'], required: true },
+    slug: { type: String, unique: true },
 
-    title: { type: String },
-    description: { type: String },
+    // --- Job Details ---
+    title: { type: String, required: true },
+    description: { type: String, required: true },
     responsibilities: [String],
-    qualifications: [String],
-    jobTypes: [String],
-    logo: { type: String },
+    qualifications: [String], // KEPT: This is the correct field for qualifications
+    experience: { type: [String], default: [] },
+    jobTypes: [String], // REMOVED: Duplicate of this field was taken out
+
+    // --- Company & Application ---
     company: { type: String },
+    logo: { type: String },
     organizationId: {
       type: Schema.Types.ObjectId,
       ref: 'Organization',
@@ -20,42 +26,21 @@ const jobSchema = new Schema(
         return this.origin === 'HOSTED';
       },
     },
-
     applyMethod: {
       method: { type: String, enum: ['EMAIL', 'URL'] },
       email: { type: String },
       url: { type: String },
     },
 
-    jobTypes: {
-      type: [String],
-    },
-
-    contractLength: {
-      value: { type: Number },
-      type: { type: String, enum: ['DAYS', 'WEEKS', 'MONTHS'] },
-    },
-
+    // --- Compensation ---
     salary: {
       min: { type: Number },
       max: { type: Number },
       period: { type: String, enum: ['HOUR', 'DAY', 'MONTH', 'YEAR'] },
     },
 
-    expectedHours: { type: Number },
-    workingHoursMin: { type: Number },
-    workingHoursMax: { type: Number },
-
-    resumeRequired: { type: Boolean },
-    coverLetterRequired: { type: Boolean },
-    phoneRequired: { type: Boolean },
-
-    language: { type: String },
-    applicationDeadline: { type: String },
-
-    jobAddress: { type: String },
+    // --- Location ---
     country: { type: String },
-
     location: {
       city: { type: String },
       postalCode: { type: String },
@@ -63,60 +48,22 @@ const jobSchema = new Schema(
       lng: { type: Number },
     },
 
+    // --- Metadata ---
     tags: [String],
-
-    taxonomyAttributes: [
-      {
-        uuid: { type: String },
-        label: { type: String },
-      },
-    ],
-
-    attributes: { type: Map, of: String },
-
-    workPeriods: {
-      standard: {
-        overtimeSalary: {
-          min: { type: Number },
-          max: { type: Number },
-          isExact: { type: Boolean },
-          isFixedAmount: { type: Boolean },
-          period: { type: String },
-        },
-      },
-      probation: {
-        baseSalary: {
-          min: { type: Number },
-          max: { type: Number },
-          isExact: { type: Boolean },
-          period: { type: String },
-        },
-        overtimeSalary: {
-          min: { type: Number },
-          max: { type: Number },
-          isExact: { type: Boolean },
-          isFixedAmount: { type: Boolean },
-          period: { type: String },
-        },
-      },
-    },
-
-    appliedStudents: [{ type: Schema.Types.ObjectId, ref: 'Student' }],
-
-    queries: [{ type: String }],
-    experience: { type: Number },
-    qualification: [String],
-
-    slug: { type: String, unique: true },
+    queries: [{ type: String, index: true }], // Indexed for faster searching
     isActive: { type: Boolean, default: true },
-    views: { type: Number, default: 0 },
-    applications: { type: Number, default: 0 },
+
+    // REMOVED: The singular 'qualification' field was removed to avoid confusion.
+
+    // ...You can add any other fields you need here.
   },
-  { timestamps: true },
+  { timestamps: true }, // Automatically adds createdAt and updatedAt
 );
 
-jobSchema.index({ queries: 1 });
-
+// --- Middleware for Slug Generation ---
+// IMPORTANT: This hook only runs for individual document creation/updates
+// using .save() or .create(). It WILL NOT run for batch operations like
+// .bulkWrite(), .insertMany(), or .updateMany().
 jobSchema.pre('save', function (next) {
   if (this.isModified('title') || !this.slug) {
     const baseSlug = slugify(this.title, {
@@ -124,11 +71,9 @@ jobSchema.pre('save', function (next) {
       strict: true,
       trim: true,
     });
-
-    // Add random string for uniqueness
+    // Appends a short random string to ensure the slug is unique
     this.slug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
   }
-
   next();
 });
 

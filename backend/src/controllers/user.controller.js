@@ -9,13 +9,12 @@ import redisClient from '../config/redis.js';
 import { google } from 'googleapis';
 import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
+import jwt from 'jsonwebtoken';
+import { config } from '../config/config.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
-
-console.log(process.env.NODE_ENV);
 
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/gmail.send',
 ];
 
@@ -23,10 +22,10 @@ export const SCOPES = [
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  'https://api.zobsai.com/api/v1/user/oauth2callback',
+  `${process.env.BACKEND_URL}/api/v1/user/oauth2callback`,
 );
 
-const originUrl = 'https://www.zobsai.com';
+const originUrl = process.env.FRONTEND_URL;
 
 export const firebaseAuth = async (req, res) => {
   try {
@@ -53,7 +52,7 @@ export const firebaseAuth = async (req, res) => {
       // New user - create with default values
       user = await User.create({
         firebaseUid: uid,
-        authMethod: 'firebase',
+        authMethod: 'google',
         email: email.toLowerCase(),
         fullName: name || 'Anonymous',
         avatar: picture || '',
@@ -63,7 +62,7 @@ export const firebaseAuth = async (req, res) => {
       });
     } else if (!user.firebaseUid) {
       user.firebaseUid = uid;
-      user.authMethod = 'firebase';
+      user.authMethod = 'google';
       await user.save();
     }
 
@@ -242,15 +241,12 @@ export const signUpUser = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
-  console.log('Email:', email, 'OTP:', otp);
 
   try {
     // Find user by email
     const user = await User.findOne({ email }).select(
       '+otp +otpExpires +isEmailVerified',
     );
-
-    console.log('User:', user);
 
     // Validation checks
     if (!user) {
@@ -504,7 +500,6 @@ export const forgotPassword = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   const { token, newPassword, confirmPassword, email } = req.body;
-  console.log(req.body);
 
   try {
     // 1. Validate inputs
@@ -519,7 +514,6 @@ export const resetPassword = async (req, res) => {
     // 2. Find user by email
     const user = await User.findOne({ email });
 
-    console.log(user);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -587,7 +581,6 @@ export const signout = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const { _id: userId } = req.user;
-    console.log(userId);
     const cacheKey = `user:profile:${userId}`;
 
     const user = await redisClient.withCache(cacheKey, 3600, async () => {
@@ -617,12 +610,17 @@ export const changePassword = async (req, res) => {
   const { currentPassword, newPassword, confirmNewPassword } = req.body;
   const { _id } = req.user;
 
-  console.log(req.body);
-  console.log(_id);
   try {
-    const user = await User.findById(_id);
+    // *** FIX: Use .select('+password') to retrieve the hashed password ***
+    const user = await User.findById(_id).select('+password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // This check will now work correctly
+    const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     if (currentPassword === newPassword) {
@@ -635,12 +633,6 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    console.log(user.password);
-
-    const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
-    if (!isPasswordCorrect) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
     user.password = newPassword;
     await user.save();
     res.status(200).json({ message: 'Password changed successfully' });
@@ -650,7 +642,6 @@ export const changePassword = async (req, res) => {
   }
 };
 
-// --- This function is correct, no changes needed ---
 const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
   if (!html) {
     throw new Error('HTML content is required.');
@@ -688,7 +679,10 @@ export const sendEmails = async (req, res) => {
     htmlCoverLetter: coverLetterHtml,
   } = req.body;
 
+  const userEmail = await User.findById(req.user._id).select('email');
+
   const receiverEmails = [
+    userEmail.email,
     'infozobsai@gmail.com',
     'prakhar@zobsai.com',
     'shadab@zobsai.com',
@@ -736,24 +730,20 @@ export const sendEmails = async (req, res) => {
     // 3. Prepare attachments by converting HTML to PDF (no changes here)
     const attachments = [];
     if (resumeHtml) {
-      console.log('Converting resume HTML to PDF...');
       const resumePdfBuffer = await convertHtmlToPdf(resumeHtml);
       attachments.push({
         filename: 'resume.pdf',
         content: resumePdfBuffer,
         contentType: 'application/pdf',
       });
-      console.log('Resume PDF conversion complete.');
     }
     if (coverLetterHtml) {
-      console.log('Converting cover letter HTML to PDF...');
       const coverLetterPdfBuffer = await convertHtmlToPdf(coverLetterHtml);
       attachments.push({
         filename: 'cover_letter.pdf',
         content: coverLetterPdfBuffer,
         contentType: 'application/pdf',
       });
-      console.log('Cover letter PDF conversion complete.');
     }
 
     // 4. Use Nodemailer's MailComposer to build the MIME message
@@ -801,27 +791,23 @@ export const sendEmails = async (req, res) => {
 
 export const oAuth2Callback = async (req, res) => {
   const { code, state: userId } = req.query;
-  console.log(
-    'OAuth callback received. Code:',
-    code ? 'Yes' : 'No',
-    'UserID:',
-    userId,
-  );
 
   if (!code) {
     console.error('No authorization code received from Google.');
-    return res.redirect(`${originUrl}/settings?error=auth_failed_no_code`);
+    return res.redirect(
+      `${originUrl}/dashboard/settings?error=auth_failed_no_code`,
+    );
   }
 
   if (!userId) {
     console.error('No state (userId) received from Google.');
-    return res.redirect(`${originUrl}/settings?error=auth_failed_no_state`);
+    return res.redirect(
+      `${originUrl}/dashboard/settings?error=auth_failed_no_state`,
+    );
   }
 
   try {
-    console.log('Exchanging authorization code for tokens...');
     const { tokens } = await oauth2Client.getToken(code);
-    console.log('Tokens received:', tokens ? 'Yes' : 'No');
 
     if (!tokens.access_token || !tokens.refresh_token) {
       console.error('Incomplete tokens received from Google:', tokens);
@@ -832,38 +818,31 @@ export const oAuth2Callback = async (req, res) => {
 
     oauth2Client.setCredentials(tokens);
 
-    // Get user info (email) to confirm identity
-    console.log('Fetching user info from Google...');
     const oauth2 = google.oauth2({
       version: 'v2',
       auth: oauth2Client,
     });
     const { data: userInfo } = await oauth2.userinfo.get();
-    console.log('User info received:', userInfo);
 
     const userEmail = userInfo.email;
     if (!userEmail) {
       throw new Error('Could not retrieve email from Google user profile.');
     }
 
-    // Find the user in your database using the ID passed in the 'state' parameter
-    console.log(`Looking for user with ID: ${userId}`);
     const user = await User.findById(userId);
 
     if (!user) {
-      console.error(`User not found in database with ID: ${userId}`);
-      return res.redirect(`${originUrl}/settings?error=user_not_found`);
+      return res.redirect(
+        `${originUrl}/dashboard/settings?error=user_not_found`,
+      );
     }
 
-    // Optional: Check if the email from Google matches the user's email in your DB
     if (user.email !== userEmail) {
       console.warn(
         `Mismatched emails. DB: ${user.email}, Google: ${userEmail}. Proceeding with user ID.`,
       );
     }
 
-    // Save the refresh token and other auth details to the user's record
-    console.log(`Saving Google tokens for user: ${user.email}`);
     user.googleAuth = {
       refreshToken: tokens.refresh_token,
       accessToken: tokens.access_token,
@@ -871,22 +850,19 @@ export const oAuth2Callback = async (req, res) => {
     };
     await user.save();
 
-    console.log('OAuth flow completed successfully for user:', user.email);
-    res.redirect(`${originUrl}/settings?success=google_connected`);
+    res.redirect(`${originUrl}/dashboard/settings?success=google_connected`);
   } catch (err) {
     console.error(
       'Error during OAuth callback process:',
       err.message,
       err.stack,
     );
-    res.redirect(`${originUrl}/settings?error=auth_failed_internal`);
+    res.redirect(`${originUrl}/dashboard/settings?error=auth_failed_internal`);
   }
 };
 
 export const authGoogle = async (req, res) => {
   const userId = req.params.id;
-
-  console.log('User ID:', userId, 'redirect_uri:', oauth2Client.redirect_uri);
 
   try {
     const url = oauth2Client.generateAuthUrl({
@@ -896,9 +872,6 @@ export const authGoogle = async (req, res) => {
       state: userId,
       redirect_uri: oauth2Client.redirect_uri, // Add this line
     });
-
-    console.log('Generated OAuth URL:', url);
-    console.log('Using redirect_uri:', oauth2Client.redirect_uri);
     res.redirect(url);
   } catch (error) {
     console.error('Error generating Google auth URL:', error);
@@ -928,7 +901,6 @@ export const disconnectGoogle = async (req, res) => {
     // revoked it from their Google account, but we still want to clean up our DB.
     try {
       await oauth2Client.revokeToken(refreshToken);
-      console.log(`Successfully revoked token for user: ${user.email}`);
     } catch (revokeError) {
       console.warn(
         `Failed to revoke token for ${user.email}, but proceeding with DB cleanup. Error:`,
@@ -953,7 +925,7 @@ export const disconnectGoogle = async (req, res) => {
 
 export const testSendEmail = async (req, res) => {
   const receiverEmails = [
-    'thesiddiqui7@gmail.com',
+    req.user.email,
     'infozobsai@gmail.com',
     'prakhar@zobsai.com',
     'shadab@zobsai.com',
@@ -1021,5 +993,124 @@ export const testSendEmail = async (req, res) => {
     res.status(500).json({
       message: 'An error occurred while trying to send the test email.',
     });
+  }
+};
+
+const SERVER_ROOT_URI = process.env.BACKEND_URL;
+const UI_ROOT_URI = process.env.FRONTEND_URL;
+
+// Define the single, correct redirect URI for this flow
+const redirectURI = '/api/v1/user/google/auth/redirect/callback';
+
+const oauth2ClientRedirect = new google.auth.OAuth2(
+  '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
+  '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',
+  `${SERVER_ROOT_URI}${redirectURI}`, // Constructs the full, correct callback URL
+);
+
+export const redirectToGoogle = async (req, res) => {
+  try {
+    const url = oauth2ClientRedirect.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+      ],
+    });
+    res.redirect(url);
+  } catch (error) {
+    console.error('Error generating Google auth URL:', error);
+    res
+      .status(500)
+      .redirect(`${UI_ROOT_URI}/login?error=google_redirect_failed`);
+  }
+};
+
+export const handleGoogleCallback = async (req, res) => {
+  const { code } = req.query;
+
+  if (!code) {
+    return res
+      .status(400)
+      .redirect(`${UI_ROOT_URI}/login?error=missing_auth_code`);
+  }
+
+  try {
+    // Exchange authorization code for tokens using the correct client
+    const { tokens } = await oauth2ClientRedirect.getToken(code);
+    oauth2ClientRedirect.setCredentials(tokens);
+
+    // Get user profile information from Google
+    const { data } = await google.oauth2('v2').userinfo.get({
+      auth: oauth2ClientRedirect,
+    });
+
+    // Find or create a user in your database
+    let user = await User.findOne({ email: data.email });
+
+    if (!user) {
+      user = new User({
+        // FIX 1: Map Google's 'name' to your schema's 'fullName'
+        fullName: data.name,
+        email: data.email,
+        googleId: data.id, // Assuming you have a googleId field
+        avatar: data.picture,
+
+        // FIX 2: Explicitly set the authMethod to prevent password requirement
+        authMethod: 'google',
+        // The user is considered verified if they signed up via Google
+        isEmailVerified: true,
+      });
+      await user.save();
+    }
+
+    // Create a JWT for the user session
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      config.accessTokenSecret,
+      {
+        expiresIn: '7d',
+      },
+    );
+
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+    });
+
+    // Redirect to the dedicated frontend callback page with the token
+    res.redirect(
+      `${UI_ROOT_URI}/auth/google/callback?token=${token}&state=${user}`,
+    );
+  } catch (error) {
+    console.error('Error handling Google callback:', error);
+    res.status(500).redirect(`${UI_ROOT_URI}/login?error=auth_failed`);
+  }
+};
+
+// Add this new controller function
+export const getMe = async (req, res) => {
+  const { id = '', _id = '' } = req.user;
+
+  if (!_id || !id) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  if (id) {
+    try {
+      const user = await User.findById(id).select('-password');
+      res.status(200).json(user);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  try {
+    const user = await User.findById(_id).select('-password');
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

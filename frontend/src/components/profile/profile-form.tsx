@@ -89,6 +89,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handleEmail,
     setHandleEmail,
     handleDeleteProject,
+    togglePhoneEdit,
 
     //form
     personalInfoForm,
@@ -185,7 +186,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="">
       <ProfileInfo
         isNameEditable={isNameEditable}
         isEmailEditable={isEmailEditable}
@@ -197,6 +198,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         handlePersonalInfoSubmit={handlePersonalInfoSubmit}
         handlePersonalInfoEdit={handlePersonalInfoEdit}
         personalInfoForm={personalInfoForm}
+        setHandleName={setHandleName}
+        setHandleEmail={setHandleEmail}
+        togglePhoneEdit={togglePhoneEdit}
       />
 
       {/* Career Details Card */}
@@ -252,24 +256,26 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
           </CardDescription>
         </CardHeader>
       </Card> */}
+      <div className="max-w-full mx-auto p-4 sm:p-6">
+        <Card className="" id="search-prefs">
+          <CardHeader>
+            <CardTitle className=" text-xl font-headline flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
+              Job Search Preferences
+            </CardTitle>
+            <CardDescription>
+              Configure your default preferences for job searching.
+            </CardDescription>
+          </CardHeader>
 
-      <Card id="search-prefs">
-        <CardHeader>
-          <CardTitle className="text-xl font-headline flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-primary" />
-            Job Search Preferences
-          </CardTitle>
-          <CardDescription>
-            Configure your default preferences for job searching.
-          </CardDescription>
-        </CardHeader>
+          <CardContent>
+            <JobPreferencesForm />
+          </CardContent>
+        </Card>
+      </div>
 
-        <CardContent>
-          <JobPreferencesForm />
-        </CardContent>
-      </Card>
-
-      {!isOnboarding && (
+      {/* Account Management section */}
+      {/* {!isOnboarding && (
         <>
           <Separator />
           <div>
@@ -295,7 +301,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
             </div>
           </div>
         </>
-      )}
+      )} */}
 
       {/* add education, project, experience, skill */}
       {addEdu && (

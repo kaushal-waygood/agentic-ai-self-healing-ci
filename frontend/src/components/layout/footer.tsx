@@ -147,59 +147,7 @@ export function Footer() {
         <div className="absolute inset-0 opacity-5 footer-grid-pattern" />
       </div>
 
-      <div className="container mx-auto px-6 py-20 relative z-10">
-        {/* Newsletter Section */}
-        <div
-          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 mb-16 hover:bg-white/10 transition-all duration-500 group"
-          style={{
-            transform: `translateY(${isVisible ? 0 : 50}px)`,
-            opacity: isVisible ? 1 : 0,
-            transitionDelay: '0.2s',
-          }}
-        >
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-            <div className="flex items-center gap-6">
-              <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl group-hover:rotate-6 transition-transform duration-500">
-                <Mail className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  Stay Updated
-                </h3>
-                <p className="text-gray-400">
-                  Get the latest AI job search tips and product updates.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 w-full lg:w-auto">
-              <div className="relative flex-1 lg:w-80">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300"
-                />
-              </div>
-              <button
-                onClick={handleNewsletterSubmit}
-                disabled={newsletterStatus === 'loading'}
-                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:scale-105 transition-all duration-300 disabled:opacity-50"
-              >
-                {newsletterStatus === 'loading' ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : newsletterStatus === 'success' ? (
-                  <span className="text-green-400">✓</span>
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-                {newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
-              </button>
-            </div>
-          </div>
-        </div>
-
+      <div className="container mx-auto px-6 py-10 relative z-10">
         <div className="grid lg:grid-cols-6 gap-12">
           {/* Enhanced Brand Section */}
           <div className="lg:col-span-2">
@@ -212,8 +160,11 @@ export function Footer() {
               }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
+                {/* <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
                   <Rocket className="w-6 h-6 text-white" />
+                </div> */}
+                <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
+                  <img src="/logo.png" alt="abc" />
                 </div>
                 <h3 className="text-3xl font-black text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text">
                   ZobsAI
@@ -236,7 +187,6 @@ export function Footer() {
             >
               {[
                 { icon: Mail, text: 'hello@zobsai.com', color: 'blue' },
-                { icon: Phone, text: '+1 (555) 123-4567', color: 'emerald' },
                 { icon: MapPin, text: 'San Francisco, CA', color: 'purple' },
               ].map((contact, index) => (
                 <div
@@ -256,29 +206,6 @@ export function Footer() {
                 </div>
               ))}
             </div>
-
-            {/* Stats */}
-            <div
-              className="grid grid-cols-3 gap-4 mt-8 p-6 bg-white/5 rounded-2xl border border-white/10"
-              style={{
-                transform: `translateY(${isVisible ? 0 : 30}px)`,
-                opacity: isVisible ? 1 : 0,
-                transitionDelay: '0.8s',
-              }}
-            >
-              {[
-                { number: '50K+', label: 'Users' },
-                { number: '2M+', label: 'Applications' },
-                { number: '85%', label: 'Success Rate' },
-              ].map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-2xl font-black text-white mb-1">
-                    {stat.number}
-                  </div>
-                  <div className="text-xs text-gray-400">{stat.label}</div>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Enhanced Links Sections */}
@@ -287,14 +214,16 @@ export function Footer() {
               ([section, links], sectionIndex) => (
                 <div key={section}>
                   <h4
-                    className="font-bold text-white mb-6 text-lg flex items-center gap-2"
+                    className="font-bold text-white mb-6 text-lg flex items-center"
                     style={{
                       transform: `translateY(${isVisible ? 0 : 20}px)`,
                       opacity: isVisible ? 1 : 0,
                       transitionDelay: `${sectionIndex * 100}ms`,
                     }}
                   >
-                    <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" />
+                    <div className="" />
+                    {/* dot will displayed if uncomment this */}
+                    {/* <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" /> */}
                     {section.charAt(0).toUpperCase() + section.slice(1)}
                   </h4>
                   <ul className="space-y-3">
@@ -310,6 +239,80 @@ export function Footer() {
                 </div>
               ),
             )}
+          </div>
+        </div>
+
+        {/* States and Newsletter section parent div */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
+          {/* Stats Section */}
+          <div
+            className="grid  items-center grid-cols-3 gap-6 p-3 bg-white/5 rounded-2xl border border-white/10 shadow-lg"
+            style={{
+              transform: `translateY(${isVisible ? 0 : 30}px)`,
+              opacity: isVisible ? 1 : 0,
+              transitionDelay: '0.5s',
+            }}
+          >
+            {[
+              { number: '50K+', label: 'Users' },
+              { number: '2M+', label: 'Applications' },
+              { number: '85%', label: 'Success Rate' },
+            ].map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-3xl font-extrabold text-white mb-2">
+                  {stat.number}
+                </div>
+                <div className="text-sm text-gray-400">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Newsletter Section */}
+          <div
+            className="flex col-span-2 flex-col justify-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-lg hover:bg-white/10 transition-all duration-500"
+            style={{
+              transform: `translateY(${isVisible ? 0 : 30}px)`,
+              opacity: isVisible ? 1 : 0,
+              transitionDelay: '0.8s',
+            }}
+          >
+            <div className="flex items-center gap-5">
+              <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
+                <Mail className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white">
+                  Stay Updated
+                </h3>
+                <p className="text-gray-400 text-sm">
+                  Get the latest AI job search tips and product updates.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+              />
+              <button
+                onClick={handleNewsletterSubmit}
+                disabled={newsletterStatus === 'loading'}
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-6 py-3 rounded-lg font-medium text-white flex items-center gap-2 transition-all disabled:opacity-50"
+              >
+                {newsletterStatus === 'loading' ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : newsletterStatus === 'success' ? (
+                  <span className="text-green-400">✓</span>
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+                {newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
+              </button>
+            </div>
           </div>
         </div>
 

@@ -40,6 +40,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '../ui/accordion';
+import { useProfile } from '@/hooks/useProfile';
 
 export function CareerDetailsComponent({
   // Pass all your state and handlers as props
@@ -82,6 +83,7 @@ export function CareerDetailsComponent({
   setDeleteSkillIndex,
   handleLevelChange,
 }: any) {
+  const { handlePersonalInfoEdit, toggleJobPrefEdit } = useProfile();
   const getSkillBadgeColor = (level) => {
     switch (level) {
       case 'EXPERT':
@@ -246,43 +248,68 @@ export function CareerDetailsComponent({
                   name="jobPreference"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center gap-3">
+                      <div
+                        className={`flex items-center gap-3 p-1 pr-2 rounded-xl border-2 transition-all duration-300 ${
+                          isJobPrefEditable
+                            ? 'border-purple-400 bg-white shadow-md ring-2 ring-purple-100'
+                            : 'border-gray-200 bg-gray-50 group-hover:border-purple-300'
+                        }`}
+                      >
                         <FormControl>
                           <Input
                             {...field}
                             placeholder="e.g., Software Engineer"
-                            readOnly={!isJobPrefEditable}
-                            className={`flex-1 p-4 h-auto rounded-xl border-2 transition-all duration-300 font-medium ${
-                              isJobPrefEditable
-                                ? 'border-purple-400 bg-white shadow-lg focus:ring-4 focus:ring-purple-100 text-purple-800'
-                                : 'border-gray-200 bg-gray-50 text-gray-700'
+                            readOnly={isJobPrefEditable}
+                            className={`flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-800 placeholder-gray-400 font-medium ${
+                              isJobPrefEditable ? 'text-purple-800' : ''
                             }`}
                           />
                         </FormControl>
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            if (isJobPrefEditable) {
-                              careerDetailsForm.handleSubmit(
-                                handleCareerDetailsSubmit,
-                              )();
-                            }
-                            setIsJobPrefEditable(!isJobPrefEditable);
-                          }}
-                          className={`p-3 rounded-xl transition-all duration-300 w-14 h-14 ${
-                            isJobPrefEditable
-                              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                              : 'bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white'
-                          }`}
-                        >
+
+                        {/* --- CORRECTED BUTTON LOGIC --- */}
+                        <div className="flex items-center gap-1">
                           {isJobPrefEditable ? (
-                            <Check className="h-6 w-6" />
+                            // In Edit Mode: Show Cancel and Save buttons
+                            <>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  // You can add cancel logic for this form too
+                                  careerDetailsForm.reset();
+                                  setIsJobPrefEditable(false);
+                                }}
+                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-full"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                onClick={() =>
+                                  handlePersonalInfoEdit('jobPreference')
+                                }
+                                className="h-8 w-8 bg-green-500 hover:bg-green-600 text-white rounded-full"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            </>
                           ) : (
-                            <Edit className="h-6 w-6" />
+                            // Not in Edit Mode: Show Edit button
+                            <Button
+                              type="button"
+                              size="icon"
+                              onClick={toggleJobPrefEdit} // <-- Use the new toggle function here
+                              variant="outline"
+                              className="h-8 w-8 bg-white/50 rounded-full border-gray-300 group-hover:border-purple-400 group-hover:text-purple-500"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           )}
-                        </Button>
+                        </div>
                       </div>
-                      <FormDescription className="mt-3 ml-1">
+                      <FormDescription className="mt-2 ml-1">
                         This helps us tailor job recommendations for you.
                       </FormDescription>
                       <FormMessage />
@@ -295,8 +322,13 @@ export function CareerDetailsComponent({
 
           <Separator />
 
-          <Accordion type="multiple" className="w-full space-y-2">
+          <Accordion
+            type="multiple"
+            className="w-full space-y-2"
+            defaultValue="education"
+          >
             {/* ========= EDUCATION SECTION ========= */}
+
             <AccordionItem value="education" className="border rounded-lg">
               {/* Added 'group' for the icon animation */}
               <AccordionTrigger className="group px-4 py-3 hover:no-underline">
@@ -313,7 +345,7 @@ export function CareerDetailsComponent({
                     <Button
                       type="button"
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevent accordion from toggling
+                        e.stopPropagation();
                         setAddEdu(true);
                       }}
                       className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
@@ -321,83 +353,88 @@ export function CareerDetailsComponent({
                       <PlusCircle className="mr-2 h-5 w-5" />
                       Add Education
                     </Button>
-                    {/* Added consistent chevron icon */}
                     <ChevronDown className="h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180" />
                   </div>
                 </div>
               </AccordionTrigger>
+
               <AccordionContent className="p-4 border-t">
                 <div
                   id="education"
                   className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200"
                 >
                   <div className="space-y-4">
-                    {defaultValues.education?.map((edu, index) => (
-                      <div
-                        key={edu._id}
-                        className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100"
-                      >
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex-1">
-                            <h4 className="text-lg font-bold text-gray-800 mb-1">
-                              {edu.degree}
-                            </h4>
-                            <p className="text-blue-600 font-medium">
-                              {edu.institution}
-                            </p>
-                            {edu.fieldOfStudy && (
-                              <p className="text-sm text-gray-500 mt-1">
-                                Field: {edu.fieldOfStudy}
+                    {defaultValues.education &&
+                    defaultValues.education.length > 0 ? (
+                      defaultValues.education.map((edu, index) => (
+                        <div
+                          key={edu._id}
+                          className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100"
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex-1">
+                              <h4 className="text-lg font-bold text-gray-800 mb-1">
+                                {edu.degree}
+                              </h4>
+                              <p className="text-blue-600 font-medium">
+                                {edu.institution}
                               </p>
+                              {edu.fieldOfStudy && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                  Field: {edu.fieldOfStudy}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditEdu(true);
+                                  setEditEduIndex(index);
+                                }}
+                                className="text-blue-600 border-blue-300 hover:bg-blue-50 h-9 w-9"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => {
+                                  setDeleteEdu(true);
+                                  setDeleteEduIndex(edu.educationId);
+                                }}
+                                className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm pt-4 border-t border-gray-100">
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <Calendar className="h-4 w-4 text-gray-400" />
+                              <span>
+                                {edu.startDate} - {edu.endDate || 'Present'}
+                              </span>
+                            </div>
+                            {edu.gpa && (
+                              <div className="flex items-center gap-2 text-gray-600">
+                                <Award className="h-4 w-4 text-gray-400" />
+                                <span>GPA: {edu.gpa}</span>
+                              </div>
+                            )}
+                            {edu.country && (
+                              <div className="flex items-center gap-2 text-gray-600">
+                                <MapPin className="h-4 w-4 text-gray-400" />
+                                <span>{edu.country}</span>
+                              </div>
                             )}
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => {
-                                setEditEdu(true);
-                                setEditEduIndex(index);
-                              }}
-                              className="text-blue-600 border-blue-300 hover:bg-blue-50 h-9 w-9"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => {
-                                setDeleteEdu(true);
-                                setDeleteEduIndex(edu.educationId);
-                              }}
-                              className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm pt-4 border-t border-gray-100">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span>
-                              {edu.startDate} - {edu.endDate || 'Present'}
-                            </span>
-                          </div>
-                          {edu.gpa && (
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <Award className="h-4 w-4 text-gray-400" />
-                              <span>GPA: {edu.gpa}</span>
-                            </div>
-                          )}
-                          {edu.country && (
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <MapPin className="h-4 w-4 text-gray-400" />
-                              <span>{edu.country}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className=" text-gray-500  italic">No data</div>
+                    )}
                   </div>
                 </div>
               </AccordionContent>
@@ -439,108 +476,114 @@ export function CareerDetailsComponent({
                 >
                   {/* REMOVED: Redundant header was here */}
                   <div className="space-y-4">
-                    {defaultValues.projects?.map((proj, index) => {
-                      const isExpanded = expandedIndex === index;
-                      return (
-                        <div
-                          key={proj._id}
-                          className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-cyan-100"
-                        >
+                    {defaultValues.project &&
+                    defaultValues.project.length > 0 ? (
+                      defaultValues.projects?.map((proj, index) => {
+                        const isExpanded = expandedIndex === index;
+                        return (
                           <div
-                            className="flex justify-between items-center cursor-pointer"
-                            onClick={() => toggleExpand(index)}
+                            key={proj._id}
+                            className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-cyan-100"
                           >
-                            <div className="flex-1 pr-4">
-                              <h4 className="text-lg font-bold text-gray-800">
-                                {proj.name}
-                              </h4>
-                              {!isExpanded && (
-                                <p className="text-gray-600 line-clamp-1 mt-1">
+                            <div
+                              className="flex justify-between items-center cursor-pointer"
+                              onClick={() => toggleExpand(index)}
+                            >
+                              <div className="flex-1 pr-4">
+                                <h4 className="text-lg font-bold text-gray-800">
+                                  {proj.name}
+                                </h4>
+                                {!isExpanded && (
+                                  <p className="text-gray-600 line-clamp-1 mt-1">
+                                    {proj.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-2 items-center">
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditProj(true);
+                                    setEditProjIndex(index);
+                                  }}
+                                  className="text-cyan-600 border-cyan-300 hover:bg-cyan-50 h-9 w-9"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteProj(true);
+                                    setDeleteProjIndex(proj._id);
+                                  }}
+                                  className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-5 w-5" />
+                                  ) : (
+                                    <ChevronDown className="h-5 w-5" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-in slide-in-from-top duration-300">
+                                <p className="text-gray-600 leading-relaxed">
                                   {proj.description}
                                 </p>
-                              )}
-                            </div>
-                            <div className="flex gap-2 items-center">
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditProj(true);
-                                  setEditProjIndex(index);
-                                }}
-                                className="text-cyan-600 border-cyan-300 hover:bg-cyan-50 h-9 w-9"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteProj(true);
-                                  setDeleteProjIndex(proj._id);
-                                }}
-                                className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9"
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="h-5 w-5" />
-                                ) : (
-                                  <ChevronDown className="h-5 w-5" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                          {isExpanded && (
-                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-in slide-in-from-top duration-300">
-                              <p className="text-gray-600 leading-relaxed">
-                                {proj.description}
-                              </p>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div className="flex items-center gap-2 text-gray-600">
-                                  <Calendar className="h-4 w-4 text-gray-400" />
-                                  <span className="whitespace-nowrap font-bold">
-                                    {formatDateForMonthInput(proj.startDate)} to{' '}
-                                    {formatDateForMonthInput(proj.endDate) ||
-                                      'Present'}
-                                  </span>
-                                </div>
-                                {proj.country && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                   <div className="flex items-center gap-2 text-gray-600">
-                                    <MapPin className="h-4 w-4 text-gray-400" />
-                                    <span>{proj.country}</span>
+                                    <Calendar className="h-4 w-4 text-gray-400" />
+                                    <span className="whitespace-nowrap font-bold">
+                                      {formatDateForMonthInput(proj.startDate)}{' '}
+                                      to{' '}
+                                      {formatDateForMonthInput(proj.endDate) ||
+                                        'Present'}
+                                    </span>
+                                  </div>
+                                  {proj.country && (
+                                    <div className="flex items-center gap-2 text-gray-600">
+                                      <MapPin className="h-4 w-4 text-gray-400" />
+                                      <span>{proj.country}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {proj.technologies?.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-700 mb-2">
+                                      Technologies:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {proj.technologies.map((tech) => (
+                                        <span
+                                          key={tech}
+                                          className="px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-xs font-medium"
+                                        >
+                                          {tech}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
                               </div>
-                              {proj.technologies?.length > 0 && (
-                                <div>
-                                  <p className="text-sm font-medium text-gray-700 mb-2">
-                                    Technologies:
-                                  </p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {proj.technologies.map((tech) => (
-                                      <span
-                                        key={tech}
-                                        className="px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-xs font-medium"
-                                      >
-                                        {tech}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className=" text-gray-500  italic">No data</div>
+                    )}
                   </div>
                 </div>
               </AccordionContent>
@@ -579,109 +622,115 @@ export function CareerDetailsComponent({
                   className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-200"
                 >
                   <div className="space-y-4">
-                    {defaultValues.experience?.map((exp, index) => {
-                      const isExpanded = expandedIndex === index;
-                      return (
-                        <div
-                          key={exp._id}
-                          className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-purple-100"
-                        >
+                    {defaultValues.experience &&
+                    defaultValues.experience.length > 0 ? (
+                      defaultValues.experience?.map((exp, index) => {
+                        const isExpanded = expandedIndex === index;
+                        return (
                           <div
-                            className="flex justify-between items-center cursor-pointer"
-                            onClick={() => toggleExpand(index)}
+                            key={exp._id}
+                            className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-purple-100"
                           >
-                            <div className="flex-1 pr-4">
-                              <h4 className="text-lg font-bold text-gray-800">
-                                {exp.company}
-                              </h4>
-                              {!isExpanded && (
-                                <p className="text-purple-600 font-medium line-clamp-1 mt-1">
+                            <div
+                              className="flex justify-between items-center cursor-pointer"
+                              onClick={() => toggleExpand(index)}
+                            >
+                              <div className="flex-1 pr-4">
+                                <h4 className="text-lg font-bold text-gray-800">
+                                  {exp.company}
+                                </h4>
+                                {!isExpanded && (
+                                  <p className="text-purple-600 font-medium line-clamp-1 mt-1">
+                                    {exp.position}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-2 items-center">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditExp(true);
+                                    setEditExpIndex(index);
+                                  }}
+                                  className="text-purple-600 border-purple-300 hover:bg-purple-50 h-9 w-9"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteExp(true);
+                                    setDeleteExpIndex(exp._id);
+                                  }}
+                                  className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-5 w-5" />
+                                  ) : (
+                                    <ChevronDown className="h-5 w-5" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-in slide-in-from-top duration-300">
+                                <p className="text-purple-600 font-medium">
                                   {exp.position}
                                 </p>
-                              )}
-                            </div>
-                            <div className="flex gap-2 items-center">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditExp(true);
-                                  setEditExpIndex(index);
-                                }}
-                                className="text-purple-600 border-purple-300 hover:bg-purple-50 h-9 w-9"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteExp(true);
-                                  setDeleteExpIndex(exp._id);
-                                }}
-                                className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9"
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="h-5 w-5" />
-                                ) : (
-                                  <ChevronDown className="h-5 w-5" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                          {isExpanded && (
-                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-in slide-in-from-top duration-300">
-                              <p className="text-purple-600 font-medium">
-                                {exp.position}
-                              </p>
-                              <p className="text-gray-600 leading-relaxed">
-                                {exp.description}
-                              </p>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div className="flex items-center gap-2 text-gray-600">
-                                  <Calendar className="h-4 w-4 text-gray-400" />
-                                  <span>
-                                    {exp.startDate} - {exp.endDate || 'Present'}
-                                  </span>
-                                </div>
-                                {exp.location && (
+                                <p className="text-gray-600 leading-relaxed">
+                                  {exp.description}
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                   <div className="flex items-center gap-2 text-gray-600">
-                                    <MapPin className="h-4 w-4 text-gray-400" />
-                                    <span>{exp.location}</span>
+                                    <Calendar className="h-4 w-4 text-gray-400" />
+                                    <span>
+                                      {exp.startDate} -{' '}
+                                      {exp.endDate || 'Present'}
+                                    </span>
+                                  </div>
+                                  {exp.location && (
+                                    <div className="flex items-center gap-2 text-gray-600">
+                                      <MapPin className="h-4 w-4 text-gray-400" />
+                                      <span>{exp.location}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {exp.technologies?.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-700 mb-2">
+                                      Technologies:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {exp.technologies.map((tech) => (
+                                        <span
+                                          key={tech}
+                                          className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
+                                        >
+                                          {tech}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
                               </div>
-                              {exp.technologies?.length > 0 && (
-                                <div>
-                                  <p className="text-sm font-medium text-gray-700 mb-2">
-                                    Technologies:
-                                  </p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {exp.technologies.map((tech) => (
-                                      <span
-                                        key={tech}
-                                        className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
-                                      >
-                                        {tech}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className=" text-gray-500  italic">No data</div>
+                    )}
                   </div>
                 </div>
               </AccordionContent>
@@ -717,52 +766,61 @@ export function CareerDetailsComponent({
                   id="skills"
                   className="bg-gradient-to-r from-green-50 to-cyan-50 rounded-2xl p-6 border border-green-200"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {defaultValues.skills?.map((skill) => (
-                      <div
-                        key={skill._id}
-                        className="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100"
-                      >
-                        <div className="flex justify-between items-center gap-3">
-                          <div className="flex-1">
-                            <h4 className="text-lg font-bold text-gray-800">
-                              {skill.skill}
-                            </h4>
-                            <span
-                              className={`mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium border ${getSkillBadgeColor(
-                                skill.level,
-                              )}`}
-                            >
-                              {skill.level}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={skill.level}
-                              onChange={(e) =>
-                                handleLevelChange(skill.skillId, e.target.value)
-                              }
-                              className="w-full rounded border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            >
-                              <option value="BEGINNER">Beginner</option>
-                              <option value="INTERMEDIATE">Intermediate</option>
-                              <option value="EXPERT">Expert</option>
-                            </select>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => {
-                                setDeleteSkill(true);
-                                setDeleteSkillIndex(skill._id);
-                              }}
-                              className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                  <div className=" grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {defaultValues.skills && defaultValues.skills.length > 0 ? (
+                      defaultValues.skills?.map((skill) => (
+                        <div
+                          key={skill._id}
+                          className="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100"
+                        >
+                          <div className="flex justify-between items-center gap-3">
+                            <div className="flex-1">
+                              <h4 className="text-lg font-bold text-gray-800">
+                                {skill.skill}
+                              </h4>
+                              <span
+                                className={`mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium border ${getSkillBadgeColor(
+                                  skill.level,
+                                )}`}
+                              >
+                                {skill.level}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={skill.level}
+                                onChange={(e) =>
+                                  handleLevelChange(
+                                    skill.skillId,
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full rounded border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              >
+                                <option value="BEGINNER">Beginner</option>
+                                <option value="INTERMEDIATE">
+                                  Intermediate
+                                </option>
+                                <option value="EXPERT">Expert</option>
+                              </select>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                  setDeleteSkill(true);
+                                  setDeleteSkillIndex(skill._id);
+                                }}
+                                className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className=" text-gray-500  italic">No data</div>
+                    )}
                   </div>
                 </div>
               </AccordionContent>

@@ -160,19 +160,19 @@ const JobWizard = ({
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="w-full ">
+    <div className="p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
             <Sparkles className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
-            Love Letter Generator
+            Cover Letter Generator
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Transform your CV with AI-powered insights tailored to your dream
-            job
+            Transform your Cover Letter with AI-powered insights tailored to
+            your dream job
           </p>
         </div>
 
@@ -240,7 +240,7 @@ const JobWizard = ({
                   <div className="relative group">
                     <Textarea
                       placeholder="Paste the full job description here... 
-✨ The more detailed, the better your CV optimization will be!"
+                         ✨ The more detailed, the better your CV optimization will be!"
                       className="min-h-[240px] border-2 border-gray-200 rounded-2xl p-4 focus:border-blue-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gray-50/50 backdrop-blur-sm"
                       value={pastedJobDescription}
                       onChange={(e) => setPastedJobDescription(e.target.value)}
@@ -275,7 +275,7 @@ const JobWizard = ({
                   ) : (
                     <>
                       <ChevronsRight className="mr-2 h-5 w-5" />
-                      Generate My Love Letter
+                      Generate My Cover Letter
                     </>
                   )}
                 </Button>

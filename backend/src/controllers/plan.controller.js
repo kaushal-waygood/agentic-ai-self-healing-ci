@@ -223,12 +223,6 @@ export const getSinglePlan = async (req, res) => {
   }
 };
 
-console.log(
-  'process.env.STRIPE_WEBHOOK_SECRET',
-  process.env.STRIPE_WEBHOOK_SECRET,
-  'process.env.STRIPE_SECRET_KEY',
-  process.env.STRIPE_SECRET_KEY,
-);
 const stripe = new Stripe(
   'sk_test_51S91qQIdYj6K0osborBNLjiksqgiuBB60ddQbCjcDbthPQFIjdcs5uRxTopCBj3c3umGvz3QdEJ53xwStj6yHMNE00gbzvfRAh',
 );
@@ -545,7 +539,7 @@ export const getActivePlan = async (req, res) => {
         message: 'No active plan found.',
         data: {
           isActive: false,
-          planType: 'No Active Plan', // Default to 'Free' plan if no active subscription
+          planType: 'Free', // Default to 'Free' plan if no active subscription
         },
       });
     }

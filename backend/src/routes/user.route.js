@@ -17,6 +17,9 @@ import {
   oAuth2Callback,
   disconnectGoogle,
   testSendEmail,
+  redirectToGoogle,
+  handleGoogleCallback,
+  getMe,
 } from '../controllers/user.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 
@@ -28,6 +31,10 @@ router.post('/send-email', authMiddleware, sendEmails);
 router.post('/send-test-email', authMiddleware, testSendEmail);
 router.get('/oauth2callback', oAuth2Callback);
 router.post('/google/disconnect', authMiddleware, disconnectGoogle);
+
+router.get('/google/auth/redirect', redirectToGoogle);
+router.get('/google/auth/redirect/callback', handleGoogleCallback);
+router.get('/getme', authMiddleware, getMe);
 
 // Other routes remain the same
 router.post('/google/auth', firebaseAuth);

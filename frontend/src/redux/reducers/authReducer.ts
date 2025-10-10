@@ -35,6 +35,13 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
     },
 
+    googleLoginSuccess: (state, action: PayloadAction<{ token: string }>) => {
+      state.loading = false;
+      state.isAuthenticated = true;
+      state.token = action.payload.token;
+      state.error = null;
+    },
+
     signupRequest: (state) => {
       state.loading = true;
       state.error = null;
@@ -55,9 +62,9 @@ const authSlice = createSlice({
     },
 
     getProfileRequest: (state) => {
-      console.log('getProfileRequest');
       state.loading = true;
       state.error = null;
+      console.log(state);
     },
     getProfileSuccess: (state, action: PayloadAction<User>) => {
       state.loading = false;
@@ -84,7 +91,6 @@ const authSlice = createSlice({
       state.error = action.payload;
     },
 
-    //
     logoutRequest: (state) => {
       state.loading = true;
       state.error = null;
@@ -95,7 +101,6 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.error = null;
-      console.log('logoutSuccess');
       localStorage.removeItem('accessToken');
       // localStorage.removeItem('token');
     },
@@ -104,8 +109,22 @@ const authSlice = createSlice({
       state.error = action.payload;
     },
 
+    getGetMeRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getGetMeSuccess: (state, action: PayloadAction<User>) => {
+      state.loading = false;
+      state.isAuthenticated = true;
+      state.user = action.payload;
+    },
+    getGetMeFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+      state.isAuthenticated = false;
+    },
+
     setUserGoogleAuth: (state, action) => {
-      console.log('setUserGoogleAuth', action.payload);
       if (state.user) {
         state.user.googleAuth = action.payload;
       }
@@ -117,6 +136,7 @@ export const {
   loginRequest,
   loginSuccess,
   loginFailure,
+
   signupRequest,
   signupSuccess,
   signupFailure,
@@ -133,5 +153,11 @@ export const {
   logoutSuccess,
   logoutFailure,
   setUserGoogleAuth,
+
+  getGetMeRequest,
+  getGetMeSuccess,
+  getGetMeFailure,
+
+  googleLoginSuccess,
 } = authSlice.actions;
 export default authSlice.reducer;

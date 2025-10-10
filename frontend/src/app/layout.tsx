@@ -14,36 +14,30 @@ export const metadata: Metadata = {
     'Streamline your job application process with AI-powered tools and automation.',
 };
 
-// By making the component 'async', we enable the use of server-side hooks like cookies().
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // This is the correct, official way to read cookies in a Server Component.
-  // The Next.js framework understands this call and automatically makes this
-  // component dynamically rendered on the server at request time.
-  const cookieStore = cookies();
-  const consentCookie = cookieStore.get('cookie_consent');
+  // const cookieStore = cookies();
+  // const consentCookie = cookieStore.get('cookie_consent');
 
-  let hasAnalyticsConsent = false;
+  // let hasAnalyticsConsent = false;
 
-  if (consentCookie) {
-    try {
-      const consentData = JSON.parse(consentCookie.value);
-      if (consentData.analytics === true) {
-        hasAnalyticsConsent = true;
-      }
-    } catch (e) {
-      // It's good practice to handle potential JSON parsing errors.
-      console.error('Could not parse cookie consent JSON:', e);
-    }
-  }
+  // if (consentCookie) {
+  //   try {
+  //     const consentData = JSON.parse(consentCookie.value);
+  //     if (consentData.analytics === true) {
+  //       hasAnalyticsConsent = true;
+  //     }
+  //   } catch (e) {
+  //     console.error('Could not parse cookie consent JSON:', e);
+  //   }
+  // }
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* This conditional rendering based on a cookie is a perfect use case for a dynamic Server Component. */}
+      {/* <head>
         {hasAnalyticsConsent && (
           <>
             <Script
@@ -64,7 +58,7 @@ export default async function RootLayout({
             />
           </>
         )}
-      </head>
+      </head> */}
       <body
         className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
