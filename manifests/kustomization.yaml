@@ -1,1 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1
+kind: Kustomization
+
+namespace: zobsai
+
+resources:
+  - zobsai-backend-configmap.yaml
+  - zobsai-frontend-configs.yaml
+  - zobsai-backend-secrets.yaml
+  - zobsai-frontend-secrets.yaml
+  - zobsai-redis.yaml
+  - zobsai-backend-deployment.yaml
+  - zobsai-frontend-deployment.yaml
+
+# Optional: Images override (will ensure Argo CD picks latest SHA)
+images:
+  - name: ghcr.io/ZobsAI-com/zobsai-backend
+    newTag: latest
+  - name: ghcr.io/ZobsAI-com/zobsai-frontend
+    newTag: latest
+
+# Optional: Common labels
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/name: zobsai
+
+# Optional: ConfigMap generator (if you want dynamic configmaps instead of static files)
+# configMapGenerator:
+#   - name: zobsai-backend-config
+#     files:
+#       - zobsai-backend-configmap.yaml
+#   - name: zobsai-frontend-config
+#     files:
+#       - zobsai-frontend-configs.yaml
+
+# Optional: Secret generator (if you want dynamic secrets instead of static files)
+# secretGenerator:
+#   - name: zobsai-backend-secrets
+#     files:
+#       - zobsai-backend-secrets.yaml
+#   - name: zobsai-frontend-secrets
+#     files:
+#       - zobsai-frontend-secrets.yaml
 
