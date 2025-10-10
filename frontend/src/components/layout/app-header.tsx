@@ -383,7 +383,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
           <div className="flex items-center space-x-3">
             {mounted && (
               <div>
-                {planType === 'Pro' ? (
+                {planType === 'Monthly' ? (
                   <div className="relative">
                     <button
                       onClick={() => handleMenuToggle('plan')}
@@ -401,7 +401,9 @@ const AppHeader = ({ setIsSearchOpen }) => {
                           <div className="flex items-center space-x-3 text-white">
                             <Crown className="w-6 h-6" />
                             <div>
-                              <h3 className="font-bold text-lg">Pro Plan</h3>
+                              <h3 className="font-bold text-lg">
+                                Monthly Plan
+                              </h3>
                               <p className="text-yellow-100 text-sm">
                                 Your current billing cycle usage
                               </p>
@@ -430,8 +432,9 @@ const AppHeader = ({ setIsSearchOpen }) => {
                             limit={effectivePlanLimits.applicationLimit}
                           />
                         </div>
+
                         <div className="p-4 border-t border-slate-100">
-                          <button
+                          {/* <button
                             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
                             onClick={() =>
                               router.push('/dashboard/subscriptions')
@@ -439,7 +442,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                           >
                             <Crown className="w-4 h-4" />
                             <span>Upgrade Plan</span>
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     )}
