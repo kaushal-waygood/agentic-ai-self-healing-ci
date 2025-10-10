@@ -113,14 +113,12 @@ const MultiStepForm = () => {
         );
         alert(`Agent "${formData.agentName}" has been updated successfully!`);
         setEditingAgentId(null);
-      }
-      // --- CREATE a new agent ---
-      else {
+      } else {
         const response = await apiInstance.post(
           '/pilotagent/create',
           submissionData,
         );
-        const newAgent = response.data; // Assuming the API returns the newly created agent
+        const newAgent = response.data;
 
         // On successful API response, THEN update the local state
         setAgents((prevAgents) => [...prevAgents, newAgent]);

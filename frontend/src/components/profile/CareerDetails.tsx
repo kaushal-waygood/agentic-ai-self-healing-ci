@@ -40,6 +40,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '../ui/accordion';
+import { useProfile } from '@/hooks/useProfile';
 
 export function CareerDetailsComponent({
   // Pass all your state and handlers as props
@@ -82,6 +83,7 @@ export function CareerDetailsComponent({
   setDeleteSkillIndex,
   handleLevelChange,
 }: any) {
+  const { handlePersonalInfoEdit, toggleJobPrefEdit } = useProfile();
   const getSkillBadgeColor = (level) => {
     switch (level) {
       case 'EXPERT':
@@ -246,43 +248,68 @@ export function CareerDetailsComponent({
                   name="jobPreference"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center gap-3">
+                      <div
+                        className={`flex items-center gap-3 p-1 pr-2 rounded-xl border-2 transition-all duration-300 ${
+                          isJobPrefEditable
+                            ? 'border-purple-400 bg-white shadow-md ring-2 ring-purple-100'
+                            : 'border-gray-200 bg-gray-50 group-hover:border-purple-300'
+                        }`}
+                      >
                         <FormControl>
                           <Input
                             {...field}
                             placeholder="e.g., Software Engineer"
                             readOnly={!isJobPrefEditable}
-                            className={`flex-1 p-4 h-auto rounded-xl border-2 transition-all duration-300 font-medium ${
-                              isJobPrefEditable
-                                ? 'border-purple-400 bg-white shadow-lg focus:ring-4 focus:ring-purple-100 text-purple-800'
-                                : 'border-gray-200 bg-gray-50 text-gray-700'
+                            className={`flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-800 placeholder-gray-400 font-medium ${
+                              isJobPrefEditable ? 'text-purple-800' : ''
                             }`}
                           />
                         </FormControl>
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            if (isJobPrefEditable) {
-                              careerDetailsForm.handleSubmit(
-                                handleCareerDetailsSubmit,
-                              )();
-                            }
-                            setIsJobPrefEditable(!isJobPrefEditable);
-                          }}
-                          className={`p-3 rounded-xl transition-all duration-300 w-14 h-14 ${
-                            isJobPrefEditable
-                              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                              : 'bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white'
-                          }`}
-                        >
+
+                        {/* --- CORRECTED BUTTON LOGIC --- */}
+                        <div className="flex items-center gap-1">
                           {isJobPrefEditable ? (
-                            <Check className="h-6 w-6" />
+                            // In Edit Mode: Show Cancel and Save buttons
+                            <>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  // You can add cancel logic for this form too
+                                  careerDetailsForm.reset();
+                                  setIsJobPrefEditable(false);
+                                }}
+                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-full"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                onClick={() =>
+                                  handlePersonalInfoEdit('jobPreference')
+                                }
+                                className="h-8 w-8 bg-green-500 hover:bg-green-600 text-white rounded-full"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            </>
                           ) : (
-                            <Edit className="h-6 w-6" />
+                            // Not in Edit Mode: Show Edit button
+                            <Button
+                              type="button"
+                              size="icon"
+                              onClick={toggleJobPrefEdit} // <-- Use the new toggle function here
+                              variant="outline"
+                              className="h-8 w-8 bg-white/50 rounded-full border-gray-300 group-hover:border-purple-400 group-hover:text-purple-500"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           )}
-                        </Button>
+                        </div>
                       </div>
-                      <FormDescription className="mt-3 ml-1">
+                      <FormDescription className="mt-2 ml-1">
                         This helps us tailor job recommendations for you.
                       </FormDescription>
                       <FormMessage />
