@@ -14,5 +14,11 @@ spec:
     namespace: zobsai
   syncPolicy:
     automated:
-      prune: true
-      selfHeal: true
+      prune: true        # deletes resources removed from Git
+      selfHeal: true     # restores last healthy state if drift occurs
+      retry:
+        limit: 5         # number of retry attempts for failed sync
+        backoff:
+          duration: 5s   # initial wait before retry
+          factor: 2      # exponential backoff factor
+          maxDuration: 3m  # maximum wait between retries
