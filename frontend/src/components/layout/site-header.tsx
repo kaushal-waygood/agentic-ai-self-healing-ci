@@ -5,10 +5,7 @@ import { Menu, X, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { useDispatch } from 'react-redux';
 
-// Helper function to get a cookie by name from the browser
 const getCookie = (name: string): string | undefined => {
   if (typeof window === 'undefined') {
     return undefined;
