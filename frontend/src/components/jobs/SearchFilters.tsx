@@ -43,16 +43,16 @@ export const SearchFilters = ({
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 p-4 md:p-6 mb-8">
-      <div className="flex flex-wrap items-center gap-4">
+    <div className="bg-white/80 backdrop-blur-xl rounded-xl border border-gray-200/50 p-4 md:p-1 mb-2">
+      <div className="text-xs flex flex-wrap items-center gap-4">
         <div className="flex-1 min-w-[250px] relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             placeholder="Job title, keywords, or company..."
             value={localFilters.query}
             onChange={(e) => handleInputChange('query', e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50"
+            className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50"
           />
         </div>
         <div className="flex-1 min-w-[150px] relative">
