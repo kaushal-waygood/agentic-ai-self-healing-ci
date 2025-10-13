@@ -1002,21 +1002,22 @@ export const testSendEmail = async (req, res) => {
   }
 };
 
-export const BACKEND_API_BASE_URL =
+const BACKEND_API_BASE_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NODE_ENV === 'development'
     ? 'https://api.dev.zobsai.com'
     : 'http://127.0.0.1:8080';
 
-export const FRONTEND_API_BASE_URL =
+const FRONTEND_API_BASE_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NODE_ENV === 'development'
     ? 'https://dev.zobsai.com'
     : 'http://127.0.0.1:3000';
 
-
+console.log('BACKEND_API_BASE_URL', BACKEND_API_BASE_URL);
+console.log('FRONTEND_API_BASE_URL', FRONTEND_API_BASE_URL);
 
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
