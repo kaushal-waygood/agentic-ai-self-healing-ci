@@ -49,12 +49,10 @@ const ProfileInfo = ({
 
         <CardContent className="relative z-10">
           <Form {...personalInfoForm}>
-            {/* We use a single form tag to wrap all fields */}
             <form
               onSubmit={personalInfoForm.handleSubmit(handlePersonalInfoSubmit)}
               className="grid grid-cols-1 md:grid-cols-3 gap-4"
             >
-              {/* Full Name Field */}
               <FormField
                 control={personalInfoForm.control}
                 name="fullName"
@@ -129,7 +127,6 @@ const ProfileInfo = ({
                   </FormItem>
                 )}
               />
-              {/* Email Field */}
               <FormField
                 control={personalInfoForm.control}
                 name="email"

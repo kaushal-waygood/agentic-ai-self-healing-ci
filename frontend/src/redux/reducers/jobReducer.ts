@@ -177,6 +177,26 @@ const jobSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    startJobStream: (state, action: PayloadAction<{ query: string } & any>) => {
+      console.log('Starting job stream with filters:', action.payload);
+      state.loading = true;
+      state.error = null;
+      state.jobs = [];
+      state.filters = { ...initialState.filters, ...action.payload };
+    },
+    addJob: (state, action: PayloadAction<Job>) => {
+      console.log('Adding job:', action.payload);
+      state.jobs.push(action.payload);
+    },
+    endJobStream: (state) => {
+      state.loading = false;
+      state.pagination.total = state.jobs.length; // Update total count based on received jobs
+    },
+    jobStreamError: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -205,6 +225,11 @@ export const {
   getJobPreferenceRequest,
   getJobPreferenceSuccess,
   getJobPreferenceFailure,
+
+  startJobStream,
+  addJob,
+  endJobStream,
+  jobStreamError,
 } = jobSlice.actions;
 
 export default jobSlice.reducer;

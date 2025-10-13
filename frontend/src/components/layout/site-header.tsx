@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { RootState } from '@/redux/rootReducer';
 import { Menu, X, Search, Sparkles } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -80,7 +81,7 @@ export const Navigation = () => {
             <div className="relative group">
               <div className="relative flex items-center space-x-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
                 <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
-                  <img src="/logo.png" alt="abc" />
+                  <Image width={32} height={32} src="/zobsai.svg" alt="abc" />
                 </div>
                 {/* <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <Sparkles className="w-4 h-4 text-white" />

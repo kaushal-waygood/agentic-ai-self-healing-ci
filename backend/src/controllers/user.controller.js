@@ -13,20 +13,6 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
-export const SCOPES = [
-  'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/gmail.send',
-];
-
-// Use environment variables instead of hardcoded values
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.BACKEND_URL}/api/v1/user/oauth2callback`,
-);
-
-const originUrl = process.env.FRONTEND_URL;
-
 export const firebaseAuth = async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -671,6 +657,21 @@ const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
   return pdfBuffer;
 };
 
+export const SCOPES = [
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/gmail.send',
+];
+
+// Use environment variables instead of hardcoded values
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${process.env.BACKEND_URL}/api/v1/user/oauth2callback`,
+);
+
+const originUrl = process.env.FRONTEND_URL;
+console.log('originUrl', originUrl);
+
 export const sendEmails = async (req, res) => {
   const {
     subject,
@@ -850,6 +851,11 @@ export const oAuth2Callback = async (req, res) => {
     };
     await user.save();
 
+    console.log(
+      'Google OAuth callback process completed successfully.',
+      originUrl,
+    );
+
     res.redirect(`${originUrl}/dashboard/settings?success=google_connected`);
   } catch (err) {
     console.error(
@@ -996,8 +1002,8 @@ export const testSendEmail = async (req, res) => {
   }
 };
 
-const SERVER_ROOT_URI = process.env.BACKEND_URL;
-const UI_ROOT_URI = process.env.FRONTEND_URL;
+const SERVER_ROOT_URI = 'http://127.0.0.1:8080';
+const UI_ROOT_URI = 'http://127.0.0.1:3000';
 
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
@@ -1051,15 +1057,11 @@ export const handleGoogleCallback = async (req, res) => {
 
     if (!user) {
       user = new User({
-        // FIX 1: Map Google's 'name' to your schema's 'fullName'
         fullName: data.name,
         email: data.email,
-        googleId: data.id, // Assuming you have a googleId field
+        googleId: data.id,
         avatar: data.picture,
-
-        // FIX 2: Explicitly set the authMethod to prevent password requirement
         authMethod: 'google',
-        // The user is considered verified if they signed up via Google
         isEmailVerified: true,
       });
       await user.save();
@@ -1079,6 +1081,8 @@ export const handleGoogleCallback = async (req, res) => {
       secure: true,
       sameSite: 'none',
     });
+
+    console.log('User signed in:', user);
 
     // Redirect to the dedicated frontend callback page with the token
     res.redirect(
