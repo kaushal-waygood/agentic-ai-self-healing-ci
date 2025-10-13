@@ -138,6 +138,7 @@ function* preferedJobs() {
 function createJobStreamChannel(filters: any) {
   return eventChannel((emitter) => {
     const queryParams = new URLSearchParams();
+    console.log('Filters:', queryParams);
     Object.entries(filters).forEach(([key, value]) => {
       if (value) {
         if (Array.isArray(value)) {
@@ -149,7 +150,7 @@ function createJobStreamChannel(filters: any) {
     });
 
     const eventSource = new EventSource(
-      `/api/v1/jobs/stream?${queryParams.toString()}`,
+      `127.0.0.1:8080/api/v1/jobs/stream?${queryParams.toString()}`,
     );
 
     console.log('Event source created:', eventSource);
@@ -203,6 +204,7 @@ function* handleJobStreamSaga(action: PayloadAction<any>): SagaIterator {
 }
 
 export function* jobsWatcher() {
+  yield takeLatest(startJobStream.type, handleJobStreamSaga);
   yield takeLatest(getAllJobsRequest.type, getAllJobsSaga);
   yield takeLatest(getJobBySlugRequest.type, getJobBySlugSaga);
   yield takeLatest(
