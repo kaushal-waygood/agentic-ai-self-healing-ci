@@ -206,12 +206,12 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </Link>
               </Button> */}
               {job.applyMethod.url && (
-                <Button
-                  onClick={() => router.push(job.applyMethod.url)}
+                <Link
+                  href={`${job.applyMethod.url}`}
                   className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
                 >
                   <ExternalLink className="w-4 h-4" /> Company Site
-                </Button>
+                </Link>
               )}
               {/* ✅ FIX: The Calculate button is now part of the conditional logic */}
               {!matchScore && !isLoadingScore && (

@@ -1002,8 +1002,22 @@ export const testSendEmail = async (req, res) => {
   }
 };
 
-const SERVER_ROOT_URI = 'http://127.0.0.1:8080';
-const UI_ROOT_URI = 'http://127.0.0.1:3000';
+export const BACKEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://api.zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://api.dev.zobsai.com'
+    : 'http://127.0.0.1:8080';
+
+export const FRONTEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://dev.zobsai.com'
+    : 'http://127.0.0.1:3000';
+
+// const SERVER_ROOT_URI = 'http://127.0.0.1:8080';
+// const FRONTEND_API_BASE_URL = 'http://127.0.0.1:3000';
 
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
@@ -1011,7 +1025,7 @@ const redirectURI = '/api/v1/user/google/auth/redirect/callback';
 const oauth2ClientRedirect = new google.auth.OAuth2(
   '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
   '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',
-  `${SERVER_ROOT_URI}${redirectURI}`, // Constructs the full, correct callback URL
+  `${BACKEND_API_BASE_URL}${redirectURI}`, // Constructs the full, correct callback URL
 );
 
 export const redirectToGoogle = async (req, res) => {
@@ -1029,7 +1043,7 @@ export const redirectToGoogle = async (req, res) => {
     console.error('Error generating Google auth URL:', error);
     res
       .status(500)
-      .redirect(`${UI_ROOT_URI}/login?error=google_redirect_failed`);
+      .redirect(`${FRONTEND_API_BASE_URL}/login?error=google_redirect_failed`);
   }
 };
 
@@ -1039,7 +1053,7 @@ export const handleGoogleCallback = async (req, res) => {
   if (!code) {
     return res
       .status(400)
-      .redirect(`${UI_ROOT_URI}/login?error=missing_auth_code`);
+      .redirect(`${FRONTEND_API_BASE_URL}/login?error=missing_auth_code`);
   }
 
   try {
@@ -1086,11 +1100,13 @@ export const handleGoogleCallback = async (req, res) => {
 
     // Redirect to the dedicated frontend callback page with the token
     res.redirect(
-      `${UI_ROOT_URI}/auth/google/callback?token=${token}&state=${user}`,
+      `${FRONTEND_API_BASE_URL}/auth/google/callback?token=${token}&state=${user}`,
     );
   } catch (error) {
     console.error('Error handling Google callback:', error);
-    res.status(500).redirect(`${UI_ROOT_URI}/login?error=auth_failed`);
+    res
+      .status(500)
+      .redirect(`${FRONTEND_API_BASE_URL}/login?error=auth_failed`);
   }
 };
 

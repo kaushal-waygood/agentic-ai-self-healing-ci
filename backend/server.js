@@ -30,7 +30,7 @@ if (cluster.isPrimary) {
 } else {
   connectDb();
 
-  // Start cron jobs
+  // Start cron jobsbu
   // startCronJobs();
 
   app.listen(config.port, () => {
