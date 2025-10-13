@@ -1016,8 +1016,7 @@ export const FRONTEND_API_BASE_URL =
     ? 'https://dev.zobsai.com'
     : 'http://127.0.0.1:3000';
 
-// const SERVER_ROOT_URI = 'http://127.0.0.1:8080';
-// const FRONTEND_API_BASE_URL = 'http://127.0.0.1:3000';
+
 
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
