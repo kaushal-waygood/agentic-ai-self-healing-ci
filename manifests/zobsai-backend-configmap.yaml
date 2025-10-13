@@ -26,7 +26,7 @@ data:
   GOOGLE_AUTH_CLIENT_SECRET: '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'
 
   BACKEND_URL: 'https://api.zobsai.com'
-  FRONTEND_URL: 'https://zobsai.com'
+  FRONTEND_URL: 'https://www.zobsai.com'
 
   ACCESS_TOKEN_EXPIRY: '7d'
   ACCESS_TOKEN_SECRET: 'a11d913c91c854d9122d42c2855f20f4cea45d465ec0bc155a7f952d8f32bb7815d202b7a070b0387548db0b6f2da50c6253'
