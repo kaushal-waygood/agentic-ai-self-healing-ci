@@ -833,7 +833,7 @@ export const oAuth2Callback = async (req, res) => {
 
     if (!user) {
       return res.redirect(
-        `${}/dashboard/settings?error=user_not_found`,
+        `${originUrl}/dashboard/settings?error=user_not_found`,
       );
     }
 
