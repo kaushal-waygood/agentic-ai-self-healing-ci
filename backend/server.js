@@ -1,5 +1,3 @@
-// server.js (AFTER - RECOMMENDED)
-
 import cluster from 'cluster';
 import os from 'os';
 import app from './src/app.js';
@@ -11,6 +9,7 @@ import { startCronJobs } from './src/config/cron-config.js';
 dotenv.config();
 
 const numCPUs = os.cpus().length;
+console.log('Environment Mode', process.env.NODE_ENV);
 
 if (cluster.isPrimary) {
   console.log(
@@ -18,7 +17,6 @@ if (cluster.isPrimary) {
   );
   console.log(`Forking server for ${numCPUs} CPUs`);
 
-  // Fork workers
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
