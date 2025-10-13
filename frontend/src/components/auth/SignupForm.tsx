@@ -43,6 +43,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { GoogleSignInButton } from './GoogleSingupButton';
+import Image from 'next/image';
 
 // Zod Schema
 const signupFormSchema = z
@@ -258,7 +259,12 @@ const SignupForm = () => {
                 </div> */}
 
                 <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
-                  <img src="/logo.png" alt="abc" />
+                  <Image
+                    src="/zobsai.svg"
+                    alt="zobsai logo"
+                    width={100}
+                    height={100}
+                  />
                 </div>
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
                   <Sparkles className="h-4 w-4 text-yellow-800" />

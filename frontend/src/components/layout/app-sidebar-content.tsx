@@ -24,6 +24,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { useSidebar } from '@/app/(app)/layout-client';
 import apiInstance from '@/services/api';
+import Image from 'next/image';
 
 export const AppSidebarContent = ({ isCollapsed }) => {
   const { isPinned, setPinned } = useSidebar();
@@ -147,8 +148,15 @@ export const AppSidebarContent = ({ isCollapsed }) => {
               {/* <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                 <Rocket className="w-6 h-6 text-white animate-pulse" />
               </div> */}
-              <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
-                <img src="/logo.png" alt="abc" />
+              <div className=" rounded-lg flex flex-col items-center justify-center ">
+                <Image
+                  width={100}
+                  height={100}
+                  src="/zobsai.svg"
+                  className="w-10 h-auto"
+                  alt="abc"
+                />
+                <h2 className="text-xs">zobsai</h2>
               </div>
               <div
                 className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full animate-bounce"
