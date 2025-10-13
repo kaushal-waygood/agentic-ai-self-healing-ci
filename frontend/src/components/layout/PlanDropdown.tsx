@@ -10,8 +10,8 @@ const planConfig = {
     Icon: Zap,
     title: 'Free Plan',
     buttonClasses:
-      'flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-100 to-gray-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 transition-all duration-200 border border-blue-300',
-    headerClasses: 'p-6 bg-gradient-to-r from-blue-400 to-blue-600',
+      'flex items-center space-x-2 px-1 py-1 rounded-xl bg-gradient-to-r from-blue-100 to-gray-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 transition-all duration-200 border border-blue-300',
+    headerClasses: 'p-2 bg-gradient-to-r from-blue-400 to-blue-600',
   },
   Weekly: {
     Icon: Zap,
@@ -46,7 +46,7 @@ const PlanDropdown = ({
     <div className="relative">
       <button onClick={onToggle} className={config.buttonClasses}>
         <Icon className="w-4 h-4" />
-        <span className="text-sm font-medium hidden sm:inline">{planType}</span>
+        <span className="text-xs font-medium hidden sm:inline">{planType}</span>
         <ChevronDown className="w-3 h-3" />
       </button>
 
@@ -56,14 +56,14 @@ const PlanDropdown = ({
             <div className="flex items-center space-x-3 text-white">
               <Icon className="w-6 h-6" />
               <div>
-                <h3 className="font-bold text-lg">{config.title}</h3>
-                <p className="text-yellow-100 text-sm">
+                <h3 className="font-bold text-sm">{config.title}</h3>
+                <p className="text-yellow-100 text-xs">
                   Your current billing cycle usage
                 </p>
               </div>
             </div>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-2  space-y-4">
             <UsageTracker
               label="AI Applications"
               used={usageData.aiJobApply}
