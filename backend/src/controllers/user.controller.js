@@ -997,7 +997,7 @@ export const testSendEmail = async (req, res) => {
 };
 
 const SERVER_ROOT_URI = process.env.BACKEND_URL;
-const UI_ROOT_URI = process.env.FRONTEND_URL;
+const UI_ROOT_URI = "https://www.zobsai.com;
 
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
