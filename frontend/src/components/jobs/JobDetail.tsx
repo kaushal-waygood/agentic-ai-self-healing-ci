@@ -138,7 +138,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
   // --- UI BELOW IS UNCHANGED, ONLY LOGIC FOR RENDERING IS FIXED ---
   return (
-    <div className="space-y-6">
+    <div className="space-y-1">
       <div className="bg-white rounded-2xl  border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 text-white flex items-center justify-between">
           <div>
@@ -239,8 +239,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           </div>
         </div>
       </div>
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-3">
+        <h2 className="text-lg  text-gray-900 mb-1 flex items-center gap-2">
           <div className="w-2 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full"></div>
           Job Description
         </h2>
@@ -250,10 +250,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             components={{
               // Headings (h3)
               h3: ({ node, ...props }) => (
-                <h3
-                  className="text-sm font-bold text-gray-900 mt-6 mb-2"
-                  {...props}
-                />
+                <h3 className="text-sm  text-gray-900 mt-2 " {...props} />
               ),
 
               // Lists

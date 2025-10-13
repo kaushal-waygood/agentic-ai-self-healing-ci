@@ -15,19 +15,19 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`group relative cursor-pointer transition-all duration-300 ease-out transform  ${
+      className={`group relative  cursor-pointer transition-all duration-300 ease-out transform  ${
         isActive
-          ? 'bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-400 '
+          ? ' bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-400 '
           : 'bg-white hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50 border border-gray-200 hover:border-purple-300 shadow-lg hover:shadow-xl hover:shadow-purple-100/30'
       } rounded-2xl py-2 px-2 overflow-hidden`}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className=" absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       {isActive && (
         <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full animate-pulse"></div>
       )}
 
-      <div className="relative z-10">
-        <div className="flex items-start gap-4">
+      <div className="relative z-10  ">
+        <div className="flex items-start gap-4 ">
           {job?.logo ? (
             <Image
               src={job.logo}
@@ -42,11 +42,11 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className=" font-semibold  text-gray-900  group-hover:text-purple-700 transition-colors line-clamp-2 ">
+            <h5 className=" text-gray-900  group-hover:text-purple-700 transition-colors line-clamp-2 ">
               {truncate(job.title, 35)}
-            </h3>
+            </h5>
 
-            <div className="text-xs ">
+            <div className="text-xs  ">
               <div className="flex items-center gap-2 text-purple-500 font-semibold ">
                 <span>{job.company}</span>
               </div>
