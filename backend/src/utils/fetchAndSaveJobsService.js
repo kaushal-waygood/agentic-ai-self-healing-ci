@@ -2,7 +2,7 @@ import axios from 'axios';
 import slugify from 'slugify';
 import { Job } from '../models/jobs.model.js';
 import { genAI } from '../config/gemini.js';
-import { config } from 'dotenv';
+import { config } from '../config/config.js';
 
 export const extractJobDetailsWithAI = async (rawDescription) => {
   if (!rawDescription || rawDescription.trim() === '') {
@@ -69,7 +69,7 @@ export const fetchAndSaveJobsService = async (query, page = 1) => {
     activeFetches.add(lockId);
     console.log(`Starting job fetch for query: "${query}", page: ${page}`);
 
-    const response = await axios.get(rapidJobApi, {
+    const response = await axios.get(config.rapidJobApi, {
       params: { query, page },
       headers: {
         'X-RapidAPI-Key': config.rapidApiKey,

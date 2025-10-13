@@ -13,6 +13,7 @@ import {
   getJobDetailBySlug,
   toggleJobStatus,
   getJobFromJobId,
+  streamAllJobs,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -28,6 +29,8 @@ router.post('/mannual', authMiddleware, isOrgAdmin, postManualJob);
 router.post('/rapid', fetchAndSaveRapidJobs);
 router.get('/find', getJobDetailBySlug);
 router.get('/find/:jobId', getSingleJobDetail);
+
+router.get('/stream', streamAllJobs);
 
 router.get('/', getAllJobs);
 router.get('/hosted', getMannualyJobs);

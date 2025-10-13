@@ -14,7 +14,6 @@ const db = async () => {
   }
 };
 
-// Add this function
 export const disconnectDB = async () => {
   try {
     await mongoose.connection.close();

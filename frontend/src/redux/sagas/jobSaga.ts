@@ -5,7 +5,7 @@ import {
   getAllJobsByOrgAdmin,
   updateJobStatus,
 } from '@/services/api/job';
-import { call, put, takeLatest } from 'redux-saga/effects';
+import { call, put, take, takeLatest } from 'redux-saga/effects';
 import {
   getAllJobsRequest,
   getAllJobsSuccess,
@@ -25,10 +25,14 @@ import {
   getJobPreferenceRequest,
   getJobPreferenceSuccess,
   getJobPreferenceFailure,
+  jobStreamError,
+  addJob,
+  endJobStream,
 } from '../reducers/jobReducer';
 import { AxiosResponse } from 'axios';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { recommendProfileJob } from '@/services/api/student';
+import { END, eventChannel, SagaIterator } from 'redux-saga';
 
 function* getAllJobsSaga(
   // ADD: The 'append' flag to the action type
@@ -128,6 +132,73 @@ function* preferedJobs() {
     yield put(getJobPreferenceFailure(response.data.jobs));
   } catch (error: unknown | Error) {
     yield put(getJobPreferenceFailure((error as Error).message));
+  }
+}
+
+function createJobStreamChannel(filters: any) {
+  return eventChannel((emitter) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) {
+        if (Array.isArray(value)) {
+          if (value.length > 0) queryParams.append(key, value.join(','));
+        } else {
+          queryParams.append(key, String(value));
+        }
+      }
+    });
+
+    const eventSource = new EventSource(
+      `/api/v1/jobs/stream?${queryParams.toString()}`,
+    );
+
+    console.log('Event source created:', eventSource);
+
+    eventSource.addEventListener('new-job', (event) => {
+      try {
+        const job = JSON.parse(event.data);
+        emitter(addJob(job));
+      } catch (e) {
+        console.error('Failed to parse job data from stream:', e);
+      }
+    });
+
+    eventSource.addEventListener('end-stream', () => {
+      emitter(END);
+    });
+
+    eventSource.onerror = () => {
+      emitter(jobStreamError('An error occurred while streaming jobs.'));
+      emitter(END);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  });
+}
+
+// The new worker saga that manages the channel
+
+function* handleJobStreamSaga(action: PayloadAction<any>): SagaIterator {
+  // 1. Call the function to create the channel
+  const channel = yield call(createJobStreamChannel, action.payload);
+
+  try {
+    // 2. Start a loop to listen for actions emitted from the channel
+    while (true) {
+      // `take` will wait for the channel to emit something
+      const actionFromChannel = yield take(channel);
+      // `put` (dispatch) the action to the Redux store, which updates the UI
+      yield put(actionFromChannel);
+    }
+  } catch (error: unknown | Error) {
+    yield put(jobStreamError((error as Error).message || 'Saga channel error'));
+  } finally {
+    // 3. This `finally` block will run when the channel is closed (via END)
+    console.log('Job stream finished.');
+    // Dispatch the final action to set loading to false
+    yield put(endJobStream());
   }
 }
 
