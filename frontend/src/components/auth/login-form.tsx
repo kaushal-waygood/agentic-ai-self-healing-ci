@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/form';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
+import Image from 'next/image';
 
 // --- ZOD SCHEMAS (Unchanged) ---
 const loginFormSchema = z.object({
@@ -163,7 +164,12 @@ const LoginForm = () => {
                 <Rocket className="h-8 w-8 text-white" />
               </div> */}
               <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
-                <img src="/logo.png" alt="abc" />
+                <Image
+                  src="/zobsai.svg"
+                  alt="Zobsai logo"
+                  width={100}
+                  height={100}
+                />
               </div>
               <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
                 <Sparkles className="h-3 w-3 text-yellow-800" />

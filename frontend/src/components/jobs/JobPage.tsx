@@ -35,9 +35,6 @@ export default function JobsPage() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const observerRef = useRef(null);
 
-  // REMOVED: All state and effects for 'drip-feed' are gone.
-
-  // ADDED: Simple effect to scroll to top when filters change
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters]);
@@ -102,7 +99,7 @@ export default function JobsPage() {
     <div
       className={`min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1`}
     >
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-1">
         <SearchFilters
           initialFilters={filters}
           onSearchChange={handleFilterChange}
