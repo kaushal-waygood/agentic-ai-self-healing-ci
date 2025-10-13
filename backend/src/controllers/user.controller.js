@@ -25,7 +25,7 @@ const oauth2Client = new google.auth.OAuth2(
   `${process.env.BACKEND_URL}/api/v1/user/oauth2callback`,
 );
 
-const originUrl = process.env.FRONTEND_URL;
+const originUrl = "https://www.zobsai.com";
 
 export const firebaseAuth = async (req, res) => {
   try {
@@ -833,7 +833,7 @@ export const oAuth2Callback = async (req, res) => {
 
     if (!user) {
       return res.redirect(
-        `${originUrl}/dashboard/settings?error=user_not_found`,
+        `${}/dashboard/settings?error=user_not_found`,
       );
     }
 
