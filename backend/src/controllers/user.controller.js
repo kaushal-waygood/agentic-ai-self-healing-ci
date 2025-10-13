@@ -662,15 +662,32 @@ export const SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
 ];
 
+const BACKEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://api.zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://api.dev.zobsai.com'
+    : 'http://127.0.0.1:8080';
+
+const FRONTEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://dev.zobsai.com'
+    : 'http://127.0.0.1:3000';
+
 // Use environment variables instead of hardcoded values
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.BACKEND_URL}/api/v1/user/oauth2callback`,
+  `${BACKEND_API_BASE_URL}/api/v1/user/oauth2callback`,
 );
 
-const originUrl = process.env.FRONTEND_URL;
+const originUrl = FRONTEND_API_BASE_URL;
 console.log('originUrl', originUrl);
+
+console.log('BACKEND_API_BASE_URL', BACKEND_API_BASE_URL);
+console.log('FRONTEND_API_BASE_URL', FRONTEND_API_BASE_URL);
 
 export const sendEmails = async (req, res) => {
   const {
@@ -1001,23 +1018,6 @@ export const testSendEmail = async (req, res) => {
     });
   }
 };
-
-const BACKEND_API_BASE_URL =
-  process.env.NODE_ENV === 'production'
-    ? 'https://api.zobsai.com'
-    : process.env.NODE_ENV === 'development'
-    ? 'https://api.dev.zobsai.com'
-    : 'http://127.0.0.1:8080';
-
-const FRONTEND_API_BASE_URL =
-  process.env.NODE_ENV === 'production'
-    ? 'https://zobsai.com'
-    : process.env.NODE_ENV === 'development'
-    ? 'https://dev.zobsai.com'
-    : 'http://127.0.0.1:3000';
-
-console.log('BACKEND_API_BASE_URL', BACKEND_API_BASE_URL);
-console.log('FRONTEND_API_BASE_URL', FRONTEND_API_BASE_URL);
 
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
