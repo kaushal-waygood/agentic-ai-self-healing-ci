@@ -125,14 +125,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const normalizeDescription = (desc: string) => {
     return (
       desc
-        // turn section titles into h3 markdown headings
-        // .replace(
-        //   /(Job Responsibilities:|Job Qualifications:|Position Title:|Position Description:|Job Description:)/g,
-        //   '### $1',
-        // )
-
-        // Inline labels: "Word:" followed by text on the same line → bold inline
-        // .replace(/(\b[A-Z][A-Za-z ]+):\s*(.+)/g, '**$1:** $2')
 
         // Any line that ends with ":" becomes a heading
         .replace(/^(.*?):\s*$/gm, '### $1')
@@ -146,11 +138,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   // --- UI BELOW IS UNCHANGED, ONLY LOGIC FOR RENDERING IS FIXED ---
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white flex items-center justify-between">
+      <div className="bg-white rounded-2xl  border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 text-white flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-2">{job.title}</h1>
-            <div className="flex items-center gap-4 text-purple-100">
+            <h1 className="text-lg font-bold ">{job.title}</h1>
+            <div className="text-xs flex items-center gap-1 text-purple-100">
               <span className="font-semibold">{job.company}</span>
               <span>|</span>
               <span>{job.location?.city || 'Not speicfied'}</span>
@@ -174,17 +166,17 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             />
           </Button>
         </div>
-        <div className="p-6 flex justify-between items-center">
+        <div className="p-2 flex justify-between items-center">
           <div>
             {/* Company Logo or Fallback Icon */}
             {job.logo ? (
               <img
                 src={job.logo}
                 alt={job.company || 'Company Logo'}
-                className="w-16 h-16 object-contain rounded"
+                className="w-12 h-12 object-contain rounded"
               />
             ) : (
-              <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
+              <div className="w-12 h-12  rounded-lg flex items-center justify-center ">
                 <img src="/logo.png" alt="abc" />
               </div>
             )}
@@ -207,16 +199,16 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {job.applyMethod.url && (
                 <Button
                   onClick={handleApplyOnSite}
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
+                  className="text-xs flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white   rounded-xl  transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
                 >
-                  <ExternalLink className="w-4 h-4" /> Company Site
+                  <ExternalLink className="" /> Company Site
                 </Button>
               )}
               {/* ✅ FIX: The Calculate button is now part of the conditional logic */}
               {!matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
-                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
+                  className="text-xs w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white  rounded-xl  transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
                 >
                   Calculate My Match
                 </Button>
@@ -246,18 +238,18 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         </div>
       </div>
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
           <div className="w-2 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full"></div>
           Job Description
         </h2>
-        <div className="prose prose-gray max-w-none text-gray-600 leading-relaxed">
+        <div className="text-xs prose prose-gray max-w-none text-gray-600 leading-relaxed">
           {/* <div dangerouslySetInnerHTML={{ __html: job.description }}></div> */}
           <ReactMarkdown
             components={{
               // Headings (h3)
               h3: ({ node, ...props }) => (
                 <h3
-                  className="text-lg font-bold text-gray-900 mt-6 mb-2"
+                  className="text-sm font-bold text-gray-900 mt-6 mb-2"
                   {...props}
                 />
               ),
