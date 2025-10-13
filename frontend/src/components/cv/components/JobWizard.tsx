@@ -165,19 +165,19 @@ const JobWizard = ({
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
+          {/* <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
             <Sparkles className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
+          </div> */}
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
             CV Generator
           </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          <p className="text-gray-600 text-md max-w-2xl mx-auto">
             Transform your CV with AI-powered insights tailored to your dream
             job
           </p>
         </div>
 
-        <Card className="bg-white/80s backdrop-blur-xl border-0 shadow-2xl shadow-blue-500/10 rounded-3xl overflow-hidden">
+        <Card className="bg-white/80s backdrop-blur-xl border-0 shadow-2xl shadow-blue-500/10 rounded-3xl  overflow-hidden">
           {/* Animated Header */}
           <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
@@ -186,7 +186,7 @@ const JobWizard = ({
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
                   <Target className="h-5 w-5 text-white" />
                 </div>
-                <CardTitle className="text-2xl font-bold">
+                <CardTitle className="text-xl font-bold">
                   Step 1: Provide Job Context
                 </CardTitle>
               </div>
@@ -197,7 +197,7 @@ const JobWizard = ({
             </div>
           </CardHeader>
 
-          <CardContent className="p-8">
+          <CardContent className="p-4">
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}

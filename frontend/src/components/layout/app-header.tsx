@@ -363,13 +363,13 @@ const AppHeader = ({ setIsSearchOpen }) => {
   return (
     <>
       {/* ... Your main header JSX goes here, it remains unchanged ... */}
-      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="flex items-center justify-between px-6 py-6 ">
+      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">
+        <div className="flex items-center justify-between px-6 py-2 ">
           <div className="flex items-center space-x-3"></div>
           <div className="flex flex-1 justify-center px-4">
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="w-full max-w-md flex items-center justify-between p-2 bg-slate-100 hover:bg-slate-200 border border-transparent hover:border-slate-300 rounded-lg text-slate-500 transition-all duration-200"
+              className="w-full max-w-md flex items-center justify-between p-1 bg-slate-100 hover:bg-slate-200 border border-transparent hover:border-slate-300 rounded-lg text-slate-500 transition-all duration-200"
             >
               <div className="flex items-center space-x-2">
                 <Search className="w-4 h-4" />
@@ -381,7 +381,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
             </button>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1">
             <PlanDropdown
               planType={planType}
               isOpen={isPlanOpen}
@@ -395,7 +395,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                 onClick={() => handleMenuToggle('notification')}
                 className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
               >
-                <Bell className="w-5 h-5 text-slate-600" />
+                <Bell className="w-4 h-4 text-slate-600" />
                 {unreadCount > 0 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
                     {unreadCount}
@@ -459,7 +459,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
             <div className="relative">
               <button
                 onClick={() => handleMenuToggle('user')}
-                className="flex items-center space-x-2 p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
+                className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 transition-colors duration-200"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                   {(user?.fullName || ' ').charAt(0)}

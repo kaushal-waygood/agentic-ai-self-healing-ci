@@ -140,7 +140,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         ></div>
       </div>
 
-      <div className="relative p-4 border-b border-slate-200/50">
+      <div className="relative p-2 border-b border-slate-200/50">
         <div className="flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center space-x-3 group">
             <div className="relative">
@@ -198,7 +198,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         </div>
       </div>
 
-      <nav className="flex-1 p-3 space-y-2 overflow-y-auto scrollbar-hide">
+      <nav className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-hide">
         {siteConfig.sidebarNav.map((item, index) => {
           if (item.adminOnly && user?.role !== 'OrgAdmin') return null;
           const Icon = item.icon;
@@ -220,7 +220,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 href={item.href}
                 onMouseEnter={() => setHoveredItem(item.href)}
                 onMouseLeave={() => setHoveredItem(null)}
-                className={`group relative w-full flex items-center space-x-3 p-3 rounded-xl font-medium transition-all duration-300 ${
+                className={`group relative w-full text-sm flex items-center space-x-3 p-1 rounded-xl transition-all duration-300 ${
                   isActive
                     ? 'bg-gradient-to-r from-purple-100 via-blue-100 to-cyan-100 text-purple-700 shadow-lg scale-105'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:scale-105'
@@ -232,7 +232,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 <div
                   className={`relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
                     isActive
-                      ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-lg'
+                      ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-md'
                       : isHovered
                       ? 'bg-gradient-to-br from-purple-100 to-blue-100 text-purple-600'
                       : 'bg-slate-100 text-slate-600'
@@ -243,7 +243,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 {!isCollapsed && (
                   <span
                     className={`flex-1 text-left ${
-                      isActive ? 'font-semibold' : 'font-medium'
+                      isActive ? 'font-extralight' : ''
                     }`}
                   >
                     {item.title}
@@ -254,7 +254,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 )}
               </Link>
               {isCollapsed && isHovered && (
-                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg shadow-xl z-50 whitespace-nowrap animate-fadeIn">
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-2 bg-slate-900 text-white text-sm rounded-lg shadow-xl z-50 whitespace-nowrap animate-fadeIn">
                   {item.title}
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-slate-900 rotate-45"></div>
                 </div>
@@ -264,7 +264,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         })}
       </nav>
 
-      <div className="relative p-4 border-t border-slate-200/50 mt-auto">
+      <div className="relative p-2 border-t border-slate-200/50 mt-auto">
         {!isCollapsed ? (
           <div className="space-y-3">
             <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl">
@@ -279,7 +279,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
               user.plan !== 'OrgAdmin' &&
               user.plan !== 'Monthly' &&
               user.plan !== 'Weekly' && (
-                <div className="p-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white">
+                <div className="p-2 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white">
                   <div className="flex items-center space-x-2 mb-2">
                     <Zap className="w-4 h-4" />
                     <span className="font-semibold text-sm">

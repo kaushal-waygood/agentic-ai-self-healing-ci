@@ -112,7 +112,7 @@ export default function JobsPage() {
           <div className="">
             <div
               ref={jobListRef}
-              className="space-y-2 h-[calc(100vh-220px)] overflow-y-auto pr-2 scrollbar-thin"
+              className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin"
             >
               {loading && pagination.page === 1
                 ? Array.from({ length: 5 }).map((_, index) => (

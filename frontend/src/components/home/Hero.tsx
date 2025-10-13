@@ -191,13 +191,12 @@ export const Hero = () => {
                   ZobsAI{' '}
                 </span>
               </h1>
-              <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 max-w-2xl leading-relaxed mx-auto lg:mx-0 font-medium">
+              <p className="text-lg sm:text-lg lg:text-xl text-gray-600 max-w-2xl leading-relaxed mx-auto lg:mx-0 font-normal">
                 ZobsAI automatically tailors your CV, writes personalized cover
-                letters, and applies to{' '}
-                <span className="font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">
-                  hundreds of jobs daily
+                letters, and applies to{''}
+                <span className="font-normal text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">
+                  hundreds of jobs daily.
                 </span>
-                .
               </p>
             </div>
 
@@ -358,7 +357,7 @@ export const Hero = () => {
               {features.map((feature, index) => (
                 <div
                   key={index}
-                  className={`flex items-center gap-4 p-6 bg-white/60 backdrop-blur-lg rounded-2xl border border-white/80 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-100 cursor-pointer group animate-fade-in hover:bg-white/80`}
+                  className={`flex items-center gap-4 p-3 bg-white/60 backdrop-blur-lg rounded-2xl border border-white/80 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-100 cursor-pointer group animate-fade-in hover:bg-white/80`}
                   style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
                 >
                   <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl">
@@ -371,7 +370,7 @@ export const Hero = () => {
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 pt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 pt-2">
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-4">
                   {avatars.map((src, i) => (
