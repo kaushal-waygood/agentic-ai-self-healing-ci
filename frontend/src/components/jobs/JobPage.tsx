@@ -35,9 +35,6 @@ export default function JobsPage() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const observerRef = useRef(null);
 
-  // REMOVED: All state and effects for 'drip-feed' are gone.
-
-  // ADDED: Simple effect to scroll to top when filters change
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters]);

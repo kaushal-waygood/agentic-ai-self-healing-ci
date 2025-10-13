@@ -535,6 +535,115 @@ export const getAllJobs = async (req, res) => {
   }
 };
 
+// In your job controller file (e.g., jobController.js)
+
+// Keep your original getAllJobs for non-streaming requests
+
+export const streamAllJobs = async (req, res) => {
+  try {
+    console.log('SSE connection established');
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders(); // Flush the headers to establish the connection
+
+    if (query) {
+      const existingJobCount = await Job.countDocuments({
+        queries: { $in: [query] },
+      });
+
+      if (existingJobCount === 0) {
+        console.log(
+          `First-time search for "${query}". Waiting for real-time fetch.`,
+        );
+        await fetchAndSaveJobsService(query);
+      } else {
+        console.log(
+          `Existing data found for "${query}". Triggering background fetch.`,
+        );
+        fetchAndSaveJobsService(query); // No 'await' for a fast response
+      }
+    }
+
+    const filter = {};
+    if (query) {
+      filter.$or = [
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } },
+      ];
+    }
+    if (country) filter.country = { $regex: country, $options: 'i' };
+    if (city) filter['location.city'] = { $regex: city, $options: 'i' };
+    if (datePosted) {
+      const dateNow = new Date();
+      let dateFilter;
+      switch (datePosted) {
+        case '1':
+          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 1));
+          break;
+        case '3':
+          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 3));
+          break;
+        case '7':
+          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 7));
+          break;
+        case '30':
+          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 30));
+          break;
+        default:
+          break;
+      }
+      if (dateFilter) filter.createdAt = { $gte: dateFilter };
+    }
+    if (employmentType) {
+      filter.jobTypes = { $in: employmentType.split(',') };
+    }
+    if (experience) {
+      filter.experience = { $in: experience.split(',') };
+    }
+
+    if (query) {
+      const matchingJobCount = await Job.countDocuments(filter);
+      if (matchingJobCount < 10) {
+        await fetchAndSaveJobsService(query);
+      } else {
+        fetchAndSaveJobsService(query); // No 'await'
+      }
+    }
+
+    // --- 3. Set up the SSE stream ---
+    const cursor = Job.find(filter).sort({ createdAt: -1 }).cursor();
+
+    for await (const job of cursor) {
+      // --- 4. Write each job to the stream ---
+      // The data must be a string and formatted as "event: <name>\ndata: <json>\n\n"
+      const eventData = {
+        event: 'new-job',
+        data: JSON.stringify(job),
+      };
+      res.write(`event: ${eventData.event}\ndata: ${eventData.data}\n\n`);
+    }
+
+    // --- 5. Signal the end of the stream ---
+    res.write('event: end-stream\ndata: {"message": "Stream complete"}\n\n');
+
+    // The connection will be closed automatically when the function ends.
+
+    // Handle client disconnect
+    req.on('close', () => {
+      console.log('Client disconnected from stream.');
+      // This is a good place to ensure the cursor is closed if necessary
+      cursor.close();
+      res.end();
+    });
+  } catch (error) {
+    console.error('Error in streamAllJobs controller:', error);
+    // Cannot set status after headers are sent, so just end the response.
+    res.end();
+  }
+};
+
 export const getMannualyJobs = async (req, res) => {
   try {
     const cacheKey = 'jobs:manual';
