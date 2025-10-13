@@ -2,12 +2,16 @@
 
 import axios from 'axios';
 
-console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_NODE_ENV);
+console.log('NEXT_PUBLIC_NODE_ENV:', process.env.NEXT_PUBLIC_NODE_ENV);
 
-const API_BASE_URL =
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
-    ? process.env.NEXT_PUBLIC_API_URL
+    ? 'https://api.zobsai.com'
+    : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
+    ? 'https://api.dev.zobsai.com'
     : 'http://127.0.0.1:8080';
+
+console.log('API_BASE_URL:', API_BASE_URL);
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -48,7 +52,6 @@ apiInstance.interceptors.request.use((config) => {
     config.headers['Content-Type'] = 'application/json';
   }
 
-  // Add access token to requests if it exists
   const accessToken = safeLocalStorage.getItem('accessToken');
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`;

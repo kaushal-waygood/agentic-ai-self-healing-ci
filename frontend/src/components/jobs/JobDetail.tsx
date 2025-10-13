@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { MatchScoreModal } from './MatchScoreModal';
+import { useRouter } from 'next/navigation';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -36,6 +37,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [isApplying, setIsApplying] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
+  const router = useRouter();
 
   // ✅ LOGIC: Combined useEffects for cleaner state management when the job changes
   useEffect(() => {
@@ -81,9 +83,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       });
     }
   };
-  console.log(job);
   const handleGetMatchScore = async () => {
-    setIsModalOpen(true); // Open the modal immediately
+    setIsModalOpen(true);
     setIsLoadingScore(true);
     setMatchScore(null);
     setScoreError(null); // Reset error state
@@ -205,12 +206,12 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </Link>
               </Button> */}
               {job.applyMethod.url && (
-                <Button
-                  onClick={handleApplyOnSite}
+                <Link
+                  href={`${job.applyMethod.url}`}
                   className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
                 >
                   <ExternalLink className="w-4 h-4" /> Company Site
-                </Button>
+                </Link>
               )}
               {/* ✅ FIX: The Calculate button is now part of the conditional logic */}
               {!matchScore && !isLoadingScore && (
