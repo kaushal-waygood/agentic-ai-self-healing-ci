@@ -15,6 +15,7 @@ import {
 import './styles/footer.css'; // Import the new CSS file
 import { footerLinks, socialLinks } from '@/services/dummy/Footer';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function Footer() {
   const [isVisible, setIsVisible] = useState(false);
@@ -164,7 +165,13 @@ export function Footer() {
                   <Rocket className="w-6 h-6 text-white" />
                 </div> */}
                 <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
-                  <img src="/logo.png" alt="abc" />
+                  <Image
+                    width={100}
+                    height={100}
+                    src="/zobsai.svg"
+                    className="w-10 h-auto"
+                    alt="abc"
+                  />
                 </div>
                 <h3 className="text-3xl font-black text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text">
                   ZobsAI
