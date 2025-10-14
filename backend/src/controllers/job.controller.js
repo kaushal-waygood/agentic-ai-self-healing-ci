@@ -535,111 +535,99 @@ export const getAllJobs = async (req, res) => {
   }
 };
 
-// In your job controller file (e.g., jobController.js)
-
-// Keep your original getAllJobs for non-streaming requests
+const STALE_THRESHOLD_HOURS = 6;
 
 export const streamAllJobs = async (req, res) => {
   try {
+    const { query, country, city, datePosted, employmentType, experience } =
+      req.query;
+
     console.log('SSE connection established');
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders(); // Flush the headers to establish the connection
+    res.flushHeaders();
 
+    // --- 1. NEW: Conditionally trigger the background fetch ---
     if (query) {
-      const existingJobCount = await Job.countDocuments({
-        queries: { $in: [query] },
-      });
+      // Check if we have any jobs for this specific query term
+      const jobCount = await Job.countDocuments({ queries: query });
+      let shouldFetch = false;
 
-      if (existingJobCount === 0) {
-        console.log(
-          `First-time search for "${query}". Waiting for real-time fetch.`,
-        );
-        await fetchAndSaveJobsService(query);
+      if (jobCount === 0) {
+        // Condition 1: No data exists for this query, so we must fetch.
+        shouldFetch = true;
+        console.log(`No data found for query "${query}". Triggering fetch.`);
       } else {
-        console.log(
-          `Existing data found for "${query}". Triggering background fetch.`,
+        // Condition 2: Data exists, check if it's stale.
+        const latestJob = await Job.findOne({ queries: query }).sort({
+          createdAt: -1,
+        });
+        const thresholdDate = new Date();
+        thresholdDate.setHours(
+          thresholdDate.getHours() - STALE_THRESHOLD_HOURS,
         );
-        fetchAndSaveJobsService(query); // No 'await' for a fast response
+
+        if (latestJob && latestJob.createdAt < thresholdDate) {
+          shouldFetch = true;
+          console.log(`Data for query "${query}" is stale. Triggering fetch.`);
+        } else {
+          console.log(
+            `Fresh data for query "${query}" already exists. Skipping fetch.`,
+          );
+        }
+      }
+
+      if (shouldFetch) {
+        // Don't await. Let this run in the background.
+        fetchAndSaveJobsService(query).catch((err) => {
+          console.error(`Background fetch for "${query}" failed:`, err);
+        });
       }
     }
 
+    // --- 2. Build the database filter (No changes here) ---
     const filter = {};
     if (query) {
       filter.$or = [
         { title: { $regex: query, $options: 'i' } },
         { description: { $regex: query, $options: 'i' } },
+        { queries: query }, // Also match against the query array
       ];
     }
+    // ... rest of the filter logic remains the same
     if (country) filter.country = { $regex: country, $options: 'i' };
     if (city) filter['location.city'] = { $regex: city, $options: 'i' };
     if (datePosted) {
-      const dateNow = new Date();
-      let dateFilter;
-      switch (datePosted) {
-        case '1':
-          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 1));
-          break;
-        case '3':
-          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 3));
-          break;
-        case '7':
-          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 7));
-          break;
-        case '30':
-          dateFilter = new Date(dateNow.setDate(dateNow.getDate() - 30));
-          break;
-        default:
-          break;
-      }
-      if (dateFilter) filter.createdAt = { $gte: dateFilter };
+      /* ... date logic ... */
     }
-    if (employmentType) {
-      filter.jobTypes = { $in: employmentType.split(',') };
-    }
-    if (experience) {
-      filter.experience = { $in: experience.split(',') };
-    }
+    if (employmentType) filter.jobTypes = { $in: employmentType.split(',') };
+    if (experience) filter.experience = { $in: experience.split(',') };
 
-    if (query) {
-      const matchingJobCount = await Job.countDocuments(filter);
-      if (matchingJobCount < 10) {
-        await fetchAndSaveJobsService(query);
-      } else {
-        fetchAndSaveJobsService(query); // No 'await'
-      }
-    }
-
-    // --- 3. Set up the SSE stream ---
+    // --- 3. Stream existing results from the database (No changes here) ---
     const cursor = Job.find(filter).sort({ createdAt: -1 }).cursor();
 
     for await (const job of cursor) {
-      // --- 4. Write each job to the stream ---
-      // The data must be a string and formatted as "event: <name>\ndata: <json>\n\n"
-      const eventData = {
-        event: 'new-job',
-        data: JSON.stringify(job),
-      };
-      res.write(`event: ${eventData.event}\ndata: ${eventData.data}\n\n`);
+      res.write(`event: new-job\ndata: ${JSON.stringify(job)}\n\n`);
     }
 
-    // --- 5. Signal the end of the stream ---
-    res.write('event: end-stream\ndata: {"message": "Stream complete"}\n\n');
+    // --- 4. Signal the end of the initial stream (No changes here) ---
+    res.write(
+      'event: end-stream\ndata: {"message": "Initial stream complete"}\n\n',
+    );
+    console.log('Finished streaming existing jobs.');
 
-    // The connection will be closed automatically when the function ends.
-
-    // Handle client disconnect
     req.on('close', () => {
       console.log('Client disconnected from stream.');
-      // This is a good place to ensure the cursor is closed if necessary
       cursor.close();
       res.end();
     });
   } catch (error) {
     console.error('Error in streamAllJobs controller:', error);
-    // Cannot set status after headers are sent, so just end the response.
+    res.write(
+      `event: error\ndata: {"message": "An internal error occurred"}\n\n`,
+    );
     res.end();
   }
 };

@@ -124,35 +124,46 @@ export const fetchAndSaveJobsService = async (query, page = 1) => {
         const slug = `${baseSlug}-${job.job_id.slice(-6)}`;
 
         bulkOperations.push({
-          insertOne: {
-            document: {
-              jobId: job.job_id,
-              origin: 'EXTERNAL',
-              slug: slug,
-              title: title,
-              description: job.job_description,
-              responsibilities: details.responsibilities || [],
-              qualifications: details.qualifications || [],
-              experience: details.experience || [],
-              jobTypes: job.job_employment_type
-                ? [job.job_employment_type]
-                : [],
-              company: job.employer_name,
-              logo: job.employer_logo,
-              applyMethod: { method: 'URL', url: job.job_apply_link },
-              salary: {
-                min: job.job_min_salary || null,
-                max: job.job_max_salary || null,
-                period: job.job_salary_period || null,
+          updateOne: {
+            filter: { jobId: job.job_id },
+            update: {
+              // --- Fields that should be updated every time ---
+              $set: {
+                title: title,
+                description: job.job_description,
+                responsibilities: details.responsibilities || [],
+                qualifications: details.qualifications || [],
+                experience: details.experience || [],
+                jobTypes: job.job_employment_type
+                  ? [job.job_employment_type]
+                  : [],
+                company: job.employer_name,
+                logo: job.employer_logo,
+                applyMethod: { method: 'URL', url: job.job_apply_link },
+                salary: {
+                  min: job.job_min_salary || null,
+                  max: job.job_max_salary || null,
+                  period: job.job_salary_period || null,
+                },
+                location: {
+                  city: details.location || job.job_city,
+                  lat: job.job_latitude,
+                  lng: job.job_longitude,
+                },
+                country: job.job_country,
               },
-              location: {
-                city: details.location || job.job_city,
-                lat: job.job_latitude,
-                lng: job.job_longitude,
+              // --- Add the search query to the list without duplicates ---
+              $addToSet: {
+                queries: query,
               },
-              country: job.job_country,
-              queries: [query],
+              // --- Fields that are set ONLY when the job is first created ---
+              $setOnInsert: {
+                slug: slug,
+                jobId: job.job_id,
+                origin: 'EXTERNAL',
+              },
             },
+            upsert: true,
           },
         });
       }
@@ -160,19 +171,18 @@ export const fetchAndSaveJobsService = async (query, page = 1) => {
 
     if (bulkOperations.length > 0) {
       const result = await Job.bulkWrite(bulkOperations, { ordered: false });
-      if (result.insertedCount > 0) {
-        console.log(
-          `${result.insertedCount} new jobs saved for query: "${query}".`,
-        );
-      }
-      return result.insertedCount || 0;
+      console.log(
+        `${result.upsertedCount} new jobs created and ${result.modifiedCount} updated for query: "${query}".`,
+      );
+      return result.upsertedCount || 0;
     }
 
     return 0;
   } catch (err) {
+    // This will now only catch critical, non-duplicate errors
     console.error(
       `A critical error occurred in job fetch for query "${query}":`,
-      err.message,
+      err,
     );
     return 0;
   } finally {
