@@ -82,6 +82,7 @@ const profileFormSchema = z.object({
   fullName: z.string().min(2, {
     message: 'Full name must be at least 2 characters.',
   }),
+  avatar: z.string().url({ message: 'Please enter a valid URL.' }),
   email: z.string().email(),
   phone: z.string().optional(),
   jobPreference: z.string().min(2, {
@@ -162,10 +163,15 @@ export const useProfile = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   const personalInfoForm = useForm<
-    Pick<ProfileFormValues, 'fullName' | 'email' | 'phone'>
+    Pick<ProfileFormValues, 'fullName' | 'email' | 'phone' | 'avatar'>
   >({
     resolver: zodResolver(
-      profileFormSchema.pick({ fullName: true, email: true, phone: true }),
+      profileFormSchema.pick({
+        fullName: true,
+        email: true,
+        phone: true,
+        avatar: true,
+      }),
     ),
     mode: 'onChange',
   });
@@ -225,10 +231,12 @@ export const useProfile = () => {
 
   useEffect(() => {
     if (students && Object.keys(students).length > 0) {
+      console.log('students', students);
       personalInfoForm.reset({
         fullName: students.fullName || '',
         email: students.email || '',
         phone: students.phone || '',
+        avatar: students.avatar || '',
       });
       careerDetailsForm.reset({
         jobPreference: students.jobRole || '',
