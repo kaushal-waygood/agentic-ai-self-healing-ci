@@ -37,8 +37,7 @@ spec:
   selector:
     app: zobsai-backend
   ports:
-    - port: 8080        # Service port
-      targetPort: 8080  # Container port
-      nodePort: 30070  # External port on the node (must be between 30000–32767)
+    - port: 8080 # Service port
+      targetPort: 8080 # Container port
+      nodePort: 30070 # External port on the node (must be between 30000–32767)
   type: NodePort
-
