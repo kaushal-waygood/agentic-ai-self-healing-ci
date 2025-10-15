@@ -4,6 +4,7 @@ import {
   postJobMannalByOrgAdmin,
   getAllJobsByOrgAdmin,
   updateJobStatus,
+  searchJobs,
 } from '@/services/api/job';
 import { call, put, take, takeLatest } from 'redux-saga/effects';
 import {
@@ -25,10 +26,9 @@ import {
   getJobPreferenceRequest,
   getJobPreferenceSuccess,
   getJobPreferenceFailure,
-  jobStreamError,
-  addJob,
-  endJobStream,
-  fetchJobsStream,
+  searchJobRequest,
+  searchJobSuccess,
+  searchJobFailure,
 } from '../reducers/jobReducer';
 import { AxiosResponse } from 'axios';
 import { PayloadAction } from '@reduxjs/toolkit';
@@ -137,92 +137,60 @@ function* preferedJobs() {
   }
 }
 
-function createJobStreamChannel(filters: any) {
-  return eventChannel((emitter) => {
-    const queryParams = new URLSearchParams();
-    console.log('Filters:', queryParams);
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) {
-        if (Array.isArray(value)) {
-          if (value.length > 0) queryParams.append(key, value.join(','));
-        } else {
-          queryParams.append(key, String(value));
-        }
-      }
-    });
-
-    const eventSource = new EventSource(
-      `${API_BASE_URL}/api/v1/jobs/stream?${queryParams.toString()}`,
-    );
-
-    console.log('Event source created:', eventSource);
-
-    eventSource.addEventListener('new-job', (event) => {
-      try {
-        const job = JSON.parse(event.data);
-        console.log('New job:', job);
-        emitter(addJob(job));
-      } catch (e) {
-        console.error('Failed to parse job data from stream:', e);
-      }
-    });
-
-    eventSource.addEventListener('end-stream', () => {
-      emitter(END); // Signal the end of the channel
-    });
-
-    eventSource.addEventListener('error', (event) => {
-      let message = 'An error occurred while streaming jobs.';
-      if (event.data) {
-        try {
-          message = JSON.parse(event.data).message || message;
-          console.log(message);
-        } catch (e) {}
-      }
-      emitter(jobStreamError(message));
-      emitter(END);
-    });
-
-    eventSource.onerror = (err) => {
-      console.error('EventSource failed:', err);
-      emitter(jobStreamError('A network error occurred with the job stream.'));
-      emitter(END);
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  });
-}
-
-// The new worker saga that manages the channel
-
-function* handleJobStreamSaga(action: PayloadAction<any>): SagaIterator {
-  // 1. Call the function to create the channel
-  const channel = yield call(createJobStreamChannel, action.payload);
-
-  console.log('Channel created:', channel);
-
+// CORRECTED: This saga should look very similar to getAllJobsSaga
+function* searchJobsSaga(
+  action: PayloadAction<{
+    page: number;
+    append?: boolean;
+    query?: string;
+    country?: string;
+    city?: string;
+    datePosted?: string;
+    employmentType?: string[];
+    experience?: string[];
+  }>,
+) {
   try {
-    // 2. Start a loop to listen for actions emitted from the channel
-    while (true) {
-      // `take` will wait for the channel to emit something
-      const actionFromChannel = yield take(channel);
-      console.log('Action from channel:', actionFromChannel);
-      yield put(actionFromChannel);
-    }
+    const {
+      append,
+      page,
+      query,
+      country,
+      city,
+      datePosted,
+      employmentType,
+      experience,
+    } = action.payload;
+
+    // Call the updated searchJobs service function with all params
+    const response: AxiosResponse = yield call(searchJobs, {
+      page,
+      query,
+      country,
+      city,
+      datePosted,
+      employmentType: employmentType?.join(','),
+      experience: experience?.join(','),
+    });
+
+    // Dispatch the success action with the full payload
+    yield put(
+      searchJobSuccess({
+        jobs: response.data.jobs,
+        pagination: response.data.pagination,
+        append: append,
+      }),
+    );
   } catch (error: unknown | Error) {
-    yield put(jobStreamError((error as Error).message || 'Saga channel error'));
-  } finally {
-    // 3. This `finally` block will run when the channel is closed (via END)
-    console.log('Job stream finished.');
-    // Dispatch the final action to set loading to false
-    yield put(endJobStream());
+    console.error(error);
+    yield put(
+      searchJobFailure((error as Error).message || 'Failed to search for jobs'),
+    );
   }
 }
 
 export function* jobsWatcher() {
-  yield takeLatest(fetchJobsStream.type, handleJobStreamSaga);
+  // yield takeLatest(fetchJobsStream.type, handleJobStreamSaga);
   yield takeLatest(getAllJobsRequest.type, getAllJobsSaga);
   yield takeLatest(getJobBySlugRequest.type, getJobBySlugSaga);
   yield takeLatest(
@@ -235,4 +203,5 @@ export function* jobsWatcher() {
   );
   yield takeLatest(updateJobStatusRequest.type, updateJobStatusSaga);
   yield takeLatest(getJobPreferenceRequest.type, preferedJobs);
+  yield takeLatest(searchJobRequest.type, searchJobsSaga);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react'; // Removed useCallback
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
 import { useJobs } from '@/hooks/jobs/useJobs';
@@ -13,30 +13,59 @@ import { Search } from 'lucide-react';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<HTMLDivElement>(null); // Ref for the infinite scroll trigger
 
-  // FIX: Destructure only what the streaming hook provides.
-  // REMOVED `pagination` and `loadMoreJobs`.
   const {
     jobs,
     loading,
     error,
     filters,
+    pagination,
     setFilterModal,
     employmentTypes,
     experienceLevels,
     filterModal,
     handleFilterChange,
-    resetFilters,
+    loadMoreJobs,
   } = useJobs();
 
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
-  // Scroll to top when filters change. This is still useful.
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters]);
+
+  useEffect(() => {
+    if (!isMobile && jobs.length > 0) {
+      if (!jobs.some((job) => job._id === selectedJob?._id)) {
+        setSelectedJob(jobs[0]);
+      }
+    }
+  }, [jobs, isMobile, selectedJob]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && pagination.hasNextPage && !loading) {
+          loadMoreJobs();
+        }
+      },
+      { threshold: 1.0 },
+    );
+
+    const currentObserverRef = observerRef.current;
+    if (currentObserverRef) {
+      observer.observe(currentObserverRef);
+    }
+
+    return () => {
+      if (currentObserverRef) {
+        observer.unobserve(currentObserverRef);
+      }
+    };
+  }, [loading, pagination, loadMoreJobs]);
 
   const fetchJobDetails = async (slug: string) => {
     try {
@@ -55,18 +84,6 @@ export default function JobsPage() {
       fetchJobDetails(slug);
     }
   };
-
-  // Select the first job from the list when the stream updates.
-  useEffect(() => {
-    if (!isMobile && jobs.length > 0) {
-      if (!jobs.some((job) => job._id === selectedJob?._id)) {
-        setSelectedJob(jobs[0]);
-      }
-    }
-  }, [jobs, isMobile, selectedJob]);
-
-  // REMOVED: The entire IntersectionObserver logic is no longer needed.
-  // The stream provides all the data at once.
 
   if (error)
     return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
@@ -87,24 +104,30 @@ export default function JobsPage() {
               ref={jobListRef}
               className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin"
             >
-              {/* FIX: Show skeletons only on the initial load when the jobs array is empty. */}
-              {loading && jobs.length === 0
-                ? Array.from({ length: 8 }).map((_, index) => (
-                    <JobCardSkeleton key={index} />
-                  ))
-                : jobs.map((job: any) => (
-                    <JobCard
-                      key={job._id}
-                      job={job}
-                      isActive={selectedJob?._id === job._id}
-                      onClick={() => handleCardClick(job.slug)}
-                    />
-                  ))}
-              {/* REMOVED: The observer and loading spinner at the bottom. */}
+              {loading &&
+                jobs.length === 0 &&
+                Array.from({ length: 8 }).map((_, index) => (
+                  <JobCardSkeleton key={index} />
+                ))}
+
+              {jobs.map((job: any) => (
+                <JobCard
+                  key={job._id}
+                  job={job}
+                  isActive={selectedJob?._id === job._id}
+                  onClick={() => handleCardClick(job.slug)}
+                />
+              ))}
+
+              {/* FIXED: Added a unique static key to the loading skeleton */}
+              {loading && jobs.length > 0 && (
+                <JobCardSkeleton key="loading-skeleton" />
+              )}
+
+              <div ref={observerRef} style={{ height: '1px' }} />
             </div>
           </div>
-          <div className=" hidden lg:block">
-            {/* ... JobDetail and placeholder JSX remains the same ... */}
+          <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {selectedJob ? (
                 <JobDetail job={selectedJob} />
@@ -132,7 +155,16 @@ export default function JobsPage() {
           experienceLevels={experienceLevels}
           filters={filters}
           onFilterChange={handleFilterChange}
-          onReset={resetFilters}
+          onReset={() =>
+            handleFilterChange({
+              query: '',
+              country: '',
+              city: '',
+              datePosted: '',
+              employmentType: [],
+              experience: [],
+            })
+          }
         />
       </div>
     </div>

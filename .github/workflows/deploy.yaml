@@ -18,7 +18,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # ensures all files and history are available
+          fetch-depth: 0 # ensures all files and history are available
 
       - name: Set lowercase repo owner
         id: vars
