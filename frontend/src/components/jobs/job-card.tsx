@@ -11,7 +11,6 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
-  console.log(job);
   return (
     <div
       onClick={onClick}

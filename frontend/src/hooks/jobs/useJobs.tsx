@@ -4,34 +4,29 @@ import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
-import { fetchJobsStream } from '@/redux/reducers/jobReducer'; // The unified stream action
+import { searchJobRequest } from '@/redux/reducers/jobReducer';
 import { RootState } from '@/redux/rootReducer';
 import apiInstance from '@/services/api';
 
-/**
- * A custom hook to manage fetching and filtering job data via an SSE stream.
- * It unifies all data fetching operations (initial load, filtering, reset)
- * into a single streaming action for consistent state management.
- */
 export const useJobs = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
 
-  // --- 1. Select state from Redux store ---
+  // Select all necessary state from Redux, including pagination
   const {
     jobs,
     loading,
     error,
     filters: reduxFilters,
+    pagination,
   } = useSelector((state: RootState) => state.jobs);
 
-  // --- 2. Local state for UI and metadata ---
+  // Local state for UI elements
   const [filterModal, setFilterModal] = useState(false);
   const [employmentTypes, setEmploymentTypes] = useState<string[]>([]);
   const [experienceLevels, setExperienceLevels] = useState<string[]>([]);
 
-  // --- 3. Effect for initial data load based on URL ---
-  // This runs on mount and whenever the URL search parameters change.
+  // Effect for the initial data load based on URL parameters
   useEffect(() => {
     const filtersFromUrl = {
       query: searchParams.get('query') || '',
@@ -41,11 +36,11 @@ export const useJobs = () => {
       employmentType: searchParams.get('employmentType')?.split(',') || [],
       experience: searchParams.get('experience')?.split(',') || [],
     };
-    dispatch(fetchJobsStream(filtersFromUrl));
+    // Dispatch with the full payload for a new search on page 1
+    dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
   }, [dispatch, searchParams]);
 
-  // --- 4. Effect to fetch static metadata ---
-  // This runs once when the component mounts.
+  // Effect to fetch static metadata for filters (runs once)
   useEffect(() => {
     const fetchJobMetadata = async () => {
       try {
@@ -62,58 +57,43 @@ export const useJobs = () => {
     fetchJobMetadata();
   }, []);
 
-  // --- 5. Handlers for user actions ---
-
-  /**
-   * Dispatches the stream action with updated filters.
-   * Debounced to prevent excessive calls while the user interacts with filters.
-   */
+  // Handler for applying new filters
   const handleFilterChange = useCallback(
     debounce((newFilters: Partial<typeof reduxFilters>) => {
-      const payload = {
-        ...reduxFilters,
-        ...newFilters,
-      };
-      dispatch(fetchJobsStream(payload));
+      const payload = { ...reduxFilters, ...newFilters };
+      // Dispatch a new search from page 1 with the updated filters
+      dispatch(searchJobRequest({ ...payload, page: 1, append: false }));
       setFilterModal(false);
     }, 500),
-    [dispatch, reduxFilters], // Re-create debounce handler if reduxFilters changes
+    [dispatch, reduxFilters],
   );
 
-  /**
-   * Resets all filters and fetches the full, unfiltered job stream.
-   */
-  const resetFilters = useCallback(() => {
-    const initialFilters = {
-      query: '',
-      country: '',
-      city: '',
-      datePosted: '',
-      employmentType: [],
-      experience: [],
-    };
-    dispatch(fetchJobsStream(initialFilters));
-    setFilterModal(false);
-  }, [dispatch]);
+  // Function to load the next page of results for infinite scroll
+  const loadMoreJobs = useCallback(() => {
+    // Prevent fetching if already loading or if there are no more pages
+    if (loading || !pagination.hasNextPage) return;
 
-  // --- 6. Return values for the component ---
+    dispatch(
+      searchJobRequest({
+        ...reduxFilters,
+        page: pagination.currentPage + 1,
+        append: true, // Append new results to the existing list
+      }),
+    );
+  }, [dispatch, loading, pagination, reduxFilters]);
+
+  // Return all state and handlers needed by the component
   return {
-    // Data
     jobs,
     loading,
     error,
     filters: reduxFilters,
-
-    // Metadata
+    pagination,
     employmentTypes,
     experienceLevels,
-
-    // UI State
     filterModal,
     setFilterModal,
-
-    // Handlers
     handleFilterChange,
-    resetFilters,
+    loadMoreJobs,
   };
 };

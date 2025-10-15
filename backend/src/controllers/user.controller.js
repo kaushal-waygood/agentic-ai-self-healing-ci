@@ -671,10 +671,12 @@ const BACKEND_API_BASE_URL =
 
 const FRONTEND_API_BASE_URL =
   process.env.NODE_ENV === 'production'
-    ? 'https://zobsai.com'
+    ? 'https://www.zobsai.com'
     : process.env.NODE_ENV === 'development'
     ? 'https://dev.zobsai.com'
     : 'http://127.0.0.1:3000';
+
+console.log('FRONTEND_API_BASE_URL from controller', FRONTEND_API_BASE_URL);
 
 // Use environment variables instead of hardcoded values
 const oauth2Client = new google.auth.OAuth2(

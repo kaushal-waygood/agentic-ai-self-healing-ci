@@ -706,6 +706,155 @@ export const getSingleJobDetail = async (req, res) => {
   }
 };
 
+const escapeRegex = (text) => {
+  if (!text) return '';
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};
+
+const transformRapidApiJob = (apiJob) => {
+  const qualifications = apiJob.job_highlights?.Qualifications || [];
+  const responsibilities = apiJob.job_highlights?.Responsibilities || [];
+
+  return {
+    jobId: apiJob.job_id,
+    origin: 'EXTERNAL',
+    title: apiJob.job_title,
+    description: apiJob.job_description,
+
+    // --- ADDED MAPPINGS ---
+    qualifications: qualifications,
+    responsibilities: responsibilities,
+    // ----------------------
+
+    company: apiJob.employer_name,
+    country: apiJob.job_country,
+    location: {
+      city: apiJob.job_city,
+      lat: apiJob.job_latitude,
+      lng: apiJob.job_longitude,
+    },
+    // Manually generating the slug is correct for bulk operations
+    slug:
+      (apiJob.job_title || 'job').toLowerCase().replace(/\s/g, '-') +
+      `-${apiJob.job_id.slice(0, 4)}`,
+    applyMethod: {
+      method: 'URL',
+      url: apiJob.job_apply_link,
+    },
+    isActive: true,
+    jobTypes: apiJob.job_employment_type ? [apiJob.job_employment_type] : [],
+    experience: [], // You can also try to parse experience from the description if needed
+  };
+};
+
+export const searchJobs = async (req, res) => {
+  const { q, page = 1, limit = 10, country, city } = req.query;
+  const pageNum = parseInt(page, 10);
+  const limitNum = parseInt(limit, 10);
+  const skip = (pageNum - 1) * limitNum;
+
+  try {
+    const searchCriteria = {};
+    if (q) {
+      const searchRegex = new RegExp(escapeRegex(q), 'i');
+      searchCriteria.$or = [
+        { title: searchRegex },
+        { description: searchRegex },
+      ];
+    }
+    if (country) searchCriteria.country = country;
+    if (city) searchCriteria['location.city'] = city;
+
+    let cacheKey = 'jobs:';
+    const paramsForCache = { q, country, city, page: pageNum, limit: limitNum };
+    Object.keys(paramsForCache)
+      .sort()
+      .forEach((key) => {
+        if (paramsForCache[key]) {
+          cacheKey += `${key}:${paramsForCache[key]}:`;
+        }
+      });
+
+    const result = await redisClient.withCache(cacheKey, 3600, async () => {
+      const totalJobs = await Job.countDocuments(searchCriteria);
+      let jobs = await Job.find(searchCriteria)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum);
+
+      if (jobs.length < 5 && q && pageNum === 1) {
+        console.log('Local results low, fetching from RapidAPI...');
+        try {
+          const apiParams = { query: q, page: 1, num_pages: 1 };
+          const response = await axios.get(config.rapidJobApi, {
+            params: apiParams,
+            headers: {
+              'X-RapidAPI-Key': config.rapidApiKey,
+              'X-RapidAPI-Host': config.rapidApiHost,
+            },
+          });
+
+          const externalJobsRaw = response.data.data || [];
+
+          if (externalJobsRaw.length > 0) {
+            const externalJobsFormatted =
+              externalJobsRaw.map(transformRapidApiJob);
+
+            const bulkOps = externalJobsFormatted.map((job) => ({
+              updateOne: {
+                filter: { jobId: job.jobId },
+                update: { $set: job },
+                upsert: true,
+              },
+            }));
+
+            Job.bulkWrite(bulkOps)
+              .then((writeResult) => {
+                if (
+                  writeResult.upsertedCount > 0 ||
+                  writeResult.modifiedCount > 0
+                ) {
+                  console.log(
+                    `Background save complete: ${writeResult.upsertedCount} new, ${writeResult.modifiedCount} updated.`,
+                  );
+                }
+              })
+              .catch((err) => console.error('Background DB save failed:', err));
+
+            const existingExternalIds = new Set(jobs.map((j) => j.jobId));
+            const uniqueExternalJobs = externalJobsFormatted.filter(
+              (j) => !existingExternalIds.has(j.jobId),
+            );
+            jobs = [...jobs, ...uniqueExternalJobs];
+          }
+        } catch (apiError) {
+          console.error('RapidAPI fetch failed:', apiError.message);
+        }
+      }
+      return { jobs, totalJobs };
+    });
+
+    const { jobs, totalJobs } = result;
+    const totalPages = Math.ceil(totalJobs / limitNum);
+
+    res.status(200).json({
+      jobs,
+      pagination: {
+        totalJobs,
+        totalPages,
+        currentPage: pageNum,
+        hasNextPage: pageNum < totalPages,
+      },
+    });
+  } catch (error) {
+    console.error('Error in searchJobs controller:', error);
+    res.status(500).json({
+      message: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
 export const getJobDetailBySlug = async (req, res) => {
   const { slug } = req.query;
   try {

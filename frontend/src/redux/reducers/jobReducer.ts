@@ -178,19 +178,54 @@ const jobSlice = createSlice({
       state.error = action.payload;
     },
 
-    fetchJobsStream: (state, action: PayloadAction<any>) => {
+    searchJobRequest: (
+      state,
+      action: PayloadAction<{
+        page: number;
+        append?: boolean;
+        query?: string;
+        country?: string;
+        city?: string;
+        datePosted?: string;
+        employmentType?: string[];
+        experience?: string[];
+      }>,
+    ) => {
       state.loading = true;
       state.error = null;
-      state.jobs = []; // Clear previous results
-      state.filters = { ...initialState.filters, ...action.payload };
+      if (!action.payload.append) {
+        state.filters = {
+          query: action.payload.query ?? state.filters.query,
+          country: action.payload.country ?? state.filters.country,
+          city: action.payload.city ?? state.filters.city,
+          datePosted: action.payload.datePosted ?? state.filters.datePosted,
+          employmentType:
+            action.payload.employmentType ?? state.filters.employmentType,
+          experience: action.payload.experience ?? state.filters.experience,
+        };
+      }
     },
-    addJob: (state, action: PayloadAction<Job>) => {
-      state.jobs.push(action.payload);
-    },
-    endJobStream: (state) => {
+    // CORRECTED: searchJobSuccess should handle pagination and append logic
+    searchJobSuccess: (
+      state,
+      action: PayloadAction<{
+        jobs: Job[];
+        pagination: Pagination; // This is the key addition
+        append?: boolean;
+      }>,
+    ) => {
       state.loading = false;
+      state.pagination = action.payload.pagination; // Update pagination state
+
+      if (action.payload.append) {
+        // Append for infinite scroll
+        state.jobs = [...state.jobs, ...action.payload.jobs];
+      } else {
+        // Replace for a new search
+        state.jobs = action.payload.jobs;
+      }
     },
-    jobStreamError: (state, action: PayloadAction<string>) => {
+    searchJobFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
@@ -223,10 +258,9 @@ export const {
   getJobPreferenceSuccess,
   getJobPreferenceFailure,
 
-  fetchJobsStream,
-  addJob,
-  endJobStream,
-  jobStreamError,
+  searchJobRequest,
+  searchJobSuccess,
+  searchJobFailure,
 } = jobSlice.actions;
 
 export default jobSlice.reducer;
