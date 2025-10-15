@@ -3,41 +3,69 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
-import { useJobs } from '@/hooks/jobs/useJobs'; // REMOVED: usePrevious is no longer needed
+import { useJobs } from '@/hooks/jobs/useJobs';
 import { useMediaQuery } from '@/hooks/jobs/useMediaQuery';
 import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
-import { Loader2, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<HTMLDivElement>(null); // Ref for the infinite scroll trigger
 
-  // SIMPLIFIED: The hook call is cleaner
   const {
-    jobs, // Use 'jobs' directly
+    jobs,
     loading,
     error,
-    pagination,
-    loadMoreJobs,
     filters,
+    pagination,
     setFilterModal,
     employmentTypes,
     experienceLevels,
     filterModal,
     handleFilterChange,
-    resetFilters,
+    loadMoreJobs,
   } = useJobs();
 
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
-  const observerRef = useRef(null);
 
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters]);
+
+  useEffect(() => {
+    if (!isMobile && jobs.length > 0) {
+      if (!jobs.some((job) => job._id === selectedJob?._id)) {
+        setSelectedJob(jobs[0]);
+      }
+    }
+  }, [jobs, isMobile, selectedJob]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && pagination.hasNextPage && !loading) {
+          loadMoreJobs();
+        }
+      },
+      { threshold: 1.0 },
+    );
+
+    const currentObserverRef = observerRef.current;
+    if (currentObserverRef) {
+      observer.observe(currentObserverRef);
+    }
+
+    return () => {
+      if (currentObserverRef) {
+        observer.unobserve(currentObserverRef);
+      }
+    };
+  }, [loading, pagination, loadMoreJobs]);
 
   const fetchJobDetails = async (slug: string) => {
     try {
@@ -56,41 +84,6 @@ export default function JobsPage() {
       fetchJobDetails(slug);
     }
   };
-
-  // Select first job from the list
-  useEffect(() => {
-    if (!isMobile && jobs.length > 0) {
-      if (!jobs.some((job) => job._id === selectedJob?._id)) {
-        setSelectedJob(jobs[0]);
-      }
-    }
-  }, [jobs, isMobile, selectedJob]);
-
-  // SIMPLIFIED: Observer callback is much cleaner
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [target] = entries;
-      if (
-        target.isIntersecting &&
-        !loading &&
-        pagination.page < pagination.totalPages
-      ) {
-        loadMoreJobs();
-      }
-    },
-    [loading, pagination, loadMoreJobs],
-  );
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(handleObserver, {
-      threshold: 0.8,
-    });
-    const currentObserverRef = observerRef.current;
-    if (currentObserverRef) observer.observe(currentObserverRef);
-    return () => {
-      if (currentObserverRef) observer.unobserve(currentObserverRef);
-    };
-  }, [handleObserver]);
 
   if (error)
     return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
@@ -111,28 +104,30 @@ export default function JobsPage() {
               ref={jobListRef}
               className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin"
             >
-              {loading && pagination.page === 1
-                ? Array.from({ length: 5 }).map((_, index) => (
-                    <JobCardSkeleton key={index} />
-                  ))
-                : // SIMPLIFIED: Render 'jobs' array directly
-                  jobs.map((job: any) => (
-                    <JobCard
-                      key={job._id}
-                      job={job}
-                      isActive={selectedJob?._id === job._id}
-                      onClick={() => handleCardClick(job.slug)}
-                    />
-                  ))}
-              <div ref={observerRef} className="flex justify-center p-4 h-12">
-                {/* SIMPLIFIED: Loader only depends on 'loading' state */}
-                {loading && pagination.page > 1 && (
-                  <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                )}
-              </div>
+              {loading &&
+                jobs.length === 0 &&
+                Array.from({ length: 8 }).map((_, index) => (
+                  <JobCardSkeleton key={index} />
+                ))}
+
+              {jobs.map((job: any) => (
+                <JobCard
+                  key={job._id}
+                  job={job}
+                  isActive={selectedJob?._id === job._id}
+                  onClick={() => handleCardClick(job.slug)}
+                />
+              ))}
+
+              {/* FIXED: Added a unique static key to the loading skeleton */}
+              {loading && jobs.length > 0 && (
+                <JobCardSkeleton key="loading-skeleton" />
+              )}
+
+              <div ref={observerRef} style={{ height: '1px' }} />
             </div>
           </div>
-          <div className=" hidden lg:block">
+          <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {selectedJob ? (
                 <JobDetail job={selectedJob} />
@@ -160,10 +155,18 @@ export default function JobsPage() {
           experienceLevels={experienceLevels}
           filters={filters}
           onFilterChange={handleFilterChange}
-          onReset={resetFilters}
+          onReset={() =>
+            handleFilterChange({
+              query: '',
+              country: '',
+              city: '',
+              datePosted: '',
+              employmentType: [],
+              experience: [],
+            })
+          }
         />
       </div>
-      {/* ... styles remain the same ... */}
     </div>
   );
 }

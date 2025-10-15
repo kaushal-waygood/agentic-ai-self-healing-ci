@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { MatchScoreModal } from './MatchScoreModal';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -84,7 +85,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     }
   };
   const handleGetMatchScore = async () => {
-    setIsModalOpen(true);
+    // setIsModalOpen(true);
     setIsLoadingScore(true);
     setMatchScore(null);
     setScoreError(null); // Reset error state
@@ -178,7 +179,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               />
             ) : (
               <div className="w-12 h-12  rounded-lg flex items-center justify-center ">
-                <img src="/logo.png" alt="abc" />
+                <Image width={32} height={32} src="/zobsai.svg" alt="abc" />
               </div>
             )}
           </div>
@@ -198,12 +199,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </Link>
               </Button> */}
               {job.applyMethod.url && (
-
                 <Link
                   href={`${job.applyMethod.url}`}
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
+                  className="flex items-center  w-full text-xs gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
                 >
-                  <ExternalLink className="w-4 h-4" /> Company Site
+                  <ExternalLink className=" w-4 h-4" /> Company Site
                 </Link>
               )}
               {/* ✅ FIX: The Calculate button is now part of the conditional logic */}
@@ -223,22 +223,23 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
               </div>
             )}
-
-            {matchScore && !isLoadingScore && (
-              <div className="flex flex-col gap-2 p-2 rounded-lg bg-purple-50 border border-purple-200">
-                <div className="flex items-center gap-2 font-semibold text-purple-800">
-                  <Sparkles className="w-4 h-4" />
-                  {/* FIX: Displays the score from the state object property */}
-                  <p>Match Score: {matchScore.matchScore}/10</p>
-                </div>
-                <p className="text-sm text-gray-600 pl-6">
-                  {matchScore.recommendation}
-                </p>
-              </div>
-            )}
           </div>
         </div>
       </div>
+      {matchScore && !isLoadingScore && (
+        <div className="flex flex-col gap-2 p-2 rounded-lg bg-purple-50 border border-purple-200">
+          <div className="flex items-center gap-2 font-semibold text-purple-800">
+            <Sparkles className="w-4 h-4" />
+            {/* FIX: Displays the score from the state object property */}
+            <p>Match Score: {matchScore.matchScore}/10</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 pl-6">
+              {matchScore.recommendation}
+            </p>
+          </div>
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-3">
         <h2 className="text-lg  text-gray-900 mb-1 flex items-center gap-2">
           <div className="w-2 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full"></div>

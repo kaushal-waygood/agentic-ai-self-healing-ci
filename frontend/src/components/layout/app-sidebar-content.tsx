@@ -158,10 +158,10 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 />
                 <h2 className="text-xs">zobsai</h2>
               </div>
-              <div
+              {/* <div
                 className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full animate-bounce"
                 style={{ animationDelay: '0.5s' }}
-              ></div>
+              ></div> */}
             </div>
             {!isCollapsed && (
               <div className="overflow-hidden">
