@@ -47,7 +47,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
 
             <div className="text-xs  ">
               <div className="flex items-center gap-2 text-purple-500 font-semibold ">
-                <span>{job.company}</span>
+                <span>{truncate(job.company, 35)}</span>
               </div>
 
               <div className="flex items-center gap-2 ">

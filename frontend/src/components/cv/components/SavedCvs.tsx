@@ -44,7 +44,7 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
 
   return (
     <div
-      className={`w-full max-w-7xl mx-auto transition-all duration-700 ease-out ${
+      className={`w-full  max-w-7xl mx-auto transition-all duration-700 ease-out ${
         animateIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
@@ -53,7 +53,7 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
         <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-blue-50 to-indigo-50 opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-tr from-violet-100/20 via-transparent to-blue-100/20" />
 
-        <CardHeader className="relative bg-gradient-to-r from-violet-600 via-blue-600 to-indigo-600 text-white">
+        <CardHeader className="relative bg-gradient-to-r from-violet-600 via-blue-600 to-indigo-600 text-white p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -63,10 +63,10 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
               </div>
               <div>
-                <CardTitle className="font-headline text-2xl font-bold">
+                <CardTitle className="font-headline text-xl ">
                   Your Saved CVs
                 </CardTitle>
-                <CardDescription className="text-violet-100 mt-1">
+                <CardDescription className="text-violet-100 ">
                   Manage your professional CVs. Auto-saved drafts appear here.
                 </CardDescription>
               </div>
@@ -83,7 +83,7 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
           </div>
 
           {/* Animated dots */}
-          <div className="absolute top-4 right-4 flex gap-1">
+          {/* <div className="absolute top-4 right-4 flex gap-1">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
@@ -91,16 +91,16 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                 style={{ animationDelay: `${i * 0.2}s` }}
               />
             ))}
-          </div>
+          </div> */}
         </CardHeader>
 
-        <CardContent className="relative p-8">
+        <CardContent className="relative p-2">
           {resume?.html?.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {resume.html.map((savedCv: any, i: number) => (
                 <div
                   key={i}
-                  className={`group relative overflow-hidden rounded-2xl border transition-all duration-500 ease-out cursor-pointer ${
+                  className={`group relative overflow-hidden rounded-2xl  border transition-all duration-500 ease-out cursor-pointer ${
                     hoveredIndex === i
                       ? 'border-violet-300 shadow-xl shadow-violet-200/50 scale-[1.01]'
                       : 'border-gray-200 hover:border-violet-200 shadow-sm'
@@ -128,8 +128,8 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                     }`}
                   />
 
-                  <div className="relative p-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                  <div className="relative p-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                       <div className="flex-1 space-y-3">
                         <div className="flex items-start gap-4">
                           <div
@@ -143,15 +143,15 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <h3
-                              className={`font-bold text-xl leading-tight mb-2 transition-all duration-300 ${
+                            <h5
+                              className={` text-lg leading-tight transition-all duration-300 ${
                                 hoveredIndex === i
                                   ? 'text-violet-700'
                                   : 'text-gray-900'
                               }`}
                             >
                               {savedCv.htmlCVTitle}
-                            </h3>
+                            </h5>
                           </div>
                         </div>
                       </div>

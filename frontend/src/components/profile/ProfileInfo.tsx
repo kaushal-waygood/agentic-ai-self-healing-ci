@@ -40,6 +40,12 @@ const navItems = [
     icon: Code,
     gradient: 'from-green-500 to-teal-500',
   },
+  {
+    id: 'jobPreferences',
+    label: 'Job Preferences',
+    icon: MapPin,
+    gradient: 'from-blue-500 to-cyan-500',
+  },
 ];
 const ProfileInfo = ({
   personalInfoForm,
@@ -204,6 +210,13 @@ const ProfileInfo = ({
               setDeleteSkillIndex={setDeleteSkillIndex}
               handleLevelChange={handleLevelChange}
             />
+          </div>
+        );
+
+      case 'jobPreferences':
+        return (
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Job Preferences</h2>
           </div>
         );
       default:
