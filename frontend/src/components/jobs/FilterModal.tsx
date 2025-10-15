@@ -1,18 +1,18 @@
+// /components/jobs/FilterModal.tsx
+
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { X } from 'lucide-react';
-import { datePostedOptions } from './SearchFilters';
+// NOTE: We are no longer using Checkbox or Label from shadcn/ui
 
 interface FilterModalProps {
   isOpen: boolean;
@@ -24,6 +24,45 @@ interface FilterModalProps {
   onReset: () => void;
 }
 
+// HELPER: New helper function to make long experience labels readable
+const simplifyExperienceLabel = (label: string): string => {
+  const matches = label.match(/Gs-(\d+)/g);
+  if (matches && matches.length >= 2) {
+    const targetLevel = matches[1]; // e.g., Gs-12
+    const sourceLevel = matches[0]; // e.g., Gs-11
+    return `${targetLevel.replace(
+      '-',
+      '',
+    )} Equivalent (from ${sourceLevel.replace('-', '')})`;
+  }
+  // Fallback for any labels that don't match the expected format
+  return label.length > 30 ? label.substring(0, 27) + '...' : label;
+};
+
+// HELPER: A new reusable component for our interactive tags
+const FilterTag = ({
+  label,
+  isSelected,
+  onClick,
+}: {
+  label: string;
+  isSelected: boolean;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    role="checkbox"
+    aria-checked={isSelected}
+    className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 capitalize ${
+      isSelected
+        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+    }`}
+  >
+    {label}
+  </button>
+);
+
 export const FilterModal = ({
   isOpen,
   onClose,
@@ -33,119 +72,111 @@ export const FilterModal = ({
   onFilterChange,
   onReset,
 }: FilterModalProps) => {
-  const handleCheckboxChange = (
+  const [localFilters, setLocalFilters] = useState(filters);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLocalFilters(filters);
+    }
+  }, [isOpen, filters]);
+
+  const handleSelectionChange = (
     filterKey: 'employmentType' | 'experience',
     value: string,
-    checked: boolean,
   ) => {
-    const currentValues: string[] = filters[filterKey] || [];
-    const newValues = checked
-      ? [...currentValues, value]
-      : currentValues.filter((item) => item !== value);
+    const currentValues: string[] = localFilters[filterKey] || [];
+    const isSelected = currentValues.includes(value);
+    const newValues = isSelected
+      ? currentValues.filter((item) => item !== value)
+      : [...currentValues, value];
 
-    // Instantly call the debounced update function from the hook
-    onFilterChange({ [filterKey]: newValues });
+    setLocalFilters((prev: any) => ({ ...prev, [filterKey]: newValues }));
   };
 
-  const handleDatePostedChange = (value: string) => {
-    onFilterChange({ datePosted: value });
+  const handleApply = () => {
+    onFilterChange(localFilters);
+    onClose();
+  };
+
+  const handleReset = () => {
+    // We keep existing text query and location from the main search bar
+    const resetState = {
+      query: filters.query,
+      country: filters.country,
+      city: filters.city,
+      datePosted: '',
+      employmentType: [],
+      experience: [],
+    };
+    setLocalFilters(resetState);
+    // We call the parent onReset which will trigger handleFilterChange with the reset state
+    onReset();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white">
+      <DialogContent className="sm:max-w-2xl bg-white">
         <DialogHeader>
-          <DialogTitle className="flex justify-between items-center">
-            More Filters
-          </DialogTitle>
+          <DialogTitle className="text-2xl font-bold">More Filters</DialogTitle>
           <DialogDescription>
             Refine your job search to find the perfect fit.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
-          <div>
-            <h4 className="font-semibold mb-3">Employment Type</h4>
+
+        {/* The main content area for filters */}
+        <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
+          {/* NEW: Using a 2-column grid for better layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            {/* Employment Type Section */}
             <div className="space-y-3">
-              {/* FIX: Filter for strings to prevent errors from null or non-string values in the array */}
-              {employmentTypes
-                .filter((type) => typeof type === 'string')
-                .map((type) => (
-                  <div key={type} className="flex items-center space-x-3">
-                    <Checkbox
-                      id={`type-${type}`}
-                      checked={filters.employmentType?.includes(type)}
-                      onCheckedChange={(checked) =>
-                        handleCheckboxChange('employmentType', type, !!checked)
+              <h4 className="font-semibold text-gray-800">Employment Type</h4>
+              <div className="flex flex-wrap gap-2">
+                {employmentTypes
+                  .filter((type) => typeof type === 'string')
+                  .map((type) => (
+                    <FilterTag
+                      key={type}
+                      label={type.toLowerCase().replace(/_/g, ' ')}
+                      isSelected={localFilters.employmentType?.includes(type)}
+                      onClick={() =>
+                        handleSelectionChange('employmentType', type)
                       }
                     />
-                    {/* FIX: Re-enabled the label */}
-                    <Label
-                      htmlFor={`type-${type}`}
-                      className="font-normal capitalize cursor-pointer"
-                    >
-                      {type.toLowerCase().replace(/_/g, ' ')}
-                    </Label>
-                  </div>
-                ))}
+                  ))}
+              </div>
             </div>
-          </div>
-          <div className="border-t pt-6">
-            <h4 className="font-semibold mb-3">Experience Level</h4>
+
+            {/* Experience Level Section */}
             <div className="space-y-3">
-              {/* FIX: Filter for strings to prevent errors from null or non-string values in the array */}
-              {experienceLevels
-                .filter((level) => typeof level === 'string')
-                .map((level) => (
-                  <div key={level} className="flex items-center space-x-3">
-                    <Checkbox
-                      id={`exp-${level}`}
-                      checked={filters.experience?.includes(level)}
-                      onCheckedChange={(checked) =>
-                        handleCheckboxChange('experience', level, !!checked)
-                      }
+              <h4 className="font-semibold text-gray-800">Experience Level</h4>
+              <div className="flex flex-wrap gap-2">
+                {experienceLevels
+                  .filter((level) => typeof level === 'string')
+                  .map((level) => (
+                    <FilterTag
+                      key={level}
+                      label={simplifyExperienceLabel(level)}
+                      isSelected={localFilters.experience?.includes(level)}
+                      onClick={() => handleSelectionChange('experience', level)}
                     />
-                    <Label
-                      htmlFor={`exp-${level}`}
-                      className="font-normal capitalize cursor-pointer"
-                    >
-                      {level.toLowerCase().replace(/_/g, ' ')}
-                    </Label>
-                  </div>
-                ))}
+                  ))}
+              </div>
             </div>
-          </div>
-          <div className="border-t pt-6">
-            <h4 className="font-semibold mb-3">Date Posted</h4>
-            <div className="space-y-3">
-              {datePostedOptions.map((option) => (
-                <div key={option.id} className="flex items-center space-x-3">
-                  <Checkbox
-                    id={`date-${option.id}`}
-                    checked={filters.datePosted === option.id}
-                    onCheckedChange={(checked) =>
-                      handleDatePostedChange(checked ? option.id : '')
-                    }
-                  />
-                  <Label
-                    htmlFor={`date-${option.id}`}
-                    className="font-normal cursor-pointer"
-                  >
-                    {option.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
+
+            {/* You can add more filter sections here and they will flow into the grid */}
+            {/* e.g., Date Posted Section */}
           </div>
         </div>
+
         <DialogFooter className="pt-4 border-t">
-          <Button variant="ghost" onClick={onReset}>
-            Reset
+          <Button variant="ghost" onClick={handleReset}>
+            Reset Filters
           </Button>
           <Button
-            onClick={onClose}
+            onClick={handleApply}
             className="bg-gradient-to-r from-purple-500 to-blue-500 text-white"
           >
-            Done
+            Apply Filters
           </Button>
         </DialogFooter>
       </DialogContent>

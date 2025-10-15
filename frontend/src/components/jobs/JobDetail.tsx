@@ -39,6 +39,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [scoreError, setScoreError] = useState<string | null>(null);
   const router = useRouter();
 
+  console.log(job);
+
   // ✅ LOGIC: Combined useEffects for cleaner state management when the job changes
   useEffect(() => {
     if (!job?._id) return;
@@ -198,7 +200,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </Link>
               </Button> */}
               {job.applyMethod.url && (
-
                 <Link
                   href={`${job.applyMethod.url}`}
                   className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"

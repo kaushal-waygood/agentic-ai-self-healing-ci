@@ -112,7 +112,7 @@ export default function JobsPage() {
 
               {jobs.map((job: any) => (
                 <JobCard
-                  key={job._id}
+                  key={job._id || job.jobId}
                   job={job}
                   isActive={selectedJob?._id === job._id}
                   onClick={() => handleCardClick(job.slug)}

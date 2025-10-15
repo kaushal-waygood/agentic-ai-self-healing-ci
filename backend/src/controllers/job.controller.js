@@ -706,11 +706,13 @@ export const getSingleJobDetail = async (req, res) => {
   }
 };
 
+// Helper function to escape special characters for regex
 const escapeRegex = (text) => {
   if (!text) return '';
   return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 };
 
+// Transformer for RapidAPI job data
 const transformRapidApiJob = (apiJob) => {
   const qualifications = apiJob.job_highlights?.Qualifications || [];
   const responsibilities = apiJob.job_highlights?.Responsibilities || [];
@@ -720,12 +722,8 @@ const transformRapidApiJob = (apiJob) => {
     origin: 'EXTERNAL',
     title: apiJob.job_title,
     description: apiJob.job_description,
-
-    // --- ADDED MAPPINGS ---
     qualifications: qualifications,
     responsibilities: responsibilities,
-    // ----------------------
-
     company: apiJob.employer_name,
     country: apiJob.job_country,
     location: {
@@ -733,7 +731,6 @@ const transformRapidApiJob = (apiJob) => {
       lat: apiJob.job_latitude,
       lng: apiJob.job_longitude,
     },
-    // Manually generating the slug is correct for bulk operations
     slug:
       (apiJob.job_title || 'job').toLowerCase().replace(/\s/g, '-') +
       `-${apiJob.job_id.slice(0, 4)}`,
@@ -742,19 +739,35 @@ const transformRapidApiJob = (apiJob) => {
       url: apiJob.job_apply_link,
     },
     isActive: true,
-    jobTypes: apiJob.job_employment_type ? [apiJob.job_employment_type] : [],
-    experience: [], // You can also try to parse experience from the description if needed
+    // --- FIX 2: Correctly map to the 'employmentType' field used in your search filter ---
+    employmentType: apiJob.job_employment_type
+      ? [apiJob.job_employment_type]
+      : [],
+    // ------------------------------------------------------------------------------------
+    experience: [],
+    jobTypes: apiJob.job_employment_types,
   };
 };
 
+// Main controller for searching jobs
 export const searchJobs = async (req, res) => {
-  const { q, page = 1, limit = 10, country, city } = req.query;
+  const {
+    q,
+    page = 1,
+    limit = 10,
+    country,
+    city,
+    employmentType,
+    experience,
+  } = req.query;
+
   const pageNum = parseInt(page, 10);
   const limitNum = parseInt(limit, 10);
   const skip = (pageNum - 1) * limitNum;
 
   try {
     const searchCriteria = {};
+
     if (q) {
       const searchRegex = new RegExp(escapeRegex(q), 'i');
       searchCriteria.$or = [
@@ -764,9 +777,24 @@ export const searchJobs = async (req, res) => {
     }
     if (country) searchCriteria.country = country;
     if (city) searchCriteria['location.city'] = city;
+    if (employmentType) {
+      searchCriteria.employmentType = { $in: employmentType.split(',') };
+    }
+    if (experience) {
+      searchCriteria.experience = { $in: experience.split(',') };
+    }
 
     let cacheKey = 'jobs:';
-    const paramsForCache = { q, country, city, page: pageNum, limit: limitNum };
+    const paramsForCache = {
+      q,
+      country,
+      city,
+      page: pageNum,
+      limit: limitNum,
+      employmentType,
+      experience,
+    };
+
     Object.keys(paramsForCache)
       .sort()
       .forEach((key) => {
@@ -785,7 +813,20 @@ export const searchJobs = async (req, res) => {
       if (jobs.length < 5 && q && pageNum === 1) {
         console.log('Local results low, fetching from RapidAPI...');
         try {
-          const apiParams = { query: q, page: 1, num_pages: 1 };
+          // --- FIX 1: Build a more specific query for the external API ---
+          let apiQuery = q;
+          if (employmentType) apiQuery += `, ${employmentType}`;
+          if (city) apiQuery += ` in ${city}`;
+          if (country) apiQuery += `, ${country}`;
+
+          const apiParams = {
+            query: apiQuery,
+            page: 1,
+            num_pages: 1,
+          };
+          console.log('Fetching from RapidAPI with params:', apiParams);
+          // -----------------------------------------------------------------
+
           const response = await axios.get(config.rapidJobApi, {
             params: apiParams,
             headers: {
@@ -795,6 +836,8 @@ export const searchJobs = async (req, res) => {
           });
 
           const externalJobsRaw = response.data.data || [];
+
+          console.log('JOBS FROM RAPID API', externalJobsRaw);
 
           if (externalJobsRaw.length > 0) {
             const externalJobsFormatted =

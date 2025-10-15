@@ -64,7 +64,6 @@ const authSlice = createSlice({
     getProfileRequest: (state) => {
       state.loading = true;
       state.error = null;
-      console.log(state);
     },
     getProfileSuccess: (state, action: PayloadAction<User>) => {
       state.loading = false;
