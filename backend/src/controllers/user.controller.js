@@ -1112,27 +1112,25 @@ export const handleGoogleCallback = async (req, res) => {
   }
 };
 
-// Add this new controller function
-export const getMe = async (req, res) => {
-  const { id = '', _id = '' } = req.user;
+export const getMe = async (req, res, next) => {
+  // Use a single variable for the ID
+  const userId = req.user?.id || req.user?._id;
 
-  if (!_id || !id) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-
-  if (id) {
-    try {
-      const user = await User.findById(id).select('-password');
-      res.status(200).json(user);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+  if (!userId) {
+    return res
+      .status(401)
+      .json({ message: 'Authentication error: User ID not found.' });
   }
 
   try {
-    const user = await User.findById(_id).select('-password');
-    res.status(200).json(user);
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    // Send the response and return to stop execution
+    return res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    // Pass the error to your global error handler
+    next(error);
   }
 };
