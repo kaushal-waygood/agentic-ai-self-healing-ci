@@ -535,6 +535,103 @@ export const getAllJobs = async (req, res) => {
   }
 };
 
+const STALE_THRESHOLD_HOURS = 6;
+
+export const streamAllJobs = async (req, res) => {
+  try {
+    const { query, country, city, datePosted, employmentType, experience } =
+      req.query;
+
+    console.log('SSE connection established');
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    // --- 1. NEW: Conditionally trigger the background fetch ---
+    if (query) {
+      // Check if we have any jobs for this specific query term
+      const jobCount = await Job.countDocuments({ queries: query });
+      let shouldFetch = false;
+
+      if (jobCount === 0) {
+        // Condition 1: No data exists for this query, so we must fetch.
+        shouldFetch = true;
+        console.log(`No data found for query "${query}". Triggering fetch.`);
+      } else {
+        // Condition 2: Data exists, check if it's stale.
+        const latestJob = await Job.findOne({ queries: query }).sort({
+          createdAt: -1,
+        });
+        const thresholdDate = new Date();
+        thresholdDate.setHours(
+          thresholdDate.getHours() - STALE_THRESHOLD_HOURS,
+        );
+
+        if (latestJob && latestJob.createdAt < thresholdDate) {
+          shouldFetch = true;
+          console.log(`Data for query "${query}" is stale. Triggering fetch.`);
+        } else {
+          console.log(
+            `Fresh data for query "${query}" already exists. Skipping fetch.`,
+          );
+        }
+      }
+
+      if (shouldFetch) {
+        // Don't await. Let this run in the background.
+        fetchAndSaveJobsService(query).catch((err) => {
+          console.error(`Background fetch for "${query}" failed:`, err);
+        });
+      }
+    }
+
+    // --- 2. Build the database filter (No changes here) ---
+    const filter = {};
+    if (query) {
+      filter.$or = [
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } },
+        { queries: query }, // Also match against the query array
+      ];
+    }
+    // ... rest of the filter logic remains the same
+    if (country) filter.country = { $regex: country, $options: 'i' };
+    if (city) filter['location.city'] = { $regex: city, $options: 'i' };
+    if (datePosted) {
+      /* ... date logic ... */
+    }
+    if (employmentType) filter.jobTypes = { $in: employmentType.split(',') };
+    if (experience) filter.experience = { $in: experience.split(',') };
+
+    // --- 3. Stream existing results from the database (No changes here) ---
+    const cursor = Job.find(filter).sort({ createdAt: -1 }).cursor();
+
+    for await (const job of cursor) {
+      res.write(`event: new-job\ndata: ${JSON.stringify(job)}\n\n`);
+    }
+
+    // --- 4. Signal the end of the initial stream (No changes here) ---
+    res.write(
+      'event: end-stream\ndata: {"message": "Initial stream complete"}\n\n',
+    );
+    console.log('Finished streaming existing jobs.');
+
+    req.on('close', () => {
+      console.log('Client disconnected from stream.');
+      cursor.close();
+      res.end();
+    });
+  } catch (error) {
+    console.error('Error in streamAllJobs controller:', error);
+    res.write(
+      `event: error\ndata: {"message": "An internal error occurred"}\n\n`,
+    );
+    res.end();
+  }
+};
+
 export const getMannualyJobs = async (req, res) => {
   try {
     const cacheKey = 'jobs:manual';
@@ -604,6 +701,155 @@ export const getSingleJobDetail = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+const escapeRegex = (text) => {
+  if (!text) return '';
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};
+
+const transformRapidApiJob = (apiJob) => {
+  const qualifications = apiJob.job_highlights?.Qualifications || [];
+  const responsibilities = apiJob.job_highlights?.Responsibilities || [];
+
+  return {
+    jobId: apiJob.job_id,
+    origin: 'EXTERNAL',
+    title: apiJob.job_title,
+    description: apiJob.job_description,
+
+    // --- ADDED MAPPINGS ---
+    qualifications: qualifications,
+    responsibilities: responsibilities,
+    // ----------------------
+
+    company: apiJob.employer_name,
+    country: apiJob.job_country,
+    location: {
+      city: apiJob.job_city,
+      lat: apiJob.job_latitude,
+      lng: apiJob.job_longitude,
+    },
+    // Manually generating the slug is correct for bulk operations
+    slug:
+      (apiJob.job_title || 'job').toLowerCase().replace(/\s/g, '-') +
+      `-${apiJob.job_id.slice(0, 4)}`,
+    applyMethod: {
+      method: 'URL',
+      url: apiJob.job_apply_link,
+    },
+    isActive: true,
+    jobTypes: apiJob.job_employment_type ? [apiJob.job_employment_type] : [],
+    experience: [], // You can also try to parse experience from the description if needed
+  };
+};
+
+export const searchJobs = async (req, res) => {
+  const { q, page = 1, limit = 10, country, city } = req.query;
+  const pageNum = parseInt(page, 10);
+  const limitNum = parseInt(limit, 10);
+  const skip = (pageNum - 1) * limitNum;
+
+  try {
+    const searchCriteria = {};
+    if (q) {
+      const searchRegex = new RegExp(escapeRegex(q), 'i');
+      searchCriteria.$or = [
+        { title: searchRegex },
+        { description: searchRegex },
+      ];
+    }
+    if (country) searchCriteria.country = country;
+    if (city) searchCriteria['location.city'] = city;
+
+    let cacheKey = 'jobs:';
+    const paramsForCache = { q, country, city, page: pageNum, limit: limitNum };
+    Object.keys(paramsForCache)
+      .sort()
+      .forEach((key) => {
+        if (paramsForCache[key]) {
+          cacheKey += `${key}:${paramsForCache[key]}:`;
+        }
+      });
+
+    const result = await redisClient.withCache(cacheKey, 3600, async () => {
+      const totalJobs = await Job.countDocuments(searchCriteria);
+      let jobs = await Job.find(searchCriteria)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum);
+
+      if (jobs.length < 5 && q && pageNum === 1) {
+        console.log('Local results low, fetching from RapidAPI...');
+        try {
+          const apiParams = { query: q, page: 1, num_pages: 1 };
+          const response = await axios.get(config.rapidJobApi, {
+            params: apiParams,
+            headers: {
+              'X-RapidAPI-Key': config.rapidApiKey,
+              'X-RapidAPI-Host': config.rapidApiHost,
+            },
+          });
+
+          const externalJobsRaw = response.data.data || [];
+
+          if (externalJobsRaw.length > 0) {
+            const externalJobsFormatted =
+              externalJobsRaw.map(transformRapidApiJob);
+
+            const bulkOps = externalJobsFormatted.map((job) => ({
+              updateOne: {
+                filter: { jobId: job.jobId },
+                update: { $set: job },
+                upsert: true,
+              },
+            }));
+
+            Job.bulkWrite(bulkOps)
+              .then((writeResult) => {
+                if (
+                  writeResult.upsertedCount > 0 ||
+                  writeResult.modifiedCount > 0
+                ) {
+                  console.log(
+                    `Background save complete: ${writeResult.upsertedCount} new, ${writeResult.modifiedCount} updated.`,
+                  );
+                }
+              })
+              .catch((err) => console.error('Background DB save failed:', err));
+
+            const existingExternalIds = new Set(jobs.map((j) => j.jobId));
+            const uniqueExternalJobs = externalJobsFormatted.filter(
+              (j) => !existingExternalIds.has(j.jobId),
+            );
+            jobs = [...jobs, ...uniqueExternalJobs];
+          }
+        } catch (apiError) {
+          console.error('RapidAPI fetch failed:', apiError.message);
+        }
+      }
+      return { jobs, totalJobs };
+    });
+
+    const { jobs, totalJobs } = result;
+    const totalPages = Math.ceil(totalJobs / limitNum);
+
+    res.status(200).json({
+      jobs,
+      pagination: {
+        totalJobs,
+        totalPages,
+        currentPage: pageNum,
+        hasNextPage: pageNum < totalPages,
+      },
+    });
+  } catch (error) {
+    console.error('Error in searchJobs controller:', error);
+    res.status(500).json({
+      message: 'Server Error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }

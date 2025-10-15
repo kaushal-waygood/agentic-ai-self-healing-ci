@@ -10,7 +10,7 @@ import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import apiInstance from '@/services/api';
 
-const NEXT_PUBLIC_API_URL = 'https://api.dev.zobsai.com';
+import { API_BASE_URL } from '@/services/api';
 
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +19,7 @@ const GoogleLoginButton = () => {
 
   const handleLogin = () => {
     setIsLoading(true);
-    window.location.href = `${NEXT_PUBLIC_API_URL}/api/v1/user/auth/google/${user._id}`;
+    window.location.href = `${API_BASE_URL}/api/v1/user/auth/google/${user._id}`;
 
     setTimeout(() => setIsLoading(false), 5000);
   };
@@ -34,13 +34,11 @@ const GoogleLoginButton = () => {
 export const AccountSetting = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log('user', user);
 
   const [statusMessage, setStatusMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Handle OAuth callback parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
@@ -52,11 +50,9 @@ export const AccountSetting = () => {
       );
       setIsError(false);
 
-      // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
 
-      // Refresh user data to get the updated googleAuth status
-      dispatch(getProfileRequest()); // <--- UNCOMMENT THIS LINE
+      dispatch(getProfileRequest());
     }
 
     if (error) {
@@ -238,6 +234,7 @@ export const AccountSetting = () => {
           </div>
 
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            {console.log(user?.googleAuth?.refreshToken)}
             {user?.googleAuth?.refreshToken
               ? 'This will send a test email to verify your Gmail permissions are working correctly.'
               : 'Connect your Google account to enable sending emails through our platform using your Gmail account.'}

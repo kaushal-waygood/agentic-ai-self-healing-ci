@@ -4,8 +4,9 @@ import {
   postJobMannalByOrgAdmin,
   getAllJobsByOrgAdmin,
   updateJobStatus,
+  searchJobs,
 } from '@/services/api/job';
-import { call, put, takeLatest } from 'redux-saga/effects';
+import { call, put, take, takeLatest } from 'redux-saga/effects';
 import {
   getAllJobsRequest,
   getAllJobsSuccess,
@@ -25,10 +26,15 @@ import {
   getJobPreferenceRequest,
   getJobPreferenceSuccess,
   getJobPreferenceFailure,
+  searchJobRequest,
+  searchJobSuccess,
+  searchJobFailure,
 } from '../reducers/jobReducer';
 import { AxiosResponse } from 'axios';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { recommendProfileJob } from '@/services/api/student';
+import { END, eventChannel, SagaIterator } from 'redux-saga';
+import { API_BASE_URL } from '@/services/api';
 
 function* getAllJobsSaga(
   // ADD: The 'append' flag to the action type
@@ -131,7 +137,60 @@ function* preferedJobs() {
   }
 }
 
+// CORRECTED: This saga should look very similar to getAllJobsSaga
+function* searchJobsSaga(
+  action: PayloadAction<{
+    page: number;
+    append?: boolean;
+    query?: string;
+    country?: string;
+    city?: string;
+    datePosted?: string;
+    employmentType?: string[];
+    experience?: string[];
+  }>,
+) {
+  try {
+    const {
+      append,
+      page,
+      query,
+      country,
+      city,
+      datePosted,
+      employmentType,
+      experience,
+    } = action.payload;
+
+    // Call the updated searchJobs service function with all params
+    const response: AxiosResponse = yield call(searchJobs, {
+      page,
+      query,
+      country,
+      city,
+      datePosted,
+      employmentType: employmentType?.join(','),
+      experience: experience?.join(','),
+    });
+
+    // Dispatch the success action with the full payload
+    yield put(
+      searchJobSuccess({
+        jobs: response.data.jobs,
+        pagination: response.data.pagination,
+        append: append,
+      }),
+    );
+  } catch (error: unknown | Error) {
+    console.error(error);
+    yield put(
+      searchJobFailure((error as Error).message || 'Failed to search for jobs'),
+    );
+  }
+}
+
 export function* jobsWatcher() {
+  // yield takeLatest(fetchJobsStream.type, handleJobStreamSaga);
   yield takeLatest(getAllJobsRequest.type, getAllJobsSaga);
   yield takeLatest(getJobBySlugRequest.type, getJobBySlugSaga);
   yield takeLatest(
@@ -144,4 +203,5 @@ export function* jobsWatcher() {
   );
   yield takeLatest(updateJobStatusRequest.type, updateJobStatusSaga);
   yield takeLatest(getJobPreferenceRequest.type, preferedJobs);
+  yield takeLatest(searchJobRequest.type, searchJobsSaga);
 }

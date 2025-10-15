@@ -25,8 +25,8 @@ interface SidebarContextType {
 }
 
 const SidebarContext = createContext<SidebarContextType>({
-  isOpen: true,
-  isPinned: true,
+  isOpen: false,
+  isPinned: false,
   toggle: () => {},
   setPinned: () => {},
 });
@@ -41,8 +41,8 @@ export default function DashboardLayoutClient({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(true);
-  const [isPinned, setPinned] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isPinned, setPinned] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function DashboardLayoutClient({
             )}
 
             <ScrollArea className="flex-1">
-              <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+              <main>{children}</main>
               {!isDashboardPage && <Footer />}
             </ScrollArea>
 

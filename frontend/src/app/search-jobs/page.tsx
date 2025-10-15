@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function SearchJobsPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback  ={<div>Loading...</div>}>
       <Navigation />
       <JobsPage />
     </Suspense>

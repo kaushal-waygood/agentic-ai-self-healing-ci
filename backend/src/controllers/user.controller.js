@@ -13,20 +13,6 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
-export const SCOPES = [
-  'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/gmail.send',
-];
-
-// Use environment variables instead of hardcoded values
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.BACKEND_URL}/api/v1/user/oauth2callback`,
-);
-
-const originUrl = "https://www.zobsai.com";
-
 export const firebaseAuth = async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -671,6 +657,40 @@ const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
   return pdfBuffer;
 };
 
+export const SCOPES = [
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/gmail.send',
+];
+
+const BACKEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://api.zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://api.dev.zobsai.com'
+    : 'http://127.0.0.1:8080';
+
+const FRONTEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://www.zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://dev.zobsai.com'
+    : 'http://127.0.0.1:3000';
+
+console.log('FRONTEND_API_BASE_URL from controller', FRONTEND_API_BASE_URL);
+
+// Use environment variables instead of hardcoded values
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${BACKEND_API_BASE_URL}/api/v1/user/oauth2callback`,
+);
+
+const originUrl = FRONTEND_API_BASE_URL;
+console.log('originUrl', originUrl);
+
+console.log('BACKEND_API_BASE_URL', BACKEND_API_BASE_URL);
+console.log('FRONTEND_API_BASE_URL', FRONTEND_API_BASE_URL);
+
 export const sendEmails = async (req, res) => {
   const {
     subject,
@@ -850,6 +870,11 @@ export const oAuth2Callback = async (req, res) => {
     };
     await user.save();
 
+    console.log(
+      'Google OAuth callback process completed successfully.',
+      originUrl,
+    );
+
     res.redirect(`${originUrl}/dashboard/settings?success=google_connected`);
   } catch (err) {
     console.error(
@@ -888,17 +913,17 @@ export const disconnectGoogle = async (req, res) => {
     // 1. Find the user in your database
     const user = await User.findById(req.user._id);
 
+    console.log(user);
+
     // 2. Check if they have a refresh token to revoke
     const refreshToken = user?.googleAuth?.refreshToken;
+    console.log(refreshToken);
     if (!refreshToken) {
       return res.status(400).json({
         message: 'Google account is not connected or already disconnected.',
       });
     }
 
-    // 3. Tell Google to revoke the token
-    // We wrap this in a try/catch because it might fail if the user already
-    // revoked it from their Google account, but we still want to clean up our DB.
     try {
       await oauth2Client.revokeToken(refreshToken);
     } catch (revokeError) {
@@ -909,7 +934,7 @@ export const disconnectGoogle = async (req, res) => {
     }
 
     // 4. Remove the googleAuth details from the user's record
-    user.googleAuth = undefined; // Or user.googleAuth = null;
+    user.googleAuth = undefined;
     await user.save();
 
     res.status(200).json({
@@ -996,16 +1021,13 @@ export const testSendEmail = async (req, res) => {
   }
 };
 
-const SERVER_ROOT_URI = process.env.BACKEND_URL;
-const UI_ROOT_URI = process.env.FRONTEND_URL;
-
 // Define the single, correct redirect URI for this flow
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
 
 const oauth2ClientRedirect = new google.auth.OAuth2(
   '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
   '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',
-  `${SERVER_ROOT_URI}${redirectURI}`, // Constructs the full, correct callback URL
+  `${BACKEND_API_BASE_URL}${redirectURI}`, // Constructs the full, correct callback URL
 );
 
 export const redirectToGoogle = async (req, res) => {
@@ -1023,7 +1045,7 @@ export const redirectToGoogle = async (req, res) => {
     console.error('Error generating Google auth URL:', error);
     res
       .status(500)
-      .redirect(`${UI_ROOT_URI}/login?error=google_redirect_failed`);
+      .redirect(`${FRONTEND_API_BASE_URL}/login?error=google_redirect_failed`);
   }
 };
 
@@ -1033,7 +1055,7 @@ export const handleGoogleCallback = async (req, res) => {
   if (!code) {
     return res
       .status(400)
-      .redirect(`${UI_ROOT_URI}/login?error=missing_auth_code`);
+      .redirect(`${FRONTEND_API_BASE_URL}/login?error=missing_auth_code`);
   }
 
   try {
@@ -1051,15 +1073,11 @@ export const handleGoogleCallback = async (req, res) => {
 
     if (!user) {
       user = new User({
-        // FIX 1: Map Google's 'name' to your schema's 'fullName'
         fullName: data.name,
         email: data.email,
-        googleId: data.id, // Assuming you have a googleId field
+        googleId: data.id,
         avatar: data.picture,
-
-        // FIX 2: Explicitly set the authMethod to prevent password requirement
         authMethod: 'google',
-        // The user is considered verified if they signed up via Google
         isEmailVerified: true,
       });
       await user.save();
@@ -1080,37 +1098,39 @@ export const handleGoogleCallback = async (req, res) => {
       sameSite: 'none',
     });
 
+    console.log('User signed in:', user);
+
     // Redirect to the dedicated frontend callback page with the token
     res.redirect(
-      `${UI_ROOT_URI}/auth/google/callback?token=${token}&state=${user}`,
+      `${FRONTEND_API_BASE_URL}/auth/google/callback?token=${token}&state=${user}`,
     );
   } catch (error) {
     console.error('Error handling Google callback:', error);
-    res.status(500).redirect(`${UI_ROOT_URI}/login?error=auth_failed`);
+    res
+      .status(500)
+      .redirect(`${FRONTEND_API_BASE_URL}/login?error=auth_failed`);
   }
 };
 
-// Add this new controller function
-export const getMe = async (req, res) => {
-  const { id = '', _id = '' } = req.user;
+export const getMe = async (req, res, next) => {
+  // Use a single variable for the ID
+  const userId = req.user?.id || req.user?._id;
 
-  if (!_id || !id) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-
-  if (id) {
-    try {
-      const user = await User.findById(id).select('-password');
-      res.status(200).json(user);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+  if (!userId) {
+    return res
+      .status(401)
+      .json({ message: 'Authentication error: User ID not found.' });
   }
 
   try {
-    const user = await User.findById(_id).select('-password');
-    res.status(200).json(user);
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    // Send the response and return to stop execution
+    return res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    // Pass the error to your global error handler
+    next(error);
   }
 };

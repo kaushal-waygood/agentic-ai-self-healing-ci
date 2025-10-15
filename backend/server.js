@@ -1,16 +1,16 @@
-// server.js (AFTER - RECOMMENDED)
-
 import cluster from 'cluster';
 import os from 'os';
 import app from './src/app.js';
 import dotenv from 'dotenv';
 import connectDb from './src/config/db.js';
 import { config } from './src/config/config.js';
+import { startCronJobs } from './src/config/cron-config.js';
 
-// ✅ Load environment variables ONCE. All forked workers will inherit them.
 dotenv.config();
+console.log("Environment Mode: ", process.env.NODE_ENV)
 
 const numCPUs = os.cpus().length;
+console.log('Environment Mode', process.env.NODE_ENV);
 
 if (cluster.isPrimary) {
   console.log(
@@ -18,7 +18,6 @@ if (cluster.isPrimary) {
   );
   console.log(`Forking server for ${numCPUs} CPUs`);
 
-  // Fork workers
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
@@ -29,6 +28,9 @@ if (cluster.isPrimary) {
   });
 } else {
   connectDb();
+
+  // Start cron jobsbu
+  // startCronJobs();
 
   app.listen(config.port, () => {
     console.log(

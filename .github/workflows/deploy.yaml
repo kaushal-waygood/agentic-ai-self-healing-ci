@@ -21,7 +21,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # ensures all files and history are available
+          fetch-depth: 0 # ensures all files and history are available
 
       # -------------------------------
       # Set Repository Owner
@@ -62,7 +62,6 @@ jobs:
           echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=<prod-client-id>" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<prod-key>" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_NODE_ENV=production" >> $GITHUB_ENV
-
       # -------------------------------
       # Build & Push Frontend Image
       # -------------------------------
