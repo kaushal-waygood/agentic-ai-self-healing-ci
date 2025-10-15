@@ -204,7 +204,6 @@ jobDiscoveryQueue.process(async (job) => {
       console.log(`Student ${studentId} not found`);
       return { skipped: true, reason: 'Student not found' };
     }
-
     if (!student.autopilotAgent || !Array.isArray(student.autopilotAgent)) {
       console.log(`Student ${studentId} has no autopilotAgent array defined.`);
       return { skipped: true, reason: 'Student has no autopilot agents' };
