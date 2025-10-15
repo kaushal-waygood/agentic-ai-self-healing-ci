@@ -7,6 +7,7 @@ import { config } from './src/config/config.js';
 import { startCronJobs } from './src/config/cron-config.js';
 
 dotenv.config();
+console.log("Environment Mode: ", process.env.NODE_ENV)
 
 const numCPUs = os.cpus().length;
 console.log('Environment Mode', process.env.NODE_ENV);
