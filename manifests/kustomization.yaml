@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - zobsai-backend-deployment.yaml
+  - zobsai-backend-configmap.yaml
+  - zobsai-backend-secrets.yaml
+  - zobsai-frontend-deployment.yaml
+  - zobsai-frontend-configs.yaml
+  - zobsai-frontend-secrets.yaml
+  - zobsai-redis.yaml
+  # optionally: add ingress if you have one
+  # - zobsai-ingress.yaml
+
+namespace: zobsai
+# refreshed overlay: 2025-10-10T12:45:00Z
