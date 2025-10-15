@@ -913,17 +913,17 @@ export const disconnectGoogle = async (req, res) => {
     // 1. Find the user in your database
     const user = await User.findById(req.user._id);
 
+    console.log(user);
+
     // 2. Check if they have a refresh token to revoke
     const refreshToken = user?.googleAuth?.refreshToken;
+    console.log(refreshToken);
     if (!refreshToken) {
       return res.status(400).json({
         message: 'Google account is not connected or already disconnected.',
       });
     }
 
-    // 3. Tell Google to revoke the token
-    // We wrap this in a try/catch because it might fail if the user already
-    // revoked it from their Google account, but we still want to clean up our DB.
     try {
       await oauth2Client.revokeToken(refreshToken);
     } catch (revokeError) {
@@ -934,7 +934,7 @@ export const disconnectGoogle = async (req, res) => {
     }
 
     // 4. Remove the googleAuth details from the user's record
-    user.googleAuth = undefined; // Or user.googleAuth = null;
+    user.googleAuth = undefined;
     await user.save();
 
     res.status(200).json({
