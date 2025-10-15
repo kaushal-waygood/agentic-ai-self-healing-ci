@@ -14,6 +14,7 @@ import {
   toggleJobStatus,
   getJobFromJobId,
   streamAllJobs,
+  searchJobs,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -31,6 +32,8 @@ router.get('/find', getJobDetailBySlug);
 router.get('/find/:jobId', getSingleJobDetail);
 
 router.get('/stream', streamAllJobs);
+
+router.get('/search', searchJobs);
 
 router.get('/', getAllJobs);
 router.get('/hosted', getMannualyJobs);

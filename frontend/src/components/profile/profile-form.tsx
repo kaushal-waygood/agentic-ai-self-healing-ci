@@ -201,6 +201,45 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         setHandleName={setHandleName}
         setHandleEmail={setHandleEmail}
         togglePhoneEdit={togglePhoneEdit}
+        // creer details
+        fileInputRef={fileInputRef}
+        file={file}
+        isDragging={isDragging}
+        isUploading={isUploading}
+        isJobPrefEditable={isJobPrefEditable}
+        careerDetailsForm={careerDetailsForm}
+        expandedIndex={expandedIndex}
+        defaultValues={defaultValues}
+        handleFileChange={handleFileChange}
+        handleButtonClick={handleButtonClick}
+        handleDragEnter={handleDragEnter}
+        handleDragLeave={handleDragLeave}
+        handleDragOver={handleDragOver}
+        handleDrop={handleDrop}
+        handleRemoveFile={handleRemoveFile}
+        handleUpload={handleUpload}
+        handleCareerDetailsSubmit={handleCareerDetailsSubmit}
+        setIsJobPrefEditable={setIsJobPrefEditable}
+        toggleExpand={toggleExpand}
+        setAddEdu={setAddEdu}
+        setEditEdu={setEditEdu}
+        setEditEduIndex={setEditEduIndex}
+        setDeleteEdu={setDeleteEdu}
+        setDeleteEduIndex={setDeleteEduIndex}
+        setAddProj={setAddProj}
+        setEditProj={setEditProj}
+        setEditProjIndex={setEditProjIndex}
+        setDeleteProj={setDeleteProj}
+        setDeleteProjIndex={setDeleteProjIndex}
+        setAddExp={setAddExp}
+        setEditExp={setEditExp}
+        setEditExpIndex={setEditExpIndex}
+        setDeleteExp={setDeleteExp}
+        setDeleteExpIndex={setDeleteExpIndex}
+        setAddSkill={setAddSkill}
+        setDeleteSkill={setDeleteSkill}
+        setDeleteSkillIndex={setDeleteSkillIndex}
+        handleLevelChange={handleLevelChange}
       />
 
       {/* Career Details Card */}
