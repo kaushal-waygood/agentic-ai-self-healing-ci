@@ -63,7 +63,7 @@ export const useJobs = () => {
       const payload = { ...reduxFilters, ...newFilters };
       // Dispatch a new search from page 1 with the updated filters
       dispatch(searchJobRequest({ ...payload, page: 1, append: false }));
-      setFilterModal(false);
+      // setFilterModal(false); // <--- REMOVE THIS LINE
     }, 500),
     [dispatch, reduxFilters],
   );
