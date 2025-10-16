@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zobsai
+  namespace: monitoring
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ZobsAI-com/zobsai.git
+    path: manifests
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: zobsai
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
