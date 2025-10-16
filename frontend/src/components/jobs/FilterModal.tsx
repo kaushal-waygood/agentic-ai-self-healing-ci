@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-// NOTE: We are no longer using Checkbox or Label from shadcn/ui
+import { Input } from '@/components/ui/input';
+import { X } from 'lucide-react';
 
 interface FilterModalProps {
   isOpen: boolean;
@@ -24,22 +25,25 @@ interface FilterModalProps {
   onReset: () => void;
 }
 
-// HELPER: New helper function to make long experience labels readable
-const simplifyExperienceLabel = (label: string): string => {
-  const matches = label.match(/Gs-(\d+)/g);
-  if (matches && matches.length >= 2) {
-    const targetLevel = matches[1]; // e.g., Gs-12
-    const sourceLevel = matches[0]; // e.g., Gs-11
-    return `${targetLevel.replace(
-      '-',
-      '',
-    )} Equivalent (from ${sourceLevel.replace('-', '')})`;
+const datePostedOptions = [
+  { id: 'day', label: 'Past 24 hours' },
+  { id: 'week', label: 'Past week' },
+  { id: 'month', label: 'Past month' },
+];
+
+const parseYearsFromLabel = (label: string): string | null => {
+  let match = label.match(/(\d+)\s*-\s*(\d+)\s*Years?/i);
+  if (match) return `${match[1]}-${match[2]} Years`;
+  match = label.match(/(\d+)\+\s*Year/i);
+  if (match) return `${match[1]}+ Years`;
+  match = label.match(/(\d+)\s*Year/i);
+  if (match) {
+    const years = parseInt(match[1], 10);
+    return `${years} ${years > 1 ? 'Years' : 'Year'}`;
   }
-  // Fallback for any labels that don't match the expected format
-  return label.length > 30 ? label.substring(0, 27) + '...' : label;
+  return null;
 };
 
-// HELPER: A new reusable component for our interactive tags
 const FilterTag = ({
   label,
   isSelected,
@@ -63,6 +67,25 @@ const FilterTag = ({
   </button>
 );
 
+const EducationTag = ({
+  label,
+  onRemove,
+}: {
+  label: string;
+  onRemove: () => void;
+}) => (
+  <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-medium px-2.5 py-1 rounded-md">
+    <span>{label}</span>
+    <button
+      onClick={onRemove}
+      className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+      aria-label={`Remove ${label}`}
+    >
+      <X size={14} />
+    </button>
+  </div>
+);
+
 export const FilterModal = ({
   isOpen,
   onClose,
@@ -73,10 +96,29 @@ export const FilterModal = ({
   onReset,
 }: FilterModalProps) => {
   const [localFilters, setLocalFilters] = useState(filters);
+  const [educationInput, setEducationInput] = useState('');
+
+  const groupedExperienceLevels = useMemo(() => {
+    const groups = new Map<string, string[]>();
+    if (experienceLevels) {
+      experienceLevels
+        .filter((level) => typeof level === 'string')
+        .forEach((originalLevel) => {
+          const simplified = parseYearsFromLabel(originalLevel);
+          if (simplified !== null) {
+            if (!groups.has(simplified)) {
+              groups.set(simplified, []);
+            }
+            groups.get(simplified)!.push(originalLevel);
+          }
+        });
+    }
+    return groups;
+  }, [experienceLevels]);
 
   useEffect(() => {
     if (isOpen) {
-      setLocalFilters(filters);
+      setLocalFilters({ ...filters, education: filters.education || [] });
     }
   }, [isOpen, filters]);
 
@@ -85,12 +127,38 @@ export const FilterModal = ({
     value: string,
   ) => {
     const currentValues: string[] = localFilters[filterKey] || [];
-    const isSelected = currentValues.includes(value);
-    const newValues = isSelected
+    const newValues = currentValues.includes(value)
       ? currentValues.filter((item) => item !== value)
       : [...currentValues, value];
-
     setLocalFilters((prev: any) => ({ ...prev, [filterKey]: newValues }));
+  };
+
+  const handleDatePostedChange = (value: string) => {
+    setLocalFilters((prev: any) => ({
+      ...prev,
+      datePosted: prev.datePosted === value ? '' : value,
+    }));
+  };
+
+  const handleEducationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const newTag = educationInput.trim();
+      if (newTag && !localFilters.education?.includes(newTag)) {
+        setLocalFilters((prev: any) => ({
+          ...prev,
+          education: [...(prev.education || []), newTag],
+        }));
+      }
+      setEducationInput('');
+    }
+  };
+
+  const handleRemoveEducationTag = (tagToRemove: string) => {
+    setLocalFilters((prev: any) => ({
+      ...prev,
+      education: prev.education.filter((tag: string) => tag !== tagToRemove),
+    }));
   };
 
   const handleApply = () => {
@@ -99,7 +167,6 @@ export const FilterModal = ({
   };
 
   const handleReset = () => {
-    // We keep existing text query and location from the main search bar
     const resetState = {
       query: filters.query,
       country: filters.country,
@@ -107,9 +174,9 @@ export const FilterModal = ({
       datePosted: '',
       employmentType: [],
       experience: [],
+      education: [],
     };
     setLocalFilters(resetState);
-    // We call the parent onReset which will trigger handleFilterChange with the reset state
     onReset();
   };
 
@@ -123,11 +190,8 @@ export const FilterModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* The main content area for filters */}
         <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
-          {/* NEW: Using a 2-column grid for better layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            {/* Employment Type Section */}
             <div className="space-y-3">
               <h4 className="font-semibold text-gray-800">Employment Type</h4>
               <div className="flex flex-wrap gap-2">
@@ -146,25 +210,63 @@ export const FilterModal = ({
               </div>
             </div>
 
-            {/* Experience Level Section */}
             <div className="space-y-3">
               <h4 className="font-semibold text-gray-800">Experience Level</h4>
               <div className="flex flex-wrap gap-2">
-                {experienceLevels
-                  .filter((level) => typeof level === 'string')
-                  .map((level) => (
-                    <FilterTag
-                      key={level}
-                      label={simplifyExperienceLabel(level)}
-                      isSelected={localFilters.experience?.includes(level)}
-                      onClick={() => handleSelectionChange('experience', level)}
-                    />
-                  ))}
+                {Array.from(groupedExperienceLevels.keys()).map(
+                  (simplifiedLabel) => {
+                    const isSelected =
+                      localFilters.experience?.includes(simplifiedLabel);
+
+                    return (
+                      <FilterTag
+                        key={simplifiedLabel}
+                        label={simplifiedLabel}
+                        isSelected={isSelected}
+                        onClick={() =>
+                          handleSelectionChange('experience', simplifiedLabel)
+                        }
+                      />
+                    );
+                  },
+                )}
               </div>
             </div>
 
-            {/* You can add more filter sections here and they will flow into the grid */}
-            {/* e.g., Date Posted Section */}
+            <div className="space-y-3 md:col-span-2">
+              <h4 className="font-semibold text-gray-800">Education</h4>
+              <div className="flex flex-wrap items-center gap-2 w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg">
+                {localFilters.education?.map((tag: string) => (
+                  <EducationTag
+                    key={tag}
+                    label={tag}
+                    onRemove={() => handleRemoveEducationTag(tag)}
+                  />
+                ))}
+                <Input
+                  type="text"
+                  value={educationInput}
+                  onChange={(e) => setEducationInput(e.target.value)}
+                  onKeyDown={handleEducationKeyDown}
+                  placeholder="e.g., Bachelors, PhD..."
+                  className="flex-1 border-none bg-transparent focus:ring-0 focus:outline-none min-w-[120px]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3 md:col-span-2">
+              <h4 className="font-semibold text-gray-800">Date Posted</h4>
+              <div className="flex flex-wrap gap-2">
+                {datePostedOptions.map((option) => (
+                  <FilterTag
+                    key={option.id}
+                    label={option.label}
+                    isSelected={localFilters.datePosted === option.id}
+                    onClick={() => handleDatePostedChange(option.id)}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
