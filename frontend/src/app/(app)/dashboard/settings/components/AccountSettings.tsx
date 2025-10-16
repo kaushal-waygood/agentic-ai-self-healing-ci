@@ -12,8 +12,6 @@ import apiInstance from '@/services/api';
 
 import { API_BASE_URL } from '@/services/api';
 
-// const NEXT_PUBLIC_API_URL = 'http://127.0.0.1:8080';
-
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,17 +34,15 @@ const GoogleLoginButton = () => {
 export const AccountSetting = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log('user', user);
 
   const [statusMessage, setStatusMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Handle OAuth callback parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
-    const error = urlParams.get('error');
+    // ...
 
     if (success === 'google_connected') {
       setStatusMessage(
@@ -54,27 +50,18 @@ export const AccountSetting = () => {
       );
       setIsError(false);
 
-      // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
 
-      // Refresh user data to get the updated googleAuth status
-      dispatch(getProfileRequest()); // <--- UNCOMMENT THIS LINE
+      // --- THIS IS THE FIX ---
+      // Add a small delay to ensure the database has time to update
+      // before we re-fetch the profile.
+      setTimeout(() => {
+        dispatch(getProfileRequest());
+      }, 1000); // 500ms delay
+      // -----------------------
     }
 
-    if (error) {
-      let errorMessage = 'Failed to connect Google account';
-      if (error === 'user_not_found') {
-        errorMessage = 'User not found. Please try again.';
-      } else if (error === 'auth_failed') {
-        errorMessage = 'Authentication fai  led. Please try again.';
-      }
-
-      setStatusMessage(errorMessage);
-      setIsError(true);
-
-      // Clear the URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
+    // ...
   }, [dispatch]);
 
   // Handle sending test email

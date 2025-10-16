@@ -40,6 +40,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [scoreError, setScoreError] = useState<string | null>(null);
   const router = useRouter();
 
+  console.log(job);
+
   // ✅ LOGIC: Combined useEffects for cleaner state management when the job changes
   useEffect(() => {
     if (!job?._id) return;
