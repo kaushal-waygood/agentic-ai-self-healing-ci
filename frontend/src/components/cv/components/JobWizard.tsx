@@ -161,14 +161,14 @@ const JobWizard = ({
   }, []);
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-3 sm:p-3 md:p-6 lg:p-2  ">
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
-        <div className="text-center mb-8">
+        <div className="text-center m-4">
           {/* <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
             <Sparkles className="h-8 w-8 text-white" />
           </div> */}
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl  bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
             CV Generator
           </h1>
           <p className="text-gray-600 text-md max-w-2xl mx-auto">
@@ -177,41 +177,42 @@ const JobWizard = ({
           </p>
         </div>
 
-        <Card className="bg-white/80s backdrop-blur-xl border-0 shadow-2xl shadow-blue-500/10 rounded-3xl  overflow-hidden">
+        <Card className=" bg-white/80s backdrop-blur-xl border-0 shadow-2xl shadow-blue-500/10 rounded-3xl  overflow-hidden">
           {/* Animated Header */}
-          <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
+
+          <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white relative overflow-hidden p-2">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
                   <Target className="h-5 w-5 text-white" />
                 </div>
-                <CardTitle className="text-xl font-bold">
+                <CardTitle className="text-lg">
                   Step 1: Provide Job Context
                 </CardTitle>
               </div>
-              <CardDescription className="text-blue-100 text-base">
+              <CardDescription className="text-blue-100 text-sm">
                 Tell the AI about the job. This is crucial for tailoring your CV
                 to perfection.
               </CardDescription>
             </div>
           </CardHeader>
 
-          <CardContent className="p-4">
+          <CardContent className="p-2 md:p-1">
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
               className="w-full"
             >
               {/* Enhanced Tabs List */}
-              <TabsList className="grid w-full grid-cols-3 bg-gray-100 rounded-2xl p-2 mb-8 h-auto">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-100 rounded-2xl p-1 mb-1 h-auto">
                 {tabData.map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all duration-300 hover:scale-105  ${
+                      className={`flex flex-col items-center gap-2 p-1 rounded-xl transition-all duration-300 hover:scale-105  ${
                         activeTab === tab.value
                           ? `bg-gradient-to-r ${tab.gradient} text-white shadow-lg`
                           : 'hover:bg-white/80 data-[state=active]:bg-white data-[state=active]:shadow-lg'
@@ -236,12 +237,12 @@ const JobWizard = ({
               </TabsList>
 
               {/* Paste Tab */}
-              <TabsContent value="paste" className="space-y-6">
+              <TabsContent value="paste" className="space-y-3">
                 <div className="space-y-4">
                   <div className="relative group">
                     <Textarea
                       placeholder="Paste the full job description here... 
-✨ The more detailed, the better your CV optimization will be!"
+                ✨ The more detailed, the better your CV optimization will be!"
                       className="min-h-[240px] border-2 border-gray-200 rounded-2xl p-4 focus:border-blue-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gray-50/50 backdrop-blur-sm"
                       value={pastedJobDescription}
                       onChange={(e) => setPastedJobDescription(e.target.value)}
@@ -361,7 +362,7 @@ const JobWizard = ({
         </Card>
 
         {/* Footer */}
-        <div className="flex items-center justify-center gap-6 mt-8 text-gray-500 text-sm">
+        {/* <div className="flex items-center justify-center gap-6 mt-8 text-gray-500 text-sm">
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             Powered by AI
@@ -370,7 +371,7 @@ const JobWizard = ({
           <div>Secure & Private</div>
           <div>•</div>
           <div>Instant Results</div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -110,6 +110,23 @@ const PlanCard = ({
       ? `$${selectedVariant.price.effective.usd}`
       : `₹${selectedVariant.price.effective.inr}`;
 
+  const pricePerDay = () => {
+    if (plan.planType === 'Free') {
+      return 0;
+    } else if (plan.planType === 'Weekly') {
+      return currency === 'usd'
+        ? selectedVariant.price.effective.usd / 7
+        : selectedVariant.price.effective.inr / 7;
+    } else if (plan.planType === 'Monthly') {
+      return currency === 'usd'
+        ? selectedVariant.price.effective.usd / 30
+        : selectedVariant.price.effective.inr / 30;
+    } else {
+      return currency === 'usd'
+        ? selectedVariant.price.effective.usd / 365
+        : selectedVariant.price.effective.inr / 365;
+    }
+  };
   const ActionButton = ({ children }: { children: React.ReactNode }) => (
     <div
       className={`w-full py-3 px-6 rounded-lg font-semibold text-base flex items-center justify-center gap-2 transition-all duration-300 transform group-hover:scale-105 ${
@@ -140,8 +157,8 @@ const PlanCard = ({
         </div>
       )}
 
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4">
+        <div className="flex items-center justify-between ">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${colorConfig.iconBg[planColor]}`}>
               <IconComponent className="w-6 h-6" />
@@ -149,9 +166,21 @@ const PlanCard = ({
             <h3 className="text-xl font-bold text-gray-900">{plan.planType}</h3>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-black text-gray-900">{displayPrice}</p>
+            <p className="text-2xl font-black text-gray-900 mb-1">
+              <span>
+                {currency === 'usd'
+                  ? `$${pricePerDay().toFixed(2)}`
+                  : `₹${pricePerDay().toFixed(2)}`}
+              </span>
+              <span className="">/day </span>
+            </p>
+            <p className="text-md  text-gray-500 ">
+              <span>{displayPrice} </span>
+              <span className=""> total </span>
+            </p>
+
             {/* --- FIX: Safely render the actual price; fallback to period --- */}
-            {selectedVariant.price.actual ? (
+            {/* {selectedVariant.price.actual ? (
               <p className="text-md font-semibold text-gray-400 line-through">
                 {currency === 'usd'
                   ? `$${selectedVariant.price.actual.usd}`
@@ -159,7 +188,7 @@ const PlanCard = ({
               </p>
             ) : (
               <p className="text-xs text-gray-500">/{selectedVariant.period}</p>
-            )}
+            )} */}
           </div>
         </div>
 

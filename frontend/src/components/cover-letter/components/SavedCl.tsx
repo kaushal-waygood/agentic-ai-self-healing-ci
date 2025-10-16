@@ -59,24 +59,24 @@ const SavedCoverLetters = ({
 
   return (
     <div
-      className={`max-w-7xl  mx-auto transition-all duration-700 ease-out ${
+      className={`w-full max-w-7xl  mx-auto transition-all duration-700 ease-out ${
         animateIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
       <Card className="overflow-hidden border-0 shadow-2xl bg-white relative">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-blue-50 to-indigo-50 opacity-60" />
 
-        <CardHeader className="relative bg-gradient-to-r from-violet-600 via-blue-600 to-indigo-600 text-white p-6">
+        <CardHeader className="relative bg-gradient-to-r from-violet-600 via-blue-600 to-indigo-600 text-white p-3 ">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30">
                 <List className="h-6 w-6 text-white" />
               </div>
               <div>
-                <CardTitle className="font-headline text-2xl font-bold">
+                <CardTitle className="font-headline text-xl ">
                   Your Saved Letters
                 </CardTitle>
-                <CardDescription className="text-violet-100 mt-1">
+                <CardDescription className="text-violet-100">
                   Manage your cover letters. Auto-saved drafts appear here.
                 </CardDescription>
               </div>
@@ -94,7 +94,7 @@ const SavedCoverLetters = ({
           </div>
         </CardHeader>
 
-        <CardContent className="relative p-6 sm:p-8">
+        <CardContent className="relative p-2">
           {savedLettersList.length > 0 ? (
             <div className="space-y-4">
               {savedLettersList.map((savedLetter, i) => (
@@ -117,7 +117,7 @@ const SavedCoverLetters = ({
                         : '#e5e7eb',
                   }}
                 >
-                  <div className="relative p-5 sm:p-6">
+                  <div className="relative p-3 ">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="flex-1 flex items-center gap-4 min-w-0">
                         <div
@@ -130,7 +130,7 @@ const SavedCoverLetters = ({
                           <FileText className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-lg text-gray-900 truncate">
+                          <h3 className="text-lg text-gray-900 truncate">
                             {savedLetter.coverLetterTitle}
                           </h3>
                           <p className="flex items-center text-xs text-gray-500 mt-1">

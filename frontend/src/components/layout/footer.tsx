@@ -105,7 +105,7 @@ export function Footer() {
               }
               ${item.badge === 'Popular' ? 'bg-blue-500/20 text-blue-400' : ''}
               ${
-                item.badge === 'Hiring'
+                item.badge === 'Hiring Soon'
                   ? 'bg-orange-500/20 text-orange-400'
                   : ''
               }
@@ -194,7 +194,7 @@ export function Footer() {
             >
               {[
                 { icon: Mail, text: 'hello@zobsai.com', color: 'blue' },
-                { icon: MapPin, text: 'San Francisco, CA', color: 'purple' },
+                { icon: MapPin, text: 'New York, NY', color: 'purple' },
               ].map((contact, index) => (
                 <div
                   key={index}
@@ -252,7 +252,7 @@ export function Footer() {
         {/* States and Newsletter section parent div */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
           {/* Stats Section */}
-          <div
+          {/* <div
             className="grid  items-center grid-cols-3 gap-6 p-3 bg-white/5 rounded-2xl border border-white/10 shadow-lg"
             style={{
               transform: `translateY(${isVisible ? 0 : 30}px)`,
@@ -272,7 +272,7 @@ export function Footer() {
                 <div className="text-sm text-gray-400">{stat.label}</div>
               </div>
             ))}
-          </div>
+          </div> */}
 
           {/* Newsletter Section */}
           <div

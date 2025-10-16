@@ -79,10 +79,10 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
   };
 
   return (
-    <div className="flex items-center justify-center  p-4 sm:p-6">
+    <div className="flex items-center justify-center  p-2 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Progress Indicator */}
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-center mb-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
@@ -115,16 +115,16 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
 
         <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-indigo-500/10 rounded-3xl overflow-hidden">
           {/* Header */}
-          <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
+          <CardHeader className="p-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 ">
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
                   <Wand2 className="h-5 w-5 text-white" />
                 </div>
-                <CardTitle className="text-2xl font-bold">
+                <CardTitle className="text-xl ">
                   Step 3: Final Touches
                 </CardTitle>
               </div>
@@ -134,9 +134,9 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
             </div>
           </CardHeader>
 
-          <CardContent className="p-8 space-y-8">
+          <CardContent className="p-4 space-y-4">
             {/* Quick Suggestions */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-indigo-500" />
                 Quick Enhancement Options
@@ -221,7 +221,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
             </div>
 
             {/* Custom Narratives */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-indigo-500" />
                 Add a Personal Story
@@ -229,7 +229,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
               <div className="relative group">
                 <Textarea
                   placeholder="Share a specific achievement, personal connection to the company, or unique experience that makes you stand out..."
-                  className="min-h-[180px] border-2 border-gray-200 rounded-2xl p-4 focus:border-indigo-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm text-base leading-relaxed"
+                  className="min-h-[150px] border-2 border-gray-200 rounded-2xl p-4 focus:border-indigo-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm text-base leading-relaxed"
                   value={formData.personalStory}
                   onChange={(e) =>
                     updateFormData('personalStory', e.target.value)
@@ -242,8 +242,8 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
             </div>
 
             {/* AI Enhancement Preview */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
-              <div className="flex items-center gap-3 mb-3">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-2 border border-indigo-100">
+              <div className="flex items-center gap-3 ">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
                   <Rocket className="h-5 w-5 text-white" />
                 </div>
