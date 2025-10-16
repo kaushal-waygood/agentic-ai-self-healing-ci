@@ -162,16 +162,16 @@ const ContextWizard = ({
         </div>
 
         <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-indigo-500/10 rounded-3xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
+          <CardHeader className="p-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+            <div className="absolute top-0 right-0 w- h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 ">
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
                   <Wand2 className="h-5 w-5 text-white" />
                 </div>
-                <CardTitle className="text-2xl font-bold">
+                <CardTitle className="text-xl ">
                   Step 3: Final Touches
                 </CardTitle>
               </div>
@@ -182,7 +182,7 @@ const ContextWizard = ({
             </div>
           </CardHeader>
 
-          <CardContent className="p-8 space-y-8">
+          <CardContent className="p-4 space-y-4">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-indigo-500" />

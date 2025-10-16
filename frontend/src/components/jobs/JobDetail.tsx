@@ -10,7 +10,10 @@ import {
   Heart,
   ExternalLink,
   Sparkles,
-  Loader2, // ✅ LOGIC: Imported Loader for loading state
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  HeartOff, // ✅ LOGIC: Imported Loader for loading state
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -30,15 +33,20 @@ interface MatchScore {
 
 export default function JobDetail({ job }: JobDetailClientProps) {
   // ✅ LOGIC: Unified state for the match score. This is now the single source of truth.
-  const [matchScore, setMatchScore] = useState<MatchScore | null>(null);
-  const [isLoadingScore, setIsLoadingScore] = useState(false);
+  // const [matchScore, setMatchScore] = useState<MatchScore | null>(null);
+  // const [isLoadingScore, setIsLoadingScore] = useState(false);
   const { toast } = useToast();
+
+  const [matchScore, setMatchScore] = useState(null);
+  const [isLoadingScore, setIsLoadingScore] = useState(false);
+  const [progress, setProgress] = useState(0);
   // ✅ FIX: Initialized state to a boolean for predictable behavior
   const [isSaved, setIsSaved] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(true);
 
   console.log(job);
 
@@ -70,34 +78,77 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     checkJobStatus();
   }, [job]);
 
-  const handleSavedJob = async () => {
+  const handleToggleSavedJob = async () => {
     try {
-      await apiInstance.post('students/jobs/saved', { jobId: job._id });
-      setIsSaved(true);
-      toast({
-        title: 'Job Saved!',
-        description: 'You have successfully saved this job.',
-      });
+      if (isSaved) {
+        // Unsave the job
+        await apiInstance.post('/students/jobs/saved', {
+          jobId: job._id,
+        });
+        setIsSaved(false);
+        toast({
+          title: 'Job Unsaved',
+          description: 'You have removed this job from your saved list.',
+        });
+      } else {
+        // Save the job
+        await apiInstance.post('students/jobs/saved', { jobId: job._id });
+        setIsSaved(true);
+        toast({
+          title: 'Job Saved!',
+          description: 'You have successfully saved this job.',
+        });
+      }
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not save the job.',
+        description: 'Something went wrong. Please try again.',
       });
     }
   };
+
+  // const handleGetMatchScore = async () => {
+  //   // setIsModalOpen(true);
+  //   setIsLoadingScore(true);
+  //   setMatchScore(null);
+  //   setScoreError(null); // Reset error state
+
+  //   try {
+  //     const response = await apiInstance.post('/students/calculate-match', {
+  //       jobDescription: job.description,
+  //     });
+  //     setMatchScore(response.data);
+  //   } catch (error) {
+  //     console.error('Match score error:', error);
+  //     setScoreError('Could not calculate the AI match score.');
+  //   } finally {
+  //     setIsLoadingScore(false);
+  //   }
+  // };
+
   const handleGetMatchScore = async () => {
-    // setIsModalOpen(true);
     setIsLoadingScore(true);
     setMatchScore(null);
-    setScoreError(null); // Reset error state
+    setScoreError(null);
+    setProgress(0); // track loading percentage
+
+    // Simulate progress while API is running
+    const interval = setInterval(() => {
+      setProgress((prev) => (prev < 90 ? prev + 5 : prev)); // cap at 90% until API finishes
+    }, 1000);
 
     try {
       const response = await apiInstance.post('/students/calculate-match', {
         jobDescription: job.description,
       });
-      setMatchScore(response.data);
+
+      clearInterval(interval); // stop progress simulation
+      setProgress(100); // fill up to 100%
+      setMatchScore(response.data); // set actual score
     } catch (error) {
+      clearInterval(interval);
+      setProgress(0);
       console.error('Match score error:', error);
       setScoreError('Could not calculate the AI match score.');
     } finally {
@@ -154,20 +205,39 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               <span className="capitalize">{job.jobTypes[0]}</span>
             </div>
           </div>
+          {/* job saved Unsave button  */}
+
           <Button
-            onClick={handleSavedJob}
-            disabled={isSaved}
-            className={`flex items-center gap-2 w-10 h-10 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg ${
+            onClick={handleToggleSavedJob}
+            className={`flex  items-center justify-center gap-2 w-15 h-10 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105  ${
               isSaved
-                ? 'bg-white hover:bg-white text-white shadow-red-200 relative z-[999]'
-                : 'bg-red-100 hover:bg-red-200 text-red-700 shadow-red-200'
+                ? 'bg-red-100 hover:bg-red-200 text-red-700 shadow-red-200'
+                : 'bg-red-100 hover:bg-red-200 text-red-500 border border-red-300'
             }`}
           >
-            <Heart
-              className={`w-4 h-4 ${
-                isSaved ? 'fill-current text-red-500' : ''
-              }`}
-            />
+            {isSaved ? (
+              <div className="flex items-center gap-1">
+                <span> Unsave </span>
+                <HeartOff
+                  className={`w-4 h-4 transition-transform duration-200  ${
+                    isSaved
+                      ? 'scale-110 text-red-500'
+                      : 'fill-current scale-100 text-red-400'
+                  }`}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <span> Save </span>
+                <Heart
+                  className={`w-6 h-6 transition-transform duration-200 ${
+                    isSaved
+                      ? '  scale-110 text-red-500'
+                      : 'fill-current scale-100  text-red-400'
+                  }`}
+                />
+              </div>
+            )}
           </Button>
         </div>
         <div className="p-2 flex justify-between items-center">
@@ -188,7 +258,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2">
               {/* tailor & apply button  */}
-              {/* <Button
+              <Button
                 asChild
                 className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
               >
@@ -199,49 +269,83 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   <FilePlus2 className="w-4 h-4" /> Tailor & Apply
                 </Link>
-              </Button> */}
+              </Button>
               {job.applyMethod.url && (
                 <Link
                   href={`${job.applyMethod.url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center  w-full text-xs gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
                 >
                   <ExternalLink className=" w-4 h-4" /> Company Site
                 </Link>
               )}
               {/* ✅ FIX: The Calculate button is now part of the conditional logic */}
+
               {!matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
-                  className="text-xs w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white  rounded-xl  transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
+                  className="text-xs w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
                 >
-                  Calculate My Match
+                  Job Matching Score
                 </Button>
+              )}
+
+              {isLoadingScore && (
+                <div className="flex flex-row items-center gap-2">
+                  <Button className="text-xs w-full  cursor-none text-white rounded-xltext-xs bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200">
+                    <span className="animate-pulse">
+                      Calculating...{progress}%
+                    </span>
+                    <Loader2 className="w-10 h-10 animate-spin " />
+                  </Button>
+                </div>
+              )}
+
+              {matchScore && !isLoadingScore && (
+                <div className="text-center  bg-yellow-100 border border-yellow-200 rounded-lg text-sm text-black">
+                  Your Match Score: {matchScore.matchScore}/10
+                </div>
               )}
             </div>
 
             {/* ✅ FIX: This block now correctly shows loading state or results */}
-            {isLoadingScore && (
+            {/* {isLoadingScore && (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
       {matchScore && !isLoadingScore && (
-        <div className="flex flex-col gap-2 p-2 rounded-lg bg-purple-50 border border-purple-200">
-          <div className="flex items-center gap-2 font-semibold text-purple-800">
-            <Sparkles className="w-4 h-4" />
-            {/* FIX: Displays the score from the state object property */}
-            <p>Match Score: {matchScore.matchScore}/10</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600 pl-6">
-              {matchScore.recommendation}
-            </p>
-          </div>
+        <div className="flex flex-col p-2 rounded-lg bg-purple-50 border border-purple-200">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center justify-between gap-2 font-semibold text-purple-800 w-full"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Match Score: {matchScore.matchScore}/10 | AI Recommendation
+            </div>
+            {isOpen ? (
+              <ChevronUp className="w-4 h-4 text-purple-700" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-purple-700" />
+            )}
+          </button>
+
+          {/* Dropdown content */}
+          {isOpen && (
+            <div className="mt-2 pl-6">
+              <p className="text-sm text-gray-600">
+                {matchScore.recommendation}
+              </p>
+            </div>
+          )}
         </div>
       )}
+
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-3">
         <h2 className="text-lg  text-gray-900 mb-1 flex items-center gap-2">
           <div className="w-2 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full"></div>
@@ -272,7 +376,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           </ReactMarkdown>
         </div>
       </div>
-
       <MatchScoreModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -302,7 +405,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             </div>
           ),
         )}
-
       {/* AI Match Score */}
       {/* <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-xl border-2 border-purple-200 p-6">
         <div className="flex items-center gap-3 mb-4">

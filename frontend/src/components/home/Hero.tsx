@@ -1,4 +1,22 @@
 'use client';
+import { useMemo } from 'react';
+import { createAvatar } from '@dicebear/core';
+
+import {
+  adventurerNeutral,
+  avataaars,
+  avataaarsNeutral,
+  bottts,
+  botttsNeutral,
+  dylan,
+  initials,
+  lorelei,
+  loreleiNeutral,
+  micah,
+  miniavs,
+  personas,
+  thumbs,
+} from '@dicebear/collection';
 import avatar1 from '@/assets/avatar-1.jpg';
 import avatar2 from '@/assets/avatar-2.jpg';
 import { Button } from '@/components/ui/button';
@@ -23,6 +41,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { initial } from 'lodash';
 
 export const Hero = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -137,6 +156,10 @@ export const Hero = () => {
 
     return () => clearInterval(jobInterval);
   }, []);
+
+  const avatar = Array.from({ length: 5 }, (_, i) =>
+    createAvatar(avataaars, { seed: `User${i}` }).toDataUri(),
+  );
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
@@ -372,13 +395,24 @@ export const Hero = () => {
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 pt-2">
               <div className="flex items-center gap-4">
-                <div className="flex -space-x-4">
+                {/* <div className="flex -space-x-4">
                   {avatars.map((src, i) => (
                     <Image
                       key={i}
                       src={src}
                       alt={`User avatar ${i + 1}`}
                       className="w-12 h-12 rounded-full border-4 border-white shadow-lg"
+                    />
+                  ))}
+                </div> */}
+
+                <div className="flex -space-x-1">
+                  {avatar.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt={`User avatar ${i + 1}`}
+                      className="w-12 h-12 rounded-full border-2 border-white shadow-lg"
                     />
                   ))}
                 </div>

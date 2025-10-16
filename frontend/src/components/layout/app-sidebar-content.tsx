@@ -17,6 +17,9 @@ import {
   FileCheck2,
   Building2,
   Search,
+  Layers,
+  ZapIcon,
+  Activity,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -98,6 +101,16 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         adminOnly: true,
       },
       { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
+      {
+        title: 'Request New Feature',
+        href: '/dashboard/request-new-feature', // Replace with your actual form link
+        icon: Layers,
+      },
+      {
+        title: 'Onboarding Tour',
+        href: '/dashboard/onboarding-tour',
+        icon: Activity,
+      },
     ],
   };
 
