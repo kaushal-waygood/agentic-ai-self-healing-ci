@@ -9,11 +9,11 @@ const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-8 space-y-6">
       {/* Header with gradient */}
-      <header className="text-center mb-8 animate-fade-in">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
+      <header className="text-center mb-4 animate-fade-in">
+        {/* <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
           <Sparkles className="h-8 w-8 text-white" />
-        </div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
+        </div> */}
+        <h1 className="text-3xl  bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
           AI Job Agents Dashboard
         </h1>
         <p className="text-gray-600 text-lg">
@@ -23,7 +23,7 @@ const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
 
       {/* Stats Grid with hover effects */}
       {showStats && (
-        <div className="flex flex-wrap gap-4 justify-center w-full max-w-4xl mx-auto animate-slide-up">
+        <div className="flex flex-wrap gap-2 justify-center w-full max-w-4xl mx-auto animate-slide-up">
           {[
             {
               label: 'Total Agents',
@@ -53,7 +53,7 @@ const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
           ].map((stat, idx) => (
             <div
               key={idx}
-              className="bg-white w-32 text-center rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-gray-100"
+              className="bg-white w-32 text-center rounded-xl p-4 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-gray-100"
             >
               <div className="text-sm text-gray-500 mb-2">{stat.label}</div>
               <div
@@ -69,9 +69,9 @@ const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
       {/* Main Agent Panel */}
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 animate-fade-in">
         {/* Panel Header with glassmorphism effect */}
-        <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-8 text-white">
+        <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600  p-4 text-white">
           <div className="relative z-10">
-            <h2 className="text-3xl font-bold mb-2">Your AI Job Agents</h2>
+            <h2 className="text-xl ">Your AI Job Agents</h2>
             <p className="text-white/90">
               Manage and monitor your automated job application agents
             </p>
@@ -83,17 +83,17 @@ const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
         </div>
 
         {/* Panel Body */}
-        <div className="p-8">
+        <div className="p-2">
           {!hasAgents ? (
             // Empty state with animation
-            <div className="text-center py-16 animate-fade-in">
+            <div className="text-center py-1 animate-fade-in">
               <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full mb-6 animate-bounce-slow">
                 <span className="text-5xl">🤖</span>
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-3">
                 No agents configured
               </h3>
-              <p className="text-gray-600 max-w-md mx-auto mb-8">
+              <p className="text-gray-600 max-w-md mx-auto mb-3">
                 Create your first agent to start automating job applications and
                 land your dream role faster.
               </p>
@@ -184,10 +184,10 @@ const Step0_Intro = ({ nextStep, agents, onEdit, onDelete }) => {
           )}
 
           {/* Action Button */}
-          <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
+          <div className="flex justify-end pt-2 mt-2 border-t border-gray-200">
             <button
               onClick={nextStep}
-              className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden"
+              className="group relative px-4 py-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden"
             >
               <span className="relative z-10 flex items-center gap-2">
                 <span>
