@@ -183,6 +183,22 @@ const studentSchema = new Schema(
         ref: 'Job', // Creates a reference to your 'Job' model
       },
     ],
+
+    viewedJobs: [
+      {
+        _id: false, // Prevents creating a separate _id for this sub-document
+        job: {
+          type: Schema.Types.ObjectId,
+          ref: 'Job', // Reference to the Job model
+          required: true,
+        },
+        viewedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {
       autopilotEnabled: { type: Boolean, default: false },

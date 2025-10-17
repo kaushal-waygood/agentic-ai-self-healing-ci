@@ -57,7 +57,7 @@ const jobSchema = new Schema(
 
     // ...You can add any other fields you need here.
   },
-  { timestamps: true }, // Automatically adds createdAt and updatedAt
+  { timestamps: true, strict: true }, // Automatically adds createdAt and updatedAt
 );
 
 // --- Middleware for Slug Generation ---
