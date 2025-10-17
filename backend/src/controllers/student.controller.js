@@ -1457,3 +1457,54 @@ export const toggleAutopilot = async (req, res, next) => {
     next(createHttpError(500, error.message));
   }
 };
+
+export const jobViewedByStudent = async (req, res, next) => {
+  try {
+    const studentId = req.user._id;
+    const { jobId } = req.params;
+
+    const jobExists = await Job.findById(jobId).select('_id').lean();
+    if (!jobExists) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    await Student.findByIdAndUpdate(
+      studentId,
+      { $addToSet: { jobsViewed: jobId, isJobViewed: true } },
+      { new: true },
+    );
+
+    console.log(`Student ${studentId} viewed job ${jobId}`);
+
+    res.status(200).json({ success: true, message: 'Job view recorded.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const isStudentViewedJob = async (req, res, next) => {
+  try {
+    const studentId = req.user._id;
+    const { jobId } = req.params;
+
+    const jobExists = await Job.findById(jobId).select('_id').lean();
+    if (!jobExists) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
+    }
+
+    student.isJobViewed = true; // Set the flag to true
+
+    const isViewed = student.jobsViewed.includes(jobId);
+
+    res.status(200).json({ success: true, isViewed });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

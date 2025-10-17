@@ -1000,10 +1000,11 @@ export const jobViewsCount = async (req, res) => {
     }
 
     job.views++;
+    console.log(`Job ${jobId} views incremented to ${job.views}`);
     await job.save();
 
     // Invalidate cache for this job
-    await redisClient.invalidateJobCache(jobId);
+    // await redisClient.   invalidateJobCache(jobId);
 
     res.status(200).json({ message: 'Job views count updated successfully' });
   } catch (error) {

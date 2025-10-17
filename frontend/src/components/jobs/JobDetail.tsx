@@ -48,7 +48,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(true);
 
-  console.log(job);
+  // console.log(job);
 
   // ✅ LOGIC: Combined useEffects for cleaner state management when the job changes
   useEffect(() => {
@@ -251,25 +251,44 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               />
             ) : (
               <div className="w-12 h-12  rounded-lg flex items-center justify-center ">
-                <Image width={32} height={32} src="/zobsai.svg" alt="abc" />
+                <Image width={32} height={32} src="/logo.png" alt="abc" />
               </div>
             )}
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2">
               {/* tailor & apply button  */}
-              <Button
-                asChild
-                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
-              >
-                <Link
-                  href={`/dashboard/apply?slug=${encodeURIComponent(
-                    job._id,
-                  )}&step=cv`}
+
+              {job.applyMethod?.url === 'email' ? (
+                // Show "Tailor & Apply" button if email
+                <Button
+                  asChild
+                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
                 >
-                  <FilePlus2 className="w-4 h-4" /> Tailor & Apply
-                </Link>
-              </Button>
+                  <Link
+                    href={`/dashboard/apply?slug=${encodeURIComponent(
+                      job._id,
+                    )}&step=cv`}
+                  >
+                    <FilePlus2 className="w-4 h-4" /> Tailor & Apply
+                  </Link>
+                </Button>
+              ) : (
+                // Show "Tailor My Docs" button for other cases
+                <Button
+                  asChild
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-200"
+                >
+                  <Link
+                    href={`/dashboard/tailor-docs?slug=${encodeURIComponent(
+                      job._id,
+                    )}`}
+                  >
+                    <FilePlus2 className="w-4 h-4" /> Tailor My Docs
+                  </Link>
+                </Button>
+              )}
+
               {job.applyMethod.url && (
                 <Link
                   href={`${job.applyMethod.url}`}
@@ -292,7 +311,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {isLoadingScore && (
-                <div className="flex flex-row items-center gap-2">
+                <div className="flex flex-row  items-center gap-2">
                   <Button className="text-xs w-full  cursor-none text-white rounded-xltext-xs bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200">
                     <span className="animate-pulse">
                       Calculating...{progress}%
@@ -303,7 +322,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {matchScore && !isLoadingScore && (
-                <div className="text-center  bg-yellow-100 border border-yellow-200 rounded-lg text-sm text-black">
+                <div className="flex flex-row  items-center gap-2 text-center  bg-yellow-100 border border-yellow-200 rounded-lg text-sm text-black">
                   Your Match Score: {matchScore.matchScore}/10
                 </div>
               )}

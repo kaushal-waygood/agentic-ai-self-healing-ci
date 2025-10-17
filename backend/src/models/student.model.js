@@ -183,6 +183,17 @@ const studentSchema = new Schema(
         ref: 'Job', // Creates a reference to your 'Job' model
       },
     ],
+
+    jobViewed:[
+      jobsView: [{
+        {
+          type: Schema.Types.ObjectId,
+          ref: 'Job',
+          select: false, // Optional: hides this field from default queries
+        },
+      ],
+      isJobViewed: { type: Boolean, default: false },}
+    ],
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {
       autopilotEnabled: { type: Boolean, default: false },
