@@ -25,7 +25,6 @@ const app = express();
 // This tells Express that it's behind a proxy (like a load balancer or reverse proxy)
 // and to trust the X-Forwarded-For header that the proxy sends.
 // This is crucial for rate-limiting to work correctly.
-// '1' means it will trust the first hop (the immediate proxy).
 app.set('trust proxy', 1);
 
 // 1. Security Middleware
