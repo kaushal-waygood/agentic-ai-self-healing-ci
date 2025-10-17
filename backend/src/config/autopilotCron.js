@@ -60,6 +60,8 @@ const runAutopilotCron = () => {
         },
       ]);
 
+      console.log('check fist step......', studentsWithAutopilot);
+
       console.log(
         `Found ${studentsWithAutopilot.length} students with active autopilot agents.`,
       );

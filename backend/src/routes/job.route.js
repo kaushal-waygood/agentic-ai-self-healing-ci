@@ -15,6 +15,8 @@ import {
   getJobFromJobId,
   streamAllJobs,
   searchJobs,
+  jobViewsCount,
+  getAllJobsForStudent,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -25,11 +27,19 @@ import {
 const router = Router();
 
 router.get('/job/:jobId', getJobFromJobId);
+router.get('/job/views/:jobId', authMiddleware, isStudent, jobViewsCount);
 
 router.post('/mannual', authMiddleware, isOrgAdmin, postManualJob);
 router.post('/rapid', fetchAndSaveRapidJobs);
 router.get('/find', getJobDetailBySlug);
 router.get('/find/:jobId', getSingleJobDetail);
+
+router.get(
+  '/job/view/student',
+  authMiddleware,
+  isStudent,
+  getAllJobsForStudent,
+);
 
 router.get('/stream', streamAllJobs);
 

@@ -354,6 +354,7 @@ export const resendOtp = async (req, res) => {
 
 export const signInUser = async (req, res) => {
   const { email, password } = req.body;
+  console.log(req.body, 'check body come or not');
 
   try {
     // 1. Basic validation
