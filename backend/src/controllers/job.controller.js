@@ -1058,3 +1058,38 @@ export const getSingleJobApplication = async (req, res) => {
     });
   }
 };
+
+export const getAllJobsForStudent = async (req, res, next) => {
+  try {
+    const studentId = req.user._id;
+
+    // 1. Get the current student's viewed job IDs
+    const student = await Student.findById(studentId)
+      .select('viewedJobs.job')
+      .lean();
+
+    // 2. Create a Set for fast lookup (more efficient than Array.includes())
+    const viewedJobIds = new Set(
+      student.viewedJobs.map((view) => view.job.toString()),
+    );
+
+    // 3. Fetch all jobs from the database
+    // Using .lean() makes it faster and returns plain JavaScript objects
+    const jobs = await Job.find({}).lean();
+
+    // 4. Add the 'viewed' boolean to each job
+    const jobsWithViewedStatus = jobs.map((job) => ({
+      ...job, // Keep all original job properties
+      // Check if the job's ID exists in our Set of viewed IDs
+      viewed: viewedJobIds.has(job._id.toString()),
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: jobsWithViewedStatus.length,
+      data: jobsWithViewedStatus,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
