@@ -31,6 +31,8 @@ import {
   StudentAnalytics,
   toggleAutopilot,
   updateJobRole,
+  jobViewedByStudent,
+  isStudentViewedJob,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -154,6 +156,8 @@ router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
 router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
 router.post('/autopilot/toggle', authMiddleware, isStudent, toggleAutopilot);
 
+router.get('/job/viewed/:jobId', authMiddleware, isStudent, jobViewedByStudent);
+
 router.post('/pdf/generate-pdf', async (req, res) => {
   const { html, title } = req.body;
 
@@ -224,10 +228,16 @@ router.post('/pdf/generate-pdf', async (req, res) => {
   }
 });
 
-// Your Express router logic
+router.post(
+  '/job/viewed/:jobId',
+  authMiddleware,
+  isStudent,
+  jobViewedByStudent,
+);
+router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
 
-// Your Express router logic
 import { spawn } from 'child_process';
+import { jobViewsCount } from '../controllers/job.controller.js';
 
 // Your Express router logic
 router.post('/docx/generate-docx', (req, res) => {

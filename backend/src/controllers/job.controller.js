@@ -13,6 +13,7 @@ import redisClient from '../config/redis.js';
 import { config } from '../config/config.js';
 import { genAI } from '../config/gemini.js';
 import { fetchAndSaveJobsService } from '../utils/fetchAndSaveJobsService.js';
+import { Student } from '../models/student.model.js';
 
 export const postManualJob = async (req, res) => {
   const { _id } = req.user;
@@ -811,7 +812,6 @@ export const searchJobs = async (req, res) => {
         .limit(limitNum);
 
       if (jobs.length < 5 && q && pageNum === 1) {
-        console.log('Local results low, fetching from RapidAPI...');
         try {
           // --- FIX 1: Build a more specific query for the external API ---
           let apiQuery = q;
@@ -824,7 +824,6 @@ export const searchJobs = async (req, res) => {
             page: 1,
             num_pages: 1,
           };
-          console.log('Fetching from RapidAPI with params:', apiParams);
           // -----------------------------------------------------------------
 
           const response = await axios.get(config.rapidJobApi, {
@@ -837,7 +836,6 @@ export const searchJobs = async (req, res) => {
 
           const externalJobsRaw = response.data.data || [];
 
-          console.log('JOBS FROM RAPID API', externalJobsRaw);
 
           if (externalJobsRaw.length > 0) {
             const externalJobsFormatted =
@@ -1000,10 +998,11 @@ export const jobViewsCount = async (req, res) => {
     }
 
     job.views++;
+    console.log(`Job ${jobId} views incremented to ${job.views}`);
     await job.save();
 
     // Invalidate cache for this job
-    await redisClient.invalidateJobCache(jobId);
+    // await redisClient.   invalidateJobCache(jobId);
 
     res.status(200).json({ message: 'Job views count updated successfully' });
   } catch (error) {
@@ -1056,5 +1055,40 @@ export const getSingleJobApplication = async (req, res) => {
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
+  }
+};
+
+export const getAllJobsForStudent = async (req, res, next) => {
+  try {
+    const studentId = req.user._id;
+
+    // 1. Get the current student's viewed job IDs
+    const student = await Student.findById(studentId)
+      .select('viewedJobs.job')
+      .lean();
+
+    // 2. Create a Set for fast lookup (more efficient than Array.includes())
+    const viewedJobIds = new Set(
+      student.viewedJobs.map((view) => view.job.toString()),
+    );
+
+    // 3. Fetch all jobs from the database
+    // Using .lean() makes it faster and returns plain JavaScript objects
+    const jobs = await Job.find({}).lean();
+
+    // 4. Add the 'viewed' boolean to each job
+    const jobsWithViewedStatus = jobs.map((job) => ({
+      ...job, // Keep all original job properties
+      // Check if the job's ID exists in our Set of viewed IDs
+      viewed: viewedJobIds.has(job._id.toString()),
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: jobsWithViewedStatus.length,
+      data: jobsWithViewedStatus,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

@@ -168,7 +168,7 @@ export function Footer() {
                   <Image
                     width={100}
                     height={100}
-                    src="/zobsai.svg"
+                    src="logo.png"
                     className="w-10 h-auto"
                     alt="abc"
                   />
