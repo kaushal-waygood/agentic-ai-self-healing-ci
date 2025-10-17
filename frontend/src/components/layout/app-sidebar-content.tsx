@@ -17,6 +17,9 @@ import {
   FileCheck2,
   Building2,
   Search,
+  Layers,
+  ZapIcon,
+  Activity,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -98,6 +101,16 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         adminOnly: true,
       },
       { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
+      {
+        title: 'Request New Feature',
+        href: '/dashboard/request-new-feature', // Replace with your actual form link
+        icon: Layers,
+      },
+      {
+        title: 'Onboarding Tour',
+        href: '/dashboard/onboarding-tour',
+        icon: Activity,
+      },
     ],
   };
 
@@ -152,11 +165,11 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 <Image
                   width={100}
                   height={100}
-                  src="/zobsai.svg"
+                  src="/logo.png"
                   className="w-10 h-auto"
                   alt="abc"
                 />
-                <h2 className="text-xs">zobsai</h2>
+                {/* <h2 className="text-xs">zobsai</h2> */}
               </div>
               {/* <div
                 className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full animate-bounce"

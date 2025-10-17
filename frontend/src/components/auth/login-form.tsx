@@ -165,7 +165,7 @@ const LoginForm = () => {
               </div> */}
               <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
                 <Image
-                  src="/zobsai.svg"
+                  src="logo.png"
                   alt="Zobsai logo"
                   width={100}
                   height={100}

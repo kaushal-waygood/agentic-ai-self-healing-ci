@@ -1,8 +1,18 @@
 import Image from 'next/image';
 import { JobListing } from '@/lib/data/jobs';
-import { MapPin, Briefcase, Clock, Building } from 'lucide-react';
+import {
+  MapPin,
+  Briefcase,
+  Clock,
+  Building,
+  View,
+  Eye,
+  EyeClosed,
+} from 'lucide-react';
 import { truncate } from '@/utils/formatTitle';
 import { Skeleton } from '@/components/ui/skeleton';
+
+import apiInstance from '@/services/api';
 
 interface JobCardProps {
   job: JobListing;
@@ -11,9 +21,19 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
+  const handleClick = async () => {
+    try {
+      // Call the API to store the job view
+      await apiInstance.post(`/students/job/viewed/${job._id}`);
+      console.log('Job view logged for job ID:', job._id);
+      // Trigger parent function (e.g., select job or open details)
+      onClick();
+    } catch (error) {}
+  };
+
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       className={`group relative  cursor-pointer transition-all duration-300 ease-out transform  ${
         isActive
           ? ' bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-400 '
@@ -47,16 +67,20 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
 
             <div className="text-xs  ">
               <div className="flex items-center gap-2 text-purple-500 font-semibold ">
-                <span>{job.company}</span>
+                <span>{truncate(job.company, 35)}</span>
               </div>
 
               <div className="flex items-center gap-2 ">
                 {/* <MapPin className="h-4 w-4 text-purple-500" /> */}
                 <span>{job.location.city}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
                 {/* <Clock className="h-4 w-4 text-blue-500" /> */}
                 <span>{'4 hour ago'}</span>
+                <div className="flex items-center gap-1">
+                  <Eye className="h-4 w-4 text-gray-400" />
+                  <span>{job.views} </span>
+                </div>
               </div>
             </div>
           </div>

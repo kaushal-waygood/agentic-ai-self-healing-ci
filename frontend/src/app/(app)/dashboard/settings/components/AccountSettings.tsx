@@ -42,7 +42,7 @@ export const AccountSetting = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
-    const error = urlParams.get('error');
+    // ...
 
     if (success === 'google_connected') {
       setStatusMessage(
@@ -52,23 +52,16 @@ export const AccountSetting = () => {
 
       window.history.replaceState({}, document.title, window.location.pathname);
 
-      dispatch(getProfileRequest());
+      // --- THIS IS THE FIX ---
+      // Add a small delay to ensure the database has time to update
+      // before we re-fetch the profile.
+      setTimeout(() => {
+        dispatch(getProfileRequest());
+      }, 1000); // 500ms delay
+      // -----------------------
     }
 
-    if (error) {
-      let errorMessage = 'Failed to connect Google account';
-      if (error === 'user_not_found') {
-        errorMessage = 'User not found. Please try again.';
-      } else if (error === 'auth_failed') {
-        errorMessage = 'Authentication fai  led. Please try again.';
-      }
-
-      setStatusMessage(errorMessage);
-      setIsError(true);
-
-      // Clear the URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
+    // ...
   }, [dispatch]);
 
   // Handle sending test email
@@ -234,7 +227,6 @@ export const AccountSetting = () => {
           </div>
 
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {console.log(user?.googleAuth?.refreshToken)}
             {user?.googleAuth?.refreshToken
               ? 'This will send a test email to verify your Gmail permissions are working correctly.'
               : 'Connect your Google account to enable sending emails through our platform using your Gmail account.'}

@@ -5,6 +5,185 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import redisClient from '../config/redis.js';
+import jobDiscoveryQueue from '../queues/jobDiscoveryQueue.js';
+
+// export const createAutopilotAgent = async (req, res) => {
+//   try {
+//     const { _id: studentId } = req.user;
+
+//     const {
+//       agentName,
+//       jobTitle,
+//       country,
+//       isRemote = false,
+//       isOnsite = false,
+//       employmentType,
+//       cvOption = 'current_profile',
+//       jobDescription = '',
+//       autopilotLimit = 5,
+//     } = req.body;
+
+//     // Validate student exists
+//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
+//       return res.status(400).json({ message: 'Invalid student ID' });
+//     }
+
+//     // Check if student exists
+//     const studentExists = await Student.exists({ _id: studentId });
+//     if (!studentExists) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Student not found',
+//       });
+//     }
+
+//     // Validate required fields
+//     const requiredFields = [
+//       'agentName',
+//       'jobTitle',
+//       'country',
+//       'employmentType',
+//     ];
+//     const missingFields = requiredFields.filter((field) => !req.body[field]);
+
+//     if (missingFields.length > 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Missing required fields',
+//         missingFields,
+//       });
+//     }
+
+//     if (!['current_profile', 'uploaded_pdf'].includes(cvOption)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Invalid CV option',
+//         validOptions: ['current_profile', 'uploaded_pdf'],
+//       });
+//     }
+
+//     if (cvOption === 'cv' && !req.file) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'CV file is required for uploaded_pdf option',
+//       });
+//     }
+
+//     const agentId = `agent_${uuidv4()}`;
+
+//     // Prepare agent data
+//     const newAgent = {
+//       agentId,
+//       agentName,
+//       jobTitle,
+//       country,
+//       isRemote: Boolean(isRemote),
+//       isOnsite: Boolean(isOnsite),
+//       employmentType,
+//       cvOption,
+//       autopilotEnabled: true,
+//       autopilotLimit: Math.min(Number(autopilotLimit), 20), // Cap at 20 applications/day
+//       jobDescription,
+//       createdAt: new Date(),
+//       updatedAt: new Date(),
+//     };
+
+//     // Process CV if uploaded
+//     if (req.file) {
+//       try {
+//         // Validate file extension
+//         const ext = path.extname(req.file.originalname).toLowerCase();
+//         if (ext !== '.pdf') {
+//           fs.unlinkSync(req.file.path);
+//           return res.status(400).json({
+//             success: false,
+//             message: 'Only PDF files are allowed for CV upload',
+//           });
+//         }
+
+//         // Validate file size (max 5MB)
+//         if (req.file.size > 5 * 1024 * 1024) {
+//           fs.unlinkSync(req.file.path);
+//           return res.status(400).json({
+//             success: false,
+//             message: 'CV file size must be less than 5MB',
+//           });
+//         }
+
+//         const extractedData = await extractDataFromCV(req.file.path);
+
+//         // Store extraction results
+//         newAgent.uploadedCVData = {
+//           skills: (extractedData.skills || []).map((skill) => ({
+//             ...skill,
+//             skillId: new mongoose.Types.ObjectId(),
+//           })),
+//           experience: (extractedData.experience || []).map((exp) => ({
+//             ...exp,
+//             experienceId: new mongoose.Types.ObjectId(),
+//           })),
+//           education: (extractedData.education || []).map((edu) => ({
+//             ...edu,
+//             educationId: new mongoose.Types.ObjectId(),
+//           })),
+//           projects: (extractedData.projects || []).map((proj) => ({
+//             ...proj,
+//             projectId: new mongoose.Types.ObjectId(),
+//           })),
+//           jobRole: extractedData.jobRole || '',
+//         };
+
+//         // Clean up the uploaded file
+//         fs.unlinkSync(req.file.path);
+//       } catch (extractError) {
+//         console.error('CV extraction error:', extractError);
+//         if (req.file?.path && fs.existsSync(req.file.path)) {
+//           fs.unlinkSync(req.file.path);
+//         }
+//         return res.status(400).json({
+//           success: false,
+//           message: 'CV extraction failed',
+//           error: extractError.message,
+//         });
+//       }
+//     }
+
+//     // Create the agent
+//     const updatedStudent = await Student.findByIdAndUpdate(
+//       studentId,
+//       { $push: { autopilotAgent: newAgent } },
+//       { new: true, runValidators: true },
+//     ).select('autopilotAgent');
+
+//     if (!updatedStudent) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Student not found after update',
+//       });
+//     }
+
+//     // Get the newly created agent
+//     const createdAgent = updatedStudent.autopilotAgent.find(
+//       (agent) => agent.agentId === agentId,
+//     );
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'Autopilot agent created successfully',
+//       agent: createdAgent,
+//     });
+//   } catch (error) {
+//     console.error('Agent creation error:', error);
+//     if (req.file?.path && fs.existsSync(req.file.path)) {
+//       fs.unlinkSync(req.file.path);
+//     }
+//     res.status(500).json({
+//       success: false,
+//       message: 'Internal server error',
+//       error: error.message,
+//     });
+//   }
+// };
 
 export const createAutopilotAgent = async (req, res) => {
   try {
@@ -21,12 +200,13 @@ export const createAutopilotAgent = async (req, res) => {
       autopilotLimit = 5,
     } = req.body;
 
+    console.log(studentId, 'check student id');
+
     // Validate student exists
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.status(400).json({ message: 'Invalid student ID' });
     }
 
-    // Check if student exists
     const studentExists = await Student.exists({ _id: studentId });
     if (!studentExists) {
       return res.status(404).json({
@@ -60,7 +240,7 @@ export const createAutopilotAgent = async (req, res) => {
       });
     }
 
-    if (cvOption === 'cv' && !req.file) {
+    if (cvOption === 'uploaded_pdf' && !req.file) {
       return res.status(400).json({
         success: false,
         message: 'CV file is required for uploaded_pdf option',
@@ -80,7 +260,7 @@ export const createAutopilotAgent = async (req, res) => {
       employmentType,
       cvOption,
       autopilotEnabled: true,
-      autopilotLimit: Math.min(Number(autopilotLimit), 20), // Cap at 20 applications/day
+      autopilotLimit: Math.min(Number(autopilotLimit), 20),
       jobDescription,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -89,7 +269,6 @@ export const createAutopilotAgent = async (req, res) => {
     // Process CV if uploaded
     if (req.file) {
       try {
-        // Validate file extension
         const ext = path.extname(req.file.originalname).toLowerCase();
         if (ext !== '.pdf') {
           fs.unlinkSync(req.file.path);
@@ -99,7 +278,6 @@ export const createAutopilotAgent = async (req, res) => {
           });
         }
 
-        // Validate file size (max 5MB)
         if (req.file.size > 5 * 1024 * 1024) {
           fs.unlinkSync(req.file.path);
           return res.status(400).json({
@@ -110,7 +288,6 @@ export const createAutopilotAgent = async (req, res) => {
 
         const extractedData = await extractDataFromCV(req.file.path);
 
-        // Store extraction results
         newAgent.uploadedCVData = {
           skills: (extractedData.skills || []).map((skill) => ({
             ...skill,
@@ -131,7 +308,6 @@ export const createAutopilotAgent = async (req, res) => {
           jobRole: extractedData.jobRole || '',
         };
 
-        // Clean up the uploaded file
         fs.unlinkSync(req.file.path);
       } catch (extractError) {
         console.error('CV extraction error:', extractError);
@@ -146,12 +322,14 @@ export const createAutopilotAgent = async (req, res) => {
       }
     }
 
-    // Create the agent
+    // Update student with new agent
     const updatedStudent = await Student.findByIdAndUpdate(
       studentId,
       { $push: { autopilotAgent: newAgent } },
       { new: true, runValidators: true },
-    ).select('autopilotAgent');
+    ).select(
+      'autopilotAgent jobPreferences jobRole skills experience education email',
+    );
 
     if (!updatedStudent) {
       return res.status(404).json({
@@ -160,9 +338,63 @@ export const createAutopilotAgent = async (req, res) => {
       });
     }
 
-    // Get the newly created agent
     const createdAgent = updatedStudent.autopilotAgent.find(
       (agent) => agent.agentId === agentId,
+    );
+
+    // Set Redis cache for applied count and student profile
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    await jobDiscoveryQueue.client.set(
+      `applied:${studentId}:${startOfDay.getTime()}`,
+      0,
+      'EX',
+      86400,
+    );
+    await jobDiscoveryQueue.client.set(
+      `student:${studentId}`,
+      JSON.stringify({
+        jobPreferences: updatedStudent.jobPreferences,
+        jobRole: updatedStudent.jobRole,
+        skills: updatedStudent.skills,
+        experience: updatedStudent.experience,
+        education: updatedStudent.education,
+        email: updatedStudent.email,
+      }),
+      'EX',
+      3600,
+    );
+
+    // Trigger immediate job discovery
+    await jobDiscoveryQueue.add(
+      {
+        data: {
+          studentId,
+          agentId,
+          agentConfig: {
+            jobTitle: createdAgent.jobTitle,
+            country: createdAgent.country,
+            isRemote: createdAgent.isRemote,
+            employmentType: createdAgent.employmentType,
+            cvOption: createdAgent.cvOption,
+            uploadedCVData: createdAgent.uploadedCVData,
+          },
+          studentProfile: {
+            jobPreferences: updatedStudent.jobPreferences,
+            jobRole: updatedStudent.jobRole,
+            skills: updatedStudent.skills,
+            experience: updatedStudent.experience,
+            education: updatedStudent.education,
+            email: updatedStudent.email,
+          },
+          remainingApplications: Number(createdAgent.autopilotLimit) || 5,
+        },
+      },
+      {
+        jobId: `discovery:${studentId}:${agentId}:${startOfDay.getTime()}`,
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
     );
 
     res.status(201).json({

@@ -21,7 +21,7 @@ export const footerLinks = {
   ],
   company: [
     // { name: 'About Us', badge: null },
-    { name: 'Careers', badge: 'Hiring' },
+    { name: 'Careers', badge: 'Hiring Soon' },
     // { name: 'Press', badge: null },
     { name: 'Contact', badge: null, link: '/contact-us' },
   ],

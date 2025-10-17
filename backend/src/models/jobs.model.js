@@ -52,12 +52,9 @@ const jobSchema = new Schema(
     tags: [String],
     queries: [{ type: String, index: true }], // Indexed for faster searching
     isActive: { type: Boolean, default: true },
-
-    // REMOVED: The singular 'qualification' field was removed to avoid confusion.
-
-    // ...You can add any other fields you need here.
+    views: { type: Number, default: 0 },
   },
-  { timestamps: true }, // Automatically adds createdAt and updatedAt
+  { timestamps: true, strict: true }, // Automatically adds createdAt and updatedAt
 );
 
 // --- Middleware for Slug Generation ---
