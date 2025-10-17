@@ -87,24 +87,67 @@ export default function ApplicationsPage() {
     searchParams.get('status') || 'all',
   );
 
+  // useEffect(() => {
+  //   const fetchApplications = async () => {
+  //     setIsLoading(true);
+  //     try {
+  //       const response = await getAllSavedJobs();
+  //       const savedJobsFromApi = response.data.savedJobs || [];
+
+  //       // ***** FIX: Transform API data to match the component's expected structure *****
+  //       const formattedApplications = savedJobsFromApi.map((apiJob: any) => ({
+  //         id: apiJob._id, // Map _id to id
+  //         job: {
+  //           title: apiJob.title, // Nest title
+  //           company: apiJob.company, // Nest company
+  //         },
+  //         // Assign a default status, since the API doesn't provide one
+  //         status: 'saved',
+  //         appliedAt: apiJob.createdAt, // Map createdAt to appliedAt
+  //         // Add default notes or an empty array
+  //         notes: ['Application saved on ZobsAI'],
+  //       }));
+  //       console.log('Formatted Applications:', formattedApplications);
+  //       setApplications(formattedApplications);
+  //     } catch (error) {
+  //       console.error('Failed to fetch applications:', error);
+  //       toast({
+  //         variant: 'destructive',
+  //         title: 'Error',
+  //         description: 'Could not fetch your applications.',
+  //       });
+  //       setApplications([]);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   fetchApplications();
+  // }, [toast]);
   useEffect(() => {
     const fetchApplications = async () => {
       setIsLoading(true);
       try {
-        const response = await getAllSavedJobs();
+        let response;
+
+        // 👇 choose API based on URL param "status"
+        if (statusFilter === 'Applied') {
+          // 🔹 Example: call applied jobs API
+          response = await getAppliedJobs(); // <-- create this in your service file
+        } else {
+          // 🔹 Default: call saved jobs API
+          response = await getAllSavedJobs();
+        }
+
         const savedJobsFromApi = response.data.savedJobs || [];
 
-        // ***** FIX: Transform API data to match the component's expected structure *****
         const formattedApplications = savedJobsFromApi.map((apiJob: any) => ({
-          id: apiJob._id, // Map _id to id
+          id: apiJob._id,
           job: {
-            title: apiJob.title, // Nest title
-            company: apiJob.company, // Nest company
+            title: apiJob.title,
+            company: apiJob.company,
           },
-          // Assign a default status, since the API doesn't provide one
-          status: 'saved',
-          appliedAt: apiJob.createdAt, // Map createdAt to appliedAt
-          // Add default notes or an empty array
+          status: apiJob.status || 'saved',
+          appliedAt: apiJob.createdAt,
           notes: ['Application saved on ZobsAI'],
         }));
 
@@ -121,8 +164,9 @@ export default function ApplicationsPage() {
         setIsLoading(false);
       }
     };
+
     fetchApplications();
-  }, [toast]);
+  }, [toast, statusFilter]);
 
   useEffect(() => {
     const params = new URLSearchParams();
