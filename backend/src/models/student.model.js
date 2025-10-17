@@ -184,16 +184,21 @@ const studentSchema = new Schema(
       },
     ],
 
-    jobViewed:[
-      jobsView: [{
-        {
+    viewedJobs: [
+      {
+        _id: false, // Prevents creating a separate _id for this sub-document
+        job: {
           type: Schema.Types.ObjectId,
-          ref: 'Job',
-          select: false, // Optional: hides this field from default queries
+          ref: 'Job', // Reference to the Job model
+          required: true,
         },
-      ],
-      isJobViewed: { type: Boolean, default: false },}
+        viewedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
     ],
+
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {
       autopilotEnabled: { type: Boolean, default: false },

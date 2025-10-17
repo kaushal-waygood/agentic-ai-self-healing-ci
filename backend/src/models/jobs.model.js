@@ -54,7 +54,7 @@ const jobSchema = new Schema(
     isActive: { type: Boolean, default: true },
     views: { type: Number, default: 0 },
   },
-  { timestamps: true }, // Automatically adds createdAt and updatedAt
+  { timestamps: true, strict: true }, // Automatically adds createdAt and updatedAt
 );
 
 // --- Middleware for Slug Generation ---

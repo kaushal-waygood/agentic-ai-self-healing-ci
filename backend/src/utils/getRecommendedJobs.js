@@ -192,6 +192,12 @@ export const getRecommendedJobs = async (
       }
 
       console.log('API query params:', queryParams);
+
+      console.log(
+        'check seconds steps ..... processing job discovery for student',
+        queryParams,
+      );
+
       try {
         const apiResponse = await axios.get(config.rapidJobApi, {
           params: {

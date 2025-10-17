@@ -8,7 +8,7 @@ const db = async () => {
     console.log('Database is connected');
 
     // Start cron jobs
-    // runAutopilotCron();
+    runAutopilotCron();
   } catch (error) {
     console.log(error);
   }

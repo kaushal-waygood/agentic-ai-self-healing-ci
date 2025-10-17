@@ -23,7 +23,6 @@ const jobApplyQueue = new Queue('job application', {
 
 jobApplyQueue.process(async (job) => {
   const { studentId, jobData } = job.data;
-
   console.log(
     `Processing application for student ${studentId} to job: ${jobData.job?.title}`,
   );
@@ -73,7 +72,8 @@ jobApplyQueue.process(async (job) => {
     const emailResult = await sendJobApplicationEmail({
       jobData,
       student: fullStudent,
-      recipientEmail: 'arsalan@helpstudyabroad.com',
+      recipientEmail: 'shariq@helpstudyabroad.com',
+      // recipientEmail: 'arsalan@helpstudyabroad.com',
     });
 
     if (emailResult.rejected?.length > 0) {

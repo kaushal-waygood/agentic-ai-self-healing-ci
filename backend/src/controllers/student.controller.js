@@ -78,11 +78,6 @@ export const updateFullName = async (req, res) => {
   const { fullName, phone, email } = req.body;
   const { _id } = req.user;
 
-  // Validation
-  // if (!fullName || !phone) {
-  //   return res.status(400).json({ message: 'Valid full name is required' });
-  // }
-
   let result;
 
   try {
@@ -1458,25 +1453,36 @@ export const toggleAutopilot = async (req, res, next) => {
   }
 };
 
+// In your jobController.js
+
 export const jobViewedByStudent = async (req, res, next) => {
   try {
     const studentId = req.user._id;
     const { jobId } = req.params;
 
-    const jobExists = await Job.findById(jobId).select('_id').lean();
-    if (!jobExists) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+    // Check if the student has already viewed this specific job
+    const student = await Student.findOne({
+      _id: studentId,
+      'viewedJobs.job': jobId,
+    });
+
+    // If 'student' is not null, the job is already in their viewed list
+    if (student) {
+      return res
+        .status(200)
+        .json({ success: true, message: 'Job view was already recorded.' });
     }
 
-    await Student.findByIdAndUpdate(
-      studentId,
-      { $addToSet: { jobsViewed: jobId, isJobViewed: true } },
-      { new: true },
-    );
+    // If not viewed, add the job reference to the array
+    await Student.findByIdAndUpdate(studentId, {
+      $push: {
+        viewedJobs: { job: jobId },
+      },
+    });
 
-    console.log(`Student ${studentId} viewed job ${jobId}`);
-
-    res.status(200).json({ success: true, message: 'Job view recorded.' });
+    res
+      .status(200)
+      .json({ success: true, message: 'Job view recorded successfully.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
