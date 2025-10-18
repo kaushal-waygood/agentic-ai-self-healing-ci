@@ -246,7 +246,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   // --- RENDER ---
   return (
     <div
-      className={`bg-gradient-to-br from-indigo-50 via-white to-purple-50 ${
+      className={` ${
         isFullscreen ? 'fixed inset-0 z-50 p-4 sm:p-6' : 'relative'
       }`}
     >
@@ -256,9 +256,9 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         }`}
       >
         {/* Header & Toolbar */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-t-2xl border border-b-0 border-gray-200/80 shadow-lg z-10">
+        <div className=" backdrop-blur-sm rounded-t-2xl   shadow-lg z-10">
           {isEditing && (
-            <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-8 py-2">
+            <div className="  px-4 sm:px-8 py-2">
               <div className="flex items-center space-x-2 flex-wrap">
                 <button
                   onClick={() => formatText('bold')}
@@ -294,10 +294,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </div>
 
         {/* Unified Editor / Preview Pane */}
-        <div className="bg-white/60 backdrop-blur-sm border-x border-gray-200/80 p-4 sm:p-8 flex-grow">
+        <div className=" backdrop-blur-sm    flex-grow">
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+            <div className="flex items-center justify-between ">
+              <h3 className="text-md font-semibold text-gray-800 flex items-center">
                 {isEditing ? (
                   <Edit3 className="w-5 h-5 mr-2 text-indigo-500" />
                 ) : (
@@ -316,7 +316,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
               ref={editorRef}
               contentEditable={isEditing}
               suppressContentEditableWarning={true}
-              className={`flex-grow w-full border-2 rounded-xl bg-white p-6 overflow-y-auto text-left focus:outline-none min-h-[400px] ${
+              className={` text-sm flex-grow w-full border-2 rounded-xl bg-white p-6 overflow-y-auto text-left focus:outline-none min-h-[400px] ${
                 isEditing
                   ? 'border-indigo-300 shadow-inner ring-4 ring-indigo-50'
                   : 'border-gray-200'
@@ -327,7 +327,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </div>
 
         {/* Action Bar */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-b-2xl border border-t-0 border-gray-200/80 shadow-lg p-4 sm:p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-b-2xl border border-t-0 border-gray-200/80 shadow-lg p- sm:p-2">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <button

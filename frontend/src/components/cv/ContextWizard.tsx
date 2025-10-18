@@ -175,10 +175,10 @@ const ContextWizard = ({
                   Step 3: Final Touches
                 </CardTitle>
               </div>
-              <CardDescription className="text-indigo-100 text-base">
+              {/* <CardDescription className="text-indigo-100 text-base">
                 Add your personal touch to make your CV stand out from the
                 crowd.
-              </CardDescription>
+              </CardDescription> */}
             </div>
           </CardHeader>
 
@@ -281,7 +281,7 @@ Examples:
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
+            {/* <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
                   <Rocket className="h-5 w-5 text-white" />
@@ -296,7 +296,7 @@ Examples:
                 that highlights your strengths and matches what employers are
                 looking for.
               </p>
-            </div>
+            </div> */}
           </CardContent>
 
           <CardFooter className="bg-gray-50/80 backdrop-blur-xl border-t border-gray-100 p-6">
@@ -336,13 +336,6 @@ Examples:
             </div>
           </CardFooter>
         </Card>
-
-        <div className="text-center mt-8">
-          <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-lg">
-            <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" />
-            Your tailored CV will be ready in seconds
-          </div>
-        </div>
       </div>
     </div>
   );

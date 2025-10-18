@@ -9,7 +9,6 @@ import { ApplicationRow, StatCard } from './components/statusConfig';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
 
-// --- Type Definition ---
 interface Application {
   id: string;
   job: {
