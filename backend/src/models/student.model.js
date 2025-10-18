@@ -179,17 +179,25 @@ const studentSchema = new Schema(
     ],
     savedJobs: [
       {
-        type: Schema.Types.ObjectId, // Defines the type as a MongoDB ObjectId
-        ref: 'Job', // Creates a reference to your 'Job' model
+        _id: false, // Prevents creating a separate _id for this sub-document
+        job: {
+          type: Schema.Types.ObjectId,
+          ref: 'Job',
+          required: true,
+        },
+        savedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
 
     viewedJobs: [
       {
-        _id: false, // Prevents creating a separate _id for this sub-document
+        _id: false,
         job: {
           type: Schema.Types.ObjectId,
-          ref: 'Job', // Reference to the Job model
+          ref: 'Job', // Now, Mongoose knows what 'Job' is.
           required: true,
         },
         viewedAt: {
@@ -211,6 +219,7 @@ const studentSchema = new Schema(
           type: Date,
           default: Date.now,
         },
+        // The isVisited field is removed as it's redundant
       },
     ],
 

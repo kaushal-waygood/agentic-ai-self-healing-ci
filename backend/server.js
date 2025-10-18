@@ -5,7 +5,9 @@ import os from 'os';
 import app from './src/app.js';
 import connectDb from './src/config/db.js';
 import { config } from './src/config/config.js';
-import { startCronJobs } from './src/config/cron-config.js';
+import { startGeneralCronJobs } from './src/config/cron-config.js';
+import { scheduleAutopilotTriggers } from './src/config/autopilotCron.js';
+import dotenv from 'dotenv';
 
 dotenv.config();
 console.log('Environment Mode: ', process.env.NODE_ENV);
@@ -26,8 +28,8 @@ if (cluster.isPrimary) {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  scheduleAutopilotTriggers();
-  startGeneralCronJobs();
+  // scheduleAutopilotTriggers();
+  // startGeneralCronJobs();
 
   // Fork a worker for each CPU core
   for (let i = 0; i < numCPUs; i++) {
