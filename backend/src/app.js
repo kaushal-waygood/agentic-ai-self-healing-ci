@@ -3,7 +3,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import morgan from 'morgan';
-import createHttpError from 'http-errors';
+import createHttpError from 'http-errors';    
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
@@ -24,6 +24,9 @@ import './queues/jobDiscoveryQueue.js';
 
 const app = express();
 
+// This tells Express that it's behind a proxy (like a load balancer or reverse proxy)
+// and to trust the X-Forwarded-For header that the proxy sends.
+// This is crucial for rate-limiting to work correctly.
 app.set('trust proxy', 1);
 
 // 1. Security Middleware

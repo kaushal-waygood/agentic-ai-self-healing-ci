@@ -15,6 +15,7 @@ import {
 import './styles/footer.css'; // Import the new CSS file
 import { footerLinks, socialLinks } from '@/services/dummy/Footer';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function Footer() {
   const [isVisible, setIsVisible] = useState(false);
@@ -104,7 +105,7 @@ export function Footer() {
               }
               ${item.badge === 'Popular' ? 'bg-blue-500/20 text-blue-400' : ''}
               ${
-                item.badge === 'Hiring'
+                item.badge === 'Hiring Soon'
                   ? 'bg-orange-500/20 text-orange-400'
                   : ''
               }
@@ -164,7 +165,13 @@ export function Footer() {
                   <Rocket className="w-6 h-6 text-white" />
                 </div> */}
                 <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
-                  <img src="/logo.png" alt="abc" />
+                  <Image
+                    width={100}
+                    height={100}
+                    src="logo.png"
+                    className="w-10 h-auto"
+                    alt="abc"
+                  />
                 </div>
                 <h3 className="text-3xl font-black text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text">
                   ZobsAI
@@ -187,7 +194,7 @@ export function Footer() {
             >
               {[
                 { icon: Mail, text: 'hello@zobsai.com', color: 'blue' },
-                { icon: MapPin, text: 'San Francisco, CA', color: 'purple' },
+                { icon: MapPin, text: 'New York, NY', color: 'purple' },
               ].map((contact, index) => (
                 <div
                   key={index}
@@ -245,7 +252,7 @@ export function Footer() {
         {/* States and Newsletter section parent div */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
           {/* Stats Section */}
-          <div
+          {/* <div
             className="grid  items-center grid-cols-3 gap-6 p-3 bg-white/5 rounded-2xl border border-white/10 shadow-lg"
             style={{
               transform: `translateY(${isVisible ? 0 : 30}px)`,
@@ -265,7 +272,7 @@ export function Footer() {
                 <div className="text-sm text-gray-400">{stat.label}</div>
               </div>
             ))}
-          </div>
+          </div> */}
 
           {/* Newsletter Section */}
           <div

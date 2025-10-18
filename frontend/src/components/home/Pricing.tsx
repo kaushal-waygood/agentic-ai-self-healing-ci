@@ -90,8 +90,8 @@ export function Pricing() {
 
       <div className="container mx-auto px-6 relative z-10">
         {/* Enhanced Header */}
-        <header className="text-center mb-16 max-w-5xl mx-auto">
-          <div className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-full px-6 py-3 mb-8 shadow-md">
+        <header className="text-center mb-10 max-w-5xl mx-auto">
+          <div className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-full px-3 py-3 mb-4 shadow-md">
             <Sparkles className="w-6 h-6 text-purple-600" />
             <span className="text-lg font-bold text-purple-700 uppercase">
               Choose Your Plan
@@ -99,11 +99,11 @@ export function Pricing() {
             <Sparkles className="w-4 h-4 text-purple-600" />
           </div>
 
-          <h2 className="text-5xl sm:text-6xl lg:text-6xl font-black mb-6 bg-gradient-to-r from-gray-900 via-purple-800 to-indigo-800 bg-clip-text text-transparent leading-tight">
+          <h2 className="text-5xl sm:text-6xl lg:text-6xl  font-black  bg-gradient-to-r from-gray-900 via-purple-800 to-indigo-800 bg-clip-text text-transparent leading-tight">
             Find Your Perfect Plan
           </h2>
 
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
+          <p className="text-sm md:text-lg text-gray-600 mb-4 leading-relaxed">
             Unlock your potential with a plan that grows with you.
             <br />
             <span className="text-purple-600 font-semibold">
@@ -112,7 +112,7 @@ export function Pricing() {
           </p>
 
           {/* Currency Selector */}
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-4">
             <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-lg">
               <div className="flex items-center gap-1">
                 <button
@@ -142,7 +142,7 @@ export function Pricing() {
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex items-center justify-center gap-8 text-sm text-gray-600 mb-12">
+          {/* <div className="flex items-center justify-center gap-8 text-sm text-gray-600 mb-4">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-green-600" />
               <span>30-day money back</span>
@@ -155,7 +155,7 @@ export function Pricing() {
               <TrendingUp className="w-4 h-4 text-purple-600" />
               <span>Cancel anytime</span>
             </div>
-          </div>
+          </div> */}
         </header>
 
         {/* Loading State */}

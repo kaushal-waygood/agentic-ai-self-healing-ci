@@ -6,9 +6,8 @@ const connectDB = async () => {
   try {
     await mongoose.connect(config.mongoUrl);
 
-    console.log(`✅ Database connected`);
-
-    // scheduleAutopilotTriggers();
+    // Start cron jobs
+    // runAutopilotCron();
   } catch (error) {
     console.error(`❌ Fatal Error: Database connection failed.`);
     console.error(error);

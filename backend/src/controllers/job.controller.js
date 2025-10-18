@@ -812,7 +812,6 @@ export const searchJobs = async (req, res) => {
         .limit(limitNum);
 
       if (jobs.length < 5 && q && pageNum === 1) {
-        console.log('Local results low, fetching from RapidAPI...');
         try {
           // --- FIX 1: Build a more specific query for the external API ---
           let apiQuery = q;
@@ -825,7 +824,6 @@ export const searchJobs = async (req, res) => {
             page: 1,
             num_pages: 1,
           };
-          console.log('Fetching from RapidAPI with params:', apiParams);
           // -----------------------------------------------------------------
 
           const response = await axios.get(config.rapidJobApi, {
@@ -838,7 +836,6 @@ export const searchJobs = async (req, res) => {
 
           const externalJobsRaw = response.data.data || [];
 
-          console.log('JOBS FROM RAPID API', externalJobsRaw);
 
           if (externalJobsRaw.length > 0) {
             const externalJobsFormatted =
@@ -1001,10 +998,11 @@ export const jobViewsCount = async (req, res) => {
     }
 
     job.views++;
+    console.log(`Job ${jobId} views incremented to ${job.views}`);
     await job.save();
 
     // Invalidate cache for this job
-    await redisClient.invalidateJobCache(jobId);
+    // await redisClient.   invalidateJobCache(jobId);
 
     res.status(200).json({ message: 'Job views count updated successfully' });
   } catch (error) {
