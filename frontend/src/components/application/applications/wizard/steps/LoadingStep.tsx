@@ -2,18 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Sparkles, Zap, Brain, FileText, Wand2 } from 'lucide-react';
 
 const SleekLoadingCard = () => {
-  const [loadingMessage, setLoadingMessage] = useState(
-    'Generating your tailored documents...',
-  );
+  const [loadingMessage, setLoadingMessage] = useState('Generating...');
   const [progress, setProgress] = useState(0);
   const [currentIcon, setCurrentIcon] = useState(0);
 
   const loadingMessages = [
-    'Analyzing job requirements...',
-    'Processing your CV data...',
-    'Tailoring content to match...',
-    'Optimizing language and tone...',
-    'Finalizing your documents...',
+    'Initializing AI...',
+    'Processing data...',
+    'Analyzing content...',
+    'Optimizing results...',
     'Almost ready...',
   ];
 
@@ -27,11 +24,16 @@ const SleekLoadingCard = () => {
         setCurrentIcon(nextIndex);
         return loadingMessages[nextIndex];
       });
-    }, 2000);
+    }, 1000);
 
     const progressInterval = setInterval(() => {
-      setProgress((prev) => (prev + 1) % 101);
-    }, 100);
+      setProgress((prev) => {
+        if (prev >= 100) {
+          return 100;
+        }
+        return prev + 1;
+      });
+    }, 360);
 
     return () => {
       clearInterval(messageInterval);
@@ -55,21 +57,19 @@ const SleekLoadingCard = () => {
   ));
 
   return (
-    <div className="min-h-[400px] rounded-3xl border border-slate-700/50 shadow-2xl backdrop-blur-sm overflow-hidden relative">
+    <div className="min-h-[400px] rounded-3xl  shadow-2xl backdrop-blur-sm overflow-hidden relative ">
       {/* Animated background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-blue-500/5 to-cyan-500/5 animate-pulse"></div>
 
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden">{particles}</div>
 
-      {/* Geometric pattern overlay */}
-
       <div className="relative flex items-center justify-center min-h-[400px] p-8">
         <div className="text-center max-w-md">
           {/* Main loading animation */}
-          <div className="relative mb-8">
+          <div className="relative mb-8 w-32 h-32 mx-auto">
             {/* Outer rotating ring */}
-            <div className="absolute inset-0 w-32 h-32 mx-auto">
+            <div className="absolute inset-0 w-32 h-32">
               <div
                 className="w-full h-full border-4 border-transparent border-t-purple-500 border-r-blue-500 border-b-cyan-500 rounded-full animate-spin"
                 style={{ animationDuration: '3s' }}
@@ -77,35 +77,35 @@ const SleekLoadingCard = () => {
             </div>
 
             {/* Middle pulsing ring */}
-            <div className="absolute inset-2 w-28 h-28 mx-auto">
+            <div className="absolute inset-2 w-28 h-28 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <div className="w-full h-full border-2 border-purple-400/50 rounded-full animate-pulse"></div>
             </div>
 
-            {/* Inner content */}
-            <div className="relative w-32 h-32 mx-auto bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center shadow-2xl border border-slate-600">
-              <div className="w-24 h-24 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-full flex items-center justify-center animate-pulse">
-                <CurrentIcon className="w-10 h-10 text-white animate-bounce" />
+            {/* Inner content - properly centered */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center shadow-2xl border border-slate-600">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-full flex items-center justify-center animate-pulse">
+                  <CurrentIcon className="w-10 h-10 text-white animate-bounce" />
+                </div>
               </div>
             </div>
 
             {/* Floating icons around main loader */}
-            <div className="absolute inset-0 w-32 h-32 mx-auto">
-              {[Sparkles, Brain, FileText, Wand2].map((Icon, index) => (
-                <div
-                  key={index}
-                  className="absolute w-8 h-8 text-slate-400 animate-pulse"
-                  style={{
-                    transform: `rotate(${
-                      index * 90
-                    }deg) translateY(-60px) rotate(-${index * 90}deg)`,
-                    animationDelay: `${index * 0.5}s`,
-                    animationDuration: '2s',
-                  }}
-                >
-                  <Icon className="w-full h-full" />
-                </div>
-              ))}
-            </div>
+            {[Sparkles, Brain, FileText, Wand2].map((Icon, index) => (
+              <div
+                key={index}
+                className="absolute top-1/2 left-1/2 w-8 h-8 text-slate-400 animate-pulse"
+                style={{
+                  transform: `translate(-50%, -50%) rotate(${
+                    index * 90
+                  }deg) translateY(-60px) rotate(-${index * 90}deg)`,
+                  animationDelay: `${index * 0.5}s`,
+                  animationDuration: '2s',
+                }}
+              >
+                <Icon className="w-full h-full" />
+              </div>
+            ))}
           </div>
 
           {/* Loading message */}
@@ -113,9 +113,19 @@ const SleekLoadingCard = () => {
             <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text mb-2 animate-pulse">
               {loadingMessage}
             </h2>
-            <p className="text-slate-400 animate-fade-in">
-              This may take a moment...
-            </p>
+
+            {/* Percentage indicator */}
+            <div className="mt-2 text-center">
+              <span className="text-slate-300 font-medium">{progress}%</span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full h-2 bg-slate-700 rounded-full mt-2 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all duration-100"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
           </div>
 
           {/* Status indicators */}
@@ -162,56 +172,6 @@ const SleekLoadingCard = () => {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-shimmer {
-          animation: shimmer 2s infinite;
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-
-        @keyframes bounce {
-          0%,
-          20%,
-          53%,
-          80%,
-          100% {
-            transform: translateY(0);
-          }
-          40%,
-          43% {
-            transform: translateY(-8px);
-          }
-          70% {
-            transform: translateY(-4px);
-          }
-          90% {
-            transform: translateY(-2px);
-          }
-        }
-      `}</style>
     </div>
   );
 };

@@ -1072,14 +1072,11 @@ export const getAllJobsForStudent = async (req, res, next) => {
       student.viewedJobs.map((view) => view.job.toString()),
     );
 
-    // 3. Fetch all jobs from the database
-    // Using .lean() makes it faster and returns plain JavaScript objects
     const jobs = await Job.find({}).lean();
 
     // 4. Add the 'viewed' boolean to each job
     const jobsWithViewedStatus = jobs.map((job) => ({
-      ...job, // Keep all original job properties
-      // Check if the job's ID exists in our Set of viewed IDs
+      ...job,
       viewed: viewedJobIds.has(job._id.toString()),
     }));
 

@@ -1,22 +1,8 @@
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import React, { useState } from 'react';
 import {
   Save,
   Star,
-  Download,
-  Share2,
-  Edit3,
   CheckCircle,
-  TrendingUp,
-  Eye,
-  Zap,
   Award,
   Target,
   FileText,
@@ -24,24 +10,50 @@ import {
   BarChart3,
   ThumbsUp,
   Clock,
-  RefreshCw,
 } from 'lucide-react';
-import React, { useState } from 'react';
-import EditableMaterial from '../application/editable-material';
+
+// Mock EditableMaterial component
+const EditableMaterial = ({ content, isHtml }) => (
+  <div className="bg-white rounded-lg p-6 border border-red-800">
+    {isHtml ? (
+      <div
+        className="prose prose-sm md:prose max-w-none"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    ) : (
+      <div className="whitespace-pre-wrap">{content}</div>
+    )}
+  </div>
+);
+
+// Mock data for demo
+const mockData = {
+  atsScore: 92,
+  jobMatch: 94,
+  keywordMatch: 88,
+  formatScore: 95,
+  atsScoreReasoning:
+    'Your CV demonstrates excellent alignment with the job requirements. Strong keyword optimization and professional formatting make it highly ATS-friendly.',
+  cv: `<h2>John Doe</h2>
+       <p><strong>Senior Software Engineer</strong></p>
+       <p>Email: john@example.com | Phone: +1234567890</p>
+       <h3>Professional Summary</h3>
+       <p>Experienced software engineer with 8+ years in full-stack development, specializing in React, Node.js, and cloud technologies.</p>
+       <h3>Experience</h3>
+       <p><strong>Senior Software Engineer</strong> - Tech Corp (2020-Present)</p>
+       <ul>
+         <li>Led development of microservices architecture</li>
+         <li>Mentored junior developers and conducted code reviews</li>
+       </ul>`,
+};
 
 const GeneratedCV = ({
-  generatedCvOutput,
-  handleInitiateSave,
-  setCurrentCvContent,
-  handleRegenerate,
-}: any) => {
+  generatedCvOutput = mockData,
+  handleInitiateSave = () => console.log('Save'),
+  setCurrentCvContent = () => {},
+  handleRegenerate = () => console.log('Regenerate'),
+}) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(true);
-
-  const handleShare = () => {
-    console.log('Sharing CV...');
-  };
 
   const getScoreColor = (score) => {
     if (score >= 90) return 'text-green-600';
@@ -58,210 +70,121 @@ const GeneratedCV = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen  p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
         {/* Success Banner */}
-        <div className="mb-8 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <CheckCircle className="h-7 w-7 text-white" />
+        <div className="mb-3 md:mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-1 md:p-2 shadow-lg">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="h-6 w-6 md:h-7 md:w-7 text-white" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold mb-1">
+              <h2 className="text-lg md:text-xl font-bold mb-1">
                 CV Generated Successfully!
               </h2>
-              <p className="text-green-100">
+              {/* <p className="text-sm md:text-base text-green-100">
                 Your AI-optimized CV is ready for review and customization.
-              </p>
+              </p> */}
             </div>
-            <div className="text-right">
-              <div className="text-sm text-green-100">Generated at</div>
-              <div className="font-medium">
+            <div className="text-center">
+              <div
+                className={`text-3xl md:text-4xl font-bold bg-gradient-to-r ${getScoreBg(
+                  generatedCvOutput.atsScore,
+                )} bg-clip-text  `}
+              >
+                {generatedCvOutput.atsScore}
+              </div>
+              <div className=" text-xs md:text-sm">ATS Score / 100</div>
+            </div>
+            {/* <div className="text-left sm:text-right w-full sm:w-auto">
+              <div className="text-xs md:text-sm text-green-100">
+                Generated at
+              </div>
+              <div className="text-sm md:text-base font-medium">
                 {new Date().toLocaleTimeString()}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
-        <div className="flex flex-col gap-8 ">
-          <div className="flex justify-center itmes-center md:flex-row space-y-6">
-            <Card className="w-1/2 bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                    <Star className="h-5 w-5 text-white" />
-                  </div>
-                  <CardTitle className="text-lg font-bold">
-                    ATS Analysis
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center mb-4">
-                  <div
-                    className={`text-5xl font-bold bg-gradient-to-r ${getScoreBg(
-                      generatedCvOutput.atsScore,
-                    )} bg-clip-text text-transparent mb-2`}
-                  >
-                    {generatedCvOutput.atsScore}
-                  </div>
-                  <div className="text-gray-500 text-sm">ATS Score / 100</div>
-                </div>
+        <div className="flex flex-col gap-4 md:gap-4">
+          {/* Analytics Cards - Fixed Grid Layout */}
 
-                {/* Score Breakdown */}
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Job Match</span>
-                    <span
-                      className={`font-semibold ${getScoreColor(
-                        generatedCvOutput.jobMatch,
-                      )}`}
-                    >
-                      {generatedCvOutput.jobMatch}%
-                    </span>
+          {/* CV Content Card */}
+          <div className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white p-2 md:p-3">
+              <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-5 w-5 text-white" />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Keywords</span>
-                    <span
-                      className={`font-semibold ${getScoreColor(
-                        generatedCvOutput.keywordMatch,
-                      )}`}
-                    >
-                      {generatedCvOutput.keywordMatch}%
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Format</span>
-                    <span
-                      className={`font-semibold ${getScoreColor(
-                        generatedCvOutput.formatScore,
-                      )}`}
-                    >
-                      {generatedCvOutput.formatScore}%
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg md:text-xl font-bold mb-1">
+                      Your AI Generated CV
+                    </h3>
+                    {/* <p className="text-xs md:text-sm text-indigo-100">
+                      Review and customize your optimized CV below
+                    </p> */}
                   </div>
                 </div>
+                <button
+                  onClick={handleInitiateSave}
+                  disabled={isSaving}
+                  className="w-full lg:w-auto bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl px-4 py-2 md:px-6 md:py-2.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 text-sm font-medium flex-shrink-0"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span>Save Final</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
 
-                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {generatedCvOutput.atsScoreReasoning}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="w-1/2 bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-purple-500" />
-                  Performance
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
-                  <ThumbsUp className="h-5 w-5 text-green-500" />
-                  <div>
-                    <div className="font-semibold text-green-800">
-                      Excellent Match
-                    </div>
-                    <div className="text-sm text-green-600">
-                      94% job alignment
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-                  <Target className="h-5 w-5 text-blue-500" />
-                  <div>
-                    <div className="font-semibold text-blue-800">
-                      Well Targeted
-                    </div>
-                    <div className="text-sm text-blue-600">
-                      Keywords optimized
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="col-span-2">
-            <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                      <FileText className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl font-bold">
-                        Your AI Generated CV
-                      </CardTitle>
-                      <CardDescription className="text-indigo-100 text-sm">
-                        Review and customize your optimized CV below
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleInitiateSave}
-                    disabled={isSaving}
-                    className="bg-white/20 hover:bg-white/30 border-white/30 text-white rounded-xl h-10 transition-all duration-300"
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Final
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-8">
-                {/* CV Content */}
-                <EditableMaterial
-                  editorId="cv-live-editor"
-                  title="CV"
-                  content={generatedCvOutput.cv}
-                  setContent={setCurrentCvContent}
-                  handleRegenerate={handleRegenerate}
-                  isHtml
-                />
-              </CardContent>
-            </Card>
+            <div className="p-2 md:p-3 lg:p-4">
+              <EditableMaterial
+                editorId="cv-live-editor"
+                title="CV"
+                content={generatedCvOutput.cv}
+                setContent={setCurrentCvContent}
+                handleRegenerate={handleRegenerate}
+                isHtml
+              />
+            </div>
           </div>
         </div>
 
         {/* Bottom Action Bar */}
-        <div className="mt-8 bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+        <div className="mt-6 md:mt-8 bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-2 md:p-3">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <div className="font-semibold text-gray-900">
+              <div className="min-w-0">
+                <div className="text-sm md:text-base font-semibold text-gray-900">
                   Ready to apply?
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-xs md:text-sm text-gray-600">
                   Your CV is optimized and ready to impress employers
                 </div>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="rounded-xl">
-                <Clock className="mr-2 h-4 w-4" />
-                Save for Later
-              </Button>
-              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl">
-                <Award className="mr-2 h-4 w-4" />
-                Start Applying
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <button className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium">
+                <Clock className="h-4 w-4" />
+                <span>Save for Later</span>
+              </button>
+              <button className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all text-sm font-medium">
+                <Award className="h-4 w-4" />
+                <span>Start Applying</span>
+              </button>
             </div>
           </div>
         </div>

@@ -118,29 +118,91 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
-
+  const [progress, setProgress] = useState(0);
   const handleFileChange = async (selectedFile) => {
     if (selectedFile) {
       setFile(selectedFile);
     }
   };
 
+  // const handleUpload = async () => {
+  //   if (!file) return;
+
+  //   setIsUploading(true);
+  //   const formData = new FormData();
+  //   formData.append('cv', file);
+
+  //   try {
+  //     const response = await apiInstance.post(
+  //       '/students/resume/extract',
+  //       formData,
+  //     );
+  //   } catch (error) {
+  //     console.error('Error uploading file:', error);
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // };
+
   const handleUpload = async () => {
     if (!file) return;
 
     setIsUploading(true);
+    setProgress(0);
+
     const formData = new FormData();
     formData.append('cv', file);
 
+    let timer: NodeJS.Timeout | null = null;
+
+    // --- Start Simulated Smooth Progress ---
+    timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev < 95) {
+          return prev + Math.floor(Math.random() * 8 + 2); // +2 to +10%
+        } else {
+          clearInterval(timer!);
+          return prev;
+        }
+      });
+    }, 1000);
+
     try {
-      const response = await apiInstance.post(
-        '/students/resume/extract',
-        formData,
-      );
+      // 👇 Add this small delay before making the upload call
+      await new Promise((r) => setTimeout(r, 500));
+
+      await apiInstance.post('/students/resume/extract', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (event) => {
+          if (event.total) {
+            const percent = Math.round((event.loaded * 100) / event.total);
+            if (percent < 95) setProgress(percent);
+          }
+        },
+      });
+
+      // --- After successful upload, complete the bar to 100% smoothly ---
+      clearInterval(timer!);
+      setProgress(95);
+
+      const finishTimer = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(finishTimer);
+            return 100;
+          }
+          return prev + 1;
+        });
+      }, 30);
     } catch (error) {
       console.error('Error uploading file:', error);
+      clearInterval(timer!);
     } finally {
-      setIsUploading(false);
+      // --- Reset state after short delay ---
+      setTimeout(() => {
+        setIsUploading(false);
+        setProgress(0);
+      }, 1200);
     }
   };
 
@@ -206,6 +268,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         file={file}
         isDragging={isDragging}
         isUploading={isUploading}
+        progress={progress}
         isJobPrefEditable={isJobPrefEditable}
         careerDetailsForm={careerDetailsForm}
         expandedIndex={expandedIndex}

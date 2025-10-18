@@ -33,11 +33,18 @@ import {
   updateJobRole,
   jobViewedByStudent,
   isStudentViewedJob,
+  jobVisitedByStudent,
+  isJobVisitedByStudent,
+  getAllVisitedJobs,
+  getAllViewedJobs,
+  getAllSavedJobs,
+  getAllStatCounts,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import puppeteer from 'puppeteer';
 import pkg from 'generic-pool';
+import { spawn } from 'child_process';
 
 const router = Router();
 
@@ -155,8 +162,36 @@ router.get('/jobs/recommended', authMiddleware, isStudent, getRecommendedJobs);
 router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
 router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
 router.post('/autopilot/toggle', authMiddleware, isStudent, toggleAutopilot);
+router.get(
+  '/jobs/visited/:jobId',
+  authMiddleware,
+  isStudent,
+  jobVisitedByStudent,
+);
+
+router.get(
+  '/jobs/is-visited/:jobId',
+  authMiddleware,
+  isStudent,
+  isJobVisitedByStudent,
+);
+
+router.get('/jobs/visited-all', authMiddleware, isStudent, getAllVisitedJobs);
+router.get('/jobs/viewed-all', authMiddleware, isStudent, getAllViewedJobs);
+router.get('/jobs/saved-all', authMiddleware, isStudent, getAllSavedJobs);
+
+router.get('/job/stats', authMiddleware, isStudent, getAllStatCounts);
 
 router.get('/job/viewed/:jobId', authMiddleware, isStudent, jobViewedByStudent);
+
+router.post(
+  '/job/viewed/:jobId',
+  authMiddleware,
+  isStudent,
+  jobViewedByStudent,
+);
+
+router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
 
 router.post('/pdf/generate-pdf', async (req, res) => {
   const { html, title } = req.body;
@@ -228,18 +263,6 @@ router.post('/pdf/generate-pdf', async (req, res) => {
   }
 });
 
-router.post(
-  '/job/viewed/:jobId',
-  authMiddleware,
-  isStudent,
-  jobViewedByStudent,
-);
-router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
-
-import { spawn } from 'child_process';
-import { jobViewsCount } from '../controllers/job.controller.js';
-
-// Your Express router logic
 router.post('/docx/generate-docx', (req, res) => {
   const { html, title } = req.body;
 
