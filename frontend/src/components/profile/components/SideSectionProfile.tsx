@@ -1,5 +1,5 @@
 import { Edit, File, Sparkles, UploadCloud, X } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 const dummyUser = {
   name: 'Alex Rider',
   email: 'alex.rider@example.com',
@@ -15,6 +15,7 @@ const SideSectionProfile = ({
   file,
   isDragging,
   isUploading,
+  progress,
   handleFileChange,
   handleButtonClick,
   handleDragEnter,
@@ -25,6 +26,7 @@ const SideSectionProfile = ({
   handleUpload,
 }: any) => {
   const { fullName, email, phone } = personalInfoForm.control._formValues;
+  // const [progress, setProgress] = useState(0);
 
   return (
     <div>
@@ -138,28 +140,31 @@ const SideSectionProfile = ({
 
             {file && (
               <div className="mt-6 flex flex-col items-center gap-4">
-                <div className="flex items-center gap-3 p-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-md">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <File className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="font-medium text-gray-800 truncate">
-                      {file.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                  <button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleRemoveFile}
-                    className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 w-9 flex-shrink-0"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
+                {!isUploading ? (
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-md">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <File className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="font-medium text-gray-800 truncate">
+                        {file.name}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
 
+                    <button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRemoveFile}
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 w-9 flex-shrink-0"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                ) : null}
+                {/* 
                 <button
                   onClick={handleUpload}
                   disabled={isUploading}
@@ -169,11 +174,45 @@ const SideSectionProfile = ({
                     <>
                       <div className="animate-spin h-5 w-5 mr-3 border-2 border-white border-t-transparent rounded-full"></div>
                       Processing...
+                      <span className="animate-pulse">
+                        Calculating...{progress}%
+                      </span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-5 w-5 mr-2" />
                       Process CV
+                    </>
+                  )}
+                </button> */}
+
+                <button
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                  className=" w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-base flex flex-col items-center justify-center gap-2"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="w-full bg-cyan-100 rounded-full h-3 overflow-hidden">
+                        <div
+                          className="h-3 bg-gradient-to-r from-yellow-600 to-blue-600 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                        <div className="text-sm font-medium">
+                          Processing... {progress}%
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Sparkles className=" h-5 w-5" />
+                        Process CV
+                      </div>
                     </>
                   )}
                 </button>

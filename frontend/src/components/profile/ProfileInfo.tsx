@@ -63,6 +63,8 @@ const ProfileInfo = ({
   togglePhoneEdit,
 
   // careerDetailsForm,
+  progress,
+
   fileInputRef,
   file,
   isDragging,
@@ -119,6 +121,7 @@ const ProfileInfo = ({
         handleDrop={handleDrop}
         handleRemoveFile={handleRemoveFile}
         handleUpload={handleUpload}
+        progress={progress}
       />
     );
   };
@@ -229,25 +232,6 @@ const ProfileInfo = ({
   return (
     <>
       <div className="relative overflow-hidden min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 py-6">
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          {[...Array(10)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full bg-gradient-to-br from-blue-400/10 to-purple-400/10 blur-2xl"
-              style={{
-                width: `${Math.random() * 200 + 100}px`,
-                height: `${Math.random() * 200 + 100}px`,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animation: `float ${
-                  Math.random() * 15 + 10
-                }s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 5}s`,
-              }}
-            />
-          ))}
-        </div>
-
         <style jsx>{`
           @keyframes float {
             0%,

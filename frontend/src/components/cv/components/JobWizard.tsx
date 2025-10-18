@@ -191,10 +191,10 @@ const JobWizard = ({
                   Step 1: Provide Job Context
                 </CardTitle>
               </div>
-              <CardDescription className="text-blue-100 text-sm">
+              {/* <CardDescription className="text-blue-100 text-sm">
                 Tell the AI about the job. This is crucial for tailoring your CV
                 to perfection.
-              </CardDescription>
+              </CardDescription> */}
             </div>
           </CardHeader>
 
@@ -205,14 +205,14 @@ const JobWizard = ({
               className="w-full"
             >
               {/* Enhanced Tabs List */}
-              <TabsList className="grid w-full grid-cols-3 bg-gray-100 rounded-2xl p-1 mb-1 h-auto">
+              <TabsList className="grid  grid-cols-3 bg-gray-100 rounded-2xl p-1 mb-1 h-auto">
                 {tabData.map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className={`flex flex-col items-center gap-2 p-1 rounded-xl transition-all duration-300 hover:scale-105  ${
+                      className={`flex flex-row items-center gap-2 p-3 border rounded-xl transition-all duration-300 hover:scale-105  ${
                         activeTab === tab.value
                           ? `bg-gradient-to-r ${tab.gradient} text-white shadow-lg`
                           : 'hover:bg-white/80 data-[state=active]:bg-white data-[state=active]:shadow-lg'
@@ -220,9 +220,9 @@ const JobWizard = ({
                     >
                       <Icon className="h-5 w-5" />
                       <div className="text-center">
-                        <div className="font-semibold text-sm">{tab.label}</div>
+                        {/* <div className="font-semibold text-sm">{tab.label}</div> */}
                         <div
-                          className={`text-xs ${
+                          className={`text-sm ${
                             activeTab === tab.value
                               ? 'text-white/80'
                               : 'text-gray-500'
@@ -261,7 +261,7 @@ const JobWizard = ({
                 </div>
 
                 <Button
-                  className={`w-full h-14 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+                  className={`h-14  text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
                     pastedJobDescription && !isLoading
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl text-white'
                       : 'bg-gray-300 text-gray-500'
@@ -315,8 +315,8 @@ const JobWizard = ({
 
               {/* Title Tab */}
               <TabsContent value="title" className="space-y-6">
-                <div className="space-y-4">
-                  <div className="relative group">
+                <div className=" flex flex-row gap-4 ">
+                  <div className="relative group flex-1">
                     <Input
                       placeholder="e.g., Senior Software Engineer..."
                       className="h-14 border-2 border-gray-200 rounded-2xl px-6 text-lg focus:border-green-500 focus:ring-0 transition-all duration-300 group-hover:border-gray-300 bg-gray-50/50 backdrop-blur-sm"
@@ -327,51 +327,32 @@ const JobWizard = ({
                       <User className="h-5 w-5" />
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-700 bg-green-50 p-3 rounded-xl border border-green-100">
-                    <Sparkles className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="font-medium">Quick setup:</span> We'll
-                    optimize based on common requirements for this role.
-                  </div>
+                  <Button
+                    className={` h-14 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+                      enteredJobTitle && !isLoading
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl text-white'
+                        : 'bg-gray-300 text-gray-500'
+                    }`}
+                    onClick={() => handleSetJobContext('title')}
+                    disabled={!enteredJobTitle || isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                        Preparing Optimization...
+                      </>
+                    ) : (
+                      <>
+                        <ChevronsRight className="mr-2 h-5 w-5" />
+                        Start Optimization
+                      </>
+                    )}
+                  </Button>
                 </div>
-
-                <Button
-                  className={`w-full h-14 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
-                    enteredJobTitle && !isLoading
-                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl text-white'
-                      : 'bg-gray-300 text-gray-500'
-                  }`}
-                  onClick={() => handleSetJobContext('title')}
-                  disabled={!enteredJobTitle || isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="animate-spin mr-2 h-5 w-5" />
-                      Preparing Optimization...
-                    </>
-                  ) : (
-                    <>
-                      <ChevronsRight className="mr-2 h-5 w-5" />
-                      Start Optimization
-                    </>
-                  )}
-                </Button>
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        {/* <div className="flex items-center justify-center gap-6 mt-8 text-gray-500 text-sm">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            Powered by AI
-          </div>
-          <div>•</div>
-          <div>Secure & Private</div>
-          <div>•</div>
-          <div>Instant Results</div>
-        </div> */}
       </div>
     </div>
   );
