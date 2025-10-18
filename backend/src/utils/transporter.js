@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import { isValidEmail } from './validators.js';
 import { config } from 'dotenv';
 
-config();
+config({ quiet: true, override: true }); // No need for silent:true in this setup
 
 const validateEnvVars = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {

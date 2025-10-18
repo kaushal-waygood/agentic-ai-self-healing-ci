@@ -1,79 +1,75 @@
-// autopilot/jobApplyQueue.js
 import Queue from 'bull';
+import mongoose from 'mongoose';
 import { Student } from '../models/student.model.js';
 import { AppliedJob } from '../models/AppliedJob.js';
 import { sendJobApplicationEmail } from '../services/emailService.js';
-import mongoose from 'mongoose';
+
+const redisConfig = {
+  host: process.env.REDIS_HOST || '127.0.0.1',
+  port: parseInt(process.env.REDIS_PORT) || 6379,
+};
 
 const jobApplyQueue = new Queue('job application', {
-  redis: {
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: parseInt(process.env.REDIS_PORT) || 6379,
-  },
+  redis: redisConfig,
   settings: {
     stalledInterval: 60000,
     maxStalledCount: 1,
     lockDuration: 30000,
   },
   limiter: {
+    // IMPORTANT: Rate limit to avoid being flagged as spam.
+    // This allows max 6 applications per minute.
     max: 1,
-    duration: 10000,
+    duration: 10000, // 1 job every 10 seconds
   },
 });
 
 jobApplyQueue.process(async (job) => {
-  const { studentId, jobData } = job.data;
+  // OPTIMIZATION: Receive enriched data directly from the previous queue.
+  const { studentId, agentId, jobData, studentData, coverLetter } = job.data;
+
   console.log(
-    `Processing application for student ${studentId} to job: ${jobData.job?.title}`,
+    `📨 [JobApplyQueue] Processing application for agent ${agentId}: Student ${studentId} to job "${jobData.job?.title}"`,
   );
 
   try {
-    // 1. First check if autopilot is still enabled
-    const student = await Student.findById(studentId).select(
-      'settings.autopilotEnabled',
-    );
-    if (!student) {
-      throw new Error(`Student not found with ID: ${studentId}`);
+    const jobId = jobData.job._id;
+
+    // --- 1. Idempotency Check ---
+    // OPTIMIZATION: Prevent duplicate applications if a job is ever re-run.
+    const alreadyApplied = await AppliedJob.exists({
+      student: studentId,
+      job: jobId,
+    });
+    if (alreadyApplied) {
+      console.log(
+        `[JobApplyQueue] Application already exists for job ${jobId}. Skipping.`,
+      );
+      return { skipped: true, reason: 'Already applied' };
     }
 
-    if (!student.settings.autopilotEnabled) {
+    // --- 2. Check if Autopilot is still enabled ---
+    // This check remains important as a final safeguard.
+    const student = await Student.findById(studentId)
+      .select('autopilotAgent')
+      .lean();
+    const agent = student?.autopilotAgent?.find((a) => a.agentId === agentId);
+
+    if (!agent || !agent.autopilotEnabled) {
       console.log(
-        `Autopilot disabled - skipping application for student ${studentId}`,
+        `[JobApplyQueue] Autopilot disabled for agent ${agentId}. Skipping application.`,
       );
       return { skipped: true, reason: 'Autopilot disabled' };
     }
 
-    // 2. Validate job data
-    if (!jobData?.job || typeof jobData.job !== 'object') {
-      throw new Error('Invalid job data: missing job object');
-    }
-
-    const requiredFields = ['title', 'company', 'description'];
-    const missingFields = requiredFields.filter((field) => !jobData.job[field]);
-    if (missingFields.length > 0) {
-      throw new Error(
-        `Missing required job fields: ${missingFields.join(', ')}`,
-      );
-    }
-
-    // 3. Generate MongoDB ObjectId if needed
-    if (!mongoose.Types.ObjectId.isValid(jobData.job._id)) {
-      jobData.job._id = new mongoose.Types.ObjectId();
-    }
-
-    // 4. Get full student data
-    const fullStudent = await Student.findById(studentId).select(
-      'fullName email skills experience',
-    );
-
-    // 5. Send application email
-    const recipientEmail =
-      process.env.DEFAULT_RECIPIENT_EMAIL || 'careers@example.com';
+    // --- 3. Send the Application Email ---
+    // We use the studentData from the job payload, avoiding another DB call.
     const emailResult = await sendJobApplicationEmail({
       jobData,
-      student: fullStudent,
-      recipientEmail: 'shariq@helpstudyabroad.com',
-      // recipientEmail: 'arsalan@helpstudyabroad.com',
+      student: studentData,
+      coverLetter, // Pass the AI-generated cover letter to the email service
+      recipientEmail:
+        jobData.job.applyMethod?.email || process.env.DEFAULT_RECIPIENT_EMAIL,
     });
 
     if (emailResult.rejected?.length > 0) {
@@ -84,16 +80,20 @@ jobApplyQueue.process(async (job) => {
       );
     }
 
-    // 6. Record application
+    // --- 4. Record the Successful Application ---
     await AppliedJob.create({
       student: studentId,
-      job: jobData.job._id,
+      job: jobId,
       applicationDate: new Date(),
       status: 'APPLIED',
       applicationMethod: 'AUTOPILOT',
       jobTitle: jobData.job.title,
       company: jobData.job.company,
-      source: jobData.source || 'external',
+      source: jobData.source || 'ZobsAI',
+      // OPTIMIZATION: Add agentId for better tracking and analytics.
+      agentData: {
+        agentId,
+      },
       emailConfirmation: {
         messageId: emailResult.messageId,
         accepted: emailResult.accepted,
@@ -102,57 +102,32 @@ jobApplyQueue.process(async (job) => {
     });
 
     console.log(
-      `Successfully applied to ${jobData.job.title} at ${jobData.job.company}`,
+      `✅ [JobApplyQueue] Successfully applied to ${jobData.job.title} for agent ${agentId}`,
     );
     return { success: true };
   } catch (error) {
     console.error(
-      `Error processing application for student ${studentId}:`,
+      `❌ [JobApplyQueue] Error processing application for agent ${agentId}:`,
       error.message,
     );
     throw error;
   }
 });
 
-// Enhanced event listeners with better logging
+// --- Event Listeners for Queue Monitoring ---
 jobApplyQueue.on('completed', (job, result) => {
   if (result?.skipped) {
-    console.log(`Job ${job.id} skipped: ${result.reason}`);
+    console.log(`[JobApplyQueue] Job ${job.id} skipped: ${result.reason}`);
   } else {
-    console.log(`Job ${job.id} completed successfully`);
+    console.log(`[JobApplyQueue] Job ${job.id} completed successfully`);
   }
 });
 
 jobApplyQueue.on('failed', (job, err) => {
-  console.error(`Job ${job.id} failed with error:`, err.message);
-  if (job) {
-    console.error(
-      'Job data:',
-      JSON.stringify(
-        {
-          studentId: job.data.studentId,
-          jobTitle: job.data.jobData?.job?.title,
-        },
-        null,
-        2,
-      ),
-    );
-  }
+  console.error(
+    `[JobApplyQueue] Job ${job.id} for agent ${job.data.agentId} FAILED:`,
+    err.message,
+  );
 });
-
-// Cleanup jobs
-// const cleanQueue = async () => {
-//   try {
-//     await jobApplyQueue.clean(7 * 24 * 60 * 60 * 1000, 'completed');
-//     await jobApplyQueue.clean(14 * 24 * 60 * 60 * 1000, 'failed');
-//     console.log('Queue cleanup completed');
-//   } catch (err) {
-//     console.error('Queue cleanup failed:', err);
-//   }
-// };
-
-// Run cleanup daily
-// setInterval(cleanQueue, 24 * 60 * 60 * 1000);
-// cleanQueue(); // Initial cleanup
 
 export default jobApplyQueue;

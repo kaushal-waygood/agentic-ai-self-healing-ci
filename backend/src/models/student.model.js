@@ -199,6 +199,21 @@ const studentSchema = new Schema(
       },
     ],
 
+    visitedJobs: [
+      {
+        _id: false,
+        job: {
+          type: Schema.Types.ObjectId,
+          ref: 'Job', // Reference to the Job model
+          required: true,
+        },
+        visitedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {
       autopilotEnabled: { type: Boolean, default: false },

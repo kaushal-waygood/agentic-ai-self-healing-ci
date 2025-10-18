@@ -13,6 +13,7 @@ import redisClient from '../config/redis.js';
 import { config } from '../config/config.js';
 import { genAI } from '../config/gemini.js';
 import { fetchAndSaveJobsService } from '../utils/fetchAndSaveJobsService.js';
+import { Student } from '../models/student.model.js';
 
 export const postManualJob = async (req, res) => {
   const { _id } = req.user;
@@ -1073,14 +1074,11 @@ export const getAllJobsForStudent = async (req, res, next) => {
       student.viewedJobs.map((view) => view.job.toString()),
     );
 
-    // 3. Fetch all jobs from the database
-    // Using .lean() makes it faster and returns plain JavaScript objects
     const jobs = await Job.find({}).lean();
 
     // 4. Add the 'viewed' boolean to each job
     const jobsWithViewedStatus = jobs.map((job) => ({
-      ...job, // Keep all original job properties
-      // Check if the job's ID exists in our Set of viewed IDs
+      ...job,
       viewed: viewedJobIds.has(job._id.toString()),
     }));
 

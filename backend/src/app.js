@@ -19,13 +19,11 @@ import agentRoutes from './routes/autopilotAgent.route.js';
 import planRoutes from './routes/plan.route.js';
 import formRoutes from './routes/form.route.js';
 import { handleStripeWebhook } from './controllers/plan.controller.js';
+import taskRoutes from './routes/dev.route.js';
+import './queues/jobDiscoveryQueue.js';
 
 const app = express();
 
-// This tells Express that it's behind a proxy (like a load balancer or reverse proxy)
-// and to trust the X-Forwarded-For header that the proxy sends.
-// This is crucial for rate-limiting to work correctly.
-// '1' means it will trust the first hop (the immediate proxy).
 app.set('trust proxy', 1);
 
 // 1. Security Middleware
@@ -110,6 +108,7 @@ app.use('/api/v1/students', aiRoutes);
 app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
+app.use('/api/v1/dev', taskRoutes);
 
 // 7. 404 Handler (was 6)
 app.use((req, res, next) => {

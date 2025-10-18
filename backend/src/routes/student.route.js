@@ -31,11 +31,13 @@ import {
   StudentAnalytics,
   toggleAutopilot,
   updateJobRole,
+  jobVisitedByStudent,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import puppeteer from 'puppeteer';
 import pkg from 'generic-pool';
+import { spawn } from 'child_process';
 
 const router = Router();
 
@@ -153,6 +155,7 @@ router.get('/jobs/recommended', authMiddleware, isStudent, getRecommendedJobs);
 router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
 router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
 router.post('/autopilot/toggle', authMiddleware, isStudent, toggleAutopilot);
+router.get('jobs/visited', authMiddleware, isStudent, jobVisitedByStudent);
 
 router.post('/pdf/generate-pdf', async (req, res) => {
   const { html, title } = req.body;
@@ -224,12 +227,6 @@ router.post('/pdf/generate-pdf', async (req, res) => {
   }
 });
 
-// Your Express router logic
-
-// Your Express router logic
-import { spawn } from 'child_process';
-
-// Your Express router logic
 router.post('/docx/generate-docx', (req, res) => {
   const { html, title } = req.body;
 

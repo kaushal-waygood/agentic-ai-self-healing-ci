@@ -1514,3 +1514,5 @@ export const isStudentViewedJob = async (req, res, next) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const jobVisitedByStudent = async (req, res) => {};

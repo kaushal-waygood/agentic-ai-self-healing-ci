@@ -11,6 +11,7 @@ import puppeteer from 'puppeteer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
+import { Notify } from '../models/notify.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
 export const firebaseAuth = async (req, res) => {
@@ -677,8 +678,6 @@ const FRONTEND_API_BASE_URL =
     ? 'https://dev.zobsai.com'
     : 'http://127.0.0.1:3000';
 
-console.log('FRONTEND_API_BASE_URL from controller', FRONTEND_API_BASE_URL);
-
 // Use environment variables instead of hardcoded values
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
@@ -687,10 +686,6 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 const originUrl = FRONTEND_API_BASE_URL;
-console.log('originUrl', originUrl);
-
-console.log('BACKEND_API_BASE_URL', BACKEND_API_BASE_URL);
-console.log('FRONTEND_API_BASE_URL', FRONTEND_API_BASE_URL);
 
 export const sendEmails = async (req, res) => {
   const {
@@ -1130,6 +1125,48 @@ export const getMe = async (req, res, next) => {
     }
     // Send the response and return to stop execution
     return res.status(200).json(user);
+  } catch (error) {
+    // Pass the error to your global error handler
+    next(error);
+  }
+};
+
+export const notifyUserForAutopilot = async (req, res) => {
+  const { email } = req.body;
+  const userId = req.user?._id;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const notify = await Notify.create({
+      name: userId,
+      email,
+      isNotifyMailSend: true,
+    });
+    // Send the response and return to stop execution
+    return res
+      .status(200)
+      .json({ notify, message: 'Email has been sent successfully' });
+  } catch (error) {
+    // Pass the error to your global error handler
+    next(error);
+  }
+};
+
+export const isEmailSentForNotify = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const notify = await Notify.findOne({ email });
+    if (!notify.isNotifyMailSend) {
+      return res.status(404).json({ message: 'Email not found.' });
+    }
+    // Send the response and return to stop execution
+    return res
+      .status(200)
+      .json({ sent: true, message: 'Email has been sent successfully' });
   } catch (error) {
     // Pass the error to your global error handler
     next(error);
