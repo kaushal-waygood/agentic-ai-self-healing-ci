@@ -19,6 +19,8 @@ import agentRoutes from './routes/autopilotAgent.route.js';
 import planRoutes from './routes/plan.route.js';
 import formRoutes from './routes/form.route.js';
 import { handleStripeWebhook } from './controllers/plan.controller.js';
+import taskRoutes from './routes/dev.route.js';
+import './queues/jobDiscoveryQueue.js';
 
 const app = express();
 
@@ -109,6 +111,7 @@ app.use('/api/v1/students', aiRoutes);
 app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
+app.use('/api/v1/dev', taskRoutes);
 
 // 7. 404 Handler (was 6)
 app.use((req, res, next) => {

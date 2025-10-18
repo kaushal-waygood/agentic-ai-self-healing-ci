@@ -1,278 +1,37 @@
+// src/utils/getRecommendedJobs.js
+import mongoose from 'mongoose';
+import axios from 'axios';
 import { Student } from '../models/student.model.js';
 import { Job } from '../models/jobs.model.js';
-import { calculateMatchScore, convertSalaryToYearly } from './jobUtils.js';
-import axios from 'axios';
-import mongoose from 'mongoose';
+import {
+  calculateMatchScore,
+  convertSalaryToYearly,
+} from '../utils/jobUtils.js';
 import { config } from '../config/config.js';
 
-export const getRecommendedJobs = async (
-  studentId,
-  additionalFilter = {},
-  limit = 50,
-) => {
-  try {
-    // Get student preferences, job role, and skills
-    const student = await Student.findById(studentId)
-      .select('jobPreferences jobRole skills experience education')
-      .lean();
+// --- (generateSearchTerms and transformApiJobToSchema functions remain the same) ---
+const generateSearchTerms = (student) => {
+  const terms = new Set();
 
-    if (!student) {
-      throw new Error('Student not found');
-    }
+  if (student.jobRole) terms.add(student.jobRole);
+  student.skills?.forEach((s) => terms.add(s.skill));
+  student.experience?.forEach((exp) => {
+    if (exp.title) terms.add(exp.title);
+    if (exp.designation) terms.add(exp.designation);
+  });
+  student.education?.forEach((edu) => {
+    if (edu.fieldOfStudy) terms.add(edu.fieldOfStudy);
+    if (edu.degree) terms.add(edu.degree);
+  });
+  student.jobPreferences?.mustHaveSkills?.forEach((s) => terms.add(s.skill));
 
-    const preferences = student.jobPreferences || {};
-    const jobRole = student.jobRole;
-    const studentSkills = student.skills || [];
-    const studentExperience = student.experience || [];
-    const studentEducation = student.education || [];
-
-    // Build basic filter
-    const filter = {
-      isActive: true,
-      ...additionalFilter,
-    };
-
-    // If no preferences exist, use jobRole and skills to find relevant jobs
-    if (!preferences || Object.keys(preferences).length === 0) {
-      const searchTerms = [];
-
-      if (jobRole) {
-        searchTerms.push(jobRole);
-      }
-
-      // Add skills as search terms
-      if (studentSkills.length) {
-        studentSkills.forEach((skill) => {
-          searchTerms.push(skill.skill);
-        });
-      }
-
-      // Add experience job titles as search terms
-      if (studentExperience.length) {
-        studentExperience.forEach((exp) => {
-          if (exp.title) searchTerms.push(exp.title);
-          if (exp.designation) searchTerms.push(exp.designation);
-        });
-      }
-
-      // Add education fields as search terms
-      if (studentEducation.length) {
-        studentEducation.forEach((edu) => {
-          if (edu.fieldOfStudy) searchTerms.push(edu.fieldOfStudy);
-          if (edu.degree) searchTerms.push(edu.degree);
-        });
-      }
-
-      // Create a unique list of search terms
-      const uniqueSearchTerms = [
-        ...new Set(searchTerms.filter((term) => term)),
-      ];
-
-      if (uniqueSearchTerms.length) {
-        filter.$or = uniqueSearchTerms.map((term) => ({
-          $or: [
-            { title: { $regex: term, $options: 'i' } },
-            { description: { $regex: term, $options: 'i' } },
-            { qualifications: { $regex: term, $options: 'i' } },
-            { tags: { $regex: term, $options: 'i' } },
-          ],
-        }));
-      }
-    } else {
-      // Original preference-based filtering logic
-      // Location
-      if (preferences.isRemote) {
-        filter.isRemote = true;
-      } else if (preferences.preferedCountries?.length) {
-        filter.country = {
-          $in: preferences.preferedCountries.map((c) => new RegExp(c, 'i')),
-        };
-      }
-
-      // Job Types
-      if (preferences.preferedJobTypes?.length) {
-        filter.jobTypes = { $in: preferences.preferedJobTypes };
-      }
-
-      // Job Titles - use preferred titles or fallback to jobRole
-      if (preferences.preferedJobTitles?.length) {
-        filter.$or = preferences.preferedJobTitles.map((title) => ({
-          title: { $regex: title, $options: 'i' },
-        }));
-      } else if (jobRole) {
-        filter.$or = [{ title: { $regex: jobRole, $options: 'i' } }];
-      }
-
-      // Salary
-      if (preferences.preferedSalary?.min) {
-        const minSalary = convertSalaryToYearly(
-          preferences.preferedSalary.min,
-          preferences.preferedSalary.period,
-        );
-        filter['salary.min'] = { $gte: minSalary };
-      }
-
-      // Experience Level
-      if (preferences.preferedExperienceLevel) {
-        let experienceValue;
-        switch (preferences.preferedExperienceLevel) {
-          case 'ENTRY_LEVEL':
-            experienceValue = 0;
-            break;
-          case 'MID_LEVEL':
-            experienceValue = 3;
-            break;
-          case 'SENIOR':
-            experienceValue = 5;
-            break;
-          case 'EXPERT':
-            experienceValue = 8;
-            break;
-          default:
-            experienceValue = 0;
-        }
-        filter.experience = { $lte: experienceValue };
-      }
-
-      // Must-have skills
-      if (preferences.mustHaveSkills?.length) {
-        filter.$and = preferences.mustHaveSkills.map((skillObj) => ({
-          $or: [
-            { qualifications: { $regex: skillObj.skill, $options: 'i' } },
-            { description: { $regex: skillObj.skill, $options: 'i' } },
-            { tags: { $regex: skillObj.skill, $options: 'i' } },
-          ],
-        }));
-      }
-    }
-
-    // 1. First try to get jobs from MongoDB
-    const mongoJobs = await Job.find(filter).limit(limit * 2); // Get more to allow for filtering
-
-    let jobsWithScores = mongoJobs
-      .map((job) => ({
-        job: job.toObject ? job.toObject() : job,
-        score: calculateMatchScore(
-          job,
-          preferences,
-          jobRole,
-          studentSkills,
-          studentExperience,
-          studentEducation,
-        ),
-        source: 'mongo',
-      }))
-      .filter((item) => item.score > 0) // Only keep jobs with score > 0
-      .sort((a, b) => b.score - a.score);
-
-    // 2. If no matches in MongoDB or all scores are 0, try external API
-    if (jobsWithScores.length === 0) {
-      console.log('No matching jobs in MongoDB, trying external API...');
-
-      // Build API query parameters based on available data
-      const queryParams = {};
-
-      if (jobRole) {
-        queryParams.query = jobRole;
-      } else if (studentSkills.length) {
-        queryParams.query = studentSkills.map((s) => s.skill).join(' OR ');
-      }
-
-      if (!queryParams.query) {
-        console.log('No search terms available - skipping external API');
-        return [];
-      }
-
-      if (preferences.isRemote) {
-        queryParams.remote_jobs_only = true;
-      }
-
-      if (preferences.preferedCountries?.length) {
-        queryParams.country = preferences.preferedCountries.join(',');
-      }
-
-      console.log('API query params:', queryParams);
-
-      console.log(
-        'check seconds steps ..... processing job discovery for student',
-        queryParams,
-      );
-
-      try {
-        const apiResponse = await axios.get(config.rapidJobApi, {
-          params: {
-            ...queryParams,
-            num_pages: 1,
-          },
-          headers: {
-            'X-RapidAPI-Key': config.rapidApiKey,
-            'X-RapidAPI-Host': config.rapidApiHost,
-          },
-        });
-
-        const apiJobs = apiResponse.data.data || [];
-
-        jobsWithScores = apiJobs
-          .map((apiJob) => {
-            try {
-              const transformedJob = transformApiJobToSchema(apiJob);
-              return {
-                job: transformedJob,
-                score: calculateMatchScore(
-                  transformedJob,
-                  preferences,
-                  jobRole,
-                  studentSkills,
-                  studentExperience,
-                  studentEducation,
-                ),
-                source: 'api',
-              };
-            } catch (transformError) {
-              console.error(
-                'Error transforming API job:',
-                transformError.message,
-              );
-              console.log('Problematic API job data:', {
-                job_id: apiJob.job_id,
-                job_title: apiJob.job_title,
-                employer_name: apiJob.employer_name,
-              });
-              return null;
-            }
-          })
-          .filter((job) => job && job.score > 0)
-          .sort((a, b) => b.score - a.score);
-
-        console.log(
-          `Found ${jobsWithScores.length} valid jobs from external API`,
-        );
-      } catch (apiError) {
-        console.error('Failed to fetch jobs from external API:', apiError);
-        return [];
-      }
-    }
-
-    // Ensure all jobs have proper IDs before returning
-    const finalJobs = jobsWithScores.map((item) => {
-      if (!item.job._id) {
-        item.job._id = new mongoose.Types.ObjectId();
-      }
-      return item.job;
-    });
-
-    return finalJobs.slice(0, limit); // Return up to the limit
-  } catch (error) {
-    console.error('Error in getRecommendedJobs:', error);
-    throw error;
-  }
+  return Array.from(terms).join(' ');
 };
 
 const transformApiJobToSchema = (apiJob) => {
-  const jobId = new mongoose.Types.ObjectId();
+  if (!apiJob || !apiJob.job_id) return null;
 
   return {
-    _id: jobId,
     title: apiJob.job_title || 'No title provided',
     description: apiJob.job_description || '',
     company: apiJob.employer_name || 'Unknown company',
@@ -295,7 +54,7 @@ const transformApiJobToSchema = (apiJob) => {
       url: apiJob.job_apply_link || '',
     },
     jobTypes: apiJob.job_employment_type
-      ? [apiJob.job_employment_type]
+      ? [apiJob.job_employment_type.toUpperCase()]
       : ['FULL_TIME'],
     experience: apiJob.job_required_experience?.required_experience_in_months
       ? Math.floor(
@@ -307,8 +66,136 @@ const transformApiJobToSchema = (apiJob) => {
       : new Date(),
     source: 'api',
     isActive: true,
-    qualifications: apiJob.job_highlights?.qualifications || '',
-    tags: apiJob.job_highlights?.key_requirements || [],
-    externalId: apiJob.job_id || null,
+    qualifications: apiJob.job_highlights?.Qualifications?.join('\n') || '',
+    tags: apiJob.job_highlights?.Responsibilities || [],
+    jobId: apiJob.job_id,
   };
+};
+
+export const getRecommendedJobs = async ({
+  studentId,
+  agentConfig,
+  studentProfile,
+  appliedJobIds,
+  limit = 50,
+}) => {
+  console.log(
+    `🔍 [getRecommendedJobs] Fetching recommended jobs for student ${studentId}`,
+  );
+  try {
+    const student =
+      studentProfile || (await Student.findById(studentId).lean());
+    if (!student) throw new Error('Student not found');
+
+    const searchString = generateSearchTerms(student);
+    const preferences = student.jobPreferences || {};
+    const filter = { isActive: true, ...agentConfig };
+
+    if (appliedJobIds.length > 0) {
+      filter._id = {
+        $nin: appliedJobIds.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+    if (searchString) {
+      filter.$text = { $search: searchString };
+    }
+
+    if (preferences.isRemote) filter.isRemote = true;
+    if (preferences.preferedCountries?.length)
+      filter.country = { $in: preferences.preferedCountries };
+    if (preferences.preferedJobTypes?.length)
+      filter.jobTypes = { $in: preferences.preferedJobTypes };
+    if (preferences.preferedSalary?.min) {
+      const minSalary = convertSalaryToYearly(
+        preferences.preferedSalary.min,
+        preferences.preferedSalary.period,
+      );
+      filter['salary.min'] = { $gte: minSalary };
+    }
+
+    let query = Job.find(filter);
+
+    if (filter.$text) {
+      query = query
+        .select({ score: { $meta: 'textScore' } })
+        .sort({ score: { $meta: 'textScore' } });
+    } else {
+      query = query.sort({ postedAt: -1 });
+    }
+
+    const mongoJobs = await query.limit(limit).lean();
+    let finalJobs = mongoJobs;
+
+    if (finalJobs.length < limit) {
+      const apiQuery = agentConfig.jobTitle;
+
+      // ✨ FIX 2: Check if apiQuery has a value before making the call
+      if (apiQuery) {
+        console.log(
+          `Found ${finalJobs.length} local jobs. Querying API for ${
+            limit - finalJobs.length
+          } more with query: "${apiQuery}"`,
+        );
+        try {
+          const apiResponse = await axios.get(config.rapidJobApi, {
+            params: { query: apiQuery, num_pages: 1 }, // Use the defined variable
+            headers: {
+              'X-RapidAPI-Key': config.rapidApiKey,
+              'X-RapidAPI-Host': config.rapidApiHost,
+            },
+          });
+
+          const apiJobsData = apiResponse.data.data || [];
+          if (apiJobsData.length > 0) {
+            const transformedJobs = apiJobsData
+              .map(transformApiJobToSchema)
+              .filter(Boolean);
+
+            const operations = transformedJobs.map((job) => ({
+              updateOne: {
+                filter: { externalId: job.externalId },
+                update: { $set: job },
+                upsert: true,
+              },
+            }));
+
+            if (operations.length > 0) {
+              await Job.bulkWrite(operations);
+              console.log(`Upserted ${operations.length} jobs from the API.`);
+            }
+
+            const existingIds = new Set(finalJobs.map((j) => j.externalId));
+            const newUniqueApiJobs = transformedJobs.filter(
+              (j) => !existingIds.has(j.jobId),
+            );
+            finalJobs = [...finalJobs, ...newUniqueApiJobs];
+          }
+        } catch (apiError) {
+          console.error(
+            `Failed to fetch jobs from external API: ${apiError.message}`,
+          );
+        }
+      } else {
+        console.log(
+          `[Worker] Skipping external API call for student ${studentId} due to empty search query.`,
+        );
+      }
+    }
+
+    const jobsWithScores = finalJobs.map((job) => ({
+      job,
+      score: calculateMatchScore(job, student),
+    }));
+
+    return jobsWithScores
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((item) => ({
+        ...item.job,
+        _id: item.job._id || new mongoose.Types.ObjectId(),
+      }));
+  } catch (error) {
+    console.error('Error in getRecommendedJobs:', error);
+    throw error;
+  }
 };

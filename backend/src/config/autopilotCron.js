@@ -1,125 +1,54 @@
+// src/config/autopilotCron.js
 import cron from 'node-cron';
 import { Student } from '../models/student.model.js';
-import jobDiscoveryQueue from '../queues/jobDiscoveryQueue.js';
+import { Job } from '../models/jobs.model.js'; // Import the new Job model
 
-const runAutopilotCron = () => {
-  cron.schedule('* * * * *', async () => {
-    console.log('Running autopilot job discovery cron...');
+export const runAutopilotTask = async () => {
+  console.log('🚀 [Task] Finding students for job discovery...');
+  try {
+    const studentsWithAgents = await Student.find({
+      'autopilotAgent.autopilotEnabled': true,
+      isActive: true,
+    }).select('_id autopilotAgent');
 
-    try {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+    if (!studentsWithAgents || studentsWithAgents.length === 0) {
+      console.log('[Task] No students with active autopilot agents found.');
+      return;
+    }
 
-      // Get all students with active autopilot agents
-      const studentsWithAutopilot = await Student.aggregate([
-        {
-          $match: {
-            'autopilotAgent.autopilotEnabled': true,
-            isActive: true,
-          },
-        },
-        {
-          $lookup: {
-            from: 'appliedjobs',
-            let: { studentId: '$_id' },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ['$student', '$$studentId'] },
-                      { $gte: ['$createdAt', startOfDay] },
-                    ],
-                  },
-                },
-              },
-              { $count: 'count' },
-            ],
-            as: 'appliedToday',
-          },
-        },
-        {
-          $addFields: {
-            appliedToday: {
-              $ifNull: [{ $arrayElemAt: ['$appliedToday.count', 0] }, 0],
-            },
-          },
-        },
-        {
-          $project: {
-            _id: 1,
-            email: 1,
-            jobPreferences: 1,
-            jobRole: 1,
-            skills: 1,
-            experience: 1,
-            education: 1,
-            appliedToday: 1,
-            autopilotAgent: 1, // Include all agents, we'll filter later
-          },
-        },
-      ]);
-
-      console.log('check fist step......', studentsWithAutopilot);
-
-      console.log(
-        `Found ${studentsWithAutopilot.length} students with active autopilot agents.`,
-      );
-
-      // Process each student and their active agents
-      const discoveryJobs = [];
-
-      for (const student of studentsWithAutopilot) {
-        // Filter only enabled agents
-        const activeAgents = student.autopilotAgent.filter(
-          (agent) => agent.autopilotEnabled,
-        );
-
-        for (const agent of activeAgents) {
-          // Calculate remaining applications for today
-          const remainingApplications =
-            agent.autopilotLimit - student.appliedToday;
-
-          if (remainingApplications > 0) {
-            // Add one job per remaining application
-            for (let i = 0; i < remainingApplications; i++) {
-              discoveryJobs.push({
-                data: {
-                  studentId: student._id.toString(),
-                  agentId: agent.agentId,
-                  agentConfig: {
-                    jobTitle: agent.jobTitle,
-                    jobLocation: agent.jobLocation,
-                    isRemote: agent.isRemote,
-                    employmentType: agent.employmentType,
-                    cvOption: agent.cvOption,
-                    uploadedCVData: agent.uploadedCVData,
-                  },
-                  studentProfile: {
-                    jobPreferences: student.jobPreferences,
-                    jobRole: student.jobRole,
-                    skills: student.skills,
-                    experience: student.experience,
-                    education: student.education,
-                  },
-                },
-              });
-            }
-          }
+    const newJobs = [];
+    for (const student of studentsWithAgents) {
+      for (const agent of student.autopilotAgent) {
+        if (agent.autopilotEnabled) {
+          // Create a job document instead of a queue payload
+          newJobs.push({
+            studentId: student._id,
+            agentId: agent.agentId,
+            agentName: agent.agentName,
+          });
         }
       }
-
-      console.log(
-        `Adding ${discoveryJobs.length} job discovery tasks to queue.`,
-      );
-
-      if (discoveryJobs.length > 0) {
-        await jobDiscoveryQueue.addBulk(discoveryJobs);
-      }
-    } catch (error) {
-      console.error('Error in autopilot cron job:', error);
     }
-  });
+
+    if (newJobs.length > 0) {
+      // Use insertMany to efficiently add all new jobs to the database
+      await Job.insertMany(newJobs, { ordered: false });
+      console.log(
+        `✅ [Task] Successfully created ${newJobs.length} jobs in the database.`,
+      );
+    }
+  } catch (error) {
+    // Prevents duplicate key errors from stopping the process
+    if (error.code === 11000) {
+      console.warn('[Task] Some duplicate jobs were ignored.');
+    } else {
+      console.error('❌ [Task] Error creating jobs:', error);
+    }
+  }
 };
 
-export default runAutopilotCron;
+export const scheduleAutopilotTriggers = () => {
+  // We'll run this every 5 minutes for more frequent checks
+  cron.schedule('*/5 * * * *', runAutopilotTask);
+  console.log('🗓️  DB job creation cron job scheduled to run every 5 minutes.');
+};

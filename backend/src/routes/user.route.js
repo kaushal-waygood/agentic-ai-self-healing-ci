@@ -20,8 +20,10 @@ import {
   redirectToGoogle,
   handleGoogleCallback,
   getMe,
+  notifyUserForAutopilot,
+  isEmailSentForNotify,
 } from '../controllers/user.controller.js';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
+import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -47,5 +49,18 @@ router.patch('/me/password/change', authMiddleware, changePassword);
 router.post('/resend-otp', authMiddleware, resendOtp);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+
+router.post(
+  '/notify-autopilot',
+  authMiddleware,
+  isStudent,
+  notifyUserForAutopilot,
+);
+router.post(
+  '/notify-autopilot-email',
+  authMiddleware,
+  isStudent,
+  isEmailSentForNotify,
+);
 
 export default router;

@@ -15,7 +15,7 @@ import {
   Code,
   Award,
 } from 'lucide-react';
-import { Textarea } from '../ui/textarea';
+import { Textarea } from '../../ui/textarea';
 import {
   Form,
   FormControl,
@@ -23,7 +23,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '../ui/form';
+} from '../../ui/form';
 import { useDispatch } from 'react-redux';
 import {
   getStudentDetailsRequest,
@@ -34,7 +34,7 @@ import {
 import apiInstance from '@/services/api';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
-import LocationPreferences from './components/LocationPreferences';
+import LocationPreferences from './LocationPreferences';
 
 const JobPreferencesForm = () => {
   const [activeSection, setActiveSection] = useState('location');
@@ -283,7 +283,7 @@ const JobPreferencesForm = () => {
   );
 
   const SectionNavigation = () => (
-    <div className="flex flex-wrap gap-2 mb-8">
+    <div className="flex flex-wrap gap-2 mb-4">
       {sections.map((section) => {
         const Icon = section.icon;
         return (
@@ -655,12 +655,12 @@ const JobPreferencesForm = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full mb-6 shadow-lg shadow-purple-400/30">
+        <div className="text-center mb-6">
+          {/* <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full mb-6 shadow-lg shadow-purple-400/30">
             <Briefcase className="w-10 h-10 text-white" />
-          </div>
+          </div> */}
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-4">
             Job Preferences
           </h1>
@@ -676,9 +676,9 @@ const JobPreferencesForm = () => {
 
         {/* Form Content */}
         <div className="max-w-6xl mx-auto">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-400/10 border border-white/20 p-8">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3">
+            <div className="mb-2">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">
                 {sections.find((s) => s.id === activeSection)?.label}
               </h2>
               <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-24"></div>

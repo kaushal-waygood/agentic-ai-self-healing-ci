@@ -4,6 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "watch": "nodemon worker.js",
     "dev": "nodemon server.js",
     "start": "node server.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",

@@ -27,7 +27,7 @@ import {
   AddProject,
   AddSkill,
 } from './AddEducation';
-import JobPreferencesForm from './JobPreference';
+import JobPreferencesForm from './components/JobPreference';
 import { ProfileFormProps, useProfile } from '@/hooks/useProfile';
 import { useCallback, useRef, useState } from 'react';
 import apiInstance from '@/services/api';
@@ -295,7 +295,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
           </CardDescription>
         </CardHeader>
       </Card> */}
-      <div className="max-w-full mx-auto p-4 sm:p-6">
+      {/* <div className="max-w-full mx-auto p-4 sm:p-6">
         <Card className="" id="search-prefs">
           <CardHeader>
             <CardTitle className=" text-xl font-headline flex items-center gap-2">
@@ -311,7 +311,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
             <JobPreferencesForm />
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* Account Management section */}
       {/* {!isOnboarding && (

@@ -158,8 +158,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
   const handleApplyOnSite = async () => {
     try {
-      await apiInstance.post(`/students/job/apply/${job._id}`);
-      window.open(job.applyMethod.url, '_blank', 'noopener,noreferrer');
+      const response = await apiInstance.get(
+        `/students/jobs/visited/${job._id}`,
+      );
+      console.log(
+        'Job view logged for job ID:',
+        response.data.job._id,
+        job._id,
+      );
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -294,6 +300,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   href={`${job.applyMethod.url}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleApplyOnSite}
                   className="flex items-center  w-full text-xs gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
                 >
                   <ExternalLink className=" w-4 h-4" /> Company Site
