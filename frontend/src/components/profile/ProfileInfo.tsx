@@ -15,6 +15,8 @@ import Project from './components/Project';
 import Experience from './components/Experience';
 import Skills from './components/Skills';
 import SideSectionProfile from './components/SideSectionProfile';
+import JobSearchPreferences from './components/JobSearchPreferences';
+import JobPreferencesForm from './components/JobPreference';
 const navItems = [
   {
     id: 'education',
@@ -216,7 +218,7 @@ const ProfileInfo = ({
       case 'jobPreferences':
         return (
           <div>
-            <h2 className="text-2xl font-semibold mb-4">Job Preferences</h2>
+            <JobPreferencesForm />
           </div>
         );
       default:
