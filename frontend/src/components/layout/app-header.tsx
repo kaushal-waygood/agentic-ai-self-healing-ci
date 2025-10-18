@@ -34,7 +34,6 @@ import PlanDropdown from './PlanDropdown';
 // --- Helper Functions & Components (defined outside the main component) ---
 
 const fetchJobSuggestions = async (query) => {
-  console.log(`Fetching suggestions for: "${query}"`);
   const allPossibleJobs = [
     'Software Engineer',
     'Senior Software Developer',

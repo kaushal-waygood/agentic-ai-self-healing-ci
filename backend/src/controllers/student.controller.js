@@ -1086,27 +1086,46 @@ export const getJobPreferences = async (req, res) => {
 };
 
 export const savedJobs = async (req, res) => {
-  const { _id } = req.user;
+  const studentId = req.user._id;
   const { jobId } = req.body;
 
-  try {
-    const updatedStudent = await Student.findByIdAndUpdate(
-      _id,
-      { $addToSet: { savedJobs: jobId } },
-      { new: true },
-    );
+  if (!jobId) {
+    return res.status(400).json({ message: 'Job ID is required.' });
+  }
 
-    if (!updatedStudent) {
-      return res.status(404).json({ message: 'Student not found' });
+  try {
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // Invalidate relevant caches
-    await redisClient.invalidateStudentCache(_id);
-    await redisClient.del(`student:${_id}:savedJobs`);
-    await redisClient.del(`student:${_id}:isSaved:${jobId}`);
+    // --- ROBUST DUPLICATE CHECK (THE FIX) ---
+    // This check now handles both data formats.
+    const isAlreadySaved = student.savedJobs.some((savedItem) => {
+      // Check if the item is an object with a 'job' property (new format)
+      if (savedItem && savedItem.job) {
+        return savedItem.job.toString() === jobId;
+      }
+      // Otherwise, treat it as a plain ObjectId (old format)
+      return savedItem.toString() === jobId;
+    });
+
+    if (isAlreadySaved) {
+      return res.status(409).json({ message: 'Job already saved.' });
+    }
+
+    // Add the new job in the correct object format
+    student.savedJobs.push({ job: jobId });
+    await student.save();
+
+    // Invalidate caches
+    await redisClient.invalidateStudentCache(studentId);
+    await redisClient.del(`student:${studentId}:savedJobs`);
+    await redisClient.del(`student:${studentId}:isSaved:${jobId}`);
 
     return res.status(200).json({
-      savedJobs: updatedStudent.savedJobs,
+      success: true,
+      message: 'Job saved successfully.',
     });
   } catch (error) {
     console.error('Error saving job:', error);
@@ -1512,5 +1531,172 @@ export const isStudentViewedJob = async (req, res, next) => {
     res.status(200).json({ success: true, isViewed });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const jobVisitedByStudent = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const studentId = req.user._id;
+
+    const jobExists = await Job.findById(jobId);
+    if (!jobExists) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const visitedJob = student.visitedJobs.find(
+      (vj) => vj.job.toString() === jobId,
+    );
+
+    if (visitedJob) {
+      visitedJob.visitedAt = new Date();
+    } else {
+      student.visitedJobs.push({ job: jobId });
+    }
+
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Job marked as visited successfully.',
+      job: {
+        _id: jobExists._id,
+        title: jobExists.title,
+        salary: jobExists.salary,
+        location: jobExists.location,
+        jobTypes: jobExists.jobTypes,
+        company: jobExists.company,
+      },
+    });
+  } catch (error) {
+    console.error('Error in jobVisitedByStudent:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const isJobVisitedByStudent = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const studentId = req.user._id;
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      isVisited: student.visitedJobs.some(
+        (visitedJob) => visitedJob.job.toString() === jobId,
+      ),
+    });
+  } catch (error) {
+    console.error('Error in jobNotVisitedByStudent:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const getAllVisitedJobs = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const student = await Student.findById(studentId)
+      .select('visitedJobs')
+      .populate({
+        path: 'visitedJobs.job',
+        select: 'title company salary location jobTypes', // Specify which job fields to return
+      });
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      jobs: student.visitedJobs,
+    });
+  } catch (error) {
+    console.error('Error in jobNotVisitedByStudent:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const getAllViewedJobs = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const student = await Student.findById(studentId)
+      .select('viewedJobs')
+      .populate({
+        path: 'viewedJobs.job',
+        select: 'title company salary location jobTypes', // Specify which job fields to return
+      });
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      jobs: student.viewedJobs, // This now contains the full job details
+    });
+  } catch (error) {
+    console.error('Error fetching viewed jobs:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const getAllSavedJobs = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const student = await Student.findById(studentId)
+      .select('savedJobs')
+      .populate({
+        path: 'savedJobs.job',
+        select: 'title company salary location jobTypes', // Specify which job fields to return
+      });
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      jobs: student.savedJobs,
+    });
+  } catch (error) {
+    console.error('Error in jobNotVisitedByStudent:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const getAllStatCounts = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const student = await Student.findById(studentId);
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      statCounts: {
+        viewedJobsCount: student.viewedJobs.length,
+        visitedJobsCount: student.visitedJobs.length,
+        savedJobsCount: student.savedJobs.length,
+        appliedJobsCount: 0,
+      },
+    });
+  } catch (error) {
+    console.error('Error in getAllStatCounts:', error);
+    res.status(500).json({ message: 'Server Error' });
   }
 };

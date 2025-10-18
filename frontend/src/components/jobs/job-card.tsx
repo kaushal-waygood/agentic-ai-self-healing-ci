@@ -13,6 +13,7 @@ import { truncate } from '@/utils/formatTitle';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import apiInstance from '@/services/api';
+import { useEffect } from 'react';
 
 interface JobCardProps {
   job: JobListing;
@@ -30,6 +31,21 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
       onClick();
     } catch (error) {}
   };
+
+  useEffect(() => {
+    const isVisited = async () => {
+      const response = await apiInstance.get(
+        `/students/jobs/is-visited/${job._id}`,
+      );
+      console.log(
+        'Job view logged for job ID:',
+        response.data.job._id,
+        job._id,
+      );
+    };
+
+    isVisited();
+  }, []);
 
   return (
     <div
