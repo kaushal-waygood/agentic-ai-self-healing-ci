@@ -29,7 +29,7 @@ const CustomCheckbox = ({ checked, onChange, children, color = 'purple' }) => (
 
 const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="grid md:grid-cols-2 gap-6">
         <TagInput
           label="Preferred Countries"
