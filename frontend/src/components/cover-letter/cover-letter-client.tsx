@@ -613,7 +613,7 @@ export function CoverLetterGeneratorClient() {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className=" w-full max-w-7xl mx-auto space-y-8">
       <div>
         {/* Left Panel: Wizard */}
         <div className="space-y-6">
