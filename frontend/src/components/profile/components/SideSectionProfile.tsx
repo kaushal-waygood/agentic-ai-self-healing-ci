@@ -1,5 +1,21 @@
-import { Edit, File, Sparkles, UploadCloud, X } from 'lucide-react';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Check,
+  Edit,
+  File,
+  Sparkles,
+  UploadCloud,
+  User,
+  X,
+} from 'lucide-react';
 import React, { useState } from 'react';
+import { Button } from 'react-day-picker';
 const dummyUser = {
   name: 'Alex Rider',
   email: 'alex.rider@example.com',
@@ -24,6 +40,16 @@ const SideSectionProfile = ({
   handleDrop,
   handleRemoveFile,
   handleUpload,
+
+  handlePersonalInfoSubmit,
+  isNameEditable,
+  handlePersonalInfoEdit,
+  toggleNameEdit,
+  isEmailEditable,
+  isPhoneEditable,
+  toggleEmailEdit,
+  setHandleName,
+  handleCancelEdit,
 }: any) => {
   const { fullName, email, phone } = personalInfoForm.control._formValues;
   // const [progress, setProgress] = useState(0);
@@ -59,7 +85,7 @@ const SideSectionProfile = ({
           </div> */}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-200">
+            {/* <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-200">
               <div className="text-center p-3 bg-blue-50 rounded-xl">
                 <p className="text-2xl font-black text-blue-600">
                   {dummyUser.totalOrders}
@@ -76,7 +102,7 @@ const SideSectionProfile = ({
                   Total Spent
                 </p>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
