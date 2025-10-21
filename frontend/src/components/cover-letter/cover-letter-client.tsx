@@ -431,7 +431,6 @@ export function CoverLetterGeneratorClient() {
           letter: apiResponse.data,
         };
       } else if (jobContext.mode === 'select') {
-        console.log(jobContext.value);
         const formData = new FormData();
 
         formData.append('jobId', jobContext.value);

@@ -1609,8 +1609,10 @@ export const getAllVisitedJobs = async (req, res) => {
       .select('visitedJobs')
       .populate({
         path: 'visitedJobs.job',
-        select: 'title company salary location jobTypes', // Specify which job fields to return
+        select: 'title company salary location jobTypes slug', // Specify which job fields to return
       });
+
+    console.log(student);
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
@@ -1634,8 +1636,10 @@ export const getAllViewedJobs = async (req, res) => {
       .select('viewedJobs')
       .populate({
         path: 'viewedJobs.job',
-        select: 'title company salary location jobTypes', // Specify which job fields to return
+        select: 'title company salary location jobTypes slug', // Specify which job fields to return
       });
+
+    console.log(student);
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
@@ -1659,8 +1663,10 @@ export const getAllSavedJobs = async (req, res) => {
       .select('savedJobs')
       .populate({
         path: 'savedJobs.job',
-        select: 'title company salary location jobTypes', // Specify which job fields to return
+        select: 'title company salary location jobTypes slug', // Specify which job fields to return
       });
+
+    console.log(student);
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });

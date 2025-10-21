@@ -158,14 +158,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
   const handleApplyOnSite = async () => {
     try {
-      const response = await apiInstance.get(
-        `/students/jobs/visited/${job._id}`,
-      );
-      console.log(
-        'Job view logged for job ID:',
-        response.data.job._id,
-        job._id,
-      );
+      await apiInstance.get(`/students/jobs/visited/${job._id}`);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -286,9 +279,9 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-200"
                 >
                   <Link
-                    href={`/dashboard/tailor-docs?slug=${encodeURIComponent(
+                    href={`/dashboard/apply?slug=${encodeURIComponent(
                       job._id,
-                    )}`}
+                    )}&step=cv`}
                   >
                     <FilePlus2 className="w-4 h-4" /> Tailor My Docs
                   </Link>

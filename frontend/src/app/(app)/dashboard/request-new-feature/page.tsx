@@ -94,7 +94,6 @@ const Page = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Here you can call your API to submit the feature request
-    console.log('Feature Requested:', { featureName, description });
     setSubmitted(true);
     setFeatureName('');
     setDescription('');

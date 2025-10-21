@@ -1,19 +1,32 @@
 import { genAI } from '../config/gemini.js';
 
-export const genAIWithRetry = async (prompt, maxRetries = 3) => {
-  let lastError;
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const genAIWithRetry = async (generationConfig, maxRetries = 3) => {
+  let attempt = 0;
+  while (attempt < maxRetries) {
     try {
-      return await genAI(prompt);
+      const result = await genAI(generationConfig);
+      return result;
     } catch (error) {
-      lastError = error;
-      if (error.status === 503 || error.status === 500) {
-        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-        await new Promise((resolve) => setTimeout(resolve, delay));
+      attempt++;
+      if (error.status === 503 && attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.warn(
+          `Attempt ${attempt}: Model overloaded (503). Retrying in ${
+            waitTime / 1000
+          }s...`,
+        );
+        await delay(waitTime); // Wait before making the next attempt
       } else {
+        console.error(
+          `Attempt ${attempt}: Failed to generate content. Error: ${error.message}`,
+        );
         throw error;
       }
     }
   }
-  throw lastError;
+  throw new Error(
+    'Failed to get a response from the AI model after multiple retries.',
+  );
 };
