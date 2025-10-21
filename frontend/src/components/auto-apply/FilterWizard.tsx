@@ -350,7 +350,9 @@ const FilterWizard = ({
                         : 'bg-white'
                     }`}
                   >
-                    <option value="">Select a country</option>
+                    <option className="absolute" value="">
+                      Select a country
+                    </option>
                     {countries.map((country) => (
                       <option key={country.code} value={country.code}>
                         {country.name}

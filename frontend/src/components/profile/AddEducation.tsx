@@ -360,7 +360,7 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
                             <SelectValue placeholder="Select a country" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="bg-white z-[9999]">
                           {countries.map((c) => (
                             <SelectItem key={c.code} value={c.name}>
                               {c.name}
@@ -413,7 +413,7 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
                   name="gpa"
                   render={({ field }) => (
                     <FormItem className="mt-6">
-                      <FormLabel>GPA (Optional)</FormLabel>
+                      <FormLabel>Overall Grades (Optional)</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -1010,7 +1010,7 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
                               <SelectValue placeholder="Select a type" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className=" bg-white z-[9999]">
                             {employmentTypes.map((type) => (
                               <SelectItem key={type} value={type}>
                                 {type}
