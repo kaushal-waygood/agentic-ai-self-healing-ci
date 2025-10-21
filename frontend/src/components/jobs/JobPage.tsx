@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, use } from 'react';
 import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
 import { useJobs } from '@/hooks/jobs/useJobs';
 import { useMediaQuery } from '@/hooks/jobs/useMediaQuery';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
@@ -13,7 +13,7 @@ import { Search } from 'lucide-react';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<HTMLDivElement>(null); // Ref for the infinite scroll trigger
+  const observerRef = useRef<HTMLDivElement>(null);
 
   const {
     jobs,
@@ -30,18 +30,39 @@ export default function JobsPage() {
   } = useJobs();
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
+
+  // ✅ FIX: Consolidated fetch logic into a stable useCallback function
+  const fetchJobDetails = useCallback(async (slug: string) => {
+    try {
+      // ✨ IMPROVEMENT: No longer setting job to null, which prevents UI flicker.
+      // 👇 The API endpoint format is now corrected.
+      const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
+      if (response.data && response.data.singleJob) {
+        setSelectedJob(response.data.singleJob);
+      }
+    } catch (err) {
+      console.error('Failed to fetch job details:', err);
+    }
+  }, []); // Empty dependency array makes this function stable
 
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters]);
 
   useEffect(() => {
-    if (!isMobile && jobs.length > 0) {
-      if (!jobs.some((job) => job._id === selectedJob?._id)) {
-        setSelectedJob(jobs[0]);
-      }
+    const slug = searchParams.get('job');
+    console.log('slug', slug);
+    if (slug) {
+      fetchJobDetails(slug);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile && jobs.length > 0 && !selectedJob) {
+      setSelectedJob(jobs[0]);
     }
   }, [jobs, isMobile, selectedJob]);
 
@@ -65,17 +86,7 @@ export default function JobsPage() {
         observer.unobserve(currentObserverRef);
       }
     };
-  }, [loading, pagination, loadMoreJobs]);
-
-  const fetchJobDetails = async (slug: string) => {
-    try {
-      setSelectedJob(null);
-      const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
-      setSelectedJob(response.data.singleJob);
-    } catch (err) {
-      console.error('Failed to fetch job details:', err);
-    }
-  };
+  }, [loading, pagination.hasNextPage, loadMoreJobs]);
 
   const handleCardClick = (slug: string) => {
     if (isMobile) {
@@ -119,7 +130,6 @@ export default function JobsPage() {
                 />
               ))}
 
-              {/* FIXED: Added a unique static key to the loading skeleton */}
               {loading && jobs.length > 0 && (
                 <JobCardSkeleton key="loading-skeleton" />
               )}

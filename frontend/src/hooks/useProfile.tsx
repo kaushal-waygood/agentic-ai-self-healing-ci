@@ -231,7 +231,6 @@ export const useProfile = () => {
 
   useEffect(() => {
     if (students && Object.keys(students).length > 0) {
-      console.log('students', students);
       personalInfoForm.reset({
         fullName: students.fullName || '',
         email: students.email || '',

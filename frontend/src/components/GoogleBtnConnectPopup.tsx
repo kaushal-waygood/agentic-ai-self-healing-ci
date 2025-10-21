@@ -19,7 +19,6 @@ export default function GoogleSignInButton() {
       });
 
       const data = await res.data;
-      console.log('Response from backend:', data);
 
       // Store the session token from your backend (e.g., in localStorage)
       localStorage.setItem('app_token', data.token);

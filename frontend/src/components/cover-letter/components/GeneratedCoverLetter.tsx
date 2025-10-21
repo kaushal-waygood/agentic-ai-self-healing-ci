@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -209,10 +210,12 @@ const GeneratedCoverLetter = ({
                 <Clock className="mr-2 h-4 w-4" />
                 Save for Later
               </Button>
-              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl">
-                <Award className="mr-2 h-4 w-4" />
-                Start Applying
-              </Button>
+              <Link href="/dashboard/search-jobs">
+                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl">
+                  <Award className="mr-2 h-4 w-4" />
+                  Start Applying
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

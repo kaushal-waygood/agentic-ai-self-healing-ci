@@ -419,12 +419,10 @@ const extractTextFromBuffer = async (file) => {
 export const createTailoredApply = async (req, res) => {
   const { _id } = req.user;
   const {
-    // Job details can come as an ID or as raw text
     jobId,
     jobTitle,
     companyName,
     jobDescription,
-    // CV/CL sources
     useProfile,
     savedCVId,
     savedCoverLetterId,
@@ -435,10 +433,7 @@ export const createTailoredApply = async (req, res) => {
   try {
     let jobDetails;
 
-    // --- MODIFICATION START ---
-    // Step 1: Determine Job Source and Validate
-    // The frontend can send either a jobId (for selected jobs) or the full text
-    // (for pasted or uploaded job descriptions).
+    // Step 1: Determine Job Source and Validate (No changes needed here)
     if (jobId) {
       const jobFromDb = await Job.findById(jobId);
       if (!jobFromDb) {
@@ -446,61 +441,53 @@ export const createTailoredApply = async (req, res) => {
       }
       jobDetails = jobFromDb;
     } else if (jobTitle && companyName && jobDescription) {
-      // Job details were sent as text (from a paste or client-side file parse)
       jobDetails = {
         title: jobTitle,
         company: companyName,
         description: jobDescription,
       };
     } else {
-      // If neither is provided, then it's a bad request.
       return res.status(400).json({
         error:
           'Job information is required. Provide either a jobId or the jobTitle, companyName, and jobDescription.',
       });
     }
-    // --- MODIFICATION END ---
 
     let studentData;
     let cvContent;
     let coverLetterContent;
 
-    // Step 2: Determine CV source
+    // Step 2: Determine CV source (No changes needed here)
     if (useProfile === 'true') {
       const student = await Student.findById(_id);
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
       }
-      studentData = student; // This will be JSON stringified later
+      studentData = student;
     } else if (req.file) {
-      // Assumes multer is configured for memoryStorage
       cvContent = await extractTextFromBuffer(req.file);
     } else {
-      return res.status(400).json({
-        error: 'A CV source is required (profile, saved CV, or file upload).',
-      });
+      return res
+        .status(400)
+        .json({ error: 'A CV source is required (profile or file upload).' });
     }
 
-    // Step 3: Determine cover letter source
+    // Step 3: Determine cover letter source (No changes needed here)
     if (savedCoverLetterId) {
       const studentWithCL = await Student.findById(_id).select('coverLetter');
       const savedCL = studentWithCL?.coverLetter.id(savedCoverLetterId);
-      if (!savedCL) {
-        return res.status(404).json({ error: 'Saved cover letter not found' });
-      }
-      coverLetterContent = savedCL.content;
+      coverLetterContent = savedCL?.content;
     } else if (coverLetterText) {
       coverLetterContent = coverLetterText;
     }
 
-    // Step 4: Prepare data for AI
+    // Step 4: Prepare data for AI (No changes needed here)
     const applicationData = {
       job: {
         title: jobDetails.title,
         company: jobDetails.company,
         description: jobDetails.description,
       },
-      // Ensure candidate data is structured correctly for the prompts
       candidate: studentData
         ? JSON.stringify(studentData)
         : JSON.stringify({ cv: cvContent }),
@@ -508,19 +495,28 @@ export const createTailoredApply = async (req, res) => {
       preferences: finalTouch,
     };
 
-    // Step 5: Generate each component with separate prompts
-    const [cvResponse, coverLetterResponse, emailResponse] = await Promise.all([
-      genAIWithRetry(generateCVPrompts(applicationData)),
-      genAIWithRetry(generateCoverLetterPrompts(applicationData)),
-      genAIWithRetry(generateEmailPrompt(applicationData)),
-    ]);
+    // ✅ --- FIX: Changed from parallel to sequential requests for reliability ---
+    // Instead of firing all requests at once with Promise.all, we now wait for each one
+    // to complete. This is much less aggressive on the API and prevents overloads.
 
-    // Step 6: Process AI responses
+    console.log('Step 5.1: Generating tailored CV...');
+    const cvResponse = await genAIWithRetry(generateCVPrompts(applicationData));
     const tailoredCV = processCVResponse(cvResponse);
+
+    console.log('Step 5.2: Generating tailored Cover Letter...');
+    const coverLetterResponse = await genAIWithRetry(
+      generateCoverLetterPrompts(applicationData),
+    );
     const tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
+
+    console.log('Step 5.3: Generating application Email...');
+    const emailResponse = await genAIWithRetry(
+      generateEmailPrompt(applicationData),
+    );
     const applicationEmail = processEmailResponse(emailResponse);
 
-    // Step 7: Return results
+    // Step 6: Return results
+    console.log('Step 6: All generations successful. Sending response.');
     res.json({
       success: true,
       data: {

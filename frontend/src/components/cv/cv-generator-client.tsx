@@ -423,8 +423,6 @@ export function CvGeneratorClient() {
 
       const loadedData = response.data.html;
 
-      console.log('Loaded CV data:', loadedData);
-
       setCurrentCvContent(loadedData.html);
       setGeneratedCvOutput({
         cv: loadedData.html,

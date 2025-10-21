@@ -1,8 +1,6 @@
 'use client';
 
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { cvDetailsSchema, CvDetailsValues } from '../schemas';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,6 +21,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, Loader2, PlusCircle, Trash2, Wand2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -31,48 +31,48 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Loader2, PlusCircle, Trash2, Wand2 } from 'lucide-react';
-import { countries } from '@/lib/data/countries'; // Adjust import path as needed
+import { countries } from '@/lib/data/countries';
 
-type CreateCvStepProps = {
-  isLoading: boolean;
-  jobTitle: string;
-  defaultValues: Partial<CvDetailsValues>;
-  onSubmit: (data: CvDetailsValues) => void;
-  onBack: () => void;
-};
-
-export function CreateCvStep({
+const CreateCvStep = ({
+  createCvForm,
+  handleCreateCvFormSubmit,
+  eduFields,
+  removeEdu,
+  expFields,
+  removeExp,
+  appendEdu,
+  appendExp,
+  removeProject,
+  projectFields,
   isLoading,
-  jobTitle,
-  defaultValues,
-  onSubmit,
-  onBack,
-}: CreateCvStepProps) {
-  const createCvForm = useForm<CvDetailsValues>({
-    resolver: zodResolver(cvDetailsSchema),
-    defaultValues: { ...defaultValues, targetJobTitle: jobTitle },
-  });
+  navigateToStep,
+  appendProject,
+}: any) => {
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        when: 'beforeChildren',
+        staggerChildren: 0.1,
+      },
+    },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
+  };
 
-  const {
-    fields: eduFields,
-    append: appendEdu,
-    remove: removeEdu,
-  } = useFieldArray({ control: createCvForm.control, name: 'education' });
-  const {
-    fields: expFields,
-    append: appendExp,
-    remove: removeExp,
-  } = useFieldArray({ control: createCvForm.control, name: 'experience' });
-  const {
-    fields: projectFields,
-    append: appendProject,
-    remove: removeProject,
-  } = useFieldArray({ control: createCvForm.control, name: 'projects' });
+  const StyledCard = (props) => (
+    <motion.div variants={containerVariants}>
+      <Card
+        className="bg-slate-900/80 border-slate-800 backdrop-blur-sm text-slate-50"
+        {...props}
+      />
+    </motion.div>
+  );
 
   return (
-    <Card>
+    <StyledCard>
       <CardHeader>
         <CardTitle>Create a New CV</CardTitle>
         <CardDescription>
@@ -81,7 +81,7 @@ export function CreateCvStep({
         </CardDescription>
       </CardHeader>
       <Form {...createCvForm}>
-        <form onSubmit={createCvForm.handleSubmit(onSubmit)}>
+        <form onSubmit={createCvForm.handleSubmit(handleCreateCvFormSubmit)}>
           <CardContent className="space-y-6">
             <FormField
               control={createCvForm.control}
@@ -90,7 +90,7 @@ export function CreateCvStep({
                 <FormItem>
                   <FormLabel>
                     Target Job Title for this CV{' '}
-                    <span className="text-destructive">*</span>
+                    <span className="text-red-400">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -109,8 +109,7 @@ export function CreateCvStep({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Professional Summary{' '}
-                    <span className="text-destructive">*</span>
+                    Professional Summary <span className="text-red-400">*</span>
                   </FormLabel>
                   <FormControl>
                     <Textarea
@@ -126,28 +125,25 @@ export function CreateCvStep({
             />
             <Separator />
 
-            {/* Education Section */}
             <div>
               <h3 className="text-lg font-medium mb-2">
-                Education <span className="text-destructive">*</span>
+                Education <span className="text-red-400">*</span>
               </h3>
               {eduFields.map((field, index) => (
                 <Card
                   key={field.id}
                   className="p-4 mt-2 mb-4 space-y-4 relative"
                 >
-                  {/* Form fields for institution, degree, country, etc. */}
                   <FormField
                     control={createCvForm.control}
                     name={`education.${index}.institution`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Institution</FormLabel>{' '}
+                        <FormLabel>Institution</FormLabel>
                         <FormControl>
                           <Input {...f} value={f.value ?? ''} />
-                        </FormControl>{' '}
-                        <FormMessage />{' '}
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -156,12 +152,11 @@ export function CreateCvStep({
                     name={`education.${index}.degree`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Degree</FormLabel>{' '}
+                        <FormLabel>Degree</FormLabel>
                         <FormControl>
                           <Input {...f} value={f.value ?? ''} />
-                        </FormControl>{' '}
-                        <FormMessage />{' '}
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -171,28 +166,25 @@ export function CreateCvStep({
                       name={`education.${index}.country`}
                       render={({ field: f }) => (
                         <FormItem>
-                          {' '}
-                          <FormLabel>Country</FormLabel>{' '}
+                          <FormLabel>Country</FormLabel>
                           <Select
                             onValueChange={f.onChange}
                             defaultValue={f.value}
                           >
-                            {' '}
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select country" />
                               </SelectTrigger>
-                            </FormControl>{' '}
+                            </FormControl>
                             <SelectContent>
-                              {' '}
                               {countries.map((c) => (
                                 <SelectItem key={c.code} value={c.name}>
                                   {c.name}
                                 </SelectItem>
-                              ))}{' '}
-                            </SelectContent>{' '}
-                          </Select>{' '}
-                          <FormMessage />{' '}
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -201,12 +193,11 @@ export function CreateCvStep({
                       name={`education.${index}.fieldOfStudy`}
                       render={({ field: f }) => (
                         <FormItem>
-                          {' '}
-                          <FormLabel>Field of Study (Optional)</FormLabel>{' '}
+                          <FormLabel>Field of Study (Optional)</FormLabel>
                           <FormControl>
                             <Input {...f} value={f.value ?? ''} />
-                          </FormControl>{' '}
-                          <FormMessage />{' '}
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -217,12 +208,11 @@ export function CreateCvStep({
                       name={`education.${index}.startDate`}
                       render={({ field: f }) => (
                         <FormItem>
-                          {' '}
-                          <FormLabel>Start Date</FormLabel>{' '}
+                          <FormLabel>Start Date</FormLabel>
                           <FormControl>
                             <Input type="month" {...f} value={f.value ?? ''} />
-                          </FormControl>{' '}
-                          <FormMessage />{' '}
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -231,8 +221,7 @@ export function CreateCvStep({
                       name={`education.${index}.endDate`}
                       render={({ field: f }) => (
                         <FormItem>
-                          {' '}
-                          <FormLabel>End Date</FormLabel>{' '}
+                          <FormLabel>End Date</FormLabel>
                           <FormControl>
                             <Input
                               type="month"
@@ -240,8 +229,8 @@ export function CreateCvStep({
                               {...f}
                               value={f.value ?? ''}
                             />
-                          </FormControl>{' '}
-                          <FormMessage />{' '}
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -253,7 +242,7 @@ export function CreateCvStep({
                     onClick={() => removeEdu(index)}
                     className="absolute top-2 right-2"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" /> Remove
                   </Button>
                 </Card>
               ))}
@@ -279,28 +268,25 @@ export function CreateCvStep({
 
             <Separator />
 
-            {/* Work Experience Section */}
             <div>
               <h3 className="text-lg font-medium mb-2">
-                Work Experience <span className="text-destructive">*</span>
+                Work Experience <span className="text-red-400">*</span>
               </h3>
               {expFields.map((field, index) => (
                 <Card
                   key={field.id}
                   className="p-4 mt-2 mb-4 space-y-4 relative"
                 >
-                  {/* Form fields for company, jobTitle, dates, etc. */}
                   <FormField
                     control={createCvForm.control}
                     name={`experience.${index}.company`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Company</FormLabel>{' '}
+                        <FormLabel>Company</FormLabel>
                         <FormControl>
                           <Input {...f} value={f.value ?? ''} />
-                        </FormControl>{' '}
-                        <FormMessage />{' '}
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -309,12 +295,11 @@ export function CreateCvStep({
                     name={`experience.${index}.jobTitle`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Job Title</FormLabel>{' '}
+                        <FormLabel>Job Title</FormLabel>
                         <FormControl>
                           <Input {...f} value={f.value ?? ''} />
-                        </FormControl>{' '}
-                        <FormMessage />{' '}
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -324,12 +309,11 @@ export function CreateCvStep({
                       name={`experience.${index}.startDate`}
                       render={({ field: f }) => (
                         <FormItem>
-                          {' '}
-                          <FormLabel>Start Date</FormLabel>{' '}
+                          <FormLabel>Start Date</FormLabel>
                           <FormControl>
                             <Input type="month" {...f} value={f.value ?? ''} />
-                          </FormControl>{' '}
-                          <FormMessage />{' '}
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -338,8 +322,7 @@ export function CreateCvStep({
                       name={`experience.${index}.endDate`}
                       render={({ field: f }) => (
                         <FormItem>
-                          {' '}
-                          <FormLabel>End Date</FormLabel>{' '}
+                          <FormLabel>End Date</FormLabel>
                           <FormControl>
                             <Input
                               type="month"
@@ -350,8 +333,8 @@ export function CreateCvStep({
                                 `experience.${index}.isCurrent`,
                               )}
                             />
-                          </FormControl>{' '}
-                          <FormMessage />{' '}
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -361,7 +344,6 @@ export function CreateCvStep({
                     name={`experience.${index}.isCurrent`}
                     render={({ field: f }) => (
                       <FormItem className="flex flex-row items-center space-x-2 pt-2">
-                        {' '}
                         <FormControl>
                           <Checkbox
                             checked={f.value}
@@ -372,11 +354,11 @@ export function CreateCvStep({
                                 checked ? 'Present' : '',
                               );
                             }}
-                          />{' '}
-                        </FormControl>{' '}
+                          />
+                        </FormControl>
                         <FormLabel className="font-normal">
                           I currently work here
-                        </FormLabel>{' '}
+                        </FormLabel>
                       </FormItem>
                     )}
                   />
@@ -385,16 +367,15 @@ export function CreateCvStep({
                     name={`experience.${index}.responsibilities`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Responsibilities (Optional)</FormLabel>{' '}
+                        <FormLabel>Responsibilities (Optional)</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Describe your key responsibilities and achievements. Use separate lines for each point."
                             {...f}
                             value={f.value ?? ''}
                           />
-                        </FormControl>{' '}
-                        <FormMessage />{' '}
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -405,7 +386,7 @@ export function CreateCvStep({
                     onClick={() => removeExp(index)}
                     className="absolute top-2 right-2"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" /> Remove
                   </Button>
                 </Card>
               ))}
@@ -432,7 +413,6 @@ export function CreateCvStep({
 
             <Separator />
 
-            {/* Projects Section */}
             <div>
               <h3 className="text-lg font-medium mb-2">
                 Projects / Research Work
@@ -442,21 +422,19 @@ export function CreateCvStep({
                   key={field.id}
                   className="p-4 mt-2 mb-4 space-y-4 relative"
                 >
-                  {/* Form fields for project name, description, link, etc. */}
                   <FormField
                     control={createCvForm.control}
                     name={`projects.${index}.name`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Project Name</FormLabel>{' '}
+                        <FormLabel>Project Name</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="e.g., AI-Powered Chatbot"
                             {...f}
                           />
-                        </FormControl>{' '}
-                        <FormMessage />{' '}
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -465,15 +443,14 @@ export function CreateCvStep({
                     name={`projects.${index}.description`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Description</FormLabel>{' '}
+                        <FormLabel>Description</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Describe your project, its goals, and your role."
                             {...f}
                           />
-                        </FormControl>{' '}
-                        <FormMessage />{' '}
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -483,12 +460,11 @@ export function CreateCvStep({
                       name={`projects.${index}.startDate`}
                       render={({ field: f }) => (
                         <FormItem>
-                          {' '}
-                          <FormLabel>Start Date</FormLabel>{' '}
+                          <FormLabel>Start Date</FormLabel>
                           <FormControl>
                             <Input type="month" {...f} value={f.value ?? ''} />
-                          </FormControl>{' '}
-                          <FormMessage />{' '}
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -497,8 +473,7 @@ export function CreateCvStep({
                       name={`projects.${index}.endDate`}
                       render={({ field: f }) => (
                         <FormItem>
-                          {' '}
-                          <FormLabel>End Date</FormLabel>{' '}
+                          <FormLabel>End Date</FormLabel>
                           <FormControl>
                             <Input
                               type="month"
@@ -509,8 +484,8 @@ export function CreateCvStep({
                                 `projects.${index}.isCurrent`,
                               )}
                             />
-                          </FormControl>{' '}
-                          <FormMessage />{' '}
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -520,7 +495,6 @@ export function CreateCvStep({
                     name={`projects.${index}.isCurrent`}
                     render={({ field: f }) => (
                       <FormItem className="flex flex-row items-center space-x-2 pt-2">
-                        {' '}
                         <FormControl>
                           <Checkbox
                             checked={f.value}
@@ -531,11 +505,11 @@ export function CreateCvStep({
                                 checked ? 'Present' : '',
                               );
                             }}
-                          />{' '}
-                        </FormControl>{' '}
+                          />
+                        </FormControl>
                         <FormLabel className="font-normal">
                           I am currently working on this
-                        </FormLabel>{' '}
+                        </FormLabel>
                       </FormItem>
                     )}
                   />
@@ -544,19 +518,18 @@ export function CreateCvStep({
                     name={`projects.${index}.technologies`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Technologies Used (Optional)</FormLabel>{' '}
+                        <FormLabel>Technologies Used (Optional)</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="e.g., React, Python, TensorFlow"
                             {...f}
                             value={f.value ?? ''}
                           />
-                        </FormControl>{' '}
+                        </FormControl>
                         <FormDescription>
                           Comma-separated list of technologies.
-                        </FormDescription>{' '}
-                        <FormMessage />{' '}
+                        </FormDescription>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -565,16 +538,15 @@ export function CreateCvStep({
                     name={`projects.${index}.link`}
                     render={({ field: f }) => (
                       <FormItem>
-                        {' '}
-                        <FormLabel>Project Link (Optional)</FormLabel>{' '}
+                        <FormLabel>Project Link (Optional)</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="https://github.com/user/project"
                             {...f}
                             value={f.value ?? ''}
                           />
-                        </FormControl>{' '}
-                        <FormMessage />{' '}
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -585,7 +557,7 @@ export function CreateCvStep({
                     onClick={() => removeProject(index)}
                     className="absolute top-2 right-2"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" /> Remove
                   </Button>
                 </Card>
               ))}
@@ -616,7 +588,7 @@ export function CreateCvStep({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Skills <span className="text-destructive">*</span>
+                    Skills <span className="text-red-400">*</span>
                   </FormLabel>
                   <FormControl>
                     <Textarea
@@ -634,26 +606,39 @@ export function CreateCvStep({
             />
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button type="button" variant="ghost" onClick={onBack}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigateToStep('cv')}
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Create & Use this CV
-                </>
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                type="button"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={createCvForm.handleSubmit(handleCreateCvFormSubmit)}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Create & Use this CV
+                  </>
+                )}
+              </Button>
+            </motion.div>
           </CardFooter>
         </form>
       </Form>
-    </Card>
+    </StyledCard>
   );
-}
+};
+
+export default CreateCvStep;

@@ -10,6 +10,11 @@ import {
   BarChart3,
   ThumbsUp,
   Clock,
+  Edit3,
+  Copy,
+  Download,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react';
 
 // Mock EditableMaterial component
@@ -23,6 +28,57 @@ const EditableMaterial = ({ content, isHtml }) => (
     ) : (
       <div className="whitespace-pre-wrap">{content}</div>
     )}
+    {/* Action Bar */}
+    <div className="bg-white/80 backdrop-blur-sm rounded-b-2xl border border-t-0 border-gray-200/80 shadow-lg p- sm:p-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center space-x-3">
+          <button
+            // onClick={handleEditToggle}
+            // disabled={!content || isLoading}
+            className="flex items-center px-6 py-3 rounded-xl font-semibold text-sm transition transform hover:scale-105 bg-green-500 hover:bg-green-600 text-white"
+          >
+            <>
+              <Edit3 className="w-4 h-4 mr-2" />
+              Edit
+            </>
+          </button>
+          <button
+            // onClick={handleCopy}
+            // disabled={!content || isLoading}
+            className="flex items-center px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium text-sm transition disabled:opacity-50"
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            Copy
+          </button>
+        </div>
+        <div className="flex items-center space-x-3">
+          <button
+            // onClick={handleDownloadPdf}
+            // disabled={!isHtml || !content || isLoading}
+            className="flex items-center px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold text-sm transition transform hover:scale-105 disabled:opacity-50"
+          >
+            {/* (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            )  */}
+            <Download className="w-4 h-4 mr-2" />
+            PDF
+            {/* {<ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />} */}
+          </button>
+          <button
+            // onClick={handleDownloadDocx}
+            // disabled={!isHtml || !content || isLoading}
+            className="flex items-center px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition transform hover:scale-105 disabled:opacity-50"
+          >
+            {/* (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            )  */}
+            <Download className="w-4 h-4 mr-2" />
+            DOCX
+            {/* {<ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />} */}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 );
 

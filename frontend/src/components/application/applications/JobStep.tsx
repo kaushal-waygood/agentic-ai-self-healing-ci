@@ -10,14 +10,12 @@ import {
   Briefcase,
 } from 'lucide-react';
 
-// Assuming JobListing type is defined elsewhere, e.g., in '@/lib/data/jobs'
 interface JobListing {
-  id: string;
+  _id: string; // Use _id to match the database
   title: string;
   company: string;
 }
 
-// Props for the JobStep component
 type JobStepProps = {
   isLoading: boolean;
   loadingMessage: string;
@@ -28,7 +26,6 @@ type JobStepProps = {
   ) => void;
 };
 
-// A reusable container for each option (Select, Paste, Upload)
 const OptionCard = ({
   title,
   icon: Icon,
@@ -52,7 +49,7 @@ const OptionCard = ({
 export function JobStep({
   isLoading,
   loadingMessage,
-  jobListings = [], // Default to empty array for safe mapping
+  jobListings = [],
   handleJobContextSubmit,
 }: JobStepProps) {
   const [pastedJobDesc, setPastedJobDesc] = useState('');
@@ -62,7 +59,6 @@ export function JobStep({
   return (
     <div className="p-4 sm:p-6 font-sans">
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
         <div className="text-center mb-8">
           <div className="relative inline-flex items-center justify-center w-16 h-16 mb-4 bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl shadow-sm">
             <Briefcase className="w-8 h-8 text-purple-600" />
@@ -75,17 +71,15 @@ export function JobStep({
           </p>
         </div>
 
-        {/* Main Content Area */}
         <div className="space-y-6">
-          {/* Option 1: Select from a List */}
           <OptionCard title="Select a Saved Job" icon={List}>
             <div className="space-y-2 max-h-48 overflow-y-auto rounded-lg bg-slate-50/50 p-2 border border-slate-200">
               {jobListings.length > 0 ? (
                 jobListings.slice(0, 10).map((job) => (
                   <label
-                    key={job.id}
+                    key={job._id}
                     className={`flex items-center gap-4 p-3 rounded-lg cursor-pointer transition-all duration-200 border-2 ${
-                      selectedJobId === job.id
+                      selectedJobId === job._id
                         ? 'bg-purple-50 border-purple-400 shadow-sm'
                         : 'bg-white border-transparent hover:bg-slate-100'
                     }`}
@@ -93,8 +87,8 @@ export function JobStep({
                     <input
                       type="radio"
                       name="job-selection"
-                      value={job.id}
-                      checked={selectedJobId === job.id}
+                      value={job._id}
+                      checked={selectedJobId === job._id}
                       onChange={(e) => setSelectedJobId(e.target.value)}
                       className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-slate-300"
                     />
@@ -123,7 +117,6 @@ export function JobStep({
             </motion.div>
           </OptionCard>
 
-          {/* Option 2: Paste Description */}
           <OptionCard title="Paste Job Details" icon={ClipboardPaste}>
             <textarea
               placeholder="Paste the full job description here..."
@@ -142,7 +135,6 @@ export function JobStep({
             </motion.div>
           </OptionCard>
 
-          {/* Option 3: Upload File */}
           <OptionCard title="Upload a File" icon={UploadCloud}>
             <button
               onClick={() => jobDescFileInputRef.current?.click()}
@@ -151,13 +143,15 @@ export function JobStep({
             >
               {isLoading && loadingMessage ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 text-purple-600 animate-spin" />
-                  {loadingMessage}
+                  {' '}
+                  <Loader2 className="mr-2 h-5 w-5 text-purple-600 animate-spin" />{' '}
+                  {loadingMessage}{' '}
                 </>
               ) : (
                 <>
-                  <UploadCloud className="mr-2 h-5 w-5 text-purple-500" />
-                  Upload Job Description File
+                  {' '}
+                  <UploadCloud className="mr-2 h-5 w-5 text-purple-500" />{' '}
+                  Upload Job Description File{' '}
                 </>
               )}
             </button>
