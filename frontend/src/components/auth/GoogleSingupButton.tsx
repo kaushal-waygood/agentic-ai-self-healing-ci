@@ -7,7 +7,6 @@ import { API_BASE_URL } from '@/services/api';
 
 // const API_URL = 'http://127.0.0.1:8080';
 
-
 export function GoogleSignInButton({ authType = 'login' }) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -16,8 +15,6 @@ export function GoogleSignInButton({ authType = 'login' }) {
 
     // 1. Define the backend endpoint that starts the Google OAuth flow.
     const googleAuthUrl = `${API_BASE_URL}/api/v1/user/google/auth/redirect`;
-
-    console.log('Google Auth URL:', googleAuthUrl);
 
     // 2. Redirect the user's browser to your backend.
     window.location.href = googleAuthUrl;

@@ -99,7 +99,6 @@ export default function SettingsView() {
   };
 
   const handleChangePassword = () => {
-    console.log(currentPassword, newPassword, confirmNewPassword);
     if (newPassword !== confirmNewPassword) {
       toast({
         title: 'Error',

@@ -140,7 +140,6 @@ const MultiStepForm = () => {
         const response = await apiInstance.get('/pilotagent/get');
         const data = await response.data;
         setAgents(data.data.autoPilot);
-        console.log('Fetched agents:', data.data.autoPilot);
       } catch (error) {
         console.error('Error fetching agents:', error);
       }

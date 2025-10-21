@@ -109,7 +109,6 @@ const OnboardingPage = () => {
   };
 
   const handleSubmit = () => {
-    console.log('Form submitted:', { ...formData, ...selectedOptions });
     setStep(totalSteps + 1);
   };
 

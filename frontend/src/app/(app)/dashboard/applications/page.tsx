@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FileCheck2, Loader2, Filter, Bookmark, Send, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getAllSavedJobs, getAppliedJobs } from '@/services/api/student';
+// ✅ FIX: Removed the non-existent 'getAppliedJobs' import
+import { getAllSavedJobs } from '@/services/api/student';
 import { ApplicationRow, StatCard } from './components/statusConfig';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
@@ -14,6 +15,7 @@ interface Application {
   job: {
     title: string;
     company: string;
+    slug: string; // Added for navigation
   };
   status: string;
   appliedAt: string;
@@ -22,7 +24,6 @@ interface Application {
 const extendedApplicationStatuses = ['Saved', 'Applied', 'Visited', 'Viewed'];
 
 export default function ApplicationsPage() {
-  // --- STATE MANAGEMENT ---
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [jobStats, setJobStats] = useState({
@@ -39,7 +40,6 @@ export default function ApplicationsPage() {
     searchParams.get('status') || 'Saved',
   );
 
-  // --- EFFECT FOR STATS ---
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -52,7 +52,6 @@ export default function ApplicationsPage() {
     fetchStats();
   }, []);
 
-  // --- EFFECT FOR FILTERED LIST ---
   useEffect(() => {
     const fetchApplications = async () => {
       setIsLoading(true);
@@ -61,10 +60,10 @@ export default function ApplicationsPage() {
         let rawData = [];
         let statusLabel = 'Saved';
 
-        // ✅ FIX: Corrected API calls and data keys for each filter
         switch (statusFilter) {
           case 'Applied':
-            response = await getAppliedJobs();
+            // ✅ FIX: Replaced getAppliedJobs() with a direct API call
+            response = await apiInstance.get('/students/jobs/applied-all');
             rawData = response.data.appliedJobs || [];
             statusLabel = 'Applied';
             break;
@@ -86,20 +85,24 @@ export default function ApplicationsPage() {
             break;
         }
 
-        const formattedApplications = rawData.map((apiJob: any) => ({
-          id: apiJob.job._id,
-          job: {
-            title: apiJob.job.title,
-            company: apiJob.job.company,
-          },
-          status: apiJob.status || statusLabel,
-          appliedAt:
-            apiJob.savedAt ||
-            apiJob.appliedAt ||
-            apiJob.viewedAt ||
-            apiJob.visitedAt ||
-            apiJob.job.createdAt,
-        }));
+        // ✅ FIX: Filter out any items where the job record is null before mapping.
+        const formattedApplications = rawData
+          .filter((apiJob: any) => apiJob && apiJob.job) // This prevents the crash
+          .map((apiJob: any) => ({
+            id: apiJob.job._id,
+            job: {
+              title: apiJob.job.title,
+              slug: apiJob.job.slug,
+              company: apiJob.job.company,
+            },
+            status: apiJob.status || statusLabel,
+            appliedAt:
+              apiJob.savedAt ||
+              apiJob.appliedAt ||
+              apiJob.viewedAt ||
+              apiJob.visitedAt ||
+              apiJob.job.createdAt,
+          }));
 
         setApplications(formattedApplications);
       } catch (error) {
@@ -117,7 +120,6 @@ export default function ApplicationsPage() {
     fetchApplications();
   }, [statusFilter, toast]);
 
-  // --- URL SYNC EFFECT ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     params.set('status', statusFilter);
@@ -137,31 +139,34 @@ export default function ApplicationsPage() {
           </p>
         </div>
 
-        {/* ✅ FIX: Added the `href` prop to each StatCard */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             label="Applied Jobs"
             value={jobStats.appliedJobsCount}
             icon={Send}
             color="from-yellow-500 to-orange-500"
+            onClick={() => setStatusFilter('Applied')}
           />
           <StatCard
             label="Saved Jobs"
             value={jobStats.savedJobsCount}
             icon={Bookmark}
             color="from-purple-500 to-pink-500"
+            onClick={() => setStatusFilter('Saved')}
           />
           <StatCard
             label="Viewed Jobs"
             value={jobStats.viewedJobsCount}
             icon={Eye}
             color="from-blue-500 to-blue-600"
+            onClick={() => setStatusFilter('Viewed')}
           />
           <StatCard
             label="Visited Links"
             value={jobStats.visitedJobsCount}
-            icon={Link}
+            icon={Link} // Using Link from 'lucide-react'
             color="from-green-500 to-emerald-500"
+            onClick={() => setStatusFilter('Visited')}
           />
         </div>
 
@@ -187,7 +192,6 @@ export default function ApplicationsPage() {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4 rounded-2xl border border-gray-200 dark:border-gray-800">
           {isLoading ? (
             <div className="flex justify-center items-center py-20">

@@ -70,7 +70,6 @@ export default function BugReportPage() {
 
       // Renamed this variable to avoid the naming conflict
       const responseData = response.data;
-      console.log(responseData);
 
       setIsSubmitted(true);
       // Reset form after 3 seconds

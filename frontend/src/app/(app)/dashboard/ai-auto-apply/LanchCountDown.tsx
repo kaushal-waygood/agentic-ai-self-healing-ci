@@ -40,7 +40,6 @@ const LaunchCountdown = () => {
       const response = await apiInstance.post('/user/notify-autopilot', {
         email,
       });
-      console.log(response);
       setIsSubmitted(true);
     }
   };
@@ -50,7 +49,6 @@ const LaunchCountdown = () => {
       const response = await apiInstance.post('/user/notify-autopilot-email', {
         email,
       });
-      console.log(response.data.sent);
       setIsSubmitted(response.data.sent);
     };
     response();

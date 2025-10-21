@@ -9,17 +9,6 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 
-// --- Type Definitions ---
-interface Application {
-  id: string;
-  job: {
-    title: string;
-    company: string;
-  };
-  status: string;
-  appliedAt: string;
-}
-
 // --- Status Configuration (Corrected 'visited' to 'Visited') ---
 export const statusConfig = {
   Applied: {
@@ -121,7 +110,7 @@ export const ApplicationRow = ({ app, isSelected, onSelect, index }) => {
 
       {/* Actions */}
       <div className="flex-shrink-0">
-        <Link href={`/applications/${app.id}`}>
+        <Link href={`/dashboard/search-jobs?job=${app.job.slug}`}>
           <button className="p-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-300">
             <ArrowRight className="h-4 w-4" />
           </button>
