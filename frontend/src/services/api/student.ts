@@ -37,7 +37,7 @@ export const removeExperience = async (data: any) => {
 
 export const updateExperience = async (data: any, index: any) => {
   const response = await apiInstance.patch(
-    `/students/experience/update/${index}`,
+    `/students/experience/update/${data._id}`,
     data,
   );
   return response;

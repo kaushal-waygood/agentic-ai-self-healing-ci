@@ -390,7 +390,8 @@ const AppHeader = ({ setIsSearchOpen }) => {
             />
 
             <div className="relative">
-              <button
+              {/* Notification Bell icon */}
+              {/* <button
                 onClick={() => handleMenuToggle('notification')}
                 className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
               >
@@ -400,7 +401,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                     {unreadCount}
                   </div>
                 )}
-              </button>
+              </button> */}
               {isNotificationOpen && (
                 <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
                   <div className="p-4 border-b border-slate-100">
@@ -505,13 +506,13 @@ const AppHeader = ({ setIsSearchOpen }) => {
                       <Settings className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Settings</span>
                     </Link>
-                    <Link
+                    {/* <Link
                       href="/dashboard/billing"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <CreditCard className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Billing</span>
-                    </Link>
+                    </Link> */}
                     <Link
                       href="/dashboard/support"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"

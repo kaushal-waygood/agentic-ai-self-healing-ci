@@ -294,7 +294,7 @@ export default function SupportPage() {
                 </p>
                 <Button
                   className="w-full bg-white text-purple-600 hover:bg-purple-50 transition-all duration-300 font-semibold shadow-lg"
-                  onClick={() => route.push('/ai-assistant')}
+                  onClick={() => route.push('/dashboard/ai-assistant')}
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Start Chat

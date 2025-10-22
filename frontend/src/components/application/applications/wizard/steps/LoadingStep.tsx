@@ -57,15 +57,15 @@ const SleekLoadingCard = () => {
   ));
 
   return (
-    <div className="min-h-[400px] rounded-3xl  shadow-2xl backdrop-blur-sm overflow-hidden relative ">
+    <div className="min-h-[400px]  overflow-hidden relative ">
       {/* Animated background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-blue-500/5 to-cyan-500/5 animate-pulse"></div>
+      <div className="absolute inset-0 animate-pulse"></div>
 
       {/* Floating particles */}
-      <div className="absolute inset-0 overflow-hidden">{particles}</div>
+      {/* <div className="absolute inset-0 overflow-hidden">{particles}</div> */}
 
-      <div className="relative flex items-center justify-center min-h-[400px] p-8">
-        <div className="text-center max-w-md">
+      <div className="relative flex items-center justify-center min-h-[400px] p-8 ">
+        <div className="text-center max-w-md border border-slate-400  rounded-2xl p-6 shadow-2xl">
           {/* Main loading animation */}
           <div className="relative mb-8 w-32 h-32 mx-auto">
             {/* Outer rotating ring */}
@@ -110,13 +110,13 @@ const SleekLoadingCard = () => {
 
           {/* Loading message */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text mb-2 animate-pulse">
+            <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text mb-2 ">
               {loadingMessage}
             </h2>
 
             {/* Percentage indicator */}
             <div className="mt-2 text-center">
-              <span className="text-slate-300 font-medium">{progress}%</span>
+              <span className=" font-medium">{progress}%</span>
             </div>
 
             {/* Progress bar */}
@@ -135,24 +135,24 @@ const SleekLoadingCard = () => {
                 key={step}
                 className={`flex flex-col items-center p-3 rounded-lg transition-all duration-500 ${
                   index <= Math.floor(progress / 34)
-                    ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30'
+                    ? 'bg-slate-200 border border-white/30 shadow-lg'
                     : 'bg-slate-800/50 border border-slate-700'
                 }`}
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all duration-500 ${
                     index <= Math.floor(progress / 34)
-                      ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
+                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
                       : 'bg-slate-700 text-slate-400'
                   }`}
                 >
                   {index <= Math.floor(progress / 34) ? (
-                    <Sparkles className="w-4 h-4 animate-pulse" />
+                    <Sparkles className="w-4 h-4 animate-bounce" />
                   ) : (
                     <div className="w-2 h-2 bg-current rounded-full"></div>
                   )}
                 </div>
-                <span className="text-xs text-slate-400">{step}</span>
+                <span className="text-xs ">{step}</span>
               </div>
             ))}
           </div>
@@ -162,9 +162,9 @@ const SleekLoadingCard = () => {
             {[0, 1, 2].map((dot) => (
               <div
                 key={dot}
-                className="w-2 h-2 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full animate-bounce"
+                className="w-2 h-2 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full animate-bounce"
                 style={{
-                  animationDelay: `${dot * 0.2}s`,
+                  animationDelay: `${dot * 0.1}s`,
                   animationDuration: '1.4s',
                 }}
               />

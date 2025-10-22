@@ -176,10 +176,10 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
 
     if (isEdit) {
       dispatch(
-        updateStudentProjectRequest({ data: payload, index: payload._id }),
+        updateStudentEducationRequest({ data: payload, index: payload._id }),
       );
     } else {
-      dispatch(addStudentProjectRequest(payload));
+      dispatch(addStudentEducationRequest(payload));
     }
     reset();
     onCancel();
@@ -360,7 +360,7 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
                             <SelectValue placeholder="Select a country" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="bg-white z-[9999]">
                           {countries.map((c) => (
                             <SelectItem key={c.code} value={c.name}>
                               {c.name}
@@ -413,7 +413,7 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
                   name="gpa"
                   render={({ field }) => (
                     <FormItem className="mt-6">
-                      <FormLabel>GPA (Optional)</FormLabel>
+                      <FormLabel>Overall Grades (Optional)</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -1010,7 +1010,7 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
                               <SelectValue placeholder="Select a type" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className=" bg-white z-[9999]">
                             {employmentTypes.map((type) => (
                               <SelectItem key={type} value={type}>
                                 {type}
@@ -1176,7 +1176,10 @@ export const AddSkill = ({ onCancel }: closeProps) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
+      <form
+        onSubmit={handleSubmit(handleFormSubmit)}
+        className="space-y-8 bg-white p-4 rounded-lg"
+      >
         <div className="space-y-4">
           <FormField
             control={control}
@@ -1206,7 +1209,7 @@ export const AddSkill = ({ onCancel }: closeProps) => {
                       <SelectValue placeholder="Select level" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="z-[9999] max-h-[300px]">
+                  <SelectContent className="z-[9999] max-h-[300px] bg-slate-200">
                     {skillTypes.map((level) => (
                       <SelectItem key={level} value={level}>
                         {level}

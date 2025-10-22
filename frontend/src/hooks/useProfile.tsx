@@ -163,7 +163,10 @@ export const useProfile = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   const personalInfoForm = useForm<
-    Pick<ProfileFormValues, 'fullName' | 'email' | 'phone' | 'avatar'>
+    Pick<
+      ProfileFormValues,
+      'fullName' | 'email' | 'phone' | 'avatar' | 'jobPreference'
+    >
   >({
     resolver: zodResolver(
       profileFormSchema.pick({
@@ -171,6 +174,7 @@ export const useProfile = () => {
         email: true,
         phone: true,
         avatar: true,
+        jobPreference: true,
       }),
     ),
     mode: 'onChange',
@@ -236,6 +240,7 @@ export const useProfile = () => {
         email: students.email || '',
         phone: students.phone || '',
         avatar: students.avatar || '',
+        jobPreference: students.jobRole || '',
       });
       careerDetailsForm.reset({
         jobPreference: students.jobRole || '',
@@ -386,26 +391,35 @@ export const useProfile = () => {
   const toggleEmailEdit = () => setIsEmailEditable((prev) => !prev);
   const togglePhoneEdit = () => setIsPhoneEditable((prev) => !prev);
 
-  const handleCancelEdit = (fieldName: 'fullName' | 'email' | 'phone') => {
+  const handleCancelEdit = (
+    fieldName: 'fullName' | 'email' | 'phone' | 'all',
+  ) => {
     personalInfoForm.reset();
     if (fieldName === 'fullName') setIsNameEditable(false);
     if (fieldName === 'email') setIsEmailEditable(false);
     if (fieldName === 'phone') setIsPhoneEditable(false);
+    if (fieldName === 'all') {
+      setIsNameEditable(false);
+      setIsEmailEditable(false);
+      setIsPhoneEditable(false);
+    }
   };
 
   const handlePersonalInfoEdit = async (
     fieldName: 'fullName' | 'email' | 'phone' | 'jobPreference',
   ) => {
-    console.log(fieldName, personalInfoForm.getValues(fieldName));
+    // console.log(fieldName, personalInfoForm.getValues(fieldName));
+
     try {
       if (fieldName === 'fullName') {
         const fullName = personalInfoForm.getValues('fullName');
+        console.log('fullName', fullName);
         await apiInstance.patch('/students/fullname/update', { fullName });
         setIsNameEditable(false);
         toast({ title: 'Full Name Updated' });
       } else if (fieldName === 'email') {
         const email = personalInfoForm.getValues('email');
-        console.log(email);
+        console.log('email', email);
         await apiInstance.patch('/students/fullname/update', { email });
         setIsEmailEditable(false);
         toast({ title: 'Email Updated' });
@@ -416,8 +430,9 @@ export const useProfile = () => {
         setIsPhoneEditable(false);
         toast({ title: 'Phone Number Updated' });
       } else if (fieldName === 'jobPreference') {
-        const jobPreference = careerDetailsForm.getValues('jobPreference');
+        const jobPreference = personalInfoForm.getValues('jobPreference');
         console.log('jobPreference', jobPreference);
+
         await apiInstance.post('/students/job-role/update', {
           jobRole: jobPreference,
         });

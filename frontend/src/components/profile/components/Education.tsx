@@ -52,6 +52,7 @@ const Education = ({
   setDeleteSkillIndex,
   handleLevelChange,
 }: any) => {
+  console.log('education value', defaultValues.education);
   return (
     <div>
       {/* button  */}
