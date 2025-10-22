@@ -539,7 +539,6 @@ export const useApplicationWizard = () => {
         formData.append('jobTitle', jobContext.jobTitle);
         formData.append('companyName', jobContext.companyName);
         const slug = searchParams.get('slug');
-        console.log('slug', slug);
         if (slug) {
           const response = await apiInstance.get(`/jobs/find/${slug}`);
           formData.append('jobDescription', response.data.description);

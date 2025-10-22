@@ -54,7 +54,6 @@ export default function JobsPage() {
 
   useEffect(() => {
     const slug = searchParams.get('job');
-    console.log('slug', slug);
     if (slug) {
       fetchJobDetails(slug);
     }

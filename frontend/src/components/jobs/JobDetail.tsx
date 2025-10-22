@@ -48,8 +48,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(true);
 
-  // console.log(job);
-
   // ✅ LOGIC: Combined useEffects for cleaner state management when the job changes
   useEffect(() => {
     if (!job?._id) return;
