@@ -21,6 +21,31 @@ import { genAIWithRetry } from '../utils/genAIWithRetry.js';
 import { calculateJobMatch } from '../utils/calculateJobMatch.js';
 import { generateCVRegeneratePrompt } from '../prompt/generateCVPrompt.js';
 
+// A simple helper function for retries
+const retryOperation = async (operation, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      // Attempt the operation
+      return await operation();
+    } catch (error) {
+      // Check if it's a retryable error (like a 503)
+      if (error.status === 503 && i < retries - 1) {
+        console.log(
+          `Service unavailable. Retrying in ${delay / 1000}s... (Attempt ${
+            i + 1
+          }/${retries})`,
+        );
+        // Wait for the delay, then double it for the next attempt
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2;
+      } else {
+        // If it's not a 503 or we've run out of retries, throw the error
+        throw error;
+      }
+    }
+  }
+};
+
 export const extractStudentDataFromCV = async (req, res) => {
   const { _id } = req.user;
 
@@ -38,8 +63,10 @@ export const extractStudentDataFromCV = async (req, res) => {
   );
 
   try {
-    // Extract data using shared utility
-    const extractedData = await extractDataFromCV(filePath);
+    // Wrap the extraction logic in our retry helper
+    const extractedData = await retryOperation(() =>
+      extractDataFromCV(filePath),
+    );
 
     // Clean up file
     fs.unlinkSync(filePath);
@@ -59,9 +86,21 @@ export const extractStudentDataFromCV = async (req, res) => {
       { new: true, runValidators: true },
     );
 
+    
+
     return res.json({ success: true, data: updatedStudent });
   } catch (error) {
+    // Now the catch block handles the final error after all retries have failed
     console.error('Error updating student from CV:', error);
+
+    // Send a more specific error message to the client
+    if (error.status === 503) {
+      return res.status(503).json({
+        error:
+          'The AI service is temporarily busy. Please try again in a few moments.',
+      });
+    }
+
     res.status(500).json({
       error: 'Failed to extract or update student data from CV',
       message: error.message,

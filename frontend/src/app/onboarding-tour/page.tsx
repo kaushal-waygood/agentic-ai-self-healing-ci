@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,12 +23,16 @@ import {
   Building,
   Camera,
   SkipForward,
+  Edit,
+  Loader2,
 } from 'lucide-react';
+import apiInstance from '@/services/api';
 
 const OnboardingPage = () => {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // Start at step 0 for the choice
   const [direction, setDirection] = useState('forward');
+  const [isLoading, setIsLoading] = useState(false);
   const totalSteps = 6;
   const [formData, setFormData] = useState({
     fullName: '',
@@ -58,7 +62,7 @@ const OnboardingPage = () => {
     availability: '',
   });
 
-  const progress = (step / totalSteps) * 100;
+  const progress = ((step - 1) / totalSteps) * 100;
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -91,37 +95,205 @@ const OnboardingPage = () => {
 
   const toggleOption = (field, value) => {
     const current = selectedOptions[field];
-    if (Array.isArray(current)) {
-      if (current.includes(value)) {
-        setSelectedOptions({
-          ...selectedOptions,
-          [field]: current.filter((v) => v !== value),
-        });
-      } else {
-        setSelectedOptions({
-          ...selectedOptions,
-          [field]: [...current, value],
-        });
-      }
-    } else {
-      setSelectedOptions({ ...selectedOptions, [field]: value });
-    }
+    const newSelection = Array.isArray(current)
+      ? current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value]
+      : value;
+    setSelectedOptions({ ...selectedOptions, [field]: newSelection });
   };
 
   const handleSubmit = () => {
     setStep(totalSteps + 1);
   };
 
+  useEffect(() => {
+    const response = async () => {
+      await apiInstance.get('/students/details');
+    };
+    response();
+  }, []);
+
+  const handleResumeExtract = async (file) => {
+    if (!file) return;
+
+    setIsLoading(true);
+    const apiFormData = new FormData();
+    apiFormData.append('cv', file);
+
+    try {
+      const response = await apiInstance.post(
+        '/students/resume/extract',
+        apiFormData,
+      );
+
+      // --- START: API Integration ---
+      const apiData = response.data.data;
+
+      if (!apiData) {
+        console.error('API response did not contain data.');
+        // Optionally, show an error message to the user
+        setIsLoading(false);
+        return;
+      }
+
+      // Helper function to format date ranges
+      const formatDuration = (start, end) => {
+        if (!start || !end) return '';
+        const startDate = new Date(start).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+        });
+        const endDate = new Date(end).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+        });
+        return `${startDate} - ${endDate}`;
+      };
+
+      // Extract the first experience and education entries for simplicity
+      const firstExperience = apiData.experience?.[0];
+      const firstEducation = apiData.education?.[0];
+
+      // Convert skills array to a comma-separated string
+      const skillsString =
+        apiData.skills?.map((skillObj) => skillObj.skill).join(', ') || '';
+
+      // Map job types to the format used in the UI
+      const jobTypes =
+        apiData.jobPreferences?.preferredJobTypes?.map((type) => {
+          if (type === 'FULL_TIME') return 'Full-time';
+          // Add other mappings as needed, e.g., PART_TIME -> Part-time
+          return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+        }) || [];
+
+      const extractedData = {
+        fullName: apiData.fullName || '',
+        email: apiData.email || '',
+        phone: apiData.phone || '',
+        designation: firstExperience?.title || '', // Use job title as designation
+        college: firstEducation?.institute || '',
+        degree: firstEducation?.degree || '',
+        // graduationYear is not in the API response, so it remains empty
+        cgpa: firstEducation?.grade || '',
+        skills: skillsString,
+        companyName: firstExperience?.company || '',
+        jobTitle: firstExperience?.title || '',
+        duration: formatDuration(
+          firstExperience?.startDate,
+          firstExperience?.endDate,
+        ),
+      };
+
+      setFormData((prev) => ({
+        ...prev,
+        ...extractedData,
+        resume: file,
+      }));
+
+      // Update the selected options for the UI to reflect API data
+      setSelectedOptions((prev) => ({
+        ...prev,
+        jobType: jobTypes,
+      }));
+      // --- END: API Integration ---
+    } catch (error) {
+      console.error('Failed to extract data from resume:', error);
+      // Optionally, show an error message to the user
+    } finally {
+      setIsLoading(false);
+      setStep(1); // Go to the first step to review the data
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-16 h-16 text-purple-600 mx-auto animate-spin" />
+          <h2 className="text-2xl font-bold text-gray-700">
+            Analyzing your resume...
+          </h2>
+          <p className="text-gray-500">
+            Please wait while we extract your information.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg p-8 md:p-10 text-center shadow-2xl bg-white/70 backdrop-blur-xl animate-[fadeIn_0.5s_ease-out]">
+          <div className="mx-auto w-16 h-16 mb-6 flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            Let's Get Started
+          </h1>
+          <p className="text-gray-500 text-lg mb-8">
+            How would you like to set up your profile?
+          </p>
+          <div className="space-y-4">
+            <label className="block w-full text-left p-6 rounded-2xl border-2 border-transparent bg-white shadow-lg hover:shadow-2xl hover:border-purple-500 cursor-pointer transition-all duration-300 transform hover:-translate-y-1">
+              <div className="flex items-center">
+                <div className="p-3 bg-purple-100 rounded-lg mr-4">
+                  <Upload className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-gray-800">
+                    Auto-fill with Resume
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Upload your resume and we'll do the heavy lifting.
+                  </p>
+                </div>
+                <ArrowRight className="w-6 h-6 text-gray-400 ml-auto" />
+              </div>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => handleResumeExtract(e.target.files[0])}
+                className="hidden"
+              />
+            </label>
+            <Button
+              onClick={() => setStep(1)}
+              className="w-full text-left p-6 rounded-2xl border-2 border-transparent bg-white shadow-lg hover:shadow-2xl hover:border-purple-500 transition-all duration-300 transform hover:-translate-y-1 h-auto"
+              variant="outline"
+            >
+              <div className="flex items-center">
+                <div className="p-3 bg-gray-100 rounded-lg mr-4">
+                  <Edit className="w-6 h-6 text-gray-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-gray-800">
+                    Fill Out Manually
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Enter your details step-by-step.
+                  </p>
+                </div>
+                <ArrowRight className="w-6 h-6 text-gray-400 ml-auto" />
+              </div>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   if (step === totalSteps + 1) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center p-4">
         <div className="text-center animate-[fadeIn_0.8s_ease-out]">
           <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md mx-auto">
-            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mx-auto flex items-center justify-center mb-6 animate-[bounce_1s_ease-in-out_infinite]">
+            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mx-auto flex items-center justify-center mb-6 animate-bounce">
               <CheckCircle2 className="w-12 h-12 text-white" />
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-              Welcome User 🎉
+              Welcome {formData.fullName.split(' ')[0]} 🎉
             </h1>
             <p className="text-gray-600 text-lg mb-6">
               Your profile is all set up. Get ready to start your journey!
@@ -280,7 +452,7 @@ const OnboardingPage = () => {
         ),
       },
       {
-        title: 'Skills, Projects & Experience',
+        title: 'Skills & Experience',
         subtitle: 'Showcase your expertise',
         icon: Code,
         content: (
@@ -293,17 +465,6 @@ const OnboardingPage = () => {
                 value={formData.skills}
                 onChange={(e) => handleInputChange('skills', e.target.value)}
                 placeholder="e.g., React, Python, Machine Learning, UI/UX Design..."
-                className="w-full h-20 text-base border-2 focus:border-purple-500 transition-all duration-300 rounded-lg p-3 bg-white/50 backdrop-blur-sm resize-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5 ml-1">
-                Projects
-              </label>
-              <textarea
-                value={formData.projects}
-                onChange={(e) => handleInputChange('projects', e.target.value)}
-                placeholder="Describe your key projects and achievements..."
                 className="w-full h-20 text-base border-2 focus:border-purple-500 transition-all duration-300 rounded-lg p-3 bg-white/50 backdrop-blur-sm resize-none"
               />
             </div>
@@ -511,39 +672,43 @@ const OnboardingPage = () => {
 
       <Card className="w-full max-w-3xl shadow-2xl border-0 bg-white/70 backdrop-blur-xl relative z-10">
         <div className="p-6 md:p-10 lg:p-12">
-          {/* Step indicators */}
-          <div className="flex justify-center gap-1.5 mb-4 flex-wrap">
-            {[...Array(totalSteps)].map((_, i) => (
-              <div
-                key={i}
-                className={`transition-all duration-500 ${
-                  i + 1 === step
-                    ? 'w-10 h-2.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full shadow-lg'
-                    : i + 1 < step
-                    ? 'w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full'
-                    : 'w-2.5 h-2.5 bg-gray-300 rounded-full'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          <div className="mb-5">
-            <div className="flex justify-between text-sm font-semibold text-gray-600 mb-3">
-              <span>
-                Step {step} of {totalSteps}
-              </span>
-              <span>{Math.round(progress)}% Complete</span>
-            </div>
-            <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-              <div
-                className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 transition-all duration-700 ease-out rounded-full relative"
-                style={{ width: `${progress}%` }}
-              >
-                <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_ease-in-out_infinite]"></div>
+          {step > 0 && (
+            <>
+              {/* Step indicators */}
+              <div className="flex justify-center gap-1.5 mb-4 flex-wrap">
+                {[...Array(totalSteps)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`transition-all duration-500 ${
+                      i + 1 === step
+                        ? 'w-10 h-2.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full shadow-lg'
+                        : i + 1 < step
+                        ? 'w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full'
+                        : 'w-2.5 h-2.5 bg-gray-300 rounded-full'
+                    }`}
+                  />
+                ))}
               </div>
-            </div>
-          </div>
+
+              {/* Progress bar */}
+              <div className="mb-5">
+                <div className="flex justify-between text-sm font-semibold text-gray-600 mb-3">
+                  <span>
+                    Step {step} of {totalSteps}
+                  </span>
+                  <span>{Math.round(progress)}% Complete</span>
+                </div>
+                <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                  <div
+                    className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 transition-all duration-700 ease-out rounded-full relative"
+                    style={{ width: `${progress}%` }}
+                  >
+                    <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           {renderStep()}
 
@@ -559,14 +724,16 @@ const OnboardingPage = () => {
               Back
             </Button>
 
-            <Button
-              onClick={handleSkip}
-              variant="outline"
-              className="h-14 px-6 rounded-2xl border-2 border-orange-300 text-orange-600 hover:bg-orange-50 transition-all duration-300 text-base font-semibold hover:scale-105"
-            >
-              <SkipForward className="w-5 h-5 mr-2" />
-              Skip
-            </Button>
+            {step !== 2 && ( // Hide skip button on resume upload step
+              <Button
+                onClick={handleSkip}
+                variant="outline"
+                className="h-14 px-6 rounded-2xl border-2 border-orange-300 text-orange-600 hover:bg-orange-50 transition-all duration-300 text-base font-semibold hover:scale-105"
+              >
+                <SkipForward className="w-5 h-5 mr-2" />
+                Skip
+              </Button>
+            )}
 
             {step < totalSteps ? (
               <Button
@@ -588,15 +755,17 @@ const OnboardingPage = () => {
           </div>
 
           {/* Progress text */}
-          <div className="text-center mt-4">
-            <p className="text-sm text-gray-400 font-medium">
-              {step === totalSteps
-                ? "🎉 Final step! You're almost done!"
-                : `${totalSteps - step} more step${
-                    totalSteps - step > 1 ? 's' : ''
-                  } to go`}
-            </p>
-          </div>
+          {step > 0 && (
+            <div className="text-center mt-4">
+              <p className="text-sm text-gray-400 font-medium">
+                {step === totalSteps
+                  ? "🎉 Final step! You're almost done!"
+                  : `${totalSteps - step} more step${
+                      totalSteps - step > 1 ? 's' : ''
+                    } to go`}
+              </p>
+            </div>
+          )}
         </div>
       </Card>
     </div>
