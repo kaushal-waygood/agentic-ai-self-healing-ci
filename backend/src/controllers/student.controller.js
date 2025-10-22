@@ -1085,7 +1085,7 @@ export const getJobPreferences = async (req, res) => {
   }
 };
 
-export const savedJobs = async (req, res) => {
+export const toggleSavedJob = async (req, res) => {
   const studentId = req.user._id;
   const { jobId } = req.body;
 
@@ -1099,40 +1099,41 @@ export const savedJobs = async (req, res) => {
       return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // --- ROBUST DUPLICATE CHECK (THE FIX) ---
-    // This check now handles both data formats.
-    const isAlreadySaved = student.savedJobs.some((savedItem) => {
-      // Check if the item is an object with a 'job' property (new format)
-      if (savedItem && savedItem.job) {
-        return savedItem.job.toString() === jobId;
-      }
-      // Otherwise, treat it as a plain ObjectId (old format)
-      return savedItem.toString() === jobId;
-    });
+    // Find the index of the job in the savedJobs array
+    const jobIndex = student.savedJobs.findIndex(
+      (savedItem) =>
+        (savedItem.job?.toString() || savedItem.toString()) === jobId,
+    );
 
-    if (isAlreadySaved) {
-      return res.status(409).json({ message: 'Job already saved.' });
+    let message; // To hold the response message
+
+    if (jobIndex > -1) {
+      // If jobIndex is found (i.e., not -1), the job is already saved. Remove it.
+      student.savedJobs.splice(jobIndex, 1);
+      message = 'Job removed from saved list.';
+    } else {
+      // If jobIndex is -1, the job is not saved. Add it.
+      student.savedJobs.push({ job: jobId });
+      message = 'Job saved successfully.';
     }
 
-    // Add the new job in the correct object format
-    student.savedJobs.push({ job: jobId });
+    // Save the updated student document
     await student.save();
 
-    // Invalidate caches
+    // Invalidate caches in both cases (add or remove)
     await redisClient.invalidateStudentCache(studentId);
     await redisClient.del(`student:${studentId}:savedJobs`);
     await redisClient.del(`student:${studentId}:isSaved:${jobId}`);
 
     return res.status(200).json({
       success: true,
-      message: 'Job saved successfully.',
+      message, // Use the dynamic message
     });
   } catch (error) {
-    console.error('Error saving job:', error);
+    console.error('Error toggling saved job:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 export const getSavedJobs = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = `student:${_id}:savedJobs`;

@@ -19,7 +19,10 @@ import {
   createTailoredApply,
   calculateJobMatchScore,
   regenerateCV,
+  saveTailoredApplication,
+  getSavedApplications,
 } from '../controllers/ai.controller.js';
+import multer from 'multer';
 
 const router = Router();
 
@@ -107,12 +110,31 @@ router.get(
   getSingleStudentHTMLLetter,
 );
 
+const memoryStorage = multer.memoryStorage();
+const uploadToMemory = multer({
+  storage: memoryStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
 router.post(
   '/applications/tailor',
   authMiddleware,
   isStudent,
-  upload.single('cv'),
+  uploadToMemory.single('cv'),
   createTailoredApply,
+);
+
+router.post(
+  '/applications/save',
+  authMiddleware,
+  isStudent,
+  saveTailoredApplication, // Use the new controller
+);
+
+router.get(
+  '/applications',
+  authMiddleware,
+  isStudent,
+  getSavedApplications, // Use the new controller
 );
 
 router.post(

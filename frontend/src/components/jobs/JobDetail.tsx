@@ -197,9 +197,12 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             <div className="text-xs flex items-center gap-1 text-purple-100">
               <span className="font-semibold">{job.company}</span>
               <span>|</span>
-              <span>{job.location?.city || 'Not speicfied'}</span>
+              <span>{job.country || 'Not speicfied'}</span>
               <span>|</span>
-              <span className="capitalize">{job.jobTypes[0]}</span>
+              <span className="capitalize">
+                {console.log(job.jobTypes)}
+                {job?.jobTypes[0] ? job.jobTypes[0] : 'Not specified'}
+              </span>
             </div>
           </div>
           {/* job saved Unsave button  */}
@@ -422,57 +425,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             </div>
           ),
         )}
-      {/* AI Match Score */}
-      {/* <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-xl border-2 border-purple-200 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            AI Match Score
-          </h3>
-        </div>
-        {isLoadingScore ? (
-          <div className="flex flex-col items-center py-8">
-            <Loader2 className="w-12 h-12 animate-spin text-purple-500 mb-4" />
-            <p className="text-gray-600">Analyzing your profile...</p>
-          </div>
-        ) : matchScoreResult ? (
-          <div className="text-center">
-            <div className="relative inline-flex items-center justify-center w-32 h-32 mb-4">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full opacity-20"></div>
-              <div className="relative text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                {matchScoreResult.matchScore}
-              </div>
-            </div>
-         You can add back the reasoning, strengths, etc. here 
-            <p className="text-gray-600 mt-2">{matchScoreResult.reasoning}</p>
-          </div>
-        ) : (
-          <div>
-            <button
-              onClick={handleGetMatchScore}
-              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
-            >
-              Calculate My Match Score
-            </button>
-
-            {calculateScore.matchScore > 0 && (
-              <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <p className="text-lg font-semibold text-gray-800">
-                  Your AI Match Score is:
-                  <span className="ml-2 text-2xl font-bold text-purple-600">
-                    {calculateScore.matchScore}/10
-                  </span>
-                </p>
-                <p className="text-gray-600 mt-2">
-                  {calculateScore.recommendation}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div> */}
     </div>
   );
 }

@@ -17,7 +17,7 @@ import {
   updateJobPreferences,
   getJobPreferences,
   updateFullName,
-  savedJobs,
+  // savedJobs,
   getSavedJobs,
   isSavedOrNot,
   isAppliedOrNot,
@@ -39,6 +39,7 @@ import {
   getAllViewedJobs,
   getAllSavedJobs,
   getAllStatCounts,
+  toggleSavedJob,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -155,7 +156,7 @@ router.post(
 
 router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);
 
-router.post('/jobs/saved', authMiddleware, isStudent, savedJobs);
+router.post('/jobs/saved', authMiddleware, isStudent, toggleSavedJob);
 router.get('/jobs/saved', authMiddleware, isStudent, getSavedJobs);
 router.get('/jobs/issaved', authMiddleware, isStudent, isSavedOrNot);
 router.get('/jobs/recommended', authMiddleware, isStudent, getRecommendedJobs);

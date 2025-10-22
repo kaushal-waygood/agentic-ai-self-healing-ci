@@ -358,19 +358,14 @@ export const signInUser = async (req, res) => {
   console.log(req.body, 'check body come or not');
 
   try {
-    // 1. Basic validation
     if (!email || !password) {
       return res
         .status(400)
         .json({ message: 'Email and password are required' });
     }
 
-    // 2. Find the user and include the password for comparison
     const user = await User.findOne({ email }).select('+password');
 
-    // 3. Check if user exists and password is correct
-    // Note: This assumes you have a method like 'isPasswordCorrect' on your User schema.
-    // If not, you would use: const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }

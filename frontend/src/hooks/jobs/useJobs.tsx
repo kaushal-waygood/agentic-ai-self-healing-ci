@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react'; // 1. Import useRef
 import { useDispatch, useSelector } from 'react-redux';
 import { useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
@@ -12,7 +12,6 @@ export const useJobs = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
 
-  // Select all necessary state from Redux, including pagination
   const {
     jobs,
     loading,
@@ -21,7 +20,6 @@ export const useJobs = () => {
     pagination,
   } = useSelector((state: RootState) => state.jobs);
 
-  // Local state for UI elements
   const [filterModal, setFilterModal] = useState(false);
   const [employmentTypes, setEmploymentTypes] = useState<string[]>([]);
   const [experienceLevels, setExperienceLevels] = useState<string[]>([]);
@@ -31,12 +29,12 @@ export const useJobs = () => {
     const filtersFromUrl = {
       query: searchParams.get('query') || '',
       country: searchParams.get('country') || '',
+      state: searchParams.get('state') || '',
       city: searchParams.get('city') || '',
       datePosted: searchParams.get('datePosted') || '',
       employmentType: searchParams.get('employmentType')?.split(',') || [],
       experience: searchParams.get('experience')?.split(',') || [],
     };
-    // Dispatch with the full payload for a new search on page 1
     dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
   }, [dispatch, searchParams]);
 
@@ -57,32 +55,45 @@ export const useJobs = () => {
     fetchJobMetadata();
   }, []);
 
-  // Handler for applying new filters
-  const handleFilterChange = useCallback(
+  // ✅ --- THE FIX --- ✅
+
+  // 2. Create a ref to hold the latest filters. This doesn't trigger re-renders.
+  const latestFiltersRef = useRef(reduxFilters);
+
+  // Keep the ref updated with the latest filters from Redux on every render.
+  useEffect(() => {
+    latestFiltersRef.current = reduxFilters;
+  });
+
+  // 3. Create the debounced function *outside* of useCallback, but wrapped in useCallback
+  //    with an empty dependency array [], so it is created only ONCE.
+  const debouncedSearch = useCallback(
     debounce((newFilters: Partial<typeof reduxFilters>) => {
-      const payload = { ...reduxFilters, ...newFilters };
-      // Dispatch a new search from page 1 with the updated filters
+      // Use the ref to get the most up-to-date filters when the debounce fires.
+      const payload = { ...latestFiltersRef.current, ...newFilters };
       dispatch(searchJobRequest({ ...payload, page: 1, append: false }));
-      // setFilterModal(false); // <--- REMOVE THIS LINE
     }, 500),
-    [dispatch, reduxFilters],
+    [dispatch], // dispatch is stable and won't cause re-creation
   );
 
-  // Function to load the next page of results for infinite scroll
-  const loadMoreJobs = useCallback(() => {
-    // Prevent fetching if already loading or if there are no more pages
-    if (loading || !pagination.hasNextPage) return;
+  // 4. Expose a stable handler that calls the debounced function.
+  const handleFilterChange = (newFilters: Partial<typeof reduxFilters>) => {
+    debouncedSearch(newFilters);
+  };
 
+  // --- END OF FIX ---
+
+  const loadMoreJobs = useCallback(() => {
+    if (loading || !pagination.hasNextPage) return;
     dispatch(
       searchJobRequest({
         ...reduxFilters,
         page: pagination.currentPage + 1,
-        append: true, // Append new results to the existing list
+        append: true,
       }),
     );
   }, [dispatch, loading, pagination, reduxFilters]);
 
-  // Return all state and handlers needed by the component
   return {
     jobs,
     loading,
@@ -93,7 +104,7 @@ export const useJobs = () => {
     experienceLevels,
     filterModal,
     setFilterModal,
-    handleFilterChange,
+    handleFilterChange, // Expose the new stable handler
     loadMoreJobs,
   };
 };
