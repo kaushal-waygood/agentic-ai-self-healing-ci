@@ -52,19 +52,35 @@ export const statusConfig = {
 export const applicationStatuses = Object.keys(statusConfig);
 
 // --- StatCard Component (Unchanged) ---
-export const StatCard = ({ label, value, icon: Icon, color }) => (
+export const StatCard = ({ label, value, icon: Icon, color, onClick }) => (
   <div
-    className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${color} p-6 transition-all duration-300  hover:shadow-xl`}
+    onClick={onClick}
+    className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${color} p-6 transition-all duration-300 hover:shadow-xl cursor-pointer active:scale-[0.98]`}
   >
     <div className="relative z-10">
+      {/* Optional icon */}
       {/* <div className="p-3 rounded-xl bg-white/20 mb-4 inline-block">
-        <Icon className="h-6 w-6 text-white" /> 
+        <Icon className="h-6 w-6 text-white" />
       </div> */}
       <div className="text-3xl font-bold text-white mb-1">{value}</div>
       <div className="text-white/80 text-sm font-medium">{label}</div>
     </div>
   </div>
 );
+
+// export const StatCard = ({ label, value, icon: Icon, color }) => (
+//   <div
+//     className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${color} p-6 transition-all duration-300  hover:shadow-xl`}
+//   >
+//     <div className="relative z-10">
+//       {/* <div className="p-3 rounded-xl bg-white/20 mb-4 inline-block">
+//         <Icon className="h-6 w-6 text-white" />
+//       </div> */}
+//       <div className="text-3xl font-bold text-white mb-1">{value}</div>
+//       <div className="text-white/80 text-sm font-medium">{label}</div>
+//     </div>
+//   </div>
+// );
 
 // --- NEW: ApplicationRow Component ---
 // This replaces the bulky ApplicationCard with a compact, interactive list item.

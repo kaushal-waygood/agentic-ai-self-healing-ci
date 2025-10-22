@@ -27,6 +27,7 @@ const Project = ({
   expandedIndex,
   toggleExpand,
 }: any) => {
+  // console.log('project value', defaultValues.project.technologies);
   return (
     <div>
       <div className="flex w-full items-center justify-between pb-4">
@@ -57,7 +58,7 @@ const Project = ({
       <div className="bg-gradient-to-r from-cyan-50 to-purple-50 rounded-2xl p-6 border border-cyan-200">
         {/* REMOVED: Redundant header was here */}
         <div className="space-y-4">
-          {defaultValues.project && defaultValues.project.length > 0 ? (
+          {defaultValues.projects && defaultValues.projects.length > 0 ? (
             defaultValues.projects?.map((proj, index) => {
               const isExpanded = expandedIndex === index;
               return (

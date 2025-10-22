@@ -105,6 +105,7 @@ const ProfileInfo = ({
   handleLevelChange,
 }: any) => {
   const [activeTab, setActiveTab] = useState('education');
+
   const ProfileSidebar = ({ activeTab, setActiveTab }) => {
     return (
       <SideSectionProfile
@@ -122,6 +123,16 @@ const ProfileInfo = ({
         handleRemoveFile={handleRemoveFile}
         handleUpload={handleUpload}
         progress={progress}
+        handlePersonalInfoEdit={handlePersonalInfoEdit}
+        handlePersonalInfoSubmit={handlePersonalInfoSubmit}
+        isNameEditable={isNameEditable}
+        toggleNameEdit={toggleNameEdit}
+        isEmailEditable={isEmailEditable}
+        isPhoneEditable={isPhoneEditable}
+        toggleEmailEdit={toggleEmailEdit}
+        togglePhoneEdit={togglePhoneEdit}
+        setHandleName={setHandleName}
+        handleCancelEdit={handleCancelEdit}
       />
     );
   };

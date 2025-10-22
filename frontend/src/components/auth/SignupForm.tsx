@@ -121,7 +121,7 @@ const SignupForm = () => {
 
   async function onSubmit(data: SignupFormValues) {
     try {
-      await apiInstance.post('/user/signup', data);
+      const response = await apiInstance.post('/user/signup', data);
       successToast(
         'Account created! Please check your email for a verification code.',
       );
@@ -129,9 +129,9 @@ const SignupForm = () => {
       setStoredEmail(data.email);
       setSignupSuccess(true);
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('Error creating user:', error.response.data.message);
       errorToast(
-        'An error occurred while creating your account. Please try again.',
+        error.response.data.message || 'Signup failed. Please try again.',
       );
     }
   }
@@ -152,7 +152,7 @@ const SignupForm = () => {
         setStoredEmail('');
         setVerificationCode('');
         successToast('Your account has been verified successfully!');
-        router.push('/dashboard');
+        router.push('/onboarding-tour');
       } else {
         router.push('/login');
       }

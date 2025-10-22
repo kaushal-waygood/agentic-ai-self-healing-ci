@@ -108,7 +108,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
       },
       {
         title: 'Onboarding Tour',
-        href: '/dashboard/onboarding-tour',
+        href: '/onboarding-tour',
         icon: Activity,
       },
     ],

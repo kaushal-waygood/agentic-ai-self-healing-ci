@@ -176,10 +176,10 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
 
     if (isEdit) {
       dispatch(
-        updateStudentProjectRequest({ data: payload, index: payload._id }),
+        updateStudentEducationRequest({ data: payload, index: payload._id }),
       );
     } else {
-      dispatch(addStudentProjectRequest(payload));
+      dispatch(addStudentEducationRequest(payload));
     }
     reset();
     onCancel();
