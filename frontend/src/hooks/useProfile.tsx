@@ -430,7 +430,7 @@ export const useProfile = () => {
         setIsPhoneEditable(false);
         toast({ title: 'Phone Number Updated' });
       } else if (fieldName === 'jobPreference') {
-        const jobPreference = careerDetailsForm.getValues('jobPreference');
+        const jobPreference = personalInfoForm.getValues('jobPreference');
         console.log('jobPreference', jobPreference);
 
         await apiInstance.post('/students/job-role/update', {

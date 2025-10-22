@@ -212,7 +212,6 @@ const ProfileInfo = ({
               setDeleteExp={setDeleteExp}
               setDeleteExpIndex={setDeleteExpIndex}
             />
-            ;
           </div>
         );
 
