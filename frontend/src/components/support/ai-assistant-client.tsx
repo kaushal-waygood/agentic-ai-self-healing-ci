@@ -19,7 +19,7 @@ export function AiAssistantClient() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'init-message',
-      text: "Hello! I'm your AI assistant. How can I help you with CareerPilot today?",
+      text: "Hello! I'm your AI assistant. How can I help you with zobsai today?",
       sender: 'ai',
       timestamp: new Date(),
     },
@@ -122,7 +122,7 @@ export function AiAssistantClient() {
                 <h1 className="text-2xl font-bold tracking-tight">
                   AI Assistant
                 </h1>
-                <p className="text-white/80 text-sm">Powered by CareerPilot</p>
+                <p className="text-white/80 text-sm">Powered by zobsai</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-white/80">
@@ -232,7 +232,7 @@ export function AiAssistantClient() {
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Ask me anything about CareerPilot..."
+                placeholder="Ask me anything about zobsai..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}

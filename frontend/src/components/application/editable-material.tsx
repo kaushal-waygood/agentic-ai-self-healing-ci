@@ -135,7 +135,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CareerPilot_${title.replace(/ /g, '_')}.pdf`;
+      a.download = `zobsai_${title.replace(/ /g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -192,7 +192,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       // Create a temporary link to trigger the download
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CareerPilot_${title.replace(/ /g, '_')}.docx`;
+      a.download = `zobsai_${title.replace(/ /g, '_')}.docx`;
       document.body.appendChild(a);
       a.click();
       a.remove(); // Clean up the link element

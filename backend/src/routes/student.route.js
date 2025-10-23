@@ -40,6 +40,7 @@ import {
   getAllSavedJobs,
   getAllStatCounts,
   toggleSavedJob,
+  getEducationsById,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -102,6 +103,8 @@ router.patch(
   isStudent,
   updateEducation,
 );
+
+router.get('/education/:id', authMiddleware, isStudent, getEducationsById);
 
 router.post('/project/add', authMiddleware, isStudent, addProjects);
 router.delete(

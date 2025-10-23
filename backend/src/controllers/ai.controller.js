@@ -86,8 +86,6 @@ export const extractStudentDataFromCV = async (req, res) => {
       { new: true, runValidators: true },
     );
 
-    
-
     return res.json({ success: true, data: updatedStudent });
   } catch (error) {
     // Now the catch block handles the final error after all retries have failed
@@ -148,6 +146,7 @@ export const generateCVByJD = async (req, res) => {
 
 export const generateCVByJobId = async (req, res) => {
   const { jobId } = req.body;
+  console.log(jobId);
 
   if (!jobId) {
     return res.status(400).json({ error: 'Job ID is required' });

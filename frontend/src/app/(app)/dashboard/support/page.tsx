@@ -82,7 +82,7 @@ const faqItems = [
     id: 'contact-support',
     question: 'I have a question not listed here, how can I get help?',
     answer:
-      'You can try our AI Assistant for quick questions about using CareerPilot. For more complex issues or account-specific inquiries, please email us at support@careerpilot.example.com.',
+      'You can try our AI Assistant for quick questions about using zobsai. For more complex issues or account-specific inquiries, please email us at support@zobsai.com',
     icon: MessageSquare,
     category: 'Support',
   },
@@ -133,7 +133,7 @@ export default function SupportPage() {
             </h1>
             <p className="text-xl text-purple-100 max-w-2xl mx-auto leading-relaxed">
               Find answers to common questions and get personalized help with
-              CareerPilot
+              zobsai
             </p>
           </div>
         </div>
@@ -323,10 +323,10 @@ export default function SupportPage() {
                     Email us for detailed support:
                   </p>
                   <a
-                    href="mailto:support@careerpilot.example.com"
+                    href="mailto:support@zobai.com"
                     className="text-cyan-600 hover:text-cyan-700 font-semibold text-sm hover:underline transition-colors duration-300 break-all"
                   >
-                    support@careerpilot.example.com
+                    support@zobsai.com
                   </a>
                 </div>
 

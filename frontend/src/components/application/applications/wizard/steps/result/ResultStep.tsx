@@ -221,7 +221,7 @@ export function EditableMaterial({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CareerPilot_${title.replace(/ /g, '_')}.pdf`;
+      a.download = `zobsai_${title.replace(/ /g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
 

@@ -63,9 +63,9 @@ const LaunchCountdown = () => {
   ));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 py-16 px-4 ">
       <div className="max-w-3xl mx-auto text-center">
-        <h1 className="text-3xl  bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
+        <h1 className="text-2xl  bg-gradient-to-r from-gray-900 font-bold via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
           The Future of Job Searching is Almost Here.
         </h1>
         <p className="text-base md:text-md text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
@@ -79,7 +79,7 @@ const LaunchCountdown = () => {
 
         <div className="mb-10">
           <span className="inline-block text-2xl md:text-3xl font-semibold text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-6 py-3 rounded-lg">
-            Launched In 2 Weeks
+            Launching In 2 Weeks
           </span>
         </div>
 

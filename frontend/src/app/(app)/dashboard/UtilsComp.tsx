@@ -306,7 +306,7 @@ export function ProfileReadinessCard() {
             Profile Readiness
           </CardTitle>
           <CardDescription>
-            Complete your profile to unlock the full power of CareerPilot's AI.
+            Complete your profile to unlock the full power of zobsai.
           </CardDescription>
         </div>
       </div>
