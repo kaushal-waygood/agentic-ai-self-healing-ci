@@ -106,11 +106,11 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         href: '/dashboard/request-new-feature', // Replace with your actual form link
         icon: Layers,
       },
-      {
-        title: 'Onboarding Tour',
-        href: '/onboarding-tour',
-        icon: Activity,
-      },
+      // {
+      //   title: 'Onboarding Tour',
+      //   href: '/onboarding-tour',
+      //   icon: Activity,
+      // },
     ],
   };
 

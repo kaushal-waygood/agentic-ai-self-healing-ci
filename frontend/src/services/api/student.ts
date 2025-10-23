@@ -15,9 +15,9 @@ export const removeEducation = async (data: any) => {
   return response;
 };
 
-export const updateEducation = async (data: any, eduData: any) => {
+export const updateEducation = async (educationId: any, eduData: any) => {
   const response = await apiInstance.patch(
-    `/students/education/update/${data}`,
+    `/students/education/update/${educationId}`,
     eduData,
   );
   return response;
