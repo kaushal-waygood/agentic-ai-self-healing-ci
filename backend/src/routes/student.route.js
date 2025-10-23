@@ -180,6 +180,7 @@ router.get(
   isStudent,
   jobVisitedByStudent,
 );
+router.get('/education/:id', authMiddleware, isStudent, getEducationsById);
 
 router.get(
   '/jobs/is-visited/:jobId',

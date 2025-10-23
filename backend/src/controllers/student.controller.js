@@ -652,9 +652,13 @@ export const updateEducation = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    const education = student.education.find((edu) => {
-      return edu.educationId === educationId;
-    });
+    // const education = student.education.find((edu) => {
+    //   return edu.educationId === educationId;
+    // });
+
+    const education = student.education.find(
+      (edu) => edu._id.toString() === educationId,
+    );
 
     if (!education) {
       return res.status(404).json({ message: 'Education not found' });

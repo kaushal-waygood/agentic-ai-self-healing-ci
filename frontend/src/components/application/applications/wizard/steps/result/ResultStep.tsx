@@ -473,7 +473,7 @@ const ResultStep = ({
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8 font-sans">
+    <div className="max-w-6xl mx-auto p-6 space-y-4 font-sans">
       {/* Header Section */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-extrabold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
