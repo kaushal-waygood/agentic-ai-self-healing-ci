@@ -161,7 +161,7 @@ const Skills = ({
 
       {/* Scrollable skills list */}
       <div className="bg-gradient-to-r from-green-50 to-cyan-50 rounded-2xl p-6 border border-green-200">
-        <div className="h-[68vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
+        <div className=" overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {defaultValues.skills && defaultValues.skills.length > 0 ? (
               defaultValues.skills?.map((skill) => (

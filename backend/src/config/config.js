@@ -21,7 +21,7 @@ export const config = {
 
   // JWT Tokens
   accessTokenSecret: getEnv('ACCESS_TOKEN_SECRET'),
-  accessTokenExpiry: '15m', // ✅ Short-lived access token
+  accessTokenExpiry: '7d', // ✅ Longer-lived access token
 
   // refreshTokenSecret: getEnv('REFRESH_TOKEN_SECRET'),
   refreshTokenExpiry: '7d', // ✅ Longer-lived refresh token

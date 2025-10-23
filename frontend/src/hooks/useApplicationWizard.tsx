@@ -539,7 +539,6 @@ export const useApplicationWizard = () => {
         formData.append('jobTitle', jobContext.jobTitle);
         formData.append('companyName', jobContext.companyName);
         const slug = searchParams.get('slug');
-        console.log('slug', slug);
         if (slug) {
           const response = await apiInstance.get(`/jobs/find/${slug}`);
           formData.append('jobDescription', response.data.description);
@@ -645,6 +644,45 @@ export const useApplicationWizard = () => {
     });
   }, [student, jobContext, generatedData, toast]);
 
+  // Inside your useApplicationWizard hook...
+
+  const handleSaveAndFinish = useCallback(async () => {
+    // ✅ FIX: Removed arguments
+    // ✅ FIX: Add a guard clause to ensure data exists before saving
+    if (!jobContext || !generatedData.refinedCv) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Save',
+        description: 'Job details or generated content is missing.',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage('Saving your application...');
+
+    try {
+      const response = await apiInstance.post('/students/applications/save', {
+        // ✅ FIX: Get data directly from the hook's state
+        jobTitle: jobContext.jobTitle,
+        jobCompany: jobContext.companyName,
+        jobDescription: jobContext.jobDescription,
+
+        cvContent: generatedData.refinedCv,
+        coverLetterContent: generatedData.tailoredCl,
+        emailContent: generatedData.emailDraft,
+      });
+
+      toast({ title: 'Application Saved Successfully!' });
+      router.push('/dashboard/my-applications'); // Navigate away after success
+    } catch (error) {
+      console.error('Save failed:', error);
+      toast({ variant: 'destructive', title: 'Save Failed!' });
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage('');
+    }
+  }, [jobContext, generatedData, router, toast]); // Add dependencies for useCallback
   return {
     state: {
       wizardStep,
@@ -670,6 +708,7 @@ export const useApplicationWizard = () => {
       handleStartNew,
       handleSendEmail,
       setSelectedCvId,
+      handleSaveAndFinish,
     },
     forms: { clForm },
   };

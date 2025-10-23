@@ -476,26 +476,11 @@ const ResultStep = ({
     <div className="max-w-6xl mx-auto p-6 space-y-8 font-sans">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-2xl mb-4 shadow-lg">
-          <Award className="w-8 h-8 text-white" /> {/* Changed icon to Award */}
-        </div>
         <h1 className="text-4xl font-extrabold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
           Application Complete!
         </h1>
-        <p className="text-slate-600 text-lg">
-          Your tailored application materials are ready for review and
-          submission.
-        </p>
 
         {/* Simple Progress Indicator (Visual, as per generated code) */}
-        <div className="flex items-center justify-center mt-6">
-          <div className="flex space-x-2">
-            <div className="w-8 h-2 bg-green-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          </div>
-        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -571,35 +556,15 @@ const ResultStep = ({
         {/* Tailored CV Section */}
         {activeSection === 'cv' && (
           <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 text-white">
+                <div className="flex items-center gap-2 justify-center text-white">
                   <FileText className="w-6 h-6" />
-                  <h2 className="text-2xl font-bold">Tailored CV</h2>
-                </div>
-                <div className="flex space-x-2">
-                  {/* Using InternalEditableMaterialButton to match previous Button styles within sections */}
-                  <InternalEditableMaterialButton
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                    onClick={() => console.log('Download CV clicked')} // Placeholder for actual download
-                  >
-                    <Download className="w-5 h-5" />
-                  </InternalEditableMaterialButton>
-                  <InternalEditableMaterialButton
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                    onClick={() => handleSaveSectionVisual('cv')}
-                  >
-                    <Save className="w-5 h-5" />
-                  </InternalEditableMaterialButton>
+                  <h2 className="text-2xl font-bold bg-transparent text-white">
+                    Tailored CV
+                  </h2>
                 </div>
               </div>
-              <p className="text-blue-100 mt-2">
-                Your resume tailored specifically for this position.
-              </p>
             </div>
 
             <div className="p-8">

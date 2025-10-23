@@ -252,14 +252,14 @@ export default function ReferralsPage() {
           </Card>
 
           <Card>
-            <CardHeader>
+            {/* <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
                   <Award className="h-5 w-5 text-white" />
                 </div>
                 Referral Rank
               </CardTitle>
-            </CardHeader>
+            </CardHeader> */}
             <CardContent>
               <div className="flex items-center gap-3">
                 <RankIcon className={`h-6 w-6 ${currentTier.color}`} />

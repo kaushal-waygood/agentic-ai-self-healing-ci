@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FileCheck2, Loader2, Filter, Bookmark, Send, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-// ✅ FIX: Removed the non-existent 'getAppliedJobs' import
-import { getAllSavedJobs } from '@/services/api/student';
 import { ApplicationRow, StatCard } from './components/statusConfig';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
@@ -15,13 +13,19 @@ interface Application {
   job: {
     title: string;
     company: string;
-    slug: string; // Added for navigation
+    slug: string;
   };
   status: string;
   appliedAt: string;
 }
 
-const extendedApplicationStatuses = ['Saved', 'Applied', 'Visited', 'Viewed'];
+const extendedApplicationStatuses = [
+  'Saved',
+  'Applied',
+  'Visited',
+  'Viewed',
+  'applications', // This represents your tailored applications
+];
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -62,7 +66,6 @@ export default function ApplicationsPage() {
 
         switch (statusFilter) {
           case 'Applied':
-            // ✅ FIX: Replaced getAppliedJobs() with a direct API call
             response = await apiInstance.get('/students/jobs/applied-all');
             rawData = response.data.appliedJobs || [];
             statusLabel = 'Applied';
@@ -78,6 +81,32 @@ export default function ApplicationsPage() {
             statusLabel = 'Viewed';
             break;
           case 'Saved':
+            response = await apiInstance.get(`/students/jobs/saved-all`);
+            rawData = response.data.jobs || [];
+            statusLabel = 'Saved';
+            break;
+
+          case 'applications':
+            response = await apiInstance.get(`/students/applications`);
+            const tailoredApplications = response.data.applications || [];
+
+            // Normalize the data from the tailored applications endpoint
+            const formattedTailored = tailoredApplications.map((app: any) => ({
+              id: app._id,
+              job: {
+                title: app.jobTitle,
+                company: app.jobCompany,
+                // Create a slug on the fly for navigation
+                slug: `application-${app._id}`, // This slug is temporary and won't point to a real job page
+              },
+              status: app.status || 'Draft',
+              appliedAt: app.createdAt,
+            }));
+
+            setApplications(formattedTailored);
+            setIsLoading(false);
+            return; // Exit early
+
           default:
             response = await apiInstance.get(`/students/jobs/saved-all`);
             rawData = response.data.jobs || [];
@@ -85,9 +114,9 @@ export default function ApplicationsPage() {
             break;
         }
 
-        // ✅ FIX: Filter out any items where the job record is null before mapping.
+        // Normalize data for all other job list types
         const formattedApplications = rawData
-          .filter((apiJob: any) => apiJob && apiJob.job) // This prevents the crash
+          .filter((apiJob: any) => apiJob && apiJob.job) // Filter out null jobs
           .map((apiJob: any) => ({
             id: apiJob.job._id,
             job: {
@@ -139,7 +168,7 @@ export default function ApplicationsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 cursor-pointer p-2">
           <StatCard
             label="Applied Jobs"
             value={jobStats.appliedJobsCount}
@@ -164,7 +193,7 @@ export default function ApplicationsPage() {
           <StatCard
             label="Visited Links"
             value={jobStats.visitedJobsCount}
-            icon={Link} // Using Link from 'lucide-react'
+            icon={Link}
             color="from-green-500 to-emerald-500"
             onClick={() => setStatusFilter('Visited')}
           />

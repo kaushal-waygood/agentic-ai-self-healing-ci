@@ -697,8 +697,6 @@ export function ApplicationWizardClient() {
         formDataObj,
       );
 
-      console.log('Full response:', response);
-
       const result = response.data;
       setRefinedCv(result.data.tailoredCV);
       setTailoredCl(result.data.tailoredCoverLetter);
