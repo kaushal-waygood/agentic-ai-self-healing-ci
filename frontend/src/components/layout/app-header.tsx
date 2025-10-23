@@ -245,6 +245,8 @@ const AppHeader = ({ setIsSearchOpen }) => {
           apiInstance.get('/plan/get-user-plan-type'),
         ]);
 
+        console.log(usageRes.data, limitsRes.data, planRes.data);
+
         if (usageRes.data?.success) {
           const usageLogs = usageRes.data.data;
           const totals = usageLogs.reduce(

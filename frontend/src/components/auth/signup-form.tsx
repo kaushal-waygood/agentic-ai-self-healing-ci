@@ -208,7 +208,7 @@ export function SignupForm() {
       Object.assign(mockUserProfile, newUser);
 
       toast({
-        title: 'Welcome to CareerPilot!',
+        title: 'Welcome to zobsai!',
         description: toastDescription,
       });
 
@@ -284,7 +284,7 @@ export function SignupForm() {
           Create an Account
         </CardTitle>
         <CardDescription>
-          Join CareerPilot and supercharge your job search.
+          Join zobsai and supercharge your job search.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">

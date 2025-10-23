@@ -21,6 +21,9 @@ import {
   Target,
   Play,
   Bookmark,
+  Calendar,
+  Zap,
+  Infinity,
 } from 'lucide-react';
 import Link from 'next/link';
 import { mockUserProfile, ActionItem } from '@/lib/data/user';
@@ -39,6 +42,8 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import { JobCard } from '@/components/jobs/job-card';
+import { ApplicationRow } from './applications/components/statusConfig';
 
 export function StatCard({
   title,
@@ -140,6 +145,7 @@ export function ToolkitButton({
 
 export function ProfileReadinessCard() {
   const { data, isLoading, error } = useProfileCompletion();
+
   if (isLoading || !data) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -149,6 +155,7 @@ export function ProfileReadinessCard() {
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -158,24 +165,31 @@ export function ProfileReadinessCard() {
       </div>
     );
   }
+
   const checklistItems = [
-    { key: 'coreProfile', label: 'Basic Info & Preferences' },
+    { key: 'coreProfile', label: 'Basic Info' },
     { key: 'workExperience', label: 'Work Experience' },
     { key: 'education', label: 'Education Details' },
-    { key: 'skills', label: 'Skills (10+ recommended)' },
+    { key: 'skills', label: 'Skills (10+)' },
+    { key: 'projects', label: 'Projects' },
+    { key: 'jobPreferences', label: 'Job Preferences' },
   ];
+
   const score = data.percentage;
   const checks = data.categories;
+
   const getScoreColor = (scoreValue) => {
     if (scoreValue >= 80) return 'text-green-600';
     if (scoreValue >= 60) return 'text-yellow-600';
     return 'text-red-500';
   };
+
   const getProgressColor = (scoreValue) => {
     if (scoreValue >= 80) return 'from-green-400 to-green-600';
     if (scoreValue >= 60) return 'from-yellow-400 to-yellow-600';
     return 'from-red-400 to-red-600';
   };
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
       <div className="flex items-center justify-between mb-6">
@@ -223,12 +237,31 @@ export function ProfileReadinessCard() {
           </div>
         ))}
       </div>
+
+      {/* --- NEW SECTION: SUGGESTION TO COMPLETE PROFILE --- */}
+      {score < 100 && (
+        <div className="mt-6 text-center border-t border-gray-200 pt-5">
+          <p className="text-sm text-gray-600 mb-4">
+            A complete profile gets <strong>5x more views</strong>. Fill out the
+            remaining sections to boost your visibility!
+          </p>
+          <Button
+            asChild
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <Link href="/dashboard/profile">
+              Go to Profile
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
 
-export function ActionItemCard({ item, onMarkAsRead }) {
-  const getTypeIcon = (type) => {
+export function ActionItemCard({ item, onMarkAsRead }: any) {
+  const getTypeIcon = (type: any) => {
     switch (type) {
       case 'reward':
         return <Award className="w-5 h-5 text-yellow-500" />;
@@ -282,6 +315,130 @@ export function ActionItemCard({ item, onMarkAsRead }) {
   );
 }
 
+// A small component to render a single usage meter with a progress bar
+function UsageMeter({ label, used, limit }: any) {
+  const isUnlimited = limit === -1;
+  const percentage = isUnlimited ? 0 : Math.min((used / limit) * 100, 100);
+
+  const getProgressColor = () => {
+    if (percentage > 90) return 'bg-red-500';
+    if (percentage > 70) return 'bg-yellow-500';
+    return 'bg-purple-500';
+  };
+
+  const formatUsageKey = (key) => {
+    const map = {
+      cvCreation: 'CV Creations',
+      coverLetter: 'Cover Letters',
+      aiApplication: 'AI Applications',
+      autoApply: 'Auto-Apply Credits',
+    };
+    return map[key] || key;
+  };
+
+  // Helper to get a relevant icon for each usage type
+  const getUsageIcon = (key: any) => {
+    const iconMap: any = {
+      cvCreation: <FileText className="w-5 h-5 text-blue-500" />,
+      coverLetter: <Send className="w-5 h-5 text-cyan-500" />,
+      aiApplication: <Zap className="w-5 h-5 text-yellow-500" />,
+      autoApply: <Bot className="w-5 h-5 text-green-500" />,
+    };
+    return iconMap[key] || <Zap className="w-5 h-5 text-gray-500" />;
+  };
+
+  return (
+    <div className="flex items-center space-x-3">
+      <div className="flex-shrink-0">{getUsageIcon(label)}</div>
+      <div className="flex-1">
+        <div className="flex justify-between items-baseline mb-1">
+          <p className="text-sm font-medium text-gray-700">
+            {formatUsageKey(label)}
+          </p>
+          <p className="text-sm font-semibold text-gray-800">
+            {used} /{' '}
+            {isUnlimited ? <Infinity className="inline w-4 h-4" /> : limit}
+          </p>
+        </div>
+        {!isUnlimited && (
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all duration-500 ${getProgressColor()}`}
+              style={{ width: `${percentage}%` }}
+            ></div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SubscriptionStatusCard({ plan }: any) {
+  // Fallback UI if there's no active plan
+  if (!plan || !plan.isActive) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Your Plan</h3>
+        <p className="text-gray-600 text-sm mb-4">
+          You do not have an active subscription.
+        </p>
+        <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
+          <Link href="/pricing">View Plans</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  // Helper to calculate days remaining until the plan's end date
+  const calculateDaysRemaining = (endDateString) => {
+    const end = new Date(endDateString);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    // Ceil to ensure if there's any time left in the last day, it counts as 1 day
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const daysRemaining = calculateDaysRemaining(plan.endDate);
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Your Plan: <span className="text-purple-600">{plan.planType}</span>
+          </h3>
+          <p className="text-sm text-gray-500 flex items-center mt-1">
+            <Calendar className="w-4 h-4 mr-2" />
+            Renews in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}
+          </p>
+        </div>
+        <div className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
+          ACTIVE
+        </div>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        {/* Render a meter for each usage counter from the API */}
+        {Object.keys(plan.usageCounters).map((key) =>
+          key !== 'lastReset' ? (
+            <UsageMeter
+              key={key}
+              label={key}
+              used={plan.usageCounters[key]}
+              limit={plan.usageLimits[key]}
+            />
+          ) : null,
+        )}
+      </div>
+
+      <Button variant="outline" className="w-full" asChild>
+        <Link href="/dashboard/settings/billing">Manage Subscription</Link>
+      </Button>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [stats, setStats] = useState({
@@ -293,13 +450,79 @@ export default function DashboardPage() {
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [cvsGenerated, setCvsGenerated] = useState(0);
+  const [coverLettersGenerated, setCoverLettersGenerated] = useState(0);
+
+  const [planDetails, setPlanDetails] = useState(null);
+
   const dispatch = useDispatch();
   // Use the user from Redux as the single source of truth for authentication
   const { user: authUser } = useSelector((state: any) => state.auth);
 
-  // --- CORRECTED EFFECTS ---
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch Job Stats
+        const statsResponse = await apiInstance.get('/students/jobs/stats');
+        const apiData = statsResponse.data;
 
-  // Effect 1: Fetch the user's profile if it's not already in the Redux store.
+        setStats({
+          applicationsSent: apiData.applicationsSent || 0,
+          savedJobsCount: apiData.savedJobsCount || 0,
+          cvsGenerated: apiData.cvsGenerated || 0,
+          coverLettersGenerated: apiData.coverLettersGenerated || 0,
+          referralCount: apiData.referralCount || 0,
+        });
+
+        const statusCounts = (apiData.applicationStats || []).reduce(
+          (acc, stat) => {
+            acc[stat.status] = stat.count;
+            return acc;
+          },
+          {},
+        );
+        setStatusChartData([
+          {
+            status: 'Sent',
+            applications: statusCounts['Sent'] || 0,
+            color: '#8b5cf6',
+          },
+          {
+            status: 'Reviewed',
+            applications: statusCounts['Reviewed'] || 0,
+            color: '#3b82f6',
+          },
+          {
+            status: 'Interview',
+            applications: statusCounts['Interview'] || 0,
+            color: '#06b6d4',
+          },
+          {
+            status: 'Rejected',
+            applications: statusCounts['Rejected'] || 0,
+            color: '#ef4444',
+          },
+        ]);
+
+        // --- Fetch Plan Details ---
+        const planResponse = await apiInstance.get('/plan/get-user-plan-type');
+        if (planResponse.data.success) {
+          setPlanDetails(planResponse.data.data);
+        }
+
+        // Mock action items
+        setActionItems(mockUserProfile.actionItems || []);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      }
+    };
+
+    if (authUser) {
+      fetchDashboardData();
+    }
+  }, [authUser]);
+
   useEffect(() => {
     if (!authUser) {
       dispatch(getProfileRequest());
@@ -371,6 +594,27 @@ export default function DashboardPage() {
     );
   };
 
+  useEffect(() => {
+    const response = async () => {
+      const response = await apiInstance.get('/students/jobs/stats');
+    };
+
+    response();
+  }, []);
+
+  useEffect(() => {
+    const fetchSavedJobs = async () => {
+      try {
+        const response = await apiInstance.get('/students/jobs/saved-all');
+        setSavedJobs(response.data.jobs);
+      } catch (error) {
+        console.error('Error fetching saved jobs:', error);
+      }
+    };
+
+    fetchSavedJobs();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -438,6 +682,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="space-y-8">
+            <SubscriptionStatusCard plan={planDetails} />
+
             <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -476,100 +722,6 @@ export default function DashboardPage() {
                   description="Automate your job search."
                   color="green"
                 />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Application Pipeline
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Track your application progress
-                  </p>
-                </div>
-                <button className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                  <Filter className="w-4 h-4" />
-                </button>
-              </div>
-              {statusChartData.some((d) => d.applications > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={statusChartData} margin={{ left: -20 }}>
-                    <XAxis
-                      dataKey="status"
-                      axisLine={false}
-                      tickLine={false}
-                      stroke="#6b7280"
-                      fontSize={12}
-                    />
-                    <YAxis
-                      dataKey="applications"
-                      axisLine={false}
-                      tickLine={false}
-                      stroke="#6b7280"
-                      fontSize={12}
-                    />
-                    <Bar dataKey="applications" radius={[8, 8, 0, 0]}>
-                      {statusChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-[250px] text-center text-gray-500 border-2 border-dashed rounded-lg">
-                  <p className="font-medium">No application data yet.</p>
-                  <p className="text-sm">
-                    Apply for jobs to see your stats here.
-                  </p>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="mt-4"
-                    asChild
-                  >
-                    <Link href="/dashboard/search-jobs">Find a Job</Link>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="space-y-8">
-            <div
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
-              id="action-items"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <MailWarning className="h-6 w-6 text-purple-600" />
-                    Action Items
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    AI-flagged tasks and important updates.
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                {actionItems.length > 0 ? (
-                  actionItems.map((item) => (
-                    <ActionItemCard
-                      key={item.id}
-                      item={item}
-                      onMarkAsRead={handleMarkAsRead}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-10 text-gray-500">
-                    <Bell className="h-8 w-8 mx-auto mb-2" />
-                    <p className="font-medium">You're all caught up!</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>

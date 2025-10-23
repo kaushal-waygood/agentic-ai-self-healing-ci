@@ -73,6 +73,143 @@ export const studentDetails = async (req, res) => {
   }
 };
 
+export const onboardingProfile = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const { data, selectedOptions } = req.body;
+
+    // 1. Find the student
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // 2. Update Basic Information
+    if (data.fullName) student.fullName = data.fullName;
+    if (data.email) student.email = data.email;
+    if (data.phone) student.phone = data.phone;
+    if (data.designation) student.jobRole = data.designation;
+
+    // NOTE: File uploads (profilePhoto, resume) must be handled by a middleware
+    // like Multer before this controller runs. The middleware would upload the
+    // file to a service (like S3 or Cloudinary) and place the URL in req.file.location.
+    // Example: if (req.file) student.profileImage = req.file.location;
+
+    // 3. Transform and Update Education Array
+    if (data.education && Array.isArray(data.education)) {
+      student.education = data.education.map((edu) => ({
+        educationId: uuidv4(), // Generate a unique ID for each entry
+        institute: edu.institute,
+        degree: edu.degree,
+        grade: edu.grade,
+        // Map graduationYear to endDate for schema consistency
+        endDate: edu.graduationYear ? edu.graduationYear.toString() : null,
+      }));
+    }
+
+    // 4. Transform and Update Experience Array
+    if (data.experience && Array.isArray(data.experience)) {
+      student.experience = data.experience.map((exp) => {
+        // Basic parsing for "start - end" or "start - Present" duration
+        const durationParts = exp.duration
+          ? exp.duration.split(' - ')
+          : [null, null];
+        return {
+          experienceId: uuidv4(),
+          company: exp.company,
+          title: exp.title,
+          description: exp.description,
+          startDate: durationParts[0] || null,
+          endDate:
+            durationParts[1] && durationParts[1].toLowerCase() !== 'present'
+              ? durationParts[1]
+              : null,
+          currentlyWorking:
+            durationParts[1] && durationParts[1].toLowerCase() === 'present',
+        };
+      });
+    }
+
+    // 5. Transform and Update Skills Array
+    if (data.skills && Array.isArray(data.skills)) {
+      student.skills = data.skills.map((skill) => ({
+        skillId: uuidv4(),
+        skill: skill.skill,
+        level: skill.level || 'BEGINNER',
+      }));
+    }
+
+    // 6. Transform and Update Projects Array
+    if (data.projects && Array.isArray(data.projects)) {
+      student.projects = data.projects.map((proj) => ({
+        projectName: proj.projectName,
+        description: proj.description,
+        link: proj.link,
+        // Transform comma-separated string back into an array
+        technologies: proj.technologies
+          ? proj.technologies.split(',').map((t) => t.trim())
+          : [],
+      }));
+    }
+
+    // 7. Update Job Preferences Sub-document
+    // Ensure the sub-document exists before assigning to it
+    student.jobPreferences = student.jobPreferences || {};
+    student.jobPreferences.preferredJobTypes = selectedOptions.jobType || [];
+    student.jobPreferences.immediateAvailability =
+      selectedOptions.availability === 'Immediately';
+
+    if (data.location) {
+      student.jobPreferences.preferredCities = data.location
+        .split(',')
+        .map((city) => city.trim());
+    }
+    if (data.expectedSalary) {
+      student.jobPreferences.preferredSalary = {
+        min: parseInt(data.expectedSalary, 10) || null,
+        currency: 'USD', // or derive from user location/input
+        period: 'YEAR',
+      };
+    }
+
+    // 8. Mark Onboarding as Complete and Save
+    student.hasCompletedOnboarding = true;
+    await student.save();
+
+    // 9. Send Success Response
+    return res.status(200).json({
+      message: 'Profile updated successfully!',
+      hasCompletedOnboarding: student.hasCompletedOnboarding,
+    });
+  } catch (error) {
+    console.error('Error updating onboarding profile:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const completeOnboarding = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    // Find the user and update the flag to true
+    await Student.findByIdAndUpdate(studentId, {
+      hasCompletedOnboarding: true,
+    });
+
+    // It's good practice to clear any cached user data
+    const cacheKey = `student:${studentId}:profileCompletion`;
+    await redisClient.del(cacheKey); // Or any other relevant user caches
+
+    res.status(200).json({
+      success: true,
+      message: 'Onboarding status updated successfully.',
+    });
+  } catch (error) {
+    console.error('Error completing onboarding:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 // update Full Name
 export const updateFullName = async (req, res) => {
   const { fullName, phone, email } = req.body;
@@ -399,8 +536,6 @@ export const updateExperience = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-// Education controller
 
 // Education controller
 export const getEducationsById = async (req, res) => {
@@ -1198,29 +1333,32 @@ export const isSavedOrNot = async (req, res) => {
   }
 };
 
+// path: (your-backend)/controllers/studentController.js
+
 export const getProfileCompletion = async (req, res) => {
   const studentId = req.user._id;
   const cacheKey = `student:${studentId}:profileCompletion`;
 
   try {
+    // The call to withCache will fetch from Redis or execute the function if not cached.
     const completionData = await redisClient.withCache(
       cacheKey,
-      86400,
+      86400, // Cache for 1 day (in seconds)
       async () => {
+        // OPTIMIZED: Removed resumeUrl and coverLetter from select as they are not needed here.
         const student = await Student.findById(studentId).select(
-          'fullName phone profileImage jobRole resumeUrl education experience skills projects jobPreferences coverLetter',
+          'fullName phone email jobRole profileImage jobRole education experience skills projects jobPreferences',
         );
+
+        console.log(student);
 
         if (!student) throw new Error('Student not found');
 
+        // This object now defines the 6 core categories for profile completion.
         const completionStatus = {
           coreProfile: Boolean(
-            student.fullName &&
-              student.phone &&
-              student.profileImage &&
-              student.jobRole,
+            student.fullName && student.phone && student.jobRole,
           ),
-          resume: Boolean(student.resumeUrl),
           education: Boolean(student.education?.length > 0),
           workExperience: Boolean(student.experience?.length > 0),
           skills: Boolean(student.skills?.length >= 10),
@@ -1232,13 +1370,13 @@ export const getProfileCompletion = async (req, res) => {
                 student.jobPreferences?.preferedCities?.length > 0 ||
                 student.jobPreferences?.isRemote === true),
           ),
-          coverLetter: Boolean(student.coverLetter?.length > 0),
         };
 
         const completedCategories =
           Object.values(completionStatus).filter(Boolean).length;
         const totalCategories = Object.keys(completionStatus).length;
 
+        // This object is what gets returned by the API and stored in the cache.
         return {
           percentage: Math.round((completedCategories / totalCategories) * 100),
           breakdown: { completed: completedCategories, total: totalCategories },
@@ -1249,7 +1387,8 @@ export const getProfileCompletion = async (req, res) => {
 
     return res.status(200).json(completionData);
   } catch (error) {
-    console.error('Error calculating completion:', error);
+    console.error('Error calculating profile completion:', error);
+    // Avoid sending detailed error messages to the client in production
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -1635,8 +1774,6 @@ export const getAllVisitedJobs = async (req, res) => {
         select: 'title company salary location jobTypes slug', // Specify which job fields to return
       });
 
-    console.log(student);
-
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
@@ -1662,8 +1799,6 @@ export const getAllViewedJobs = async (req, res) => {
         select: 'title company salary location jobTypes slug', // Specify which job fields to return
       });
 
-    console.log(student);
-
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
@@ -1688,8 +1823,6 @@ export const getAllSavedJobs = async (req, res) => {
         path: 'savedJobs.job',
         select: 'title company salary location jobTypes slug', // Specify which job fields to return
       });
-
-    console.log(student);
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });

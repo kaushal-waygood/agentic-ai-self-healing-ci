@@ -227,7 +227,7 @@ export function UserManagementClient({ plans }: UserManagementClientProps) {
       <CardHeader>
         <CardTitle>All Users</CardTitle>
         <CardDescription>
-          A complete list of every user on the CareerPilot platform.
+          A complete list of every user on the zobsai platform.
         </CardDescription>
         <div className="mt-4">
           <Input

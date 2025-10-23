@@ -529,7 +529,7 @@ const PricingTable = () => {
 
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
               Ask your university or bootcamp to sponsor free premium access to
-              CareerPilot for all students. Zero cost to you, zero cost to them.
+              zobsai for all students. Zero cost to you, zero cost to them.
             </p>
 
             <div className="grid md:grid-cols-3 gap-6 mb-8">

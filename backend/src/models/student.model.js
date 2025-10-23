@@ -203,6 +203,10 @@ const studentSchema = new Schema(
     skills: [skillSchema],
     projects: [projectSchema],
     applications: [applicationSchema],
+    hasCompletedOnboarding: {
+      type: Boolean,
+      default: false,
+    },
     jobPreferences: {
       type: jobPreferenceSchema,
       default: () => ({}),

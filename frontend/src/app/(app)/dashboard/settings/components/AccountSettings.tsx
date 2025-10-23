@@ -11,6 +11,77 @@ import { useSelector } from 'react-redux';
 import apiInstance from '@/services/api';
 
 import { API_BASE_URL } from '@/services/api';
+import { Loader2 } from 'lucide-react';
+
+interface OtpModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  email: string;
+  otp: string;
+  setOtp: (otp: string) => void;
+  onVerify: () => void;
+  isLoading: boolean;
+}
+
+export const OtpModal: React.FC<OtpModalProps> = ({
+  // isOpen,
+  onClose,
+  email,
+  otp,
+  setOtp,
+  onVerify,
+  isLoading,
+}) => {
+  return (
+    // Backdrop
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
+      {/* Modal Panel */}
+      <div className="relative w-full max-w-md p-6 bg-white rounded-xl shadow-2xl dark:bg-gray-800">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+        >
+          &times;
+        </button>
+
+        <div className="text-center">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Verify Your New Email
+          </h3>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            We've sent a 6-digit code to{' '}
+            <strong className="text-gray-700 dark:text-gray-300">
+              {email}
+            </strong>
+            . Please enter it below.
+          </p>
+        </div>
+
+        <div className="my-6">
+          <Input
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            maxLength={6}
+            placeholder="Enter 6-digit OTP"
+            className="h-14 text-center text-2xl tracking-[0.5em] font-mono bg-gray-50 dark:bg-gray-700"
+          />
+        </div>
+
+        <Button
+          onClick={onVerify}
+          disabled={isLoading || otp.length < 6}
+          className="w-full h-12 text-base"
+        >
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            'Verify & Update Email'
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +105,11 @@ const GoogleLoginButton = () => {
 export const AccountSetting = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
-
+  // --- START: NEW STATE FOR EMAIL CHANGE ---
+  const [newEmail, setNewEmail] = useState(user?.email || '');
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otp, setOtp] = useState('');
+  // --- END: NEW STATE ---
   const [statusMessage, setStatusMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +138,63 @@ export const AccountSetting = () => {
 
     // ...
   }, [dispatch]);
+
+  const handleSendOtp = async () => {
+    if (newEmail === user?.email) {
+      setStatusMessage('Please enter a new email address to verify.');
+      setIsError(true);
+      return;
+    }
+
+    setIsLoading(true);
+    setStatusMessage(`Sending OTP to ${newEmail}...`);
+    setIsError(false);
+    localStorage.setItem('newEmail', newEmail);
+    try {
+      await apiInstance.post('/user/change-email', {
+        email: newEmail,
+      });
+      setStatusMessage(`An OTP has been sent to ${newEmail}.`);
+      setIsError(false);
+      setIsOtpModalOpen(true); // Open the modal on success
+    } catch (err: any) {
+      setStatusMessage(
+        err.response?.data?.message || 'Failed to send OTP. Please try again.',
+      );
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setIsLoading(true);
+    setStatusMessage('Verifying OTP...');
+    setIsError(false);
+    try {
+      const response = await apiInstance.patch('/user/verify-email-otp', {
+        email: newEmail,
+        otp,
+      });
+      if (response.status === 200) {
+        localStorage.removeItem('newEmail');
+      }
+      setStatusMessage(response.data.message || 'Email successfully updated!');
+      setIsError(false);
+      setIsOtpModalOpen(false);
+      setOtp('');
+
+      dispatch(getProfileRequest());
+    } catch (err: any) {
+      // Don't close the modal on error, show the message
+      setStatusMessage(
+        err.response?.data?.message || 'Invalid OTP. Please try again.',
+      );
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle sending test email
   const handleSendTestEmail = async () => {
@@ -151,19 +283,26 @@ export const AccountSetting = () => {
               readOnly
             />
           </div>
-          <div className="group">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <div>
+            <label className="block text-sm font-medium mb-2">
               Email Address
             </label>
-            <Input
-              type="email"
-              defaultValue={user?.email || ''}
-              readOnly
-              className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              This is your primary email address that will be used for sending
-              emails.
+            <div className="flex items-center gap-2">
+              <Input
+                type="email"
+                value={newEmail} // Use controlled component
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Enter your email"
+              />
+              <Button
+                onClick={handleSendOtp}
+                disabled={isLoading || newEmail === user?.email}
+              >
+                {isLoading ? 'Sending...' : 'Verify'}
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              To change your email, enter a new one and click "Verify".
             </p>
           </div>
           <Button asChild>
@@ -233,6 +372,18 @@ export const AccountSetting = () => {
           </p>
         </div>
       </div>
+
+      {localStorage.getItem('newEmail') && (
+        <OtpModal
+          // isOpen={isOtpModalOpen}
+          onClose={() => setIsOtpModalOpen(false)}
+          email={newEmail}
+          otp={otp}
+          setOtp={setOtp}
+          onVerify={handleVerifyOtp}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 };
