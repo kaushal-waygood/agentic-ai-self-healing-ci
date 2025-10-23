@@ -45,6 +45,15 @@ export default function DashboardLayoutClient({
   const [isPinned, setPinned] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  // --- START: MODIFIED LOGIC ---
+  // This will be true for any path starting with /dashboard
+  const isDashboardPage = pathname.startsWith('/dashboard');
+  // This will be true only for the specific onboarding page
+  const isOnboardingPage = pathname === '/dashboard/onboarding-tour';
+  // This new constant controls UI visibility
+  const showDashboardUI = isDashboardPage && !isOnboardingPage;
+  // --- END: MODIFIED LOGIC ---
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -58,8 +67,6 @@ export default function DashboardLayoutClient({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const isDashboardPage = pathname.startsWith('/dashboard');
 
   const toggle = () => setIsOpen(!isOpen);
 
@@ -97,7 +104,8 @@ export default function DashboardLayoutClient({
       <SidebarContext.Provider value={contextValue}>
         {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
         <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
-          {isDashboardPage && (
+          {/* MODIFIED: Use the new constant to conditionally render the sidebar */}
+          {showDashboardUI && (
             <aside
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
@@ -110,7 +118,8 @@ export default function DashboardLayoutClient({
           )}
 
           <div className="flex flex-1 flex-col w-full">
-            {isDashboardPage && (
+            {/* MODIFIED: Use the new constant to conditionally render the header */}
+            {showDashboardUI && (
               <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
                 <AppHeader setIsSearchOpen={setIsSearchOpen} />
               </header>
@@ -121,7 +130,8 @@ export default function DashboardLayoutClient({
               {!isDashboardPage && <Footer />}
             </ScrollArea>
 
-            {isDashboardPage && <DashboardFooter />}
+            {/* MODIFIED: Use the new constant to conditionally render the dashboard footer */}
+            {showDashboardUI && <DashboardFooter />}
           </div>
         </div>
       </SidebarContext.Provider>

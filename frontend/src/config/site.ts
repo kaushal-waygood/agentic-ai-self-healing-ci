@@ -40,11 +40,11 @@ import {
 } from 'lucide-react';
 
 export const siteConfig: SiteConfig = {
-  name: 'CareerPilot',
+  name: 'ZobsAI',
   description:
     'AI-powered job application assistant to streamline and enhance your job search.',
-  url: 'https://careerpilot.example.com',
-  ogImage: 'https://careerpilot.example.com/og.jpg',
+  url: 'https://zobsai.com',
+  ogImage: 'https://zobsai.com',
   sidebarNav: [
     {
       title: 'Dashboard',

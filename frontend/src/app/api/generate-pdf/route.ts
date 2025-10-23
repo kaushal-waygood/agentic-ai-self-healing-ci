@@ -41,7 +41,7 @@ export default async function handler(
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.pdf"`,
+      `attachment; filename="zobsai_${title.replace(/ /g, '_')}.pdf"`,
     );
 
     // Send the generated PDF buffer

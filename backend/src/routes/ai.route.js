@@ -21,6 +21,7 @@ import {
   regenerateCV,
   saveTailoredApplication,
   getSavedApplications,
+  regenerateCL,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 
@@ -85,6 +86,8 @@ router.post(
   upload.single('cv'),
   generateCoverLetterByTitle,
 );
+
+router.post('/coverletter/regenerate', authMiddleware, isStudent, regenerateCL);
 
 router.post('/resume/save/html', authMiddleware, isStudent, saveStudentHTMLCV);
 router.get('/resume/saved', authMiddleware, isStudent, getStudentHTMLCV);

@@ -359,3 +359,47 @@ Based on all the information above, regenerate the CV. **Do not just repeat the 
 * **DO NOT** wrap the JSON object in markdown fences.
 `;
 };
+
+export const generateCLRegeneratePrompt = (
+  jobContextString,
+  studentData,
+  finalTouch,
+  previousCLJson, // Changed from previousCVJson
+) => {
+  return `You are an expert career coach and cover letter writer. Your task is to **regenerate and improve** a professional HTML cover letter and its analysis based on previous output and new user instructions. The final output must be a single, valid JSON object.
+
+**Original Job Context:**
+${jobContextString}
+
+**User's Profile Data (JSON):**
+${JSON.stringify(studentData, null, 2)}
+
+**PREVIOUSLY GENERATED OUTPUT (JSON):**
+${JSON.stringify(previousCLJson, null, 2)}
+
+**User's New Instructions for Regeneration (Final Touch):**
+${
+  finalTouch ||
+  'No new instructions provided. Please refine the previous version based on your expertise to make it even better.'
+}
+
+---
+
+**YOUR TASK:**
+
+Based on all the information above, regenerate the Cover Letter. **Do not just repeat the previous output.** Improve upon it based on the user's new instructions or your own expert analysis to better align with the job context and sound more personal and impactful.
+
+**1. Generate IMPROVED Professional HTML Cover Letter (for the 'cl' key):**
+* The cover letter should be engaging, professional, and directly tailored to the job description.
+* Refine the narrative, key examples, or structure to enhance its persuasive power.
+* The output for this key must be a single string of HTML.
+
+**2. RE-EVALUATE the Analysis (for the 'analysis' key):**
+* Provide a new, brief, and actionable suggestion for how the user could further improve the cover letter.
+
+**3. Final Output Format:**
+* The final output must be **ONLY a single, valid JSON object**.
+* The JSON object must have exactly these keys: \`cl\`, \`analysis\`.
+* **DO NOT** wrap the JSON object in markdown fences.
+`;
+};

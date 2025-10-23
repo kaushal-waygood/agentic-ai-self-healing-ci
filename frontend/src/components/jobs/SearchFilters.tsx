@@ -365,29 +365,7 @@ export const SearchFilters = ({
           />
         </div>
 
-        <button
-          onClick={handleSearchClick}
-          disabled={isSearching}
-          aria-busy={isSearching}
-          className={`flex items-center gap-2 px-6 py-3  rounded-xl font-semibold transition-all duration-300 transform ${
-            isSearching
-              ? 'bg-gray-400 cursor-not-allowed text-white'
-              : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white hover:scale-105 shadow-lg hover:shadow-purple-200/50'
-          }`}
-        >
-          {isSearching ? (
-            <>
-              {/* ✅ Use Loader2, not Loader2Icon */}
-              <Loader2 className="w-4 h-4 animate-spin" /> Search
-            </>
-          ) : (
-            <>
-              <SearchIcon className="w-4 h-4" />
-              Search
-            </>
-          )}
-        </button>
-
+        {/* More Filters Button */}
         <button
           onClick={onOpenFilterModal}
           className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
