@@ -1,6 +1,7 @@
 'use client';
 import { useMemo } from 'react';
 import { createAvatar } from '@dicebear/core';
+import multiavatar from '@multiavatar/multiavatar';
 
 import {
   adventurerNeutral,
@@ -12,13 +13,17 @@ import {
   initials,
   lorelei,
   loreleiNeutral,
+  openPeeps,
   micah,
   miniavs,
   personas,
   thumbs,
 } from '@dicebear/collection';
 import avatar1 from '@/assets/avatar-1.jpg';
-import avatar2 from '@/assets/avatar-2.jpg';
+import avatar2 from '@/assets/avatar-2.png';
+import avatar3 from '@/assets/avatar-3.png';
+import avatar4 from '@/assets/avatar-4.jpg';
+import avatar5 from '@/assets/avatar-5.png';
 import { Button } from '@/components/ui/button';
 import {
   ArrowRight,
@@ -52,7 +57,7 @@ export const Hero = () => {
   const router = useRouter();
 
   // avatar array
-  const avatars = [avatar1, avatar2, avatar1, avatar2];
+  const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5];
 
   const stats = [
     { number: '500K+', label: 'Applications Sent', icon: Target },
@@ -158,7 +163,7 @@ export const Hero = () => {
   }, []);
 
   const avatar = Array.from({ length: 5 }, (_, i) =>
-    createAvatar(avataaars, { seed: `User${i}` }).toDataUri(),
+    createAvatar(openPeeps, { seed: `User${i}` }).toDataUri(),
   );
 
   return (
@@ -395,7 +400,7 @@ export const Hero = () => {
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 pt-2">
               <div className="flex items-center gap-4">
-                {/* <div className="flex -space-x-4">
+                <div className="flex -space-x-4">
                   {avatars.map((src, i) => (
                     <Image
                       key={i}
@@ -404,9 +409,9 @@ export const Hero = () => {
                       className="w-12 h-12 rounded-full border-4 border-white shadow-lg"
                     />
                   ))}
-                </div> */}
+                </div>
 
-                <div className="flex -space-x-1">
+                {/* <div className="flex -space-x-1">
                   {avatar.map((src, i) => (
                     <img
                       key={i}
@@ -415,7 +420,8 @@ export const Hero = () => {
                       className="w-12 h-12 rounded-full border-2 border-white shadow-lg"
                     />
                   ))}
-                </div>
+                </div> */}
+
                 <div className="text-base text-gray-600">
                   <span className="font-bold text-xl text-gray-900">
                     15,000+

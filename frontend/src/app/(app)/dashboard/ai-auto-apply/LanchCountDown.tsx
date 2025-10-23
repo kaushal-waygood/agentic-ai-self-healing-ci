@@ -79,7 +79,7 @@ const LaunchCountdown = () => {
 
         <div className="mb-10">
           <span className="inline-block text-2xl md:text-3xl font-semibold text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-6 py-3 rounded-lg">
-            Launched In 2 Weeks
+            Launching In 2 Weeks
           </span>
         </div>
 

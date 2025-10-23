@@ -725,6 +725,7 @@ const transformRapidApiJob = (apiJob, searchQuery) => {
     responsibilities,
     company: apiJob.employer_name,
     country: apiJob.job_country,
+    logo: apiJob.employer_logo,
     location: {
       city: apiJob.job_city,
       lat: apiJob.job_latitude,

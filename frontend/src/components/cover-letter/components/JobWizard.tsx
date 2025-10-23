@@ -160,7 +160,7 @@ const JobWizard = ({
   }, []);
 
   return (
-    <div className="p-3 sm:p-6">
+    <div className="p-3 sm:p-3 md:p-6 lg:p-2 ">
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-4">

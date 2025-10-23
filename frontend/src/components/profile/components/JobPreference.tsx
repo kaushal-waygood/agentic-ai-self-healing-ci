@@ -35,10 +35,12 @@ import apiInstance from '@/services/api';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import LocationPreferences from './LocationPreferences';
+import { useToast } from '@/hooks/use-toast';
 
 const JobPreferencesForm = () => {
   const [activeSection, setActiveSection] = useState('location');
   const [tags, setTags] = useState([]);
+  const { toast } = useToast();
 
   const dispatch = useDispatch();
   const { students } = useSelector((state: RootState) => state.student);
@@ -216,6 +218,20 @@ const JobPreferencesForm = () => {
     }));
   };
 
+  const handleNextSection = () => {
+    const currentIndex = sections.findIndex((s) => s.id === activeSection);
+    if (currentIndex < sections.length - 1) {
+      setActiveSection(sections[currentIndex + 1].id);
+    }
+  };
+
+  const handlePreviousSection = () => {
+    const currentIndex = sections.findIndex((s) => s.id === activeSection);
+    if (currentIndex > 0) {
+      setActiveSection(sections[currentIndex - 1].id);
+    }
+  };
+
   const handleSavePreferences = async (e) => {
     e.preventDefault();
     const payload = {
@@ -233,9 +249,32 @@ const JobPreferencesForm = () => {
         ? formData.preferredCertifications.join(',')
         : formData.preferredCertifications,
     };
+
     const response = await apiInstance.post('/students/prefered-job/add', {
       formData: payload,
     });
+
+    try {
+      await apiInstance.post('/students/prefered-job/add', {
+        formData: payload,
+      });
+      console.log('Preferences saved successfully');
+      toast({
+        variant: 'default',
+        title: 'Success',
+        description: 'Preferences saved successfully',
+        duration: 4000,
+      });
+    } catch (error) {
+      console.error(error);
+
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not fetch the application list.',
+        duration: 4000,
+      });
+    }
   };
 
   useEffect(() => {
@@ -689,16 +728,49 @@ const JobPreferencesForm = () => {
         </div>
 
         {/* Action Buttons */}
+
         <div className="flex justify-center gap-4 mt-8">
           {/* <button className="px-8 py-4 bg-gradient-to-r from-slate-400 to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-slate-400/30 hover:shadow-xl hover:shadow-slate-400/40 transform hover:scale-105 transition-all duration-300">
             Save Draft
           </button> */}
-          <button
+
+          {/* Back button */}
+          {sections.findIndex((s) => s.id === activeSection) > 0 && (
+            <button
+              onClick={handlePreviousSection}
+              className="px-8 py-4 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+            >
+              Back
+            </button>
+          )}
+
+          {/* Next button */}
+          {sections.findIndex((s) => s.id === activeSection) <
+            sections.length - 1 && (
+            <button
+              onClick={handleNextSection}
+              className="px-8 py-4 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
+            >
+              Next
+            </button>
+          )}
+
+          {/* Save Preferences button only on the last section */}
+          {sections.findIndex((s) => s.id === activeSection) ===
+            sections.length - 1 && (
+            <button
+              onClick={handleSavePreferences}
+              className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
+            >
+              Save Preferences
+            </button>
+          )}
+          {/* <button
             onClick={handleSavePreferences}
             className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
           >
             Save Preferences
-          </button>
+          </button> */}
         </div>
 
         {/* Progress Indicator */}
