@@ -295,7 +295,9 @@ const JobWizard = ({
                     {savedJobs.map((job: any) => (
                       <div
                         key={job.job._id} // Corrected: Use _id for the key
-                        onClick={() => handleSetJobContext('select', job)}
+                        onClick={() =>
+                          handleSetJobContext('select', job.job._id)
+                        }
                         className="cursor-pointer transition-transform transform hover:scale-[1.02]"
                       >
                         <JobCard job={job} />

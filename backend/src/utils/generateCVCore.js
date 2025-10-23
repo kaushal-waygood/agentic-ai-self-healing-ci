@@ -2,6 +2,7 @@ import { Student } from '../models/student.model.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { User } from '../models/User.model.js'; // Ensure this path is correct
 
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
@@ -19,7 +20,7 @@ export const generateCVCore = async (req, res, jobContextString) => {
     const { useProfile, finalTouch } = req.body;
     let studentData;
 
-    // Step 1: Determine data source
+    // ... (Steps 1 and 2 for determining data source are unchanged)
     if (useProfile === 'true' || useProfile === true) {
       const student = await Student.findById(_id);
       if (!student) {
@@ -27,13 +28,11 @@ export const generateCVCore = async (req, res, jobContextString) => {
       }
       studentData = JSON.stringify(student);
     } else {
-      // Step 2: Handle file-based data source (PDF, DOCX, Image)
       if (!req.file) {
         return res
           .status(400)
           .json({ error: 'CV file (PDF, DOCX, or Image) is required' });
       }
-
       const filePath = path.join(
         __dirname,
         '..',
@@ -43,12 +42,9 @@ export const generateCVCore = async (req, res, jobContextString) => {
         req.file.filename,
       );
       let extractedText;
-
       try {
         const fileMimeType = req.file.mimetype;
-
         if (fileMimeType === 'application/pdf') {
-          // Handle PDF
           const dataBuffer = fs.readFileSync(filePath);
           const parsedPDF = await pdfParse(dataBuffer);
           extractedText = parsedPDF.text;
@@ -57,15 +53,12 @@ export const generateCVCore = async (req, res, jobContextString) => {
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
           fileMimeType === 'application/msword'
         ) {
-          // Handle DOCX and DOC
           const result = await mammoth.extractRawText({ path: filePath });
           extractedText = result.value;
         } else if (fileMimeType.startsWith('image/')) {
           const {
             data: { text },
-          } = await Tesseract.recognize(filePath, 'eng', {
-            logger: (m) => console.log(m), // Optional: log progress
-          });
+          } = await Tesseract.recognize(filePath, 'eng');
           extractedText = text;
         } else {
           return res.status(400).json({
@@ -73,7 +66,6 @@ export const generateCVCore = async (req, res, jobContextString) => {
               'Unsupported file type. Please upload a PDF, DOCX, or an image.',
           });
         }
-
         studentData = JSON.stringify({ cvContent: extractedText });
       } finally {
         if (fs.existsSync(filePath)) {
@@ -82,7 +74,7 @@ export const generateCVCore = async (req, res, jobContextString) => {
       }
     }
 
-    // Step 3: Create prompt and generate CV (no changes needed here)
+    // Step 3: Create prompt and generate CV
     const prompt = generateCVPrompt(jobContextString, studentData, finalTouch);
     const rawJsonResponse = await genAI(prompt);
     const cleanedJsonString = rawJsonResponse
@@ -98,6 +90,19 @@ export const generateCVCore = async (req, res, jobContextString) => {
       return res.status(500).json({ error: 'Failed to parse AI response' });
     }
 
+    // const updatedUser = await User.findByIdAndUpdate(_id, {
+    //   $inc: { 'usageCounters.cvCreation': 1 }, // Increment the counter by 1
+    //   $push: { cvs: parsedJson }, // Push the new CV object into the 'cvs' array
+    // });
+
+    // Optional but good practice: check if the user was found
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ error: 'User could not be found to save CV.' });
+    }
+
+    // Finally, send the newly generated CV back to the client
     return res.json(parsedJson);
   } catch (error) {
     console.error('Error in CV generation core:', error);

@@ -540,9 +540,6 @@ export function ApplicationWizardClient() {
   ) => {
     setCvContext({ mode, value: student, name: '' });
 
-    if (mode === 'profile') {
-      console.log(cvContext);
-    }
     setWizardStep('cl');
   };
 

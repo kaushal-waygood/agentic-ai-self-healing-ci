@@ -19,7 +19,11 @@ import { generateCVCore } from '../utils/generateCVCore.js';
 import { generateCoverLetterCore } from '../utils/generateCoverLetterCore.js';
 import { genAIWithRetry } from '../utils/genAIWithRetry.js';
 import { calculateJobMatch } from '../utils/calculateJobMatch.js';
-import { generateCVRegeneratePrompt } from '../prompt/generateCVPrompt.js';
+import {
+  generateCLRegeneratePrompt,
+  generateCVRegeneratePrompt,
+} from '../prompt/generateCVPrompt.js';
+import { User } from '../models/User.model.js';
 
 // A simple helper function for retries
 const retryOperation = async (operation, retries = 3, delay = 1000) => {
@@ -203,6 +207,53 @@ export const regenerateCV = async (req, res) => {
   } catch (error) {
     console.error('Error in CV regeneration:', error);
     return res.status(500).json({ error: 'Failed to regenerate CV' });
+  }
+};
+
+export const regenerateCL = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const studentData = await Student.findById(_id);
+    const {
+      jobContextString,
+      finalTouch,
+      currentContent: previousCLJson,
+    } = req.body;
+
+    // if (!jobContextString || !studentData || !previousCLJson) {
+    //   return res.status(400).json({
+    //     error:
+    //       'jobContextString, studentData, and previousCLJson are required for regeneration.',
+    //   });
+    // }
+
+    const prompt = generateCLRegeneratePrompt(
+      jobContextString,
+      studentData,
+      finalTouch,
+      previousCLJson,
+    );
+
+    const rawJsonResponse = await genAI(prompt);
+    const cleanedJsonString = rawJsonResponse
+      .replace(/```json|```/g, '')
+      .trim();
+
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(cleanedJsonString);
+    } catch (error) {
+      console.error('Error parsing JSON from AI on CL regeneration:', error);
+      console.error('Raw AI Response:', cleanedJsonString);
+      return res
+        .status(500)
+        .json({ error: 'Failed to parse AI response on CL regeneration' });
+    }
+
+    return res.json(parsedJson);
+  } catch (error) {
+    console.error('Error in CL regeneration:', error);
+    return res.status(500).json({ error: 'Failed to regenerate CL' });
   }
 };
 

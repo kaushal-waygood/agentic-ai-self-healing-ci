@@ -189,12 +189,10 @@ export function CoverLetterGeneratorClient() {
     try {
       if (mode === 'select' && value) {
         setSelectedJobId(value);
-        if (value._id)
+        if (value)
           context = {
             mode,
-            value: value._id,
-            title: value.title,
-            description: value.description,
+            value: value,
           };
       } else if (mode === 'paste' && pastedJobDesc) {
         context = {
@@ -453,7 +451,7 @@ export function CoverLetterGeneratorClient() {
         }
 
         const apiResponse = await apiInstance.post(
-          'students/coverletter/generate/jobId',
+          '/students/coverletter/generate/jobId',
           formData,
         );
 
@@ -543,6 +541,19 @@ export function CoverLetterGeneratorClient() {
     });
   };
 
+  const regenerateLetter = async () => {
+    await handleGenerate();
+    const response = await apiInstance.post('/plan/usage', {
+      feature: 'cover-letter',
+      creditsUsed: 1,
+      action: 'regenerate',
+    });
+    toast({
+      title: 'Letter Regenerated',
+      description: 'Your new CV draft has been added to your saved list below.',
+    });
+  };
+
   const renderWizardStep = () => {
     switch (wizardStep) {
       case 'job':
@@ -589,7 +600,7 @@ export function CoverLetterGeneratorClient() {
             generatedLetter={generatedCvOutput} // <-- FIX 1: Pass the state that holds the API response
             setGeneratedLetter={setCurrentCvContent} // <-- FIX 2: Pass the updater for the editable content
             handleInitiateSave={handleInitiateSave}
-            // handleRegenerate={regenerateLetter} // Pass the regenerate function
+            handleRegenerate={regenerateLetter} // Pass the regenerate function
             // customizationOptions={customizationOptions} // Pass the customization options
           />
         );

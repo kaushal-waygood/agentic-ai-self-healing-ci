@@ -683,11 +683,12 @@ const ResultStep = ({
           <span className="font-medium">Back to Generate</span>
         </CustomButton>
 
-        <div className="flex flex-wrap gap-3 justify-end">
+        {/* Group of action buttons on the right */}
+        <div className="flex items-center flex-wrap justify-end gap-3">
           <CustomButton
-            onClick={handleSendEmailWithLoading} // Wrapped for loading state
+            onClick={handleSendEmailWithLoading}
             disabled={isProcessing}
-            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 disabled:opacity-75 disabled:scale-100"
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 disabled:opacity-75 disabled:scale-100"
           >
             {isProcessing ? (
               <>
@@ -703,27 +704,22 @@ const ResultStep = ({
           </CustomButton>
 
           <CustomButton
-            onClick={handleStartNew} // Original functionality
-            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl font-medium shadow-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 hover:scale-105"
+            onClick={handleStartNew}
+            className="flex items-center space-x-2 px-4 py-2 bg-slate-600 to-slate-700 text-white rounded-lg font-medium shadow-md hover:bg-slate-700 transition-all duration-300 hover:scale-105"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Start New Application</span>
+            <span>New Applications</span>
           </CustomButton>
 
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <CustomButton
-              // Changed size="lg" to use appropriate padding for CustomButton
-              onClick={handleSaveAndFinish} // Original functionality
-              className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
-            >
-              {/* Shine effect */}
-              <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
-
-              <Save className="w-5 h-5 relative z-10" />
-              <span className="relative z-10">Save Application</span>
-              <Sparkles className="w-4 h-4 animate-pulse relative z-10" />
-            </CustomButton>
-          </motion.div>
+          <CustomButton
+            onClick={handleSaveAndFinish}
+            className="flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
+          >
+            <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
+            <Save className="w-5 h-5 z-10" />
+            <span className="z-10">Save Application</span>
+            <Sparkles className="w-4 h-4 animate-pulse z-10" />
+          </CustomButton>
         </div>
       </div>
 

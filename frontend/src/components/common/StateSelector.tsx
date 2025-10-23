@@ -20,10 +20,10 @@ const StateSelector = ({
     if (!countryCode) return [];
     // Get all states for the selected country
     return State.getStatesOfCountry(countryCode)?.map((state) => ({
-      value: state.isoCode, // Use the unique ISO code for the state
+      value: state.isoCode,
       label: state.name,
     }));
-  }, [countryCode]); // Only recalculate when countryCode changes
+  }, [countryCode]);
 
   const hasStates = stateOptions && stateOptions.length > 0;
 
@@ -37,7 +37,7 @@ const StateSelector = ({
       <option value="">
         {countryCode
           ? hasStates
-            ? 'Select state'
+            ? 'Select City'
             : 'No states found'
           : 'Select country first'}
       </option>

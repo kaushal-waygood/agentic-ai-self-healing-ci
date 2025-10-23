@@ -88,7 +88,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
       },
       { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
       // uncomment below code to show "Application Wizard" on sidebar
-      // { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
+      { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
       {
         title: 'My Applications',
         href: '/dashboard/applications',
@@ -105,11 +105,6 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         title: 'Request New Feature',
         href: '/dashboard/request-new-feature', // Replace with your actual form link
         icon: Layers,
-      },
-      {
-        title: 'Onboarding Tour',
-        href: '/onboarding-tour',
-        icon: Activity,
       },
     ],
   };

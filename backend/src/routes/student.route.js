@@ -41,6 +41,8 @@ import {
   getAllStatCounts,
   toggleSavedJob,
   getEducationsById,
+  onboardingProfile,
+  completeOnboarding,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -166,6 +168,12 @@ router.get('/jobs/recommended', authMiddleware, isStudent, getRecommendedJobs);
 router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
 router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
 router.post('/autopilot/toggle', authMiddleware, isStudent, toggleAutopilot);
+router.patch(
+  '/complete-onboarding',
+  authMiddleware,
+  isStudent,
+  completeOnboarding,
+);
 router.get(
   '/jobs/visited/:jobId',
   authMiddleware,
@@ -196,6 +204,13 @@ router.post(
 );
 
 router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
+
+router.post(
+  '/profile/onboarding',
+  authMiddleware,
+  isStudent,
+  onboardingProfile,
+);
 
 router.post('/pdf/generate-pdf', async (req, res) => {
   const { html, title } = req.body;

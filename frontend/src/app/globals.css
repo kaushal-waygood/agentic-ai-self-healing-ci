@@ -157,3 +157,35 @@ body {
     color: black !important;
   }
 }
+
+/* tiptap-styles.css */
+
+/* Basic editor styles */
+.ProseMirror {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  min-height: 200px;
+  outline: none;
+}
+
+.ProseMirror:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 1px #4f46e5;
+}
+
+/* When the editor is not editable, remove the border */
+.ProseMirror[contenteditable='false'] {
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* Placeholder text style */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
