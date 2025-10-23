@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -95,93 +96,6 @@ const GeneratedCoverLetter = ({
               </CardContent>
             </Card>
           </div>
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Tone & Style Analysis Card */}
-            <Card className="flex-1 bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                    <Palette className="h-5 w-5 text-white" />
-                  </div>
-                  <CardTitle className="text-lg font-bold">
-                    Tone & Style Analysis
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center mb-4 space-y-2">
-                  <div className="text-3xl font-bold text-blue-600">
-                    {customizationOptions?.tone || 'Formal'}
-                  </div>
-                  <div className="text-sm text-gray-500">Selected Tone</div>
-                </div>
-                <div className="text-center mb-6">
-                  <div className="text-3xl font-bold text-indigo-600">
-                    {customizationOptions?.style || 'Concise'}
-                  </div>
-                  <div className="text-sm text-gray-500">Selected Style</div>
-                </div>
-                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    This letter is crafted with a{' '}
-                    <strong className="font-semibold">
-                      {customizationOptions?.tone || 'Formal'}
-                    </strong>{' '}
-                    and{' '}
-                    <strong className="font-semibold">
-                      {customizationOptions?.style || 'Concise'}
-                    </strong>{' '}
-                    approach to best represent your profile.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Performance Highlights Card */}
-            <Card className="flex-1 bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-purple-500" />
-                  Performance Highlights
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
-                  <ThumbsUp className="h-5 w-5 text-green-500" />
-                  <div>
-                    <div className="font-semibold text-green-800">
-                      Strong Opening
-                    </div>
-                    <div className="text-sm text-green-600">
-                      Designed to capture attention.
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-                  <Target className="h-5 w-5 text-blue-500" />
-                  <div>
-                    <div className="font-semibold text-blue-800">
-                      Clear Call-to-Action
-                    </div>
-                    <div className="text-sm text-blue-600">
-                      Encourages the next step.
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
-                  <Sparkles className="h-5 w-5 text-purple-500" />
-                  <div>
-                    <div className="font-semibold text-purple-800">
-                      Tailored Content
-                    </div>
-                    <div className="text-sm text-purple-600">
-                      Aligned with job context.
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* Bottom Action Bar */}
@@ -209,10 +123,12 @@ const GeneratedCoverLetter = ({
                 <Clock className="mr-2 h-4 w-4" />
                 Save for Later
               </Button>
-              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl">
-                <Award className="mr-2 h-4 w-4" />
-                Start Applying
-              </Button>
+              <Link href="/dashboard/search-jobs">
+                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-xl">
+                  <Award className="mr-2 h-4 w-4" />
+                  Start Applying
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

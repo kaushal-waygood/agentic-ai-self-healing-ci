@@ -24,6 +24,7 @@ import {
 import React, { useEffect, useState } from 'react';
 
 import { MapPin, DollarSign } from 'lucide-react';
+import apiInstance from '@/services/api';
 
 // Define the structure of the job object for type safety
 interface Job {
@@ -45,7 +46,7 @@ interface JobCardProps {
 }
 
 // Helper function to format the salary range
-const formatSalary = (salary: Job['salary']) => {
+const formatSalary = (salary: JobDetails['salary']) => {
   if (!salary || (salary.min === 0 && salary.max === 0)) {
     return 'Not Disclosed';
   }
@@ -61,7 +62,10 @@ const formatSalary = (salary: Job['salary']) => {
   }`;
 };
 
-export const JobCard = ({ job }: JobCardProps) => {
+export const JobCard = ({ job: savedJob }: JobCardProps) => {
+  // Destructure the nested job object for cleaner access
+  const { job } = savedJob;
+
   return (
     <div className="w-full bg-white border border-gray-200 rounded-2xl p-4 transition-all duration-300 hover:border-blue-400 hover:shadow-lg">
       <div className="flex items-start gap-4">
@@ -75,27 +79,38 @@ export const JobCard = ({ job }: JobCardProps) => {
             />
           ) : (
             <span className="text-xl font-bold text-gray-500">
-              {job.company.charAt(0)}
+              {/* FIXED: Removed trailing dot and access property correctly */}
+              {job.company?.charAt(0)}
             </span>
           )}
         </div>
 
         {/* Job Details */}
         <div className="flex-1 min-w-0">
+          {/* FIXED: Access nested property */}
           <p className="text-sm text-gray-500 truncate">{job.company}</p>
           <h3 className="text-lg font-bold text-gray-800 truncate">
             {job.title}
           </h3>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-gray-400" />
-              <span>{job.jobAddress}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-gray-400" />
-              <span>{formatSalary(job.salary)}</span>
-            </div>
+            {/* FIXED: Access location from nested structure */}
+            {job.location?.city && (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <span>{job.location.city}</span>
+              </div>
+            )}
+
+            {/* FIXED: Access salary from nested structure */}
+            {job.salary && (
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-gray-400" />
+                <span>{formatSalary(job.salary)}</span>
+              </div>
+            )}
+
+            {/* FIXED: Access jobTypes from nested structure */}
             {job.jobTypes && job.jobTypes.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4 text-gray-400" />
@@ -149,9 +164,8 @@ const JobWizard = ({
   useEffect(() => {
     const fetchSavedJobs = async () => {
       try {
-        const response = await getAllSavedJobs();
-        // Ensure the response data structure is correctly accessed
-        setSavedJobs(response.data?.savedJobs || []);
+        const response = await apiInstance.get('/students/jobs/saved-all');
+        setSavedJobs(response.data.jobs);
       } catch (error) {
         console.error('Error fetching saved jobs:', error);
       }
@@ -163,11 +177,7 @@ const JobWizard = ({
   return (
     <div className="p-3 sm:p-3 md:p-6 lg:p-2  ">
       <div className="max-w-7xl mx-auto">
-        {/* Hero Section */}
         <div className="text-center m-4">
-          {/* <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
-            <Sparkles className="h-8 w-8 text-white" />
-          </div> */}
           <h1 className="text-3xl  bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
             CV Generator
           </h1>
@@ -191,10 +201,6 @@ const JobWizard = ({
                   Step 1: Provide Job Context
                 </CardTitle>
               </div>
-              {/* <CardDescription className="text-blue-100 text-sm">
-                Tell the AI about the job. This is crucial for tailoring your CV
-                to perfection.
-              </CardDescription> */}
             </div>
           </CardHeader>
 
@@ -220,7 +226,6 @@ const JobWizard = ({
                     >
                       <Icon className="h-5 w-5" />
                       <div className="text-center">
-                        {/* <div className="font-semibold text-sm">{tab.label}</div> */}
                         <div
                           className={`text-sm ${
                             activeTab === tab.value
@@ -289,8 +294,10 @@ const JobWizard = ({
                   <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2">
                     {savedJobs.map((job: any) => (
                       <div
-                        key={job._id} // Corrected: Use _id for the key
-                        onClick={() => handleSetJobContext('select', job)}
+                        key={job.job._id} // Corrected: Use _id for the key
+                        onClick={() =>
+                          handleSetJobContext('select', job.job._id)
+                        }
                         className="cursor-pointer transition-transform transform hover:scale-[1.02]"
                       >
                         <JobCard job={job} />

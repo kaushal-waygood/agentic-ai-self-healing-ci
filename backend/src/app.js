@@ -3,7 +3,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import morgan from 'morgan';
-import createHttpError from 'http-errors';    
+import createHttpError from 'http-errors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
@@ -20,6 +20,7 @@ import planRoutes from './routes/plan.route.js';
 import formRoutes from './routes/form.route.js';
 import { handleStripeWebhook } from './controllers/plan.controller.js';
 import taskRoutes from './routes/dev.route.js';
+import newFeatureRoutes from './routes/newFeature.route.js';
 import './queues/jobDiscoveryQueue.js';
 
 const app = express();
@@ -35,10 +36,10 @@ app.use(compression());
 
 // 2. Rate Limiting Middleware  👈 ADD THIS SECTION
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per `window` (per 15 minutes)
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: 'Too many requests from this IP, please try again after 15 minutes.',
 });
 
@@ -52,10 +53,9 @@ app.use(
       'http://127.0.0.1:3000',
       'http://localhost:3000',
       'http://144.91.114.195:30090',
-      // 👇 CORRECTED THIS SECTION 👇
-      'https://dev.zobsai.com', // ✅ ADD the frontend development URL
-      'https://www.zobsai.com', // ✅ ADD the production frontend URL (good practice)
-      'https://zobsai.com', // ✅ ADD the production frontend URL without www
+      'https://dev.zobsai.com',
+      'https://www.zobsai.com',
+      'https://zobsai.com',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -112,6 +112,7 @@ app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
 app.use('/api/v1/dev', taskRoutes);
+app.use('/api/v1/new-feature', newFeatureRoutes);
 
 // 7. 404 Handler (was 6)
 app.use((req, res, next) => {

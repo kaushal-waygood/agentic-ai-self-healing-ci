@@ -5,15 +5,15 @@ import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
 import { useJobs } from '@/hooks/jobs/useJobs';
 import { useMediaQuery } from '@/hooks/jobs/useMediaQuery';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
-import { Search } from 'lucide-react';
+import { Search, Frown } from 'lucide-react';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<HTMLDivElement>(null); // Ref for the infinite scroll trigger
+  const observerRef = useRef<HTMLDivElement>(null);
 
   const {
     jobs,
@@ -27,24 +27,43 @@ export default function JobsPage() {
     filterModal,
     handleFilterChange,
     loadMoreJobs,
+    notification,
   } = useJobs();
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
+  const fetchJobDetails = useCallback(async (slug: string) => {
+    try {
+      const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
+      if (response.data && response.data.singleJob) {
+        setSelectedJob(response.data.singleJob);
+      }
+    } catch (err) {
+      console.error('Failed to fetch job details:', err);
+    }
+  }, []);
+
+  // Effect to scroll the job list to the top when filters change
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters]);
 
+  // Effect to handle initial job selection from URL or default to the first job
   useEffect(() => {
-    if (!isMobile && jobs.length > 0) {
-      if (!jobs.some((job) => job._id === selectedJob?._id)) {
-        setSelectedJob(jobs[0]);
-      }
+    const slug = searchParams.get('job');
+    if (slug) {
+      fetchJobDetails(slug);
+    } else if (jobs.length > 0) {
+      setSelectedJob(jobs[0]);
+    } else {
+      setSelectedJob(null); // Clear selection if there are no jobs
     }
-  }, [jobs, isMobile, selectedJob]);
+  }, [jobs, searchParams, fetchJobDetails]);
 
+  // Effect for infinite scrolling
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -65,17 +84,7 @@ export default function JobsPage() {
         observer.unobserve(currentObserverRef);
       }
     };
-  }, [loading, pagination, loadMoreJobs]);
-
-  const fetchJobDetails = async (slug: string) => {
-    try {
-      setSelectedJob(null);
-      const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
-      setSelectedJob(response.data.singleJob);
-    } catch (err) {
-      console.error('Failed to fetch job details:', err);
-    }
-  };
+  }, [loading, pagination.hasNextPage, loadMoreJobs]);
 
   const handleCardClick = (slug: string) => {
     if (isMobile) {
@@ -85,13 +94,12 @@ export default function JobsPage() {
     }
   };
 
-  if (error)
+  if (error) {
     return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
+  }
 
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1`}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       <div className="container mx-auto px-1">
         <SearchFilters
           initialFilters={filters}
@@ -99,34 +107,49 @@ export default function JobsPage() {
           onOpenFilterModal={() => setFilterModal(true)}
         />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
+          {/* Job List Column */}
           <div className="">
             <div
               ref={jobListRef}
               className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin"
             >
+              {/* Notification for No Results */}
+              {notification && !loading && (
+                <div className="flex flex-col items-center justify-center h-full text-center p-6 bg-white rounded-lg border">
+                  <Frown className="w-12 h-12 text-gray-400 mb-4" />
+                  <p className="text-gray-600 font-semibold">{notification}</p>
+                </div>
+              )}
+
+              {/* Initial Loading Skeletons */}
               {loading &&
                 jobs.length === 0 &&
                 Array.from({ length: 8 }).map((_, index) => (
                   <JobCardSkeleton key={index} />
                 ))}
 
-              {jobs.map((job: any) => (
-                <JobCard
-                  key={job._id || job.jobId}
-                  job={job}
-                  isActive={selectedJob?._id === job._id}
-                  onClick={() => handleCardClick(job.slug)}
-                />
-              ))}
+              {/* Job Cards */}
+              {!notification &&
+                jobs.map((job: any) => (
+                  <JobCard
+                    key={job._id || job.jobId}
+                    job={job}
+                    isActive={selectedJob?._id === job._id}
+                    onClick={() => handleCardClick(job.slug)}
+                  />
+                ))}
 
-              {/* FIXED: Added a unique static key to the loading skeleton */}
+              {/* Loading Skeleton for Infinite Scroll */}
               {loading && jobs.length > 0 && (
                 <JobCardSkeleton key="loading-skeleton" />
               )}
 
+              {/* Observer for Infinite Scroll */}
               <div ref={observerRef} style={{ height: '1px' }} />
             </div>
           </div>
+
+          {/* Job Detail Column (Desktop) */}
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {selectedJob ? (
@@ -137,17 +160,22 @@ export default function JobsPage() {
                     <Search className="w-12 h-12 text-purple-400" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-700 mb-2">
-                    Select a job to view details
+                    {jobs.length > 0
+                      ? 'Select a job to view details'
+                      : 'Your next opportunity awaits'}
                   </h3>
                   <p className="text-gray-500 max-w-sm">
-                    Click on any position from the list to see the detailed
-                    information.
+                    {jobs.length > 0
+                      ? 'Click on any position to see the details.'
+                      : 'Use the search filters above to find jobs.'}
                   </p>
                 </div>
               )}
             </div>
           </div>
         </div>
+
+        {/* Filter Modal */}
         <FilterModal
           isOpen={filterModal}
           onClose={() => setFilterModal(false)}
@@ -159,6 +187,7 @@ export default function JobsPage() {
             handleFilterChange({
               query: '',
               country: '',
+              state: '',
               city: '',
               datePosted: '',
               employmentType: [],

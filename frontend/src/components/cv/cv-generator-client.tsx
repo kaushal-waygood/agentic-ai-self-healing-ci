@@ -111,12 +111,12 @@ export function CvGeneratorClient() {
     setIsLoading(true);
     setLoadingMessage('Processing job context...');
     try {
-      if (mode === 'select' && value._id) {
+      if (mode === 'select' && value) {
         context = {
           mode,
-          value: value._id,
-          title: value.title,
-          description: value.description,
+          value: value,
+          // title: value.title,
+          // description: value.description,
         };
       } else if (mode === 'paste' && pastedJobDescription) {
         context = {
@@ -306,9 +306,9 @@ export function CvGeneratorClient() {
       if (jobContext.mode === 'paste') {
         apiEndpoint = 'students/resume/generate/jd';
       } else if (jobContext.mode === 'title') {
-        apiEndpoint = 'students/resume/generate/jobtitle';
+        apiEndpoint = '/students/resume/generate/jobtitle';
       } else if (jobContext.mode === 'select') {
-        apiEndpoint = `students/resume/generate/jobId`;
+        apiEndpoint = `/students/resume/generate/jobId`;
       }
 
       const apiResponse = await apiInstance.post(apiEndpoint, formData);
@@ -337,7 +337,7 @@ export function CvGeneratorClient() {
 
       const newAutoSavedCv: SavedCv = {
         id: `auto-${Date.now()}`,
-        name: `Draft for '${jobContext.title.substring(0, 25)}...'`,
+        name: `Draft for '${jobContext.title}...'`,
         htmlContent: response.cv,
         atsScore: response.atsScore ?? 0,
         atsScoreReasoning: response.atsSuggestion ?? 'N/A',
@@ -422,8 +422,6 @@ export function CvGeneratorClient() {
       );
 
       const loadedData = response.data.html;
-
-      console.log('Loaded CV data:', loadedData);
 
       setCurrentCvContent(loadedData.html);
       setGeneratedCvOutput({

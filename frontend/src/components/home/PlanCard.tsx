@@ -167,11 +167,17 @@ const PlanCard = ({
           </div>
           <div className="text-right">
             <p className="text-2xl font-black text-gray-900 mb-1">
-              <span>
+              {/* <span>
                 {currency === 'usd'
                   ? `$${pricePerDay().toFixed(2)}`
                   : `₹${pricePerDay().toFixed(2)}`}
+              </span> */}
+              <span>
+                {currency === 'usd'
+                  ? `$${pricePerDay().toFixed(2)}`
+                  : `₹${Math.round(pricePerDay())}`}
               </span>
+
               <span className="">/day </span>
             </p>
             <p className="text-md  text-gray-500 ">

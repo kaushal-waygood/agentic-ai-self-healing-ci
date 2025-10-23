@@ -10,7 +10,6 @@ import { useSelector } from 'react-redux';
 export default function GoogleSignInButton() {
   const googleButton = useRef(null);
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log(user);
 
   const handleGoogleSignIn = async (response) => {
     try {
@@ -19,7 +18,6 @@ export default function GoogleSignInButton() {
       });
 
       const data = await res.data;
-      console.log('Response from backend:', data);
 
       // Store the session token from your backend (e.g., in localStorage)
       localStorage.setItem('app_token', data.token);

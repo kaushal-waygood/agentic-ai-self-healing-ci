@@ -245,6 +245,8 @@ const AppHeader = ({ setIsSearchOpen }) => {
           apiInstance.get('/plan/get-user-plan-type'),
         ]);
 
+        console.log(usageRes.data, limitsRes.data, planRes.data);
+
         if (usageRes.data?.success) {
           const usageLogs = usageRes.data.data;
           const totals = usageLogs.reduce(
@@ -365,7 +367,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">
         <div className="flex items-center justify-between px-6 py-2 ">
           <div className="flex items-center space-x-3"></div>
-          <div className="flex flex-1 justify-center px-4">
+          {/* <div className="flex flex-1 justify-center px-4">
             <button
               onClick={() => setIsSearchOpen(true)}
               className="w-full max-w-md flex items-center justify-between p-1 bg-slate-100 hover:bg-slate-200 border border-transparent hover:border-slate-300 rounded-lg text-slate-500 transition-all duration-200"
@@ -378,7 +380,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                 Ctrl K
               </kbd>
             </button>
-          </div>
+          </div> */}
 
           <div className="flex items-center space-x-1">
             <PlanDropdown
@@ -390,7 +392,8 @@ const AppHeader = ({ setIsSearchOpen }) => {
             />
 
             <div className="relative">
-              <button
+              {/* Notification Bell icon */}
+              {/* <button
                 onClick={() => handleMenuToggle('notification')}
                 className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
               >
@@ -400,7 +403,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                     {unreadCount}
                   </div>
                 )}
-              </button>
+              </button> */}
               {isNotificationOpen && (
                 <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
                   <div className="p-4 border-b border-slate-100">
@@ -505,13 +508,13 @@ const AppHeader = ({ setIsSearchOpen }) => {
                       <Settings className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Settings</span>
                     </Link>
-                    <Link
+                    {/* <Link
                       href="/dashboard/billing"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <CreditCard className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Billing</span>
-                    </Link>
+                    </Link> */}
                     <Link
                       href="/dashboard/support"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"

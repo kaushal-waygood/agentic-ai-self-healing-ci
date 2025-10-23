@@ -17,7 +17,7 @@ import {
   updateJobPreferences,
   getJobPreferences,
   updateFullName,
-  savedJobs,
+  // savedJobs,
   getSavedJobs,
   isSavedOrNot,
   isAppliedOrNot,
@@ -39,6 +39,10 @@ import {
   getAllViewedJobs,
   getAllSavedJobs,
   getAllStatCounts,
+  toggleSavedJob,
+  getEducationsById,
+  onboardingProfile,
+  completeOnboarding,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -102,6 +106,8 @@ router.patch(
   updateEducation,
 );
 
+router.get('/education/:id', authMiddleware, isStudent, getEducationsById);
+
 router.post('/project/add', authMiddleware, isStudent, addProjects);
 router.delete(
   '/project/remove/:projectId',
@@ -155,19 +161,26 @@ router.post(
 
 router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);
 
-router.post('/jobs/saved', authMiddleware, isStudent, savedJobs);
+router.post('/jobs/saved', authMiddleware, isStudent, toggleSavedJob);
 router.get('/jobs/saved', authMiddleware, isStudent, getSavedJobs);
 router.get('/jobs/issaved', authMiddleware, isStudent, isSavedOrNot);
 router.get('/jobs/recommended', authMiddleware, isStudent, getRecommendedJobs);
 router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
 router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
 router.post('/autopilot/toggle', authMiddleware, isStudent, toggleAutopilot);
+router.patch(
+  '/complete-onboarding',
+  authMiddleware,
+  isStudent,
+  completeOnboarding,
+);
 router.get(
   '/jobs/visited/:jobId',
   authMiddleware,
   isStudent,
   jobVisitedByStudent,
 );
+router.get('/education/:id', authMiddleware, isStudent, getEducationsById);
 
 router.get(
   '/jobs/is-visited/:jobId',
@@ -192,6 +205,13 @@ router.post(
 );
 
 router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
+
+router.post(
+  '/profile/onboarding',
+  authMiddleware,
+  isStudent,
+  onboardingProfile,
+);
 
 router.post('/pdf/generate-pdf', async (req, res) => {
   const { html, title } = req.body;

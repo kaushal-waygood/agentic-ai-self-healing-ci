@@ -1,53 +1,64 @@
 'use client';
 
 import React, { useEffect, useRef, useState, FC } from 'react';
-
 import {
   Copy,
   Edit3,
   Download,
   Loader2,
-  ShieldCheck,
   Save,
-  FileText,
   Eye,
   Maximize2,
   Minimize2,
   CheckCircle,
   AlertCircle,
   Sparkles,
+  FileText, // More appropriate for DOCX
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast'; // Assuming you have a toast hook
-import apiInstance from '@/services/api';
+import { useToast } from '@/hooks/use-toast'; // Assuming a custom toast hook
+import apiInstance from '@/services/api'; // Assuming a pre-configured axios instance
 
+// Define the props interface correctly
 interface EditableMaterialProps {
   content: string;
   setContent: (value: string) => void;
   title: string;
-  editorId: string;
   isHtml?: boolean;
   className?: string;
-  handleRegenerate: string;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
   content,
   setContent,
   title,
-  editorId,
   isHtml = false,
-}: any) => {
+  className = '',
+}) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null); // Ref for the main container for fullscreen
   const { toast } = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [canUsePremiumFeatures] = useState(true); // Mocked state
+  const [isLoading, setIsLoading] = useState(false); // For downloads
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [wordCount, setWordCount] = useState(0);
 
+  // Effect to sync the editor's content when the `content` prop changes from the parent,
+  // but ONLY when not in editing mode to prevent overwriting the user's input.
+  useEffect(() => {
+    if (
+      editorRef.current &&
+      !isEditing &&
+      editorRef.current.innerHTML !== content
+    ) {
+      editorRef.current.innerHTML = content;
+    }
+  }, [content, isEditing]);
+
+  // Effect to calculate word count when content changes
   useEffect(() => {
     if (editorRef.current) {
       const text = editorRef.current.innerText || '';
@@ -56,29 +67,53 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   }, [content]);
 
+  // Handle native browser fullscreen changes (e.g., pressing ESC)
   useEffect(() => {
-    if (
-      isHtml &&
-      editorRef.current &&
-      editorRef.current.innerHTML !== content
-    ) {
-      editorRef.current.innerHTML = content;
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch((err) => {
+        console.error(
+          `Error attempting to enable full-screen mode: ${err.message}`,
+        );
+      });
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
     }
-  }, [content, isHtml, isEditing]);
+  };
 
   const handleInput = () => {
-    if (isHtml && editorRef.current) {
-      setContent(editorRef.current.innerHTML);
+    if (editorRef.current) {
+      // We don't need to call setContent on every input, which can be slow.
+      // We'll read from the ref when saving, which improves performance.
       if (!hasUnsavedChanges) {
         setHasUnsavedChanges(true);
       }
+      // Update word count live
+      const text = editorRef.current.innerText || '';
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      setWordCount(words.length);
     }
   };
 
   const handleEditToggle = () => {
     if (isEditing) {
+      // --- Save Logic ---
       if (editorRef.current) {
-        setContent(editorRef.current.innerHTML);
+        const newContent = editorRef.current.innerHTML;
+        setContent(newContent); // Update parent state
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
         toast({
@@ -87,138 +122,139 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         });
       }
     }
+    // Toggle editing state
     setIsEditing(!isEditing);
   };
 
   const handleCopy = async () => {
-    if (!content) return;
-    const textToCopy = editorRef.current?.innerText || content;
+    if (!editorRef.current) return;
+    const textToCopy = editorRef.current.innerText;
+    if (!textToCopy) return;
+
     try {
       await navigator.clipboard.writeText(textToCopy);
       toast({
-        title: 'Copied!',
-        description: `${title} content (as text) copied to clipboard.`,
+        title: 'Copied to Clipboard!',
+        description: `${title} content has been copied as plain text.`,
       });
     } catch (err) {
-      console.error('Failed to copy:', err);
-      toast({ variant: 'destructive', title: 'Failed to copy content' });
+      console.error('Failed to copy text: ', err);
+      toast({ variant: 'destructive', title: 'Copy Failed' });
     }
   };
 
-  // Download content as a PDF using an external API
-  const handleDownloadPdf = async () => {
-    const contentToPrint = editorRef.current;
-    if (!contentToPrint) return;
+  // Helper for triggering file downloads
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  };
 
+  const handleDownloadPdf = async () => {
+    if (!editorRef.current) return;
     setIsLoading(true);
     toast({ title: 'Generating PDF...' });
-
     try {
       const response = await apiInstance.post(
-        'students/pdf/generate-pdf',
-        {
-          html: contentToPrint.innerHTML,
-          title: title,
-        },
-        {
-          responseType: 'blob', // This tells axios to handle the response as a blob
-        },
+        '/students/pdf/generate-pdf',
+        { html: editorRef.current.innerHTML, title },
+        { responseType: 'blob' },
       );
+      if (response.status !== 200)
+        throw new Error('PDF generation failed on the server.');
 
-      if (response.status !== 200) {
-        throw new Error(`PDF generation failed: ${response.statusText}`);
-      }
-
-      // Create blob from response data
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `CareerPilot_${title.replace(/ /g, '_')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: 'PDF downloaded successfully!',
-        description: 'Your document is ready.',
-      });
+      downloadFile(blob, `zobsai_${title.replace(/ /g, '_')}.pdf`);
+      toast({ title: 'PDF downloaded successfully!' });
     } catch (error) {
       console.error('PDF Download Error:', error);
       toast({
         variant: 'destructive',
         title: 'PDF Download Failed',
-        description: 'Please try again later.',
+        description: 'An error occurred while generating the PDF.',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // **MODIFIED FUNCTION**
-  // Download content as a DOCX by calling the backend API
   const handleDownloadDocx = async () => {
-    const contentToExport = editorRef.current;
-    if (!contentToExport) return;
-
+    if (!editorRef.current) return;
     setIsLoading(true);
     toast({ title: 'Generating DOCX...' });
-
     try {
       const response = await apiInstance.post(
-        '/students/docx/generate-docx', // Your backend endpoint
-        {
-          html: contentToExport.innerHTML,
-          title: title,
-        },
-        {
-          responseType: 'blob', // This is crucial for handling file responses
-        },
+        '/students/docx/generate-docx',
+        { html: editorRef.current.innerHTML, title },
+        { responseType: 'blob' },
       );
+      if (response.status !== 200)
+        throw new Error('DOCX generation failed on the server.');
 
-      if (response.status !== 200) {
-        throw new Error(`DOCX generation failed: ${response.statusText}`);
-      }
-
-      // Create a blob with the correct DOCX MIME type
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       });
-      const url = window.URL.createObjectURL(blob);
-
-      // Create a temporary link to trigger the download
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `CareerPilot_${title.replace(/ /g, '_')}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove(); // Clean up the link element
-
-      window.URL.revokeObjectURL(url); // Clean up the blob URL
-
-      toast({
-        title: 'DOCX downloaded successfully!',
-        description: 'Your document is ready.',
-      });
+      downloadFile(blob, `zobsai_${title.replace(/ /g, '_')}.docx`);
+      toast({ title: 'DOCX downloaded successfully!' });
     } catch (error) {
       console.error('DOCX Download Error:', error);
       toast({
         variant: 'destructive',
         title: 'DOCX Download Failed',
-        description: 'Could not generate the document. Please try again.',
+        description: 'An error occurred while generating the document.',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatText = (command: string, value: string | null = null) => {
-    document.execCommand(command, false, value);
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    toast({
+      title: 'Regenerating content...',
+      description: 'Please wait a moment.',
+    });
+    try {
+      // NOTE: Adjust the payload to match your actual API specification.
+      const response = await apiInstance.post(
+        '/students/coverletter/regenerate',
+        {
+          currentContent: content,
+        },
+      );
+
+      if (response.data && response.data.newContent) {
+        setContent(response.data.newContent);
+        // Directly update the editor to show the new content immediately
+        if (editorRef.current) {
+          editorRef.current.innerHTML = response.data.newContent;
+        }
+        toast({
+          title: 'Content Regenerated!',
+          description: 'The material has been updated.',
+        });
+      } else {
+        throw new Error('Invalid response from server.');
+      }
+    } catch (error) {
+      console.error('Regeneration failed:', error);
+      toast({ variant: 'destructive', title: 'Regeneration Failed' });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  // WARNING: `document.execCommand` is deprecated. For production, use a modern
+  // rich-text editor library like TipTap, Slate.js, or React-Quill.
+  const formatText = (command: string) => {
+    document.execCommand(command, false);
     editorRef.current?.focus();
-    handleInput();
+    handleInput(); // Reflect changes immediately
   };
 
   const insertTemplate = () => {
@@ -227,174 +263,189 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       <ul style="margin-bottom: 16px; padding-left: 20px;">
         <li style="margin-bottom: 8px;">Achievement 1</li>
         <li style="margin-bottom: 8px;">Achievement 2</li>
-      </ul>
-    `;
-    if (editorRef.current) {
-      editorRef.current.innerHTML += template;
-      handleInput();
+      </ul>`;
+    document.execCommand('insertHTML', false, template);
+    editorRef.current?.focus();
+    handleInput();
+  };
+
+  // Dynamic status indicator for the footer
+  const getStatusIndicator = () => {
+    if (hasUnsavedChanges) {
+      return (
+        <>
+          <AlertCircle className="w-4 h-4 mr-1.5 text-yellow-500" /> Unsaved
+          Changes
+        </>
+      );
     }
+    if (lastSaved) {
+      return (
+        <>
+          <CheckCircle className="w-4 h-4 mr-1.5 text-green-500" /> Saved at{' '}
+          {lastSaved.toLocaleTimeString()}
+        </>
+      );
+    }
+    return (
+      <>
+        <CheckCircle className="w-4 h-4 mr-1.5 text-gray-400" /> Up to date
+      </>
+    );
   };
 
-  const handleRegenerate = async () => {
-    // This function logic remains unchanged
-    const response = await apiInstance.post('/students/resume/regenerate', {
-      jobContextString: JSON.stringify(content),
-      previousCVJson: JSON.stringify(content),
-    });
-  };
-
-  // --- RENDER ---
   return (
     <div
-      className={` ${
-        isFullscreen ? 'fixed inset-0 z-50 p-4 sm:p-6' : 'relative'
+      ref={containerRef}
+      className={`bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col transition-all duration-300 ${className} ${
+        isFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'relative'
       }`}
     >
-      <div
-        className={`flex flex-col transition-all duration-300 ${
-          isFullscreen ? 'h-full' : 'max-w-6xl mx-auto'
-        }`}
-      >
-        {/* Header & Toolbar */}
-        <div className=" backdrop-blur-sm rounded-t-2xl   shadow-lg z-10">
-          {isEditing && (
-            <div className="  px-4 sm:px-8 py-2">
-              <div className="flex items-center space-x-2 flex-wrap">
-                <button
-                  onClick={() => formatText('bold')}
-                  className="p-2 text-sm font-bold hover:bg-gray-200 rounded"
-                  title="Bold"
-                >
-                  B
-                </button>
-                <button
-                  onClick={() => formatText('italic')}
-                  className="p-2 text-sm italic hover:bg-gray-200 rounded"
-                  title="Italic"
-                >
-                  I
-                </button>
-                <button
-                  onClick={() => formatText('underline')}
-                  className="p-2 text-sm underline hover:bg-gray-200 rounded"
-                  title="Underline"
-                >
-                  U
-                </button>
-                <button
-                  onClick={insertTemplate}
-                  className="flex items-center px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200 transition-colors"
-                >
-                  <Sparkles className="w-4 h-4 mr-1" />
-                  Template
-                </button>
-              </div>
-            </div>
+      {/* --- Header and Toolbar --- */}
+      <header className="flex items-center justify-between p-4 border-b border-gray-200 flex-wrap gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+          {isEditing ? (
+            <Edit3 className="w-5 h-5 mr-2 text-indigo-500" />
+          ) : (
+            <Eye className="w-5 h-5 mr-2 text-purple-500" />
           )}
+          {title}
+        </h3>
+        {isEditing && (
+          <div className="flex items-center space-x-1 border border-gray-300 rounded-lg p-1 bg-gray-50 flex-wrap">
+            <button
+              onClick={() => formatText('bold')}
+              className="p-2 font-bold hover:bg-gray-200 rounded"
+              title="Bold"
+            >
+              B
+            </button>
+            <button
+              onClick={() => formatText('italic')}
+              className="p-2 italic hover:bg-gray-200 rounded"
+              title="Italic"
+            >
+              I
+            </button>
+            <button
+              onClick={() => formatText('underline')}
+              className="p-2 underline hover:bg-gray-200 rounded"
+              title="Underline"
+            >
+              U
+            </button>
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+            <button
+              onClick={insertTemplate}
+              className="flex items-center p-2 text-purple-700 rounded hover:bg-purple-100"
+              title="Insert Template"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleRegenerate}
+            disabled={isRegenerating || isLoading}
+            className="flex items-center px-3 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
+          >
+            {isRegenerating ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-2" />
+            )}
+            Regenerate
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-5 h-5" />
+            ) : (
+              <Maximize2 className="w-5 h-5" />
+            )}
+          </button>
         </div>
+      </header>
 
-        {/* Unified Editor / Preview Pane */}
-        <div className=" backdrop-blur-sm    flex-grow">
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between ">
-              <h3 className="text-md font-semibold text-gray-800 flex items-center">
-                {isEditing ? (
-                  <Edit3 className="w-5 h-5 mr-2 text-indigo-500" />
-                ) : (
-                  <Eye className="w-5 h-5 mr-2 text-purple-500" />
-                )}
-                {isEditing ? 'Editing Content' : 'Content Preview'}
-              </h3>
-              <p className="text-sm text-gray-500">
-                {isEditing
-                  ? "Click 'Save' when you are finished."
-                  : "Click 'Edit' to make changes."}
-              </p>
-            </div>
-            <div
-              id={editorId}
-              ref={editorRef}
-              contentEditable={isEditing}
-              suppressContentEditableWarning={true}
-              className={` text-sm flex-grow w-full border-2 rounded-xl bg-white p-6 overflow-y-auto text-left focus:outline-none min-h-[400px] ${
+      {/* --- Editor Content Area --- */}
+      <main className="flex-grow p-6 overflow-y-auto">
+        <div
+          ref={editorRef}
+          contentEditable={isEditing}
+          onInput={handleInput}
+          suppressContentEditableWarning={true}
+          className={`prose max-w-none focus:outline-none transition-all ${
+            isEditing
+              ? 'bg-gray-50/50 p-4 rounded-md ring-2 ring-indigo-300'
+              : ''
+          }`}
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
+      </main>
+
+      {/* --- Action Bar & Status Footer --- */}
+      <footer className="p-4 border-t border-gray-200 bg-gray-50/80 rounded-b-2xl">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span className="flex items-center">{getStatusIndicator()}</span>
+            <span className="text-gray-400">|</span>
+            <span>{wordCount} words</span>
+          </div>
+          <div className="flex items-center space-x-2 flex-wrap justify-center gap-y-2">
+            <button
+              onClick={handleEditToggle}
+              disabled={isLoading || isRegenerating}
+              className={`flex items-center px-4 py-2 rounded-lg font-semibold text-sm transition-transform hover:scale-105 ${
                 isEditing
-                  ? 'border-indigo-300 shadow-inner ring-4 ring-indigo-50'
-                  : 'border-gray-200'
-              }`}
-              onInput={handleInput}
-            />
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-indigo-500 hover:bg-indigo-600 text-white'
+              } disabled:opacity-50`}
+            >
+              {isEditing ? (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              ) : (
+                <>
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleCopy}
+              disabled={!content || isLoading || isRegenerating}
+              className="flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium text-sm transition disabled:opacity-50"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Text
+            </button>
+            <button
+              onClick={handleDownloadPdf}
+              disabled={!isHtml || !content || isLoading || isRegenerating}
+              className="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
+            >
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {!isLoading && <Download className="w-4 h-4 mr-2" />}
+              PDF
+            </button>
+            <button
+              onClick={handleDownloadDocx}
+              disabled={!isHtml || !content || isLoading || isRegenerating}
+              className="flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
+            >
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {!isLoading && <FileText className="w-4 h-4 mr-2" />}
+              DOCX
+            </button>
           </div>
         </div>
-
-        {/* Action Bar */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-b-2xl border border-t-0 border-gray-200/80 shadow-lg p- sm:p-2">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleEditToggle}
-                disabled={!content || isLoading}
-                className={`flex items-center px-6 py-3 rounded-xl font-semibold text-sm transition transform hover:scale-105 ${
-                  isEditing
-                    ? 'bg-green-500 hover:bg-green-600 text-white'
-                    : 'bg-indigo-500 hover:bg-indigo-600 text-white'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {isEditing ? (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </>
-                ) : (
-                  <>
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit
-                  </>
-                )}
-              </button>
-              <button
-                onClick={handleCopy}
-                disabled={!content || isLoading}
-                className="flex items-center px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium text-sm transition disabled:opacity-50"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy
-              </button>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleDownloadPdf}
-                disabled={!isHtml || !content || isLoading}
-                className="flex items-center px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold text-sm transition transform hover:scale-105 disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 mr-2" />
-                )}
-                PDF
-                {!canUsePremiumFeatures && (
-                  <ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />
-                )}
-              </button>
-              <button
-                onClick={handleDownloadDocx}
-                disabled={!isHtml || !content || isLoading}
-                className="flex items-center px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition transform hover:scale-105 disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 mr-2" />
-                )}
-                DOCX
-                {!canUsePremiumFeatures && (
-                  <ShieldCheck className="ml-2 h-4 w-4 text-yellow-300" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      </footer>
     </div>
   );
 };

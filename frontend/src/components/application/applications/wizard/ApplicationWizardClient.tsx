@@ -540,9 +540,6 @@ export function ApplicationWizardClient() {
   ) => {
     setCvContext({ mode, value: student, name: '' });
 
-    if (mode === 'profile') {
-      console.log(cvContext);
-    }
     setWizardStep('cl');
   };
 
@@ -696,8 +693,6 @@ export function ApplicationWizardClient() {
         '/students/applications/tailor',
         formDataObj,
       );
-
-      console.log('Full response:', response);
 
       const result = response.data;
       setRefinedCv(result.data.tailoredCV);

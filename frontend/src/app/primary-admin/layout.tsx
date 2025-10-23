@@ -252,7 +252,7 @@ export default function PrimaryAdminLayout({
               className="flex items-center gap-2 font-semibold"
             >
               <ShieldCheck className="h-6 w-6 text-primary" />
-              <span>CareerPilot Admin</span>
+              <span>zobsai Admin</span>
             </Link>
           </div>
           <div className="flex-1">{renderNavLinks()}</div>
@@ -279,7 +279,7 @@ export default function PrimaryAdminLayout({
                     className="flex items-center gap-2 font-semibold"
                   >
                     <ShieldCheck className="h-6 w-6 text-primary" />
-                    <span>CareerPilot Admin</span>
+                    <span>zobsai Admin</span>
                   </Link>
                 </SheetTitle>
                 <SheetDescription className="sr-only">

@@ -221,7 +221,7 @@ export function EditableMaterial({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CareerPilot_${title.replace(/ /g, '_')}.pdf`;
+      a.download = `zobsai_${title.replace(/ /g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
 
@@ -473,29 +473,14 @@ const ResultStep = ({
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8 font-sans">
+    <div className="max-w-6xl mx-auto p-6 space-y-4 font-sans">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-cyan-600 rounded-2xl mb-4 shadow-lg">
-          <Award className="w-8 h-8 text-white" /> {/* Changed icon to Award */}
-        </div>
         <h1 className="text-4xl font-extrabold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
           Application Complete!
         </h1>
-        <p className="text-slate-600 text-lg">
-          Your tailored application materials are ready for review and
-          submission.
-        </p>
 
         {/* Simple Progress Indicator (Visual, as per generated code) */}
-        <div className="flex items-center justify-center mt-6">
-          <div className="flex space-x-2">
-            <div className="w-8 h-2 bg-green-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          </div>
-        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -571,35 +556,15 @@ const ResultStep = ({
         {/* Tailored CV Section */}
         {activeSection === 'cv' && (
           <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 text-white">
+                <div className="flex items-center gap-2 justify-center text-white">
                   <FileText className="w-6 h-6" />
-                  <h2 className="text-2xl font-bold">Tailored CV</h2>
-                </div>
-                <div className="flex space-x-2">
-                  {/* Using InternalEditableMaterialButton to match previous Button styles within sections */}
-                  <InternalEditableMaterialButton
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                    onClick={() => console.log('Download CV clicked')} // Placeholder for actual download
-                  >
-                    <Download className="w-5 h-5" />
-                  </InternalEditableMaterialButton>
-                  <InternalEditableMaterialButton
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                    onClick={() => handleSaveSectionVisual('cv')}
-                  >
-                    <Save className="w-5 h-5" />
-                  </InternalEditableMaterialButton>
+                  <h2 className="text-2xl font-bold bg-transparent text-white">
+                    Tailored CV
+                  </h2>
                 </div>
               </div>
-              <p className="text-blue-100 mt-2">
-                Your resume tailored specifically for this position.
-              </p>
             </div>
 
             <div className="p-8">
@@ -718,11 +683,12 @@ const ResultStep = ({
           <span className="font-medium">Back to Generate</span>
         </CustomButton>
 
-        <div className="flex flex-wrap gap-3 justify-end">
+        {/* Group of action buttons on the right */}
+        <div className="flex items-center flex-wrap justify-end gap-3">
           <CustomButton
-            onClick={handleSendEmailWithLoading} // Wrapped for loading state
+            onClick={handleSendEmailWithLoading}
             disabled={isProcessing}
-            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 disabled:opacity-75 disabled:scale-100"
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 disabled:opacity-75 disabled:scale-100"
           >
             {isProcessing ? (
               <>
@@ -738,27 +704,22 @@ const ResultStep = ({
           </CustomButton>
 
           <CustomButton
-            onClick={handleStartNew} // Original functionality
-            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl font-medium shadow-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 hover:scale-105"
+            onClick={handleStartNew}
+            className="flex items-center space-x-2 px-4 py-2 bg-slate-600 to-slate-700 text-white rounded-lg font-medium shadow-md hover:bg-slate-700 transition-all duration-300 hover:scale-105"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Start New Application</span>
+            <span>New Applications</span>
           </CustomButton>
 
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <CustomButton
-              // Changed size="lg" to use appropriate padding for CustomButton
-              onClick={handleSaveAndFinish} // Original functionality
-              className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
-            >
-              {/* Shine effect */}
-              <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
-
-              <Save className="w-5 h-5 relative z-10" />
-              <span className="relative z-10">Save Application</span>
-              <Sparkles className="w-4 h-4 animate-pulse relative z-10" />
-            </CustomButton>
-          </motion.div>
+          <CustomButton
+            onClick={handleSaveAndFinish}
+            className="flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
+          >
+            <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
+            <Save className="w-5 h-5 z-10" />
+            <span className="z-10">Save Application</span>
+            <Sparkles className="w-4 h-4 animate-pulse z-10" />
+          </CustomButton>
         </div>
       </div>
 

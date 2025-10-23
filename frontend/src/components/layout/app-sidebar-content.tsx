@@ -88,7 +88,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
       },
       { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
       // uncomment below code to show "Application Wizard" on sidebar
-      // { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
+      { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
       {
         title: 'My Applications',
         href: '/dashboard/applications',
@@ -105,11 +105,6 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         title: 'Request New Feature',
         href: '/dashboard/request-new-feature', // Replace with your actual form link
         icon: Layers,
-      },
-      {
-        title: 'Onboarding Tour',
-        href: '/dashboard/onboarding-tour',
-        icon: Activity,
       },
     ],
   };
@@ -157,7 +152,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
       <div className="relative p-2 border-b border-slate-200/50">
         <div className="flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center space-x-3 group">
-            <div className="relative">
+            <div className="relative p-3">
               {/* <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                 <Rocket className="w-6 h-6 text-white animate-pulse" />
               </div> */}
@@ -219,7 +214,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         </div>
       </div>
 
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-hide">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
         {siteConfig.sidebarNav.map((item, index) => {
           if (item.adminOnly && user?.role !== 'OrgAdmin') return null;
           const Icon = item.icon;

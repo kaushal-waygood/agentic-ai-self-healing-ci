@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from '../ui/select';
 import { Button } from '../ui/button';
-import { useForm } from 'react-hook-form';
 import { countries } from '@/lib/data/countries';
 import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
@@ -52,6 +51,7 @@ import {
 } from 'lucide-react';
 import { TechnologyInput } from '@/utils/TechnologyInput';
 import { formatDateForMonthInput } from '@/utils/TechnologyInput';
+import { useForm } from 'react-hook-form';
 
 const employmentTypes = [
   'Full-time',
@@ -154,16 +154,15 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const form = useForm({
-    // Use your Zod resolver here if you have one
-    // resolver: zodResolver(yourSchema),
-    defaultValues: data || {
-      institution: '',
-      degree: '',
-      fieldOfStudy: '',
-      country: '',
-      gpa: '',
-      startDate: '',
-      endDate: '',
+    defaultValues: {
+      institution: data?.institution || '',
+      degree: data?.degree || '',
+      fieldOfStudy: data?.fieldOfStudy || '',
+      country: data?.country || '',
+      gpa: data?.gpa || '',
+      startDate: data?.startDate || '',
+      endDate: data?.endDate || '',
+      _id: data?._id || '', // ✅ Add this line
     },
   });
 
@@ -176,11 +175,15 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
 
     if (isEdit) {
       dispatch(
-        updateStudentProjectRequest({ data: payload, index: payload._id }),
+        updateStudentEducationRequest({
+          educationId: payload._id,
+          eduData: payload,
+        }),
       );
     } else {
-      dispatch(addStudentProjectRequest(payload));
+      dispatch(addStudentEducationRequest(payload));
     }
+
     reset();
     onCancel();
   };
@@ -360,7 +363,7 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
                             <SelectValue placeholder="Select a country" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="bg-white z-[9999]">
                           {countries.map((c) => (
                             <SelectItem key={c.code} value={c.name}>
                               {c.name}
@@ -413,7 +416,7 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
                   name="gpa"
                   render={({ field }) => (
                     <FormItem className="mt-6">
-                      <FormLabel>GPA (Optional)</FormLabel>
+                      <FormLabel>Overall Grades (Optional)</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -1010,7 +1013,7 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
                               <SelectValue placeholder="Select a type" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className=" bg-white z-[9999]">
                             {employmentTypes.map((type) => (
                               <SelectItem key={type} value={type}>
                                 {type}
@@ -1176,7 +1179,10 @@ export const AddSkill = ({ onCancel }: closeProps) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
+      <form
+        onSubmit={handleSubmit(handleFormSubmit)}
+        className="space-y-8 bg-white p-4 rounded-lg"
+      >
         <div className="space-y-4">
           <FormField
             control={control}
@@ -1206,7 +1212,7 @@ export const AddSkill = ({ onCancel }: closeProps) => {
                       <SelectValue placeholder="Select level" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="z-[9999] max-h-[300px]">
+                  <SelectContent className="z-[9999] max-h-[300px] bg-slate-200">
                     {skillTypes.map((level) => (
                       <SelectItem key={level} value={level}>
                         {level}

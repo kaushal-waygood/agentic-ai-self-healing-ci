@@ -1,3 +1,4 @@
+'use client';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -9,20 +10,21 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { getAllSavedJobs } from '@/services/api/student';
 import {
   Briefcase,
   ChevronsRight,
   FileSignature,
   Loader2,
-  User,
   Sparkles,
   Target,
+  User,
   Zap,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import { MapPin, DollarSign } from 'lucide-react';
-import { getAllSavedJobs } from '@/services/api/student';
+import apiInstance from '@/services/api';
 
 // Define the structure of the job object for type safety
 interface Job {
@@ -44,7 +46,7 @@ interface JobCardProps {
 }
 
 // Helper function to format the salary range
-const formatSalary = (salary: Job['salary']) => {
+const formatSalary = (salary: JobDetails['salary']) => {
   if (!salary || (salary.min === 0 && salary.max === 0)) {
     return 'Not Disclosed';
   }
@@ -60,7 +62,10 @@ const formatSalary = (salary: Job['salary']) => {
   }`;
 };
 
-export const JobCard = ({ job }: JobCardProps) => {
+export const JobCard = ({ job: savedJob }: JobCardProps) => {
+  // Destructure the nested job object for cleaner access
+  const { job } = savedJob;
+
   return (
     <div className="w-full bg-white border border-gray-200 rounded-2xl p-4 transition-all duration-300 hover:border-blue-400 hover:shadow-lg">
       <div className="flex items-start gap-4">
@@ -74,27 +79,38 @@ export const JobCard = ({ job }: JobCardProps) => {
             />
           ) : (
             <span className="text-xl font-bold text-gray-500">
-              {job.company.charAt(0)}
+              {/* FIXED: Removed trailing dot and access property correctly */}
+              {job.company?.charAt(0)}
             </span>
           )}
         </div>
 
         {/* Job Details */}
         <div className="flex-1 min-w-0">
+          {/* FIXED: Access nested property */}
           <p className="text-sm text-gray-500 truncate">{job.company}</p>
           <h3 className="text-lg font-bold text-gray-800 truncate">
             {job.title}
           </h3>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-gray-400" />
-              <span>{job.jobAddress}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-gray-400" />
-              <span>{formatSalary(job.salary)}</span>
-            </div>
+            {/* FIXED: Access location from nested structure */}
+            {job.location?.city && (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <span>{job.location.city}</span>
+              </div>
+            )}
+
+            {/* FIXED: Access salary from nested structure */}
+            {job.salary && (
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-gray-400" />
+                <span>{formatSalary(job.salary)}</span>
+              </div>
+            )}
+
+            {/* FIXED: Access jobTypes from nested structure */}
             {job.jobTypes && job.jobTypes.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4 text-gray-400" />
@@ -133,7 +149,7 @@ const JobWizard = ({
       value: 'select',
       icon: Briefcase,
       label: 'Select Saved Jobs',
-      description: 'Choose from templates',
+      description: 'Choose from saved',
       gradient: 'from-purple-500 to-pink-400',
     },
     {
@@ -148,9 +164,8 @@ const JobWizard = ({
   useEffect(() => {
     const fetchSavedJobs = async () => {
       try {
-        const response = await getAllSavedJobs();
-        // Ensure the response data structure is correctly accessed
-        setSavedJobs(response.data?.savedJobs || []);
+        const response = await apiInstance.get('/students/jobs/saved-all');
+        setSavedJobs(response.data.jobs);
       } catch (error) {
         console.error('Error fetching saved jobs:', error);
       }
@@ -160,13 +175,9 @@ const JobWizard = ({
   }, []);
 
   return (
-    <div className="p-3 sm:p-6">
+    <div className="p-3 sm:p-3 md:p-6 lg:p-2  ">
       <div className="max-w-7xl mx-auto">
-        {/* Hero Section */}
-        <div className="text-center mb-4">
-          {/* <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
-            <Sparkles className="h-8 w-8 text-white" />
-          </div> */}
+        <div className="text-center m-4">
           <h1 className="text-3xl  bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
             Cover Letter Generator
           </h1>
@@ -176,9 +187,10 @@ const JobWizard = ({
           </p>
         </div>
 
-        <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-blue-500/10 rounded-3xl overflow-hidden">
+        <Card className=" bg-white/80s backdrop-blur-xl border-0 shadow-2xl shadow-blue-500/10 rounded-3xl  overflow-hidden">
           {/* Animated Header */}
-          <CardHeader className="p-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
+
+          <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white relative overflow-hidden p-2">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-2">
@@ -186,24 +198,20 @@ const JobWizard = ({
                   <Target className="h-5 w-5 text-white" />
                 </div>
                 <CardTitle className="text-lg">
-                  Step 1: Provide Job Contex
+                  Step 1: Provide Job Context
                 </CardTitle>
               </div>
-              {/* <CardDescription className="text-blue-100 text-sm">
-                Tell the AI about the job. This is crucial for tailoring your CV
-                to perfection.
-              </CardDescription> */}
             </div>
           </CardHeader>
 
-          <CardContent className="p-2">
+          <CardContent className="p-2 md:p-1">
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
               className="w-full"
             >
               {/* Enhanced Tabs List */}
-              <TabsList className="grid w-full grid-cols-3 bg-gray-100 rounded-2xl  mb-1 h-auto">
+              <TabsList className="grid  grid-cols-3 bg-gray-100 rounded-2xl p-1 mb-1 h-auto">
                 {tabData.map((tab) => {
                   const Icon = tab.icon;
                   return (
@@ -218,16 +226,15 @@ const JobWizard = ({
                     >
                       <Icon className="h-5 w-5" />
                       <div className="text-center">
-                        <div className="font-semibold text-sm">{tab.label}</div>
-                        {/* <div
-                          className={`text-xs ${
+                        <div
+                          className={`text-sm ${
                             activeTab === tab.value
                               ? 'text-white/80'
                               : 'text-gray-500'
                           }`}
                         >
                           {tab.description}
-                        </div> */}
+                        </div>
                       </div>
                     </TabsTrigger>
                   );
@@ -240,7 +247,7 @@ const JobWizard = ({
                   <div className="relative group">
                     <Textarea
                       placeholder="Paste the full job description here... 
-                         ✨ The more detailed, the better your CV optimization will be!"
+                ✨ The more detailed, the better your cover letter optimization will be!"
                       className="min-h-[240px] border-2 border-gray-200 rounded-2xl p-4 focus:border-blue-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gray-50/50 backdrop-blur-sm"
                       value={pastedJobDescription}
                       onChange={(e) => setPastedJobDescription(e.target.value)}
@@ -259,9 +266,9 @@ const JobWizard = ({
                 </div>
 
                 <Button
-                  className={` h-14 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+                  className={`h-14  text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
                     pastedJobDescription && !isLoading
-                      ? 'bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl text-white'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl text-white'
                       : 'bg-gray-300 text-gray-500'
                   }`}
                   onClick={() => handleSetJobContext('paste')}
@@ -287,8 +294,10 @@ const JobWizard = ({
                   <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2">
                     {savedJobs.map((job: any) => (
                       <div
-                        key={job._id} // Corrected: Use _id for the key
-                        onClick={() => handleSetJobContext('select', job)}
+                        key={job.job._id} // Corrected: Use _id for the key
+                        onClick={() =>
+                          handleSetJobContext('select', job.job._id)
+                        }
                         className="cursor-pointer transition-transform transform hover:scale-[1.02]"
                       >
                         <JobCard job={job} />
@@ -305,7 +314,7 @@ const JobWizard = ({
                     </h3>
                     <p className="text-gray-600 text-lg max-w-md mx-auto">
                       You haven't saved any jobs yet. Saved jobs will appear
-                      here for quick CV generation.
+                      here for quick Cover letter generation.
                     </p>
                   </div>
                 )}
@@ -313,10 +322,10 @@ const JobWizard = ({
 
               {/* Title Tab */}
               <TabsContent value="title" className="space-y-6">
-                <div className=" justify-between flex flex-row items-center gap-4 ">
-                  <div className="relative group flex-1 w-full">
+                <div className=" flex flex-row gap-4 ">
+                  <div className="relative group flex-1">
                     <Input
-                      placeholder="e.g., Senior Software Engineer, Marketing Manager, Data Scientist..."
+                      placeholder="e.g., Senior Software Engineer..."
                       className="h-14 border-2 border-gray-200 rounded-2xl px-6 text-lg focus:border-green-500 focus:ring-0 transition-all duration-300 group-hover:border-gray-300 bg-gray-50/50 backdrop-blur-sm"
                       value={enteredJobTitle}
                       onChange={(e) => setEnteredJobTitle(e.target.value)}
@@ -326,7 +335,7 @@ const JobWizard = ({
                     </div>
                   </div>
                   <Button
-                    className={`  h-14 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+                    className={` h-14 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
                       enteredJobTitle && !isLoading
                         ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl text-white'
                         : 'bg-gray-300 text-gray-500'

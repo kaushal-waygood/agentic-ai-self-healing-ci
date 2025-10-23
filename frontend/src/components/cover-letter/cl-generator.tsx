@@ -70,13 +70,13 @@ const ClGenerator = ({
           </div>
 
           {/* Content */}
-          <div className="p-8 space-y-8">
+          <div className="p-2 space-y-8">
             {/* Saved CVs Section */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+              {/* <h3 className="text-lg font-semibold text-gray-800 flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-blue-500" />
                 Your Saved CVs
-              </h3>
+              </h3> */}
 
               <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                 {mockUserProfile.savedCvs.map((cv: any) => (

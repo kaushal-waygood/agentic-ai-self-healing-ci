@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import { JobListing } from '@/lib/data/jobs';
 import {
@@ -11,7 +13,6 @@ import {
 } from 'lucide-react';
 import { truncate } from '@/utils/formatTitle';
 import { Skeleton } from '@/components/ui/skeleton';
-
 import apiInstance from '@/services/api';
 import { useEffect } from 'react';
 
@@ -24,28 +25,38 @@ interface JobCardProps {
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   const handleClick = async () => {
     try {
-      // Call the API to store the job view
+      // This call is fine, it only runs on click when job exists.
       await apiInstance.post(`/students/job/viewed/${job._id}`);
-      console.log('Job view logged for job ID:', job._id);
-      // Trigger parent function (e.g., select job or open details)
       onClick();
-    } catch (error) {}
+    } catch (error) {
+      console.error('Failed to log job view on click:', error);
+      // Still call onClick so the UI updates even if the API fails.
+      onClick();
+    }
   };
 
+  // ✅ FIX: The useEffect hook is now protected and has the correct dependency.
   useEffect(() => {
+    // 1. Guard Clause: Prevents the API call if job or job._id is missing.
+    if (!job?._id) {
+      return;
+    }
+
     const isVisited = async () => {
-      const response = await apiInstance.get(
-        `/students/jobs/is-visited/${job._id}`,
-      );
-      console.log(
-        'Job view logged for job ID:',
-        response.data.job._id,
-        job._id,
-      );
+      try {
+        const response = await apiInstance.get(
+          `/students/jobs/is-visited/${job._id}`,
+        );
+        // You can use the response data here to update state if needed
+        // For example: setIsViewed(response.data.isVisited);
+      } catch (error) {
+        // Silently fail or handle error as needed
+        console.error('Failed to check if job was visited.', error);
+      }
     };
 
     isVisited();
-  }, []);
+  }, [job]); // 2. Dependency Array: Ensures the effect runs when the 'job' prop is available.
 
   return (
     <div
@@ -63,7 +74,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
 
       <div className="relative z-10  ">
         <div className="flex items-start gap-4 ">
-          {job?.logo ? (
+          {/* {job?.logo ? (
             <Image
               src={job.logo}
               alt={`${job.company} logo`}
@@ -74,6 +85,18 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
           ) : (
             <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-purple-400 to-blue-500 rounded-xl shadow-lg">
               <Building className="w-6 h-6 text-white" />
+            </div>
+          )} */}
+
+          {job.logo ? (
+            <img
+              src={job.logo}
+              alt={job.company || 'Company Logo'}
+              className="w-12 h-12 object-contain rounded"
+            />
+          ) : (
+            <div className="w-12 h-12  rounded-lg flex items-center justify-center ">
+              <Image width={32} height={32} src="/logo.png" alt="abc" />
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -87,11 +110,9 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               </div>
 
               <div className="flex items-center gap-2 ">
-                {/* <MapPin className="h-4 w-4 text-purple-500" /> */}
                 <span>{job.location.city}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                {/* <Clock className="h-4 w-4 text-blue-500" /> */}
                 <span>{'4 hour ago'}</span>
                 <div className="flex items-center gap-1">
                   <Eye className="h-4 w-4 text-gray-400" />
@@ -101,20 +122,12 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
             </div>
           </div>
         </div>
-
-        {/* <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-cyan-500" />
-            <span>{job.employmentType}</span>
-            <span className="text-gray-400">•</span>
-            <span>{job.experienceLevel}</span>
-          </div>
-        </div> */}
       </div>
     </div>
   );
 }
 
+// JobCardSkeleton remains the same
 export function JobCardSkeleton() {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6">

@@ -18,7 +18,7 @@ export default function OnboardingPage() {
     setTimeout(() => {
       toast({
         title: 'Profile Created!',
-        description: 'Your information has been saved. Welcome to CareerPilot!',
+        description: 'Your information has been saved. Welcome to Zobsai!',
       });
       router.push('/dashboard');
       setIsSubmitting(false);
@@ -28,7 +28,7 @@ export default function OnboardingPage() {
   return (
     <>
       <PageHeader
-        title="Welcome to CareerPilot"
+        title="Welcome to zobsai"
         description="Let's find your next job. Start by completing your profile for the best experience."
         icon={UserCheck}
       />

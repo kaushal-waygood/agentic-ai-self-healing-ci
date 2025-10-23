@@ -301,7 +301,7 @@ export const DangerSettings = ({ handleDeleteAccount }: any) => (
       Delete Account
     </h4>
     <p className="text-red-700 dark:text-red-300 text-sm mb-4">
-      Permanently delete your CareerPilot account and all associated data. This
+      Permanently delete your zobsai account and all associated data. This
       action cannot be undone.
     </p>
     <AlertDialog>

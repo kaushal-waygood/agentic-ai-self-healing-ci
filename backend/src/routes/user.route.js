@@ -22,6 +22,8 @@ import {
   getMe,
   notifyUserForAutopilot,
   isEmailSentForNotify,
+  verifyUpdateEmail,
+  resendVerificationEmail,
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 
@@ -42,6 +44,13 @@ router.get('/getme', authMiddleware, getMe);
 router.post('/google/auth', firebaseAuth);
 router.post('/signup', signUpUser);
 router.post('/verify', verifyEmail);
+router.post(
+  '/change-email',
+  authMiddleware,
+  isStudent,
+  resendVerificationEmail,
+);
+router.patch('/verify-email-otp', authMiddleware, isStudent, verifyUpdateEmail);
 router.post('/signin', signInUser);
 router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, getUserProfile);

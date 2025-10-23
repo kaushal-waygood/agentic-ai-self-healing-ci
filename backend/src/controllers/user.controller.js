@@ -289,6 +289,117 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
+export const resendVerificationEmail = async (req, res) => {
+  const { email } = req.body;
+  const { _id } = req.user;
+
+  try {
+    // Find user by email
+    const user = await User.findById(_id).select('+otp +otpExpires');
+
+    // Validation checks
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.otpExpires > new Date()) {
+      return res.status(400).json({ message: 'OTP already sent' });
+    }
+
+    // Generate new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    user.otp = otp;
+    user.otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    await user.save();
+
+    // Send OTP email
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: 'Verify Your Email Address',
+      html: `
+        <h2>Welcome to Our Platform, ${user.fullName}!</h2>
+        <p>Your verification code is: <strong>${otp}</strong></p>
+        <p>This code will expire in 15 minutes.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res
+      .status(200)
+      .json({ message: 'Verification OTP sent to your email' });
+  } catch (error) {
+    console.error('Resend verification email error:', error);
+    return res.status(500).json({
+      message: 'Resend verification email failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const verifyUpdateEmail = async (req, res) => {
+  const { _id } = req.user;
+  const { email, otp } = req.body;
+  console.log(email, otp);
+
+  try {
+    // Find user by email
+    const user = await User.findOneAndUpdate(
+      { _id },
+      { $set: { email } },
+    ).select('+otp +otpExpires');
+
+    // Validation checks
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    if (user.otpExpires < new Date()) {
+      return res.status(400).json({ message: 'OTP expired' });
+    }
+
+    // Update user verification status
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    // Generate access token only
+    const accessToken = user.generateAccessToken();
+
+    // Set cookies
+    const cookieOptions = {
+      // httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (change from 30 days)
+    };
+
+    // Remove sensitive data before sending user info
+    user.password = undefined;
+
+    return res
+      .status(200)
+      .cookie('accessToken', accessToken, cookieOptions)
+      .json({
+        message: 'Email verified successfully',
+        accessToken,
+        user,
+      });
+  } catch (error) {
+    console.error('Email verification error:', error);
+    return res.status(500).json({
+      message: 'Verification failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
 export const resendOtp = async (req, res) => {
   const { email } = req.body;
 
@@ -358,19 +469,14 @@ export const signInUser = async (req, res) => {
   console.log(req.body, 'check body come or not');
 
   try {
-    // 1. Basic validation
     if (!email || !password) {
       return res
         .status(400)
         .json({ message: 'Email and password are required' });
     }
 
-    // 2. Find the user and include the password for comparison
     const user = await User.findOne({ email }).select('+password');
 
-    // 3. Check if user exists and password is correct
-    // Note: This assumes you have a method like 'isPasswordCorrect' on your User schema.
-    // If not, you would use: const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
