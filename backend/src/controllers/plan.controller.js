@@ -444,9 +444,6 @@ export const handleStripeWebhook = async (req, res) => {
 
       // If all operations succeed, commit the transaction
       await session.commitTransaction();
-      console.log(
-        `Successfully processed payment and updated entitlements for user: ${userId}`,
-      );
     } catch (error) {
       // If any operation fails, abort the transaction
       await session.abortTransaction();

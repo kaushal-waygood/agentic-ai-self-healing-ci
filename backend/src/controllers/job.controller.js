@@ -447,14 +447,8 @@ export const getAllJobs = async (req, res) => {
       });
 
       if (existingJobCount === 0) {
-        console.log(
-          `First-time search for "${query}". Waiting for real-time fetch.`,
-        );
         await fetchAndSaveJobsService(query);
       } else {
-        console.log(
-          `Existing data found for "${query}". Triggering background fetch.`,
-        );
         fetchAndSaveJobsService(query); // No 'await' for a fast response
       }
     }
@@ -559,7 +553,6 @@ export const streamAllJobs = async (req, res) => {
       if (jobCount === 0) {
         // Condition 1: No data exists for this query, so we must fetch.
         shouldFetch = true;
-        console.log(`No data found for query "${query}". Triggering fetch.`);
       } else {
         // Condition 2: Data exists, check if it's stale.
         const latestJob = await Job.findOne({ queries: query }).sort({
@@ -617,7 +610,6 @@ export const streamAllJobs = async (req, res) => {
     res.write(
       'event: end-stream\ndata: {"message": "Initial stream complete"}\n\n',
     );
-    console.log('Finished streaming existing jobs.');
 
     req.on('close', () => {
       console.log('Client disconnected from stream.');

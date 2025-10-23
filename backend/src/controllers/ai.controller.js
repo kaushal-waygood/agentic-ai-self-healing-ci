@@ -25,25 +25,15 @@ import {
 } from '../prompt/generateCVPrompt.js';
 import { User } from '../models/User.model.js';
 
-// A simple helper function for retries
 const retryOperation = async (operation, retries = 3, delay = 1000) => {
   for (let i = 0; i < retries; i++) {
     try {
-      // Attempt the operation
       return await operation();
     } catch (error) {
-      // Check if it's a retryable error (like a 503)
       if (error.status === 503 && i < retries - 1) {
-        console.log(
-          `Service unavailable. Retrying in ${delay / 1000}s... (Attempt ${
-            i + 1
-          }/${retries})`,
-        );
-        // Wait for the delay, then double it for the next attempt
         await new Promise((resolve) => setTimeout(resolve, delay));
         delay *= 2;
       } else {
-        // If it's not a 503 or we've run out of retries, throw the error
         throw error;
       }
     }
