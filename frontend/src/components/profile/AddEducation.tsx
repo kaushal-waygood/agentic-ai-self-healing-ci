@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from '../ui/select';
 import { Button } from '../ui/button';
-import { useForm } from 'react-hook-form';
 import { countries } from '@/lib/data/countries';
 import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
@@ -52,6 +51,7 @@ import {
 } from 'lucide-react';
 import { TechnologyInput } from '@/utils/TechnologyInput';
 import { formatDateForMonthInput } from '@/utils/TechnologyInput';
+import { useForm } from 'react-hook-form';
 
 const employmentTypes = [
   'Full-time',
@@ -154,16 +154,15 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const form = useForm({
-    // Use your Zod resolver here if you have one
-    // resolver: zodResolver(yourSchema),
-    defaultValues: data || {
-      institution: '',
-      degree: '',
-      fieldOfStudy: '',
-      country: '',
-      gpa: '',
-      startDate: '',
-      endDate: '',
+    defaultValues: {
+      institution: data?.institution || '',
+      degree: data?.degree || '',
+      fieldOfStudy: data?.fieldOfStudy || '',
+      country: data?.country || '',
+      gpa: data?.gpa || '',
+      startDate: data?.startDate || '',
+      endDate: data?.endDate || '',
+      _id: data?._id || '', // ✅ Add this line
     },
   });
 
@@ -176,11 +175,15 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
 
     if (isEdit) {
       dispatch(
-        updateStudentEducationRequest({ data: payload, index: payload._id }),
+        updateStudentEducationRequest({
+          educationId: payload._id,
+          eduData: payload,
+        }),
       );
     } else {
       dispatch(addStudentEducationRequest(payload));
     }
+
     reset();
     onCancel();
   };
