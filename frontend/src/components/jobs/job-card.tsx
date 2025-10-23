@@ -74,7 +74,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
 
       <div className="relative z-10  ">
         <div className="flex items-start gap-4 ">
-          {job?.logo ? (
+          {/* {job?.logo ? (
             <Image
               src={job.logo}
               alt={`${job.company} logo`}
@@ -85,6 +85,18 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
           ) : (
             <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-purple-400 to-blue-500 rounded-xl shadow-lg">
               <Building className="w-6 h-6 text-white" />
+            </div>
+          )} */}
+
+          {job.logo ? (
+            <img
+              src={job.logo}
+              alt={job.company || 'Company Logo'}
+              className="w-12 h-12 object-contain rounded"
+            />
+          ) : (
+            <div className="w-12 h-12  rounded-lg flex items-center justify-center ">
+              <Image width={32} height={32} src="/logo.png" alt="abc" />
             </div>
           )}
           <div className="flex-1 min-w-0">

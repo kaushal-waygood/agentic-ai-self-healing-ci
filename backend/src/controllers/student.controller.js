@@ -401,6 +401,24 @@ export const updateExperience = async (req, res) => {
 };
 
 // Education controller
+
+// Education controller
+export const getEducationsById = async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.status(200).json({ educations: student.education });
+  } catch (error) {
+    console.error('Error getting educations:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const addEducations = async (req, res) => {
   const {
     degree,
@@ -499,9 +517,13 @@ export const updateEducation = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    const education = student.education.find((edu) => {
-      return edu.educationId === educationId;
-    });
+    // const education = student.education.find((edu) => {
+    //   return edu.educationId === educationId;
+    // });
+
+    const education = student.education.find(
+      (edu) => edu._id.toString() === educationId,
+    );
 
     if (!education) {
       return res.status(404).json({ message: 'Education not found' });

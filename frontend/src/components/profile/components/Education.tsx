@@ -52,7 +52,6 @@ const Education = ({
   setDeleteSkillIndex,
   handleLevelChange,
 }: any) => {
-  console.log('education value', defaultValues.education);
   return (
     <div>
       {/* button  */}
@@ -108,8 +107,10 @@ const Education = ({
                     <button
                       size="icon"
                       variant="outline"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditEdu(true);
+
                         setEditEduIndex(index);
                       }}
                       className="text-blue-600 border-blue-300 hover:bg-blue-50 h-9 w-9"

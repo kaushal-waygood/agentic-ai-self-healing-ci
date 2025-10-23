@@ -86,7 +86,7 @@ const PlanDropdown = ({
             />
           </div>
 
-          {planType === 'Free' ? (
+          {planType === 'Free' || planType === 'Weekly' ? (
             <div className="p-4 border-t border-slate-100">
               <button
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"

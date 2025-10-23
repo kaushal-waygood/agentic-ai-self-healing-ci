@@ -365,7 +365,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">
         <div className="flex items-center justify-between px-6 py-2 ">
           <div className="flex items-center space-x-3"></div>
-          <div className="flex flex-1 justify-center px-4">
+          {/* <div className="flex flex-1 justify-center px-4">
             <button
               onClick={() => setIsSearchOpen(true)}
               className="w-full max-w-md flex items-center justify-between p-1 bg-slate-100 hover:bg-slate-200 border border-transparent hover:border-slate-300 rounded-lg text-slate-500 transition-all duration-200"
@@ -378,7 +378,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                 Ctrl K
               </kbd>
             </button>
-          </div>
+          </div> */}
 
           <div className="flex items-center space-x-1">
             <PlanDropdown

@@ -473,7 +473,7 @@ const ResultStep = ({
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8 font-sans">
+    <div className="max-w-6xl mx-auto p-6 space-y-4 font-sans">
       {/* Header Section */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-extrabold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
@@ -673,21 +673,20 @@ const ResultStep = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-6 bg-white rounded-2xl shadow-lg border border-slate-200">
-        <CustomButton
-          variant="ghost"
-          onClick={() => setWizardStep('generate')} // Original functionality
-          className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-xl hover:bg-slate-100"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="font-medium">Back to Generate</span>
-        </CustomButton>
-
-        <div className="flex flex-wrap gap-3 justify-end">
+      <div className="flex flex-col lg:flex-row justify-between items-center gap-4 p-3 bg-white rounded-2xl shadow-lg border border-slate-200">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <CustomButton
-            onClick={handleSendEmailWithLoading} // Wrapped for loading state
+            variant="ghost"
+            onClick={() => setWizardStep('generate')}
+            className="flex items-center gap-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-xl hover:bg-slate-100"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="font-medium">Back to Generate</span>
+          </CustomButton>
+          <CustomButton
+            onClick={handleSendEmailWithLoading}
             disabled={isProcessing}
-            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 disabled:opacity-75 disabled:scale-100"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 disabled:opacity-75 disabled:scale-100 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {isProcessing ? (
               <>
@@ -703,8 +702,8 @@ const ResultStep = ({
           </CustomButton>
 
           <CustomButton
-            onClick={handleStartNew} // Original functionality
-            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl font-medium shadow-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 hover:scale-105"
+            onClick={handleStartNew}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl font-medium shadow-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 hover:scale-105 whitespace-nowrap"
           >
             <PlusCircle className="w-4 h-4" />
             <span>Start New Application</span>
@@ -712,9 +711,8 @@ const ResultStep = ({
 
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <CustomButton
-              // Changed size="lg" to use appropriate padding for CustomButton
-              onClick={handleSaveAndFinish} // Original functionality
-              className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
+              onClick={handleSaveAndFinish}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden group whitespace-nowrap"
             >
               {/* Shine effect */}
               <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>

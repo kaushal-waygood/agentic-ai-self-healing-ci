@@ -49,12 +49,46 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   // ✅ LOGIC: Combined useEffects for cleaner state management when the job changes
+  // useEffect(() => {
+  //   if (!job?._id) return;
+
+  //   // Reset state when a new job is selected
+  //   setMatchScore(null);
+  //   setIsLoadingScore(false);
+
+  //   const checkJobStatus = async () => {
+  //     try {
+  //       const [savedRes, appliedRes] = await Promise.all([
+  //         apiInstance.get('students/jobs/issaved', {
+  //           params: { jobId: job._id },
+  //         }),
+  //         apiInstance.get('/students/job/isapplied', {
+  //           params: { jobId: job._id },
+  //         }),
+  //       ]);
+  //       setIsSaved(savedRes.data.isSaved);
+  //       setIsApplying(appliedRes.data.isApplied);
+  //     } catch (error) {
+  //       console.error('Failed to check job status:', error);
+  //     }
+  //   };
+
+  //   checkJobStatus();
+  // }, [job]);
+
   useEffect(() => {
     if (!job?._id) return;
 
-    // Reset state when a new job is selected
-    setMatchScore(null);
+    // Load match score from localStorage if exists
+    const savedScore = localStorage.getItem(`matchScore_${job._id}`);
+    if (savedScore) {
+      setMatchScore(JSON.parse(savedScore));
+    } else {
+      setMatchScore(null); // Reset if no saved score
+    }
+
     setIsLoadingScore(false);
+    setProgress(0);
 
     const checkJobStatus = async () => {
       try {
@@ -106,34 +140,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     }
   };
 
-  // const handleGetMatchScore = async () => {
-  //   // setIsModalOpen(true);
-  //   setIsLoadingScore(true);
-  //   setMatchScore(null);
-  //   setScoreError(null); // Reset error state
-
-  //   try {
-  //     const response = await apiInstance.post('/students/calculate-match', {
-  //       jobDescription: job.description,
-  //     });
-  //     setMatchScore(response.data);
-  //   } catch (error) {
-  //     console.error('Match score error:', error);
-  //     setScoreError('Could not calculate the AI match score.');
-  //   } finally {
-  //     setIsLoadingScore(false);
-  //   }
-  // };
-
   const handleGetMatchScore = async () => {
     setIsLoadingScore(true);
     setMatchScore(null);
     setScoreError(null);
-    setProgress(0); // track loading percentage
+    setProgress(0);
 
-    // Simulate progress while API is running
     const interval = setInterval(() => {
-      setProgress((prev) => (prev < 90 ? prev + 5 : prev)); // cap at 90% until API finishes
+      setProgress((prev) => (prev < 90 ? prev + 5 : prev));
     }, 1000);
 
     try {
@@ -141,9 +155,15 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         jobDescription: job.description,
       });
 
-      clearInterval(interval); // stop progress simulation
-      setProgress(100); // fill up to 100%
-      setMatchScore(response.data); // set actual score
+      clearInterval(interval);
+      setProgress(100);
+      setMatchScore(response.data);
+
+      // ✅ Save match score in localStorage
+      localStorage.setItem(
+        `matchScore_${job._id}`,
+        JSON.stringify(response.data),
+      );
     } catch (error) {
       clearInterval(interval);
       setProgress(0);
@@ -200,7 +220,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               <span>{job.country || 'Not speicfied'}</span>
               <span>|</span>
               <span className="capitalize">
-                {console.log(job.jobTypes)}
                 {job?.jobTypes[0] ? job.jobTypes[0] : 'Not specified'}
               </span>
             </div>
@@ -240,7 +259,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             )}
           </Button>
         </div>
-        <div className="p-2 flex justify-between items-center">
+
+        <div className="p-2 flex flex-col md:flex-row justify-between items-start  md:items-center gap-3">
           <div>
             {/* Company Logo or Fallback Icon */}
             {job.logo ? (
@@ -250,91 +270,81 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 className="w-12 h-12 object-contain rounded"
               />
             ) : (
-              <div className="w-12 h-12  rounded-lg flex items-center justify-center ">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100">
                 <Image width={32} height={32} src="/logo.png" alt="abc" />
               </div>
             )}
           </div>
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              {/* tailor & apply button  */}
 
-              {job.applyMethod?.url === 'email' ? (
-                // Show "Tailor & Apply" button if email
-                <Button
-                  asChild
-                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
-                >
-                  <Link
-                    href={`/dashboard/apply?slug=${encodeURIComponent(
-                      job._id,
-                    )}&step=cv`}
-                  >
-                    <FilePlus2 className="w-4 h-4" /> Tailor & Apply
-                  </Link>
-                </Button>
-              ) : (
-                // Show "Tailor My Docs" button for other cases
-                <Button
-                  asChild
-                  className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-200"
-                >
-                  <Link
-                    href={`/dashboard/apply?slug=${encodeURIComponent(
-                      job._id,
-                    )}&step=cv`}
-                  >
-                    <FilePlus2 className="w-4 h-4" /> Tailor My Docs
-                  </Link>
-                </Button>
-              )}
-
-              {job.applyMethod.url && (
+          <div className="flex flex-col justify-end md:flex-row gap-2 flex-1">
+            {/* Tailor & Apply / Tailor My Docs Button */}
+            {job.applyMethod?.url === 'email' ? (
+              <Button
+                asChild
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-4 py-2 rounded-xl font-semibold w-full md:w-auto transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
                 <Link
-                  href={`${job.applyMethod.url}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleApplyOnSite}
-                  className="flex items-center  w-full text-xs gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-200"
+                  href={`/dashboard/apply?slug=${encodeURIComponent(
+                    job._id,
+                  )}&step=cv`}
                 >
-                  <ExternalLink className=" w-4 h-4" /> Company Site
+                  <FilePlus2 className="w-4 h-4" /> Tailor & Apply
                 </Link>
-              )}
-              {/* ✅ FIX: The Calculate button is now part of the conditional logic */}
-
-              {!matchScore && !isLoadingScore && (
-                <Button
-                  onClick={handleGetMatchScore}
-                  className="text-xs w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200"
+              </Button>
+            ) : (
+              <Button
+                asChild
+                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-xl font-semibold w-full md:w-auto transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                <Link
+                  href={`/dashboard/apply?slug=${encodeURIComponent(
+                    job._id,
+                  )}&step=cv`}
                 >
-                  Job Matching Score
-                </Button>
-              )}
+                  <FilePlus2 className="w-4 h-4" /> Tailor My Docs
+                </Link>
+              </Button>
+            )}
 
-              {isLoadingScore && (
-                <div className="flex flex-row  items-center gap-2">
-                  <Button className="text-xs w-full  cursor-none text-white rounded-xltext-xs bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600  rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200">
-                    <span className="animate-pulse">
-                      Calculating...{progress}%
-                    </span>
-                    <Loader2 className="w-10 h-10 animate-spin " />
-                  </Button>
-                </div>
-              )}
+            {/* Company Site Button */}
+            {job.applyMethod?.url && (
+              <Link
+                href={`${job.applyMethod.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleApplyOnSite}
+                className="flex items-center justify-center gap-2 bg-gradient-to-r  from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-4 py-2 rounded-xl font-semibold w-full md:w-auto text-sm transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                <ExternalLink className="w-4 h-4" /> Company Site
+              </Link>
+            )}
 
-              {matchScore && !isLoadingScore && (
-                <div className="flex flex-row  items-center gap-2 text-center  bg-yellow-100 border border-yellow-200 rounded-lg text-sm text-black">
-                  Your Match Score: {matchScore.matchScore}/10
-                </div>
-              )}
-            </div>
+            {/* Job Matching Score Button */}
+            {!matchScore && !isLoadingScore && (
+              <Button
+                onClick={handleGetMatchScore}
+                className=" w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 py-2 rounded-xl text-sm transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                Job Matching Score
+              </Button>
+            )}
 
-            {/* ✅ FIX: This block now correctly shows loading state or results */}
-            {/* {isLoadingScore && (
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+            {/* Loading State */}
+            {isLoadingScore && (
+              <Button className="flex items-center justify-center gap-2 text-sm w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 py-2 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg cursor-not-allowed">
+                <span className="animate-pulse">
+                  Calculating... {progress}%
+                </span>
+                <Loader2 className="w-4 h-4 text-white animate-spin" />
+              </Button>
+            )}
+
+            {/* Match Score Display */}
+            {matchScore && !isLoadingScore && (
+              <div className="text-sm w-full md:w-auto text-center bg-gradient-to-r from-yellow-500 to-purple-500 text-white px-4 py-2 rounded-xl font-semibold shadow-lg">
+                Match Score: {matchScore.matchScore}/10
               </div>
-            )} */}
+            )}
           </div>
         </div>
       </div>
