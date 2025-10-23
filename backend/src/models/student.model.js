@@ -145,6 +145,43 @@ const coverLetterSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+const applicationSchema = new Schema(
+  {
+    jobTitle: {
+      type: String,
+      required: true,
+    },
+    jobCompany: {
+      type: String,
+      required: true,
+    },
+    jobDescription: {
+      type: String,
+      required: true,
+    },
+
+    // --- Other fields remain the same ---
+    status: {
+      type: String,
+      enum: ['Draft', 'Applied', 'Interviewing', 'Offered', 'Rejected'],
+      default: 'Draft',
+    },
+    cvContent: {
+      type: String,
+      required: true,
+    },
+    coverLetterContent: {
+      type: String,
+      required: true,
+    },
+    emailContent: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true },
+);
+
 // Main schema
 const studentSchema = new Schema(
   {
@@ -165,6 +202,7 @@ const studentSchema = new Schema(
     jobRole: String,
     skills: [skillSchema],
     projects: [projectSchema],
+    applications: [applicationSchema],
     jobPreferences: {
       type: jobPreferenceSchema,
       default: () => ({}),

@@ -21,6 +21,31 @@ import { genAIWithRetry } from '../utils/genAIWithRetry.js';
 import { calculateJobMatch } from '../utils/calculateJobMatch.js';
 import { generateCVRegeneratePrompt } from '../prompt/generateCVPrompt.js';
 
+// A simple helper function for retries
+const retryOperation = async (operation, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      // Attempt the operation
+      return await operation();
+    } catch (error) {
+      // Check if it's a retryable error (like a 503)
+      if (error.status === 503 && i < retries - 1) {
+        console.log(
+          `Service unavailable. Retrying in ${delay / 1000}s... (Attempt ${
+            i + 1
+          }/${retries})`,
+        );
+        // Wait for the delay, then double it for the next attempt
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2;
+      } else {
+        // If it's not a 503 or we've run out of retries, throw the error
+        throw error;
+      }
+    }
+  }
+};
+
 export const extractStudentDataFromCV = async (req, res) => {
   const { _id } = req.user;
 
@@ -38,8 +63,10 @@ export const extractStudentDataFromCV = async (req, res) => {
   );
 
   try {
-    // Extract data using shared utility
-    const extractedData = await extractDataFromCV(filePath);
+    // Wrap the extraction logic in our retry helper
+    const extractedData = await retryOperation(() =>
+      extractDataFromCV(filePath),
+    );
 
     // Clean up file
     fs.unlinkSync(filePath);
@@ -59,9 +86,21 @@ export const extractStudentDataFromCV = async (req, res) => {
       { new: true, runValidators: true },
     );
 
+    
+
     return res.json({ success: true, data: updatedStudent });
   } catch (error) {
+    // Now the catch block handles the final error after all retries have failed
     console.error('Error updating student from CV:', error);
+
+    // Send a more specific error message to the client
+    if (error.status === 503) {
+      return res.status(503).json({
+        error:
+          'The AI service is temporarily busy. Please try again in a few moments.',
+      });
+    }
+
     res.status(500).json({
       error: 'Failed to extract or update student data from CV',
       message: error.message,
@@ -531,6 +570,102 @@ export const createTailoredApply = async (req, res) => {
       error: 'Failed to create tailored application',
       details: error.message,
     });
+  }
+};
+
+export const saveTailoredApplication = async (req, res) => {
+  const studentId = req.user._id;
+  // ✅ UPDATED: Destructure the new job detail fields from the request body
+  const {
+    jobTitle,
+    jobCompany,
+    jobDescription,
+    cvContent,
+    coverLetterContent,
+    emailContent,
+  } = req.body;
+
+  // 1. Validate the incoming data
+  if (
+    !jobTitle ||
+    !jobCompany ||
+    !jobDescription ||
+    !cvContent ||
+    !coverLetterContent ||
+    !emailContent
+  ) {
+    return res
+      .status(400)
+      .json({ message: 'Missing required application data.' });
+  }
+
+  try {
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // 2. Find an existing application by title and company to update it
+    const existingApplication = student.applications.find(
+      (app) => app.jobTitle === jobTitle && app.jobCompany === jobCompany,
+    );
+
+    if (existingApplication) {
+      // If found, update its content
+      existingApplication.cvContent = cvContent;
+      existingApplication.coverLetterContent = coverLetterContent;
+      existingApplication.emailContent = emailContent;
+      console.log(
+        `Updating existing application for job: ${jobTitle} at ${jobCompany}`,
+      );
+    } else {
+      // 3. If not found, create a new application with the full job details
+      const newApplication = {
+        jobTitle,
+        jobCompany,
+        jobDescription,
+        cvContent,
+        coverLetterContent,
+        emailContent,
+      };
+      student.applications.push(newApplication);
+      console.log(
+        `Creating new application for job: ${jobTitle} at ${jobCompany}`,
+      );
+    }
+
+    // 4. Save the changes to the database
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Application saved successfully.',
+    });
+  } catch (error) {
+    console.error('Error saving tailored application:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getSavedApplications = async (req, res) => {
+  const studentId = req.user._id;
+
+  try {
+    // 1. Find the student by their ID and select only the 'applications' field
+    const student = await Student.findById(studentId).select('applications');
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // 2. Return the array of applications
+    res.status(200).json({
+      success: true,
+      applications: student.applications,
+    });
+  } catch (error) {
+    console.error('Error fetching saved applications:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 

@@ -23,7 +23,6 @@ const SleekCvStep = ({
 
   // **FIX**: This guard clause prevents the component from crashing if mockUserProfile is not ready.
   if (!mockUserProfile) {
-    console.log('mockUserProfile not ready');
     return (
       <div className="flex items-center justify-center p-8">
         <p className="text-slate-600">Loading user profile...</p>

@@ -148,7 +148,7 @@ export function ApplicationWizardClient() {
             setWizardStep={navigateToStep}
             handleSendEmail={actions.handleSendEmail}
             handleSaveAndFinish={() => {
-              /* Implement save logic */
+              actions.handleSaveAndFinish();
             }}
             handleStartNew={actions.handleStartNew}
           />

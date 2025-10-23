@@ -10,7 +10,6 @@ import { useSelector } from 'react-redux';
 export default function GoogleSignInButton() {
   const googleButton = useRef(null);
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log(user);
 
   const handleGoogleSignIn = async (response) => {
     try {

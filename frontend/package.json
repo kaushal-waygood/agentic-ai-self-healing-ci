@@ -53,6 +53,8 @@
     "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "countries-list": "^3.2.0",
+    "country-state-city": "^3.2.1",
     "date-fns": "^3.6.0",
     "debounce": "^2.2.0",
     "firebase": "11",
@@ -90,6 +92,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@locator/babel-jsx": "^0.4.4",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.14",
