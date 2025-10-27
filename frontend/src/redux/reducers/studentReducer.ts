@@ -317,12 +317,6 @@ const studentSlice = createSlice({
     // In your studentReducer.ts file...
 
     getAllSavedJobsSuccess: (state, action: PayloadAction<any>) => {
-      // Log the entire action to see the payload structure
-      console.log('Full action in reducer:', action);
-
-      // CORRECTED LINE:
-      // Assuming the array of jobs is inside a key, like 'data' or directly in the payload.
-      // Check if the payload is the array itself, or if it's nested.
       const jobsArray = Array.isArray(action.payload)
         ? action.payload
         : action.payload.data || [];

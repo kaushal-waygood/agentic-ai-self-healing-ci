@@ -413,26 +413,22 @@ export const useProfile = () => {
     try {
       if (fieldName === 'fullName') {
         const fullName = personalInfoForm.getValues('fullName');
-        console.log('fullName', fullName);
         await apiInstance.patch('/students/fullname/update', { fullName });
         setIsNameEditable(false);
         toast({ title: 'Full Name Updated' });
       } else if (fieldName === 'email') {
         const email = personalInfoForm.getValues('email');
-        console.log('email', email);
         await apiInstance.patch('/students/fullname/update', { email });
         setIsEmailEditable(false);
         toast({ title: 'Email Updated' });
       } else if (fieldName === 'phone') {
         const phone = personalInfoForm.getValues('phone');
-        console.log('phone', phone);
-        await apiInstance.patch('/students/fullname/update', { phone });
+=        await apiInstance.patch('/students/fullname/update', { phone });
         setIsPhoneEditable(false);
         toast({ title: 'Phone Number Updated' });
       } else if (fieldName === 'jobPreference') {
         const jobPreference = personalInfoForm.getValues('jobPreference');
-        console.log('jobPreference', jobPreference);
-
+=
         await apiInstance.post('/students/job-role/update', {
           jobRole: jobPreference,
         });

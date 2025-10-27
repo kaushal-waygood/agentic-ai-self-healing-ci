@@ -49,11 +49,8 @@ const EditableMaterial = ({
   }, []);
 
   const handleCopy = async () => {
-    console.log('Handle Copy Invoked');
-    console.log('Editor Ref:', editorRef);
     if (!editorRef.current) return;
     const textToCopy = editorRef.current.innerText;
-    console.log('Text to Copy:', textToCopy);
     if (!textToCopy) return;
 
     try {

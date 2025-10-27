@@ -89,7 +89,6 @@ function* getUserProfileSaga(): SagaIterator {
 function* changePasswordSaga(action: PayloadAction<any>): SagaIterator {
   try {
     const response = yield call(changePassword, action.payload);
-    console.log('RESPONSE', response);
     yield put(changePasswordSuccess(response.data));
   } catch (error: unknown) {
     const errorMessage =
@@ -115,7 +114,6 @@ function* logoutSaga(): SagaIterator {
     localStorage.removeItem('accessToken');
     yield put(logoutSuccess());
   } catch (error) {
-    console.log(error);
     yield put(logoutFailure(error));
   }
 }

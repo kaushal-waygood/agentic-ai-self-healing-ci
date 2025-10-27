@@ -21,19 +21,11 @@ const Page = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Log the data from the input fields to the console
-    console.log({
-      title: featureName,
-      description: description,
-    });
-
     try {
       const response = await apiInstance.post('/new-feature', {
         title: featureName,
         description: description,
       });
-
-      console.log(response);
 
       if (response.status === 200) {
         setSubmitted(true);
