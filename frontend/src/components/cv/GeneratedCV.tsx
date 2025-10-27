@@ -250,8 +250,6 @@ const GeneratedCV = ({
     handleInitiateSave(editableContent);
   };
 
-  console.log('Editable Content:', generatedCvOutput.atsScore);
-
   return (
     <div className="min-h-screen p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">

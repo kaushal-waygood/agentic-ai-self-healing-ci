@@ -228,7 +228,6 @@ function* removeStudentProjectsSaga(action: PayloadAction<any>) {
 // student Job Preference
 function* updateStudentJobPreferenceSaga(action: PayloadAction<any>) {
   try {
-    console.log(action.payload);
     const response: AxiosResponse = yield call(
       updateJobPreference,
       action.payload,
