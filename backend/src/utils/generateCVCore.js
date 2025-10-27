@@ -90,10 +90,10 @@ export const generateCVCore = async (req, res, jobContextString) => {
       return res.status(500).json({ error: 'Failed to parse AI response' });
     }
 
-    // const updatedUser = await User.findByIdAndUpdate(_id, {
-    //   $inc: { 'usageCounters.cvCreation': 1 }, // Increment the counter by 1
-    //   $push: { cvs: parsedJson }, // Push the new CV object into the 'cvs' array
-    // });
+    const updatedUser = await User.findByIdAndUpdate(_id, {
+      $inc: { 'usageCounters.cvCreation': 1 }, // Increment the counter by 1
+      $push: { cvs: parsedJson }, // Push the new CV object into the 'cvs' array
+    });
 
     // Optional but good practice: check if the user was found
     if (!updatedUser) {
