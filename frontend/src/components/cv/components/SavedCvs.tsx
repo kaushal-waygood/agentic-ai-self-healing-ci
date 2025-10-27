@@ -198,7 +198,7 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                   </div>
 
                   {/* Animated bottom border */}
-                  <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-violet-500 via-blue-500 to-indigo-500 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  {/* <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-violet-500 via-blue-500 to-indigo-500 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" /> */}
                 </div>
               ))}
             </div>

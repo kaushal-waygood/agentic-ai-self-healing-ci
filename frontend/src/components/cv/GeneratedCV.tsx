@@ -68,8 +68,15 @@ const EditableMaterial = ({
     }
   };
 
-  const handleContentChange = (e) => {
-    setContent(e.currentTarget.innerHTML);
+  // const handleContentChange = (e) => {
+  //   setContent(e.currentTarget.innerHTML);
+  // };
+
+  const handleContentChange = (e: any) => {
+    // Don’t update state on every keystroke — only store locally
+    if (editorRef.current) {
+      editorRef.current._latest = e.currentTarget.innerHTML;
+    }
   };
 
   return (
