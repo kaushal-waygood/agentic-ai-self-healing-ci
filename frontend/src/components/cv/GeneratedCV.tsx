@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Save,
@@ -13,6 +13,7 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data for initial rendering
 const mockData = {
@@ -40,21 +41,33 @@ const EditableMaterial = ({
   isDownloadingDocx,
 }) => {
   const [isClient, setIsClient] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const handleCopy = () => {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-    navigator.clipboard.writeText(
-      tempDiv.textContent || tempDiv.innerText || '',
-    );
+  const handleCopy = async () => {
+    console.log('Handle Copy Invoked');
+    console.log('Editor Ref:', editorRef);
+    if (!editorRef.current) return;
+    const textToCopy = editorRef.current.innerText;
+    console.log('Text to Copy:', textToCopy);
+    if (!textToCopy) return;
+
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      toast({
+        title: 'Copied to Clipboard!',
+        description: `content has been copied as plain text.`,
+      });
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      toast({ variant: 'destructive', title: 'Copy Failed' });
+    }
   };
 
-  // ✨ FIX: This function captures changes from the contentEditable div
-  // and updates the state in the parent component.
   const handleContentChange = (e) => {
     setContent(e.currentTarget.innerHTML);
   };
@@ -66,6 +79,7 @@ const EditableMaterial = ({
           // ✨ FIX: Changed <p> to <div> for better structure,
           // added onInput to update state, and suppressed a React warning.
           <div
+            ref={editorRef}
             className="prose prose-sm md:prose max-w-none min-h-[200px] border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             contentEditable={true}
             onInput={handleContentChange}
@@ -79,6 +93,7 @@ const EditableMaterial = ({
         )
       ) : (
         <div
+          ref={editorRef}
           className="prose prose-sm md:prose max-w-none mb-6"
           dangerouslySetInnerHTML={{ __html: content }}
         />

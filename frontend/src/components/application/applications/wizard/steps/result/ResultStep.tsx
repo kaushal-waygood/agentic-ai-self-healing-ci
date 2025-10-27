@@ -175,6 +175,7 @@ export function EditableMaterial({
   }, [content, isHtml]);
 
   const handleCopy = () => {
+    console.log('Handle Copy Invoked');
     if (!content) return;
     const textToCopy = isHtml
       ? editorRef.current?.innerText || content

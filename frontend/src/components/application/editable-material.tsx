@@ -127,6 +127,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   };
 
   const handleCopy = async () => {
+    console.log('Handle Copy Invoked');
     if (!editorRef.current) return;
     const textToCopy = editorRef.current.innerText;
     if (!textToCopy) return;
