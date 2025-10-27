@@ -56,6 +56,7 @@ app.use(
       'https://dev.zobsai.com',
       'https://www.zobsai.com',
       'https://zobsai.com',
+      'chrome-extension://mmmbijnmokcdpnabaahhbmioeobobcnb',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
