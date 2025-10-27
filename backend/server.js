@@ -4,9 +4,8 @@ import cluster from 'cluster';
 import os from 'os';
 import app from './src/app.js';
 import connectDb from './src/config/db.js';
-import { config } from './src/config/config.js';
-import { startGeneralCronJobs } from './src/config/cron-config.js';
-import { scheduleAutopilotTriggers } from './src/config/autopilotCron.js';
+// import { startGeneralCronJobs } from './src/config/cron-config.js';
+// import { scheduleAutopilotTriggers } from './src/config/autopilotCron.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
