@@ -11,6 +11,8 @@ const getEnv = (key) => {
   return value;
 };
 
+console.log(process.env.REDIS_HOST)
+
 // --- Application Configuration ---
 export const config = {
   // General
@@ -33,6 +35,6 @@ export const config = {
   geminiAPI: getEnv('GOOGLE_GENERATIVE_AI_KEY'),
 
   // Redis
-  redisHost: process.env.REDIS_HOST || '127.0.0.1',
+  redisHost: process.env.REDIS_HOST,
   redisPort: process.env.REDIS_PORT || 6379,
 };
