@@ -9,7 +9,7 @@ import connectDb from './src/config/db.js';
 import dotenv from 'dotenv';
 import { config } from './src/config/config.js';
 
-dotenv.config();
+dotenv.config({ quiet: true, override: true, path: ['.env'] });
 console.log('Environment Mode: ', config.nodeEnv);
 
 const numCPUs = os.cpus().length;
