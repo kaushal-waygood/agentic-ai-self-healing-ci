@@ -112,7 +112,7 @@ app.use('/api/v1/students', aiRoutes);
 app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
-app.use('/api/v1/dev', taskRoutes);
+// app.use('/api/v1/dev', taskRoutes);
 app.use('/api/v1/new-feature', newFeatureRoutes);
 
 // 7. 404 Handler (was 6)
