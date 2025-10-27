@@ -7,9 +7,10 @@ import connectDb from './src/config/db.js';
 // import { startGeneralCronJobs } from './src/config/cron-config.js';
 // import { scheduleAutopilotTriggers } from './src/config/autopilotCron.js';
 import dotenv from 'dotenv';
+import { config } from './src/config/config.js';
 
 dotenv.config();
-console.log('Environment Mode: ', process.env.NODE_ENV);
+console.log('Environment Mode: ', config.nodeEnv);
 
 const numCPUs = os.cpus().length;
 
@@ -43,7 +44,7 @@ if (cluster.isPrimary) {
   const startWorker = async () => {
     try {
       await connectDb();
-      const PORT = process.env.PORT || 8080;
+      const PORT = config.port || 8080;
       app.listen(PORT, () => {
         console.log(
           `🚀 Worker ${process.pid} started, server running on port ${PORT}`,

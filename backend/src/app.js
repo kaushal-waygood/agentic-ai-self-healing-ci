@@ -21,7 +21,8 @@ import formRoutes from './routes/form.route.js';
 import { handleStripeWebhook } from './controllers/plan.controller.js';
 import taskRoutes from './routes/dev.route.js';
 import newFeatureRoutes from './routes/newFeature.route.js';
-import './queues/jobDiscoveryQueue.js';
+// import './queues/jobDiscoveryQueue.js';
+import { config } from './config/config.js';
 
 const app = express();
 
@@ -49,7 +50,7 @@ app.use(limiter);
 // 3. CORS Configuration (was 2)
 app.use(
   cors({
-    origin: process.env.CORS_ORIGINS?.split(',') || [
+    origin: [
       'http://127.0.0.1:3000',
       'http://localhost:3000',
       'http://144.91.114.195:30090',
@@ -134,7 +135,7 @@ app.use((err, req, res, next) => {
     error: {
       status: err.status || 500,
       message: err.message,
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+      ...(config.nodeEnv === 'development' && { stack: err.stack }),
     },
   });
 });
