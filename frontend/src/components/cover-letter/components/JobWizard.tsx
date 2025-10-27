@@ -298,7 +298,7 @@ const JobWizard = ({
                         onClick={() =>
                           handleSetJobContext('select', job.job._id)
                         }
-                        className="cursor-pointer transition-transform transform hover:scale-[1.02]"
+                        className="cursor-pointer transition-transform transform"
                       >
                         <JobCard job={job} />
                       </div>
