@@ -24,16 +24,16 @@ const SleekLoadingCard = () => {
         setCurrentIcon(nextIndex);
         return loadingMessages[nextIndex];
       });
-    }, 1000);
+    }, 8000);
 
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
-          return 100;
+        if (prev >= 95) {
+          return 95;
         }
         return prev + 1;
       });
-    }, 360);
+    }, 350);
 
     return () => {
       clearInterval(messageInterval);

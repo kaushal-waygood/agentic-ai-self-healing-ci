@@ -242,12 +242,12 @@ const JobWizard = ({
               </TabsList>
 
               {/* Paste Tab */}
-              <TabsContent value="paste" className="space-y-3">
+              {/* <TabsContent value="paste" className="space-y-3">
                 <div className="space-y-4">
                   <div className="relative group">
                     <Textarea
                       placeholder="Paste the full job description here... 
-                ✨ The more detailed, the better your cover letter optimization will be!"
+                "
                       className="min-h-[240px] border-2 border-gray-200 rounded-2xl p-4 focus:border-blue-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gray-50/50 backdrop-blur-sm"
                       value={pastedJobDescription}
                       onChange={(e) => setPastedJobDescription(e.target.value)}
@@ -286,6 +286,79 @@ const JobWizard = ({
                     </>
                   )}
                 </Button>
+              </TabsContent> */}
+              {/* new code with 200 character counter and limits */}
+              <TabsContent value="paste" className="space-y-3">
+                <div className="space-y-4">
+                  <div className="relative group">
+                    <Textarea
+                      placeholder="Paste the full job description here... "
+                      className={`min-h-[240px] border-2 rounded-2xl p-4 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gray-50/50 backdrop-blur-sm ${
+                        pastedJobDescription.trim().length < 200
+                          ? 'border-gray-300 focus:border-red-400'
+                          : 'border-gray-200 focus:border-blue-500'
+                      }`}
+                      value={pastedJobDescription}
+                      onChange={(e) => setPastedJobDescription(e.target.value)}
+                    />
+                    <div className="absolute top-4 right-4 text-gray-400">
+                      <FileSignature className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  {/* ✅ Character Counter */}
+                  <div className="flex justify-between items-center text-sm">
+                    <span
+                      className={`font-medium ${
+                        pastedJobDescription.trim().length < 200
+                          ? 'text-red-600'
+                          : 'text-green-600'
+                      }`}
+                    >
+                      Characters: {pastedJobDescription.trim().length} / 200
+                    </span>
+
+                    {pastedJobDescription.trim().length < 200 && (
+                      <span className="text-red-500">
+                        Minimum 200 characters required.
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center flex-wrap  justify-between gap-2 text-sm text-gray-700 p-2">
+                    {/* ✅ Button disabled until 200+ characters */}
+                    <Button
+                      className={`h-14 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+                        pastedJobDescription.trim().length >= 200 && !isLoading
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700  text-white'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      onClick={() => handleSetJobContext('paste')}
+                      disabled={
+                        pastedJobDescription.trim().length < 200 || isLoading
+                      }
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                          Analyzing Job Description...
+                        </>
+                      ) : (
+                        <>
+                          <ChevronsRight className="mr-2 h-5 w-5" />
+                          Generate My CV
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-700 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                      <Zap className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                      <span className="font-medium">Pro tip:</span> Include
+                      requirements, responsibilities, and company culture for
+                      best results.
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
 
               {/* Select Tab */}

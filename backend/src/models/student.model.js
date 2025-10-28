@@ -136,6 +136,7 @@ const htmlCVSchema = new Schema({
   htmlCVTitle: String,
   updatedAt: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
+  ats: { type: String },
 });
 
 const coverLetterSchema = new Schema({
