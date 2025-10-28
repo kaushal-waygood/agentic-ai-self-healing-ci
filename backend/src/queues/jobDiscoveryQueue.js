@@ -8,7 +8,7 @@ import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
 console.log('🔍 [JobDiscoveryQueue] Worker started.');
 
 const redisConfig = {
-  host: '127.0.0.1',
+  host: process.env.REDIS_HOST || '127.0.0.1',
   port: 6379,
   redis: {
     connectTimeout: 30000,
