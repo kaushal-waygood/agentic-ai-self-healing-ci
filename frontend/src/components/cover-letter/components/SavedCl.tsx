@@ -8,7 +8,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Eye, List, FileText, Sparkles, Calendar } from 'lucide-react';
+import {
+  Eye,
+  List,
+  FileText,
+  Sparkles,
+  Calendar,
+  ArrowRight,
+} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 // Define the shape of the props for type safety
@@ -64,7 +71,7 @@ const SavedCoverLetters = ({
       }`}
     >
       <Card className="overflow-hidden border-0 shadow-2xl bg-white relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-blue-50 to-indigo-50 opacity-60" />
+        {/* <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-blue-50 to-indigo-50 opacity-60" /> */}
 
         <CardHeader className="relative bg-gradient-to-r from-violet-600 via-blue-600 to-indigo-600 text-white p-3 ">
           <div className="flex items-center justify-between">
@@ -99,9 +106,9 @@ const SavedCoverLetters = ({
             <div className="space-y-4">
               {savedLettersList.map((savedLetter, i) => (
                 <div
-                  key={savedLetter._id} // Using the unique _id for the key is better practice
-                  className="group relative overflow-hidden rounded-2xl border transition-all duration-300 ease-out cursor-pointer"
-                  onMouseEnter={() => setHoveredIndex(i)}
+                  key={i} // Using the unique _id for the key is better practice
+                  className="group relative overflow-hidden rounded-2xl  transition-all duration-300 ease-out "
+                  // onMouseEnter={() => setHoveredIndex(i)}
                   onMouseLeave={() => setHoveredIndex(null)}
                   style={{
                     transform: `translateY(${
@@ -120,7 +127,7 @@ const SavedCoverLetters = ({
                   <div className="relative p-3 ">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="flex-1 flex items-center gap-4 min-w-0">
-                        <div
+                        {/* <div
                           className={`flex-shrink-0 p-3 rounded-xl transition-all duration-300 ${
                             hoveredIndex === i
                               ? 'bg-gradient-to-br from-violet-500 to-blue-500 text-white shadow-lg'
@@ -128,26 +135,27 @@ const SavedCoverLetters = ({
                           }`}
                         >
                           <FileText className="h-5 w-5" />
-                        </div>
+                        </div> */}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-lg text-gray-900 truncate">
+                          <h3 className="text-md font-semibold text-gray-900 truncate">
                             {savedLetter.coverLetterTitle}
                           </h3>
-                          <p className="flex items-center text-xs text-gray-500 mt-1">
+                          <p className="flex items-center text-sm text-gray-500 mt-1">
                             <Calendar className="mr-1.5 h-3 w-3" />
                             Saved: {formatDate(savedLetter.createdAt)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 self-end sm:self-center">
+
+                      <div className="flex items-center gap-3 self-end sm:self-center ">
                         <Button
-                          variant="outline"
+                          // variant="outline"
                           size="sm"
-                          className="relative overflow-hidden transition-all duration-300 border"
+                          className="relative overflow-hidden transition-all duration-300  bg-white text-gray-500 hover:bg-blue-300"
                           onClick={() => handleLoadLetter(savedLetter, i)}
                           disabled={loadingIndex === i}
                         >
-                          <div className="relative flex items-center gap-2">
+                          <div className="relative flex items-center gap-2  ">
                             {loadingIndex === i ? (
                               <>
                                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -155,8 +163,9 @@ const SavedCoverLetters = ({
                               </>
                             ) : (
                               <>
-                                <Eye className="h-4 w-4" />
-                                <span className="font-medium">View/Load</span>
+                                {/* <Eye className="h-4 w-4" /> */}
+                                {/* <span className="font-medium">View/Load</span> */}
+                                <ArrowRight className="h-4 w-4" />
                               </>
                             )}
                           </div>
