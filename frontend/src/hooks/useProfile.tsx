@@ -162,6 +162,13 @@ export const useProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  const getStudentData = () => {
+    if (!students || students.length === 0) return null;
+    return students[0].studentDetails || students[0];
+  };
+
+  const studentData = getStudentData();
+
   const personalInfoForm = useForm<
     Pick<
       ProfileFormValues,
@@ -233,23 +240,64 @@ export const useProfile = () => {
     mode: 'onChange',
   });
 
+  // useEffect(() => {
+  //   if (students && Object.keys(students).length > 0) {
+  //     personalInfoForm.reset({
+  //       fullName: students.fullName || '',
+  //       email: students.email || '',
+  //       phone: students.phone || '',
+  //       avatar: students.avatar || '',
+  //       jobPreference: students.jobRole || '',
+  //     });
+  //     careerDetailsForm.reset({
+  //       jobPreference: students.jobRole || '',
+  //     });
+  //     narrativesForm.reset({
+  //       narrativeChallenges: mockUserProfile.narratives.challenges,
+  //       narrativeAchievements: mockUserProfile.narratives.achievements,
+  //       narrativeAppreciation: mockUserProfile.narratives.appreciation,
+  //     });
+  //     jobSearchForm.reset({
+  //       preferredCountry: mockUserProfile.preferredCountry || 'US',
+  //       preferredLanguage: mockUserProfile.preferredLanguage || 'en',
+  //       preferredDatePosted: mockUserProfile.preferredDatePosted || 'all',
+  //       prefersWorkFromHome: mockUserProfile.prefersWorkFromHome || false,
+  //       preferredEmploymentTypes:
+  //         mockUserProfile.preferredEmploymentTypes || [],
+  //       preferredJobRequirements:
+  //         mockUserProfile.preferredJobRequirements || [],
+  //       preferredSearchRadius:
+  //         mockUserProfile.preferredSearchRadius === undefined
+  //           ? undefined
+  //           : mockUserProfile.preferredSearchRadius,
+  //       excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
+  //     });
+  //   }
+  // }, [students]);
+
   useEffect(() => {
-    if (students && Object.keys(students).length > 0) {
+    const studentData = getStudentData();
+    if (studentData) {
+      console.log('Setting form data with:', studentData);
+
       personalInfoForm.reset({
-        fullName: students.fullName || '',
-        email: students.email || '',
-        phone: students.phone || '',
-        avatar: students.avatar || '',
-        jobPreference: students.jobRole || '',
+        fullName: studentData.fullName || '',
+        email: studentData.email || '',
+        phone: studentData.phone || '',
+        avatar: studentData.avatar || '',
+        jobPreference: studentData.jobRole || '',
       });
+
       careerDetailsForm.reset({
-        jobPreference: students.jobRole || '',
+        jobPreference: studentData.jobRole || '',
       });
+
       narrativesForm.reset({
         narrativeChallenges: mockUserProfile.narratives.challenges,
         narrativeAchievements: mockUserProfile.narratives.achievements,
         narrativeAppreciation: mockUserProfile.narratives.appreciation,
       });
+
       jobSearchForm.reset({
         preferredCountry: mockUserProfile.preferredCountry || 'US',
         preferredLanguage: mockUserProfile.preferredLanguage || 'en',
@@ -266,14 +314,20 @@ export const useProfile = () => {
         excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
       });
     }
-  }, [students]);
+  }, [
+    students,
+    personalInfoForm,
+    careerDetailsForm,
+    narrativesForm,
+    jobSearchForm,
+  ]);
 
   const defaultValues: ProfileFormValues = {
-    fullName: students.fullName,
-    email: students.email,
-    phone: students.phone,
-    jobPreference: students.jobRole,
-    education: (students.education || []).map((edu) => ({
+    fullName: studentData?.fullName || '',
+    email: studentData?.email || '',
+    phone: studentData?.phone || '',
+    jobPreference: studentData?.jobRole || '',
+    education: (studentData?.education || []).map((edu) => ({
       institution: edu.institute || '',
       degree: edu.degree || '',
       fieldOfStudy: edu.fieldOfStudy || '',
@@ -284,8 +338,8 @@ export const useProfile = () => {
       _id: edu._id || '',
       educationId: edu.educationId || '',
     })),
-    experience: students.experience,
-    projects: (students.projects || []).map((proj) => ({
+    experience: studentData?.experience || [],
+    projects: (studentData?.projects || []).map((proj) => ({
       name: proj.projectName || '',
       description: proj.description || '',
       technologies: proj.technologies || '',
@@ -295,7 +349,7 @@ export const useProfile = () => {
       isCurrent: proj.isCurrent || false,
       _id: proj._id || '',
     })),
-    skills: students.skills || [],
+    skills: studentData?.skills || [],
     // Narratives
     narrativeChallenges: mockUserProfile.narratives.challenges,
     narrativeAchievements: mockUserProfile.narratives.achievements,
@@ -315,22 +369,44 @@ export const useProfile = () => {
   };
 
   const handleDeleteSkills = (index: number) => {
-    dispatch(removeStudentSkillRequest(index));
+    const skillToDelete = studentData?.skills?.[index];
+    if (skillToDelete?._id) {
+      dispatch(removeStudentSkillRequest(skillToDelete._id));
+    } else {
+      console.error('Skill ID not found for deletion');
+    }
     setDeleteSkill(false);
   };
 
   const handleDeleteExp = (index: number) => {
-    dispatch(removeStudentExperienceRequest(index));
+    const experienceToDelete = studentData?.experience?.[index];
+    if (experienceToDelete?._id) {
+      dispatch(removeStudentExperienceRequest(experienceToDelete._id));
+    } else {
+      console.error('Experience ID not found for deletion');
+    }
     setDeleteExp(false);
   };
 
   const handleDeleteProject = (index: number) => {
-    dispatch(removeStudentProjectRequest(index));
+    const projectToDelete = studentData?.projects?.[index];
+    if (projectToDelete?._id) {
+      dispatch(removeStudentProjectRequest(projectToDelete._id));
+    } else {
+      console.error('Project ID not found for deletion');
+    }
     setDeleteProj(false);
   };
 
   const deleteEducation = (index: number) => {
-    dispatch(removeStudentEducationRequest(index));
+    console.log('index', index);
+    const educationToDelete = studentData?.education;
+    console.log('educationToDelete', educationToDelete);
+    if (educationToDelete?.educationId) {
+      dispatch(removeStudentEducationRequest(educationToDelete._id));
+    } else {
+      console.error('Education ID not found for deletion');
+    }
     setDeleteEdu(false);
   };
 
@@ -376,7 +452,18 @@ export const useProfile = () => {
   };
 
   const handleLevelChange = (index: number, level: string) => {
-    dispatch(updateStudentSkillRequest({ index, level }));
+    console.log('index', index);
+    const skillToUpdate = studentData?.skills?.[index];
+    if (skillToUpdate?._id) {
+      dispatch(
+        updateStudentSkillRequest({
+          skillId: skillToUpdate._id,
+          skillData: { level },
+        }),
+      );
+    } else {
+      console.error('Skill ID not found for update');
+    }
   };
 
   const toggleExpand = (index: number) => {
@@ -408,31 +495,34 @@ export const useProfile = () => {
   const handlePersonalInfoEdit = async (
     fieldName: 'fullName' | 'email' | 'phone' | 'jobPreference',
   ) => {
-    // console.log(fieldName, personalInfoForm.getValues(fieldName));
-
     try {
       if (fieldName === 'fullName') {
         const fullName = personalInfoForm.getValues('fullName');
         await apiInstance.patch('/students/fullname/update', { fullName });
         setIsNameEditable(false);
+        // Refetch student details to update the state
+        dispatch(getStudentDetailsRequest());
         toast({ title: 'Full Name Updated' });
       } else if (fieldName === 'email') {
         const email = personalInfoForm.getValues('email');
-        await apiInstance.patch('/students/fullname/update', { email });
+        await apiInstance.patch('/students/email/update', { email }); // Fixed endpoint
         setIsEmailEditable(false);
+        dispatch(getStudentDetailsRequest());
         toast({ title: 'Email Updated' });
       } else if (fieldName === 'phone') {
         const phone = personalInfoForm.getValues('phone');
-=        await apiInstance.patch('/students/fullname/update', { phone });
+        await apiInstance.patch('/students/phone/update', { phone }); // Fixed endpoint
         setIsPhoneEditable(false);
+        dispatch(getStudentDetailsRequest());
         toast({ title: 'Phone Number Updated' });
       } else if (fieldName === 'jobPreference') {
         const jobPreference = personalInfoForm.getValues('jobPreference');
-=
         await apiInstance.post('/students/job-role/update', {
           jobRole: jobPreference,
         });
         setIsJobPrefEditable(false);
+        // Update job preference in Redux state
+        dispatch(updateStudentJobPreferenceRequest({ jobRole: jobPreference }));
         toast({ title: 'Job Preference Updated' });
       }
     } catch (err) {
@@ -447,15 +537,32 @@ export const useProfile = () => {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!file) return;
     setIsUploading(true);
     const formData = new FormData();
     formData.append('cv', file);
+
     try {
-      dispatch(getStudentResumeRequest(formData as any));
+      await apiInstance.post('/students/upload-resume', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      dispatch(getStudentDetailsRequest());
+      toast({
+        title: 'Resume Uploaded Successfully',
+        description: 'Your resume has been updated.',
+      });
+      handleRemoveFile(); // Clear the file state
     } catch (error) {
       console.error('Error uploading file:', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Failed to upload resume. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsUploading(false);
     }

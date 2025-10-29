@@ -43,6 +43,17 @@ const Page = () => {
     setDescription('');
   };
 
+  const handleTest = async () => {
+    try {
+      const response = await apiInstance.post(
+        '/notifications/test-notification',
+      );
+      console.log(response.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const navigationButtons = [
     {
       label: 'Submit Another Request',
@@ -146,6 +157,8 @@ const Page = () => {
           </button>
         </form>
       )}
+
+      <button onClick={handleTest}>Test</button>
     </div>
   );
 };

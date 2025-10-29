@@ -30,6 +30,8 @@ import { logoutRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
 import { debounce } from 'lodash';
 import PlanDropdown from './PlanDropdown';
+import { useNotifications } from '@/hooks/notifications/useNoifications';
+import { NotificationBell } from '../notifications/NotificationBell';
 
 // --- Helper Functions & Components (defined outside the main component) ---
 
@@ -196,8 +198,24 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 
 // Main AppHeader Component
 const AppHeader = ({ setIsSearchOpen }) => {
-  // --- SECTION 1: HOOKS ---
-  // All hooks are called here at the top level, in the same order on every render.
+  const {
+    notifications,
+    unreadCount,
+    isLoading: isLoadingNotifications,
+    markAsRead,
+    markAllAsRead,
+    fetchNotifications,
+    fetchUnreadCount,
+    socket,
+  } = useNotifications();
+
+  console.log('Notifications state:', {
+    notifications,
+    // unreadCount,
+    isLoadingNotifications,
+  });
+
+  console.log('notifications', notifications);
   const [mounted, setMounted] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -321,9 +339,9 @@ const AppHeader = ({ setIsSearchOpen }) => {
     }
   };
 
-  const unreadCount = (user?.actionItems || []).filter(
-    (item) => !item.isRead,
-  ).length;
+  // const unreadCount = (user?.actionItems || []).filter(
+  //   (item) => !item.isRead,
+  // ).length;
 
   const getNotificationColor = (type) => {
     switch (type) {
@@ -391,7 +409,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
 
             <div className="relative">
               {/* Notification Bell icon */}
-              {/* <button
+              <button
                 onClick={() => handleMenuToggle('notification')}
                 className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
               >
@@ -401,52 +419,23 @@ const AppHeader = ({ setIsSearchOpen }) => {
                     {unreadCount}
                   </div>
                 )}
-              </button> */}
+              </button>
               {isNotificationOpen && (
-                <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                  <div className="p-4 border-b border-slate-100">
+                <div className="absolute right-0 mt-2 w-96  bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                  <div className="p-4 border-b border-slate-100 flex justify-between items-center">
                     <h3 className="font-semibold text-slate-900">
                       Notifications
                     </h3>
+                    {/* <button
+                      onClick={handleRefreshNotifications}
+                      disabled={isLoading}
+                      className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      {isLoading ? 'Refreshing...' : 'Refresh'}
+                    </button> */}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    {(user?.actionItems || []).length > 0 ? (
-                      user.actionItems.map((item, index) => (
-                        <div
-                          key={item.id}
-                          className={`p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100 cursor-pointer ${
-                            !item.isRead
-                              ? 'bg-gradient-to-r from-blue-50/50 to-purple-50/50'
-                              : ''
-                          }`}
-                          style={{
-                            animationDelay: `${index * 100}ms`,
-                            animation: 'slideIn 0.4s ease-out forwards',
-                          }}
-                        >
-                          <div className="flex items-start space-x-3">
-                            <div
-                              className={`w-2 h-2 rounded-full mt-2 bg-gradient-to-r ${getNotificationColor(
-                                item.type,
-                              )} ${!item.isRead ? 'animate-pulse' : ''}`}
-                            ></div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 mb-1">
-                                {item.summary}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {new Date(item.date).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-8 text-center">
-                        <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500">No notifications yet</p>
-                      </div>
-                    )}
+                    <NotificationBell />
                   </div>
                   <div className="p-4 border-t border-slate-100">
                     <button className="w-full text-center text-sm text-purple-600 hover:text-purple-700 font-medium">

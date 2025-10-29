@@ -415,6 +415,15 @@ export function CvGeneratorClient() {
     }
   };
 
+  const getAllCvs = async () => {
+    try {
+      const response = await apiInstance.get('/students/cvs');
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error fetching saved CVs:', error);
+    }
+  };
+
   const loadSavedCv = async (savedCv) => {
     try {
       const response = await apiInstance.get(
@@ -522,6 +531,8 @@ export function CvGeneratorClient() {
           {renderStep()}
         </motion.div>
       </AnimatePresence>
+
+      <button onClick={getAllCvs}>Get All CV's</button>
 
       <SavedCvs resume={resume} loadSavedCv={loadSavedCv} />
 

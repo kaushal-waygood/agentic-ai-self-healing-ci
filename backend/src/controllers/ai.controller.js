@@ -15,7 +15,7 @@ import {
   processEmailResponse,
 } from '../utils/generateTailored.js';
 import { extractDataFromCV } from '../utils/extractedCv.js';
-import { generateCVCore } from '../utils/generateCVCore.js';
+import { initiateCVGeneration } from '../utils/generateCVCore.js';
 import { generateCoverLetterCore } from '../utils/generateCoverLetterCore.js';
 import { genAIWithRetry } from '../utils/genAIWithRetry.js';
 import { calculateJobMatch } from '../utils/calculateJobMatch.js';
@@ -121,13 +121,37 @@ export const convertDataIntoHTML = async (req, res) => {
   }
 };
 
+export const getAllCVs = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    // 1. Remove .sort() from the query. It's not effective on findById.
+    const user = await Student.findById(_id).select('cvs');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // 2. Safely handle the case where user.cvs might be undefined.
+    //    If it is, default to an empty array before sorting.
+    const cvsToSort = user.cvs || [];
+
+    // 3. Sort the resulting array. This works even if the array is empty.
+    const sortedCVs = cvsToSort.sort((a, b) => b.createdAt - a.createdAt);
+
+    res.status(200).json({ cvs: sortedCVs });
+  } catch (error) {
+    console.error('Error fetching CVs:', error);
+    res.status(500).json({ error: 'Failed to retrieve CVs' });
+  }
+};
+
 // CV
 export const generateCVByTitle = async (req, res) => {
   const { title } = req.body;
   if (!title) {
     return res.status(400).json({ error: 'Job title is required' });
   }
-  await generateCVCore(req, res, title);
+  await initiateCVGeneration(req, res, title);
 };
 
 export const generateCVByJD = async (req, res) => {
@@ -135,7 +159,7 @@ export const generateCVByJD = async (req, res) => {
   if (!jobDescription) {
     return res.status(400).json({ error: 'Job description is required' });
   }
-  await generateCVCore(req, res, jobDescription);
+  await initiateCVGeneration(req, res, jobDescription);
 };
 
 export const generateCVByJobId = async (req, res) => {
@@ -149,7 +173,7 @@ export const generateCVByJobId = async (req, res) => {
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
   }
-  await generateCVCore(req, res, job.description);
+  await initiateCVGeneration(req, res, job.description);
 };
 
 export const regenerateCV = async (req, res) => {

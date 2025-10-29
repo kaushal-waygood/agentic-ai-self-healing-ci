@@ -88,13 +88,11 @@ import {
   getAllSavedJobs,
 } from '@/services/api/student';
 import { PayloadAction } from '@reduxjs/toolkit';
-import { act } from 'react';
-
 function* getStudentDetailsSaga() {
   try {
     const response: AxiosResponse = yield call(getStudentDetails);
-    yield put(getStudentDetailsSuccess(response.data.studentDetails));
-  } catch (error: unknown | Error) {
+    yield put(getStudentDetailsSuccess(response.data));
+  } catch (error: unknown) {
     yield put(getStudentDetailsFailure((error as Error).message));
   }
 }
@@ -104,16 +102,16 @@ function* addStudentEducationSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(addEducation, action.payload);
     yield put(addStudentEducationSuccess(response.data));
-  } catch (error: unknown | Error) {
+  } catch (error: unknown) {
     yield put(addStudentEducationFailure((error as Error).message));
   }
 }
 
 function* removeStudentEducationSaga(action: PayloadAction<any>) {
   try {
-    const response: AxiosResponse = yield call(removeEducation, action.payload);
-    yield put(removeStudentEducationSuccess(response.data));
-  } catch (error: unknown | Error) {
+    yield call(removeEducation, action.payload);
+    yield put(removeStudentEducationSuccess(action.payload)); // Pass the ID directly
+  } catch (error: unknown) {
     yield put(removeStudentEducationFailure((error as Error).message));
   }
 }
@@ -126,7 +124,7 @@ function* updateStudentEducationSaga(action: PayloadAction<any>) {
       action.payload.eduData,
     );
     yield put(updateStudentEducationSuccess(response.data));
-  } catch (error: unknown | Error) {
+  } catch (error: unknown) {
     yield put(updateStudentEducationFailure((error as Error).message));
   }
 }
@@ -135,20 +133,17 @@ function* updateStudentEducationSaga(action: PayloadAction<any>) {
 function* addStudentExperienceSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(addExperience, action.payload);
-    yield put(addStudentExperienceSuccess(response.data.studentDetails));
-  } catch (error: unknown | Error) {
+    yield put(addStudentExperienceSuccess(response.data));
+  } catch (error: unknown) {
     yield put(addStudentExperienceFailure((error as Error).message));
   }
 }
 
 function* removeStudentExperienceSaga(action: PayloadAction<any>) {
   try {
-    const response: AxiosResponse = yield call(
-      removeExperience,
-      action.payload,
-    );
-    yield put(removeStudentExperienceSuccess(response.data));
-  } catch (error: unknown | Error) {
+    yield call(removeExperience, action.payload);
+    yield put(removeStudentExperienceSuccess(action.payload));
+  } catch (error: unknown) {
     yield put(removeStudentExperienceFailure((error as Error).message));
   }
 }
@@ -157,10 +152,11 @@ function* updateStudentExperienceSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(
       updateExperience,
-      action.payload.data,
+      action.payload.experienceId,
+      action.payload.expData,
     );
-    yield put(updateStudentExperienceRequest(response.data));
-  } catch (error: unknown | Error) {
+    yield put(updateStudentExperienceSuccess(response.data));
+  } catch (error: unknown) {
     yield put(updateStudentExperienceFailure((error as Error).message));
   }
 }
@@ -170,25 +166,29 @@ function* addStudentSkillsSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(addSkill, action.payload);
     yield put(addStudentSkillSuccess(response.data));
-  } catch (error: unknown | Error) {
+  } catch (error: unknown) {
     yield put(addStudentSkillFailure((error as Error).message));
   }
 }
 
 function* removeStudentSkillsSaga(action: PayloadAction<any>) {
   try {
-    const response: AxiosResponse = yield call(removeSkill, action.payload);
-    yield put(removeStudentSkillSuccess(response.data));
-  } catch (error: unknown | Error) {
+    yield call(removeSkill, action.payload);
+    yield put(removeStudentSkillSuccess(action.payload));
+  } catch (error: unknown) {
     yield put(removeStudentSkillFailure((error as Error).message));
   }
 }
 
 function* updateStudentSkillsSaga(action: PayloadAction<any>) {
   try {
-    const response: AxiosResponse = yield call(updateSkill, action.payload);
+    const response: AxiosResponse = yield call(
+      updateSkill,
+      action.payload.skillId,
+      action.payload.skillData,
+    );
     yield put(updateStudentSkillSuccess(response.data));
-  } catch (error: unknown | Error) {
+  } catch (error: unknown) {
     yield put(updateStudentSkillFailure((error as Error).message));
   }
 }
@@ -197,8 +197,8 @@ function* updateStudentSkillsSaga(action: PayloadAction<any>) {
 function* addStudentProjectsSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(addProject, action.payload);
-    yield put(addStudentProjectSuccess(response.data.studentDetails));
-  } catch (error: unknown | Error) {
+    yield put(addStudentProjectSuccess(response.data));
+  } catch (error: unknown) {
     yield put(addStudentProjectFailure((error as Error).message));
   }
 }
@@ -207,20 +207,20 @@ function* updateStudentProjectsSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(
       updateProject,
-      action.payload.data,
-      action.payload.index,
+      action.payload.projectId,
+      action.payload.projectData,
     );
     yield put(updateStudentProjectSuccess(response.data));
-  } catch (error: unknown | Error) {
+  } catch (error: unknown) {
     yield put(updateStudentProjectFailure((error as Error).message));
   }
 }
 
 function* removeStudentProjectsSaga(action: PayloadAction<any>) {
   try {
-    const response: AxiosResponse = yield call(removeProject, action.payload);
-    yield put(removeStudentProjectSuccess(response.data));
-  } catch (error: unknown | Error) {
+    yield call(removeProject, action.payload);
+    yield put(removeStudentProjectSuccess(action.payload));
+  } catch (error: unknown) {
     yield put(removeStudentProjectFailure((error as Error).message));
   }
 }
@@ -233,7 +233,7 @@ function* updateStudentJobPreferenceSaga(action: PayloadAction<any>) {
       action.payload,
     );
     yield put(updateStudentJobPreferenceSuccess(response.data));
-  } catch (error: unknown | Error) {
+  } catch (error: unknown) {
     yield put(updateStudentJobPreferenceFailure((error as Error).message));
   }
 }
@@ -241,40 +241,26 @@ function* updateStudentJobPreferenceSaga(action: PayloadAction<any>) {
 function* getStudentJobPreferenceSaga() {
   try {
     const response: AxiosResponse = yield call(recommendProfileJob);
-    yield put(getStudentJobPreferenceSuccess(response.data.preferences));
-  } catch (error: unknown | Error) {
+    yield put(getStudentJobPreferenceSuccess(response.data));
+  } catch (error: unknown) {
     yield put(getStudentJobPreferenceFailure((error as Error).message));
   }
 }
 
-// function* getStudentResumeDetailsSaga(action: PayloadAction<any>) {
-//   try {
-//     const response: AxiosResponse = yield call(
-//       updateJobPrefered(action.payload),
-//     );
-//     yield put(getStudentResumeSuccess(response.data));
-//   } catch (error: unknown | Error) {
-//     yield put(getStudentResumeFailure((error as Error).message));
-//   }
-// }
-
 function* getStudentSavedJobsSaga() {
   try {
     const response: AxiosResponse = yield call(getAllSavedJobs);
-
-    yield put(getAllSavedJobsSuccess(response.data.savedJobs));
-  } catch (error: unknown | Error) {
+    yield put(getAllSavedJobsSuccess(response.data.savedJobs || response.data));
+  } catch (error: unknown) {
     yield put(getAllSavedJobsFailure((error as Error).message));
   }
 }
 
 function* updateJobPreferedByStudentSaga(action: PayloadAction<any>) {
   try {
-    const response: AxiosResponse = yield call(
-      updateJobPrefered,
-      action.payload,
-    );
-  } catch (error) {
+    yield call(updateJobPrefered, action.payload);
+    yield put(updateJobPreferedByStudentSuccess());
+  } catch (error: unknown) {
     yield put(updateJobPreferedByStudentFailure((error as Error).message));
   }
 }
@@ -323,12 +309,9 @@ export function* studentWatcher() {
     getStudentJobPreferenceSaga,
   );
 
-  // yield takeLatest(getStudentResumeRequest.type, getStudentResumeDetailsSaga);
-
   yield takeLatest(
     updateJobPreferedByStudentRequest.type,
     updateJobPreferedByStudentSaga,
   );
-
   yield takeLatest(getAllSavedJobsRequest.type, getStudentSavedJobsSaga);
 }

@@ -265,6 +265,23 @@ const studentSchema = new Schema(
       },
     ],
 
+    cvs: [
+      {
+        jobId: { type: Schema.Types.ObjectId, required: true }, // ✅ Add this
+        status: {
+          type: String,
+          enum: ['pending', 'completed', 'failed'],
+          default: 'pending',
+        },
+        jobContextString: { type: String },
+        finalTouch: { type: String },
+        cvData: { type: Object },
+        error: { type: String },
+        createdAt: { type: Date, default: Date.now },
+        completedAt: { type: Date },
+      },
+    ],
+
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {
       autopilotEnabled: { type: Boolean, default: false },

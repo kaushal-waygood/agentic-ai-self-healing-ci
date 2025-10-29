@@ -22,6 +22,7 @@ import {
   saveTailoredApplication,
   getSavedApplications,
   regenerateCL,
+  getAllCVs,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 
@@ -36,6 +37,8 @@ router.post(
 );
 
 router.get('/resume/convert', authMiddleware, isStudent, convertDataIntoHTML);
+
+router.get('/cvs', authMiddleware, isStudent, getAllCVs);
 
 router.post(
   '/resume/generate/jd',
