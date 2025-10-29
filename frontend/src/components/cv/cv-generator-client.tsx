@@ -339,7 +339,7 @@ export function CvGeneratorClient() {
         id: `auto-${Date.now()}`,
         name: `Draft for '${jobContext.title}...'`,
         htmlContent: response.cv,
-        atsScore: response.atsScore ?? 0,
+        atsScore: response.ats ?? 0,
         atsScoreReasoning: response.atsSuggestion ?? 'N/A',
         createdAt: new Date().toISOString(),
         jobTitle: jobContext.title,
@@ -395,10 +395,12 @@ export function CvGeneratorClient() {
       });
       return;
     }
+    console.log('Saving CV:', activeCvToSave);
     try {
       await apiInstance.post('students/resume/save/html', {
         title: cvNameForSavingInput,
         html: activeCvToSave.cv,
+        ats: activeCvToSave.atsScore,
       });
       toast({ title: 'CV Saved Successfully!' });
       dispatch(savedStudentResumeRequest()); // Refresh saved CVs list
@@ -435,7 +437,7 @@ export function CvGeneratorClient() {
       setCurrentCvContent(loadedData.html);
       setGeneratedCvOutput({
         cv: loadedData.html,
-        atsScore: loadedData.atsScore ?? 0,
+        atsScore: loadedData.ats ?? 0,
         atsSuggestion:
           loadedData.atsSuggestion ??
           'ATS score not available for this saved version.',

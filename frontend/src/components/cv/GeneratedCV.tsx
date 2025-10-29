@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // Mock data for initial rendering
 const mockData = {
-  atsScore: 92,
+  ats: 92,
   cv: `<h2>John Doe</h2>
        <p><strong>Senior Software Engineer</strong></p>
        <p>Email: john@example.com | Phone: +1234567890</p>
@@ -65,12 +65,19 @@ const EditableMaterial = ({
     }
   };
 
-  const handleContentChange = (e) => {
-    setContent(e.currentTarget.innerHTML);
+  // const handleContentChange = (e) => {
+  //   setContent(e.currentTarget.innerHTML);
+  // };
+
+  const handleContentChange = (e: any) => {
+    // Don’t update state on every keystroke — only store locally
+    if (editorRef.current) {
+      editorRef.current._latest = e.currentTarget.innerHTML;
+    }
   };
 
   return (
-    <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-md">
+    <div className=" rounded-lg p-4 sm:p-6 border border-gray-200 shadow-md">
       {isEditing ? (
         isClient ? (
           // ✨ FIX: Changed <p> to <div> for better structure,
@@ -185,6 +192,8 @@ const GeneratedCV = ({
     return 'from-red-500 to-pink-500';
   };
 
+  console.log('Generated CV Output:', generatedCvOutput);
+
   const handleEditToggle = () => {
     if (isEditing) {
       setEditableContent(generatedCvOutput.cv);
@@ -253,19 +262,22 @@ const GeneratedCV = ({
   return (
     <div className="min-h-screen p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-3 md:mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-2 shadow-lg">
-          <div className="flex items-center gap-4 p-2">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+        <div className="mb-3 md:mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl shadow-lg">
+          <div className="flex items-center gap-2 ">
+            <div className="w-12 h-12  rounded-xl flex items-center justify-center flex-shrink-0">
               <CheckCircle className="h-7 w-7 text-white" />
             </div>
+
             <div className="flex-1">
-              <h2 className="text-xl font-bold">CV Generated Successfully!</h2>
+              <h2 className="text-xl text-white bg-transparent font-bold">
+                CV Generated Successfully!
+              </h2>
             </div>
-            <div className="text-center bg-white/10 p-2 rounded-lg">
+            <div className="text-center  p-2 rounded-lg">
               <div className={`text-4xl font-bold bg-clip-text`}>
                 {generatedCvOutput.atsScore}
               </div>
-              <div className="text-xs text-white/80">ATS Score</div>
+              <div className="text-xs ">ATS Score</div>
             </div>
           </div>
         </div>
@@ -276,7 +288,7 @@ const GeneratedCV = ({
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <FileText className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold">
+                <h3 className="text-lg text-white md:text-xl font-bold">
                   Your AI Generated CV
                 </h3>
               </div>

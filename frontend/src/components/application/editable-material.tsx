@@ -48,15 +48,46 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
   // Effect to sync the editor's content when the `content` prop changes from the parent,
   // but ONLY when not in editing mode to prevent overwriting the user's input.
+  // useEffect(() => {
+  //   if (
+  //     editorRef.current &&
+  //     !isEditing &&
+  //     editorRef.current.innerHTML !== content
+  //   ) {
+  //     editorRef.current.innerHTML = content;
+  //   }
+  // }, [content, isEditing]);
+
+  // --- add this helper somewhere near your other functions ---
+  const placeCaretAtEnd = (el: HTMLElement) => {
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false); // move caret to end
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  };
+
   useEffect(() => {
-    if (
-      editorRef.current &&
-      !isEditing &&
-      editorRef.current.innerHTML !== content
-    ) {
+    if (!editorRef.current) return;
+
+    // When entering edit mode, ensure the editor DOM has the latest content
+    if (isEditing) {
+      // If editor is empty or different, populate it from prop
+      if (editorRef.current.innerHTML !== content) {
+        editorRef.current.innerHTML = content;
+      }
+      // place caret at end so user can start typing immediately
+      placeCaretAtEnd(editorRef.current);
+      return;
+    }
+
+    // When NOT editing: keep DOM in sync with `content` prop (but don't overwrite while editing)
+    if (!isEditing && editorRef.current.innerHTML !== content) {
       editorRef.current.innerHTML = content;
     }
-  }, [content, isEditing]);
+  }, [isEditing, content]);
 
   // Effect to calculate word count when content changes
   useEffect(() => {
@@ -108,22 +139,47 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   };
 
+  // const handleEditToggle = () => {
+  //   if (isEditing) {
+  //     // --- Save Logic ---
+  //     if (editorRef.current) {
+  //       const newContent = editorRef.current.innerHTML;
+  //       setContent(newContent); // Update parent state
+  //       setLastSaved(new Date());
+  //       setHasUnsavedChanges(false);
+  //       toast({
+  //         title: `${title} updated successfully!`,
+  //         description: 'Your changes have been saved.',
+  //       });
+  //     }
+  //   }
+  //   // Toggle editing state
+  //   setIsEditing(!isEditing);
+  // };
+
   const handleEditToggle = () => {
     if (isEditing) {
       // --- Save Logic ---
       if (editorRef.current) {
         const newContent = editorRef.current.innerHTML;
-        setContent(newContent); // Update parent state
+
+        // Immediately update parent & local states before exiting edit mode
+        setContent(newContent);
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
+
         toast({
           title: `${title} updated successfully!`,
           description: 'Your changes have been saved.',
         });
       }
+
+      // Delay exiting edit mode slightly to ensure parent state updates first
+      setTimeout(() => setIsEditing(false), 0);
+    } else {
+      // Enter edit mode
+      setIsEditing(true);
     }
-    // Toggle editing state
-    setIsEditing(!isEditing);
   };
 
   const handleCopy = async () => {
@@ -373,7 +429,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
       {/* --- Editor Content Area --- */}
       <main className="flex-grow p-6 overflow-y-auto">
-        <div
+        {/* <div
           ref={editorRef}
           contentEditable={isEditing}
           onInput={handleInput}
@@ -384,6 +440,20 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
               : ''
           }`}
           dangerouslySetInnerHTML={{ __html: content }}
+        /> */}
+
+        <div
+          ref={editorRef}
+          contentEditable={isEditing}
+          onInput={handleInput}
+          suppressContentEditableWarning={true}
+          className={`prose max-w-none focus:outline-none transition-all ${
+            isEditing
+              ? 'bg-gray-50/50 p-4 rounded-md ring-2 ring-indigo-300'
+              : ''
+          }`}
+          // Only set innerHTML when not editing to prevent resets
+          dangerouslySetInnerHTML={!isEditing ? { __html: content } : undefined}
         />
       </main>
 

@@ -6,7 +6,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Eye, List, FileText, Sparkles } from 'lucide-react';
+import {
+  Eye,
+  List,
+  FileText,
+  Sparkles,
+  Calendar,
+  ArrowRight,
+} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 const SavedCvs = ({ resume, loadSavedCv }: any) => {
@@ -50,8 +57,8 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
     >
       <Card className="overflow-hidden border-0 shadow-2xl bg-white relative">
         {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-blue-50 to-indigo-50 opacity-60" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-violet-100/20 via-transparent to-blue-100/20" />
+        {/* <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-blue-50 to-indigo-50 opacity-60" /> */}
+        {/* <div className="absolute inset-0 bg-gradient-to-tr from-violet-100/20 via-transparent to-blue-100/20" /> */}
 
         <CardHeader className="relative bg-gradient-to-r from-violet-600 via-blue-600 to-indigo-600 text-white p-3">
           <div className="flex items-center justify-between">
@@ -100,12 +107,12 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
               {resume.html.map((savedCv: any, i: number) => (
                 <div
                   key={i}
-                  className={`group relative overflow-hidden rounded-2xl  border transition-all duration-500 ease-out cursor-pointer ${
+                  className={`group relative overflow-hidden rounded-2xl   transition-all duration-500 ease-out cursor-pointer ${
                     hoveredIndex === i
                       ? 'border-violet-300 shadow-xl shadow-violet-200/50 scale-[1.01]'
                       : 'border-gray-200 hover:border-violet-200 shadow-sm'
                   }`}
-                  onMouseEnter={() => setHoveredIndex(i)}
+                  // onMouseEnter={() => setHoveredIndex(i)}
                   onMouseLeave={() => setHoveredIndex(null)}
                   style={{
                     transform: `translateY(${
@@ -132,7 +139,7 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                       <div className="flex-1 space-y-3">
                         <div className="flex items-start gap-4">
-                          <div
+                          {/* <div
                             className={`p-3 rounded-xl transition-all duration-300 ${
                               hoveredIndex === i
                                 ? 'bg-gradient-to-br from-violet-500 to-blue-500 text-white shadow-lg'
@@ -140,11 +147,11 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                             }`}
                           >
                             <FileText className="h-5 w-5" />
-                          </div>
+                          </div> */}
 
                           <div className="min-w-0 flex-1">
                             <h5
-                              className={` text-lg leading-tight transition-all duration-300 ${
+                              className={` text-md font-semibold leading-tight transition-all duration-300 ${
                                 hoveredIndex === i
                                   ? 'text-violet-700'
                                   : 'text-gray-900'
@@ -152,15 +159,19 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                             >
                               {savedCv.htmlCVTitle}
                             </h5>
+                            <p className="flex  items-center text-sm text-gray-500 mt-1">
+                              <Calendar className="mr-1.5 h-3 w-3" />
+                              Saved: {formatDate(savedCv.createdAt)}
+                            </p>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-3 self-end sm:self-center">
                         <Button
-                          variant="outline"
+                          // variant="outline"
                           size="sm"
-                          className={`relative overflow-hidden transition-all duration-300 border-2 ${
+                          className={`relative overflow-hidden transition-all duration-300  ${
                             loadingIndex === i
                               ? 'bg-gradient-to-r from-violet-600 to-blue-600 text-white border-transparent shadow-lg scale-105'
                               : hoveredIndex === i
@@ -187,8 +198,9 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                               </>
                             ) : (
                               <>
-                                <Eye className="h-4 w-4" />
-                                <span className="font-medium">View/Load</span>
+                                {/* <Eye className="h-4 w-4" /> */}
+                                {/* <span className="font-medium">View/Load</span> */}
+                                <ArrowRight className="h-4 w-4" />
                               </>
                             )}
                           </div>
@@ -198,7 +210,7 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                   </div>
 
                   {/* Animated bottom border */}
-                  <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-violet-500 via-blue-500 to-indigo-500 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  {/* <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-violet-500 via-blue-500 to-indigo-500 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" /> */}
                 </div>
               ))}
             </div>

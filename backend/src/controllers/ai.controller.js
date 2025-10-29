@@ -301,7 +301,9 @@ export const generateCoverLetterByJobId = async (req, res) => {
 
 export const saveStudentHTMLCV = async (req, res) => {
   const { _id } = req.user;
-  const { html, title } = req.body;
+  const { html, title, ats } = req.body;
+
+  console.log('Received ATS value:', ats);
 
   try {
     // Validate input
@@ -321,6 +323,7 @@ export const saveStudentHTMLCV = async (req, res) => {
             html: html,
             htmlCVTitle: title,
             updatedAt: new Date(),
+            ats: ats,
           },
         },
       },

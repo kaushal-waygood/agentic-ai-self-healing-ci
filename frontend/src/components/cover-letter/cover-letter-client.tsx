@@ -83,6 +83,7 @@ import CustomizeWizard from './customizeWizard';
 import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
 import SavedCoverLetters from './components/SavedCl';
 import GeneratedCoverLetter from './components/GeneratedCoverLetter';
+import g from '@genkit-ai/googleai';
 
 // Wizard related types
 type WizardStep =
@@ -506,22 +507,58 @@ export function CoverLetterGeneratorClient() {
     setIsNamingDialogDisplayed(true);
   };
 
+  // const confirmSaveNamedLetter = async () => {
+  //   console.log('caliing');
+  //   if (!letterNameForSavingInput.trim() || !activeLetterToSave) return;
+  //   const formValues = customizationForm.getValues();
+  //   console.log('Customization Values on Save:', formValues);
+
+  //   console.log('Saving Letter:', letterNameForSavingInput);
+
+  //   const response = await apiInstance.post('/students/letter/save/html', {
+  //     title: letterNameForSavingInput,
+  //     html: generatedCvOutput,
+  //   });
+
+  //   const newSavedLetter = response.data;
+  //   const updatedList = [newSavedLetter, ...savedLettersList];
+  //   mockUserProfile.savedCoverLetters = updatedList;
+  //   setSavedLettersList(updatedList);
+  //   toast({ title: 'Cover Letter Saved!' });
+  //   setIsNamingDialogDisplayed(false);
+  //   setLetterNameForSavingInput('');
+  //   setActiveLetterToSave(null);
+  // };
+
   const confirmSaveNamedLetter = async () => {
     if (!letterNameForSavingInput.trim() || !activeLetterToSave) return;
-    const formValues = customizationForm.getValues();
-    const response = await apiInstance.post('/students/letter/save/html', {
-      title: letterNameForSavingInput,
-      html: generatedCvOutput,
-    });
 
-    const newSavedLetter = response.data;
-    const updatedList = [newSavedLetter, ...savedLettersList];
-    mockUserProfile.savedCoverLetters = updatedList;
-    setSavedLettersList(updatedList);
-    toast({ title: 'Cover Letter Saved!' });
-    setIsNamingDialogDisplayed(false);
-    setLetterNameForSavingInput('');
-    setActiveLetterToSave(null);
+    try {
+      const formValues = customizationForm.getValues();
+
+      // Save to backend
+      await apiInstance.post('/students/letter/save/html', {
+        title: letterNameForSavingInput,
+        html: generatedCvOutput,
+      });
+
+      // ✅ Immediately fetch latest saved letters
+      const updatedResponse = await apiInstance.get('/students/letter/saved');
+      setSavedLettersList(updatedResponse.data.html);
+
+      toast({ title: 'Cover Letter Saved!' });
+    } catch (error) {
+      console.error('Error saving letter:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save your cover letter. Try again.',
+      });
+    } finally {
+      setIsNamingDialogDisplayed(false);
+      setLetterNameForSavingInput('');
+      setActiveLetterToSave(null);
+    }
   };
 
   const loadSavedLetter = (savedLetter: SavedCoverLetter) => {
