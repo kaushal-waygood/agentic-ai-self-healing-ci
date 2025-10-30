@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Save,
-  CheckCircle,
   Award,
   FileText,
   Sparkles,
@@ -14,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import EditableMaterial from '../application/editable-material';
 
 // Mock data for initial rendering
 const mockData = {
@@ -31,150 +31,10 @@ const mockData = {
        </ul>`,
 };
 
-const EditableMaterial = ({
-  content,
-  setContent,
-  isEditing,
-  handleEditToggle,
-  handleDownload,
-  isDownloadingPdf,
-  isDownloadingDocx,
-}: any) => {
-  const [isClient, setIsClient] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const handleCopy = async () => {
-    if (!editorRef.current) return;
-    const textToCopy = editorRef.current.innerText;
-    if (!textToCopy) return;
-
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      toast({
-        title: 'Copied to Clipboard!',
-        description: `content has been copied as plain text.`,
-      });
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-      toast({ variant: 'destructive', title: 'Copy Failed' });
-    }
-  };
-
-  const handleContentChange = (e: any) => {
-    if (editorRef.current) {
-      editorRef.current._latest = e.currentTarget.innerHTML;
-    }
-  };
-
-  // ✅ Sync final content when user stops editing
-  const handleBlur = () => {
-    if (editorRef.current?._latest) {
-      setContent(editorRef.current._latest);
-    }
-  };
-
-  return (
-    <div className=" rounded-lg p-4 sm:p-6 border border-gray-200 shadow-md">
-      {isEditing ? (
-        isClient ? (
-          <div
-            ref={editorRef}
-            className="prose prose-sm md:prose max-w-none min-h-[200px] border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            contentEditable={true}
-            onBlur={handleBlur}
-            onInput={handleContentChange}
-            dangerouslySetInnerHTML={{ __html: content }}
-            suppressContentEditableWarning={true}
-          />
-        ) : (
-          <div className="min-h-[200px] flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-          </div>
-        )
-      ) : (
-        <div
-          ref={editorRef}
-          className="prose prose-sm md:prose max-w-none mb-6"
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
-      )}
-
-      {/* Action Bar */}
-      <div className="mt-6 pt-4 border-t border-gray-200">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleEditToggle}
-              className={`flex items-center px-6 py-3 rounded-xl font-semibold text-sm transition transform hover:scale-105 text-white ${
-                isEditing
-                  ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-green-500 hover:bg-green-600'
-              }`}
-            >
-              {isEditing ? (
-                <>
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel Edit
-                </>
-              ) : (
-                <>
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleCopy}
-              disabled={!content}
-              className="flex items-center px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium text-sm transition disabled:opacity-50"
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Copy
-            </button>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => handleDownload('pdf')}
-              disabled={!content || isDownloadingPdf}
-              className="flex items-center px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold text-sm transition transform hover:scale-105 disabled:opacity-50"
-            >
-              {isDownloadingPdf ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4 mr-2" />
-              )}
-              PDF
-            </button>
-            <button
-              onClick={() => handleDownload('docx')}
-              disabled={!content || isDownloadingDocx}
-              className="flex items-center px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition transform hover:scale-105 disabled:opacity-50"
-            >
-              {isDownloadingDocx ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4 mr-2" />
-              )}
-              DOCX
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const GeneratedCV = ({
-  generatedCvOutput = null, // Default to null instead of mockData
+  generatedCvOutput = null,
   handleInitiateSave = () => console.log('Save triggered'),
-  handleRegenerate = () => console.log('Regenerate'),
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState('');
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
@@ -188,13 +48,6 @@ const GeneratedCV = ({
       setEditableContent(cvData.cv);
     }
   }, [cvData]);
-
-  const getScoreBg = (score) => {
-    if (score >= 90) return 'from-green-500 to-emerald-500';
-    if (score >= 80) return 'from-blue-500 to-indigo-500';
-    if (score >= 70) return 'from-yellow-500 to-orange-500';
-    return 'from-red-500 to-pink-500';
-  };
 
   const handleEditToggle = () => {
     if (isEditing) {
@@ -273,7 +126,7 @@ const GeneratedCV = ({
         <div className="mb-3 md:mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl shadow-lg">
           <div className="flex items-center gap-2 ">
             <div className="w-12 h-12  rounded-xl flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="h-7 w-7 text-white" />
+              <Award className="h-7 w-7 text-white" />
             </div>
 
             <div className="flex-1">
@@ -283,7 +136,7 @@ const GeneratedCV = ({
             </div>
             <div className="text-center  p-2 rounded-lg">
               <div className={`text-4xl font-bold bg-clip-text`}>
-                {generatedCvOutput.atsScore}
+                {atsScore}
               </div>
               <div className="text-xs ">ATS Score</div>
             </div>
@@ -305,20 +158,10 @@ const GeneratedCV = ({
               {cvData && (
                 <button
                   onClick={onSave}
-                  disabled={isSaving}
                   className="w-full lg:w-auto bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl px-6 py-2.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 text-sm font-medium flex-shrink-0"
                 >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      <span>Save Final Version</span>
-                    </>
-                  )}
+                  <Save className="h-4 w-4" />
+                  <span>Save Final Version</span>
                 </button>
               )}
             </div>
@@ -328,7 +171,7 @@ const GeneratedCV = ({
             <div className="p-2 md:p-3 lg:p-4">
               <EditableMaterial
                 isEditing={isEditing}
-                content={cvContent}
+                content={cvContent.cv}
                 setContent={setEditableContent}
                 handleEditToggle={handleEditToggle}
                 handleDownload={handleDownload}

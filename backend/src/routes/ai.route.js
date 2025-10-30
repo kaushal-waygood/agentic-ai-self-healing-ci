@@ -27,6 +27,7 @@ import {
   getAllTailoredApplications,
   getSingleCV,
   getSingleCL,
+  getSingleTailoredApplication,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 
@@ -53,6 +54,12 @@ router.get(
 
 router.get('/cv/:cvId', authMiddleware, isStudent, getSingleCV);
 router.get('/cl/:clId', authMiddleware, isStudent, getSingleCL);
+router.get(
+  '/tailored-application/:applicationId',
+  authMiddleware,
+  isStudent,
+  getSingleTailoredApplication,
+);
 
 router.post(
   '/resume/generate/jd',

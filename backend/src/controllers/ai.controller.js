@@ -240,6 +240,41 @@ export const getSingleCL = async (req, res) => {
   }
 };
 
+export const getSingleTailoredApplication = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { _id: userId } = req.user;
+
+    const student = await Student.findOne(
+      {
+        _id: userId,
+        'tailoredApplications._id': applicationId,
+      },
+      {
+        'tailoredApplications.$': 1,
+      },
+    );
+
+    if (
+      !student ||
+      !student.tailoredApplications ||
+      student.tailoredApplications.length === 0
+    ) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    const application = student.tailoredApplications[0]; // Get the first (and only) matched CV
+
+    res.status(200).json({
+      success: true,
+      application,
+    });
+  } catch (error) {
+    console.error('Error fetching CV:', error);
+    res.status(500).json({ error: 'Failed to retrieve CV' });
+  }
+};
+
 // CV
 export const generateCVByTitle = async (req, res) => {
   const { title } = req.body;
