@@ -209,13 +209,6 @@ const AppHeader = ({ setIsSearchOpen }) => {
     socket,
   } = useNotifications();
 
-  console.log('Notifications state:', {
-    notifications,
-    // unreadCount,
-    isLoadingNotifications,
-  });
-
-  console.log('notifications', notifications);
   const [mounted, setMounted] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
