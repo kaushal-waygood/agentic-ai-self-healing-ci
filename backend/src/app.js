@@ -48,19 +48,25 @@ const limiter = rateLimit({
 // Apply the rate limiting middleware to all requests
 app.use(limiter);
 
+const prod = ['https://www.zobsai.com'];
+const dev = [
+  'https://dev.zobsai.com',
+  'https://in.indeed.com',
+  'https://www.linkedin.com',
+];
+const local = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+
+const originAllow =
+  config.nodeEnv === 'production'
+    ? prod
+    : config.nodeEnv === 'development'
+    ? dev
+    : local;
+
 // 3. CORS Configuration
 app.use(
   cors({
-    origin: [
-      // 'http://127.0.0.1:3000',
-      // 'http://localhost:3000',
-      // 'http://144.91.114.195:30090',
-      // 'https://dev.zobsai.com',
-      // 'https://www.zobsai.com',
-      // 'https://zobsai.com',
-      // 'chrome-extension://mmmbijnmokcdpnabaahhbmioeobobcnb',
-      '*',
-    ],
+    origin: originAllow,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
