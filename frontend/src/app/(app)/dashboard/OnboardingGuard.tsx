@@ -31,7 +31,16 @@ export default function OnboardingGuard({ children }) {
   }, [student, loading, pathname, router]);
 
   if (loading) {
-    return <div>Loading...</div>; // Or a proper spinner component
+    return (
+      <div className="flex items-center flex-col justify-center min-h-screen">
+        {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
+        <div>
+          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
+        </div>
+
+        <div className="text-lg">LOADING...</div>
+      </div>
+    ); // Or a proper spinner component
   }
 
   // If logic passes, render the actual page content

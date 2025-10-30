@@ -156,10 +156,19 @@ export function ApplicationWizardClient() {
       default:
         // Default to the loading state to handle undefined steps gracefully
         return (
-          <StyledCard className="min-h-[400px] flex items-center justify-center">
-            {' '}
-            <Loader2 className="h-12 w-12 mx-auto animate-spin text-purple-600" />{' '}
-          </StyledCard>
+          <div className="min-h-screen flex flex-col justify-center items-center py-20">
+            {/* <Loader2 className="h-12 w-12 mx-auto animate-spin text-purple-600" />{' '} */}
+            {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
+            <div>
+              <img
+                src="/logo.png"
+                alt=""
+                className="w-10 h-10 animate-bounce"
+              />
+            </div>
+
+            <div className="text-lg">LOADING...</div>
+          </div>
         );
     }
   };

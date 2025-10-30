@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 // Helper function to get cookie value by name
 function getCookie(name: string): string | null {
@@ -59,8 +60,13 @@ export default function ProtectedRoute({
 
   if (authStatus === 'loading') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Checking authentication...</div>
+      <div className="flex items-center flex-col justify-center min-h-screen">
+        {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
+        <div>
+          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
+        </div>
+
+        <div className="text-lg">LOADING...</div>
       </div>
     );
   }
