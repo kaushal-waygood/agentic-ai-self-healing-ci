@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useController } from 'react-hook-form';
-import { FormControl, InputLabel, Select, MenuItem, Box } from '@mui/material';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 const MonthYearSelector = ({ control, name, label = 'Expiration Date' }) => {
   const { field } = useController({
@@ -40,15 +47,13 @@ const MonthYearSelector = ({ control, name, label = 'Expiration Date' }) => {
   ];
 
   // Handle month change
-  const handleMonthChange = (event) => {
-    const newMonth = event.target.value;
+  const handleMonthChange = (newMonth) => {
     setSelectedMonth(newMonth);
     updateFieldValue(newMonth, selectedYear);
   };
 
   // Handle year change
-  const handleYearChange = (event) => {
-    const newYear = event.target.value;
+  const handleYearChange = (newYear) => {
     setSelectedYear(newYear);
     updateFieldValue(selectedMonth, newYear);
   };
@@ -64,44 +69,55 @@ const MonthYearSelector = ({ control, name, label = 'Expiration Date' }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', gap: 2 }}>
-      {/* Month Select */}
-      <FormControl fullWidth>
-        <InputLabel id="month-select-label">Month</InputLabel>
-        <Select
-          labelId="month-select-label"
-          id="month-select"
-          value={selectedMonth}
-          label="Month"
-          onChange={handleMonthChange}
-        >
-          {months.map((month) => (
-            <MenuItem key={month.value} value={month.value}>
-              {month.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+    <div className="space-y-2">
+      <Label htmlFor={name}>{label}</Label>
+      <div className="flex gap-4">
+        {/* Month Select */}
+        <div className="flex-1">
+          <Label
+            htmlFor="month-select"
+            className="text-sm font-medium mb-2 block"
+          >
+            Month
+          </Label>
+          <Select value={selectedMonth} onValueChange={handleMonthChange}>
+            <SelectTrigger id="month-select">
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((month) => (
+                <SelectItem key={month.value} value={month.value}>
+                  {month.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* Year Select */}
-      <FormControl fullWidth>
-        <InputLabel id="year-select-label">Year</InputLabel>
-        <Select
-          labelId="year-select-label"
-          id="year-select"
-          value={selectedYear}
-          label="Year"
-          onChange={handleYearChange}
-        >
-          {years.map((year) => (
-            <MenuItem key={year} value={year.toString()}>
-              {year}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Box>
+        {/* Year Select */}
+        <div className="flex-1">
+          <Label
+            htmlFor="year-select"
+            className="text-sm font-medium mb-2 block"
+          >
+            Year
+          </Label>
+          <Select value={selectedYear} onValueChange={handleYearChange}>
+            <SelectTrigger id="year-select">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default MonthYearSelector;
+export { MonthYearSelector };
