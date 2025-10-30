@@ -52,6 +52,7 @@ import {
 import { TechnologyInput } from '@/utils/TechnologyInput';
 import { formatDateForMonthInput } from '@/utils/TechnologyInput';
 import { useForm } from 'react-hook-form';
+import { MonthYearSelector } from './MonthYearSelector';
 
 const employmentTypes = [
   'Full-time',
@@ -62,6 +63,21 @@ const employmentTypes = [
   'Internship',
   'Apprenticeship',
 ];
+
+const normalizeEmploymentType = (dbValue: string) => {
+  if (!dbValue) return '';
+
+  // Prepare the DB value for comparison: lowercase and remove separators
+  const cleanDbValue = dbValue.toLowerCase().replace(/[-_]/g, '');
+
+  // Find the matching type from our canonical list
+  const foundType = employmentTypes.find((type) => {
+    const cleanType = type.toLowerCase().replace(/[-_]/g, '');
+    return cleanType === cleanDbValue;
+  });
+
+  return foundType || ''; // Return the found type (e.g., 'Full-time') or fallback
+};
 
 interface EducationFormData {
   institution: string;
@@ -117,6 +133,14 @@ interface education {
   startDate: string;
   endDate: string;
 }
+
+const formatDateForInput = (dateString) => {
+  if (!dateString || typeof dateString !== 'string') {
+    return '';
+  }
+  // Takes "2022-09-01" and returns "2022-09"
+  return dateString.slice(0, 7);
+};
 
 const DegreeSelector = ({ field }) => {
   const degreeTypes = [
@@ -387,7 +411,8 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
                       <FormItem>
                         <FormLabel>Start Date*</FormLabel>
                         <FormControl>
-                          <Input type="month" {...field} required />
+                          {/* ✅ USE THE NEW COMPONENT HERE */}
+                          <MonthYearSelector field={field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -400,11 +425,8 @@ export const AddEducation = ({ onCancel, isEdit, data }: any) => {
                       <FormItem>
                         <FormLabel>End Date</FormLabel>
                         <FormControl>
-                          <Input
-                            type="month"
-                            {...field}
-                            placeholder="Present"
-                          />
+                          {/* ✅ AND HERE AS WELL */}
+                          <MonthYearSelector field={field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -807,17 +829,19 @@ export const AddProject = ({ onCancel, data, isEdit }: any) => {
 export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
   const [currentStep, setCurrentStep] = useState(0);
 
+  console.log('🚀 ~ file: AddExperience.tsx:70 ~ AddExperience ~ data:', data);
+
   const form = useForm({
     // Add your Zod resolver if you use one
     defaultValues: {
       company: data?.company || '',
-      designation: data?.designation || '',
+      designation: data?.title || '',
       employmentType: data?.employmentType || '',
       location: data?.location || '',
       isCurrent: data?.isCurrent || false,
-      startDate: data?.startDate || '',
-      endDate: data?.endDate || '',
-      responsibilities: data?.responsibilities || '',
+      startDate: formatDateForMonthInput(data?.startDate) || '',
+      endDate: formatDateForMonthInput(data?.endDate) || '',
+      responsibilities: data?.description || '',
       _id: data?._id || '',
     },
   });
@@ -830,7 +854,6 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
   const { handleSubmit, control, watch, setValue, trigger, reset } = form;
   const isCurrent = watch('isCurrent');
 
-  // When 'isCurrent' checkbox changes, clear the endDate
   useEffect(() => {
     if (isCurrent) {
       setValue('endDate', '');
@@ -1006,7 +1029,8 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
                         <FormLabel>Employment Type</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          // ✅ Use the helper function to normalize the defaultValue
+                          defaultValue={normalizeEmploymentType(field.value)}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -1052,9 +1076,11 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
+                        {console.log('START DATE', field.value)}
                         <FormLabel>Start Date*</FormLabel>
                         <FormControl>
-                          <Input type="month" {...field} required />
+                          {/* ✅ USE THE NEW COMPONENT HERE */}
+                          <MonthYearSelector field={field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -1067,12 +1093,8 @@ export const AddExperience = ({ onCancel, data, isEdit, index }: any) => {
                       <FormItem>
                         <FormLabel>End Date</FormLabel>
                         <FormControl>
-                          <Input
-                            type="month"
-                            {...field}
-                            disabled={isCurrent}
-                            value={isCurrent ? '' : field.value ?? ''}
-                          />
+                          {/* ✅ AND HERE AS WELL */}
+                          <MonthYearSelector field={field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

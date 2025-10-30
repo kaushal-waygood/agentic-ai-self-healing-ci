@@ -11,8 +11,6 @@ const getEnv = (key) => {
   return value;
 };
 
-console.log(process.env.REDIS_HOST)
-
 // --- Application Configuration ---
 export const config = {
   // General
@@ -20,6 +18,9 @@ export const config = {
 
   // Database
   mongoUrl: getEnv('MONGO_URL'),
+
+  // Node Environment
+  nodeEnv: process.env.NODE_ENV,
 
   // JWT Tokens
   accessTokenSecret: getEnv('ACCESS_TOKEN_SECRET'),

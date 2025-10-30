@@ -30,6 +30,7 @@ const GeneratedCoverLetter = ({
   handleRegenerate,
   customizationOptions, // Pass the customization state here
 }: any) => {
+  console.log('Generated Cover Letter:', generatedLetter);
   return (
     <div className="min-h-screen  p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
@@ -91,8 +92,17 @@ const GeneratedCoverLetter = ({
                   content={generatedLetter}
                   setContent={setGeneratedLetter}
                   handleRegenerate={handleRegenerate}
+                  // setGeneratedLetter={setCurrentCvContent}
                   isHtml
+                  handleSave={handleInitiateSave}
                 />
+
+                {/* <div className="flex gap-3">
+                  <Button onClick={handleInitiateSave}>Save</Button>
+                  <Button variant="outline" onClick={handleRegenerate}>
+                    Regenerate
+                  </Button>
+                </div> */}
               </CardContent>
             </Card>
           </div>

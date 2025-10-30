@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // Mock data for initial rendering
 const mockData = {
-  ats: 92,
+  atsScore: 92,
   cv: `<h2>John Doe</h2>
        <p><strong>Senior Software Engineer</strong></p>
        <p>Email: john@example.com | Phone: +1234567890</p>
@@ -39,7 +39,7 @@ const EditableMaterial = ({
   handleDownload,
   isDownloadingPdf,
   isDownloadingDocx,
-}) => {
+}: any) => {
   const [isClient, setIsClient] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -49,11 +49,8 @@ const EditableMaterial = ({
   }, []);
 
   const handleCopy = async () => {
-    console.log('Handle Copy Invoked');
-    console.log('Editor Ref:', editorRef);
     if (!editorRef.current) return;
     const textToCopy = editorRef.current.innerText;
-    console.log('Text to Copy:', textToCopy);
     if (!textToCopy) return;
 
     try {
@@ -68,14 +65,16 @@ const EditableMaterial = ({
     }
   };
 
-  // const handleContentChange = (e) => {
-  //   setContent(e.currentTarget.innerHTML);
-  // };
-
   const handleContentChange = (e: any) => {
-    // Don’t update state on every keystroke — only store locally
     if (editorRef.current) {
       editorRef.current._latest = e.currentTarget.innerHTML;
+    }
+  };
+
+  // ✅ Sync final content when user stops editing
+  const handleBlur = () => {
+    if (editorRef.current?._latest) {
+      setContent(editorRef.current._latest);
     }
   };
 
@@ -83,12 +82,11 @@ const EditableMaterial = ({
     <div className=" rounded-lg p-4 sm:p-6 border border-gray-200 shadow-md">
       {isEditing ? (
         isClient ? (
-          // ✨ FIX: Changed <p> to <div> for better structure,
-          // added onInput to update state, and suppressed a React warning.
           <div
             ref={editorRef}
             className="prose prose-sm md:prose max-w-none min-h-[200px] border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             contentEditable={true}
+            onBlur={handleBlur}
             onInput={handleContentChange}
             dangerouslySetInnerHTML={{ __html: content }}
             suppressContentEditableWarning={true}
@@ -106,7 +104,7 @@ const EditableMaterial = ({
         />
       )}
 
-      {/* Action Bar (No changes needed here) */}
+      {/* Action Bar */}
       <div className="mt-6 pt-4 border-t border-gray-200">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
@@ -172,7 +170,7 @@ const EditableMaterial = ({
 };
 
 const GeneratedCV = ({
-  generatedCvOutput = mockData,
+  generatedCvOutput = null, // Default to null instead of mockData
   handleInitiateSave = () => console.log('Save triggered'),
   handleRegenerate = () => console.log('Regenerate'),
 }) => {
@@ -182,11 +180,14 @@ const GeneratedCV = ({
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
 
+  // Use mock data if no generatedCvOutput is provided
+  const cvData = generatedCvOutput || mockData;
+
   useEffect(() => {
-    if (generatedCvOutput && generatedCvOutput.cv) {
-      setEditableContent(generatedCvOutput.cv);
+    if (cvData && cvData.cv) {
+      setEditableContent(cvData.cv);
     }
-  }, [generatedCvOutput]);
+  }, [cvData]);
 
   const getScoreBg = (score) => {
     if (score >= 90) return 'from-green-500 to-emerald-500';
@@ -195,11 +196,9 @@ const GeneratedCV = ({
     return 'from-red-500 to-pink-500';
   };
 
-  console.log('Generated CV Output:', generatedCvOutput);
-
   const handleEditToggle = () => {
     if (isEditing) {
-      setEditableContent(generatedCvOutput.cv);
+      setEditableContent(cvData.cv);
     }
     setIsEditing(!isEditing);
   };
@@ -259,14 +258,18 @@ const GeneratedCV = ({
     if (isEditing) {
       setIsEditing(false);
     }
+
     handleInitiateSave(editableContent);
   };
 
-  console.log('Editable Content:', generatedCvOutput);
+  // Safe data extraction with fallbacks
+  const atsScore = cvData?.atsScore || cvData?.ats || 0;
+  const cvContent = cvData?.cv || '';
 
   return (
     <div className="min-h-screen p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
+        {/* ATS Score Header */}
         <div className="mb-3 md:mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl shadow-lg">
           <div className="flex items-center gap-2 ">
             <div className="w-12 h-12  rounded-xl flex items-center justify-center flex-shrink-0">
@@ -275,17 +278,19 @@ const GeneratedCV = ({
 
             <div className="flex-1">
               <h2 className="text-xl text-white bg-transparent font-bold">
-                CV Generated Successfully!
+                {cvData ? 'CV Generated Successfully!' : 'Loading CV...'}
               </h2>
             </div>
             <div className="text-center  p-2 rounded-lg">
               <div className={`text-4xl font-bold bg-clip-text`}>
-                {generatedCvOutput.atsScore }
+                {generatedCvOutput.atsScore}
               </div>
               <div className="text-xs ">ATS Score</div>
             </div>
           </div>
         </div>
+
+        {/* Main CV Content */}
         <div className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-2xl overflow-hidden">
           <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white p-3">
             <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
@@ -294,67 +299,80 @@ const GeneratedCV = ({
                   <FileText className="h-5 w-5 text-white" />
                 </div>
                 <h3 className="text-lg text-white md:text-xl font-bold">
-                  Your AI Generated CV
+                  {cvData ? 'Your AI Generated CV' : 'Loading CV...'}
                 </h3>
               </div>
-              <button
-                onClick={onSave}
-                disabled={isSaving}
-                className="w-full lg:w-auto bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl px-6 py-2.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 text-sm font-medium flex-shrink-0"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    <span>Save Final Version</span>
-                  </>
-                )}
-              </button>
+              {cvData && (
+                <button
+                  onClick={onSave}
+                  disabled={isSaving}
+                  className="w-full lg:w-auto bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl px-6 py-2.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 text-sm font-medium flex-shrink-0"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span>Save Final Version</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
-          <div className="p-2 md:p-3 lg:p-4">
-            <EditableMaterial
-              isEditing={isEditing}
-              content={editableContent}
-              setContent={setEditableContent}
-              handleEditToggle={handleEditToggle}
-              handleDownload={handleDownload}
-              isDownloadingPdf={isDownloadingPdf}
-              isDownloadingDocx={isDownloadingDocx}
-            />
-          </div>
+
+          {cvData ? (
+            <div className="p-2 md:p-3 lg:p-4">
+              <EditableMaterial
+                isEditing={isEditing}
+                content={cvContent}
+                setContent={setEditableContent}
+                handleEditToggle={handleEditToggle}
+                handleDownload={handleDownload}
+                isDownloadingPdf={isDownloadingPdf}
+                isDownloadingDocx={isDownloadingDocx}
+              />
+            </div>
+          ) : (
+            <div className="p-8 flex justify-center items-center">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          )}
         </div>
-        <div className="mt-6 md:mt-8 bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-2 md:p-3">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <div className="text-sm md:text-base font-semibold text-gray-900">
-                  Ready to apply?
+
+        {/* Action Footer */}
+        {cvData && (
+          <div className="mt-6 md:mt-8 bg-white/60 backdrop-blur-xl border border-gray-200 rounded-2xl p-2 md:p-3">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="h-5 w-5 text-white" />
                 </div>
-                <div className="text-xs md:text-sm text-gray-600">
-                  Your CV is optimized and ready to impress employers
+                <div>
+                  <div className="text-sm md:text-base font-semibold text-gray-900">
+                    Ready to apply?
+                  </div>
+                  <div className="text-xs md:text-sm text-gray-600">
+                    Your CV is optimized and ready to impress employers
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <button className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium">
-                <Clock className="h-4 w-4" />
-                <span>Save for Later</span>
-              </button>
-              <button className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all text-sm font-medium">
-                <Award className="h-4 w-4" />
-                <span>Start Applying</span>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <button className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium">
+                  <Clock className="h-4 w-4" />
+                  <span>Save for Later</span>
+                </button>
+                <button className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all text-sm font-medium">
+                  <Award className="h-4 w-4" />
+                  <span>Start Applying</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

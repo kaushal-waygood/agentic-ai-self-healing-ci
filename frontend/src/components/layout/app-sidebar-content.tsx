@@ -87,12 +87,16 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         icon: Newspaper,
       },
       { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
-      // uncomment below code to show "Application Wizard" on sidebar
       { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
       {
         title: 'My Applications',
         href: '/dashboard/applications',
         icon: FileCheck2,
+      },
+      {
+        title: 'My Docs',
+        href: '/dashboard/my-docs',
+        icon: Activity,
       },
       {
         title: 'Organization',

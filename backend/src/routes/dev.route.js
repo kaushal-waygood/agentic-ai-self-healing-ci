@@ -4,7 +4,7 @@ import express from 'express';
 // Import the specific task functions you want to test
 import { task1, task2 } from '../config/cron-config.js';
 
-import autopilotTriggerQueue from '../queues/jobDiscoveryQueue.js';
+// import autopilotTriggerQueue from '../queues/jobDiscoveryQueue.js';
 import {
   runAutopilotTask,
   scheduleAutopilotTriggers,

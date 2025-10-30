@@ -520,6 +520,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
               <Button
                 variant="destructive"
                 onClick={() => {
+                  console.log('deleteEduIndex', deleteEduIndex);
                   deleteEducation(deleteEduIndex);
                   setDeleteEdu(false);
                 }}

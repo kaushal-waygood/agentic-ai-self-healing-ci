@@ -1,30 +1,33 @@
-import { Student } from '../models/student.model.js';
+import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { User } from '../models/User.model.js'; // Ensure this path is correct
 
+// Models
+import { Student } from '../models/student.model.js';
+import { User } from '../models/User.model.js';
+
+// Parsers for file uploads
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
 
-import { genAI } from '../config/gemini.js';
-import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
+// Background processor
+import { processCVGeneration } from '../utils/cv.background.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const generateCVCore = async (req, res, jobContextString) => {
+export const initiateCVGeneration = async (req, res, jobContextString) => {
   try {
     const { _id } = req.user;
     const { useProfile, finalTouch } = req.body;
     let studentData;
 
-    // ... (Steps 1 and 2 for determining data source are unchanged)
     if (useProfile === 'true' || useProfile === true) {
       const student = await Student.findById(_id);
       if (!student) {
-        return res.status(404).json({ error: 'Student not found' });
+        return res.status(404).json({ error: 'Student profile not found' });
       }
       studentData = JSON.stringify(student);
     } else {
@@ -41,9 +44,11 @@ export const generateCVCore = async (req, res, jobContextString) => {
         'pdf',
         req.file.filename,
       );
-      let extractedText;
+
       try {
+        let extractedText;
         const fileMimeType = req.file.mimetype;
+
         if (fileMimeType === 'application/pdf') {
           const dataBuffer = fs.readFileSync(filePath);
           const parsedPDF = await pdfParse(dataBuffer);
@@ -74,38 +79,36 @@ export const generateCVCore = async (req, res, jobContextString) => {
       }
     }
 
-    // Step 3: Create prompt and generate CV
-    const prompt = generateCVPrompt(jobContextString, studentData, finalTouch);
-    const rawJsonResponse = await genAI(prompt);
-    const cleanedJsonString = rawJsonResponse
-      .replace(/```json|```/g, '')
-      .trim();
+    const jobId = new mongoose.Types.ObjectId();
+    const newCVJob = {
+      jobId,
+      status: 'pending',
+      jobContextString,
+      finalTouch,
+      createdAt: new Date(),
+    };
 
-    let parsedJson;
-    try {
-      parsedJson = JSON.parse(cleanedJsonString);
-    } catch (error) {
-      console.error('Error parsing JSON from AI:', error);
-      console.error('Raw AI Response:', cleanedJsonString);
-      return res.status(500).json({ error: 'Failed to parse AI response' });
-    }
-
-    const updatedUser = await User.findByIdAndUpdate(_id, {
-      $inc: { 'usageCounters.cvCreation': 1 }, // Increment the counter by 1
-      $push: { cvs: parsedJson }, // Push the new CV object into the 'cvs' array
+    await Student.findByIdAndUpdate(_id, {
+      $push: { cvs: { $each: [newCVJob], $position: 0 } },
     });
 
-    // Optional but good practice: check if the user was found
-    if (!updatedUser) {
-      return res
-        .status(404)
-        .json({ error: 'User could not be found to save CV.' });
-    }
+    const io = req.app.get('io');
+    processCVGeneration(
+      _id,
+      jobId,
+      studentData,
+      jobContextString,
+      finalTouch,
+      io,
+    );
 
-    // Finally, send the newly generated CV back to the client
-    return res.json(parsedJson);
+    return res.status(202).json({
+      message:
+        'CV generation has started. You will be notified when it is complete.',
+      jobId: jobId.toString(),
+    });
   } catch (error) {
-    console.error('Error in CV generation core:', error);
-    return res.status(500).json({ error: 'Failed to generate CV' });
+    console.error('Error initiating CV generation:', error);
+    return res.status(500).json({ error: 'Failed to start CV generation' });
   }
 };
