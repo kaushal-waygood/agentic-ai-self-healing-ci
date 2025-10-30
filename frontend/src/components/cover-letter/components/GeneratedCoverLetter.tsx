@@ -90,19 +90,11 @@ const GeneratedCoverLetter = ({
                   editorId="cover-letter-live-editor"
                   title="Cover Letter"
                   content={generatedLetter}
-                  setContent={setGeneratedLetter}
+                  setContent={setGeneratedLetter} // This is correct
                   handleRegenerate={handleRegenerate}
-                  // setGeneratedLetter={setCurrentCvContent}
                   isHtml
                   handleSave={handleInitiateSave}
                 />
-
-                {/* <div className="flex gap-3">
-                  <Button onClick={handleInitiateSave}>Save</Button>
-                  <Button variant="outline" onClick={handleRegenerate}>
-                    Regenerate
-                  </Button>
-                </div> */}
               </CardContent>
             </Card>
           </div>
