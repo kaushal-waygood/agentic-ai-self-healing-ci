@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, FileText, Loader2 } from 'lucide-react';
 
-export default function FinalCoverLetter() {
+export default function FinalResultView({ cvlink }: { cvlink?: string }) {
   const [isGenerating, setIsGenerating] = useState(true);
   const [showNotification, setShowNotification] = useState(false);
 
@@ -24,11 +24,12 @@ export default function FinalCoverLetter() {
 
   const handleRedirect = () => {
     // Replace with your actual redirect URL
-    window.location.href = '/dashboard/my-docs?tab=cover-letters';
+
+    window.location.href = '/dashboard/my-docs';
   };
 
   return (
-    <div className="min-h-[90vh]  flex items-center justify-center p-4">
+    <div className="  flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
@@ -37,15 +38,19 @@ export default function FinalCoverLetter() {
               <div className="mb-6">
                 <div className="relative inline-block">
                   <FileText className="w-20 h-20 text-indigo-600 mx-auto" />
-                  <Loader2 className="w-8 h-8 text-indigo-600 absolute -top-2 -right-2 animate-spin" />
+                  {/* <Loader2 className="w-8 h-8 text-indigo-600 absolute -top-2 -right-2 animate-spin" /> */}
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Generating Your Document
+                Generating Your Doc...
               </h2>
               {/* <p className="text-gray-600 mb-6">
                 Please wait while we craft the perfect doc for you...
               </p> */}
+              <p className="text-gray-600 mb-6">
+                Running in the background. This may take a few moments.
+              </p>
+
               <div className="flex justify-center gap-2">
                 <div
                   className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce"
@@ -65,7 +70,7 @@ export default function FinalCoverLetter() {
                 className="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 <FileText className="w-5 h-5" />
-                View your Document
+                View Doc Status
               </button>
             </>
           ) : (
