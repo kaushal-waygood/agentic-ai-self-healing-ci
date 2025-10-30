@@ -39,7 +39,7 @@ const EditableMaterial = ({
   handleDownload,
   isDownloadingPdf,
   isDownloadingDocx,
-}) => {
+}: any) => {
   const [isClient, setIsClient] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -68,14 +68,17 @@ const EditableMaterial = ({
     }
   };
 
-  // const handleContentChange = (e) => {
-  //   setContent(e.currentTarget.innerHTML);
-  // };
-
   const handleContentChange = (e: any) => {
     // Don’t update state on every keystroke — only store locally
     if (editorRef.current) {
       editorRef.current._latest = e.currentTarget.innerHTML;
+    }
+  };
+
+  // ✅ Sync final content when user stops editing
+  const handleBlur = () => {
+    if (editorRef.current?._latest) {
+      setContent(editorRef.current._latest);
     }
   };
 
@@ -89,6 +92,7 @@ const EditableMaterial = ({
             ref={editorRef}
             className="prose prose-sm md:prose max-w-none min-h-[200px] border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             contentEditable={true}
+            onBlur={handleBlur}
             onInput={handleContentChange}
             dangerouslySetInnerHTML={{ __html: content }}
             suppressContentEditableWarning={true}
@@ -195,8 +199,6 @@ const GeneratedCV = ({
     return 'from-red-500 to-pink-500';
   };
 
-  console.log('Generated CV Output:', generatedCvOutput);
-
   const handleEditToggle = () => {
     if (isEditing) {
       setEditableContent(generatedCvOutput.cv);
@@ -259,6 +261,7 @@ const GeneratedCV = ({
     if (isEditing) {
       setIsEditing(false);
     }
+
     handleInitiateSave(editableContent);
   };
 
@@ -280,7 +283,7 @@ const GeneratedCV = ({
             </div>
             <div className="text-center  p-2 rounded-lg">
               <div className={`text-4xl font-bold bg-clip-text`}>
-                {generatedCvOutput.atsScore }
+                {generatedCvOutput.atsScore}
               </div>
               <div className="text-xs ">ATS Score</div>
             </div>
