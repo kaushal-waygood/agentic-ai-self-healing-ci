@@ -495,7 +495,7 @@ export function CoverLetterGeneratorClient() {
   };
 
   const handleInitiateSave = async () => {
-    let contentToSave = generatedCvOutput;
+    const contentToSave = currentCvContent?.trim(); // ✅ Use the edited content
 
     if (!contentToSave) {
       toast({ variant: 'destructive', title: 'No Letter to Save' });
@@ -507,42 +507,17 @@ export function CoverLetterGeneratorClient() {
     setIsNamingDialogDisplayed(true);
   };
 
-  // const confirmSaveNamedLetter = async () => {
-  //   console.log('caliing');
-  //   if (!letterNameForSavingInput.trim() || !activeLetterToSave) return;
-  //   const formValues = customizationForm.getValues();
-  //   console.log('Customization Values on Save:', formValues);
-
-  //   console.log('Saving Letter:', letterNameForSavingInput);
-
-  //   const response = await apiInstance.post('/students/letter/save/html', {
-  //     title: letterNameForSavingInput,
-  //     html: generatedCvOutput,
-  //   });
-
-  //   const newSavedLetter = response.data;
-  //   const updatedList = [newSavedLetter, ...savedLettersList];
-  //   mockUserProfile.savedCoverLetters = updatedList;
-  //   setSavedLettersList(updatedList);
-  //   toast({ title: 'Cover Letter Saved!' });
-  //   setIsNamingDialogDisplayed(false);
-  //   setLetterNameForSavingInput('');
-  //   setActiveLetterToSave(null);
-  // };
-
   const confirmSaveNamedLetter = async () => {
     if (!letterNameForSavingInput.trim() || !activeLetterToSave) return;
 
     try {
       const formValues = customizationForm.getValues();
 
-      // Save to backend
       await apiInstance.post('/students/letter/save/html', {
         title: letterNameForSavingInput,
-        html: generatedCvOutput,
+        html: currentCvContent, // ✅ Save edited content
       });
 
-      // ✅ Immediately fetch latest saved letters
       const updatedResponse = await apiInstance.get('/students/letter/saved');
       setSavedLettersList(updatedResponse.data.html);
 

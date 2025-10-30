@@ -39,7 +39,7 @@ const EditableMaterial = ({
   handleDownload,
   isDownloadingPdf,
   isDownloadingDocx,
-}) => {
+}: any) => {
   const [isClient, setIsClient] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -71,6 +71,13 @@ const EditableMaterial = ({
     }
   };
 
+  // ✅ Sync final content when user stops editing
+  const handleBlur = () => {
+    if (editorRef.current?._latest) {
+      setContent(editorRef.current._latest);
+    }
+  };
+
   return (
     <div className=" rounded-lg p-4 sm:p-6 border border-gray-200 shadow-md">
       {isEditing ? (
@@ -79,6 +86,7 @@ const EditableMaterial = ({
             ref={editorRef}
             className="prose prose-sm md:prose max-w-none min-h-[200px] border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             contentEditable={true}
+            onBlur={handleBlur}
             onInput={handleContentChange}
             dangerouslySetInnerHTML={{ __html: content }}
             suppressContentEditableWarning={true}
@@ -188,8 +196,6 @@ const GeneratedCV = ({
     return 'from-red-500 to-pink-500';
   };
 
-  console.log('Generated CV Output:', cvData);
-
   const handleEditToggle = () => {
     if (isEditing) {
       setEditableContent(cvData.cv);
@@ -252,6 +258,7 @@ const GeneratedCV = ({
     if (isEditing) {
       setIsEditing(false);
     }
+
     handleInitiateSave(editableContent);
   };
 
@@ -276,7 +283,7 @@ const GeneratedCV = ({
             </div>
             <div className="text-center  p-2 rounded-lg">
               <div className={`text-4xl font-bold bg-clip-text`}>
-                {atsScore}
+                {generatedCvOutput.atsScore}
               </div>
               <div className="text-xs ">ATS Score</div>
             </div>

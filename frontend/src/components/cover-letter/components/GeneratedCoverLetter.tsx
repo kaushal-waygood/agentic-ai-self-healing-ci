@@ -92,8 +92,17 @@ const GeneratedCoverLetter = ({
                   content={generatedLetter}
                   setContent={setGeneratedLetter}
                   handleRegenerate={handleRegenerate}
+                  // setGeneratedLetter={setCurrentCvContent}
                   isHtml
+                  handleSave={handleInitiateSave}
                 />
+
+                {/* <div className="flex gap-3">
+                  <Button onClick={handleInitiateSave}>Save</Button>
+                  <Button variant="outline" onClick={handleRegenerate}>
+                    Regenerate
+                  </Button>
+                </div> */}
               </CardContent>
             </Card>
           </div>

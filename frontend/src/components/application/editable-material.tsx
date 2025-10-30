@@ -24,12 +24,16 @@ interface EditableMaterialProps {
   setContent: (value: string) => void;
   title: string;
   isHtml?: boolean;
+
   className?: string;
+  handleSave?: (content: string) => Promise<void> | void;
+  handleRegenerate?: () => Promise<void> | void;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
   content,
   setContent,
+  handleSave,
   title,
   isHtml = false,
   className = '',
@@ -45,6 +49,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+
+  const [originalContent, setOriginalContent] = useState<string>('');
 
   // Effect to sync the editor's content when the `content` prop changes from the parent,
   // but ONLY when not in editing mode to prevent overwriting the user's input.
@@ -136,48 +142,47 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       const text = editorRef.current.innerText || '';
       const words = text.trim().split(/\s+/).filter(Boolean);
       setWordCount(words.length);
+      const newValue = editorRef.current.innerHTML;
+      setContent(newValue);
     }
   };
 
-  // const handleEditToggle = () => {
-  //   if (isEditing) {
-  //     // --- Save Logic ---
-  //     if (editorRef.current) {
-  //       const newContent = editorRef.current.innerHTML;
-  //       setContent(newContent); // Update parent state
-  //       setLastSaved(new Date());
-  //       setHasUnsavedChanges(false);
-  //       toast({
-  //         title: `${title} updated successfully!`,
-  //         description: 'Your changes have been saved.',
-  //       });
-  //     }
-  //   }
-  //   // Toggle editing state
-  //   setIsEditing(!isEditing);
-  // };
-
-  const handleEditToggle = () => {
+  const handleEditToggle = async () => {
     if (isEditing) {
-      // --- Save Logic ---
+      // If user is saving changes
       if (editorRef.current) {
         const newContent = editorRef.current.innerHTML;
 
-        // Immediately update parent & local states before exiting edit mode
+        // If content is same as before, just exit edit mode
+        if (newContent === originalContent) {
+          setIsEditing(false);
+          return;
+        }
+
+        // Update content in parent
         setContent(newContent);
+
+        // Trigger parent save if available
+        if (typeof handleSave === 'function') {
+          await handleSave(newContent);
+        }
+
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
-
         toast({
           title: `${title} updated successfully!`,
           description: 'Your changes have been saved.',
         });
       }
 
-      // Delay exiting edit mode slightly to ensure parent state updates first
       setTimeout(() => setIsEditing(false), 0);
     } else {
-      // Enter edit mode
+      // User entering edit mode — keep a backup of current content
+      if (editorRef.current) {
+        setOriginalContent(editorRef.current.innerHTML);
+      } else {
+        setOriginalContent(content);
+      }
       setIsEditing(true);
     }
   };
@@ -487,6 +492,27 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 </>
               )}
             </button>
+            {isEditing && (
+              <button
+                onClick={() => {
+                  if (editorRef.current) {
+                    editorRef.current.innerHTML = originalContent; // revert editor text
+                  }
+                  setContent(originalContent); // revert parent state
+                  setIsEditing(false);
+                  setHasUnsavedChanges(false);
+                  toast({
+                    title: 'Changes Reverted',
+                    description: 'Your unsaved changes have been discarded.',
+                  });
+                }}
+                className="flex items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium text-sm transition"
+              >
+                <AlertCircle className="w-4 h-4 mr-2" />
+                Cancel
+              </button>
+            )}
+
             <button
               onClick={handleCopy}
               disabled={!content || isLoading || isRegenerating}
