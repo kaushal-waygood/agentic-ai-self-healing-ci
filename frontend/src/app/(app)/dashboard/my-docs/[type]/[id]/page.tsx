@@ -6,12 +6,18 @@ import apiInstance from '@/services/api';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import GeneratedCoverLetter from '@/components/cover-letter/components/GeneratedCoverLetter';
+import ResultStep from '@/components/application/applications/wizard/steps/result/ResultStep';
 
 const DocumentPage = () => {
   const { type, id } = useParams();
   const [documentData, setDocumentData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Add state for application content
+  const [refinedCv, setRefinedCv] = useState('');
+  const [tailoredCl, setTailoredCl] = useState('');
+  const [emailDraft, setEmailDraft] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,7 +37,9 @@ const DocumentPage = () => {
             endpoint = `/students/cl/${id}`;
             break;
           case 'application':
-            endpoint = `/students/tailored-applications/${id}`;
+            console.log('Application ID:', id);
+            endpoint = `/students/tailored-application/${id}`;
+            console.log('Endpoint:', endpoint);
             break;
           default:
             throw new Error('Invalid document type');
@@ -66,6 +74,11 @@ const DocumentPage = () => {
               type: 'application',
               ...responseData.application,
             };
+
+            // Set the application content for ResultStep
+            setRefinedCv(responseData.application?.tailoredCV || '');
+            setTailoredCl(responseData.application?.tailoredCoverLetter || '');
+            setEmailDraft(responseData.application?.applicationEmail || '');
             break;
           default:
             transformedData = responseData;
@@ -84,6 +97,46 @@ const DocumentPage = () => {
       fetchData();
     }
   }, [type, id]);
+
+  // Add handlers for application
+  const handleInitiateSave = async (content?: string) => {
+    try {
+      console.log('Saving application content:', content);
+      // Implement your save logic here
+    } catch (error) {
+      console.error('Error saving application:', error);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    try {
+      console.log('Regenerating application');
+      // Implement your regenerate logic here
+    } catch (error) {
+      console.error('Error regenerating application:', error);
+    }
+  };
+
+  // Placeholder handlers for ResultStep
+  const handleSendEmail = async () => {
+    console.log('Sending email...');
+    // Implement email sending logic
+  };
+
+  const handleStartNew = () => {
+    console.log('Starting new application...');
+    // Navigate to new application or reset state
+  };
+
+  const handleSaveAndFinish = () => {
+    console.log('Saving and finishing application...');
+    // Implement save and finish logic
+  };
+
+  const setWizardStep = (step: string) => {
+    console.log('Setting wizard step to:', step);
+    // Handle wizard step navigation if needed
+  };
 
   // Loading state
   if (isLoading) {
@@ -109,8 +162,6 @@ const DocumentPage = () => {
     );
   }
 
-  console.log('documentData', documentData);
-
   // Render different components based on document type
   const renderDocument = () => {
     if (!documentData) return null;
@@ -119,9 +170,37 @@ const DocumentPage = () => {
       case 'cv':
         return <GeneratedCV generatedCvOutput={documentData} />;
       case 'cl':
-        return <GeneratedCoverLetter coverLetterData={documentData.content} />;
+        return (
+          <GeneratedCoverLetter
+            generatedLetter={documentData.content}
+            setGeneratedLetter={() => {}} // Add empty function if needed
+            handleInitiateSave={handleInitiateSave}
+            handleRegenerate={handleRegenerate}
+          />
+        );
       case 'application':
-        return <GeneratedApplication applicationData={documentData} />;
+        // Create jobContext object from application data
+        const jobContext = {
+          jobTitle: documentData.jobTitle || '',
+          companyName: documentData.companyName || '',
+          jobDescription: documentData.jobDescription || '',
+        };
+
+        return (
+          <ResultStep
+            jobContext={jobContext}
+            refinedCv={refinedCv}
+            setRefinedCv={setRefinedCv}
+            tailoredCl={tailoredCl}
+            setTailoredCl={setTailoredCl}
+            emailDraft={emailDraft}
+            setEmailDraft={setEmailDraft}
+            setWizardStep={setWizardStep}
+            handleSendEmail={handleSendEmail}
+            handleStartNew={handleStartNew}
+            handleSaveAndFinish={handleSaveAndFinish}
+          />
+        );
       default:
         return (
           <div className="min-h-screen flex items-center justify-center">

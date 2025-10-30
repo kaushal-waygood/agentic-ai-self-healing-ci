@@ -49,7 +49,6 @@ const studentSlice = createSlice({
       state.loading = false;
 
       const responseData = action.payload;
-      console.log('Reducer received data:', responseData);
 
       // Handle the nested structure
       if (Array.isArray(responseData)) {
