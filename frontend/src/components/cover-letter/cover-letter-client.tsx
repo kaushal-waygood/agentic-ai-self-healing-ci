@@ -84,6 +84,7 @@ import SleekLoadingCard from '../application/applications/wizard/steps/LoadingSt
 import SavedCoverLetters from './components/SavedCl';
 import GeneratedCoverLetter from './components/GeneratedCoverLetter';
 import g from '@genkit-ai/googleai';
+import FinalCoverLetter from './components/FinalCoverLetter';
 
 // Wizard related types
 type WizardStep =
@@ -615,6 +616,8 @@ export function CoverLetterGeneratorClient() {
             handleRegenerate={regenerateLetter} // Pass the regenerate function
             // customizationOptions={customizationOptions} // Pass the customization options
           />
+
+          // <FinalCoverLetter />
         );
       default:
         return null;

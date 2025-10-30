@@ -534,7 +534,7 @@ export function CvGeneratorClient() {
         </motion.div>
       </AnimatePresence>
 
-      <button onClick={getAllCvs}>Get All CV's</button>
+      {/* <button onClick={getAllCvs}>Get All CV's</button> */}
 
       <SavedCvs resume={resume} loadSavedCv={loadSavedCv} />
 
