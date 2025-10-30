@@ -19,7 +19,6 @@ export const processCVGeneration = async (
   io,
 ) => {
   try {
-    // 1. Generate the CV from the AI
     const prompt = generateCVPrompt(jobContextString, studentData, finalTouch);
     const rawJsonResponse = await genAI(prompt);
     const cleanedJsonString = rawJsonResponse
@@ -27,7 +26,6 @@ export const processCVGeneration = async (
       .trim();
     const parsedJson = JSON.parse(cleanedJsonString);
 
-    // ✅ FIX: Add query filter and fix field names
     const updateResult = await Student.updateOne(
       {
         _id: userId,
@@ -45,14 +43,12 @@ export const processCVGeneration = async (
       },
     );
 
-    // ✅ FIX: Check if the update actually found a document
     if (updateResult.matchedCount === 0) {
       throw new Error(`No CV found with jobId: ${jobId} for user: ${userId}`);
     }
 
     console.log('CV update successful:', updateResult);
 
-    // 3. Send a success notification
     console.log(`CV generation successful for user: ${userId}, job: ${jobId}`);
     await sendRealTimeUserNotification(
       io,
@@ -70,7 +66,6 @@ export const processCVGeneration = async (
     const errorMessage =
       error.message || 'An unknown error occurred during generation.';
 
-    // ✅ FIX: Use Student model and proper query
     await Student.updateOne(
       {
         _id: userId,

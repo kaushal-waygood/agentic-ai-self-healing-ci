@@ -22,6 +22,15 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/auto-apply/FilterWizard.tsx", "src/components/home/Solutions.tsx"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/components/auto-apply/FilterWizard.tsx",
+    "src/components/home/Solutions.tsx",
+    ".next/types/app/(app)/dashboard/my-docs/cv/[id]/page.tsx",
+    ".next/types/app/(app)/dashboard/my-docs/[type]/[id]/page.tsx"
+  ],
   "exclude": ["node_modules"]
 }

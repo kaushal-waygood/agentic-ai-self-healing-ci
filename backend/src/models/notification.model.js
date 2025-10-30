@@ -49,6 +49,8 @@ const notificationSchema = new mongoose.Schema(
         'general',
         'feature',
         'cv',
+        'coverletter',
+        'application',
       ],
       default: 'general',
     },

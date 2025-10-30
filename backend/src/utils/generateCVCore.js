@@ -24,8 +24,6 @@ export const initiateCVGeneration = async (req, res, jobContextString) => {
     const { useProfile, finalTouch } = req.body;
     let studentData;
 
-    console.log('initiateCVGeneration');
-
     if (useProfile === 'true' || useProfile === true) {
       const student = await Student.findById(_id);
       if (!student) {
@@ -90,12 +88,10 @@ export const initiateCVGeneration = async (req, res, jobContextString) => {
       createdAt: new Date(),
     };
 
-    // ✅ FIX: Use Student model instead of User
     await Student.findByIdAndUpdate(_id, {
       $push: { cvs: { $each: [newCVJob], $position: 0 } },
     });
 
-    // Trigger background processing
     const io = req.app.get('io');
     processCVGeneration(
       _id,

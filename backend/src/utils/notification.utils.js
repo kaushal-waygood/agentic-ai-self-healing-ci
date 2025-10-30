@@ -83,6 +83,42 @@ export const notificationTemplates = {
     category: 'cv',
     actionUrl: '/cv',
   }),
+  COVER_LETTER_GENERATED_SUCCESS: (message, jobId) => ({
+    title: 'Cover Letter Ready!',
+    message: message || 'Your cover letter has been generated successfully.',
+    type: 'success',
+    priority: 'medium',
+    category: 'coverletter',
+    actionUrl: `/cover-letter/${jobId}`,
+  }),
+
+  COVER_LETTER_GENERATED_FAILED: (message, error) => ({
+    title: 'Cover Letter Generation Failed',
+    message: `Failed to generate cover letter for "${message}". ${error}`,
+    type: 'error',
+    priority: 'medium',
+    category: 'coverletter',
+    actionUrl: '/cover-letter',
+  }),
+
+  TAILORED_APPLICATION_GENERATED_SUCCESS: (message, applicationId) => ({
+    title: 'Application Ready!',
+    message:
+      message || 'Your tailored application has been generated successfully.',
+    type: 'success',
+    priority: 'medium',
+    category: 'application',
+    actionUrl: `/applications/${applicationId}`,
+  }),
+
+  TAILORED_APPLICATION_GENERATED_FAILED: (message, error) => ({
+    title: 'Application Generation Failed',
+    message: `Failed to generate tailored application. ${error}`,
+    type: 'error',
+    priority: 'medium',
+    category: 'application',
+    actionUrl: '/applications',
+  }),
 };
 
 // Send notification to single user
