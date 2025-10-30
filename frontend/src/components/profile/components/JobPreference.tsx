@@ -258,7 +258,6 @@ const JobPreferencesForm = () => {
       await apiInstance.post('/students/prefered-job/add', {
         formData: payload,
       });
-      console.log('Preferences saved successfully');
       toast({
         variant: 'default',
         title: 'Success',

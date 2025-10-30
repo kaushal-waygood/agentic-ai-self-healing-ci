@@ -11,6 +11,7 @@ type Student = {
   error: string | null;
   jobPreference: any;
   savedJobs: string[];
+  resume?: any; // Added missing property
 };
 
 type EducationFormData = {
@@ -44,9 +45,26 @@ const studentSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    getStudentDetailsSuccess: (state, action: PayloadAction<any[]>) => {
+    getStudentDetailsSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
-      state.students = action.payload;
+
+      const responseData = action.payload;
+      console.log('Reducer received data:', responseData);
+
+      // Handle the nested structure
+      if (Array.isArray(responseData)) {
+        state.students = responseData;
+      } else if (responseData && responseData.studentDetails) {
+        // If it's the nested structure from your API
+        state.students = [responseData];
+      } else if (responseData) {
+        // If it's a single student object
+        state.students = [responseData];
+      } else {
+        state.students = [];
+      }
+
+      state.error = null;
     },
     getStudentDetailsFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -61,6 +79,7 @@ const studentSlice = createSlice({
     addStudentEducationSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.educations = [...state.educations, action.payload];
+      state.error = null;
     },
     addStudentEducationFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -68,7 +87,7 @@ const studentSlice = createSlice({
     },
 
     // student Education remove
-    removeStudentEducationRequest: (state, action: PayloadAction<string>) => {
+    removeStudentEducationRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
@@ -77,6 +96,7 @@ const studentSlice = createSlice({
       state.educations = state.educations.filter(
         (edu) => edu._id !== action.payload,
       );
+      state.error = null;
     },
     removeStudentEducationFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -84,24 +104,17 @@ const studentSlice = createSlice({
     },
 
     // student Education update
-    updateStudentEducationRequest: (
-      state,
-      action: PayloadAction<{
-        educationId: string;
-        eduData: EducationFormData;
-      }>,
-    ) => {
+    updateStudentEducationRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    updateStudentEducationSuccess: (
-      state,
-      action: PayloadAction<{ id: string; updatedEducation: any }>,
-    ) => {
+    updateStudentEducationSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
+      const updatedEducation = action.payload;
       state.educations = state.educations.map((edu) =>
-        edu._id === action.payload.id ? action.payload.updatedEducation : edu,
+        edu._id === updatedEducation._id ? updatedEducation : edu,
       );
+      state.error = null;
     },
     updateStudentEducationFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -116,24 +129,24 @@ const studentSlice = createSlice({
     addStudentExperienceSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.experiences = [...state.experiences, action.payload];
+      state.error = null;
     },
     addStudentExperienceFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    updateStudentExperienceRequest: (state, action: PayloadAction<any>) => {
+    updateStudentExperienceRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    updateStudentExperienceSuccess: (
-      state,
-      action: PayloadAction<{ id: string; updatedExperience: any }>,
-    ) => {
+    updateStudentExperienceSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
+      const updatedExperience = action.payload;
       state.experiences = state.experiences.map((exp) =>
-        exp._id === action.payload.id ? action.payload.updatedExperience : exp,
+        exp._id === updatedExperience._id ? updatedExperience : exp,
       );
+      state.error = null;
     },
     updateStudentExperienceFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -149,6 +162,7 @@ const studentSlice = createSlice({
       state.experiences = state.experiences.filter(
         (exp) => exp._id !== action.payload,
       );
+      state.error = null;
     },
     removeStudentExperienceFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -163,6 +177,7 @@ const studentSlice = createSlice({
     addStudentProjectSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.projects = [...state.projects, action.payload];
+      state.error = null;
     },
     addStudentProjectFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -178,24 +193,24 @@ const studentSlice = createSlice({
       state.projects = state.projects.filter(
         (proj) => proj._id !== action.payload,
       );
+      state.error = null;
     },
     removeStudentProjectFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    updateStudentProjectRequest: (state, action: PayloadAction<any>) => {
+    updateStudentProjectRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    updateStudentProjectSuccess: (
-      state,
-      action: PayloadAction<{ id: string; updatedProject: any }>,
-    ) => {
+    updateStudentProjectSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
+      const updatedProject = action.payload;
       state.projects = state.projects.map((proj) =>
-        proj._id === action.payload.id ? action.payload.updatedProject : proj,
+        proj._id === updatedProject._id ? updatedProject : proj,
       );
+      state.error = null;
     },
     updateStudentProjectFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -210,13 +225,14 @@ const studentSlice = createSlice({
     addStudentSkillSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.skills = [...state.skills, action.payload];
+      state.error = null;
     },
     addStudentSkillFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    removeStudentSkillRequest: (state, action: PayloadAction<string>) => {
+    removeStudentSkillRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
@@ -225,24 +241,24 @@ const studentSlice = createSlice({
       state.skills = state.skills.filter(
         (skill) => skill._id !== action.payload,
       );
+      state.error = null;
     },
     removeStudentSkillFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    updateStudentSkillRequest: (state, action: PayloadAction<string>) => {
+    updateStudentSkillRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    updateStudentSkillSuccess: (
-      state,
-      action: PayloadAction<{ id: string; updatedSkill: any }>,
-    ) => {
+    updateStudentSkillSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
+      const updatedSkill = action.payload;
       state.skills = state.skills.map((skill) =>
-        skill._id === action.payload.id ? action.payload.updatedSkill : skill,
+        skill._id === updatedSkill._id ? updatedSkill : skill,
       );
+      state.error = null;
     },
     updateStudentSkillFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -250,7 +266,7 @@ const studentSlice = createSlice({
     },
 
     // job preference
-    updateStudentJobPreferenceRequest: (state, action: PayloadAction<any>) => {
+    updateStudentJobPreferenceRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
@@ -267,13 +283,14 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
-    getStudentJobPreferenceRequest: (state, action: PayloadAction<string>) => {
+    getStudentJobPreferenceRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
     getStudentJobPreferenceSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.jobPreference = action.payload;
+      state.error = null;
     },
     getStudentJobPreferenceFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -288,17 +305,18 @@ const studentSlice = createSlice({
     getStudentResumeSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.resume = action.payload;
+      state.error = null;
     },
     getStudentResumeFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
 
-    updateJobPreferedByStudentRequest: (state, action: PayloadAction<any>) => {
+    updateJobPreferedByStudentRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    updateJobPreferedByStudentSuccess: (state, action: PayloadAction<any>) => {
+    updateJobPreferedByStudentSuccess: (state) => {
       state.loading = false;
       state.error = null;
     },
@@ -314,25 +332,19 @@ const studentSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    // In your studentReducer.ts file...
-
-    getAllSavedJobsSuccess: (state, action: PayloadAction<any>) => {
-      // Log the entire action to see the payload structure
-      console.log('Full action in reducer:', action);
-
-      // CORRECTED LINE:
-      // Assuming the array of jobs is inside a key, like 'data' or directly in the payload.
-      // Check if the payload is the array itself, or if it's nested.
-      const jobsArray = Array.isArray(action.payload)
-        ? action.payload
-        : action.payload.data || [];
-
+    getAllSavedJobsSuccess: (state, action: PayloadAction<any[]>) => {
       state.loading = false;
-      state.savedJobs = jobsArray;
+      state.savedJobs = action.payload;
+      state.error = null;
     },
     getAllSavedJobsFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
+    },
+
+    // Clear error action
+    clearError: (state) => {
+      state.error = null;
     },
   },
 });
@@ -390,21 +402,18 @@ export const {
   updateStudentJobPreferenceRequest,
   updateStudentJobPreferenceSuccess,
   updateStudentJobPreferenceFailure,
-
   getStudentJobPreferenceRequest,
   getStudentJobPreferenceSuccess,
   getStudentJobPreferenceFailure,
-
   getStudentResumeRequest,
   getStudentResumeSuccess,
   getStudentResumeFailure,
-
   updateJobPreferedByStudentRequest,
   updateJobPreferedByStudentSuccess,
   updateJobPreferedByStudentFailure,
-
   getAllSavedJobsRequest,
   getAllSavedJobsSuccess,
   getAllSavedJobsFailure,
+  clearError, // Add this export
 } = studentSlice.actions;
 export default studentSlice.reducer;

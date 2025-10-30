@@ -15,7 +15,7 @@ import Project from './components/Project';
 import Experience from './components/Experience';
 import Skills from './components/Skills';
 import SideSectionProfile from './components/SideSectionProfile';
-import JobSearchPreferences from './components/JobSearchPreferences';
+import JobSearchPreferences from './components/JobPreference';
 import JobPreferencesForm from './components/JobPreference';
 const navItems = [
   {

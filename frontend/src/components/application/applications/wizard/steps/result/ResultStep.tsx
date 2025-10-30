@@ -11,20 +11,18 @@ import {
   FileCheck2,
   Mail,
   PlusCircle,
-  Award, // Used for the main header icon
-  Send, // Used for send email button
-  Copy, // Used in EditableMaterial
-  Edit3, // Used in EditableMaterial
-  Download, // Used in EditableMaterial
-  Loader2, // Used in EditableMaterial for loading spinner
+  Award,
+  Send,
+  Copy,
+  Edit3,
+  Download,
+  Loader2,
   ShieldCheck,
   Sparkles,
   CheckCircle,
-  Eye, // Used in EditableMaterial for premium features indicator
+  Eye,
 } from 'lucide-react';
 
-// --- MOCK DATA & UTILS (for EditableMaterial) ---
-// These are required by your EditableMaterial component to function.
 const planTierOrder = { free: 0, plus: 1, pro: 2 };
 const mockUserProfile = {
   organizationId: 'org1',
@@ -175,7 +173,6 @@ export function EditableMaterial({
   }, [content, isHtml]);
 
   const handleCopy = () => {
-    console.log('Handle Copy Invoked');
     if (!content) return;
     const textToCopy = isHtml
       ? editorRef.current?.innerText || content

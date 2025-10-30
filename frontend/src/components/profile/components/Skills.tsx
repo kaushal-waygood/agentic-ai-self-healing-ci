@@ -185,9 +185,10 @@ const Skills = ({
                     <div className="flex items-center gap-2">
                       <select
                         value={skill.level}
-                        onChange={(e) =>
-                          handleLevelChange(skill.skillId, e.target.value)
-                        }
+                        onChange={(e) => {
+                          console.log(e.target.value);
+                          handleLevelChange(skill.skillId, e.target.value);
+                        }}
                         className="w-full text-gray-600 rounded border-gray-300 px-3 py-2 text-sm border shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                       >
                         <option value="BEGINNER">Beginner</option>

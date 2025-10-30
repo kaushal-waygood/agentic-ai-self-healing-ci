@@ -7,7 +7,6 @@ class RedisClient {
   constructor() {
     this.client = createClient({
       url,
-      password: process.env.REDIS_PASSWORD || undefined,
     });
 
     this.client.on('error', (err) => console.error('Redis Client Error', err));

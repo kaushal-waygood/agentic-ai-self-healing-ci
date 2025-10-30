@@ -5,7 +5,6 @@ import { config } from './config.js'; // Make sure this is the secure config we 
 const connectDB = async () => {
   try {
     await mongoose.connect(config.mongoUrl);
-
     // Start cron jobs
     // runAutopilotCron();
   } catch (error) {
