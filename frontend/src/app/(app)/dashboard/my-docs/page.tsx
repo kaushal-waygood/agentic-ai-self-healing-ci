@@ -197,35 +197,83 @@ export default function DocumentsPage() {
     }
   };
 
+  // const copyToClipboard = async (content: any, id: string) => {
+  //   try {
+  //     const textContent =
+  //       typeof content === 'string'
+  //         ? content
+  //         : JSON.stringify(content, null, 2);
+  //     await navigator.clipboard.writeText(textContent.cv);
+  //     setCopiedId(id);
+  //     toast({
+  //       title: 'Copied!',
+  //       description: 'Content copied to clipboard',
+  //     });
+  //     setTimeout(() => setCopiedId(null), 2000);
+  //   } catch (error) {
+  //     console.error('Failed to copy:', error);
+  //     toast({
+  //       variant: 'destructive',
+  //       title: 'Error',
+  //       description: 'Failed to copy content',
+  //     });
+  //   }
+  // };
+
   const copyToClipboard = async (content: any, id: string) => {
+    if (!content) return;
+    const textToCopy = content.cv || content.html;
+    if (!textToCopy) return;
+
     try {
-      const textContent =
-        typeof content === 'string'
-          ? content
-          : JSON.stringify(content, null, 2);
-      await navigator.clipboard.writeText(textContent);
-      setCopiedId(id);
-      toast({ title: 'Copied!', description: 'Content copied to clipboard' });
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch {
+      await navigator.clipboard.writeText(textToCopy);
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to copy content',
+        title: 'Copied to Clipboard!',
+        description: `content has been copied as plain text.`,
       });
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      toast({ variant: 'destructive', title: 'Copy Failed' });
     }
   };
 
-  const downloadAsFile = (content: any, filename: string) => {
-    const textContent =
-      typeof content === 'string' ? content : JSON.stringify(content, null, 2);
-    const blob = new Blob([textContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const downloadAsFile = async (content: any, title: string) => {
+    if (!content) return;
+    setIsLoading(true);
+    toast({ title: 'Generating PDF...' });
+    try {
+      const response = await apiInstance.post(
+        '/students/pdf/generate-pdf',
+        { html: content.cv || content.html, title },
+        { responseType: 'blob' },
+      );
+      if (response.status !== 200)
+        throw new Error('PDF generation failed on the server.');
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      downloadFile(blob, `zobsai_${title.replace(/ /g, '_')}.pdf`);
+      toast({ title: 'PDF downloaded successfully!' });
+    } catch (error) {
+      console.error('PDF Download Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'PDF Download Failed',
+        description: 'An error occurred while generating the PDF.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
