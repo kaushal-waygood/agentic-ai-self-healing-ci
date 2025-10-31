@@ -7,12 +7,17 @@ import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import GeneratedCoverLetter from '@/components/cover-letter/components/GeneratedCoverLetter';
 import ResultStep from '@/components/application/applications/wizard/steps/result/ResultStep';
+import { sendEmailPermit } from '@/services/api/auth';
+import { toast } from '@/hooks/use-toast';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
 
 const DocumentPage = () => {
   const { type, id } = useParams();
   const [documentData, setDocumentData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useSelector((state: RootState) => state.auth);
 
   // Add state for application content
   const [refinedCv, setRefinedCv] = useState('');
@@ -71,6 +76,8 @@ const DocumentPage = () => {
               cv: responseData.application?.tailoredCV || '',
               coverLetter: responseData.application?.tailoredCoverLetter || '',
               email: responseData.application?.applicationEmail || '',
+              jobTitle: responseData.application?.jobTitle || '',
+              discription: responseData.application?.jobDescription || '',
               type: 'application',
               ...responseData.application,
             };
@@ -118,11 +125,21 @@ const DocumentPage = () => {
   };
 
   // Placeholder handlers for ResultStep
-  const handleSendEmail = async () => {
-    console.log('Sending email...');
-    // Implement email sending logic
-  };
+  const handleSendEmail = () => {
+    const response = apiInstance.post('/user/send-email', {
+      senderEmail: user?.email,
+      recieverEmail: 'infozobsai@gmail.com',
+      subject: documentData?.jobTitle,
+      bodyHtml: documentData?.email,
+      htmlResume: documentData?.cv,
+      htmlCoverLetter: documentData?.coverLetter,
+    });
 
+    toast({
+      title: 'Email Sent',
+      description: 'An email has been sent to your linked account.',
+    });
+  };
   const handleStartNew = () => {
     console.log('Starting new application...');
     // Navigate to new application or reset state

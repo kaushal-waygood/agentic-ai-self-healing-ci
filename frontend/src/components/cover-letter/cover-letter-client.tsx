@@ -84,13 +84,14 @@ import SleekLoadingCard from '../application/applications/wizard/steps/LoadingSt
 import SavedCoverLetters from './components/SavedCl';
 import GeneratedCoverLetter from './components/GeneratedCoverLetter';
 import g from '@genkit-ai/googleai';
+import FinalResultView from './components/FinalResultView';
 
 // Wizard related types
 type WizardStep =
   | 'job'
   | 'cv'
   | 'customize'
-  | 'generating'
+  // | 'generating'
   | 'result'
   | 'context';
 type JobContext = {
@@ -345,7 +346,9 @@ export function CoverLetterGeneratorClient() {
     }
 
     setIsLoading(true);
-    setWizardStep('generating');
+    // setWizardStep('generating');
+    setWizardStep('result');
+
     setGeneratedCvOutput(null);
     setCurrentCvContent('');
 
@@ -603,18 +606,20 @@ export function CoverLetterGeneratorClient() {
             setWizardStep={setWizardStep}
           />
         );
-      case 'generating':
-        return <SleekLoadingCard />;
+      // case 'generating':
+      //   return <SleekLoadingCard />;
 
       case 'result':
         return (
-          <GeneratedCoverLetter
-            generatedLetter={generatedCvOutput} // <-- FIX 1: Pass the state that holds the API response
-            setGeneratedLetter={setCurrentCvContent} // <-- FIX 2: Pass the updater for the editable content
-            handleInitiateSave={handleInitiateSave}
-            handleRegenerate={regenerateLetter} // Pass the regenerate function
-            // customizationOptions={customizationOptions} // Pass the customization options
-          />
+          // <GeneratedCoverLetter
+          //   generatedLetter={generatedCvOutput} // <-- FIX 1: Pass the state that holds the API response
+          //   setGeneratedLetter={setCurrentCvContent} // <-- FIX 2: Pass the updater for the editable content
+          //   handleInitiateSave={handleInitiateSave}
+          //   handleRegenerate={regenerateLetter} // Pass the regenerate function
+          //   // customizationOptions={customizationOptions} // Pass the customization options
+          // />
+
+          <FinalResultView />
         );
       default:
         return null;

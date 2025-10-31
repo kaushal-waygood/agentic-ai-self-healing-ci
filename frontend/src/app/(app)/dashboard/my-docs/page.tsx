@@ -1,4 +1,3 @@
-// app/dashboard/documents/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,13 +8,12 @@ import {
   Clock,
   Trash2,
   Download,
-  Eye,
   Copy,
   CheckCircle2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface CV {
   _id: string;
@@ -63,9 +61,18 @@ interface DocumentStats {
 }
 
 export default function DocumentsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+
+  // Initialize from query param (?tab=cvs / ?tab=cover-letters / ?tab=applications)
+  const initialTab =
+    (searchParams.get('tab') as 'cvs' | 'cover-letters' | 'applications') ||
+    'cvs';
   const [activeTab, setActiveTab] = useState<
     'cvs' | 'cover-letters' | 'applications'
-  >('cvs');
+  >(initialTab);
+
   const [cvs, setCvs] = useState<CV[]>([]);
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [applications, setApplications] = useState<TailoredApplication[]>([]);
@@ -77,8 +84,14 @@ export default function DocumentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const { toast } = useToast();
+  // Update the URL whenever tab changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', activeTab);
+    router.replace(`${window.location.pathname}?${params.toString()}`);
+  }, [activeTab, router]);
 
+  // Fetch all data on mount
   useEffect(() => {
     fetchAllData();
   }, []);
@@ -145,13 +158,9 @@ export default function DocumentsPage() {
   const deleteCV = async (cvId: string) => {
     try {
       await apiInstance.delete(`/students/cvs/${cvId}`);
-      toast({
-        title: 'Success',
-        description: 'CV deleted successfully',
-      });
+      toast({ title: 'Success', description: 'CV deleted successfully' });
       fetchCVs();
-    } catch (error) {
-      console.error('Failed to delete CV:', error);
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -163,13 +172,9 @@ export default function DocumentsPage() {
   const deleteCoverLetter = async (clId: string) => {
     try {
       await apiInstance.delete(`/students/cover-letters/${clId}`);
-      toast({
-        title: 'Success',
-        description: 'Cover letter deleted successfully',
-      });
+      toast({ title: 'Success', description: 'Cover letter deleted' });
       fetchCoverLetters();
-    } catch (error) {
-      console.error('Failed to delete cover letter:', error);
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -181,13 +186,9 @@ export default function DocumentsPage() {
   const deleteApplication = async (appId: string) => {
     try {
       await apiInstance.delete(`/students/tailored-applications/${appId}`);
-      toast({
-        title: 'Success',
-        description: 'Application deleted successfully',
-      });
+      toast({ title: 'Success', description: 'Application deleted' });
       fetchApplications();
-    } catch (error) {
-      console.error('Failed to delete application:', error);
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -196,41 +197,83 @@ export default function DocumentsPage() {
     }
   };
 
+  // const copyToClipboard = async (content: any, id: string) => {
+  //   try {
+  //     const textContent =
+  //       typeof content === 'string'
+  //         ? content
+  //         : JSON.stringify(content, null, 2);
+  //     await navigator.clipboard.writeText(textContent.cv);
+  //     setCopiedId(id);
+  //     toast({
+  //       title: 'Copied!',
+  //       description: 'Content copied to clipboard',
+  //     });
+  //     setTimeout(() => setCopiedId(null), 2000);
+  //   } catch (error) {
+  //     console.error('Failed to copy:', error);
+  //     toast({
+  //       variant: 'destructive',
+  //       title: 'Error',
+  //       description: 'Failed to copy content',
+  //     });
+  //   }
+  // };
+
   const copyToClipboard = async (content: any, id: string) => {
+    if (!content) return;
+    const textToCopy = content.cv || content.html;
+    if (!textToCopy) return;
+
     try {
-      const textContent =
-        typeof content === 'string'
-          ? content
-          : JSON.stringify(content, null, 2);
-      await navigator.clipboard.writeText(textContent.cv);
-      setCopiedId(id);
+      await navigator.clipboard.writeText(textToCopy);
       toast({
-        title: 'Copied!',
-        description: 'Content copied to clipboard',
+        title: 'Copied to Clipboard!',
+        description: `content has been copied as plain text.`,
       });
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to copy content',
-      });
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      toast({ variant: 'destructive', title: 'Copy Failed' });
     }
   };
 
-  const downloadAsFile = (content: any, filename: string) => {
-    const textContent =
-      typeof content === 'string' ? content : JSON.stringify(content, null, 2);
-    const blob = new Blob([textContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const downloadAsFile = async (content: any, title: string) => {
+    if (!content) return;
+    setIsLoading(true);
+    toast({ title: 'Generating PDF...' });
+    try {
+      const response = await apiInstance.post(
+        '/students/pdf/generate-pdf',
+        { html: content.cv || content.html, title },
+        { responseType: 'blob' },
+      );
+      if (response.status !== 200)
+        throw new Error('PDF generation failed on the server.');
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      downloadFile(blob, `zobsai_${title.replace(/ /g, '_')}.pdf`);
+      toast({ title: 'PDF downloaded successfully!' });
+    } catch (error) {
+      console.error('PDF Download Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'PDF Download Failed',
+        description: 'An error occurred while generating the PDF.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -259,20 +302,18 @@ export default function DocumentsPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-gray-800 dark:text-white">
             My Documents
@@ -282,7 +323,7 @@ export default function DocumentsPage() {
           </p>
         </div>
 
-        {/* Stats Cards */}
+        {/* ✅ Stat Tabs (interactive with params) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatCard
             label="CVs"
@@ -310,15 +351,23 @@ export default function DocumentsPage() {
           />
         </div>
 
-        {/* Content */}
-        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-800">
+        {/* ✅ Conditional Sections */}
+        <div className="bg-white/50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-800 backdrop-blur-sm">
           {isLoading ? (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="flex flex-col justify-center items-center py-20">
+              {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
+              <div>
+                <img
+                  src="/logo.png"
+                  alt=""
+                  className="w-10 h-10 animate-bounce"
+                />
+              </div>
+
+              <div className="text-lg">LOADING...</div>
             </div>
           ) : (
             <>
-              {/* CVs Tab */}
               {activeTab === 'cvs' && (
                 <DocumentSection
                   title="Generated CVs"
@@ -334,7 +383,6 @@ export default function DocumentsPage() {
                 />
               )}
 
-              {/* Cover Letters Tab */}
               {activeTab === 'cover-letters' && (
                 <DocumentSection
                   title="Generated Cover Letters"
@@ -350,7 +398,6 @@ export default function DocumentsPage() {
                 />
               )}
 
-              {/* Applications Tab */}
               {activeTab === 'applications' && (
                 <DocumentSection
                   title="Tailored Applications"
@@ -544,8 +591,8 @@ const DocumentCard = ({
   };
 
   return (
-    <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-3">
+    <div className=" p-4 border border-gray-200 cursor-pointer dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-3 ">
         <div className="flex items-center space-x-3">
           {getStatusIcon(item.status)}
           <span

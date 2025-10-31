@@ -22,6 +22,9 @@ import {
   Eye,
 } from 'lucide-react';
 import EditableMaterial from '@/components/application/editable-material';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { useRouter } from 'next/navigation';
 
 const planTierOrder = { free: 0, plus: 1, pro: 2 };
 const mockUserProfile = {
@@ -129,6 +132,8 @@ const ResultStep = ({
   const [activeSection, setActiveSection] = useState('job');
   const [isProcessing, setIsProcessing] = useState(false);
   const [savedSections, setSavedSections] = useState(new Set());
+  const { user } = useSelector((state: RootState) => state.auth);
+  const router = useRouter();
 
   const CustomButton = ({
     variant,
@@ -406,27 +411,27 @@ const ResultStep = ({
         </CustomButton>
 
         <div className="flex items-center flex-wrap justify-end gap-3">
-          <CustomButton
-            onClick={handleSendEmailWithLoading}
-            disabled={isProcessing}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 disabled:opacity-75 disabled:scale-100"
-          >
-            {isProcessing ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Sending...</span>
-              </>
-            ) : (
-              <>
-                <Mail className="w-4 h-4" />
-                <span>Send Email</span>
-              </>
-            )}
-          </CustomButton>
+          {user?.googleAuth ? (
+            <CustomButton
+              onClick={handleStartNew}
+              className="flex items-center space-x-2 px-4 py-2 bg-white text-black rounded-lg font-medium shadow-md hover:bg-slate-700 transition-all duration-300 hover:scale-105"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Send Application</span>
+            </CustomButton>
+          ) : (
+            <CustomButton
+              onClick={() => router.push('/dashboard/settings')}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-700 text-white rounded-lg font-medium"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Connect Google</span>
+            </CustomButton>
+          )}
 
           <CustomButton
-            onClick={handleStartNew}
-            className="flex items-center space-x-2 px-4 py-2 bg-slate-600 to-slate-700 text-white rounded-lg font-medium shadow-md hover:bg-slate-700 transition-all duration-300 hover:scale-105"
+            onClick={() => router.push('/dashboard/apply')}
+            className="flex items-center space-x-2 px-4 py-2 bg-slate-600 to-slate-700 text-white rounded-lg font-medium "
           >
             <PlusCircle className="w-4 h-4" />
             <span>New Applications</span>
