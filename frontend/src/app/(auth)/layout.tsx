@@ -51,8 +51,13 @@ export default function GuestLayout({
   // While checking, show a loading state to prevent flashing the login page
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center flex-col justify-center min-h-screen">
+        {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
+        <div>
+          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
+        </div>
+
+        <div className="text-lg">LOADING...</div>
       </div>
     );
   }

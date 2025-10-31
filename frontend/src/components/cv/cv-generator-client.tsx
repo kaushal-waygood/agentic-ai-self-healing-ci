@@ -30,6 +30,7 @@ import ContextWizard from './ContextWizard';
 import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
 import GeneratedCV from './GeneratedCV';
 import SavedCvs from './components/SavedCvs';
+import FinalResultView from '../cover-letter/components/FinalResultView';
 
 type WizardStep = 'job' | 'cv' | 'context' | 'generating' | 'result';
 type JobContext = {
@@ -272,7 +273,8 @@ export function CvGeneratorClient() {
     }
 
     setIsLoading(true);
-    setWizardStep('generating');
+    // setWizardStep('generating');
+    setWizardStep('result');
     setGeneratedCvOutput(null);
     setCurrentCvContent('');
 
@@ -502,18 +504,20 @@ export function CvGeneratorClient() {
             handleGenerate={handleGenerate}
           />
         );
-      case 'generating':
-        return <SleekLoadingCard />;
+      // case 'generating':
+      //   return <SleekLoadingCard />;
 
       case 'result':
         return (
-          <GeneratedCV
-            generatedCvOutput={generatedCvOutput}
-            handleInitiateSave={handleInitiateSave}
-            setCurrentCvContent={setCurrentCvContent}
-            handleRegenerate={regenerateCv}
-            setWizardStep={setWizardStep}
-          />
+          // <GeneratedCV
+          //   generatedCvOutput={generatedCvOutput}
+          //   handleInitiateSave={handleInitiateSave}
+          //   setCurrentCvContent={setCurrentCvContent}
+          //   handleRegenerate={regenerateCv}
+          //   setWizardStep={setWizardStep}
+          // />
+
+          <FinalResultView />
         );
       default:
         return null;
@@ -534,7 +538,7 @@ export function CvGeneratorClient() {
         </motion.div>
       </AnimatePresence>
 
-      <button onClick={getAllCvs}>Get All CV's</button>
+      {/* <button onClick={getAllCvs}>Get All CV's</button> */}
 
       <SavedCvs resume={resume} loadSavedCv={loadSavedCv} />
 

@@ -429,6 +429,7 @@ import apiInstance from '@/services/api';
 interface Job {
   _id: string;
   title: string;
+
   company: string;
   logo?: string;
   jobAddress: string;
@@ -492,7 +493,7 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
           <p className="text-sm font-medium text-gray-500 truncate mb-1">
             {job.company}
           </p>
-          <h3 className="text-xl font-bold text-gray-900 truncate mb-3 group-hover:text-blue-600 transition-colors duration-300">
+          <h3 className="text-xl font-semibold text-gray-900 truncate mb-3 group-hover:text-blue-600 transition-colors duration-300">
             {job.title}
           </h3>
 
@@ -558,21 +559,21 @@ const JobWizard = ({
       value: 'paste',
       icon: FileSignature,
       label: 'Paste JD',
-      description: 'Full job description',
+      // description: 'Full job description',
       gradient: 'from-blue-500 to-cyan-400',
     },
     {
       value: 'select',
       icon: Briefcase,
-      label: 'Select Job',
-      description: 'Choose from saved',
+      label: 'Saved Job',
+      // description: 'Choose from saved',
       gradient: 'from-purple-500 to-pink-400',
     },
     {
       value: 'title',
       icon: User,
       label: 'Job Title',
-      description: 'Quick setup',
+      // description: 'Quick setup',
       gradient: 'from-green-500 to-emerald-400',
     },
   ];
@@ -641,7 +642,7 @@ const JobWizard = ({
               className="w-full"
             >
               {/* Enhanced Tabs List with better mobile support */}
-              <TabsList className="grid grid-cols-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl p-1.5 mb-4 h-auto shadow-inner">
+              <TabsList className="grid grid-cols-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-1.5 mb-4 h-auto shadow-inner">
                 {tabData.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.value;
@@ -662,7 +663,7 @@ const JobWizard = ({
                       />
                       <div className="text-center">
                         <div
-                          className={`text-xs font-medium mb-0.5 ${
+                          className={`text-sm font-medium mb-0.5 ${
                             isActive ? 'text-white' : 'text-gray-600'
                           }`}
                         >
