@@ -13,52 +13,66 @@ import {
   CheckCircle,
   AlertCircle,
   Sparkles,
-  FileText, // More appropriate for DOCX
+  FileText,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast'; // Assuming a custom toast hook
-import apiInstance from '@/services/api'; // Assuming a pre-configured axios instance
+import { useToast } from '@/hooks/use-toast';
+import apiInstance from '@/services/api';
 
-// Define the props interface correctly
 interface EditableMaterialProps {
   content: string;
-  setContent: (value: string) => void;
+  setContent: (value: string) => void; // Make sure this prop is defined
   title: string;
   isHtml?: boolean;
   className?: string;
+  handleSave?: (content: string) => Promise<void> | void;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
   content,
-  setContent,
+  setContent, // Make sure this is destructured from props
+  handleSave,
   title,
   isHtml = false,
   className = '',
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null); // Ref for the main container for fullscreen
+  const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // For downloads
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const [originalContent, setOriginalContent] = useState<string>('');
 
-  // Effect to sync the editor's content when the `content` prop changes from the parent,
-  // but ONLY when not in editing mode to prevent overwriting the user's input.
+  const placeCaretAtEnd = (el: HTMLElement) => {
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  };
+
   useEffect(() => {
-    if (
-      editorRef.current &&
-      !isEditing &&
-      editorRef.current.innerHTML !== content
-    ) {
+    if (!editorRef.current) return;
+
+    if (isEditing) {
+      if (editorRef.current.innerHTML !== content) {
+        editorRef.current.innerHTML = content;
+      }
+      placeCaretAtEnd(editorRef.current);
+      return;
+    }
+
+    if (!isEditing && editorRef.current.innerHTML !== content) {
       editorRef.current.innerHTML = content;
     }
-  }, [content, isEditing]);
+  }, [isEditing, content]);
 
-  // Effect to calculate word count when content changes
   useEffect(() => {
     if (editorRef.current) {
       const text = editorRef.current.innerText || '';
@@ -67,7 +81,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   }, [content]);
 
-  // Handle native browser fullscreen changes (e.g., pressing ESC)
   useEffect(() => {
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
@@ -96,24 +109,35 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
   const handleInput = () => {
     if (editorRef.current) {
-      // We don't need to call setContent on every input, which can be slow.
-      // We'll read from the ref when saving, which improves performance.
       if (!hasUnsavedChanges) {
         setHasUnsavedChanges(true);
       }
-      // Update word count live
       const text = editorRef.current.innerText || '';
       const words = text.trim().split(/\s+/).filter(Boolean);
       setWordCount(words.length);
+      const newValue = editorRef.current.innerHTML;
+      setContent(newValue); // This should work now
     }
   };
 
-  const handleEditToggle = () => {
+  const handleEditToggle = async () => {
     if (isEditing) {
-      // --- Save Logic ---
       if (editorRef.current) {
         const newContent = editorRef.current.innerHTML;
-        setContent(newContent); // Update parent state
+
+        if (newContent === originalContent) {
+          setIsEditing(false);
+          return;
+        }
+
+        // Update content in parent component
+        setContent(newContent); // This should work now
+
+        // Trigger parent save if available
+        if (typeof handleSave === 'function') {
+          await handleSave(newContent);
+        }
+
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
         toast({
@@ -121,13 +145,20 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           description: 'Your changes have been saved.',
         });
       }
+
+      setTimeout(() => setIsEditing(false), 0);
+    } else {
+      // Entering edit mode - save original content
+      if (editorRef.current) {
+        setOriginalContent(editorRef.current.innerHTML);
+      } else {
+        setOriginalContent(content);
+      }
+      setIsEditing(true);
     }
-    // Toggle editing state
-    setIsEditing(!isEditing);
   };
 
   const handleCopy = async () => {
-    console.log('Handle Copy Invoked');
     if (!editorRef.current) return;
     const textToCopy = editorRef.current.innerText;
     if (!textToCopy) return;
@@ -144,7 +175,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   };
 
-  // Helper for triggering file downloads
   const downloadFile = (blob: Blob, filename: string) => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -214,48 +244,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   };
 
-  const handleRegenerate = async () => {
-    setIsRegenerating(true);
-    toast({
-      title: 'Regenerating content...',
-      description: 'Please wait a moment.',
-    });
-    try {
-      // NOTE: Adjust the payload to match your actual API specification.
-      const response = await apiInstance.post(
-        '/students/coverletter/regenerate',
-        {
-          currentContent: content,
-        },
-      );
-
-      if (response.data && response.data.newContent) {
-        setContent(response.data.newContent);
-        // Directly update the editor to show the new content immediately
-        if (editorRef.current) {
-          editorRef.current.innerHTML = response.data.newContent;
-        }
-        toast({
-          title: 'Content Regenerated!',
-          description: 'The material has been updated.',
-        });
-      } else {
-        throw new Error('Invalid response from server.');
-      }
-    } catch (error) {
-      console.error('Regeneration failed:', error);
-      toast({ variant: 'destructive', title: 'Regeneration Failed' });
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
-
-  // WARNING: `document.execCommand` is deprecated. For production, use a modern
-  // rich-text editor library like TipTap, Slate.js, or React-Quill.
   const formatText = (command: string) => {
     document.execCommand(command, false);
     editorRef.current?.focus();
-    handleInput(); // Reflect changes immediately
+    handleInput();
   };
 
   const insertTemplate = () => {
@@ -270,7 +262,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     handleInput();
   };
 
-  // Dynamic status indicator for the footer
   const getStatusIndicator = () => {
     if (hasUnsavedChanges) {
       return (
@@ -302,7 +293,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         isFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'relative'
       }`}
     >
-      {/* --- Header and Toolbar --- */}
       <header className="flex items-center justify-between p-4 border-b border-gray-200 flex-wrap gap-2">
         <h3 className="text-lg font-semibold text-gray-800 flex items-center">
           {isEditing ? (
@@ -347,18 +337,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         )}
         <div className="flex items-center space-x-2">
           <button
-            onClick={handleRegenerate}
-            disabled={isRegenerating || isLoading}
-            className="flex items-center px-3 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
-          >
-            {isRegenerating ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4 mr-2" />
-            )}
-            Regenerate
-          </button>
-          <button
             onClick={toggleFullscreen}
             className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg"
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
@@ -372,7 +350,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </div>
       </header>
 
-      {/* --- Editor Content Area --- */}
       <main className="flex-grow p-6 overflow-y-auto">
         <div
           ref={editorRef}
@@ -384,11 +361,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
               ? 'bg-gray-50/50 p-4 rounded-md ring-2 ring-indigo-300'
               : ''
           }`}
-          dangerouslySetInnerHTML={{ __html: content }}
+          dangerouslySetInnerHTML={!isEditing ? { __html: content } : undefined}
         />
       </main>
 
-      {/* --- Action Bar & Status Footer --- */}
       <footer className="p-4 border-t border-gray-200 bg-gray-50/80 rounded-b-2xl">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -399,7 +375,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <div className="flex items-center space-x-2 flex-wrap justify-center gap-y-2">
             <button
               onClick={handleEditToggle}
-              disabled={isLoading || isRegenerating}
+              disabled={isLoading}
               className={`flex items-center px-4 py-2 rounded-lg font-semibold text-sm transition-transform hover:scale-105 ${
                 isEditing
                   ? 'bg-green-500 hover:bg-green-600 text-white'
@@ -418,9 +394,30 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 </>
               )}
             </button>
+            {isEditing && (
+              <button
+                onClick={() => {
+                  if (editorRef.current) {
+                    editorRef.current.innerHTML = originalContent;
+                  }
+                  setContent(originalContent); // This should work now
+                  setIsEditing(false);
+                  setHasUnsavedChanges(false);
+                  toast({
+                    title: 'Changes Reverted',
+                    description: 'Your unsaved changes have been discarded.',
+                  });
+                }}
+                className="flex items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium text-sm transition"
+              >
+                <AlertCircle className="w-4 h-4 mr-2" />
+                Cancel
+              </button>
+            )}
+
             <button
               onClick={handleCopy}
-              disabled={!content || isLoading || isRegenerating}
+              disabled={!content || isLoading}
               className="flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium text-sm transition disabled:opacity-50"
             >
               <Copy className="w-4 h-4 mr-2" />
@@ -428,7 +425,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </button>
             <button
               onClick={handleDownloadPdf}
-              disabled={!isHtml || !content || isLoading || isRegenerating}
+              disabled={!isHtml || !content || isLoading}
               className="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -437,7 +434,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </button>
             <button
               onClick={handleDownloadDocx}
-              disabled={!isHtml || !content || isLoading || isRegenerating}
+              disabled={!isHtml || !content || isLoading}
               className="flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

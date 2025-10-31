@@ -289,7 +289,7 @@ export const fetchAndSaveRapidJobsUseLater = async (req, res) => {
     res.status(status).json({
       success: false,
       message,
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      error: config.nodeEnv === 'local' ? err.message : undefined,
     });
   }
 };
@@ -525,7 +525,7 @@ export const getAllJobs = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: config.nodeEnv === 'local' ? error.message : undefined,
     });
   }
 };

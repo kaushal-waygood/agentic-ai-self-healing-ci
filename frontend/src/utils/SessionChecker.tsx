@@ -10,7 +10,6 @@ export function SessionChecker({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = getLocalToken();
     if (!token) {
-      console.log('Client-side check: No token in localStorage. Redirecting.');
       router.push('/login');
     }
   }, [router]);

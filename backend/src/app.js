@@ -18,10 +18,12 @@ import aiRoutes from './routes/ai.route.js';
 import agentRoutes from './routes/autopilotAgent.route.js';
 import planRoutes from './routes/plan.route.js';
 import formRoutes from './routes/form.route.js';
+import notificationRoutes from './routes/notification.route.js'; // 👈 ADD THIS
 import { handleStripeWebhook } from './controllers/plan.controller.js';
 import taskRoutes from './routes/dev.route.js';
 import newFeatureRoutes from './routes/newFeature.route.js';
-import './queues/jobDiscoveryQueue.js';
+// import './queues/jobDiscoveryQueue.js';
+import { config } from './config/config.js';
 
 const app = express();
 
@@ -34,7 +36,7 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(compression());
 
-// 2. Rate Limiting Middleware  👈 ADD THIS SECTION
+// 2. Rate Limiting Middleware
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
@@ -46,18 +48,25 @@ const limiter = rateLimit({
 // Apply the rate limiting middleware to all requests
 app.use(limiter);
 
-// 3. CORS Configuration (was 2)
+const prod = ['https://www.zobsai.com'];
+const dev = [
+  'https://dev.zobsai.com',
+  'https://in.indeed.com',
+  'https://www.linkedin.com',
+];
+const local = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+
+const originAllow =
+  config.nodeEnv === 'production'
+    ? prod
+    : config.nodeEnv === 'development'
+    ? dev
+    : local;
+
+// 3. CORS Configuration
 app.use(
   cors({
-    origin: process.env.CORS_ORIGINS?.split(',') || [
-      'http://127.0.0.1:3000',
-      'http://localhost:3000',
-      'http://144.91.114.195:30090',
-      'https://dev.zobsai.com',
-      'https://www.zobsai.com',
-      'https://zobsai.com',
-      'chrome-extension://mmmbijnmokcdpnabaahhbmioeobobcnb',
-    ],
+    origin: originAllow,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
@@ -76,7 +85,7 @@ app.post(
   handleStripeWebhook,
 );
 
-// 4. Request Parsing Middleware (was 3)
+// 4. Request Parsing Middleware
 app.use(express.json({ limit: '1000mb' }));
 
 app.use(
@@ -86,7 +95,7 @@ app.use(
   }),
 );
 
-// 5. Other Middleware (was 4)
+// 5. Other Middleware
 app.use(cookieParser());
 app.use(morgan('dev'));
 
@@ -102,7 +111,7 @@ app.get('/heath-check', (req, res) => {
   });
 });
 
-// 6. Route Middleware (was 5)
+// 6. Route Middleware
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/job-role', jobRoleRoutes);
 app.use('/api/v1/organization', organizationRoutes);
@@ -112,15 +121,16 @@ app.use('/api/v1/students', aiRoutes);
 app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
+app.use('/api/v1/notifications', notificationRoutes); // 👈 ADD THIS
 // app.use('/api/v1/dev', taskRoutes);
 app.use('/api/v1/new-feature', newFeatureRoutes);
 
-// 7. 404 Handler (was 6)
+// 7. 404 Handler
 app.use((req, res, next) => {
   next(createHttpError(404, 'Endpoint not found'));
 });
 
-// 8. Error Handling Middleware (was 7)
+// 8. Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err); // Log the error for debugging
 
@@ -134,7 +144,7 @@ app.use((err, req, res, next) => {
     error: {
       status: err.status || 500,
       message: err.message,
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+      ...(config.nodeEnv === 'development' && { stack: err.stack }),
     },
   });
 });

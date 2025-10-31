@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FileCheck2, Loader2, Filter, Bookmark, Send, Eye } from 'lucide-react';
+import { Loader2, Filter, Bookmark, Send, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ApplicationRow, StatCard } from './components/statusConfig';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -223,8 +223,17 @@ export default function ApplicationsPage() {
 
         <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4 rounded-2xl border border-gray-200 dark:border-gray-800">
           {isLoading ? (
-            <div className="flex justify-center items-center py-20">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+            <div className="flex flex-col justify-center items-center py-20">
+              {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
+              <div>
+                <img
+                  src="/logo.png"
+                  alt=""
+                  className="w-10 h-10 animate-bounce"
+                />
+              </div>
+
+              <div className="text-lg">LOADING...</div>
             </div>
           ) : applications.length > 0 ? (
             <div className="space-y-2">

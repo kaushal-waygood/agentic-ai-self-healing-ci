@@ -83,13 +83,15 @@ import CustomizeWizard from './customizeWizard';
 import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
 import SavedCoverLetters from './components/SavedCl';
 import GeneratedCoverLetter from './components/GeneratedCoverLetter';
+import g from '@genkit-ai/googleai';
+import FinalResultView from './components/FinalResultView';
 
 // Wizard related types
 type WizardStep =
   | 'job'
   | 'cv'
   | 'customize'
-  | 'generating'
+  // | 'generating'
   | 'result'
   | 'context';
 type JobContext = {
@@ -344,7 +346,9 @@ export function CoverLetterGeneratorClient() {
     }
 
     setIsLoading(true);
-    setWizardStep('generating');
+    // setWizardStep('generating');
+    setWizardStep('result');
+
     setGeneratedCvOutput(null);
     setCurrentCvContent('');
 
@@ -494,7 +498,7 @@ export function CoverLetterGeneratorClient() {
   };
 
   const handleInitiateSave = async () => {
-    let contentToSave = generatedCvOutput;
+    const contentToSave = currentCvContent?.trim(); // ✅ Use the edited content
 
     if (!contentToSave) {
       toast({ variant: 'destructive', title: 'No Letter to Save' });
@@ -508,20 +512,31 @@ export function CoverLetterGeneratorClient() {
 
   const confirmSaveNamedLetter = async () => {
     if (!letterNameForSavingInput.trim() || !activeLetterToSave) return;
-    const formValues = customizationForm.getValues();
-    const response = await apiInstance.post('/students/letter/save/html', {
-      title: letterNameForSavingInput,
-      html: generatedCvOutput,
-    });
 
-    const newSavedLetter = response.data;
-    const updatedList = [newSavedLetter, ...savedLettersList];
-    mockUserProfile.savedCoverLetters = updatedList;
-    setSavedLettersList(updatedList);
-    toast({ title: 'Cover Letter Saved!' });
-    setIsNamingDialogDisplayed(false);
-    setLetterNameForSavingInput('');
-    setActiveLetterToSave(null);
+    try {
+      const formValues = customizationForm.getValues();
+
+      await apiInstance.post('/students/letter/save/html', {
+        title: letterNameForSavingInput,
+        html: currentCvContent, // ✅ Save edited content
+      });
+
+      const updatedResponse = await apiInstance.get('/students/letter/saved');
+      setSavedLettersList(updatedResponse.data.html);
+
+      toast({ title: 'Cover Letter Saved!' });
+    } catch (error) {
+      console.error('Error saving letter:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save your cover letter. Try again.',
+      });
+    } finally {
+      setIsNamingDialogDisplayed(false);
+      setLetterNameForSavingInput('');
+      setActiveLetterToSave(null);
+    }
   };
 
   const loadSavedLetter = (savedLetter: SavedCoverLetter) => {
@@ -591,18 +606,20 @@ export function CoverLetterGeneratorClient() {
             setWizardStep={setWizardStep}
           />
         );
-      case 'generating':
-        return <SleekLoadingCard />;
+      // case 'generating':
+      //   return <SleekLoadingCard />;
 
       case 'result':
         return (
-          <GeneratedCoverLetter
-            generatedLetter={generatedCvOutput} // <-- FIX 1: Pass the state that holds the API response
-            setGeneratedLetter={setCurrentCvContent} // <-- FIX 2: Pass the updater for the editable content
-            handleInitiateSave={handleInitiateSave}
-            handleRegenerate={regenerateLetter} // Pass the regenerate function
-            // customizationOptions={customizationOptions} // Pass the customization options
-          />
+          // <GeneratedCoverLetter
+          //   generatedLetter={generatedCvOutput} // <-- FIX 1: Pass the state that holds the API response
+          //   setGeneratedLetter={setCurrentCvContent} // <-- FIX 2: Pass the updater for the editable content
+          //   handleInitiateSave={handleInitiateSave}
+          //   handleRegenerate={regenerateLetter} // Pass the regenerate function
+          //   // customizationOptions={customizationOptions} // Pass the customization options
+          // />
+
+          <FinalResultView />
         );
       default:
         return null;

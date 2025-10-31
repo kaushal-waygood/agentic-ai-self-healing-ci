@@ -3,7 +3,7 @@ import { Job } from './models/jobs.model.js';
 import { fetchAndSaveJobsService } from './utils/fetchAndSaveJobsService.js';
 import { config } from 'dotenv';
 
-config();
+dotenv.config({ quiet: true, override: true, path: ['.env'] });
 // --- Configuration ---
 const KEYWORDS_TO_SEED = ['backend developer'];
 

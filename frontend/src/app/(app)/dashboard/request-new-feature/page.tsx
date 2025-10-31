@@ -21,19 +21,11 @@ const Page = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Log the data from the input fields to the console
-    console.log({
-      title: featureName,
-      description: description,
-    });
-
     try {
       const response = await apiInstance.post('/new-feature', {
         title: featureName,
         description: description,
       });
-
-      console.log(response);
 
       if (response.status === 200) {
         setSubmitted(true);
@@ -49,6 +41,17 @@ const Page = () => {
     setSubmitted(false);
     setFeatureName('');
     setDescription('');
+  };
+
+  const handleTest = async () => {
+    try {
+      const response = await apiInstance.post(
+        '/notifications/test-notification',
+      );
+      console.log(response.data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const navigationButtons = [
@@ -154,6 +157,8 @@ const Page = () => {
           </button>
         </form>
       )}
+
+      <button onClick={handleTest}>Test</button>
     </div>
   );
 };

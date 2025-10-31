@@ -84,18 +84,11 @@ export const onboardingProfile = async (req, res) => {
       return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // 2. Update Basic Information
     if (data.fullName) student.fullName = data.fullName;
     if (data.email) student.email = data.email;
     if (data.phone) student.phone = data.phone;
     if (data.designation) student.jobRole = data.designation;
 
-    // NOTE: File uploads (profilePhoto, resume) must be handled by a middleware
-    // like Multer before this controller runs. The middleware would upload the
-    // file to a service (like S3 or Cloudinary) and place the URL in req.file.location.
-    // Example: if (req.file) student.profileImage = req.file.location;
-
-    // 3. Transform and Update Education Array
     if (data.education && Array.isArray(data.education)) {
       student.education = data.education.map((edu) => ({
         educationId: uuidv4(), // Generate a unique ID for each entry
@@ -984,8 +977,6 @@ export const appliedJob = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       return res.status(400).json({ message: 'Invalid job ID format' });
     }
-
-    // Use findById for single document lookup
 
     const student = await Student.findById(_id);
     const job = await Job.findById(jobId);

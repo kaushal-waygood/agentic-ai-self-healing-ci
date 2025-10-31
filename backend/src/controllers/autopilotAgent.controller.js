@@ -5,7 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import redisClient from '../config/redis.js';
-import jobDiscoveryQueue from '../queues/jobDiscoveryQueue.js';
+// import jobDiscoveryQueue from '../queues/jobDiscoveryQueue.js';
+import { config } from '../config/config.js';
 
 export const createAutopilotAgent = async (req, res) => {
   try {
@@ -491,8 +492,7 @@ export const getAllPilotAgents = async (req, res) => {
       success: false,
       message: 'An unexpected error occurred while retrieving pilot agents',
       errorCode: 'SERVER_ERROR',
-      systemMessage:
-        process.env.NODE_ENV === 'development' ? error.message : undefined,
+      systemMessage: config.nodeEnv === 'local' ? error.message : undefined,
     });
   }
 };
@@ -583,8 +583,7 @@ export const getSinglePilotAgent = async (req, res) => {
       success: false,
       message: 'An unexpected error occurred while retrieving pilot agent',
       errorCode: 'SERVER_ERROR',
-      systemMessage:
-        process.env.NODE_ENV === 'development' ? error.message : undefined,
+      systemMessage: config.nodeEnv === 'local' ? error.message : undefined,
     });
   }
 };
@@ -683,8 +682,7 @@ export const removeAutoPilotAgent = async (req, res) => {
       success: false,
       message: 'An unexpected error occurred while removing pilot agent',
       errorCode: 'SERVER_ERROR',
-      systemMessage:
-        process.env.NODE_ENV === 'development' ? error.message : undefined,
+      systemMessage: config.nodeEnv === 'local' ? error.message : undefined,
     });
   }
 };
@@ -748,8 +746,7 @@ export const activateAgent = async (req, res) => {
       success: false,
       message: 'Internal server error',
       errorCode: 'SERVER_ERROR',
-      systemMessage:
-        process.env.NODE_ENV === 'development' ? error.message : undefined,
+      systemMessage: config.nodeEnv === 'localser' ? error.message : undefined,
     });
   }
 };

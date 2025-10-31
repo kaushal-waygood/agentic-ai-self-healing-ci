@@ -30,6 +30,7 @@ const GeneratedCoverLetter = ({
   handleRegenerate,
   customizationOptions, // Pass the customization state here
 }: any) => {
+  console.log('Generated Cover Letter:', generatedLetter);
   return (
     <div className="min-h-screen  p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
@@ -89,9 +90,10 @@ const GeneratedCoverLetter = ({
                   editorId="cover-letter-live-editor"
                   title="Cover Letter"
                   content={generatedLetter}
-                  setContent={setGeneratedLetter}
+                  setContent={setGeneratedLetter} // This is correct
                   handleRegenerate={handleRegenerate}
                   isHtml
+                  handleSave={handleInitiateSave}
                 />
               </CardContent>
             </Card>

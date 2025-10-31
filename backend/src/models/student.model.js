@@ -136,6 +136,7 @@ const htmlCVSchema = new Schema({
   htmlCVTitle: String,
   updatedAt: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
+  ats: { type: String },
 });
 
 const coverLetterSchema = new Schema({
@@ -181,6 +182,30 @@ const applicationSchema = new Schema(
   },
   { timestamps: true },
 );
+
+const tailoredApplicationSchema = new Schema({
+  _id: { type: Schema.Types.ObjectId, required: true },
+  jobId: { type: Schema.Types.ObjectId, ref: 'Job' },
+  jobTitle: { type: String, required: true },
+  companyName: { type: String, required: true },
+  jobDescription: { type: String, required: true },
+  useProfile: { type: Boolean, default: true },
+  savedCVId: { type: String },
+  savedCoverLetterId: { type: String },
+  coverLetterText: { type: String },
+  finalTouch: { type: String },
+  status: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending',
+  },
+  tailoredCV: { type: Object },
+  tailoredCoverLetter: { type: Object },
+  applicationEmail: { type: Object },
+  error: { type: String },
+  createdAt: { type: Date, default: Date.now },
+  completedAt: { type: Date },
+});
 
 // Main schema
 const studentSchema = new Schema(
@@ -264,6 +289,41 @@ const studentSchema = new Schema(
         // The isVisited field is removed as it's redundant
       },
     ],
+
+    cls: [
+      {
+        jobId: { type: Schema.Types.ObjectId, required: true }, // ✅ Add this
+        status: {
+          type: String,
+          enum: ['pending', 'completed', 'failed'],
+          default: 'pending',
+        },
+        jobContextString: { type: String },
+        finalTouch: { type: String },
+        clData: { type: Object },
+        error: { type: String },
+        createdAt: { type: Date, default: Date.now },
+        completedAt: { type: Date },
+      },
+    ],
+    cvs: [
+      {
+        jobId: { type: Schema.Types.ObjectId, required: true }, // ✅ Add this
+        status: {
+          type: String,
+          enum: ['pending', 'completed', 'failed'],
+          default: 'pending',
+        },
+        jobContextString: { type: String },
+        finalTouch: { type: String },
+        cvData: { type: Object },
+        error: { type: String },
+        createdAt: { type: Date, default: Date.now },
+        completedAt: { type: Date },
+      },
+    ],
+
+    tailoredApplications: [tailoredApplicationSchema],
 
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {

@@ -30,6 +30,7 @@ import ContextWizard from './ContextWizard';
 import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
 import GeneratedCV from './GeneratedCV';
 import SavedCvs from './components/SavedCvs';
+import FinalResultView from '../cover-letter/components/FinalResultView';
 
 type WizardStep = 'job' | 'cv' | 'context' | 'generating' | 'result';
 type JobContext = {
@@ -272,7 +273,8 @@ export function CvGeneratorClient() {
     }
 
     setIsLoading(true);
-    setWizardStep('generating');
+    // setWizardStep('generating');
+    setWizardStep('result');
     setGeneratedCvOutput(null);
     setCurrentCvContent('');
 
@@ -339,7 +341,7 @@ export function CvGeneratorClient() {
         id: `auto-${Date.now()}`,
         name: `Draft for '${jobContext.title}...'`,
         htmlContent: response.cv,
-        atsScore: response.atsScore ?? 0,
+        atsScore: response.ats ?? 0,
         atsScoreReasoning: response.atsSuggestion ?? 'N/A',
         createdAt: new Date().toISOString(),
         jobTitle: jobContext.title,
@@ -395,10 +397,12 @@ export function CvGeneratorClient() {
       });
       return;
     }
+    console.log('Saving CV:', activeCvToSave);
     try {
       await apiInstance.post('students/resume/save/html', {
         title: cvNameForSavingInput,
         html: activeCvToSave.cv,
+        ats: activeCvToSave.atsScore,
       });
       toast({ title: 'CV Saved Successfully!' });
       dispatch(savedStudentResumeRequest()); // Refresh saved CVs list
@@ -415,6 +419,15 @@ export function CvGeneratorClient() {
     }
   };
 
+  const getAllCvs = async () => {
+    try {
+      const response = await apiInstance.get('/students/cvs');
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error fetching saved CVs:', error);
+    }
+  };
+
   const loadSavedCv = async (savedCv) => {
     try {
       const response = await apiInstance.get(
@@ -426,7 +439,7 @@ export function CvGeneratorClient() {
       setCurrentCvContent(loadedData.html);
       setGeneratedCvOutput({
         cv: loadedData.html,
-        atsScore: loadedData.atsScore ?? 0,
+        atsScore: loadedData.ats ?? 0,
         atsSuggestion:
           loadedData.atsSuggestion ??
           'ATS score not available for this saved version.',
@@ -491,18 +504,20 @@ export function CvGeneratorClient() {
             handleGenerate={handleGenerate}
           />
         );
-      case 'generating':
-        return <SleekLoadingCard />;
+      // case 'generating':
+      //   return <SleekLoadingCard />;
 
       case 'result':
         return (
-          <GeneratedCV
-            generatedCvOutput={generatedCvOutput}
-            handleInitiateSave={handleInitiateSave}
-            setCurrentCvContent={setCurrentCvContent}
-            handleRegenerate={regenerateCv}
-            setWizardStep={setWizardStep}
-          />
+          // <GeneratedCV
+          //   generatedCvOutput={generatedCvOutput}
+          //   handleInitiateSave={handleInitiateSave}
+          //   setCurrentCvContent={setCurrentCvContent}
+          //   handleRegenerate={regenerateCv}
+          //   setWizardStep={setWizardStep}
+          // />
+
+          <FinalResultView />
         );
       default:
         return null;
@@ -522,6 +537,8 @@ export function CvGeneratorClient() {
           {renderStep()}
         </motion.div>
       </AnimatePresence>
+
+      {/* <button onClick={getAllCvs}>Get All CV's</button> */}
 
       <SavedCvs resume={resume} loadSavedCv={loadSavedCv} />
 

@@ -22,6 +22,12 @@ import {
   saveTailoredApplication,
   getSavedApplications,
   regenerateCL,
+  getAllCVs,
+  getAllCLs,
+  getAllTailoredApplications,
+  getSingleCV,
+  getSingleCL,
+  getSingleTailoredApplication,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 
@@ -36,6 +42,24 @@ router.post(
 );
 
 router.get('/resume/convert', authMiddleware, isStudent, convertDataIntoHTML);
+
+router.get('/cvs', authMiddleware, isStudent, getAllCVs);
+router.get('/cls', authMiddleware, isStudent, getAllCLs);
+router.get(
+  '/tailored-applications',
+  authMiddleware,
+  isStudent,
+  getAllTailoredApplications,
+);
+
+router.get('/cv/:cvId', authMiddleware, isStudent, getSingleCV);
+router.get('/cl/:clId', authMiddleware, isStudent, getSingleCL);
+router.get(
+  '/tailored-application/:applicationId',
+  authMiddleware,
+  isStudent,
+  getSingleTailoredApplication,
+);
 
 router.post(
   '/resume/generate/jd',
