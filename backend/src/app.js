@@ -63,6 +63,8 @@ const originAllow =
     ? dev
     : local;
 
+console.log(originAllow);
+
 // 3. CORS Configuration
 app.use(
   cors({
