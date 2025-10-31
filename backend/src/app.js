@@ -68,7 +68,15 @@ console.log(originAllow);
 // 3. CORS Configuration
 app.use(
   cors({
-    origin: ['https://www.zobsai.com', 'https://dev.zobsai.com' ]
+    origin: process.env.CORS_ORIGINS?.split(',') || [
+      'http://127.0.0.1:3000',
+      'http://localhost:3000',
+      'http://144.91.114.195:30090',
+      // 👇 CORRECTED THIS SECTION 👇
+      'https://dev.zobsai.com', // ✅ ADD the frontend development URL
+      'https://www.zobsai.com', // ✅ ADD the production frontend URL (good practice)
+      'https://zobsai.com', // ✅ ADD the production frontend URL without www
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
