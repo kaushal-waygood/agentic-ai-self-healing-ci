@@ -174,7 +174,7 @@ export function ApplicationWizardClient() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="">
       <AnimatePresence mode="wait">
         <motion.div
           key={wizardStep}
