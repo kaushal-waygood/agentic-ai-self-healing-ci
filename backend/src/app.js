@@ -68,7 +68,7 @@ console.log(originAllow);
 // 3. CORS Configuration
 app.use(
   cors({
-    origin: originAllow,
+    origin: ['https://www.zobsai.com', 'https://dev.zobsai.com' ]
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
