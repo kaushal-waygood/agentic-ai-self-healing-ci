@@ -14,6 +14,19 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import EditableMaterial from '../application/editable-material';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@radix-ui/react-alert-dialog';
+import {
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
+import { Input } from '../ui/input';
 
 // Mock data for initial rendering
 const mockData = {
@@ -33,8 +46,13 @@ const mockData = {
 
 const GeneratedCV = ({
   generatedCvOutput = null,
-  handleInitiateSave = () => console.log('Save triggered'),
-}) => {
+  handleInitiateSave,
+  isNamingDialogDisplayed,
+  setIsNamingDialogDisplayed,
+  cvNameForSavingInput,
+  setCvNameForSavingInput,
+  confirmSaveNamedCv,
+}: any) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState('');
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
@@ -172,6 +190,7 @@ const GeneratedCV = ({
               <EditableMaterial
                 isEditing={isEditing}
                 content={cvContent.cv}
+                isHtml={true}
                 setContent={setEditableContent}
                 handleEditToggle={handleEditToggle}
                 handleDownload={handleDownload}
@@ -217,6 +236,34 @@ const GeneratedCV = ({
           </div>
         )}
       </div>
+
+      {isNamingDialogDisplayed && (
+        <AlertDialog
+          open={isNamingDialogDisplayed}
+          onOpenChange={setIsNamingDialogDisplayed}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Name Your CV</AlertDialogTitle>
+              <AlertDialogDescription>
+                Give this version a unique name. E.g., "CV for Google PM Role".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              placeholder="Enter CV Name"
+              value={cvNameForSavingInput}
+              onChange={(e) => setCvNameForSavingInput(e.target.value)}
+              className="my-4"
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSaveNamedCv}>
+                Save CV
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };

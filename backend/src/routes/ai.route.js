@@ -28,6 +28,9 @@ import {
   getSingleCV,
   getSingleCL,
   getSingleTailoredApplication,
+  deleteSingleCV,
+  deleteSingleCL,
+  deleteSingleTailoredApplication,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 
@@ -59,6 +62,15 @@ router.get(
   authMiddleware,
   isStudent,
   getSingleTailoredApplication,
+);
+
+router.delete('/cv/:cvId', authMiddleware, isStudent, deleteSingleCV);
+router.delete('/cl/:clId', authMiddleware, isStudent, deleteSingleCL);
+router.delete(
+  '/tailored-applications/:appId',
+  authMiddleware,
+  isStudent,
+  deleteSingleTailoredApplication,
 );
 
 router.post(

@@ -157,7 +157,7 @@ export default function DocumentsPage() {
 
   const deleteCV = async (cvId: string) => {
     try {
-      await apiInstance.delete(`/students/cvs/${cvId}`);
+      await apiInstance.delete(`/students/cv/${cvId}`);
       toast({ title: 'Success', description: 'CV deleted successfully' });
       fetchCVs();
     } catch {
@@ -171,7 +171,7 @@ export default function DocumentsPage() {
 
   const deleteCoverLetter = async (clId: string) => {
     try {
-      await apiInstance.delete(`/students/cover-letters/${clId}`);
+      await apiInstance.delete(`/students/cl/${clId}`);
       toast({ title: 'Success', description: 'Cover letter deleted' });
       fetchCoverLetters();
     } catch {
@@ -196,29 +196,6 @@ export default function DocumentsPage() {
       });
     }
   };
-
-  // const copyToClipboard = async (content: any, id: string) => {
-  //   try {
-  //     const textContent =
-  //       typeof content === 'string'
-  //         ? content
-  //         : JSON.stringify(content, null, 2);
-  //     await navigator.clipboard.writeText(textContent.cv);
-  //     setCopiedId(id);
-  //     toast({
-  //       title: 'Copied!',
-  //       description: 'Content copied to clipboard',
-  //     });
-  //     setTimeout(() => setCopiedId(null), 2000);
-  //   } catch (error) {
-  //     console.error('Failed to copy:', error);
-  //     toast({
-  //       variant: 'destructive',
-  //       title: 'Error',
-  //       description: 'Failed to copy content',
-  //     });
-  //   }
-  // };
 
   const copyToClipboard = async (content: any, id: string) => {
     if (!content) return;
@@ -580,7 +557,12 @@ const DocumentCard = ({
 
   const router = useRouter();
 
+  // Check if the item is in a state that should allow clicking
+  const isClickable = item.status === 'completed';
+
   const openContent = () => {
+    if (!isClickable) return; // Prevent navigation if not clickable
+
     if (type === 'application') {
       router.push(`/dashboard/my-docs/application/${item._id}`);
     } else if (type === 'cv') {
@@ -591,8 +573,14 @@ const DocumentCard = ({
   };
 
   return (
-    <div className=" p-4 border border-gray-200 cursor-pointer dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-3 ">
+    <div
+      className={`p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 transition-shadow ${
+        isClickable
+          ? 'cursor-pointer hover:shadow-md'
+          : 'cursor-not-allowed opacity-70'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           {getStatusIcon(item.status)}
           <span
@@ -606,8 +594,13 @@ const DocumentCard = ({
         <div className="flex items-center space-x-2">
           <button
             onClick={() => onCopy(getContent(), item._id)}
-            className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
-            title="Copy to clipboard"
+            disabled={!isClickable}
+            className={`p-2 transition-colors ${
+              isClickable
+                ? 'text-gray-500 hover:text-blue-600'
+                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+            }`}
+            title={isClickable ? 'Copy to clipboard' : 'Not available'}
           >
             {copiedId === item._id ? (
               <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -617,8 +610,13 @@ const DocumentCard = ({
           </button>
           <button
             onClick={() => onDownload(getContent(), getFilename())}
-            className="p-2 text-gray-500 hover:text-green-600 transition-colors"
-            title="Download"
+            disabled={!isClickable}
+            className={`p-2 transition-colors ${
+              isClickable
+                ? 'text-gray-500 hover:text-green-600'
+                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+            }`}
+            title={isClickable ? 'Download' : 'Not available'}
           >
             <Download className="h-4 w-4" />
           </button>
@@ -633,10 +631,19 @@ const DocumentCard = ({
       </div>
 
       <h3
-        className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2"
+        className={`font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 ${
+          isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+        }`}
         onClick={openContent}
       >
         {getTitle()}
+        {!isClickable && (
+          <span className="text-xs text-gray-400 ml-2">
+            (
+            {item.status === 'pending' ? 'Processing...' : 'Failed to generate'}
+            )
+          </span>
+        )}
       </h3>
 
       {item.finalTouch && (
