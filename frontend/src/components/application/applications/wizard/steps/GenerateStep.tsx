@@ -66,24 +66,13 @@ export const GenerateStep = ({
   ];
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6 font-sans">
+    <div className="max-w-2xl mx-auto p-2 sm:p-3 font-sans">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <div className="relative inline-flex items-center justify-center w-20 h-20 mb-6">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 to-cyan-400 animate-pulse"></div>
-          <div
-            className="absolute inset-1 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 animate-spin"
-            style={{ animationDuration: '3s' }}
-          ></div>
-          <div className="relative w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-            <Sparkles className="w-8 h-8 text-white animate-pulse" />
-          </div>
-        </div>
-
         <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
           Ready to Generate?
         </h2>
-        <p className="text-slate-600 text-lg max-w-md mx-auto">
+        <p className="text-slate-600 text-lg  mx-auto">
           We'll use the provided info to tailor your application documents with
           AI precision.
         </p>
@@ -146,7 +135,7 @@ export const GenerateStep = ({
         </div>
 
         {/* Generate Section */}
-        <div className="p-6 sm:p-8">
+        <div className="p-3 sm:p-4">
           {isLoading ? (
             /* Loading State driven by the `isLoading` prop */
             <div className="text-center py-8 animate-fadeIn">
