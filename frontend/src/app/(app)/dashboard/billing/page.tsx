@@ -79,7 +79,7 @@ export default function BillingPage() {
   }, []);
 
   const formatCurrency = (amount: number, currency: string) => {
-    if (amount === 0) return 'Free';
+    // if (amount === 0) return 'Free';
 
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -165,6 +165,7 @@ export default function BillingPage() {
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-gray-900">
+                {console.log('activeRecord', activeRecord?.amountPaid)}
                 {activeRecord
                   ? formatCurrency(
                       activeRecord.amountPaid,
