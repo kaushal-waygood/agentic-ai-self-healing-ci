@@ -397,7 +397,6 @@ export function CvGeneratorClient() {
       });
       return;
     }
-    console.log('Saving CV:', activeCvToSave);
     try {
       await apiInstance.post('students/resume/save/html', {
         title: cvNameForSavingInput,

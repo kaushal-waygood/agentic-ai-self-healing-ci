@@ -1,4 +1,3 @@
-// app/dashboard/my-docs/[type]/[id]/page.tsx
 'use client';
 
 import GeneratedCV from '@/components/cv/GeneratedCV';
@@ -7,10 +6,11 @@ import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import GeneratedCoverLetter from '@/components/cover-letter/components/GeneratedCoverLetter';
 import ResultStep from '@/components/application/applications/wizard/steps/result/ResultStep';
-import { sendEmailPermit } from '@/services/api/auth';
 import { toast } from '@/hooks/use-toast';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
+import { useDispatch } from 'react-redux';
+import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
 
 const DocumentPage = () => {
   const { type, id } = useParams();
@@ -19,10 +19,21 @@ const DocumentPage = () => {
   const [error, setError] = useState(null);
   const { user } = useSelector((state: RootState) => state.auth);
 
-  // Add state for application content
+  // CV Save States
+  const [activeCvToSave, setActiveCvToSave] = useState(null);
+  const [cvNameForSavingInput, setCvNameForSavingInput] = useState('');
+
+  // Cover Letter Save States
+  const [activeLetterToSave, setActiveLetterToSave] = useState(null);
+  const [letterNameForSavingInput, setLetterNameForSavingInput] = useState('');
+
+  const [isNamingDialogDisplayed, setIsNamingDialogDisplayed] = useState(false);
+  const [saveType, setSaveType] = useState(''); // 'cv' or 'cl'
+
   const [refinedCv, setRefinedCv] = useState('');
   const [tailoredCl, setTailoredCl] = useState('');
   const [emailDraft, setEmailDraft] = useState('');
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,7 +77,8 @@ const DocumentPage = () => {
             break;
           case 'cl':
             transformedData = {
-              content: responseData.cl?.clData.html || '',
+              content:
+                responseData.cl?.clData?.html || responseData.cl?.clData || '',
               type: 'cl',
               ...responseData.coverLetter,
             };
@@ -105,13 +117,106 @@ const DocumentPage = () => {
     }
   }, [type, id]);
 
-  // Add handlers for application
-  const handleInitiateSave = async (content?: string) => {
+  // CV Save Functions
+  const confirmSaveNamedCv = async () => {
+    if (!cvNameForSavingInput.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Save',
+        description: 'CV name cannot be empty.',
+      });
+      return;
+    }
     try {
-      console.log('Saving application content:', content);
-      // Implement your save logic here
+      await apiInstance.post('/students/resume/save/html', {
+        title: cvNameForSavingInput,
+        html: documentData?.cv,
+        ats: documentData?.atsScore,
+      });
+      toast({ title: 'CV Saved Successfully!' });
+      dispatch(savedStudentResumeRequest());
     } catch (error) {
-      console.error('Error saving application:', error);
+      console.error('Error saving CV:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save the CV.',
+      });
+    } finally {
+      setIsNamingDialogDisplayed(false);
+      setActiveCvToSave(null);
+      setCvNameForSavingInput('');
+      setSaveType('');
+    }
+  };
+
+  const handleInitiateCvSave = () => {
+    console.log('Saving CV...');
+    if (!documentData?.cv) {
+      toast({ variant: 'destructive', title: 'No CV to Save' });
+      return;
+    }
+    setActiveCvToSave(documentData);
+    setCvNameForSavingInput(`CV for ${documentData.jobTitle || 'Job'}`);
+    setSaveType('cv');
+    setIsNamingDialogDisplayed(true);
+  };
+
+  // Cover Letter Save Functions
+  const confirmSaveNamedCl = async () => {
+    if (!letterNameForSavingInput.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Save',
+        description: 'Cover letter name cannot be empty.',
+      });
+      return;
+    }
+    try {
+      await apiInstance.post('/students/letter/save/html', {
+        title: letterNameForSavingInput,
+        html: documentData?.content,
+      });
+      toast({ title: 'Cover Letter Saved Successfully!' });
+      // You might want to dispatch an action for cover letters if needed
+      // dispatch(savedStudentCoverLetterRequest());
+    } catch (error) {
+      console.error('Error saving cover letter:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save the cover letter.',
+      });
+    } finally {
+      setIsNamingDialogDisplayed(false);
+      setActiveLetterToSave(null);
+      setLetterNameForSavingInput('');
+      setSaveType('');
+    }
+  };
+
+  const handleInitiateClSave = () => {
+    const contentToSave = documentData?.content;
+
+    if (!contentToSave) {
+      toast({ variant: 'destructive', title: 'No Cover Letter to Save' });
+      return;
+    }
+
+    setActiveLetterToSave(contentToSave);
+    setLetterNameForSavingInput(
+      `Cover Letter for ${documentData.jobTitle || 'Job'}`,
+    );
+    setSaveType('cl');
+    setIsNamingDialogDisplayed(true);
+  };
+
+  // Unified confirm function that routes to the correct save function
+  const handleConfirmSave = () => {
+    if (saveType === 'cv') {
+      confirmSaveNamedCv();
+    } else if (saveType === 'cl') {
+      confirmSaveNamedCl();
     }
   };
 
@@ -124,7 +229,6 @@ const DocumentPage = () => {
     }
   };
 
-  // Placeholder handlers for ResultStep
   const handleSendEmail = () => {
     const response = apiInstance.post('/user/send-email', {
       senderEmail: user?.email,
@@ -140,6 +244,7 @@ const DocumentPage = () => {
       description: 'An email has been sent to your linked account.',
     });
   };
+
   const handleStartNew = () => {
     console.log('Starting new application...');
     // Navigate to new application or reset state
@@ -185,14 +290,29 @@ const DocumentPage = () => {
 
     switch (type) {
       case 'cv':
-        return <GeneratedCV generatedCvOutput={documentData} />;
+        return (
+          <GeneratedCV
+            generatedCvOutput={documentData}
+            handleInitiateSave={handleInitiateCvSave}
+            isNamingDialogDisplayed={isNamingDialogDisplayed}
+            setIsNamingDialogDisplayed={setIsNamingDialogDisplayed}
+            cvNameForSavingInput={cvNameForSavingInput}
+            setCvNameForSavingInput={setCvNameForSavingInput}
+            confirmSaveNamedCv={handleConfirmSave}
+          />
+        );
       case 'cl':
         return (
           <GeneratedCoverLetter
             generatedLetter={documentData.content}
             setGeneratedLetter={() => {}} // Add empty function if needed
-            handleInitiateSave={handleInitiateSave}
+            handleInitiateSave={handleInitiateClSave}
             handleRegenerate={handleRegenerate}
+            isNamingDialogDisplayed={isNamingDialogDisplayed}
+            setIsNamingDialogDisplayed={setIsNamingDialogDisplayed}
+            cvNameForSavingInput={letterNameForSavingInput}
+            setCvNameForSavingInput={setLetterNameForSavingInput}
+            confirmSaveNamedCv={handleConfirmSave}
           />
         );
       case 'application':

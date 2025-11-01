@@ -275,6 +275,113 @@ export const getSingleTailoredApplication = async (req, res) => {
   }
 };
 
+// If you need to also delete associated files
+export const deleteSingleCV = async (req, res) => {
+  try {
+    const { cvId } = req.params;
+    const { _id: userId } = req.user;
+
+    // First find the CV to get file paths
+    const student = await Student.findOne({ _id: userId, 'cvs._id': cvId });
+
+    if (!student) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    const cvToDelete = student.cvs.id(cvId);
+
+    // Delete associated file from storage if exists
+    if (cvToDelete.filePath) {
+      await deleteFileFromStorage(cvToDelete.filePath);
+    }
+
+    // Remove from database
+    await Student.updateOne({ _id: userId }, { $pull: { cvs: { _id: cvId } } });
+
+    res.status(200).json({
+      success: true,
+      message: 'CV deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting CV:', error);
+    res.status(500).json({ error: 'Failed to delete CV' });
+  }
+};
+
+export const deleteSingleCL = async (req, res) => {
+  try {
+    const { clId } = req.params;
+    const { _id: userId } = req.user;
+
+    // First find the CV to get file paths
+    const student = await Student.findOne({ _id: userId, 'cls._id': clId });
+
+    if (!student) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    const clToDelete = student.cls.id(clId);
+
+    // Delete associated file from storage if exists
+    if (clToDelete.filePath) {
+      await deleteFileFromStorage(clToDelete.filePath);
+    }
+
+    // Remove from database
+    await Student.updateOne({ _id: userId }, { $pull: { cls: { _id: clId } } });
+
+    res.status(200).json({
+      success: true,
+      message: 'Cover Letter deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting CV:', error);
+    res.status(500).json({ error: 'Failed to delete CV' });
+  }
+};
+
+export const deleteSingleTailoredApplication = async (req, res) => {
+  try {
+    const { appId } = req.params;
+    const { _id: userId } = req.user;
+
+    // First find the student to get the tailored application details
+    const student = await Student.findOne({
+      _id: userId,
+      'tailoredApplications._id': appId,
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Tailored application not found' });
+    }
+
+    const tailoredApplicationToDelete = student.tailoredApplications.id(appId);
+
+    if (!tailoredApplicationToDelete) {
+      return res.status(404).json({ error: 'Tailored application not found' });
+    }
+
+    // Delete associated file from storage if exists
+    if (tailoredApplicationToDelete.filePath) {
+      await deleteFileFromStorage(tailoredApplicationToDelete.filePath);
+    }
+
+    // Remove from database - FIXED: pulling from tailoredApplications, not cls
+    await Student.updateOne(
+      { _id: userId },
+      { $pull: { tailoredApplications: { _id: appId } } },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Tailored application deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting tailored application:', error);
+    res.status(500).json({ error: 'Failed to delete tailored application' });
+  }
+};
+
 // CV
 export const generateCVByTitle = async (req, res) => {
   const { title } = req.body;
@@ -310,10 +417,8 @@ export const regenerateCV = async (req, res) => {
   try {
     const { _id } = req.user;
     const studentData = await Student.findById(_id);
-    // The request body contains all necessary context for regeneration.
     const { jobContextString, finalTouch, previousCVJson } = req.body;
 
-    // --- Input Validation ---
     if (!jobContextString || !studentData || !previousCVJson) {
       return res.status(400).json({
         error:

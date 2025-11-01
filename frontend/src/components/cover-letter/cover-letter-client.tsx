@@ -6,49 +6,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Loader2,
-  Wand2,
-  Sparkles,
-  Edit3,
-  Save,
-  List,
-  Eye,
-  Archive,
-  FileText,
-  UploadCloud,
-  Briefcase,
-  User,
-  FileSignature,
-  ArrowLeft,
-  ChevronsRight,
-} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -685,6 +643,34 @@ export function CoverLetterGeneratorClient() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmSaveNamedLetter}>
                 Save Letter
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {isNamingDialogDisplayed && (
+        <AlertDialog
+          open={isNamingDialogDisplayed}
+          onOpenChange={setIsNamingDialogDisplayed}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Name Your CV</AlertDialogTitle>
+              <AlertDialogDescription>
+                Give this version a unique name. E.g., "CV for Google PM Role".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              placeholder="Enter CV Name"
+              value={cvNameForSavingInput}
+              onChange={(e) => setCvNameForSavingInput(e.target.value)}
+              className="my-4"
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSaveNamedCv}>
+                Save CV
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
