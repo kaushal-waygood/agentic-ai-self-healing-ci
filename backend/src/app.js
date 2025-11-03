@@ -65,14 +65,15 @@ console.log(originAllow);
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGINS?.split(',') || [
+    origin: [
       'http://127.0.0.1:3000',
       'http://localhost:3000',
-      'http://144.91.114.195:30090',
-      // 👇 CORRECTED THIS SECTION 👇
-      'https://dev.zobsai.com', // ✅ ADD the frontend development URL
-      'https://www.zobsai.com', // ✅ ADD the production frontend URL (good practice)
-      'https://zobsai.com', // ✅ ADD the production frontend URL without www
+      'http://127.0.0.1:3004',
+      'http://localhost:3004',
+      'https://dev.zobsai.com',
+      'https://in.indeed.com',
+      'https://www.linkedin.com',
+      'https://www.zobsai.com',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
