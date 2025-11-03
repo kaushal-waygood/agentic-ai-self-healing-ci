@@ -47,7 +47,12 @@ const dev = [
   'https://www.linkedin.com',
 ];
 
-const local = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+const local = [
+  'http://127.0.0.1:3000',
+  'http://localhost:3000',
+  'http://127.0.0.1:3004',
+  'http://localhost:3004',
+];
 
 const originAllow =
   config.nodeEnv === 'production'

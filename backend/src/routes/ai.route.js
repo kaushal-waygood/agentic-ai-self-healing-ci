@@ -31,6 +31,7 @@ import {
   deleteSingleCV,
   deleteSingleCL,
   deleteSingleTailoredApplication,
+  refreshStatus,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 import {
@@ -110,6 +111,8 @@ router.post(
   upload.single('cv'),
   generateCoverLetterByJD,
 );
+
+router.get('/status/:type/:id', authMiddleware, isStudent, refreshStatus);
 
 // SSE route for real-time updates
 router.get('/sse/:jobId', authMiddleware, isStudent, cvGenerationSSE);
