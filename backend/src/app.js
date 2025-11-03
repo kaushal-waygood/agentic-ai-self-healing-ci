@@ -40,40 +40,18 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-const prod = ['https://www.zobsai.com'];
-const dev = [
-  'https://dev.zobsai.com',
-  'https://in.indeed.com',
-  'https://www.linkedin.com',
-];
-
-const local = [
-  'http://127.0.0.1:3000',
-  'http://localhost:3000',
-  'http://127.0.0.1:3004',
-  'http://localhost:3004',
-];
-
-const originAllow =
-  config.nodeEnv === 'production'
-    ? prod
-    : config.nodeEnv === 'development'
-    ? dev
-    : local;
-
-console.log(originAllow);
-
 app.use(
   cors({
-    origin: [
+    origin: process.env.CORS_ORIGINS?.split(',') || [
       'http://127.0.0.1:3000',
       'http://localhost:3000',
       'http://127.0.0.1:3004',
       'http://localhost:3004',
+      'http://144.91.114.195:30090',
       'https://dev.zobsai.com',
-      'https://in.indeed.com',
-      'https://www.linkedin.com',
       'https://www.zobsai.com',
+      'https://zobsai.com',
+      'chrome-extension://mmmbijnmokcdpnabaahhbmioeobobcnb',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
