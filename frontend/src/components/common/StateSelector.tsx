@@ -1,5 +1,4 @@
 // /components/common/StateSelector.tsx
-
 import React, { useMemo } from 'react';
 import { State } from 'country-state-city';
 
@@ -18,8 +17,9 @@ const StateSelector = ({
 }: StateSelectorProps) => {
   const stateOptions = useMemo(() => {
     if (!countryCode) return [];
-    // Get all states for the selected country
-    return State.getStatesOfCountry(countryCode)?.map((state) => ({
+    const states = State.getStatesOfCountry(countryCode);
+    console.log(`States for ${countryCode}:`, states);
+    return states?.map((state) => ({
       value: state.isoCode,
       label: state.name,
     }));
@@ -27,17 +27,22 @@ const StateSelector = ({
 
   const hasStates = stateOptions && stateOptions.length > 0;
 
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('State selected:', e.target.value);
+    onChange(e.target.value);
+  };
+
   return (
     <select
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={handleChange}
       disabled={!hasStates}
       className={className}
     >
       <option value="">
         {countryCode
           ? hasStates
-            ? 'Select City'
+            ? 'Select State'
             : 'No states found'
           : 'Select country first'}
       </option>

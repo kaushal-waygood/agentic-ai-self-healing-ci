@@ -488,13 +488,13 @@ const AppHeader = ({ setIsSearchOpen }) => {
                       <Settings className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Settings</span>
                     </Link>
-                    {/* <Link
+                    <Link
                       href="/dashboard/billing"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <CreditCard className="w-4 h-4 text-slate-600" />{' '}
                       <span className="text-slate-700">Billing</span>
-                    </Link> */}
+                    </Link>
                     <Link
                       href="/dashboard/support"
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"

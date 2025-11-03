@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, FileText, Loader2 } from 'lucide-react';
+import { CheckCircle, FileText, Loader2, Router } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function FinalResultView({ cvlink }: { cvlink?: string }) {
   const [isGenerating, setIsGenerating] = useState(true);
   const [showNotification, setShowNotification] = useState(false);
+  const router = useRouter();
 
   //   useEffect(() => {
   //     // Simulate cover letter generation (replace with your actual generation logic)
@@ -25,7 +27,7 @@ export default function FinalResultView({ cvlink }: { cvlink?: string }) {
   const handleRedirect = () => {
     // Replace with your actual redirect URL
 
-    window.location.href = '/dashboard/my-docs';
+    router.push('/dashboard/my-docs');
   };
 
   return (

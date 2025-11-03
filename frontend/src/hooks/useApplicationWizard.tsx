@@ -347,17 +347,13 @@ export const useApplicationWizard = () => {
     async (mode: JobContext['mode'], value: File | string) => {
       setIsLoading(true);
       setLoadingMessage('Processing job details...');
+      console.log('value', value);
       try {
         let context: JobContext;
         if (mode === 'select' && typeof value === 'string') {
-          const job = jobs.find((j) => j._id === value);
-          if (!job) throw new Error('Job details could not be found.');
           context = {
             mode,
-            jobId: job._id,
-            jobTitle: job.title,
-            companyName: job.company,
-            jobDescription: job.description,
+            jobId: value,
           };
         } else if (mode === 'paste' && typeof value === 'string') {
           const extracted = await extractJobDetails({ jobDescription: value });
@@ -408,10 +404,9 @@ export const useApplicationWizard = () => {
       if (mode === 'profile') {
         setCvContext({ mode, value: 'profile', name: 'Your Zobsai Profile' });
       } else if (value) {
-        const cvName =
-          typeof value === 'string'
-            ? resume?.find((r) => r._id === value)?.name || 'Saved CV'
-            : value.name;
+        const cvName = typeof value === 'string';
+        // ? resume?.find((r) => r._id === value)?.name || 'Saved CV'
+        // : value.name;
         setCvContext({ mode, value, name: cvName });
       } else {
         return;
@@ -528,6 +523,7 @@ export const useApplicationWizard = () => {
         description: 'Please ensure both job and CV information are provided.',
       });
       navigateToStep('cv');
+      // router.push
       return;
     }
     setIsLoading(true);

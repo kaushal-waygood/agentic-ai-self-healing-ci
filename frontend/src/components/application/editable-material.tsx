@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useRef, useState, FC } from 'react';
 import {
   Copy,
@@ -20,17 +18,17 @@ import apiInstance from '@/services/api';
 
 interface EditableMaterialProps {
   content: string;
-  setContent: (value: string) => void; // Make sure this prop is defined
+  setContent: (value: string) => void;
   title: string;
   isHtml?: boolean;
   className?: string;
-  handleSave?: (content: string) => Promise<void> | void;
+  // handleSave?: (content: string) => Promise<void> | void;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
   content,
-  setContent, // Make sure this is destructured from props
-  handleSave,
+  setContent,
+  // handleSave,
   title,
   isHtml = false,
   className = '',
@@ -46,6 +44,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [originalContent, setOriginalContent] = useState<string>('');
+  const [localContent, setLocalContent] = useState<string>(content);
+  const [isInitialEditSetup, setIsInitialEditSetup] = useState(false);
+
+  // Sync local content with prop content
+  useEffect(() => {
+    setLocalContent(content);
+  }, [content]);
 
   const placeCaretAtEnd = (el: HTMLElement) => {
     el.focus();
@@ -57,21 +62,44 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     sel?.addRange(range);
   };
 
+  // Handle initial setup when entering edit mode
   useEffect(() => {
     if (!editorRef.current) return;
 
-    if (isEditing) {
-      if (editorRef.current.innerHTML !== content) {
-        editorRef.current.innerHTML = content;
+    if (isEditing && !isInitialEditSetup) {
+      // Initial setup when entering edit mode
+      if (editorRef.current.innerHTML !== localContent) {
+        editorRef.current.innerHTML = localContent;
       }
       placeCaretAtEnd(editorRef.current);
-      return;
+      setIsInitialEditSetup(true);
+    } else if (!isEditing) {
+      // When not editing, always sync with current content
+      editorRef.current.innerHTML = localContent;
+      setIsInitialEditSetup(false);
     }
+  }, [isEditing, localContent, isInitialEditSetup]);
 
-    if (!isEditing && editorRef.current.innerHTML !== content) {
-      editorRef.current.innerHTML = content;
+  // Handle content changes without moving cursor
+  useEffect(() => {
+    if (!editorRef.current || !isEditing || isInitialEditSetup) return;
+
+    // Only update if content is different and we're not in initial setup
+    if (editorRef.current.innerHTML !== localContent) {
+      // Save current cursor position
+      const selection = window.getSelection();
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+
+      // Update content
+      editorRef.current.innerHTML = localContent;
+
+      // Restore cursor position if it exists
+      if (range && selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
     }
-  }, [isEditing, content]);
+  }, [localContent, isEditing, isInitialEditSetup]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -79,7 +107,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       const words = text.trim().split(/\s+/).filter(Boolean);
       setWordCount(words.length);
     }
-  }, [content]);
+  }, [localContent]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -108,35 +136,35 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   };
 
   const handleInput = () => {
-    if (editorRef.current) {
-      if (!hasUnsavedChanges) {
-        setHasUnsavedChanges(true);
-      }
+    if (editorRef.current && isEditing) {
+      const newValue = editorRef.current.innerHTML;
+      setLocalContent(newValue);
+      setHasUnsavedChanges(newValue !== originalContent);
+
       const text = editorRef.current.innerText || '';
       const words = text.trim().split(/\s+/).filter(Boolean);
       setWordCount(words.length);
-      const newValue = editorRef.current.innerHTML;
-      setContent(newValue); // This should work now
     }
   };
 
   const handleEditToggle = async () => {
+    console.log('handleEditToggle');
+
     if (isEditing) {
+      // Save mode
       if (editorRef.current) {
         const newContent = editorRef.current.innerHTML;
+        console.log('newContent', newContent);
 
         if (newContent === originalContent) {
+          console.log('No changes made');
           setIsEditing(false);
           return;
         }
 
-        // Update content in parent component
-        setContent(newContent); // This should work now
-
-        // Trigger parent save if available
-        if (typeof handleSave === 'function') {
-          await handleSave(newContent);
-        }
+        // Update both local and parent content
+        setLocalContent(newContent);
+        setContent(newContent);
 
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
@@ -144,16 +172,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           title: `${title} updated successfully!`,
           description: 'Your changes have been saved.',
         });
-      }
 
-      setTimeout(() => setIsEditing(false), 0);
-    } else {
-      // Entering edit mode - save original content
-      if (editorRef.current) {
-        setOriginalContent(editorRef.current.innerHTML);
-      } else {
-        setOriginalContent(content);
+        // Exit edit mode after successful save
+        setIsEditing(false);
       }
+    } else {
+      // Enter edit mode
+      setOriginalContent(localContent);
       setIsEditing(true);
     }
   };
@@ -193,14 +218,18 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     try {
       const response = await apiInstance.post(
         '/students/pdf/generate-pdf',
-        { html: editorRef.current.innerHTML, title },
+        {
+          html: editorRef.current.innerHTML,
+          title: title || 'document',
+        },
         { responseType: 'blob' },
       );
       if (response.status !== 200)
         throw new Error('PDF generation failed on the server.');
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      downloadFile(blob, `zobsai_${title.replace(/ /g, '_')}.pdf`);
+      const safeTitle = (title || 'document').replace(/ /g, '_');
+      downloadFile(blob, `zobsai_${safeTitle}.pdf`);
       toast({ title: 'PDF downloaded successfully!' });
     } catch (error) {
       console.error('PDF Download Error:', error);
@@ -221,7 +250,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     try {
       const response = await apiInstance.post(
         '/students/docx/generate-docx',
-        { html: editorRef.current.innerHTML, title },
+        {
+          html: editorRef.current.innerHTML,
+          title: title || 'document',
+        },
         { responseType: 'blob' },
       );
       if (response.status !== 200)
@@ -230,7 +262,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       });
-      downloadFile(blob, `zobsai_${title.replace(/ /g, '_')}.docx`);
+      const safeTitle = (title || 'document').replace(/ /g, '_');
+      downloadFile(blob, `zobsai_${safeTitle}.docx`);
       toast({ title: 'DOCX downloaded successfully!' });
     } catch (error) {
       console.error('DOCX Download Error:', error);
@@ -361,7 +394,9 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
               ? 'bg-gray-50/50 p-4 rounded-md ring-2 ring-indigo-300'
               : ''
           }`}
-          dangerouslySetInnerHTML={!isEditing ? { __html: content } : undefined}
+          dangerouslySetInnerHTML={
+            !isEditing ? { __html: localContent } : undefined
+          }
         />
       </main>
 
@@ -397,10 +432,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             {isEditing && (
               <button
                 onClick={() => {
-                  if (editorRef.current) {
-                    editorRef.current.innerHTML = originalContent;
-                  }
-                  setContent(originalContent); // This should work now
+                  setLocalContent(originalContent);
+                  setContent(originalContent);
                   setIsEditing(false);
                   setHasUnsavedChanges(false);
                   toast({
@@ -417,7 +450,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
             <button
               onClick={handleCopy}
-              disabled={!content || isLoading}
+              disabled={!localContent || isLoading}
               className="flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium text-sm transition disabled:opacity-50"
             >
               <Copy className="w-4 h-4 mr-2" />
@@ -425,7 +458,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </button>
             <button
               onClick={handleDownloadPdf}
-              disabled={!isHtml || !content || isLoading}
+              disabled={!isHtml || !localContent || isLoading}
               className="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -434,7 +467,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </button>
             <button
               onClick={handleDownloadDocx}
-              disabled={!isHtml || !content || isLoading}
+              disabled={!isHtml || !localContent || isLoading}
               className="flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

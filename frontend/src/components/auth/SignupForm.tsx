@@ -152,7 +152,7 @@ const SignupForm = () => {
         setStoredEmail('');
         setVerificationCode('');
         successToast('Your account has been verified successfully!');
-        router.push('/onboarding-tour');
+        router.push('/dashboard/onboarding-tour');
       } else {
         router.push('/login');
       }

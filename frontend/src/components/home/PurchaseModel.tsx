@@ -49,7 +49,6 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
 );
 
-// --- Main Checkout Component ---
 export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const planId = searchParams.get('planId');
@@ -250,8 +249,6 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-// --- Sub-components ---
 
 const planIcons: Record<string, React.ElementType> = {
   Free: Zap,

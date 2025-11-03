@@ -720,18 +720,17 @@ const transformRapidApiJob = (apiJob, searchQuery) => {
     logo: apiJob.employer_logo,
     location: {
       city: apiJob.job_city,
+      state: apiJob.job_state,
       lat: apiJob.job_latitude,
       lng: apiJob.job_longitude,
     },
     slug:
       (apiJob.job_title || 'job').toLowerCase().replace(/\s/g, '-') +
-      `-${apiJob.job_id.slice(0, 4)}`,
+      `-${apiJob.job_id?.slice(0, 4) || 'ext'}`,
     applyMethod: { method: 'URL', url: apiJob.job_apply_link },
     isActive: true,
-    // ✅ FIX: Renamed to 'jobTypes' to match the schema
     jobTypes: apiJob.job_employment_types || [],
     experience: [],
-    // ✅ FIX: Added the search query to the 'queries' array
     queries: searchQuery ? [searchQuery] : [],
   };
 };
@@ -746,18 +745,29 @@ const fetchExternalJobs = async (
   experience,
 ) => {
   try {
+    // Build query with location information
+    let query = apiQuery;
+    if (city && state) {
+      query = `${apiQuery} in ${city}, ${state}`;
+    } else if (state) {
+      query = `${apiQuery} in ${state}`;
+    } else if (city) {
+      query = `${apiQuery} in ${city}`;
+    }
+
     const params = {
-      query: apiQuery,
-      page: 1,
-      num_pages: 1,
+      query: query,
+      page: '1',
+      num_pages: '1',
     };
 
+    // Add optional parameters only if they have values
     if (country) params.country = country;
     if (state) params.state = state;
     if (city) params.city = city;
     if (datePosted) params.date_posted = datePosted;
     if (employmentType) params.employment_type = employmentType;
-    if (experience) params.experience = experience;
+    if (experience) params.job_requirements = experience;
 
     const response = await axios.get(config.rapidJobApi, {
       params,
@@ -765,12 +775,17 @@ const fetchExternalJobs = async (
         'X-RapidAPI-Key': config.rapidApiKey,
         'X-RapidAPI-Host': config.rapidApiHost,
       },
+      timeout: 10000,
     });
+
+    console.log('RapidAPI Response Status:', response.status);
+    console.log('RapidAPI Response Data:', response.data);
+
     return response.data.data || [];
   } catch (apiError) {
     console.error(
       `RapidAPI fetch failed for query "${apiQuery}":`,
-      apiError.message,
+      apiError.response?.data || apiError.message,
     );
     return [];
   }
@@ -786,7 +801,7 @@ export const searchJobs = async (req, res) => {
     city,
     employmentType,
     experience,
-    datePosted, // Ensure datePosted is destructured
+    datePosted,
   } = req.query;
 
   const pageNum = parseInt(page, 10);
@@ -795,34 +810,38 @@ export const searchJobs = async (req, res) => {
 
   try {
     const searchCriteria = {};
-    if (q)
+
+    // Build search criteria
+    if (q) {
       searchCriteria.$or = [
         { title: new RegExp(escapeRegex(q), 'i') },
         { description: new RegExp(escapeRegex(q), 'i') },
+        { queries: new RegExp(escapeRegex(q), 'i') },
       ];
+    }
+
     if (country) searchCriteria.country = country;
     if (state) searchCriteria['location.state'] = state;
     if (city) searchCriteria['location.city'] = city;
-    if (employmentType)
-      searchCriteria.jobTypes = { $in: employmentType.split(',') }; // Match against 'jobTypes'
-    if (experience) searchCriteria.experience = { $in: experience.split(',') };
+    if (employmentType) {
+      searchCriteria.jobTypes = { $in: employmentType.split(',') };
+    }
+    if (experience) {
+      searchCriteria.experience = { $in: experience.split(',') };
+    }
 
     let totalJobs = await Job.countDocuments(searchCriteria);
     let jobs = await Job.find(searchCriteria)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
+
     let notification = null;
 
+    // If no jobs found in database and this is the first page with a query
     if (jobs.length === 0 && q && pageNum === 1) {
-      let apiQuery = q;
-      const locationString = [city, state].filter(Boolean).join(', ');
-      if (locationString) {
-        apiQuery = `${q} jobs in ${locationString}`;
-      }
-
       const externalJobsRaw = await fetchExternalJobs(
-        apiQuery,
+        q,
         country,
         state,
         city,
@@ -832,32 +851,64 @@ export const searchJobs = async (req, res) => {
       );
 
       if (externalJobsRaw.length > 0) {
-        // Pass the search query 'q' to the transformer
         const externalJobsFormatted = externalJobsRaw.map((apiJob) =>
           transformRapidApiJob(apiJob, q),
         );
 
-        // ✅ FIX: Updated bulkWrite to correctly add the query to existing jobs
-        const bulkOps = externalJobsFormatted.map((job) => ({
-          updateOne: {
-            filter: { jobId: job.jobId },
-            update: {
-              $set: { ...job, queries: undefined }, // Set all fields except 'queries'
-              $addToSet: { queries: q }, // Add the new query to the array, preventing duplicates
+        // Save to database in background - FIXED BULKWRITE OPERATION
+        try {
+          const bulkOps = externalJobsFormatted.map((job) => ({
+            updateOne: {
+              filter: { jobId: job.jobId },
+              update: {
+                // Use $set for all fields that should always be updated
+                $set: {
+                  title: job.title,
+                  description: job.description,
+                  company: job.company,
+                  country: job.country,
+                  'location.city': job.location.city,
+                  'location.state': job.location.state,
+                  'location.lat': job.location.lat,
+                  'location.lng': job.location.lng,
+                  logo: job.logo,
+                  applyMethod: job.applyMethod,
+                  jobTypes: job.jobTypes,
+                  isActive: job.isActive,
+                  origin: job.origin,
+                  qualifications: job.qualifications,
+                  responsibilities: job.responsibilities,
+                  slug: job.slug,
+                  experience: job.experience,
+                },
+                // Only use $setOnInsert for fields that should ONLY be set on insert
+                $setOnInsert: {
+                  createdAt: new Date(),
+                  // Remove queries from $setOnInsert since we handle it separately
+                },
+                // Use $addToSet for array fields to avoid duplicates
+                $addToSet: {
+                  queries: q,
+                },
+              },
+              upsert: true,
             },
-            upsert: true,
-          },
-        }));
+          }));
 
-        Job.bulkWrite(bulkOps).catch((err) =>
-          console.error('Background DB save failed:', err),
-        );
+          await Job.bulkWrite(bulkOps);
+          console.log('Successfully saved external jobs to database');
+        } catch (dbError) {
+          console.error('Background DB save failed:', dbError);
+        }
 
         jobs = externalJobsFormatted;
         totalJobs = externalJobsFormatted.length;
+      } else {
+        console.log('No external jobs found either');
       }
     }
 
+    // Create notification if no jobs found
     if (jobs.length === 0 && q) {
       const locationString = [city, state, country].filter(Boolean).join(', ');
       notification = locationString
@@ -879,23 +930,26 @@ export const searchJobs = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in searchJobs controller:', error);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({
+      message: 'Server Error',
+      error: error.message,
+    });
   }
 };
 
 export const getJobDetailBySlug = async (req, res) => {
   const { slug } = req.query;
+  console.log(slug);
   try {
-    const cacheKey = `job:slug:${slug}`;
-    const singleJob = await redisClient.withCache(cacheKey, 3600, async () => {
-      return await Job.findOne({ slug });
-    });
+    const singleJob = await Job.find({ slug });
+
+    console.log(singleJob);
 
     if (!singleJob) {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    res.status(200).json({ singleJob });
+    res.status(200).json({ singleJob: singleJob[0] });
   } catch (error) {
     console.error('Error fetching job by slug:', error);
     res.status(500).json({

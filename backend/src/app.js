@@ -1,4 +1,3 @@
-/** @format */
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -8,7 +7,6 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 
-// Import routes
 import userRoutes from './routes/user.route.js';
 import jobRoleRoutes from './routes/jobRole.route.js';
 import organizationRoutes from './routes/organization.route.js';
@@ -27,16 +25,11 @@ import { config } from './config/config.js';
 
 const app = express();
 
-// This tells Express that it's behind a proxy (like a load balancer or reverse proxy)
-// and to trust the X-Forwarded-For header that the proxy sends.
-// This is crucial for rate-limiting to work correctly.
 app.set('trust proxy', 1);
 
-// 1. Security Middleware
 app.use(helmet());
 app.use(compression());
 
-// 2. Rate Limiting Middleware
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
@@ -45,7 +38,6 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again after 15 minutes.',
 });
 
-// Apply the rate limiting middleware to all requests
 app.use(limiter);
 
 const prod = ['https://www.zobsai.com'];
@@ -54,7 +46,13 @@ const dev = [
   'https://in.indeed.com',
   'https://www.linkedin.com',
 ];
-const local = ['http://127.0.0.1:3000', 'http://localhost:3000'];
+
+const local = [
+  'http://127.0.0.1:3000',
+  'http://localhost:3000',
+  'http://127.0.0.1:3004',
+  'http://localhost:3004',
+];
 
 const originAllow =
   config.nodeEnv === 'production'
@@ -65,7 +63,6 @@ const originAllow =
 
 console.log(originAllow);
 
-// 3. CORS Configuration
 app.use(
   cors({
     origin: process.env.CORS_ORIGINS?.split(',') || [
@@ -88,7 +85,6 @@ app.use(
   }),
 );
 
-// This route uses a raw body parser to ensure the Stripe signature can be verified.
 app.post(
   '/api/v1/plan/payment/webhook',
   express.raw({ type: 'application/json' }),
@@ -131,7 +127,7 @@ app.use('/api/v1/students', aiRoutes);
 app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
-app.use('/api/v1/notifications', notificationRoutes); // 👈 ADD THIS
+app.use('/api/v1/notifications', notificationRoutes);
 // app.use('/api/v1/dev', taskRoutes);
 app.use('/api/v1/new-feature', newFeatureRoutes);
 

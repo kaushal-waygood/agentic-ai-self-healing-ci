@@ -25,8 +25,9 @@ interface JobCardProps {
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   const handleClick = async () => {
     try {
+      console.log('Viewing job:', job.slug);
       // This call is fine, it only runs on click when job exists.
-      await apiInstance.post(`/students/job/viewed/${job._id}`);
+      await apiInstance.post(`/students/job/viewed/${job.slug}`);
       onClick();
     } catch (error) {
       console.error('Failed to log job view on click:', error);

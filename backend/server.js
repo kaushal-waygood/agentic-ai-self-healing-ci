@@ -16,7 +16,6 @@ console.log('Environment Mode: ', config.nodeEnv);
 
 const numCPUs = os.cpus().length;
 
-// Create HTTP server and Socket.io instance
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
@@ -36,7 +35,6 @@ const io = new Server(server, {
 // Setup notification socket
 setupNotificationSocket(io);
 
-// Make io accessible to routes
 app.set('io', io);
 
 if (cluster.isPrimary) {

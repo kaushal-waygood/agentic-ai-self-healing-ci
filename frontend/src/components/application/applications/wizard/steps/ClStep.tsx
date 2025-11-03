@@ -55,9 +55,6 @@ const SleekClStep = ({
     <div className="max-w-2xl mx-auto p-4 sm:p-6 font-sans">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl mb-4 shadow-lg">
-          <FileText className="w-8 h-8 text-white" />
-        </div>
         <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
           Cover Letter Context
         </h2>
