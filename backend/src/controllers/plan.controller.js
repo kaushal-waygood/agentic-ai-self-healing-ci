@@ -223,8 +223,8 @@ export const getSinglePlan = async (req, res) => {
   }
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const stripe = new Stripe(config.stripeSecretKey);
+const stripeWebhookSecret = config.stripeWebhookSecret;
 
 export const createPaymentIntent = async (req, res) => {
   try {
