@@ -8,22 +8,23 @@ import {
   MapPin,
   SearchIcon,
   Loader2,
-  Loader2Icon,
 } from 'lucide-react';
 import CountrySelector from '../common/CountrySelector';
-import StateSelector from '../common/StateSelector.tsx';
-import CitySelector from '../common/CitySelector';
+import StateSelector from '../common/StateSelector';
+import { State } from 'country-state-city';
 
+// Update the interface to match your actual data structure
 interface FilterState {
   query: string;
   country: string;
   state: string;
   city: string;
+  datePosted: string;
+  employmentType: string[];
 }
 
 interface SearchFiltersProps {
-  initialFilters: FilterState;
-  // parent may return void or a Promise; we handle both
+  initialFilters: Partial<FilterState>;
   onSearchChange: (newFilters: Partial<FilterState>) => Promise<void> | void;
   onOpenFilterModal: () => void;
 }
@@ -33,47 +34,93 @@ export const SearchFilters = ({
   onSearchChange,
   onOpenFilterModal,
 }: SearchFiltersProps) => {
-  const [localFilters, setLocalFilters] = useState<FilterState>(
-    initialFilters ?? { query: '', country: '', state: '', city: '' },
-  );
+  const defaultFilters: FilterState = {
+    query: '',
+    country: '',
+    state: '',
+    city: '',
+    datePosted: '',
+    employmentType: [],
+  };
+
+  const [localFilters, setLocalFilters] = useState<FilterState>({
+    ...defaultFilters,
+    ...initialFilters,
+  });
+
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    setLocalFilters(initialFilters);
+    if (initialFilters) {
+      setLocalFilters((prev) => ({
+        ...defaultFilters,
+        ...prev,
+        ...initialFilters,
+      }));
+    }
   }, [initialFilters]);
 
   const handleInputChange = (name: keyof FilterState, value: string) => {
-    setLocalFilters((prev) => ({ ...prev, [name]: value }));
+    setLocalFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleCountryChange = (countryCode: string) => {
+    console.log('Country changed to:', countryCode);
     setLocalFilters((prev) => ({
       ...prev,
       country: countryCode,
-      state: '',
-      city: '',
+      state: '', // Reset state when country changes
     }));
   };
 
   const handleStateChange = (stateCode: string) => {
-    setLocalFilters((prev) => ({ ...prev, state: stateCode, city: '' }));
+    console.log('State changed to:', stateCode);
+    setLocalFilters((prev) => ({
+      ...prev,
+      state: stateCode,
+    }));
   };
 
-  // Handles sync or async parent handlers
+  // Helper function to get state name from state code
+  const getStateName = (countryCode: string, stateCode: string): string => {
+    if (!countryCode || !stateCode) return '';
+    const state = State.getStateByCodeAndCountry(stateCode, countryCode);
+    return state?.name || stateCode; // Return state name or fallback to code
+  };
+
   const handleSearchClick = () => {
+    console.log('Current localFilters before search:', localFilters);
+
+    // Convert state code to full state name for API call
+    const stateName = getStateName(localFilters.country, localFilters.state);
+
+    const searchFilters = {
+      query: localFilters.query,
+      country: localFilters.country,
+      state: stateName, // Send full state name instead of code
+      city: localFilters.city,
+      datePosted: localFilters.datePosted,
+      employmentType: [...localFilters.employmentType],
+    };
+
+    console.log('searchFilters being sent:', searchFilters);
+
     setIsSearching(true);
 
-    // delay actual search so React can render the "Searching..." state
-    setTimeout(async () => {
+    requestAnimationFrame(async () => {
       try {
-        await Promise.resolve(onSearchChange(localFilters));
+        await Promise.resolve(onSearchChange(searchFilters));
+      } catch (error) {
+        console.error('Search error:', error);
       } finally {
         setIsSearching(false);
       }
-    }, 2000);
+    });
   };
 
-  // Support pressing Enter in the text box
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -127,8 +174,7 @@ export const SearchFilters = ({
         >
           {isSearching ? (
             <>
-              {/* ✅ Use Loader2, not Loader2Icon */}
-              <Loader2 className="w-4 h-4 animate-spin" /> Search
+              <Loader2 className="w-4 h-4 animate-spin" /> Searching...
             </>
           ) : (
             <>

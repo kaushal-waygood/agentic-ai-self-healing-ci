@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useRef, useState, FC } from 'react';
 import {
   Copy,
@@ -24,13 +22,13 @@ interface EditableMaterialProps {
   title: string;
   isHtml?: boolean;
   className?: string;
-  handleSave?: (content: string) => Promise<void> | void;
+  // handleSave?: (content: string) => Promise<void> | void;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
   content,
   setContent,
-  handleSave,
+  // handleSave,
   title,
   isHtml = false,
   className = '',
@@ -47,6 +45,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const [wordCount, setWordCount] = useState(0);
   const [originalContent, setOriginalContent] = useState<string>('');
   const [localContent, setLocalContent] = useState<string>(content);
+  const [isInitialEditSetup, setIsInitialEditSetup] = useState(false);
 
   // Sync local content with prop content
   useEffect(() => {
@@ -63,20 +62,44 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     sel?.addRange(range);
   };
 
+  // Handle initial setup when entering edit mode
   useEffect(() => {
     if (!editorRef.current) return;
 
-    if (isEditing) {
-      // Only set content if it's different to avoid cursor jumping
+    if (isEditing && !isInitialEditSetup) {
+      // Initial setup when entering edit mode
       if (editorRef.current.innerHTML !== localContent) {
         editorRef.current.innerHTML = localContent;
       }
       placeCaretAtEnd(editorRef.current);
-    } else {
+      setIsInitialEditSetup(true);
+    } else if (!isEditing) {
       // When not editing, always sync with current content
       editorRef.current.innerHTML = localContent;
+      setIsInitialEditSetup(false);
     }
-  }, [isEditing, localContent]);
+  }, [isEditing, localContent, isInitialEditSetup]);
+
+  // Handle content changes without moving cursor
+  useEffect(() => {
+    if (!editorRef.current || !isEditing || isInitialEditSetup) return;
+
+    // Only update if content is different and we're not in initial setup
+    if (editorRef.current.innerHTML !== localContent) {
+      // Save current cursor position
+      const selection = window.getSelection();
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+
+      // Update content
+      editorRef.current.innerHTML = localContent;
+
+      // Restore cursor position if it exists
+      if (range && selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+  }, [localContent, isEditing, isInitialEditSetup]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -143,23 +166,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         setLocalContent(newContent);
         setContent(newContent);
 
-        console.log('handleSave with newContent:', newContent);
-
-        // Trigger parent save if available
-        if (typeof handleSave === 'function') {
-          try {
-            await handleSave(newContent);
-          } catch (error) {
-            console.error('Error in handleSave:', error);
-            toast({
-              variant: 'destructive',
-              title: 'Save Failed',
-              description: 'Failed to save changes.',
-            });
-            return; // Don't proceed if save fails
-          }
-        }
-
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
         toast({
@@ -209,18 +215,21 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     if (!editorRef.current) return;
     setIsLoading(true);
     toast({ title: 'Generating PDF...' });
-    console.log('editorRef.current.innerHTML', editorRef.current);
     try {
       const response = await apiInstance.post(
         '/students/pdf/generate-pdf',
-        { html: editorRef.current.innerHTML, title: 'zobsai' },
+        {
+          html: editorRef.current.innerHTML,
+          title: title || 'document',
+        },
         { responseType: 'blob' },
       );
       if (response.status !== 200)
         throw new Error('PDF generation failed on the server.');
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      downloadFile(blob, `zobsai_${title.replace(/ /g, '_')}.pdf`);
+      const safeTitle = (title || 'document').replace(/ /g, '_');
+      downloadFile(blob, `zobsai_${safeTitle}.pdf`);
       toast({ title: 'PDF downloaded successfully!' });
     } catch (error) {
       console.error('PDF Download Error:', error);
@@ -241,7 +250,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     try {
       const response = await apiInstance.post(
         '/students/docx/generate-docx',
-        { html: editorRef.current.innerHTML, title },
+        {
+          html: editorRef.current.innerHTML,
+          title: title || 'document',
+        },
         { responseType: 'blob' },
       );
       if (response.status !== 200)
@@ -250,7 +262,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       });
-      downloadFile(blob, `zobsai_${title.replace(/ /g, '_')}.docx`);
+      const safeTitle = (title || 'document').replace(/ /g, '_');
+      downloadFile(blob, `zobsai_${safeTitle}.docx`);
       toast({ title: 'DOCX downloaded successfully!' });
     } catch (error) {
       console.error('DOCX Download Error:', error);

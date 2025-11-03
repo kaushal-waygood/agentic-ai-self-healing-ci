@@ -59,28 +59,32 @@ export const searchJobs = async (params: {
   query?: string;
   country?: string;
   city?: string;
+  state: string;
   datePosted?: string;
   employmentType?: string;
   experience?: string;
   limit?: number;
 }) => {
-  // Use 'q' as the search parameter to match the backend controller
   const { page, limit = 10, query, ...filters } = params;
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
 
+  console.log(params);
+
   // The main search term
   if (query) queryParams.append('q', query);
 
   // Add other filters if they exist
   if (filters.country) queryParams.append('country', filters.country);
-  if (filters.city) queryParams.append('city', filters.city);
+  if (filters.state) queryParams.append('state', filters.state);
   if (filters.datePosted) queryParams.append('datePosted', filters.datePosted);
   if (filters.employmentType)
     queryParams.append('employmentType', filters.employmentType);
   if (filters.experience) queryParams.append('experience', filters.experience);
+
+  console.log(queryParams.toString());
 
   // Note the endpoint is /jobs/search
   const response = await apiInstance.get(

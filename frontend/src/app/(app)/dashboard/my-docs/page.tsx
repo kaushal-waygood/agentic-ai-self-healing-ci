@@ -229,10 +229,13 @@ export default function DocumentsPage() {
     if (!content) return;
     setIsLoading(true);
     toast({ title: 'Generating PDF...' });
+
+    const htmlContent = content.cv || content.html;
+    console.log('htmlContent', htmlContent);
     try {
       const response = await apiInstance.post(
         '/students/pdf/generate-pdf',
-        { html: content.cv || content.html, title },
+        { html: htmlContent, title },
         { responseType: 'blob' },
       );
       if (response.status !== 200)

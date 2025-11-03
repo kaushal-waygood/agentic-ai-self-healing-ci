@@ -144,6 +144,7 @@ function* searchJobsSaga(
     append?: boolean;
     query?: string;
     country?: string;
+    state?: string;
     city?: string;
     datePosted?: string;
     employmentType?: string[];
@@ -157,21 +158,27 @@ function* searchJobsSaga(
       query,
       country,
       city,
+      state,
       datePosted,
       employmentType,
       experience,
     } = action.payload;
+
+    console.log(action.payload);
 
     // Call the updated searchJobs service function with all params
     const response: AxiosResponse = yield call(searchJobs, {
       page,
       query,
       country,
+      state,
       city,
       datePosted,
       employmentType: employmentType?.join(','),
       experience: experience?.join(','),
     });
+
+    console.log(response.data);
 
     // Dispatch the success action with the full payload
     yield put(
