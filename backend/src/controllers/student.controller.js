@@ -91,7 +91,7 @@ export const onboardingProfile = async (req, res) => {
 
     if (data.education && Array.isArray(data.education)) {
       student.education = data.education.map((edu) => ({
-        educationId: uuidv4(), // Generate a unique ID for each entry
+        educationId: slugify(`${edu.degree}-${edu.institute}`, { lower: true }), // Generate a unique ID for each entry
         institute: edu.institute,
         degree: edu.degree,
         grade: edu.grade,
@@ -108,7 +108,7 @@ export const onboardingProfile = async (req, res) => {
           ? exp.duration.split(' - ')
           : [null, null];
         return {
-          experienceId: uuidv4(),
+          experienceId: slugify(`${exp.company}-${exp.title}`, { lower: true }),
           company: exp.company,
           title: exp.title,
           description: exp.description,
@@ -126,7 +126,9 @@ export const onboardingProfile = async (req, res) => {
     // 5. Transform and Update Skills Array
     if (data.skills && Array.isArray(data.skills)) {
       student.skills = data.skills.map((skill) => ({
-        skillId: uuidv4(),
+        skillId: slugify(`${skill.skill}-${skill.level}-${Date.now()}`, {
+          lower: true,
+        }),
         skill: skill.skill,
         level: skill.level || 'BEGINNER',
       }));
