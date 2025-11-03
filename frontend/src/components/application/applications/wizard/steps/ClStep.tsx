@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form'; // Assuming you use FormProvider
 import { Form, FormField } from '@/components/ui/form'; // Assuming these are your form components
 import { motion } from 'framer-motion';
@@ -11,8 +11,10 @@ import {
   Edit3,
   Save,
   Sparkles,
+  Clock,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea'; // Assuming this is your textarea component
+import apiInstance from '@/services/api';
 
 // This is the merged component that combines the UI from the generated code
 // with the functionality from your original code.
@@ -23,6 +25,28 @@ const SleekClStep = ({
   mockUserProfile,
 }: any) => {
   // Options array to build the selection UI, taken from the generated code.
+  const [coverLetters, setCoverLetters] = useState([]);
+
+  const [stats, setStats] = useState({ clsCount: 0 });
+
+  useEffect(() => {
+    const fetchCoverLetters = async () => {
+      try {
+        const response = await apiInstance.get('/students/cls');
+        setCoverLetters(response.data.cls || []);
+        setStats((prev) => ({
+          ...prev,
+          coverLettersCount: response.data.cls?.length || 0,
+        }));
+      } catch (error) {
+        console.error('Failed to fetch cover letters:', error);
+      }
+    };
+
+    fetchCoverLetters();
+  }, []);
+  console.log('fetched cover letters:', coverLetters);
+
   const options = [
     {
       value: 'skip',
@@ -166,57 +190,58 @@ const SleekClStep = ({
 
                             {/* Conditional content for 'saved' */}
                             {isSelected && option.value === 'saved' && (
-                              <div className="mt-6 animate-fadeIn">
+                              // <div className="mt-6 animate-fadeIn">
+                              <div className="max-h-[35vh] overflow-y-auto border border-slate-200 rounded-lg bg-slate-50/50">
                                 <FormField
                                   control={clForm.control}
                                   name="savedClId"
                                   render={({ field: savedField }) => (
                                     <>
-                                      {mockUserProfile.savedCoverLetters
-                                        .length > 0 ? (
+                                      {coverLetters.length > 0 ? (
                                         <div className="space-y-2">
-                                          {mockUserProfile.savedCoverLetters.map(
-                                            (cl, clIndex) => {
-                                              const isSavedClSelected =
-                                                savedField.value === cl.id;
-                                              return (
+                                          {coverLetters.map((cl, clIndex) => {
+                                            const isSavedClSelected =
+                                              savedField.value === cl._id;
+                                            return (
+                                              <div
+                                                key={cl._id}
+                                                className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                                  isSavedClSelected
+                                                    ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-blue-50'
+                                                    : 'border-slate-200 hover:border-cyan-300 hover:bg-cyan-50/30'
+                                                }`}
+                                                onClick={(e) => {
+                                                  e.stopPropagation(); // Prevent parent onClick from firing
+                                                  savedField.onChange(cl._id);
+                                                }}
+                                                style={{
+                                                  animation: `slideInLeft 0.4s ease-out ${
+                                                    clIndex * 100
+                                                  }ms forwards`,
+                                                  opacity: 0,
+                                                }}
+                                              >
                                                 <div
-                                                  key={cl.id}
-                                                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                                                     isSavedClSelected
-                                                      ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-blue-50'
-                                                      : 'border-slate-200 hover:border-cyan-300 hover:bg-cyan-50/30'
+                                                      ? 'border-cyan-500 bg-cyan-500'
+                                                      : 'border-slate-300'
                                                   }`}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation(); // Prevent parent onClick from firing
-                                                    savedField.onChange(cl.id);
-                                                  }}
-                                                  style={{
-                                                    animation: `slideInLeft 0.4s ease-out ${
-                                                      clIndex * 100
-                                                    }ms forwards`,
-                                                    opacity: 0,
-                                                  }}
                                                 >
-                                                  <div
-                                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                                                      isSavedClSelected
-                                                        ? 'border-cyan-500 bg-cyan-500'
-                                                        : 'border-slate-300'
-                                                    }`}
-                                                  >
-                                                    {isSavedClSelected && (
-                                                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                                                    )}
-                                                  </div>
-                                                  <FileText className="w-4 h-4 text-slate-500" />
-                                                  <span className="text-sm font-medium text-slate-700">
-                                                    {cl.name}
-                                                  </span>
+                                                  {isSavedClSelected && (
+                                                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                                                  )}
                                                 </div>
-                                              );
-                                            },
-                                          )}
+                                                <FileText className="w-4 h-4 text-slate-500" />
+                                                <div className="font-medium text-slate-800">
+                                                  {cl.jobContextString?.slice(
+                                                    0,
+                                                    50,
+                                                  ) || 'N/A'}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
                                         </div>
                                       ) : (
                                         <div className="text-center py-8">

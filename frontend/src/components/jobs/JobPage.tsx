@@ -100,6 +100,7 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
+      {/* seach filter  */}
       <div className="container mx-auto px-1">
         <SearchFilters
           initialFilters={filters}
@@ -111,7 +112,7 @@ export default function JobsPage() {
           <div className="">
             <div
               ref={jobListRef}
-              className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin"
+              className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 scrollbar-thin "
             >
               {/* Notification for No Results */}
               {notification && !loading && (
