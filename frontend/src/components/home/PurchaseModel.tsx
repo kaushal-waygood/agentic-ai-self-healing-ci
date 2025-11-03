@@ -50,7 +50,7 @@ console.log(
 );
 // --- Stripe Loader ---
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+  'pk_live_51P9LpzRk1I3BflpJZwwqZtdVW5cJmdivnzPqu6vtSosnfTO44dZhve6DOdtNfupRR247b18tSTU3Ziszq8Yr2Duo00XmtGeZzC',
 );
 
 export default function CheckoutPage() {
