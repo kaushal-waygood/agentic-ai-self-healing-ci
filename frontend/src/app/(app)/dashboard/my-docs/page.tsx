@@ -14,6 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { DocumentCard } from './components/DocumentCard';
 
 interface CV {
   _id: string;
@@ -257,6 +258,7 @@ export default function DocumentsPage() {
   };
 
   const getStatusIcon = (status: string) => {
+    console.log('status', status);
     switch (status) {
       case 'completed':
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
@@ -451,236 +453,97 @@ const DocumentSection = ({
   getStatusColor,
   formatDate,
   type,
-}: any) => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-      {title}
-    </h2>
-
-    {items.length === 0 ? (
-      <div className="text-center py-12">
-        <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          No{' '}
-          {type === 'cv'
-            ? 'CVs'
-            : type === 'coverLetter'
-            ? 'Cover Letters'
-            : 'Applications'}{' '}
-          Found
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400">
-          {type === 'cv'
-            ? 'Generate your first CV to get started'
-            : type === 'coverLetter'
-            ? 'Create your first cover letter to see it here'
-            : 'Create your first tailored application to see it here'}
-        </p>
-      </div>
-    ) : (
-      <div className="space-y-4">
-        {items.map((item: any) => (
-          <DocumentCard
-            key={item._id}
-            item={item}
-            type={type}
-            onDelete={onDelete}
-            onCopy={onCopy}
-            onDownload={onDownload}
-            copiedId={copiedId}
-            getStatusIcon={getStatusIcon}
-            getStatusColor={getStatusColor}
-            formatDate={formatDate}
-          />
-        ))}
-      </div>
-    )}
-  </div>
-);
-
-const DocumentCard = ({
-  item,
-  type,
-  onDelete,
-  onCopy,
-  onDownload,
-  copiedId,
-  getStatusIcon,
-  getStatusColor,
-  formatDate,
 }: any) => {
-  const getContent = () => {
-    switch (type) {
-      case 'cv':
-        return item.cvData;
-      case 'coverLetter':
-        return item.clData;
-      case 'application':
-        return {
-          cv: item.tailoredCV,
-          coverLetter: item.tailoredCoverLetter,
-          email: item.applicationEmail,
-        };
-      default:
-        return null;
-    }
-  };
+  // 1. Add state to store the search input
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const getTitle = () => {
-    switch (type) {
-      case 'cv':
-        return (
-          item.jobContextString?.slice(0, 100) +
-            (item.jobContextString?.length > 100 ? '...' : '') || 'Generated CV'
-        );
-      case 'coverLetter':
-        return (
-          item.jobContextString?.slice(0, 100) +
-            (item.jobContextString?.length > 100 ? '...' : '') ||
-          'Generated Cover Letter'
-        );
-      case 'application':
-        return `${item.jobTitle} - ${item.companyName}`;
-      default:
-        return 'Document';
-    }
-  };
+  // 2. Create the filtering logic
+  const filteredItems = items.filter((item: any) => {
+    if (!searchTerm) return true; // If search is empty, show all items
 
-  const getFilename = () => {
-    const baseName =
-      type === 'cv'
-        ? 'cv'
-        : type === 'coverLetter'
-        ? 'cover-letter'
-        : 'application';
-    return `${baseName}-${item._id}-${
-      new Date(item.createdAt).toISOString().split('T')[0]
-    }.txt`;
-  };
+    const searchLower = searchTerm.toLowerCase();
 
-  const router = useRouter();
+    // Search against the fields used in DocumentCard's getTitle()
+    const title = (item.jobTitle || '').toLowerCase();
+    const company = (item.companyName || '').toLowerCase();
+    const context = (item.jobContextString || '').toLowerCase();
 
-  // Check if the item is in a state that should allow clicking
-  const isClickable = item.status === 'completed';
-
-  const openContent = () => {
-    if (!isClickable) return; // Prevent navigation if not clickable
-
-    if (type === 'application') {
-      router.push(`/dashboard/my-docs/application/${item._id}`);
-    } else if (type === 'cv') {
-      router.push(`/dashboard/my-docs/cv/${item._id}`);
-    } else if (type === 'coverLetter') {
-      router.push(`/dashboard/my-docs/cl/${item._id}`);
-    }
-  };
+    return (
+      title.includes(searchLower) ||
+      company.includes(searchLower) ||
+      context.includes(searchLower)
+    );
+  });
 
   return (
-    <div
-      className={`p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 transition-shadow ${
-        isClickable
-          ? 'cursor-pointer hover:shadow-md'
-          : 'cursor-not-allowed opacity-70'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-3">
-          {getStatusIcon(item.status)}
-          <span
-            className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(
-              item.status,
-            )}`}
-          >
-            {item.status}
-          </span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => onCopy(getContent(), item._id)}
-            disabled={!isClickable}
-            className={`p-2 transition-colors ${
-              isClickable
-                ? 'text-gray-500 hover:text-blue-600'
-                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-            }`}
-            title={isClickable ? 'Copy to clipboard' : 'Not available'}
-          >
-            {copiedId === item._id ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-          </button>
-          <button
-            onClick={() => onDownload(getContent(), getFilename())}
-            disabled={!isClickable}
-            className={`p-2 transition-colors ${
-              isClickable
-                ? 'text-gray-500 hover:text-green-600'
-                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-            }`}
-            title={isClickable ? 'Download' : 'Not available'}
-          >
-            <Download className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => onDelete(item._id)}
-            className="p-2 text-gray-500 hover:text-red-600 transition-colors"
-            title="Delete"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+    <div className="p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          {title}
+        </h2>
+        <div>
+          {/* 3. Wire up the input to the state */}
+          <input
+            type="text"
+            className="p-1 border border-gray-300 dark:border-gray-600 rounded-md"
+            placeholder="Search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
-      <h3
-        className={`font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 ${
-          isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
-        }`}
-        onClick={openContent}
-      >
-        {getTitle()}
-        {!isClickable && (
-          <span className="text-xs text-gray-400 ml-2">
-            (
-            {item.status === 'pending' ? 'Processing...' : 'Failed to generate'}
-            )
-          </span>
-        )}
-      </h3>
-
-      {item.finalTouch && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          <strong>Customization:</strong> {item.finalTouch}
-        </p>
-      )}
-
-      {item.error && item.status === 'failed' && (
-        <p className="text-sm text-red-600 dark:text-red-400 mb-2">
-          <strong>Error:</strong> {item.error}
-        </p>
-      )}
-
-      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-        <span>Created: {formatDate(item.createdAt)}</span>
-        {item.completedAt && item.status !== 'pending' && (
-          <span>Completed: {formatDate(item.completedAt)}</span>
-        )}
-      </div>
-
-      {type === 'application' && item.status === 'completed' && (
-        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex space-x-4 text-xs">
-            <span className="text-blue-600 dark:text-blue-400">
-              ✓ CV Generated
-            </span>
-            <span className="text-green-600 dark:text-green-400">
-              ✓ Cover Letter Generated
-            </span>
-            <span className="text-purple-600 dark:text-purple-400">
-              ✓ Email Prepared
-            </span>
-          </div>
+      {/* 4. Update conditional rendering logic */}
+      {items.length === 0 ? (
+        // This shows if there are NO items at all
+        <div className="text-center py-12">
+          <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No{' '}
+            {type === 'cv'
+              ? 'CVs'
+              : type === 'coverLetter'
+              ? 'Cover Letters'
+              : 'Applications'}{' '}
+            Found
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            {type === 'cv'
+              ? 'Generate your first CV to get started'
+              : type === 'coverLetter'
+              ? 'Create your first cover letter to see it here'
+              : 'Create your first tailored application to see it here'}
+          </p>
+        </div>
+      ) : filteredItems.length === 0 ? (
+        // This shows if there are items, but none match the search
+        <div className="text-center py-12">
+          <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No Results Found
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Your search for "{searchTerm}" did not match any documents.
+          </p>
+        </div>
+      ) : (
+        // This shows the filtered results
+        <div className="space-y-4">
+          {/* 5. Map over the filtered list */}
+          {filteredItems.map((item: any) => (
+            <DocumentCard
+              key={item._id}
+              item={item}
+              type={type}
+              onDelete={onDelete}
+              onCopy={onCopy}
+              onDownload={onDownload}
+              copiedId={copiedId}
+              getStatusIcon={getStatusIcon}
+              getStatusColor={getStatusColor}
+              formatDate={formatDate}
+            />
+          ))}
         </div>
       )}
     </div>

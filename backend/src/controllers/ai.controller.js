@@ -413,6 +413,56 @@ export const generateCVByJobId = async (req, res) => {
   await initiateCVGeneration(req, res, job.description);
 };
 
+const getModelForType = (type) => {
+  switch (type) {
+    case 'cv':
+      return 'cvs';
+    case 'cl': // for Cover Letter
+      return 'cls';
+    case 'tailored': // for Tailored CV
+      return 'tailoredApplications';
+    default:
+      return null; // Invalid type
+  }
+};
+
+export const refreshStatus = async (req, res) => {
+  const { type, id } = req.params;
+  const { _id: userId } = req.user;
+
+  const modelName = getModelForType(type);
+  if (!modelName) {
+    return res.status(400).json({ error: 'Invalid type' });
+  }
+
+  try {
+    // Find the student, but only select the one matching item from the array
+    const student = await Student.findById(userId)
+      .select({ [modelName]: { $elemMatch: { _id: id } } })
+      .exec();
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if the item was found
+    // student[modelName] will be an array.
+    // If a match was found, it will have 1 item. If not, it will be empty.
+    if (!student[modelName] || student[modelName].length === 0) {
+      return res
+        .status(404)
+        .json({ error: `Item with id ${id} not found for this student.` });
+    }
+
+    // Get the single item from the array
+    const item = student[modelName][0];
+
+    res.status(200).json({ success: true, item: item });
+  } catch (error) {
+    console.error(`Error refreshing status for ${type}:`, error);
+    res.status(500).json({ error: `Failed to retrieve ${type}` });
+  }
+};
 export const regenerateCV = async (req, res) => {
   try {
     const { _id } = req.user;

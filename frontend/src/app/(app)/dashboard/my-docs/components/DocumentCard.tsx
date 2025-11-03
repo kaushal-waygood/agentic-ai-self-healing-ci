@@ -1,11 +1,11 @@
-import { useCVGenerationStatus } from '@/hooks/useCVGenerationStatus';
+import apiInstance from '@/services/api';
 import {
   CheckCircle2,
   Copy,
   Download,
   Loader2,
   Trash2,
-  Bug,
+  Clock, // Note: This is imported but not used in your code
   RefreshCw,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -21,26 +21,26 @@ export const DocumentCard = ({
   getStatusIcon,
   getStatusColor,
   formatDate,
-  onStatusUpdate,
 }: any) => {
   const router = useRouter();
-  const [localItem, setLocalItem] = useState(item);
+  const [status, setStatus] = useState(item.status);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Determine if we should show processing state
-  const isProcessing = localItem.status === 'pending';
-  const isClickable = localItem.status === 'completed';
+  const isProcessing = status === 'pending';
+  const isClickable = status === 'completed';
 
   const getContent = () => {
     switch (type) {
       case 'cv':
-        return localItem.cvData;
+        return item.cvData;
       case 'coverLetter':
-        return localItem.clData;
+        return item.clData;
       case 'application':
         return {
-          cv: localItem.tailoredCV,
-          coverLetter: localItem.tailoredCoverLetter,
-          email: localItem.applicationEmail,
+          cv: item.tailoredCV,
+          coverLetter: item.tailoredCoverLetter,
+          email: item.applicationEmail,
         };
       default:
         return null;
@@ -51,18 +51,17 @@ export const DocumentCard = ({
     switch (type) {
       case 'cv':
         return (
-          localItem.jobContextString?.slice(0, 100) +
-            (localItem.jobContextString?.length > 100 ? '...' : '') ||
-          'Generated CV'
+          item.jobContextString?.slice(0, 100) +
+            (item.jobContextString?.length > 100 ? '...' : '') || 'Generated CV'
         );
       case 'coverLetter':
         return (
-          localItem.jobContextString?.slice(0, 100) +
-            (localItem.jobContextString?.length > 100 ? '...' : '') ||
+          item.jobContextString?.slice(0, 100) +
+            (item.jobContextString?.length > 100 ? '...' : '') ||
           'Generated Cover Letter'
         );
       case 'application':
-        return `${localItem.jobTitle} - ${localItem.companyName}`;
+        return `${item.jobTitle} - ${item.companyName}`;
       default:
         return 'Document';
     }
@@ -75,8 +74,8 @@ export const DocumentCard = ({
         : type === 'coverLetter'
         ? 'cover-letter'
         : 'application';
-    return `${baseName}-${localItem._id}-${
-      new Date(localItem.createdAt).toISOString().split('T')[0]
+    return `${baseName}-${item._id}-${
+      new Date(item.createdAt).toISOString().split('T')[0]
     }.txt`;
   };
 
@@ -84,47 +83,58 @@ export const DocumentCard = ({
     if (!isClickable) return;
 
     if (type === 'application') {
-      router.push(`/dashboard/my-docs/application/${localItem._id}`);
+      router.push(`/dashboard/my-docs/application/${item._id}`);
     } else if (type === 'cv') {
-      router.push(`/dashboard/my-docs/cv/${localItem._id}`);
+      router.push(`/dashboard/my-docs/cv/${item._id}`);
     } else if (type === 'coverLetter') {
-      router.push(`/dashboard/my-docs/cl/${localItem._id}`);
+      router.push(`/dashboard/my-docs/cl/${item._id}`);
     }
   };
 
-  // Manual refresh function
-  const handleManualRefresh = () => {
-    console.log('🔄 Manual refresh for:', localItem._id);
-    // You can replace this with an API call to refresh the status
-    // For now, it just logs the action
+  // Handle refresh dynamically based on type
+  const handleRefresh = async () => {
+    // Prevent refresh if already refreshing or completed
+    if (isRefreshing || status === 'completed') return;
+
+    console.log('🔄 Manual refresh for:', item._id, 'type:', type);
+    setIsRefreshing(true);
+
+    try {
+      let endpoint = '';
+      switch (type) {
+        case 'cv':
+          // Using the generic endpoint you built
+          endpoint = `/students/refresh/cv/${item._id}`;
+          break;
+        case 'coverLetter':
+          endpoint = `/students/refresh/cl/${item._id}`;
+          break;
+        case 'application':
+          // Assuming 'application' maps to 'tailored'
+          endpoint = `/students/refresh/tailored/${item._id}`;
+          break;
+        default:
+          console.error('Unknown document type for refresh:', type);
+          setIsRefreshing(false); // Make sure to stop loading
+          return;
+      }
+
+      const response = await apiInstance.get(endpoint);
+      const { data } = response;
+      // Assuming the API returns the document at { document: {...} }
+      if (data.document && data.document.status) {
+        setStatus(data.document.status);
+      } else {
+        // Fallback for your old API structure
+        console.warn('Data structure might be different. Falling back.');
+        setStatus(data.item.status);
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing document:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
-
-  // Show progress bar for pending items
-  const renderProgress = () => {
-    if (!isProcessing) return null;
-
-    return (
-      <div className="mt-3">
-        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-          <span>Processing...</span>
-          <span>0%</span>
-        </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-          <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `0%` }}
-          ></div>
-        </div>
-      </div>
-    );
-  };
-
-  console.log('🔍 DocumentCard state:', {
-    itemId: localItem._id,
-    status: localItem.status,
-    isProcessing,
-    isClickable,
-  });
 
   return (
     <div
@@ -136,45 +146,46 @@ export const DocumentCard = ({
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
-          {isProcessing ? (
+          {isProcessing || isRefreshing ? (
             <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
           ) : (
-            getStatusIcon(localItem.status)
+            getStatusIcon(status)
           )}
           <span
             className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(
-              localItem.status,
+              status,
             )}`}
           >
-            {localItem.status === 'pending' ? 'processing' : localItem.status}
+            {status === 'pending' ? 'processing' : status}
+            {isRefreshing && '...'}
           </span>
         </div>
         <div className="flex items-center space-x-2">
-          {/* Debug Button */}
+          {/* --- MODIFICATION START --- */}
           <button
-            onClick={() => {
-              console.log('🔍 ===== DEBUG INFO =====');
-              console.log('Item:', localItem);
-              console.log('Type:', type);
-              console.log('Status:', localItem.status);
-            }}
-            className="p-2 text-gray-500 hover:text-yellow-600 transition-colors"
-            title="Debug info"
+            onClick={handleRefresh}
+            disabled={isRefreshing || status === 'completed'}
+            className={`p-2 transition-colors ${
+              isRefreshing || status === 'completed'
+                ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                : 'text-gray-500 hover:text-green-600'
+            }`}
+            title={
+              isRefreshing
+                ? 'Refreshing...'
+                : status === 'completed'
+                ? 'Completed'
+                : 'Refresh status'
+            }
           >
-            <Bug className="h-4 w-4" />
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
           </button>
-
-          {/* Refresh Button */}
-          <button
-            onClick={handleManualRefresh}
-            className="p-2 text-gray-500 hover:text-green-600 transition-colors"
-            title="Refresh status"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
+          {/* --- MODIFICATION END --- */}
 
           <button
-            onClick={() => onCopy(getContent(), localItem._id)}
+            onClick={() => onCopy(getContent(), item._id)}
             disabled={!isClickable}
             className={`p-2 transition-colors ${
               isClickable
@@ -183,7 +194,7 @@ export const DocumentCard = ({
             }`}
             title={isClickable ? 'Copy to clipboard' : 'Not available'}
           >
-            {copiedId === localItem._id ? (
+            {copiedId === item._id ? (
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             ) : (
               <Copy className="h-4 w-4" />
@@ -202,19 +213,25 @@ export const DocumentCard = ({
             <Download className="h-4 w-4" />
           </button>
           <button
-            onClick={() => onDelete(localItem._id)}
-            disabled={isProcessing}
+            onClick={() => onDelete(item._id)}
+            disabled={isProcessing || isRefreshing}
             className={`p-2 transition-colors ${
-              isProcessing
+              isProcessing || isRefreshing
                 ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                 : 'text-gray-500 hover:text-red-600'
             }`}
-            title={isProcessing ? 'Cannot delete while processing' : 'Delete'}
+            title={
+              isProcessing || isRefreshing
+                ? 'Cannot delete while processing'
+                : 'Delete'
+            }
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      {/* ... rest of your component ... */}
 
       <h3
         className={`font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 ${
@@ -223,7 +240,7 @@ export const DocumentCard = ({
         onClick={openContent}
       >
         {getTitle()}
-        {!isClickable && localItem.status === 'failed' && (
+        {!isClickable && status === 'failed' && (
           <span className="text-xs text-gray-400 ml-2">
             (Failed to generate)
           </span>
@@ -231,30 +248,46 @@ export const DocumentCard = ({
         {isProcessing && (
           <span className="text-xs text-blue-500 ml-2">(Generating...)</span>
         )}
+        {isRefreshing && (
+          <span className="text-xs text-green-500 ml-2">(Refreshing...)</span>
+        )}
       </h3>
 
-      {localItem.finalTouch && (
+      {item.finalTouch && (
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          <strong>Customization:</strong> {localItem.finalTouch}
+          <strong>Customization:</strong> {item.finalTouch}
         </p>
       )}
 
-      {localItem.error && localItem.status === 'failed' && (
+      {item.error && status === 'failed' && (
         <p className="text-sm text-red-600 dark:text-red-400 mb-2">
-          <strong>Error:</strong> {localItem.error}
+          <strong>Error:</strong> {item.error}
         </p>
       )}
 
-      {renderProgress()}
+      {(isProcessing || isRefreshing) && (
+        <div className="mt-3">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <span>{isRefreshing ? 'Refreshing...' : 'Processing...'}</span>
+            <span>0%</span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300 animate-pulse"
+              style={{ width: `0%` }}
+            ></div>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-3">
-        <span>Created: {formatDate(localItem.createdAt)}</span>
-        {localItem.completedAt && localItem.status !== 'pending' && (
-          <span>Completed: {formatDate(localItem.completedAt)}</span>
+        <span>Created: {formatDate(item.createdAt)}</span>
+        {item.completedAt && status !== 'pending' && (
+          <span>Completed: {formatDate(item.completedAt)}</span>
         )}
       </div>
 
-      {type === 'application' && localItem.status === 'completed' && (
+      {type === 'application' && status === 'completed' && (
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <div className="flex space-x-4 text-xs">
             <span className="text-blue-600 dark:text-blue-400">
@@ -266,17 +299,6 @@ export const DocumentCard = ({
             <span className="text-purple-600 dark:text-purple-400">
               ✓ Email Prepared
             </span>
-          </div>
-        </div>
-      )}
-
-      {/* Debug info panel - visible in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-3 pt-3 border-t border-dashed border-gray-300 dark:border-gray-600">
-          <div className="text-xs text-gray-500 space-y-1">
-            <div>ID: {localItem._id}</div>
-            <div>Status: {localItem.status}</div>
-            <div>Type: {type}</div>
           </div>
         </div>
       )}

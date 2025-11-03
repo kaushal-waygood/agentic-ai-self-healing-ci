@@ -79,8 +79,6 @@ export default function BillingPage() {
   }, []);
 
   const formatCurrency = (amount: number, currency: string) => {
-    // if (amount === 0) return 'Free';
-
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency.toUpperCase(),

@@ -383,7 +383,7 @@ export function SubscriptionStatusCard({ plan }: any) {
           You do not have an active subscription.
         </p>
         <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
-          <Link href="/pricing">View Plans</Link>
+          <Link href="/dashboard/subscriptions">View Plans</Link>
         </Button>
       </div>
     );
