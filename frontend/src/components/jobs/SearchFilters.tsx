@@ -129,7 +129,7 @@ export const SearchFilters = ({
   };
 
   return (
-    <div className="p-4 md:p-1 mb-2">
+    <div className="p-2 md:p-1 mb-2">
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex-1 min-w-[250px] relative ">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -139,7 +139,7 @@ export const SearchFilters = ({
             value={localFilters.query}
             onChange={(e) => handleInputChange('query', e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50"
+            className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50"
           />
         </div>
 
@@ -148,7 +148,7 @@ export const SearchFilters = ({
           <CountrySelector
             value={localFilters.country || ''}
             onChange={handleCountryChange}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50 appearance-none"
+            className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50 appearance-none"
           />
         </div>
 
@@ -158,7 +158,7 @@ export const SearchFilters = ({
             countryCode={localFilters.country}
             value={localFilters.state}
             onChange={handleStateChange}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50 appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed"
+            className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50 appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -166,7 +166,7 @@ export const SearchFilters = ({
           onClick={handleSearchClick}
           disabled={isSearching}
           aria-busy={isSearching}
-          className={`flex items-center gap-2 px-6 py-3  rounded-xl font-semibold transition-all duration-300 transform ${
+          className={`flex items-center gap-2 px-6 py-2  rounded-xl font-semibold transition-all duration-300 transform ${
             isSearching
               ? 'bg-gray-400 cursor-not-allowed text-white'
               : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white hover:scale-105 shadow-lg hover:shadow-purple-200/50'
@@ -186,7 +186,7 @@ export const SearchFilters = ({
 
         <button
           onClick={onOpenFilterModal}
-          className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
+          className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
         >
           <Filter className="w-4 h-4" />
           Filters
