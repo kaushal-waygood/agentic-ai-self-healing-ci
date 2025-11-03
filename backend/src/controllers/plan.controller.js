@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import Stripe from 'stripe';
 import { Purchase } from '../models/Purchase.js';
 import { User } from '../models/User.model.js'; // Adjust path
+import {config} from "../config/config.js"
 
 //OK
 export const createPlan = async (req, res) => {
