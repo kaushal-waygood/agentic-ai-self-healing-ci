@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 const SavedCvs = ({ resume, loadSavedCv }: any) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -24,6 +25,7 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
   const [animateIn, setAnimateIn] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
+  const route = useRouter();
 
   useEffect(() => {
     setAnimateIn(true);
@@ -31,11 +33,8 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
 
   //  Load selected CV
   const handleLoadCv = async (savedCv: any, index: number) => {
-    setLoadingIndex(index);
-    setTimeout(() => {
-      loadSavedCv(savedCv);
-      setLoadingIndex(null);
-    }, 400);
+    console.log('Loading CV:', savedCv._id);
+    route.push('/dashboard/my-docs/cv/' + savedCv._id);
   };
 
   //  Triggered on search (Enter key or search button)

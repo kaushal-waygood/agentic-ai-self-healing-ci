@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
   UploadCloud,
@@ -8,6 +8,7 @@ import {
   FileText,
   Clock,
 } from 'lucide-react';
+import apiInstance from '@/services/api';
 
 const SleekCvStep = ({
   mockUserProfile,
@@ -21,14 +22,25 @@ const SleekCvStep = ({
   const cvFileInputRef = useRef(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  // **FIX**: This guard clause prevents the component from crashing if mockUserProfile is not ready.
-  if (!mockUserProfile) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <p className="text-slate-600">Loading user profile...</p>
-      </div>
-    );
-  }
+  const [cvs, setCvs] = useState([]);
+  const [stats, setStats] = useState({ cvsCount: 0 });
+
+  useEffect(() => {
+    const fetchCvs = async () => {
+      try {
+        const response = await apiInstance.get('/students/cvs');
+        setCvs(response.data.cvs || []);
+        setStats((prev) => ({
+          ...prev,
+          cvsCount: response.data.cvs?.length || 0,
+        }));
+      } catch (error) {
+        console.error('Failed to fetch CVs:', error);
+      }
+    };
+
+    fetchCvs();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -58,58 +70,48 @@ const SleekCvStep = ({
           </div>
 
           {/* Content */}
-          <div className="p-8 space-y-6">
+          <div className="p-4 space-y-6">
             {/* Saved CVs Section */}
             <div className="card-entrance staggered-1">
-              <label className="block text-sm font-medium text-slate-700 mb-3">
-                Select from Saved CVs
-              </label>
-              <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg bg-slate-50/50">
-                {/* **FIX**: Using optional chaining for extra safety */}
-                {mockUserProfile?.savedCvs?.length > 0 ? (
+              <div className="flex flex-row flex-wrap justify-between">
+                <label className="block text-sm font-medium text-slate-700 mb-3">
+                  Select from Saved CVs
+                </label>
+                <p>Total CVs: {stats.cvsCount}</p>
+                {/* render CV list */}
+              </div>
+
+              <div className="max-h-[35vh] overflow-y-auto border border-slate-200 rounded-lg bg-slate-50/50">
+                {cvs?.length > 0 ? (
                   <div className="p-2 space-y-2">
-                    {mockUserProfile.savedCvs.map((cv, index) => (
+                    {cvs.map((cv: any, index) => (
                       <label
-                        key={cv.id}
-                        className={`radio-card flex items-center gap-4 p-4 rounded-lg cursor-pointer border-2 border-transparent ${
-                          selectedCvId === cv.id ? 'selected' : ''
-                        }`}
+                        key={cv._id}
+                        className="radio-card flex items-center gap-4 p-4 rounded-lg cursor-pointer border-2 transition-all duration-200   border-transparent hover:border-slate-300"
                         style={{ animationDelay: `${index * 0.1}s` }}
                       >
                         <input
                           type="radio"
-                          value={cv.id}
-                          checked={selectedCvId === cv.id}
-                          onChange={(e) => setSelectedCvId(e.target.value)}
+                          name="cvSelection"
+                          onClick={(e) => {
+                            handleCvContextSubmit('saved', cv._id);
+                          }}
                           className="sr-only"
                         />
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                            selectedCvId === cv.id
-                              ? 'border-purple-500 bg-purple-500'
-                              : 'border-slate-300'
-                          }`}
-                        >
-                          {selectedCvId === cv.id && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          )}
-                        </div>
+
+                        {/* Info */}
                         <div className="flex-1">
                           <div className="font-medium text-slate-800">
-                            {cv.name}
+                            {cv.jobContextString?.slice(0, 50) || 'N/A'}
                           </div>
                           <div className="text-sm text-slate-500 flex items-center gap-1 mt-1">
                             <Clock className="w-3 h-3" />
-                            Modified {cv.lastModified}
+                            {/* {cv.status} •{' '} */}
+                            {new Date(cv.createdAt).toLocaleString()}
                           </div>
                         </div>
-                        <FileText
-                          className={`w-5 h-5 transition-colors ${
-                            selectedCvId === cv.id
-                              ? 'text-purple-500'
-                              : 'text-slate-400'
-                          }`}
-                        />
+
+                        <FileText className="w-5 h-5 transition-colors text-purple-500" />
                       </label>
                     ))}
                   </div>
@@ -119,28 +121,6 @@ const SleekCvStep = ({
                   </p>
                 )}
               </div>
-
-              <button
-                className={`w-full mt-4 px-6 py-3 rounded-lg font-medium text-white transition-all duration-300 ${
-                  !selectedCvId || isLoading
-                    ? 'bg-slate-400 cursor-not-allowed'
-                    : 'btn-primary'
-                }`}
-                disabled={!selectedCvId || isLoading}
-                onClick={() => handleCvContextSubmit('saved', selectedCvId)}
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Processing...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Use Selected CV
-                  </div>
-                )}
-              </button>
             </div>
 
             {/* Divider */}

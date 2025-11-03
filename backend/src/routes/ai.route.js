@@ -28,8 +28,15 @@ import {
   getSingleCV,
   getSingleCL,
   getSingleTailoredApplication,
+  deleteSingleCV,
+  deleteSingleCL,
+  deleteSingleTailoredApplication,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
+import {
+  cvGenerationSSE,
+  getCVGenerationStatus,
+} from '../controllers/sse.controller.js';
 
 const router = Router();
 
@@ -59,6 +66,15 @@ router.get(
   authMiddleware,
   isStudent,
   getSingleTailoredApplication,
+);
+
+router.delete('/cv/:cvId', authMiddleware, isStudent, deleteSingleCV);
+router.delete('/cl/:clId', authMiddleware, isStudent, deleteSingleCL);
+router.delete(
+  '/tailored-applications/:appId',
+  authMiddleware,
+  isStudent,
+  deleteSingleTailoredApplication,
 );
 
 router.post(
@@ -94,6 +110,12 @@ router.post(
   upload.single('cv'),
   generateCoverLetterByJD,
 );
+
+// SSE route for real-time updates
+router.get('/sse/:jobId', authMiddleware, isStudent, cvGenerationSSE);
+
+// Fallback polling route
+router.get('/status/:jobId', getCVGenerationStatus);
 
 router.post(
   '/coverletter/generate/jobid',

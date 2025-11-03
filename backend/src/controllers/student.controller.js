@@ -1237,6 +1237,8 @@ export const toggleSavedJob = async (req, res) => {
   const studentId = req.user._id;
   const { jobId } = req.body;
 
+  console.log(studentId, jobId);
+
   if (!jobId) {
     return res.status(400).json({ message: 'Job ID is required.' });
   }
@@ -1247,13 +1249,21 @@ export const toggleSavedJob = async (req, res) => {
       return res.status(404).json({ message: 'Student not found.' });
     }
 
+    // FIX: Clean up invalid viewedJobs entries before proceeding
+    if (student.viewedJobs && student.viewedJobs.length > 0) {
+      student.viewedJobs = student.viewedJobs.filter(
+        (viewedJob) =>
+          viewedJob && viewedJob.job && viewedJob.job.toString().trim() !== '',
+      );
+    }
+
     // Find the index of the job in the savedJobs array
     const jobIndex = student.savedJobs.findIndex(
       (savedItem) =>
         (savedItem.job?.toString() || savedItem.toString()) === jobId,
     );
 
-    let message; // To hold the response message
+    let message;
 
     if (jobIndex > -1) {
       // If jobIndex is found (i.e., not -1), the job is already saved. Remove it.
@@ -1265,8 +1275,16 @@ export const toggleSavedJob = async (req, res) => {
       message = 'Job saved successfully.';
     }
 
-    // Save the updated student document
-    await student.save();
+    // FIX: Use updateOne instead of save to avoid validation issues
+    await Student.updateOne(
+      { _id: studentId },
+      {
+        $set: {
+          savedJobs: student.savedJobs,
+          viewedJobs: student.viewedJobs, // Include cleaned viewedJobs
+        },
+      },
+    );
 
     // Invalidate caches in both cases (add or remove)
     await redisClient.invalidateStudentCache(studentId);
@@ -1275,13 +1293,14 @@ export const toggleSavedJob = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message, // Use the dynamic message
+      message,
     });
   } catch (error) {
     console.error('Error toggling saved job:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 export const getSavedJobs = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = `student:${_id}:savedJobs`;
@@ -1632,10 +1651,12 @@ export const jobViewedByStudent = async (req, res, next) => {
     const studentId = req.user._id;
     const { jobId } = req.params;
 
+    // console.log( jobId);
+
     // Check if the student has already viewed this specific job
     const student = await Student.findOne({
       _id: studentId,
-      'viewedJobs.job': jobId,
+      'viewedJobs.slug': jobId,
     });
 
     // If 'student' is not null, the job is already in their viewed list
@@ -1648,7 +1669,7 @@ export const jobViewedByStudent = async (req, res, next) => {
     // If not viewed, add the job reference to the array
     await Student.findByIdAndUpdate(studentId, {
       $push: {
-        viewedJobs: { job: jobId },
+        viewedJobs: { slug: jobId },
       },
     });
 
