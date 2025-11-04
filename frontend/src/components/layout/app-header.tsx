@@ -7,15 +7,8 @@ import {
   LogOut,
   UserCircle,
   Settings,
-  Star,
   AlertTriangle,
   Search,
-  FileText,
-  Zap,
-  DiamondIcon,
-  Bot,
-  ChevronDown,
-  Crown,
   CreditCard,
   HelpCircle,
   ChevronRight,
@@ -209,6 +202,8 @@ const AppHeader = ({ setIsSearchOpen }) => {
     socket,
   } = useNotifications();
 
+  console.log('Notifications:', unreadCount);
+
   const [mounted, setMounted] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -351,6 +346,10 @@ const AppHeader = ({ setIsSearchOpen }) => {
     }
   };
 
+  const handleViewAllNotifications = () => {
+    router.push('/dashboard/notifications');
+  };
+
   // --- SECTION 3: CONDITIONAL RETURN ---
   // This is the "early return". Because all hooks are defined above, this is safe.
   if (!user) {
@@ -431,7 +430,10 @@ const AppHeader = ({ setIsSearchOpen }) => {
                     <NotificationBell />
                   </div>
                   <div className="p-4 border-t border-slate-100">
-                    <button className="w-full text-center text-sm text-purple-600 hover:text-purple-700 font-medium">
+                    <button
+                      className="w-full text-center text-sm text-purple-600 hover:text-purple-700 font-medium"
+                      onClick={handleViewAllNotifications}
+                    >
                       View All Notifications
                     </button>
                   </div>
