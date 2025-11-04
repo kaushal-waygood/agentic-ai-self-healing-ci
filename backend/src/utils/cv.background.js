@@ -1,7 +1,7 @@
 // src/utils/cv.background.js
 
 import mongoose from 'mongoose';
-import { User } from '../models/User.model.js';
+// import { User } from '../models/User.model.js'; // This import wasn't used
 import { genAI } from '../config/gemini.js';
 import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
 import { Student } from '../models/student.model.js';
@@ -18,45 +18,61 @@ export const processCVGeneration = async (
   finalTouch,
   io,
 ) => {
+  let cvId; // This will store the CV's unique _id
+  let jobTitle; // This will store the job title for notifications
+
   try {
+    // 1. Find the student and the specific CV sub-document
+    const student = await Student.findOne(
+      { _id: userId, 'cvs.jobId': jobId },
+      { 'cvs.$': 1 }, // Project only the matching CV from the array
+    );
+
+    if (!student || !student.cvs || !student.cvs.length) {
+      throw new Error(`No CV found with jobId: ${jobId} for user: ${userId}`);
+    }
+
+    // 2. Get the unique _id (cvId) and jobTitle of the CV sub-document
+    const cvSubDoc = student.cvs[0];
+    cvId = cvSubDoc._id;
+    jobTitle = cvSubDoc.jobTitle || 'your recent job';
+
+    // 3. Generate the CV content from the AI
     const prompt = generateCVPrompt(jobContextString, studentData, finalTouch);
     const rawJsonResponse = await genAI(prompt);
     const cleanedJsonString = rawJsonResponse
       .replace(/```json|```/g, '')
       .trim();
     const parsedJson = JSON.parse(cleanedJsonString);
+    const atsScore = parsedJson.atsScore || 0;
 
+    // 4. Update the CV
     const updateResult = await Student.updateOne(
-      {
-        _id: userId,
-        'cvs.jobId': jobId, // ✅ Add this filter for positional operator
-      },
+      { 'cvs._id': cvId },
       {
         $set: {
           'cvs.$.status': 'completed',
-          'cvs.$.cvData': parsedJson,
+          'cvs.$.cvData': parsedJson, // The full JSON response
+          'cvs.$.atsScore': atsScore,
           'cvs.$.completedAt': new Date(),
-          'cvs.$.jobContextString': jobContextString, // ✅ Fixed: 'cvs.$.' not 'cv.$.'
-          'cvs.$.finalTouch': finalTouch, // ✅ Fixed: 'cvs.$.' not 'cv.$.'
+          'cvs.$.jobContextString': jobContextString,
+          'cvs.$.finalTouch': finalTouch,
         },
         $inc: { 'usageCounters.cvCreation': 1 },
       },
     );
 
+    console.log('updateResult', updateResult);
+
     if (updateResult.matchedCount === 0) {
-      throw new Error(`No CV found with jobId: ${jobId} for user: ${userId}`);
+      throw new Error(`Failed to update CV with cvId: ${cvId} (match count 0)`);
     }
 
-    console.log('CV update successful:', updateResult);
-
-    console.log(`CV generation successful for user: ${userId}, job: ${jobId}`);
+    // 5. Send success notification with jobTitle and cvId
     await sendRealTimeUserNotification(
       io,
       userId,
-      notificationTemplates.CV_GENERATED_SUCCESS(
-        'Your new CV is ready!',
-        jobId,
-      ),
+      notificationTemplates.CV_GENERATED_SUCCESS(jobTitle, cvId, atsScore),
     );
   } catch (error) {
     console.error(
@@ -66,28 +82,26 @@ export const processCVGeneration = async (
     const errorMessage =
       error.message || 'An unknown error occurred during generation.';
 
-    await Student.updateOne(
-      {
-        _id: userId,
-        'cvs.jobId': jobId, // ✅ Add this filter
-      },
-      {
-        $set: {
-          'cvs.$.status': 'failed',
-          'cvs.$.error': errorMessage,
-          'cvs.$.completedAt': new Date(),
-        },
-      },
-    );
+    // Determine the filter for the failure update.
+    const failureFilter = cvId
+      ? { 'cvs._id': cvId }
+      : { _id: userId, 'cvs.jobId': jobId };
 
-    // 3b. Send a failure notification
+    // 6. Update with failed status
+    await Student.updateOne(failureFilter, {
+      $set: {
+        'cvs.$.status': 'failed',
+        'cvs.$.error': errorMessage,
+        'cvs.$.completedAt': new Date(),
+      },
+    });
+
+    // 7. Send a failure notification
+    const titleForFailure = jobTitle || 'your recent CV';
     await sendRealTimeUserNotification(
       io,
       userId,
-      notificationTemplates.CV_GENERATED_FAILED(
-        'CV generation failed.',
-        errorMessage,
-      ),
+      notificationTemplates.CV_GENERATED_FAILED(titleForFailure),
     );
   }
 };

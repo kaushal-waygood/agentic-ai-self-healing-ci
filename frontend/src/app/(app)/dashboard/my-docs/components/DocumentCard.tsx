@@ -104,14 +104,14 @@ export const DocumentCard = ({
       switch (type) {
         case 'cv':
           // Using the generic endpoint you built
-          endpoint = `/students/refresh/cv/${item._id}`;
+          endpoint = `/students/status/cv/${item._id}`;
           break;
         case 'coverLetter':
-          endpoint = `/students/refresh/cl/${item._id}`;
+          endpoint = `/students/status/cl/${item._id}`;
           break;
         case 'application':
           // Assuming 'application' maps to 'tailored'
-          endpoint = `/students/refresh/tailored/${item._id}`;
+          endpoint = `/students/status/tailored/${item._id}`;
           break;
         default:
           console.error('Unknown document type for refresh:', type);
