@@ -531,11 +531,12 @@ export const saveStudentHTMLCV = async (req, res) => {
   const { _id } = req.user;
   const { html, title, ats } = req.body;
 
-  console.log('Received ATS value:', ats);
-
   try {
-    // Validate input
-    if (!html || typeof html !== 'string') {
+    // Handle html as either string or object
+    const htmlString = typeof html === 'object' && html.cv ? html.cv : html;
+
+    if (!htmlString || typeof htmlString !== 'string') {
+      console.log('Invalid HTML content:', html);
       return res.status(400).json({ error: 'Invalid HTML content' });
     }
 
@@ -548,10 +549,10 @@ export const saveStudentHTMLCV = async (req, res) => {
       {
         $push: {
           htmlCV: {
-            html: html,
+            html: htmlString,
             htmlCVTitle: title,
+            ats,
             updatedAt: new Date(),
-            ats: ats,
           },
         },
       },
@@ -572,14 +573,6 @@ export const saveStudentHTMLCV = async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving HTML CV:', error);
-
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        error: 'Validation error',
-        details: error.errors,
-      });
-    }
-
     return res.status(500).json({
       error: 'Failed to save HTML CV',
       message: error.message,

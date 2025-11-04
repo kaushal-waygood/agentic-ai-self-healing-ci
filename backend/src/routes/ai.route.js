@@ -139,7 +139,7 @@ router.post('/resume/save/html', authMiddleware, isStudent, saveStudentHTMLCV);
 router.get('/resume/saved', authMiddleware, isStudent, getStudentHTMLCV);
 router.get(
   '/resume/saved/:cvId',
-  authMiddleware,
+  authMiddleware, 
   isStudent,
   getSingleStudentHTMLCV,
 );
