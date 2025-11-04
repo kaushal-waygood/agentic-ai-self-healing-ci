@@ -14,6 +14,7 @@ import SleekLoadingCard from './applications/wizard/steps/LoadingStep';
 import ResultStep from './applications/wizard/steps/result/ResultStep';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import FinalResultView from '../cover-letter/components/FinalResultView';
 
 // Framer Motion Variants & Styled Components
 const containerVariants = {
@@ -119,7 +120,9 @@ export function ApplicationWizardClient() {
         );
       case 'generate':
         return isLoading ? (
-          <SleekLoadingCard message={loadingMessage} />
+          // <SleekLoadingCard message={loadingMessage} />
+
+          <FinalResultView />
         ) : (
           <GenerateStep
             jobContext={state.jobContext}

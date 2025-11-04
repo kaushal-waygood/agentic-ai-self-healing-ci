@@ -391,7 +391,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
             </button>
           </div> */}
 
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-4">
             <PlanDropdown
               planType={planType}
               isOpen={isPlanOpen}
@@ -404,9 +404,9 @@ const AppHeader = ({ setIsSearchOpen }) => {
               {/* Notification Bell icon */}
               <button
                 onClick={() => handleMenuToggle('notification')}
-                className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
+                className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
               >
-                <Bell className="w-4 h-4 text-slate-600" />
+                <Bell className="w-5 h-5 text-slate-600" />
                 {unreadCount > 0 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
                     {unreadCount}
@@ -441,18 +441,18 @@ const AppHeader = ({ setIsSearchOpen }) => {
             <div className="relative">
               <button
                 onClick={() => handleMenuToggle('user')}
-                className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 transition-colors duration-200"
+                className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                <div className="w-8 h-8 bg-gradient-to-br  from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white  text-3xl">
                   {(user?.fullName || ' ').charAt(0)}
                 </div>
-                <ChevronDown className="w-4 h-4 text-slate-600 hidden sm:block" />
+                {/* <ChevronDown className="w-4 h-4 text-slate-600 hidden sm:block" /> */}
               </button>
               {isUserMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
                   <div className="p-4 border-b border-slate-100">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-4xl">
                         {(user?.fullName || ' ').charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">

@@ -258,7 +258,6 @@ export default function DocumentsPage() {
   };
 
   const getStatusIcon = (status: string) => {
-    console.log('status', status);
     switch (status) {
       case 'completed':
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
