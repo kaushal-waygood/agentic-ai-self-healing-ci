@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
-import { useNotifications } from "@/hooks/notifications/useNoifications";
-import { RefreshCcw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useNotifications } from '@/hooks/notifications/useNoifications';
+import { RefreshCcw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export function NotificationBell() {
   const {
@@ -16,13 +17,6 @@ export function NotificationBell() {
   } = useNotifications();
 
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    console.log("🔔 Frontend Connection Status:", connectionStatus);
-    console.log("🔔 Current notifications:", notifications);
-    console.log("🔔 Unread count:", unreadCount);
-    console.log("🔔 Socket instance:", socket ? "Exists" : "Null");
-  }, [connectionStatus, notifications, unreadCount, socket]);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -43,10 +37,16 @@ export function NotificationBell() {
     );
   }
 
+  const router = useRouter();
+
+  const handleNotificationClick = (notification) => {
+    router.push(`/dashboard/my-docs/${notification.actionUrl}`);
+    console.log('Notification clicked:', notification);
+    // !notification.isRead && markAsRead(notification._id);
+  };
+
   return (
     <div className="p-4 w-full max-w-sm mx-auto">
-     
-
       {/* Refresh Button */}
 
       {/* Bell Icon */}
@@ -59,14 +59,14 @@ export function NotificationBell() {
             </span>
           )}
         </div>
-         {/* Connection Status */}
-      <div
-        className={`text-sm flex flex-wrap justify-between font-semibold  ${
-          connectionStatus === "connected" ? "text-green-500" : "text-red-500"
-        }`}
-      >
-        Status: {connectionStatus}
-      </div>
+        {/* Connection Status */}
+        <div
+          className={`text-sm flex flex-wrap justify-between font-semibold  ${
+            connectionStatus === 'connected' ? 'text-green-500' : 'text-red-500'
+          }`}
+        >
+          Status: {connectionStatus}
+        </div>
         <div className="flex justify-end ">
           <RefreshCcw
             className="h-5 w-5 cursor-pointer text-gray-500 hover:text-gray-700 transition"
@@ -80,11 +80,11 @@ export function NotificationBell() {
         {notifications.slice(0, 5).map((notification) => (
           <div
             key={notification._id}
-            onClick={() => !notification.isRead && markAsRead(notification._id)}
+            onClick={() => handleNotificationClick(notification)}
             className={`p-4 border rounded-lg shadow-sm transition hover:shadow-md cursor-pointer ${
               notification.isRead
-                ? "bg-white text-gray-700 border-gray-200"
-                : "bg-blue-50 text-gray-900 border-blue-200"
+                ? 'bg-white text-gray-700 border-gray-200'
+                : 'bg-blue-50 text-gray-900 border-blue-200'
             }`}
           >
             <div className="flex justify-between items-center mb-1">

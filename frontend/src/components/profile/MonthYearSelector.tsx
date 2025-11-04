@@ -1,5 +1,6 @@
+// src/components/profile/MonthYearSelector.tsx
+
 import React, { useState, useEffect } from 'react';
-import { useController } from 'react-hook-form';
 import {
   Select,
   SelectContent,
@@ -9,23 +10,25 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 
-const MonthYearSelector = ({ control, name, label = 'Expiration Date' }) => {
-  const { field } = useController({
-    name,
-    control,
-  });
-
+// --- MODIFIED ---
+// Removed 'control' and 'name' from props.
+// Added 'value' and 'onChange' (which will come from the <FormField> 'field' prop).
+const MonthYearSelector = ({ value, onChange, label = 'Expiration Date' }) => {
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
 
   // Sync local state with form field value
   useEffect(() => {
-    if (field.value && typeof field.value === 'string') {
-      const [year, month] = field.value.split('-');
+    if (value && typeof value === 'string') {
+      const [year, month] = value.split('-');
       if (year) setSelectedYear(year);
       if (month) setSelectedMonth(month);
+    } else {
+      // Clear local state if the form value is cleared
+      setSelectedYear('');
+      setSelectedMonth('');
     }
-  }, [field.value]);
+  }, [value]); // Depend on the 'value' prop
 
   // Generate year options (current year + 10 years)
   const currentYear = new Date().getFullYear();
@@ -62,15 +65,16 @@ const MonthYearSelector = ({ control, name, label = 'Expiration Date' }) => {
   const updateFieldValue = (month, year) => {
     if (month && year) {
       const newValue = `${year}-${month}`;
-      field.onChange(newValue);
+      onChange(newValue); // --- MODIFIED --- Call the 'onChange' prop
     } else {
-      field.onChange('');
+      onChange(''); // --- MODIFIED --- Call the 'onChange' prop
     }
   };
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={name}>{label}</Label>
+      {/* We can use the 'label' prop for the whole component group */}
+      <Label>{label}</Label>
       <div className="flex gap-4">
         {/* Month Select */}
         <div className="flex-1">
