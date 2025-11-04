@@ -2,7 +2,7 @@
 
 import GeneratedCV from '@/components/cv/GeneratedCV';
 import apiInstance from '@/services/api';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import GeneratedCoverLetter from '@/components/cover-letter/components/GeneratedCoverLetter';
 import ResultStep from '@/components/application/applications/wizard/steps/result/ResultStep';
@@ -11,6 +11,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { useDispatch } from 'react-redux';
 import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
+import { useSearchParams } from 'next/navigation';
 
 const DocumentPage = () => {
   const { type, id } = useParams();
@@ -34,12 +35,14 @@ const DocumentPage = () => {
   const [tailoredCl, setTailoredCl] = useState('');
   const [emailDraft, setEmailDraft] = useState('');
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
+        const query = searchParams.get('q');
 
         let endpoint = '';
         let responseData = null;
@@ -47,15 +50,15 @@ const DocumentPage = () => {
         // Determine the API endpoint based on document type
         switch (type) {
           case 'cv':
-            endpoint = `/students/cv/${id}`;
+            query === 'saved'
+              ? (endpoint = `/students/resume/saved/${id}`)
+              : (endpoint = `/students/cv/${id}`);
             break;
           case 'cl':
             endpoint = `/students/cl/${id}`;
             break;
           case 'application':
-            console.log('Application ID:', id);
             endpoint = `/students/tailored-application/${id}`;
-            console.log('Endpoint:', endpoint);
             break;
           default:
             throw new Error('Invalid document type');
@@ -63,17 +66,30 @@ const DocumentPage = () => {
 
         const response = await apiInstance.get(endpoint);
         responseData = response.data;
+        // console.log(
+        //   'Fetched Data:',
+        //   responseData?.cv?.cvData.cv,
+        //   responseData.cv.cvData.atsScore,
+        // );
+
+        // console.log(
+        //   'Fetched Data:',
+        //   responseData.html.ats,
+        //   responseData.html.html,
+        // );
 
         // Transform data based on type
         let transformedData;
         switch (type) {
           case 'cv':
             transformedData = {
-              atsScore: responseData.cv?.atsScore || 85,
-              cv: responseData.cv?.cvData || '',
+              atsScore:
+                responseData?.cv?.cvData.atsScore || responseData.html.ats,
+              cv: responseData?.cv?.cvData.cv || responseData.html.html,
               type: 'cv',
               ...responseData.cv,
             };
+            console.log('Transformed CV Data:', transformedData);
             break;
           case 'cl':
             transformedData = {
@@ -151,7 +167,6 @@ const DocumentPage = () => {
   };
 
   const handleInitiateCvSave = () => {
-    console.log('Saving CV...');
     if (!documentData?.cv) {
       toast({ variant: 'destructive', title: 'No CV to Save' });
       return;
@@ -178,7 +193,6 @@ const DocumentPage = () => {
         html: documentData?.content,
       });
       toast({ title: 'Cover Letter Saved Successfully!' });
-      // You might want to dispatch an action for cover letters if needed
       // dispatch(savedStudentCoverLetterRequest());
     } catch (error) {
       console.error('Error saving cover letter:', error);

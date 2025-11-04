@@ -306,7 +306,7 @@ export function CvGeneratorClient() {
 
       let apiEndpoint = '';
       if (jobContext.mode === 'paste') {
-        apiEndpoint = 'students/resume/generate/jd';
+        apiEndpoint = '/students/resume/generate/jd';
       } else if (jobContext.mode === 'title') {
         apiEndpoint = '/students/resume/generate/jobtitle';
       } else if (jobContext.mode === 'select') {
