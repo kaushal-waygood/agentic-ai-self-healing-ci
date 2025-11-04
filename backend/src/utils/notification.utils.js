@@ -69,27 +69,27 @@ export const notificationTemplates = {
     actionUrl: '/features',
   }),
 
-  CV_GENERATED_SUCCESS: (jobTitle) => ({
+  CV_GENERATED_SUCCESS: (jobTitle, cvId, atsScore) => ({
     title: 'CV Generated',
-    message: `Your CV for "${jobTitle}" has been generated successfully.`,
+    message: `Your tailored CV for ${jobTitle} is complete with a ${atsScore} match score. Download it now and apply with confidence.`,
     type: 'success',
     category: 'cv',
-    actionUrl: '/cv',
+    actionUrl: `/cv/${cvId}`,
   }),
   CV_GENERATED_FAILED: (jobTitle) => ({
     title: 'CV Generation Failed',
-    message: `Failed to generate CV for "${jobTitle}". Please try again.`,
+    message: `Failed to generate. Please try again.`,
     type: 'error',
     category: 'cv',
-    actionUrl: '/cv',
+    actionUrl: `?tab=cvs`,
   }),
-  COVER_LETTER_GENERATED_SUCCESS: (message, jobId) => ({
+  COVER_LETTER_GENERATED_SUCCESS: (message, clId) => ({
     title: 'Cover Letter Ready!',
     message: message || 'Your cover letter has been generated successfully.',
     type: 'success',
     priority: 'medium',
     category: 'coverletter',
-    actionUrl: `/cover-letter/${jobId}`,
+    actionUrl: `/cl/${clId}`,
   }),
 
   COVER_LETTER_GENERATED_FAILED: (message, error) => ({
@@ -98,7 +98,7 @@ export const notificationTemplates = {
     type: 'error',
     priority: 'medium',
     category: 'coverletter',
-    actionUrl: '/cover-letter',
+    actionUrl: `?tab=cover-letters`,
   }),
 
   TAILORED_APPLICATION_GENERATED_SUCCESS: (message, applicationId) => ({
@@ -108,7 +108,7 @@ export const notificationTemplates = {
     type: 'success',
     priority: 'medium',
     category: 'application',
-    actionUrl: `/applications/${applicationId}`,
+    actionUrl: `/application/${applicationId}`,
   }),
 
   TAILORED_APPLICATION_GENERATED_FAILED: (message, error) => ({
@@ -117,7 +117,7 @@ export const notificationTemplates = {
     type: 'error',
     priority: 'medium',
     category: 'application',
-    actionUrl: '/applications',
+    actionUrl: '/application/:applicationId',
   }),
 };
 

@@ -42,16 +42,15 @@ app.use(limiter);
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGINS?.split(',') || [
+    origin: [
       'http://127.0.0.1:3000',
       'http://localhost:3000',
-      'http://127.0.0.1:3004',
-      'http://localhost:3004',
-      'http://144.91.114.195:30090',
+      'http://127.0.0.1:3003',
+      'http://localhost:3003',
       'https://dev.zobsai.com',
       'https://www.zobsai.com',
       'https://zobsai.com',
-      'chrome-extension://mmmbijnmokcdpnabaahhbmioeobobcnb',
+      'chrome-extension://obfphahhgennnkhdhpkjnbadgcaolkbk',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

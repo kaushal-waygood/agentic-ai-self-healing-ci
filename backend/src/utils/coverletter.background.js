@@ -16,8 +16,25 @@ export const processCoverLetterGeneration = async (
   finalTouch,
   io,
 ) => {
+  let clId; // This will store the cover letter's unique _id
+
   try {
-    // 1. Generate the Cover Letter from the AI
+    // 1. Find the student and the specific cover letter sub-document
+    const student = await Student.findOne(
+      { _id: userId, 'cls.jobId': jobId },
+      { 'cls.$': 1 }, // Project only the matching cover letter from the array
+    );
+
+    if (!student || !student.cls || student.cls.length === 0) {
+      throw new Error(
+        `No cover letter found with jobId: ${jobId} for user: ${userId}`,
+      );
+    }
+
+    // 2. Get the unique _id (clId) of the cover letter sub-document
+    clId = student.cls[0]._id;
+
+    // 3. Generate the Cover Letter from the AI
     const prompt = generateCoverLetterPrompts(
       jobContextString,
       studentData,
@@ -26,12 +43,11 @@ export const processCoverLetterGeneration = async (
     const rawHtmlResponse = await genAI(prompt);
     const htmlContent = rawHtmlResponse.replace(/```html|```/g, '').trim();
 
-    // 2. Update the Cover Letter with the generated data
+    console.log('htmlContent:', htmlContent);
+
+    // 4. Update the Cover Letter using its unique clId
     const updateResult = await Student.updateOne(
-      {
-        _id: userId,
-        'cls.jobId': jobId, // Filter for the specific cover letter entry
-      },
+      { 'cls._id': clId }, // Use the unique sub-document _id for the update
       {
         $set: {
           'cls.$.status': 'completed',
@@ -46,22 +62,17 @@ export const processCoverLetterGeneration = async (
 
     if (updateResult.matchedCount === 0) {
       throw new Error(
-        `No cover letter found with jobId: ${jobId} for user: ${userId}`,
+        `Failed to update cover letter with clId: ${clId} (match count 0)`,
       );
     }
 
-    console.log('Cover letter update successful:', updateResult);
-
-    // 3. Send a success notification
-    console.log(
-      `Cover letter generation successful for user: ${userId}, job: ${jobId}`,
-    );
+    // 5. Send success notification with the clId
     await sendRealTimeUserNotification(
       io,
       userId,
       notificationTemplates.COVER_LETTER_GENERATED_SUCCESS(
         'Your new cover letter is ready!',
-        jobId,
+        clId, // <-- Now sending clId
       ),
     );
   } catch (error) {
@@ -72,20 +83,20 @@ export const processCoverLetterGeneration = async (
     const errorMessage =
       error.message || 'An unknown error occurred during generation.';
 
+    // Determine the filter for the failure update.
+    // If we got the clId before the error, use it. Otherwise, fall back to jobId.
+    const failureFilter = clId
+      ? { 'cls._id': clId }
+      : { _id: userId, 'cls.jobId': jobId };
+
     // Update with failed status
-    await Student.updateOne(
-      {
-        _id: userId,
-        'cls.jobId': jobId,
+    await Student.updateOne(failureFilter, {
+      $set: {
+        'cls.$.status': 'failed',
+        'cls.$.error': errorMessage,
+        'cls.$.completedAt': new Date(),
       },
-      {
-        $set: {
-          'cls.$.status': 'failed',
-          'cls.$.error': errorMessage,
-          'cls.$.completedAt': new Date(),
-        },
-      },
-    );
+    });
 
     // Send a failure notification
     await sendRealTimeUserNotification(
