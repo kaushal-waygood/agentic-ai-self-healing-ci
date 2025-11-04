@@ -649,6 +649,8 @@ export function ApplicationWizardClient() {
 
       formData.append('jobId', selectedJob._id);
 
+      console.log('cvContext', cvContext);
+
       if (cvContext.mode === 'profile') {
         formData.append('useProfile', 'true');
       } else if (cvContext.mode === 'saved' && cvContext.value) {
