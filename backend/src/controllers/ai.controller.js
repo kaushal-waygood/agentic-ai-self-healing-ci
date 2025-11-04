@@ -740,17 +740,35 @@ export const getSingleStudentHTMLLetter = async (req, res) => {
   const { _id } = req.user;
   const { letterId } = req.params;
 
+  console.log('Fetching HTML Letter for student:', _id, 'Letter ID:', letterId);
+
   try {
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
-    const letter = student.htmlLetter.find(
+
+    // Debug log to inspect structure
+    console.log('Student HTML Letters:', student.coverLetter);
+
+    // Check if the array exists
+    if (
+      !Array.isArray(student.coverLetter) ||
+      student.coverLetter.length === 0
+    ) {
+      return res
+        .status(404)
+        .json({ error: 'No HTML Letters found for this student' });
+    }
+
+    const letter = student.coverLetter.find(
       (letter) => letter._id.toString() === letterId,
     );
+
     if (!letter) {
       return res.status(404).json({ error: 'HTML Letter not found' });
     }
+
     return res.json({ success: true, html: letter });
   } catch (error) {
     console.error('Error getting HTML Letter:', error);
