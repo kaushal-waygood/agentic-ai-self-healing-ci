@@ -55,7 +55,10 @@ const DocumentPage = () => {
               : (endpoint = `/students/cv/${id}`);
             break;
           case 'cl':
-            endpoint = `/students/cl/${id}`;
+            query === 'saved'
+              ? (endpoint = `/students/letter/saved/${id}`)
+              : (endpoint = `/students/cl/${id}`);
+            // endpoint = `/students/cl/${id}`;
             break;
           case 'application':
             endpoint = `/students/tailored-application/${id}`;
@@ -65,6 +68,8 @@ const DocumentPage = () => {
         }
 
         const response = await apiInstance.get(endpoint);
+        console.log('Fetched Data:', response.data);
+
         responseData = response.data;
         // console.log(
         //   'Fetched Data:',
@@ -77,7 +82,6 @@ const DocumentPage = () => {
         //   responseData.html.ats,
         //   responseData.html.html,
         // );
-
         // Transform data based on type
         let transformedData;
         switch (type) {
@@ -89,12 +93,14 @@ const DocumentPage = () => {
               type: 'cv',
               ...responseData.cv,
             };
-            console.log('Transformed CV Data:', transformedData);
+
             break;
           case 'cl':
             transformedData = {
               content:
-                responseData.cl?.clData?.html || responseData.cl?.clData || '',
+                responseData.cl?.clData?.html ||
+                responseData.html.coverLetter ||
+                '',
               type: 'cl',
               ...responseData.coverLetter,
             };

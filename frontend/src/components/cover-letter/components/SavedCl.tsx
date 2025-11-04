@@ -225,6 +225,7 @@ import {
   X,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // Define the shape of the props for type safety
 interface SavedCoverLettersProps {
@@ -242,6 +243,8 @@ const SavedCoverLetters = ({
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredLetters, setFilteredLetters] = useState(savedLettersList);
+  const searchParams = useSearchParams();
+  const route = useRouter();
 
   useEffect(() => {
     setAnimateIn(true);
@@ -285,12 +288,11 @@ const SavedCoverLetters = ({
     }
   };
 
-  const handleLoadLetter = (savedLetter: any, index: number) => {
-    setLoadingIndex(index);
-    setTimeout(() => {
-      loadSavedLetter(savedLetter);
-      setLoadingIndex(null);
-    }, 400);
+  const handleLoadLetter = async (savedLetter: any, index: number) => {
+    console.log('Loading Cover Letter:', savedLetter._id);
+    const queryCvId = searchParams.get('q');
+    // route.push(`/dashboard/my-docs/cv/${savedCv._id}?q=saved`);
+    route.push(`/dashboard/my-docs/cl/${savedLetter._id}?q=saved`);
   };
 
   const formatDate = (dateString: string) => {

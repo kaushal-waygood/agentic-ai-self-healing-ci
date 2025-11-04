@@ -28,11 +28,12 @@ const SleekCvStep = ({
   useEffect(() => {
     const fetchCvs = async () => {
       try {
-        const response = await apiInstance.get('/students/cvs');
-        setCvs(response.data.cvs || []);
+        const response = await apiInstance.get('/students/resume/saved');
+        console.log('Fetched CVs:', response.data);
+        setCvs(response.data.html || []);
         setStats((prev) => ({
           ...prev,
-          cvsCount: response.data.cvs?.length || 0,
+          cvsCount: response.data.html?.length || 0,
         }));
       } catch (error) {
         console.error('Failed to fetch CVs:', error);
@@ -102,7 +103,7 @@ const SleekCvStep = ({
                         {/* Info */}
                         <div className="flex-1">
                           <div className="font-medium text-slate-800">
-                            {cv.jobContextString?.slice(0, 50) || 'N/A'}
+                            {cv.htmlCVTitle || 'N/A'}
                           </div>
                           <div className="text-sm text-slate-500 flex items-center gap-1 mt-1">
                             <Clock className="w-3 h-3" />
