@@ -43,8 +43,6 @@ export const processCoverLetterGeneration = async (
     const rawHtmlResponse = await genAI(prompt);
     const htmlContent = rawHtmlResponse.replace(/```html|```/g, '').trim();
 
-    console.log('htmlContent:', htmlContent);
-
     // 4. Update the Cover Letter using its unique clId
     const updateResult = await Student.updateOne(
       { 'cls._id': clId }, // Use the unique sub-document _id for the update

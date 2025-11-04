@@ -15,6 +15,17 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
+import { Input } from '../ui/input';
 
 interface EditableMaterialProps {
   content: string;
@@ -47,9 +58,15 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const [localContent, setLocalContent] = useState<string>(content);
   const [isInitialEditSetup, setIsInitialEditSetup] = useState(false);
 
-  // Sync local content with prop content
+  // Missing state variables
+  const [isNamingDialogDisplayed, setIsNamingDialogDisplayed] = useState(false);
+  const [cvNameForSavingInput, setCvNameForSavingInput] = useState('');
+  const [hasChangesForFinalSave, setHasChangesForFinalSave] = useState(false);
+
   useEffect(() => {
     setLocalContent(content);
+    // Reset final save changes flag when content prop changes from parent
+    setHasChangesForFinalSave(false);
   }, [content]);
 
   const placeCaretAtEnd = (el: HTMLElement) => {
@@ -62,7 +79,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     sel?.addRange(range);
   };
 
-  // Handle initial setup when entering edit mode
   useEffect(() => {
     if (!editorRef.current) return;
 
@@ -80,7 +96,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   }, [isEditing, localContent, isInitialEditSetup]);
 
-  // Handle content changes without moving cursor
   useEffect(() => {
     if (!editorRef.current || !isEditing || isInitialEditSetup) return;
 
@@ -140,6 +155,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       const newValue = editorRef.current.innerHTML;
       setLocalContent(newValue);
       setHasUnsavedChanges(newValue !== originalContent);
+      setHasChangesForFinalSave(newValue !== content); // Check against original prop content
 
       const text = editorRef.current.innerText || '';
       const words = text.trim().split(/\s+/).filter(Boolean);
@@ -168,6 +184,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
+        setHasChangesForFinalSave(newContent !== content); // Update final save flag
+
         toast({
           title: `${title} updated successfully!`,
           description: 'Your changes have been saved.',
@@ -319,6 +337,51 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     );
   };
 
+  const handleSaveCV = async () => {
+    if (!editorRef.current) return;
+
+    // Show naming dialog instead of directly saving
+    setIsNamingDialogDisplayed(true);
+  };
+
+  const confirmSaveNamedCv = async () => {
+    if (!editorRef.current) return;
+
+    const html = editorRef.current.innerHTML;
+    const cvName =
+      cvNameForSavingInput.trim() ||
+      `${title} - ${new Date().toLocaleDateString()}`;
+
+    try {
+      setIsLoading(true);
+      const response = await apiInstance.post('students/resume/save/html', {
+        html,
+        title: cvName,
+      });
+
+      console.log('response', response);
+
+      toast({
+        title: 'CV Saved Successfully!',
+        description: `Your CV "${cvName}" has been saved.`,
+      });
+
+      // Reset dialog state and final save flag
+      setIsNamingDialogDisplayed(false);
+      setCvNameForSavingInput('');
+      setHasChangesForFinalSave(false);
+    } catch (error) {
+      console.error('Error saving CV:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'An error occurred while saving your CV.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div
       ref={containerRef}
@@ -370,6 +433,24 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         )}
         <div className="flex items-center space-x-2">
           <button
+            className={`p-2 rounded-lg border border-gray-200 flex items-center space-x-2 transition-all ${
+              hasChangesForFinalSave
+                ? 'text-gray-600 hover:bg-gray-200 cursor-pointer'
+                : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+            }`}
+            onClick={handleSaveCV}
+            disabled={!hasChangesForFinalSave || isLoading}
+            title={
+              hasChangesForFinalSave
+                ? 'Save Final Version'
+                : 'No changes to save'
+            }
+          >
+            <Save className="h-4 w-4" />
+            <span>Save Final Version</span>
+          </button>
+
+          <button
             onClick={toggleFullscreen}
             className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg"
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
@@ -406,6 +487,15 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             <span className="flex items-center">{getStatusIndicator()}</span>
             <span className="text-gray-400">|</span>
             <span>{wordCount} words</span>
+            {hasChangesForFinalSave && (
+              <>
+                <span className="text-gray-400">|</span>
+                <span className="text-yellow-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  Ready for final save
+                </span>
+              </>
+            )}
           </div>
           <div className="flex items-center space-x-2 flex-wrap justify-center gap-y-2">
             <button
@@ -436,6 +526,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                   setContent(originalContent);
                   setIsEditing(false);
                   setHasUnsavedChanges(false);
+                  setHasChangesForFinalSave(false);
                   toast({
                     title: 'Changes Reverted',
                     description: 'Your unsaved changes have been discarded.',
@@ -477,6 +568,34 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           </div>
         </div>
       </footer>
+
+      {isNamingDialogDisplayed && (
+        <AlertDialog
+          open={isNamingDialogDisplayed}
+          onOpenChange={setIsNamingDialogDisplayed}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Name Your CV</AlertDialogTitle>
+              <AlertDialogDescription>
+                Give this version a unique name. E.g., "CV for Google PM Role".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              placeholder="Enter CV Name"
+              value={cvNameForSavingInput}
+              onChange={(e) => setCvNameForSavingInput(e.target.value)}
+              className="my-4"
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSaveNamedCv}>
+                Save CV
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };
