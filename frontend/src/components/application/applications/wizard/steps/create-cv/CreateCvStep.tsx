@@ -29,7 +29,6 @@ const SleekCvStep = ({
     const fetchCvs = async () => {
       try {
         const response = await apiInstance.get('/students/resume/saved');
-
         setCvs(response.data.html || []);
         setStats((prev) => ({
           ...prev,

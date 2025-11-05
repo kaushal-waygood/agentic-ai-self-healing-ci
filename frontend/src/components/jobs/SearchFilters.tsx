@@ -68,7 +68,6 @@ export const SearchFilters = ({
   };
 
   const handleCountryChange = (countryCode: string) => {
-    console.log('Country changed to:', countryCode);
     setLocalFilters((prev) => ({
       ...prev,
       country: countryCode,
@@ -77,7 +76,6 @@ export const SearchFilters = ({
   };
 
   const handleStateChange = (stateCode: string) => {
-    console.log('State changed to:', stateCode);
     setLocalFilters((prev) => ({
       ...prev,
       state: stateCode,
@@ -92,7 +90,6 @@ export const SearchFilters = ({
   };
 
   const handleSearchClick = () => {
-    console.log('Current localFilters before search:', localFilters);
 
     // Convert state code to full state name for API call
     const stateName = getStateName(localFilters.country, localFilters.state);
@@ -105,8 +102,6 @@ export const SearchFilters = ({
       datePosted: localFilters.datePosted,
       employmentType: [...localFilters.employmentType],
     };
-
-    console.log('searchFilters being sent:', searchFilters);
 
     setIsSearching(true);
 

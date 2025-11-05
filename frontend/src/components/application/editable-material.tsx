@@ -33,6 +33,7 @@ interface EditableMaterialProps {
   title: string;
   isHtml?: boolean;
   className?: string;
+  type?: 'resume' | 'coverletter'; // Add type prop to distinguish between resume and cover letter
   // handleSave?: (content: string) => Promise<void> | void;
 }
 
@@ -43,6 +44,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   title,
   isHtml = false,
   className = '',
+  type = 'resume', // Default to resume
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -164,16 +166,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   };
 
   const handleEditToggle = async () => {
-    console.log('handleEditToggle');
 
     if (isEditing) {
       // Save mode
       if (editorRef.current) {
         const newContent = editorRef.current.innerHTML;
-        console.log('newContent', newContent);
 
         if (newContent === originalContent) {
-          console.log('No changes made');
           setIsEditing(false);
           return;
         }
@@ -337,33 +336,68 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     );
   };
 
-  const handleSaveCV = async () => {
+  // Helper function to get the appropriate API endpoint based on type
+  const getSaveEndpoint = () => {
+    return type === 'coverletter'
+      ? '/students/letter/save/html'
+      : '/students/resume/save/html';
+  };
+
+  // Helper function to get the appropriate success message based on type
+  const getSaveSuccessMessage = (name: string) => {
+    const documentType = type === 'coverletter' ? 'Cover Letter' : 'CV';
+    return {
+      title: `${documentType} Saved Successfully!`,
+      description: `Your ${documentType.toLowerCase()} "${name}" has been saved.`,
+    };
+  };
+
+  // Helper function to get dialog title based on type
+  const getDialogTitle = () => {
+    return type === 'coverletter' ? 'Name Your Cover Letter' : 'Name Your CV';
+  };
+
+  // Helper function to get dialog description based on type
+  const getDialogDescription = () => {
+    return type === 'coverletter'
+      ? 'Give this version a unique name. E.g., "Cover Letter for Google PM Role".'
+      : 'Give this version a unique name. E.g., "CV for Google PM Role".';
+  };
+
+  // Helper function to get button text based on type
+  const getSaveButtonText = () => {
+    return type === 'coverletter' ? 'Save Cover Letter' : 'Save CV';
+  };
+
+  const handleSaveDocument = async () => {
     if (!editorRef.current) return;
 
     // Show naming dialog instead of directly saving
     setIsNamingDialogDisplayed(true);
   };
 
-  const confirmSaveNamedCv = async () => {
+  const confirmSaveNamedDocument = async () => {
     if (!editorRef.current) return;
 
     const html = editorRef.current.innerHTML;
-    const cvName =
+    const documentName =
       cvNameForSavingInput.trim() ||
       `${title} - ${new Date().toLocaleDateString()}`;
 
     try {
       setIsLoading(true);
-      const response = await apiInstance.post('students/resume/save/html', {
+      const endpoint = getSaveEndpoint();
+      const response = await apiInstance.post(endpoint, {
         html,
-        title: cvName,
+        title: documentName,
       });
 
-      console.log('response', response);
 
+      const { title: successTitle, description: successDescription } =
+        getSaveSuccessMessage(documentName);
       toast({
-        title: 'CV Saved Successfully!',
-        description: `Your CV "${cvName}" has been saved.`,
+        title: successTitle,
+        description: successDescription,
       });
 
       // Reset dialog state and final save flag
@@ -371,11 +405,12 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       setCvNameForSavingInput('');
       setHasChangesForFinalSave(false);
     } catch (error) {
-      console.error('Error saving CV:', error);
+      console.error('Error saving document:', error);
+      const documentType = type === 'coverletter' ? 'cover letter' : 'CV';
       toast({
         variant: 'destructive',
         title: 'Save Failed',
-        description: 'An error occurred while saving your CV.',
+        description: `An error occurred while saving your ${documentType}.`,
       });
     } finally {
       setIsLoading(false);
@@ -438,11 +473,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                 ? 'text-gray-600 hover:bg-gray-200 cursor-pointer'
                 : 'text-gray-400 bg-gray-100 cursor-not-allowed'
             }`}
-            onClick={handleSaveCV}
+            onClick={handleSaveDocument}
             disabled={!hasChangesForFinalSave || isLoading}
             title={
               hasChangesForFinalSave
-                ? 'Save Final Version'
+                ? `Save Final ${
+                    type === 'coverletter' ? 'Cover Letter' : 'CV'
+                  } Version`
                 : 'No changes to save'
             }
           >
@@ -576,21 +613,23 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Name Your CV</AlertDialogTitle>
+              <AlertDialogTitle>{getDialogTitle()}</AlertDialogTitle>
               <AlertDialogDescription>
-                Give this version a unique name. E.g., "CV for Google PM Role".
+                {getDialogDescription()}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <Input
-              placeholder="Enter CV Name"
+              placeholder={`Enter ${
+                type === 'coverletter' ? 'Cover Letter' : 'CV'
+              } Name`}
               value={cvNameForSavingInput}
               onChange={(e) => setCvNameForSavingInput(e.target.value)}
               className="my-4"
             />
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmSaveNamedCv}>
-                Save CV
+              <AlertDialogAction onClick={confirmSaveNamedDocument}>
+                {getSaveButtonText()}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

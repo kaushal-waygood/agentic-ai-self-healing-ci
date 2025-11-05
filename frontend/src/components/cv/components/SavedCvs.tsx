@@ -34,7 +34,6 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
 
   //  Load selected CV
   const handleLoadCv = async (savedCv: any, index: number) => {
-    console.log('Loading CV:', savedCv._id);
     const queryCvId = searchParams.get('q');
     route.push(`/dashboard/my-docs/cv/${savedCv._id}?q=saved`);
   };

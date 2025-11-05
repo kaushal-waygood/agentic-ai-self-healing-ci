@@ -60,8 +60,6 @@ const GeneratedCV = ({
 
   const cvData = generatedCvOutput || mockData;
 
-  console.log('Generated CV Data:', cvData);
-
   useEffect(() => {
     if (cvData && cvData.cv) {
       setEditableContent(cvData.cv);
@@ -138,13 +136,6 @@ const GeneratedCV = ({
   const atsScore = cvData?.atsScore || cvData?.ats || 0;
   const cvContent = cvData?.cv;
 
-  console.log(
-    'Rendering GeneratedCV with ATS Score:',
-    cvContent,
-    'ATS Score',
-    atsScore,
-  );
-
   return (
     <div className="min-h-screen p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
@@ -206,6 +197,7 @@ const GeneratedCV = ({
                 handleDownload={handleDownload}
                 isDownloadingPdf={isDownloadingPdf}
                 isDownloadingDocx={isDownloadingDocx}
+                type="resume"
               />
             </div>
           ) : (

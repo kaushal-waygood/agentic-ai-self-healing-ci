@@ -279,14 +279,13 @@ const studentSchema = new Schema(
         _id: false,
         job: {
           type: Schema.Types.ObjectId,
-          ref: 'Job', // Reference to the Job model
+          ref: 'Job',
           required: true,
         },
         visitedAt: {
           type: Date,
           default: Date.now,
         },
-        // The isVisited field is removed as it's redundant
       },
     ],
 
@@ -298,6 +297,7 @@ const studentSchema = new Schema(
           enum: ['pending', 'completed', 'failed'],
           default: 'pending',
         },
+        clTitle: { type: String },
         jobContextString: { type: String },
         finalTouch: { type: String },
         clData: { type: Object },
@@ -314,6 +314,7 @@ const studentSchema = new Schema(
           enum: ['pending', 'completed', 'failed'],
           default: 'pending',
         },
+        cvTitle: { type: String },
         jobContextString: { type: String },
         finalTouch: { type: String },
         cvData: { type: Object },

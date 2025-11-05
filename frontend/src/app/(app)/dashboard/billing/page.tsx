@@ -163,7 +163,6 @@ export default function BillingPage() {
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-gray-900">
-                {console.log('activeRecord', activeRecord?.amountPaid)}
                 {activeRecord
                   ? formatCurrency(
                       activeRecord.amountPaid,

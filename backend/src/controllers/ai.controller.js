@@ -382,6 +382,112 @@ export const deleteSingleTailoredApplication = async (req, res) => {
   }
 };
 
+// Corrected CV Rename Controller
+export const renameHtmlCV = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const { id } = req.params; // <-- 1. Get ID from URL params
+    const { title } = req.body; // <-- 2. Get 'title' from body
+
+    if (!id || !title?.trim()) {
+      // <-- 3. Use new variable names
+      return res.status(400).json({
+        error: 'CV ID and new title are required',
+      });
+    }
+
+    if (title.trim().length > 100) {
+      return res.status(400).json({
+        error: 'Title must be less than 100 characters',
+      });
+    }
+
+    const student = await Student.findOneAndUpdate(
+      {
+        _id,
+        'htmlCV._id': id, // <-- 4. Find using the ID from params
+      },
+      {
+        $set: {
+          'htmlCV.$.htmlCVTitle': title.trim(), // <-- 5. Set using 'title'
+          'htmlCV.$.updatedAt': new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'CV not found or user unauthorized',
+      });
+    }
+
+    res.json({
+      message: 'CV renamed successfully',
+      newTitle: title.trim(),
+      cvId: id,
+    });
+  } catch (error) {
+    console.error('Error renaming CV:', error);
+    res.status(500).json({
+      error: 'Failed to rename CV',
+    });
+  }
+};
+
+// Corrected Cover Letter Rename Controller
+export const renameCoverLetter = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const { id } = req.params; // <-- 1. Get ID from URL params
+    const { title } = req.body; // <-- 2. Get 'title' from body
+
+    if (!id || !title?.trim()) {
+      // <-- 3. Use new variable names
+      return res.status(400).json({
+        error: 'Cover letter ID and new title are required',
+      });
+    }
+
+    if (title.trim().length > 100) {
+      return res.status(400).json({
+        error: 'Title must be less than 100 characters',
+      });
+    }
+
+    const student = await Student.findOneAndUpdate(
+      {
+        _id,
+        'coverLetter._id': id, // <-- 4. Find using the ID from params
+      },
+      {
+        $set: {
+          'coverLetter.$.coverLetterTitle': title.trim(), // <-- 5. Set using 'title'
+          'coverLetter.$.updatedAt': new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'Cover letter not found or user unauthorized',
+      });
+    }
+
+    res.json({
+      message: 'Cover letter renamed successfully',
+      newTitle: title.trim(),
+      coverLetterId: id,
+    });
+  } catch (error) {
+    console.error('Error renaming cover letter:', error);
+    res.status(500).json({
+      error: 'Failed to rename cover letter',
+    });
+  }
+};
+
 // CV
 export const generateCVByTitle = async (req, res) => {
   const { title } = req.body;
