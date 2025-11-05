@@ -27,7 +27,6 @@ const appliedJobSchema = new Schema(
       enum: ['AUTOPILOT', 'MANUAL'],
       required: true,
     },
-    // Optional: store the AI-generated cover letter or CV link
     coverLetterLink: String,
     cvLink: String,
   },

@@ -1,394 +1,344 @@
+// src/utils/jobUtils.js
 import axios from 'axios';
+import slugify from 'slugify';
 import { config } from '../config/config.js';
+import { Job } from '../models/jobs.model.js';
 
-export async function getFallbackJobsFromRapidAPI(req, res, preferences) {
+const norm = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9+.# ]+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+const uniq = (arr) => Array.from(new Set(arr.filter(Boolean)));
+
+const PERIOD_TO_YEAR = { HOUR: 2080, DAY: 260, WEEK: 52, MONTH: 12, YEAR: 1 };
+
+const normalizePeriod = (p) => {
+  if (!p) return 'YEAR';
+  const up = String(p).toUpperCase();
+  if (PERIOD_TO_YEAR[up]) return up;
+  if (up.includes('HOURL')) return 'HOUR';
+  if (up.includes('DAIL')) return 'DAY';
+  if (up.includes('WEEK')) return 'WEEK';
+  if (up.includes('MONTH')) return 'MONTH';
+  if (up.includes('YEAR')) return 'YEAR';
+  return 'YEAR';
+};
+
+const makeSlug = (title) =>
+  `${slugify(title || 'job', {
+    lower: true,
+    strict: true,
+    trim: true,
+  })}-${Math.random().toString(36).slice(2, 7)}`;
+
+// lightweight fallbacks if API lacks highlights
+const extractExperienceFromDescription = (text) => {
+  const t = norm(text);
+  const m = t.match(/(\d+)\s*\+?\s*(year|yr)/);
+  return m ? [`${m[1]}+ years`] : [];
+};
+const extractQualificationsFromDescription = (text) => {
+  const t = String(text || '');
+  const lines = t
+    .split('\n')
+    .map((x) => x.trim())
+    .filter(Boolean);
+  return lines
+    .filter(
+      (l) => /^-|\*|\u2022/.test(l) || /qualification|requirement/i.test(l),
+    )
+    .slice(0, 12);
+};
+const extractResponsibilitiesFromDescription = (text) => {
+  const t = String(text || '');
+  const lines = t
+    .split('\n')
+    .map((x) => x.trim())
+    .filter(Boolean);
+  return lines
+    .filter((l) => /^-|\*|\u2022/.test(l) || /responsibilit/i.test(l))
+    .slice(0, 12);
+};
+
+export const convertSalaryToYearly = (amount, period = 'YEAR') => {
+  if (amount == null) return null;
+  const p = normalizePeriod(period);
+  return Number(amount) * PERIOD_TO_YEAR[p];
+};
+
+export const calculateMatchScore = (job, student) => {
   try {
-    let queryParts = [];
+    const W = {
+      title: 35,
+      must: 25,
+      skills: 20,
+      salary: 10,
+      type: 5,
+      remote: 5,
+    };
+    let score = 0,
+      max = 0;
 
-    // Build query based on preferences
-    if (preferences.preferedJobTitles?.length > 0) {
-      queryParts.push(`(${preferences.preferedJobTitles.join(' OR ')})`);
+    const title = norm(job?.title);
+    const desc = norm(job?.description);
+    const jobSignals = new Set(
+      uniq([
+        ...toArray(job?.qualifications).map(norm),
+        ...toArray(job?.responsibilities).map(norm),
+        ...toArray(job?.tags).map(norm),
+        ...title.split(' ').filter(Boolean),
+        ...desc.split(' ').filter(Boolean),
+      ]),
+    );
+
+    const prefs = student?.jobPreferences || {};
+
+    // Title relevance: preferred titles + role
+    const titleNeedles = uniq([
+      ...(prefs?.preferredJobTitles || []),
+      student?.jobRole,
+    ])
+      .filter(Boolean)
+      .map(norm);
+    const titleHit = titleNeedles.some(
+      (t) => title.includes(t) || jobSignals.has(t),
+    );
+    score += titleHit ? W.title : 0;
+    max += W.title;
+
+    // Must-have skills
+    const mustSkills = uniq([
+      ...(prefs?.mustHaveSkills || []).map((s) => s?.skill),
+    ])
+      .filter(Boolean)
+      .map(norm);
+
+    const studentSkills = uniq([
+      ...(student?.skills || []).map((s) => s?.skill),
+    ])
+      .filter(Boolean)
+      .map(norm);
+
+    const mustHits = mustSkills.filter(
+      (m) =>
+        jobSignals.has(m) ||
+        [...jobSignals].some((js) => js.includes(m) || m.includes(js)),
+    ).length;
+    const mustScore = mustSkills.length
+      ? (mustHits / mustSkills.length) * W.must
+      : 0;
+    score += mustScore;
+    max += W.must;
+
+    // General skills (lenient)
+    const skillHits = studentSkills.filter(
+      (s) =>
+        jobSignals.has(s) ||
+        [...jobSignals].some((js) => js.includes(s) || s.includes(js)),
+    ).length;
+    const denom = Math.max(6, studentSkills.length || 1);
+    score += (skillHits / denom) * W.skills;
+    max += W.skills;
+
+    // Employment type
+    const preferredTypes = (prefs?.preferredJobTypes || []).map(norm);
+    const jobTypes = (job?.jobTypes || []).map(norm);
+    const typeHit =
+      preferredTypes.length === 0 ||
+      jobTypes.some((t) => preferredTypes.includes(t));
+    score += typeHit ? W.type : 0;
+    max += W.type;
+
+    // Remote preference
+    const wantsRemote = !!prefs?.isRemote;
+    const remoteOk = wantsRemote ? !!job?.isRemote : true;
+    score += remoteOk ? W.remote : 0;
+    max += W.remote;
+
+    // Salary fit (neutral if missing)
+    const prefMin = prefs?.preferredSalary?.min ?? null;
+    const prefPeriod = prefs?.preferredSalary?.period || 'YEAR';
+    if (prefMin != null) {
+      const prefMinYear = convertSalaryToYearly(prefMin, prefPeriod);
+      const jobMinYear =
+        job?.salary?.min != null
+          ? convertSalaryToYearly(job.salary.min, job.salary.period || 'YEAR')
+          : null;
+      const salOK = jobMinYear == null || jobMinYear >= prefMinYear;
+      score += salOK ? W.salary : 0;
+      max += W.salary;
+    } else {
+      score += W.salary;
+      max += W.salary;
     }
 
-    if (preferences.mustHaveSkills?.length > 0) {
-      queryParts.push(
-        `(${preferences.mustHaveSkills.map((s) => s.skill).join(' OR ')})`,
+    const final = max > 0 ? Math.round((score / max) * 100) : 0;
+    console.log(`   Final Score: ${final}/100`);
+    return final;
+  } catch (err) {
+    console.error('❌ Error in calculateMatchScore:', err);
+    return 0;
+  }
+};
+
+// Optional REST util you already had, now aligned.
+// Keep it if you’re using the REST route; otherwise ignore.
+export async function getFallbackJobsFromRapidAPI(req, res, preferencesRaw) {
+  try {
+    const preferences = preferencesRaw || {};
+    const preferredJobTitles = preferences.preferredJobTitles || [];
+    const mustHaveSkills = preferences.mustHaveSkills || [];
+    const isRemote = !!preferences.isRemote;
+    const preferredCountries = preferences.preferredCountries || [];
+    const preferredCities = preferences.preferredCities || [];
+
+    const qp = [];
+    if (preferredJobTitles.length)
+      qp.push(`(${preferredJobTitles.join(' OR ')})`);
+    if (mustHaveSkills.length)
+      qp.push(
+        `(${mustHaveSkills
+          .map((s) => s.skill)
+          .filter(Boolean)
+          .join(' OR ')})`,
       );
+    if (!isRemote && (preferredCountries.length || preferredCities.length)) {
+      const locs = uniq([...preferredCountries, ...preferredCities]);
+      qp.push(`location:(${locs.join(' OR ')})`);
     }
+    const query = qp.join(' AND ') || 'Software Engineer';
 
-    if (!preferences.isRemote && preferences.preferedCountries?.length > 0) {
-      queryParts.push(
-        `location:(${preferences.preferedCountries.join(' OR ')})`,
-      );
-    }
-
-    const query = queryParts.join(' AND ') || 'Software Engineer';
+    const page = parseInt(req?.query?.page || 1, 10);
+    const limit = parseInt(req?.query?.limit || 10, 10);
 
     const response = await axios.get(config.rapidJobApi, {
-      params: {
-        query,
-        page: req.query.page || 1,
-        num_pages: 20,
-      },
+      params: { query, page, num_pages: 20 },
       headers: {
         'X-RapidAPI-Key': config.rapidApiKey,
         'X-RapidAPI-Host': config.rapidApiHost,
       },
     });
 
-    const externalJobs = response.data.data || [];
-    const processedJobs = [];
+    const externalJobs = response?.data?.data || [];
+    const upserted = [];
 
-    for (const job of externalJobs) {
-      const existing = await Job.findOne({ jobId: job.job_id });
-      const experience = extractExperience(job.job_description);
-      const qualifications = extractQualificationsFromDescription(
-        job.job_description,
-      );
-      const responsibilities = extractResponsibilitiesFromDescription(
-        job.job_description,
-      );
+    for (const j of externalJobs) {
+      const jobId = j.job_id;
+      if (!jobId) continue;
 
-      if (!existing) {
-        const newJob = new Job({
-          jobId: job.job_id,
-          origin: 'EXTERNAL',
-          logo: job.employer_logo,
-          experience,
-          qualification: qualifications,
-          responsibilities,
-          title: job.job_title,
-          description: job.job_description,
-          jobTypes: job.job_employment_types || [],
-          company: job.employer_name,
-          applyMethod: {
-            method: 'URL',
-            url: job.job_apply_link,
-          },
-          salary: {
-            min: job.job_min_salary || 0,
-            max: job.job_max_salary || 0,
-            period: job.job_salary_period || 'YEAR',
-          },
-          location: {
-            city: job.job_city,
-            postalCode: job.job_postal_code || '',
-            lat: job.job_latitude,
-            lng: job.job_longitude,
-          },
-          jobAddress: job.job_location,
-          country: job.job_country,
-          tags: job.job_benefits || [],
-          queries: [query],
-        });
+      const jobTypes = uniq([
+        ...toArray(j.job_employment_types),
+        ...(j.job_employment_type ? [j.job_employment_type] : []),
+      ])
+        .filter(Boolean)
+        .map(String);
 
-        const savedJob = await newJob.save();
-        processedJobs.push(savedJob);
-      } else {
-        await Job.updateOne(
-          { jobId: job.job_id },
-          { $addToSet: { queries: query } },
-        );
-        processedJobs.push(existing); // Include existing one for scoring
-      }
+      const salaryPeriod = normalizePeriod(j.job_salary_period);
+      const qualifications = toArray(j.job_highlights?.Qualifications)
+        .flat()
+        .filter(Boolean);
+      const responsibilities = toArray(j.job_highlights?.Responsibilities)
+        .flat()
+        .filter(Boolean);
+
+      const doc = {
+        jobId,
+        origin: 'EXTERNAL',
+        slug: makeSlug(j.job_title || 'job'),
+        title: j.job_title || 'Untitled role',
+        description: j.job_description || '',
+        company: j.employer_name || 'Unknown company',
+        logo: j.employer_logo || undefined,
+        jobTypes,
+        qualifications: qualifications.length
+          ? qualifications
+          : extractQualificationsFromDescription(j.job_description),
+        responsibilities: responsibilities.length
+          ? responsibilities
+          : extractResponsibilitiesFromDescription(j.job_description),
+        experience: extractExperienceFromDescription(j.job_description),
+        isRemote: !!j.job_is_remote,
+        salary:
+          j.job_min_salary != null || j.job_max_salary != null
+            ? {
+                min:
+                  j.job_min_salary != null
+                    ? Number(j.job_min_salary)
+                    : undefined,
+                max:
+                  j.job_max_salary != null
+                    ? Number(j.job_max_salary)
+                    : undefined,
+                period: salaryPeriod,
+              }
+            : undefined,
+        country: j.job_country || '',
+        location: {
+          city: j.job_city || '',
+          state: j.job_state || '',
+          postalCode: j.job_postal_code || '',
+          lat: j.job_latitude != null ? Number(j.job_latitude) : undefined,
+          lng: j.job_longitude != null ? Number(j.job_longitude) : undefined,
+        },
+        applyMethod: { method: 'URL', url: j.job_apply_link || '' },
+        postedAt: j.job_posted_at_timestamp
+          ? new Date(j.job_posted_at_timestamp * 1000)
+          : new Date(),
+        tags: j.job_benefits || [],
+        queries: [query],
+        isActive: true,
+      };
+
+      const saved = await Job.findOneAndUpdate(
+        { jobId },
+        { $set: doc, $addToSet: { queries: query } },
+        { new: true, upsert: true, setDefaultsOnInsert: true },
+      ).lean();
+
+      upserted.push(saved);
     }
 
-    // Add match scores and sort
-    const jobsWithScores = processedJobs.map((job) => ({
-      ...job.toObject(),
-      matchScore: calculateMatchScore(job, preferences),
-    }));
+    const jobsWithScores = upserted
+      .map((job) => ({
+        ...job,
+        matchScore: calculateMatchScore(job, { jobPreferences: preferences }),
+      }))
+      .sort((a, b) => b.matchScore - a.matchScore);
 
-    jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
-
-    // Pagination
-    const page = parseInt(req.query.page || 1);
-    const limit = parseInt(req.query.limit || 10);
-    const paginatedJobs = jobsWithScores.slice(
-      (page - 1) * limit,
-      page * limit,
-    );
+    const paginated = jobsWithScores.slice((page - 1) * limit, page * limit);
 
     return res.status(200).json({
       success: true,
-      jobs: paginatedJobs,
+      jobs: paginated,
       pagination: {
         total: jobsWithScores.length,
         page,
         limit,
-        totalPages: Math.ceil(jobsWithScores.length / limit),
+        totalPages: Math.ceil(jobsWithScores.length / limit) || 0,
       },
       source: 'external',
-      message:
-        jobsWithScores.length > 0
-          ? 'Showing external job listings that match your preferences'
-          : 'No matching jobs found in our database or external sources',
+      message: jobsWithScores.length
+        ? 'Showing external job listings that match your preferences'
+        : 'No matching jobs found in our database or external sources',
     });
   } catch (error) {
-    console.error('Error fetching fallback jobs from RapidAPI:', error.message);
+    const page = parseInt(req?.query?.page || 1, 10);
+    const limit = parseInt(req?.query?.limit || 10, 10);
+    console.error(
+      'Error fetching fallback jobs from RapidAPI:',
+      error?.message || error,
+    );
     return res.status(200).json({
       success: true,
       jobs: [],
-      pagination: {
-        total: 0,
-        page: parseInt(req.query.page || 1),
-        limit: parseInt(req.query.limit || 10),
-        totalPages: 0,
-      },
+      pagination: { total: 0, page, limit, totalPages: 0 },
       source: 'none',
       message:
         'No matching jobs found. Try adjusting your preferences or check back later.',
     });
   }
 }
-
-// Helper function to convert salary to yearly for comparison
-// export function convertSalaryToYearly(amount, period) {
-//   switch (period) {
-//     case 'HOUR':
-//       return amount * 40 * 52;
-//     case 'DAY':
-//       return amount * 5 * 52;
-//     case 'WEEK':
-//       return amount * 52;
-//     case 'MONTH':
-//       return amount * 12;
-//     case 'YEAR':
-//     default:
-//       return amount;
-//   }
-// }
-
-// export function calculateMatchScore(
-//   job,
-//   preferences,
-//   jobRole,
-//   skills,
-//   experience,
-// ) {
-//   let score = 0;
-
-//   const titles = [
-//     ...(preferences.preferredJobTitles || []),
-//     jobRole,
-//     preferences.jobTitle,
-//   ].filter(Boolean);
-//   if (titles.some((t) => job.title?.toLowerCase().includes(t.toLowerCase()))) {
-//     score += 30;
-//   }
-
-//   const mustHaveSkills = [
-//     ...(preferences.mustHaveSkills || []),
-//     ...(preferences.uploadedCVData?.skills || []),
-//     ...(skills || []),
-//   ]
-//     .map((s) => s.skill?.toLowerCase())
-//     .filter(Boolean);
-//   const skillMatch =
-//     job.qualifications?.filter((q) =>
-//       mustHaveSkills.some((s) => q?.toLowerCase().includes(s)),
-//     ).length || 0;
-//   score += (skillMatch / (mustHaveSkills.length || 1)) * 40;
-
-//   if (
-//     (preferences.isRemote || preferences.country) &&
-//     (job.isRemote ||
-//       job.country?.toLowerCase() === preferences.country?.toLowerCase())
-//   ) {
-//     score += 20;
-//   }
-
-//   if (
-//     preferences.preferredJobTypes?.includes(job.jobTypes?.[0]) ||
-//     preferences.employmentType?.toLowerCase() ===
-//       job.jobTypes?.[0]?.toLowerCase()
-//   ) {
-//     score += 10;
-//   }
-
-//   const jobExpYears = job.experience || 0;
-//   const maxExp = Math.max(
-//     ...experience.map((exp) => exp.experienceYrs || 0),
-//     0,
-//   );
-//   if (jobExpYears <= maxExp + 1) {
-//     score += 10;
-//   }
-
-//   return Math.min(score, 100);
-// }
-
-// Helper function to convert experience level to numeric value
-function getExperienceLevelValue(level) {
-  switch (level) {
-    case 'ENTRY_LEVEL':
-      return 0;
-    case 'MID_LEVEL':
-      return 3;
-    case 'SENIOR':
-      return 5;
-    case 'EXPERT':
-      return 8;
-    default:
-      return 0;
-  }
-}
-
-// Helper function to calculate match strength between strings
-function getMatchStrength(text, searchTerm) {
-  if (!text || !searchTerm) return 0;
-
-  const textLower = text.toLowerCase();
-  const termLower = searchTerm.toLowerCase();
-
-  if (textLower === termLower) return 1;
-  if (textLower.includes(termLower)) return 0.8;
-
-  // Tokenize and check partial matches
-  const textWords = textLower.split(/\s+/);
-  const termWords = termLower.split(/\s+/);
-
-  const matchingWords = termWords.filter((word) =>
-    textWords.some((tWord) => tWord.includes(word)),
-  );
-
-  return matchingWords.length / termWords.length;
-}
-
-// NEW
-// src/utils/jobUtils.js
-export const convertSalaryToYearly = (amount, period) => {
-  if (!amount || !period) return 0;
-
-  const conversions = {
-    HOUR: amount * 40 * 52, // 40 hours/week * 52 weeks
-    DAY: amount * 5 * 52, // 5 days/week * 52 weeks
-    WEEK: amount * 52, // 52 weeks/year
-    MONTH: amount * 12, // 12 months/year
-    YEAR: amount,
-  };
-
-  return conversions[period.toUpperCase()] || amount;
-};
-
-export const calculateMatchScore = (job, student) => {
-  try {
-    let score = 0;
-    const maxScore = 100;
-
-    // Safe access to properties with defaults
-    const jobSkills = job.tags || job.skills || [];
-    const studentSkills = student.skills || [];
-    const studentSkillNames = studentSkills
-      .map((s) => s.skill || s)
-      .filter(Boolean);
-
-    const jobLocation = job.location || {};
-    const studentPreferences = student.jobPreferences || {};
-    const preferredLocations = studentPreferences.preferedLocations || [];
-    const preferredCountries = studentPreferences.preferedCountries || [];
-
-    // 1. Skill matching (40 points)
-    if (jobSkills.length > 0 && studentSkillNames.length > 0) {
-      const matchingSkills = jobSkills.filter((skill) =>
-        studentSkillNames.some(
-          (studentSkill) =>
-            studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
-            skill.toLowerCase().includes(studentSkill.toLowerCase()),
-        ),
-      );
-      const skillMatchRatio =
-        matchingSkills.length / Math.max(jobSkills.length, 1);
-      score += skillMatchRatio * 40;
-      console.log(
-        `   Skills: ${matchingSkills.length}/${
-          jobSkills.length
-        } matched (${Math.round(skillMatchRatio * 100)}%)`,
-      );
-    }
-
-    // 2. Location matching (20 points)
-    if (preferredLocations.length > 0 || preferredCountries.length > 0) {
-      const jobCountry = job.country || '';
-      const jobCity = jobLocation.city || '';
-      const jobState = jobLocation.state || '';
-
-      const locationMatch =
-        preferredLocations.some(
-          (loc) =>
-            jobCity.toLowerCase().includes(loc.toLowerCase()) ||
-            jobState.toLowerCase().includes(loc.toLowerCase()),
-        ) ||
-        preferredCountries.some((country) =>
-          jobCountry.toLowerCase().includes(country.toLowerCase()),
-        );
-
-      if (locationMatch) {
-        score += 20;
-        console.log(`   Location: Match found`);
-      }
-    }
-
-    // 3. Remote work preference (10 points)
-    if (studentPreferences.isRemote && job.isRemote) {
-      score += 10;
-      console.log(`   Remote: Match`);
-    }
-
-    // 4. Job type matching (10 points)
-    const preferredJobTypes = studentPreferences.preferedJobTypes || [];
-    const jobTypes = job.jobTypes || [];
-    if (preferredJobTypes.length > 0 && jobTypes.length > 0) {
-      const hasMatchingType = jobTypes.some((type) =>
-        preferredJobTypes.includes(type),
-      );
-      if (hasMatchingType) {
-        score += 10;
-        console.log(`   Job Type: Match`);
-      }
-    }
-
-    // 5. Salary expectations (20 points)
-    const preferredSalary = studentPreferences.preferedSalary || {};
-    if (preferredSalary.min && job.salary) {
-      const jobMinSalary = convertSalaryToYearly(
-        job.salary.min,
-        job.salary.period || 'YEAR',
-      );
-      const studentMinSalary = convertSalaryToYearly(
-        preferredSalary.min,
-        preferredSalary.period || 'YEAR',
-      );
-
-      if (jobMinSalary >= studentMinSalary) {
-        score += 20;
-        console.log(`   Salary: Meets expectations`);
-      } else if (jobMinSalary >= studentMinSalary * 0.8) {
-        score += 10; // Partial match for slightly lower salary
-        console.log(`   Salary: Close to expectations`);
-      }
-    }
-
-    const finalScore = Math.min(score, maxScore);
-    console.log(`   Final Score: ${finalScore}/100`);
-    return finalScore;
-  } catch (error) {
-    console.error('❌ Error in calculateMatchScore:', error);
-    console.log('Job data:', {
-      id: job._id,
-      title: job.title,
-      company: job.company,
-      tags: job.tags,
-      skills: job.skills,
-      location: job.location,
-      salary: job.salary,
-      jobTypes: job.jobTypes,
-      isRemote: job.isRemote,
-    });
-    console.log('Student data:', {
-      skills: student.skills,
-      jobPreferences: student.jobPreferences,
-    });
-    return 0; // Return 0 if calculation fails
-  }
-};

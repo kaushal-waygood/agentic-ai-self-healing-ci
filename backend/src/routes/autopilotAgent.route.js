@@ -18,7 +18,6 @@ router.post(
   upload.single('cv'),
   createAutopilotAgent,
 );
-
 router.get('/get', authMiddleware, isStudent, getAllPilotAgents);
 router.get('/get/:id', authMiddleware, isStudent, getSinglePilotAgent);
 router.delete('/delete/:id', authMiddleware, isStudent, removeAutoPilotAgent);
