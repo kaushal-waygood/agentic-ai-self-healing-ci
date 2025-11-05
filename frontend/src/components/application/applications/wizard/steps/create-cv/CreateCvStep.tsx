@@ -215,15 +215,15 @@ const SleekCvStep = ({
           </div>
 
           {/* Footer */}
-          <div className="px-8 pb-8 pt-0">
-            <button
-              className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
-              onClick={() => setWizardStep('job')}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Job Details
-            </button>
-          </div>
+        </div>
+        <div className="px-8 pb-8 pt-0">
+          <button
+            className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
+            onClick={() => setWizardStep('job')}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Job Details
+          </button>
         </div>
       </div>
       <style jsx>{`
