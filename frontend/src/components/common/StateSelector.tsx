@@ -18,7 +18,6 @@ const StateSelector = ({
   const stateOptions = useMemo(() => {
     if (!countryCode) return [];
     const states = State.getStatesOfCountry(countryCode);
-    console.log(`States for ${countryCode}:`, states);
     return states?.map((state) => ({
       value: state.isoCode,
       label: state.name,
@@ -28,7 +27,6 @@ const StateSelector = ({
   const hasStates = stateOptions && stateOptions.length > 0;
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    console.log('State selected:', e.target.value);
     onChange(e.target.value);
   };
 

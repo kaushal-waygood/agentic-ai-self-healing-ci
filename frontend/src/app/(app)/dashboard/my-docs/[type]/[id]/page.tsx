@@ -68,21 +68,9 @@ const DocumentPage = () => {
         }
 
         const response = await apiInstance.get(endpoint);
-        console.log('Fetched Data:', response.data);
 
         responseData = response.data;
-        // console.log(
-        //   'Fetched Data:',
-        //   responseData?.cv?.cvData.cv,
-        //   responseData.cv.cvData.atsScore,
-        // );
 
-        // console.log(
-        //   'Fetched Data:',
-        //   responseData.html.ats,
-        //   responseData.html.html,
-        // );
-        // Transform data based on type
         let transformedData;
         switch (type) {
           case 'cv':

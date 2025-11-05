@@ -66,7 +66,7 @@ export default function DocumentsPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  // Initialize from query param (?tab=cvs / ?tab=cover-letters / ?tab=applications)
+  // Initialize from query param
   const initialTab =
     (searchParams.get('tab') as 'cvs' | 'cover-letters' | 'applications') ||
     'cvs';
@@ -84,6 +84,16 @@ export default function DocumentsPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Rename functionality states
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState<{
+    id: string;
+    type: 'cv' | 'coverLetter';
+    currentTitle: string;
+  } | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
 
   // Update the URL whenever tab changes
   useEffect(() => {
@@ -156,6 +166,76 @@ export default function DocumentsPage() {
     }
   };
 
+  // Rename functionality
+  const handleRename = (
+    documentId: string,
+    type: 'cv' | 'coverLetter',
+    currentTitle: string,
+  ) => {
+    console.log('Renaming document:', documentId);
+    setCurrentDocument({ id: documentId, type, currentTitle });
+    setNewTitle(currentTitle);
+    setIsRenameDialogOpen(true);
+  };
+
+  const confirmRename = async () => {
+    if (!currentDocument || !newTitle.trim()) return;
+
+    setIsRenaming(true);
+    try {
+      const endpoint =
+        currentDocument.type === 'cv'
+          ? '/students/resume/title/rename'
+          : '/students/cover-letter/title/rename';
+
+      const payload =
+        currentDocument.type === 'cv'
+          ? { cvId: currentDocument.id, newTitle: newTitle.trim() }
+          : { coverLetterId: currentDocument.id, newTitle: newTitle.trim() };
+
+      const response = await apiInstance.patch(endpoint, payload);
+
+      // Update local state based on document type
+      if (currentDocument.type === 'cv') {
+        setCvs((prev) =>
+          prev.map((cv) =>
+            cv._id === currentDocument.id
+              ? { ...cv, jobContextString: newTitle.trim() }
+              : cv,
+          ),
+        );
+      } else {
+        setCoverLetters((prev) =>
+          prev.map((cl) =>
+            cl._id === currentDocument.id
+              ? { ...cl, jobContextString: newTitle.trim() }
+              : cl,
+          ),
+        );
+      }
+
+      toast({
+        title: 'Document Renamed!',
+        description: `${
+          currentDocument.type === 'cv' ? 'CV' : 'Cover letter'
+        } has been renamed successfully.`,
+      });
+
+      setIsRenameDialogOpen(false);
+      setCurrentDocument(null);
+      setNewTitle('');
+    } catch (error: any) {
+      console.error('Error renaming document:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Rename Failed',
+        description: error.response?.data?.error || 'Failed to rename document',
+      });
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
   const deleteCV = async (cvId: string) => {
     try {
       await apiInstance.delete(`/students/cv/${cvId}`);
@@ -205,9 +285,11 @@ export default function DocumentsPage() {
 
     try {
       await navigator.clipboard.writeText(textToCopy);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
       toast({
         title: 'Copied to Clipboard!',
-        description: `content has been copied as plain text.`,
+        description: `Content has been copied as plain text.`,
       });
     } catch (err) {
       console.error('Failed to copy text: ', err);
@@ -336,7 +418,6 @@ export default function DocumentsPage() {
         <div className="bg-white/50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-800 backdrop-blur-sm">
           {isLoading ? (
             <div className="flex flex-col justify-center items-center py-20">
-              {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
               <div>
                 <img
                   src="/logo.png"
@@ -344,7 +425,6 @@ export default function DocumentsPage() {
                   className="w-10 h-10 animate-bounce"
                 />
               </div>
-
               <div className="text-lg">LOADING...</div>
             </div>
           ) : (
@@ -356,6 +436,7 @@ export default function DocumentsPage() {
                   onDelete={deleteCV}
                   onCopy={copyToClipboard}
                   onDownload={downloadAsFile}
+                  onRename={handleRename}
                   copiedId={copiedId}
                   getStatusIcon={getStatusIcon}
                   getStatusColor={getStatusColor}
@@ -371,6 +452,7 @@ export default function DocumentsPage() {
                   onDelete={deleteCoverLetter}
                   onCopy={copyToClipboard}
                   onDownload={downloadAsFile}
+                  onRename={handleRename}
                   copiedId={copiedId}
                   getStatusIcon={getStatusIcon}
                   getStatusColor={getStatusColor}
@@ -397,6 +479,66 @@ export default function DocumentsPage() {
           )}
         </div>
       </div>
+
+      {/* Rename Dialog */}
+      {isRenameDialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Rename {currentDocument?.type === 'cv' ? 'CV' : 'Cover Letter'}
+              </h3>
+              <button
+                onClick={() => {
+                  setIsRenameDialogOpen(false);
+                  setCurrentDocument(null);
+                  setNewTitle('');
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Enter a new name for your{' '}
+              {currentDocument?.type === 'cv' ? 'CV' : 'cover letter'}.
+            </p>
+
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-4"
+              placeholder={`Enter ${
+                currentDocument?.type === 'cv' ? 'CV' : 'cover letter'
+              } name`}
+              maxLength={100}
+            />
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setIsRenameDialogOpen(false);
+                  setCurrentDocument(null);
+                  setNewTitle('');
+                }}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                disabled={isRenaming}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRename}
+                disabled={!newTitle.trim() || isRenaming}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {isRenaming ? 'Renaming...' : 'Rename'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -466,6 +608,7 @@ const DocumentSection = ({
     const title = (item.jobTitle || '').toLowerCase();
     const company = (item.companyName || '').toLowerCase();
     const context = (item.jobContextString || '').toLowerCase();
+    const [documents, setDocuments] = useState([]); // Or however you fetch docs
 
     return (
       title.includes(searchLower) ||
@@ -473,6 +616,37 @@ const DocumentSection = ({
       context.includes(searchLower)
     );
   });
+
+  const handleRenameDocument = async (documentId: string, newTitle: string) => {
+    try {
+      // 1. Make the API call
+      // (Update this endpoint to match your backend)
+      await apiInstance.patch(`/students/cv/${documentId}/rename`, {
+        title: newTitle,
+      });
+
+      // 2. Update the state locally to show the change immediately
+      setDocuments((currentDocs) =>
+        currentDocs.map((doc) =>
+          doc._id === documentId ? { ...doc, title: newTitle } : doc,
+        ),
+      );
+
+      toast({
+        title: 'Document Renamed',
+        description: 'Your document has a new name.',
+      });
+    } catch (error) {
+      console.error('Rename failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Rename Failed',
+        description: 'Could not update the document name.',
+      });
+      // Re-throw the error so the DocumentCard's loading state can stop
+      throw error;
+    }
+  };
 
   return (
     <div className="p-6">
@@ -541,6 +715,7 @@ const DocumentSection = ({
               getStatusIcon={getStatusIcon}
               getStatusColor={getStatusColor}
               formatDate={formatDate}
+              onRename={handleRenameDocument}
             />
           ))}
         </div>

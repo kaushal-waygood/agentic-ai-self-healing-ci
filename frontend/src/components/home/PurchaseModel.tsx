@@ -44,11 +44,6 @@ interface Plan {
   billingVariants: BillingVariant[];
 }
 
-console.log(
-  'Using Stripe Key:',
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-);
-// --- Stripe Loader ---
 const stripePromise = loadStripe(
   'pk_live_51P9LpzRk1I3BflpJZwwqZtdVW5cJmdivnzPqu6vtSosnfTO44dZhve6DOdtNfupRR247b18tSTU3Ziszq8Yr2Duo00XmtGeZzC',
 );

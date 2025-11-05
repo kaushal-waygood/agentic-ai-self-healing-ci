@@ -41,7 +41,6 @@ export function NotificationBell() {
 
   const handleNotificationClick = (notification) => {
     router.push(`/dashboard/my-docs/${notification.actionUrl}`);
-    console.log('Notification clicked:', notification);
     // !notification.isRead && markAsRead(notification._id);
   };
 

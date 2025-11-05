@@ -45,7 +45,6 @@ const SleekClStep = ({
 
     fetchCoverLetters();
   }, []);
-  console.log('fetched cover letters:', coverLetters);
 
   const options = [
     {

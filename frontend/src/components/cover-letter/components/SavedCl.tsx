@@ -289,7 +289,6 @@ const SavedCoverLetters = ({
   };
 
   const handleLoadLetter = async (savedLetter: any, index: number) => {
-    console.log('Loading Cover Letter:', savedLetter._id);
     const queryCvId = searchParams.get('q');
     // route.push(`/dashboard/my-docs/cv/${savedCv._id}?q=saved`);
     route.push(`/dashboard/my-docs/cl/${savedLetter._id}?q=saved`);
