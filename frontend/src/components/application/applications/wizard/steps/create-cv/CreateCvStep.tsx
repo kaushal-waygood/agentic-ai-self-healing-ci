@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   FileText,
   Clock,
+  Loader2,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 
@@ -24,10 +25,12 @@ const SleekCvStep = ({
 
   const [cvs, setCvs] = useState([]);
   const [stats, setStats] = useState({ cvsCount: 0 });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCvs = async () => {
       try {
+        setLoading(true);
         const response = await apiInstance.get('/students/resume/saved');
         setCvs(response.data.html || []);
         setStats((prev) => ({
@@ -36,6 +39,8 @@ const SleekCvStep = ({
         }));
       } catch (error) {
         console.error('Failed to fetch CVs:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -43,12 +48,12 @@ const SleekCvStep = ({
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className=" bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="gradient-border hover-lift card-entrance">
+        <div className=" bg-white border border-slate-200 rounded-md card-entrance">
           {/* Header */}
           <div className="p-8 pb-0">
-            <div className="flex items-center justify-center mt-6">
+            <div className="flex items-center justify-center ">
               <div className="flex space-x-2">
                 <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
                 <div className="w-8 h-3 bg-green-500 rounded-full animate-pulse"></div>
@@ -73,52 +78,67 @@ const SleekCvStep = ({
           <div className="p-4 space-y-6">
             {/* Saved CVs Section */}
             <div className="card-entrance staggered-1">
-              <div className="flex flex-row flex-wrap justify-between">
-                <label className="block text-sm font-medium text-slate-700 mb-3">
-                  Select from Saved CVs
-                </label>
+              <div className="flex flex-row flex-wrap justify-between text-sm  font-medium mb-2">
+                <label className="  ">Select From Saved CVs</label>
                 <p>Total CVs: {stats.cvsCount}</p>
                 {/* render CV list */}
               </div>
 
               <div className="max-h-[35vh] overflow-y-auto border border-slate-200 rounded-lg bg-slate-50/50">
-                {cvs?.length > 0 ? (
-                  <div className="p-2 space-y-2">
-                    {cvs.map((cv: any, index) => (
-                      <label
-                        key={cv._id}
-                        className="radio-card flex items-center gap-4 p-4 rounded-lg cursor-pointer border-2 transition-all duration-200   border-transparent hover:border-slate-300"
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        <input
-                          type="radio"
-                          name="cvSelection"
-                          onClick={(e) => {
-                            handleCvContextSubmit('saved', cv._id);
-                          }}
-                          className="sr-only"
-                        />
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-500">
+                    {/* <Loader2 className="w-6 h-6 animate-spin mb-2 text-purple-500" /> */}
+                    <div>
+                      <img
+                        src="/logo.png"
+                        alt=""
+                        className="w-10 h-10 animate-bounce"
+                      />
+                    </div>
 
-                        {/* Info */}
-                        <div className="flex-1">
-                          <div className="font-medium text-slate-800">
-                            {cv.htmlCVTitle || 'N/A'}
-                          </div>
-                          <div className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                            <Clock className="w-3 h-3" />
-                            {/* {cv.status} •{' '} */}
-                            {new Date(cv.createdAt).toLocaleString()}
-                          </div>
-                        </div>
-
-                        <FileText className="w-5 h-5 transition-colors text-purple-500" />
-                      </label>
-                    ))}
+                    <p>Fetching saved CVs...</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500 text-center p-8">
-                    No saved CVs available.
-                  </p>
+                  <div>
+                    {cvs?.length > 0 ? (
+                      <div className="p-2 space-y-2">
+                        {cvs.map((cv: any, index) => (
+                          <label
+                            key={cv._id}
+                            className="radio-card flex items-center gap-4 p-4 rounded-lg cursor-pointer border-2 transition-all duration-200   border-transparent hover:border-slate-300"
+                            style={{ animationDelay: `${index * 0.1}s` }}
+                          >
+                            <input
+                              type="radio"
+                              name="cvSelection"
+                              onClick={(e) => {
+                                handleCvContextSubmit('saved', cv._id);
+                              }}
+                              className="sr-only"
+                            />
+
+                            {/* Info */}
+                            <div className="flex-1">
+                              <div className="font-medium text-slate-800">
+                                {cv.htmlCVTitle || 'N/A'}
+                              </div>
+                              <div className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                                <Clock className="w-3 h-3" />
+                                {/* {cv.status} •{' '} */}
+                                {new Date(cv.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+
+                            <FileText className="w-5 h-5 transition-colors text-purple-500" />
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center p-8">
+                        No saved CVs available.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -168,7 +188,7 @@ const SleekCvStep = ({
                 )}
               </button>
 
-              <button
+              {/* <button
                 className="btn-outline h-32 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700"
                 onClick={() => setWizardStep('createCv')}
                 disabled={isLoading}
@@ -180,7 +200,7 @@ const SleekCvStep = ({
                     Build from scratch
                   </div>
                 </div>
-              </button>
+              </button> */}
 
               <input
                 type="file"
@@ -212,18 +232,17 @@ const SleekCvStep = ({
                 </div>
               </div>
             )}
+            {/* Footer */}
           </div>
-
-          {/* Footer */}
-        </div>
-        <div className="px-8 pb-8 pt-0">
-          <button
-            className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
-            onClick={() => setWizardStep('job')}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Job Details
-          </button>
+          <div className="px-8 pb-8 pt-0">
+            <button
+              className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
+              onClick={() => setWizardStep('job')}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Job Details
+            </button>
+          </div>
         </div>
       </div>
       <style jsx>{`
