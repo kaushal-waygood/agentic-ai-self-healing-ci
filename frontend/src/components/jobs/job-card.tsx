@@ -163,7 +163,6 @@ interface JobCardProps {
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   const handleClick = async () => {
     try {
-      console.log('Viewing job:', job.slug);
       await apiInstance.post(`/students/job/viewed/${job.slug}`);
       onClick();
     } catch (error) {

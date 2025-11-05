@@ -382,6 +382,112 @@ export const deleteSingleTailoredApplication = async (req, res) => {
   }
 };
 
+// Corrected CV Rename Controller
+export const renameHtmlCV = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const { id } = req.params; // <-- 1. Get ID from URL params
+    const { title } = req.body; // <-- 2. Get 'title' from body
+
+    if (!id || !title?.trim()) {
+      // <-- 3. Use new variable names
+      return res.status(400).json({
+        error: 'CV ID and new title are required',
+      });
+    }
+
+    if (title.trim().length > 100) {
+      return res.status(400).json({
+        error: 'Title must be less than 100 characters',
+      });
+    }
+
+    const student = await Student.findOneAndUpdate(
+      {
+        _id,
+        'htmlCV._id': id, // <-- 4. Find using the ID from params
+      },
+      {
+        $set: {
+          'htmlCV.$.htmlCVTitle': title.trim(), // <-- 5. Set using 'title'
+          'htmlCV.$.updatedAt': new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'CV not found or user unauthorized',
+      });
+    }
+
+    res.json({
+      message: 'CV renamed successfully',
+      newTitle: title.trim(),
+      cvId: id,
+    });
+  } catch (error) {
+    console.error('Error renaming CV:', error);
+    res.status(500).json({
+      error: 'Failed to rename CV',
+    });
+  }
+};
+
+// Corrected Cover Letter Rename Controller
+export const renameCoverLetter = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const { id } = req.params; // <-- 1. Get ID from URL params
+    const { title } = req.body; // <-- 2. Get 'title' from body
+
+    if (!id || !title?.trim()) {
+      // <-- 3. Use new variable names
+      return res.status(400).json({
+        error: 'Cover letter ID and new title are required',
+      });
+    }
+
+    if (title.trim().length > 100) {
+      return res.status(400).json({
+        error: 'Title must be less than 100 characters',
+      });
+    }
+
+    const student = await Student.findOneAndUpdate(
+      {
+        _id,
+        'coverLetter._id': id, // <-- 4. Find using the ID from params
+      },
+      {
+        $set: {
+          'coverLetter.$.coverLetterTitle': title.trim(), // <-- 5. Set using 'title'
+          'coverLetter.$.updatedAt': new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'Cover letter not found or user unauthorized',
+      });
+    }
+
+    res.json({
+      message: 'Cover letter renamed successfully',
+      newTitle: title.trim(),
+      coverLetterId: id,
+    });
+  } catch (error) {
+    console.error('Error renaming cover letter:', error);
+    res.status(500).json({
+      error: 'Failed to rename cover letter',
+    });
+  }
+};
+
 // CV
 export const generateCVByTitle = async (req, res) => {
   const { title } = req.body;
@@ -581,11 +687,12 @@ export const saveStudentHTMLCV = async (req, res) => {
   const { _id } = req.user;
   const { html, title, ats } = req.body;
 
-  console.log('Received ATS value:', ats);
-
   try {
-    // Validate input
-    if (!html || typeof html !== 'string') {
+    // Handle html as either string or object
+    const htmlString = typeof html === 'object' && html.cv ? html.cv : html;
+
+    if (!htmlString || typeof htmlString !== 'string') {
+      console.log('Invalid HTML content:', html);
       return res.status(400).json({ error: 'Invalid HTML content' });
     }
 
@@ -598,10 +705,10 @@ export const saveStudentHTMLCV = async (req, res) => {
       {
         $push: {
           htmlCV: {
-            html: html,
+            html: htmlString,
             htmlCVTitle: title,
+            ats,
             updatedAt: new Date(),
-            ats: ats,
           },
         },
       },
@@ -622,14 +729,6 @@ export const saveStudentHTMLCV = async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving HTML CV:', error);
-
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        error: 'Validation error',
-        details: error.errors,
-      });
-    }
-
     return res.status(500).json({
       error: 'Failed to save HTML CV',
       message: error.message,
@@ -747,17 +846,35 @@ export const getSingleStudentHTMLLetter = async (req, res) => {
   const { _id } = req.user;
   const { letterId } = req.params;
 
+  console.log('Fetching HTML Letter for student:', _id, 'Letter ID:', letterId);
+
   try {
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
-    const letter = student.htmlLetter.find(
+
+    // Debug log to inspect structure
+    console.log('Student HTML Letters:', student.coverLetter);
+
+    // Check if the array exists
+    if (
+      !Array.isArray(student.coverLetter) ||
+      student.coverLetter.length === 0
+    ) {
+      return res
+        .status(404)
+        .json({ error: 'No HTML Letters found for this student' });
+    }
+
+    const letter = student.coverLetter.find(
       (letter) => letter._id.toString() === letterId,
     );
+
     if (!letter) {
       return res.status(404).json({ error: 'HTML Letter not found' });
     }
+
     return res.json({ success: true, html: letter });
   } catch (error) {
     console.error('Error getting HTML Letter:', error);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useNotifications } from '@/hooks/notifications/useNoifications';
-import { RefreshCcw } from 'lucide-react';
+import { BellIcon, Circle, RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -32,7 +32,7 @@ export function NotificationBell() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-4 text-gray-500 animate-pulse">
-        Loading notifications...
+        <Circle className="w-6 h-6 animate-spin" />
       </div>
     );
   }
@@ -41,7 +41,6 @@ export function NotificationBell() {
 
   const handleNotificationClick = (notification) => {
     router.push(`/dashboard/my-docs/${notification.actionUrl}`);
-    console.log('Notification clicked:', notification);
     // !notification.isRead && markAsRead(notification._id);
   };
 

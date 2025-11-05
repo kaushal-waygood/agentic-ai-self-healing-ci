@@ -1,3 +1,15 @@
+// components/DocumentCard.tsx
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
 import apiInstance from '@/services/api';
 import {
   CheckCircle2,
@@ -5,8 +17,8 @@ import {
   Download,
   Loader2,
   Trash2,
-  Clock, // Note: This is imported but not used in your code
   RefreshCw,
+  Edit3,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -17,6 +29,7 @@ export const DocumentCard = ({
   onDelete,
   onCopy,
   onDownload,
+  onRename, // Add onRename prop
   copiedId,
   getStatusIcon,
   getStatusColor,
@@ -25,6 +38,9 @@ export const DocumentCard = ({
   const router = useRouter();
   const [status, setStatus] = useState(item.status);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  // We need a separate loading state for the rename save action
+  const [isSavingRename, setIsSavingRename] = useState(false);
 
   // Determine if we should show processing state
   const isProcessing = status === 'pending';
@@ -67,6 +83,9 @@ export const DocumentCard = ({
     }
   };
 
+  // Set default rename title to the displayed title
+  const [renameTitle, setRenameTitle] = useState(item.title || getTitle());
+
   const getFilename = () => {
     const baseName =
       type === 'cv'
@@ -93,7 +112,6 @@ export const DocumentCard = ({
 
   // Handle refresh dynamically based on type
   const handleRefresh = async () => {
-    // Prevent refresh if already refreshing or completed
     if (isRefreshing || status === 'completed') return;
 
     console.log('🔄 Manual refresh for:', item._id, 'type:', type);
@@ -103,30 +121,26 @@ export const DocumentCard = ({
       let endpoint = '';
       switch (type) {
         case 'cv':
-          // Using the generic endpoint you built
           endpoint = `/students/status/cv/${item._id}`;
           break;
         case 'coverLetter':
           endpoint = `/students/status/cl/${item._id}`;
           break;
         case 'application':
-          // Assuming 'application' maps to 'tailored'
           endpoint = `/students/status/tailored/${item._id}`;
           break;
         default:
           console.error('Unknown document type for refresh:', type);
-          setIsRefreshing(false); // Make sure to stop loading
+          setIsRefreshing(false);
           return;
       }
 
       const response = await apiInstance.get(endpoint);
       const { data } = response;
-      // Assuming the API returns the document at { document: {...} }
       if (data.document && data.document.status) {
         setStatus(data.document.status);
-      } else {
-        // Fallback for your old API structure
-        console.warn('Data structure might be different. Falling back.');
+      } else if (data.item && data.item.status) {
+        // Fallback for different response structures
         setStatus(data.item.status);
       }
     } catch (error) {
@@ -135,6 +149,34 @@ export const DocumentCard = ({
       setIsRefreshing(false);
     }
   };
+
+  // Handle rename click
+  const handleRenameClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    // Reset renameTitle to the current title when opening
+    setRenameTitle(item.title || getTitle());
+    setIsRenaming(true);
+  };
+
+  // Handle the save action from the rename dialog
+  const handleRenameSubmit = async () => {
+    if (!renameTitle || isSavingRename) return;
+
+    setIsSavingRename(true);
+    try {
+      // Call the onRename prop passed from the parent component
+      await onRename(item._id, renameTitle);
+    } catch (error) {
+      console.error('Error during rename submission:', error);
+      // You could show a toast notification here
+    } finally {
+      setIsSavingRename(false);
+      setIsRenaming(false);
+    }
+  };
+
+  // Check if this document type supports renaming
+  const supportsRename = type === 'cv' || type === 'coverLetter';
 
   return (
     <div
@@ -161,9 +203,12 @@ export const DocumentCard = ({
           </span>
         </div>
         <div className="flex items-center space-x-2">
-          {/* --- MODIFICATION START --- */}
+          {/* Refresh Button */}
           <button
-            onClick={handleRefresh}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRefresh();
+            }}
             disabled={isRefreshing || status === 'completed'}
             className={`p-2 transition-colors ${
               isRefreshing || status === 'completed'
@@ -182,10 +227,29 @@ export const DocumentCard = ({
               className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
             />
           </button>
-          {/* --- MODIFICATION END --- */}
 
+          {/* Rename Button - Only show for CV and Cover Letter */}
+          {supportsRename && (
+            <button
+              onClick={handleRenameClick}
+              disabled={isProcessing || isRefreshing}
+              className={`p-2 transition-colors ${
+                isProcessing || isRefreshing
+                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                  : 'text-gray-500 hover:text-yellow-600'
+              }`}
+              title="Rename"
+            >
+              <Edit3 className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Copy Button */}
           <button
-            onClick={() => onCopy(getContent(), item._id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCopy(getContent(), item._id);
+            }}
             disabled={!isClickable}
             className={`p-2 transition-colors ${
               isClickable
@@ -200,8 +264,13 @@ export const DocumentCard = ({
               <Copy className="h-4 w-4" />
             )}
           </button>
+
+          {/* Download Button */}
           <button
-            onClick={() => onDownload(getContent(), getFilename())}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload(getContent(), getFilename());
+            }}
             disabled={!isClickable}
             className={`p-2 transition-colors ${
               isClickable
@@ -212,8 +281,13 @@ export const DocumentCard = ({
           >
             <Download className="h-4 w-4" />
           </button>
+
+          {/* Delete Button */}
           <button
-            onClick={() => onDelete(item._id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item._id);
+            }}
             disabled={isProcessing || isRefreshing}
             className={`p-2 transition-colors ${
               isProcessing || isRefreshing
@@ -231,15 +305,14 @@ export const DocumentCard = ({
         </div>
       </div>
 
-      {/* ... rest of your component ... */}
-
       <h3
         className={`font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 ${
           isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
         }`}
         onClick={openContent}
       >
-        {getTitle()}
+        {/* Display item.title if it exists, otherwise use the generated title */}
+        {item.title || getTitle()}
         {!isClickable && status === 'failed' && (
           <span className="text-xs text-gray-400 ml-2">
             (Failed to generate)
@@ -302,6 +375,39 @@ export const DocumentCard = ({
           </div>
         </div>
       )}
+
+      {/* Corrected AlertDialog for renaming */}
+      <AlertDialog open={isRenaming} onOpenChange={setIsRenaming}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rename Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please enter a new name for the document.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            placeholder={`Enter ${
+              type === 'coverLetter' ? 'Cover Letter' : 'CV'
+            } Name`}
+            value={renameTitle}
+            onChange={(e) => setRenameTitle(e.target.value)}
+            className="my-4"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRenameSubmit}
+              disabled={isSavingRename}
+            >
+              {isSavingRename ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Save'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

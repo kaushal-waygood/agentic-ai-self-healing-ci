@@ -71,8 +71,6 @@ export const searchJobs = async (params: {
     limit: limit.toString(),
   });
 
-  console.log(params);
-
   // The main search term
   if (query) queryParams.append('q', query);
 
@@ -83,8 +81,6 @@ export const searchJobs = async (params: {
   if (filters.employmentType)
     queryParams.append('employmentType', filters.employmentType);
   if (filters.experience) queryParams.append('experience', filters.experience);
-
-  console.log(queryParams.toString());
 
   // Note the endpoint is /jobs/search
   const response = await apiInstance.get(

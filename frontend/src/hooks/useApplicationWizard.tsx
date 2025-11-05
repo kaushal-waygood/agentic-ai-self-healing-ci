@@ -401,6 +401,7 @@ export const useApplicationWizard = () => {
 
   const handleCvContextSubmit = useCallback(
     async (mode: CvContext['mode'], value?: string | File) => {
+      console.log('handleCvContextSubmit called with:', { mode, value });
       if (mode === 'profile') {
         setCvContext({ mode, value: 'profile', name: 'Your Zobsai Profile' });
       } else if (value) {
@@ -408,6 +409,8 @@ export const useApplicationWizard = () => {
         // ? resume?.find((r) => r._id === value)?.name || 'Saved CV'
         // : value.name;
         setCvContext({ mode, value, name: cvName });
+      } else if (mode === 'saved') {
+        setCvContext({ mode, value: 'saved', name: 'Your saved cv' });
       } else {
         return;
       }

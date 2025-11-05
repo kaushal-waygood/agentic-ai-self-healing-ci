@@ -48,7 +48,6 @@ const Page = () => {
       const response = await apiInstance.post(
         '/notifications/test-notification',
       );
-      console.log(response.data);
     } catch (error) {
       console.error(error);
     }

@@ -32,11 +32,12 @@ const SleekClStep = ({
   useEffect(() => {
     const fetchCoverLetters = async () => {
       try {
-        const response = await apiInstance.get('/students/cls');
-        setCoverLetters(response.data.cls || []);
+        const response = await apiInstance.get('/students/letter/saved');
+
+        setCoverLetters(response.data.html || []);
         setStats((prev) => ({
           ...prev,
-          coverLettersCount: response.data.cls?.length || 0,
+          coverLettersCount: response.data.html?.length || 0,
         }));
       } catch (error) {
         console.error('Failed to fetch cover letters:', error);
@@ -45,7 +46,7 @@ const SleekClStep = ({
 
     fetchCoverLetters();
   }, []);
-  console.log('fetched cover letters:', coverLetters);
+
 
   const options = [
     {
@@ -233,11 +234,27 @@ const SleekClStep = ({
                                                   )}
                                                 </div>
                                                 <FileText className="w-4 h-4 text-slate-500" />
-                                                <div className="font-medium text-slate-800">
-                                                  {cl.jobContextString?.slice(
-                                                    0,
-                                                    50,
-                                                  ) || 'N/A'}
+
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="font-medium text-slate-800">
+                                                    {cl.coverLetterTitle?.slice(
+                                                      0,
+                                                      50,
+                                                    ) || 'N/A'}
+                                                  </div>
+
+                                                  <div>
+                                                    {cl.updatedAt && (
+                                                      <div className="text-sm text-slate-500 flex  items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        <span>
+                                                          {new Date(
+                                                            cl.updatedAt,
+                                                          ).toLocaleDateString()}
+                                                        </span>
+                                                      </div>
+                                                    )}
+                                                  </div>
                                                 </div>
                                               </div>
                                             );

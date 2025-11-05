@@ -28,11 +28,11 @@ const SleekCvStep = ({
   useEffect(() => {
     const fetchCvs = async () => {
       try {
-        const response = await apiInstance.get('/students/cvs');
-        setCvs(response.data.cvs || []);
+        const response = await apiInstance.get('/students/resume/saved');
+        setCvs(response.data.html || []);
         setStats((prev) => ({
           ...prev,
-          cvsCount: response.data.cvs?.length || 0,
+          cvsCount: response.data.html?.length || 0,
         }));
       } catch (error) {
         console.error('Failed to fetch CVs:', error);
@@ -102,7 +102,7 @@ const SleekCvStep = ({
                         {/* Info */}
                         <div className="flex-1">
                           <div className="font-medium text-slate-800">
-                            {cv.jobContextString?.slice(0, 50) || 'N/A'}
+                            {cv.htmlCVTitle || 'N/A'}
                           </div>
                           <div className="text-sm text-slate-500 flex items-center gap-1 mt-1">
                             <Clock className="w-3 h-3" />
@@ -215,15 +215,15 @@ const SleekCvStep = ({
           </div>
 
           {/* Footer */}
-          <div className="px-8 pb-8 pt-0">
-            <button
-              className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
-              onClick={() => setWizardStep('job')}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Job Details
-            </button>
-          </div>
+        </div>
+        <div className="px-8 pb-8 pt-0">
+          <button
+            className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
+            onClick={() => setWizardStep('job')}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Job Details
+          </button>
         </div>
       </div>
       <style jsx>{`

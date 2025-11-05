@@ -15,6 +15,17 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
+import { Input } from '../ui/input';
 
 interface EditableMaterialProps {
   content: string;
@@ -22,6 +33,7 @@ interface EditableMaterialProps {
   title: string;
   isHtml?: boolean;
   className?: string;
+  type?: 'resume' | 'coverletter'; // Add type prop to distinguish between resume and cover letter
   // handleSave?: (content: string) => Promise<void> | void;
 }
 
@@ -32,6 +44,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   title,
   isHtml = false,
   className = '',
+  type = 'resume', // Default to resume
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,9 +60,15 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const [localContent, setLocalContent] = useState<string>(content);
   const [isInitialEditSetup, setIsInitialEditSetup] = useState(false);
 
-  // Sync local content with prop content
+  // Missing state variables
+  const [isNamingDialogDisplayed, setIsNamingDialogDisplayed] = useState(false);
+  const [cvNameForSavingInput, setCvNameForSavingInput] = useState('');
+  const [hasChangesForFinalSave, setHasChangesForFinalSave] = useState(false);
+
   useEffect(() => {
     setLocalContent(content);
+    // Reset final save changes flag when content prop changes from parent
+    setHasChangesForFinalSave(false);
   }, [content]);
 
   const placeCaretAtEnd = (el: HTMLElement) => {
@@ -62,7 +81,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     sel?.addRange(range);
   };
 
-  // Handle initial setup when entering edit mode
   useEffect(() => {
     if (!editorRef.current) return;
 
@@ -80,7 +98,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   }, [isEditing, localContent, isInitialEditSetup]);
 
-  // Handle content changes without moving cursor
   useEffect(() => {
     if (!editorRef.current || !isEditing || isInitialEditSetup) return;
 
@@ -140,6 +157,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       const newValue = editorRef.current.innerHTML;
       setLocalContent(newValue);
       setHasUnsavedChanges(newValue !== originalContent);
+      setHasChangesForFinalSave(newValue !== content); // Check against original prop content
 
       const text = editorRef.current.innerText || '';
       const words = text.trim().split(/\s+/).filter(Boolean);
@@ -148,16 +166,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   };
 
   const handleEditToggle = async () => {
-    console.log('handleEditToggle');
 
     if (isEditing) {
       // Save mode
       if (editorRef.current) {
         const newContent = editorRef.current.innerHTML;
-        console.log('newContent', newContent);
 
         if (newContent === originalContent) {
-          console.log('No changes made');
           setIsEditing(false);
           return;
         }
@@ -168,6 +183,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
+        setHasChangesForFinalSave(newContent !== content); // Update final save flag
+
         toast({
           title: `${title} updated successfully!`,
           description: 'Your changes have been saved.',
@@ -319,6 +336,87 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     );
   };
 
+  // Helper function to get the appropriate API endpoint based on type
+  const getSaveEndpoint = () => {
+    return type === 'coverletter'
+      ? '/students/letter/save/html'
+      : '/students/resume/save/html';
+  };
+
+  // Helper function to get the appropriate success message based on type
+  const getSaveSuccessMessage = (name: string) => {
+    const documentType = type === 'coverletter' ? 'Cover Letter' : 'CV';
+    return {
+      title: `${documentType} Saved Successfully!`,
+      description: `Your ${documentType.toLowerCase()} "${name}" has been saved.`,
+    };
+  };
+
+  // Helper function to get dialog title based on type
+  const getDialogTitle = () => {
+    return type === 'coverletter' ? 'Name Your Cover Letter' : 'Name Your CV';
+  };
+
+  // Helper function to get dialog description based on type
+  const getDialogDescription = () => {
+    return type === 'coverletter'
+      ? 'Give this version a unique name. E.g., "Cover Letter for Google PM Role".'
+      : 'Give this version a unique name. E.g., "CV for Google PM Role".';
+  };
+
+  // Helper function to get button text based on type
+  const getSaveButtonText = () => {
+    return type === 'coverletter' ? 'Save Cover Letter' : 'Save CV';
+  };
+
+  const handleSaveDocument = async () => {
+    if (!editorRef.current) return;
+
+    // Show naming dialog instead of directly saving
+    setIsNamingDialogDisplayed(true);
+  };
+
+  const confirmSaveNamedDocument = async () => {
+    if (!editorRef.current) return;
+
+    const html = editorRef.current.innerHTML;
+    const documentName =
+      cvNameForSavingInput.trim() ||
+      `${title} - ${new Date().toLocaleDateString()}`;
+
+    try {
+      setIsLoading(true);
+      const endpoint = getSaveEndpoint();
+      const response = await apiInstance.post(endpoint, {
+        html,
+        title: documentName,
+      });
+
+
+      const { title: successTitle, description: successDescription } =
+        getSaveSuccessMessage(documentName);
+      toast({
+        title: successTitle,
+        description: successDescription,
+      });
+
+      // Reset dialog state and final save flag
+      setIsNamingDialogDisplayed(false);
+      setCvNameForSavingInput('');
+      setHasChangesForFinalSave(false);
+    } catch (error) {
+      console.error('Error saving document:', error);
+      const documentType = type === 'coverletter' ? 'cover letter' : 'CV';
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: `An error occurred while saving your ${documentType}.`,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div
       ref={containerRef}
@@ -370,6 +468,26 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         )}
         <div className="flex items-center space-x-2">
           <button
+            className={`p-2 rounded-lg border border-gray-200 flex items-center space-x-2 transition-all ${
+              hasChangesForFinalSave
+                ? 'text-gray-600 hover:bg-gray-200 cursor-pointer'
+                : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+            }`}
+            onClick={handleSaveDocument}
+            disabled={!hasChangesForFinalSave || isLoading}
+            title={
+              hasChangesForFinalSave
+                ? `Save Final ${
+                    type === 'coverletter' ? 'Cover Letter' : 'CV'
+                  } Version`
+                : 'No changes to save'
+            }
+          >
+            <Save className="h-4 w-4" />
+            <span>Save Final Version</span>
+          </button>
+
+          <button
             onClick={toggleFullscreen}
             className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg"
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
@@ -406,6 +524,15 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             <span className="flex items-center">{getStatusIndicator()}</span>
             <span className="text-gray-400">|</span>
             <span>{wordCount} words</span>
+            {hasChangesForFinalSave && (
+              <>
+                <span className="text-gray-400">|</span>
+                <span className="text-yellow-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  Ready for final save
+                </span>
+              </>
+            )}
           </div>
           <div className="flex items-center space-x-2 flex-wrap justify-center gap-y-2">
             <button
@@ -436,6 +563,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
                   setContent(originalContent);
                   setIsEditing(false);
                   setHasUnsavedChanges(false);
+                  setHasChangesForFinalSave(false);
                   toast({
                     title: 'Changes Reverted',
                     description: 'Your unsaved changes have been discarded.',
@@ -477,6 +605,36 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           </div>
         </div>
       </footer>
+
+      {isNamingDialogDisplayed && (
+        <AlertDialog
+          open={isNamingDialogDisplayed}
+          onOpenChange={setIsNamingDialogDisplayed}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{getDialogTitle()}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {getDialogDescription()}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              placeholder={`Enter ${
+                type === 'coverletter' ? 'Cover Letter' : 'CV'
+              } Name`}
+              value={cvNameForSavingInput}
+              onChange={(e) => setCvNameForSavingInput(e.target.value)}
+              className="my-4"
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSaveNamedDocument}>
+                {getSaveButtonText()}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };
