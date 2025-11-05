@@ -958,6 +958,7 @@ export const createTailoredApply = async (req, res) => {
       studentData = student;
     } else if (req.file) {
       cvContent = await extractTextFromBuffer(req.file);
+      console.log('🚀 ~ file: ai.controller.js:443 ~ cvContent:', cvContent);
     } else {
       return res
         .status(400)
