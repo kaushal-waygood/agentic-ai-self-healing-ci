@@ -1024,7 +1024,6 @@ export const createTailoredApply = async (req, res) => {
 
 export const saveTailoredApplication = async (req, res) => {
   const studentId = req.user._id;
-  // ✅ UPDATED: Destructure the new job detail fields from the request body
   const {
     jobTitle,
     jobCompany,
@@ -1034,7 +1033,6 @@ export const saveTailoredApplication = async (req, res) => {
     emailContent,
   } = req.body;
 
-  // 1. Validate the incoming data
   if (
     !jobTitle ||
     !jobCompany ||

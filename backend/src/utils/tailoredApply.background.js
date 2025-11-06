@@ -1,36 +1,25 @@
 // src/utils/tailoredApply.background.js
-
 import { genAI } from '../config/gemini.js';
-// import { generateCVPrompts } from '../prompt/generateCVPrompt.js';
-// import { generateCoverLetterPrompts } from '../prompt/generateCoverletter.js';
-// import { generateEmailPrompt } from '../prompt/generateEmailPrompt.js';
-
 import {
   generateCVPrompts,
   generateCoverLetterPrompts,
   generateEmailPrompt,
 } from './generateTailored.js';
-
 import { Student } from '../models/student.model.js';
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
 
-// Helper functions to process AI responses
-const processCVResponse = (response) => {
-  return response.replace(/```json|```/g, '').trim();
-};
+// Cleanup helpers
+const processCVResponse = (response) =>
+  response.replace(/```json|```/g, '').trim();
+const processCoverLetterResponse = (response) =>
+  response.replace(/```html|```/g, '').trim();
+const processEmailResponse = (response) =>
+  response.replace(/```html|```/g, '').trim();
 
-const processCoverLetterResponse = (response) => {
-  return response.replace(/```html|```/g, '').trim();
-};
-
-const processEmailResponse = (response) => {
-  return response.replace(/```html|```/g, '').trim();
-};
-
-// Retry mechanism for AI calls
+// Retry wrapper
 const genAIWithRetry = async (prompt, retries = 3, delay = 1000) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -38,9 +27,28 @@ const genAIWithRetry = async (prompt, retries = 3, delay = 1000) => {
     } catch (error) {
       if (i === retries - 1) throw error;
       console.log(`AI call failed, retrying in ${delay}ms...`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
+};
+
+// Normalize payload so both API path and worker path work
+const normalizeApplicationData = (raw) => {
+  // API shape: { job: {title, company, description}, candidate: JSON, coverLetter, preferences }
+  // Worker shape (old): { job: {...rich}, student: {...}, finalTouch }
+  if (raw?.candidate) {
+    return raw;
+  }
+  return {
+    job: {
+      title: raw?.job?.title || '',
+      company: raw?.job?.company || '',
+      description: raw?.job?.description || '',
+    },
+    candidate: JSON.stringify(raw?.student || {}),
+    coverLetter: '',
+    preferences: raw?.finalTouch || '',
+  };
 };
 
 export const processTailoredApplication = async (
@@ -49,29 +57,25 @@ export const processTailoredApplication = async (
   applicationData,
   io,
 ) => {
+  console.log(`[TAILORED] START user=${userId} app=${applicationId}`);
   try {
-    console.log(
-      `Starting tailored application generation for user: ${userId}, application: ${applicationId}`,
-    );
+    const data = normalizeApplicationData(applicationData);
 
-    // Step 1: Generate all components sequentially
-    console.log('Step 1: Generating tailored CV...');
-    const cvResponse = await genAIWithRetry(generateCVPrompts(applicationData));
+    // 1) CV
+    const cvResponse = await genAIWithRetry(generateCVPrompts(data));
     const tailoredCV = processCVResponse(cvResponse);
 
-    console.log('Step 2: Generating tailored Cover Letter...');
+    // 2) Cover Letter
     const coverLetterResponse = await genAIWithRetry(
-      generateCoverLetterPrompts(applicationData),
+      generateCoverLetterPrompts(data),
     );
     const tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
 
-    console.log('Step 3: Generating application Email...');
-    const emailResponse = await genAIWithRetry(
-      generateEmailPrompt(applicationData),
-    );
+    // 3) Email
+    const emailResponse = await genAIWithRetry(generateEmailPrompt(data));
     const applicationEmail = processEmailResponse(emailResponse);
 
-    // Step 2: Update the application with generated data
+    // Update application subdoc
     const updateResult = await Student.updateOne(
       {
         _id: userId,
@@ -89,18 +93,14 @@ export const processTailoredApplication = async (
       },
     );
 
+    console.log('[TAILORED] updateOne result:', updateResult);
     if (updateResult.matchedCount === 0) {
       throw new Error(
         `No application found with ID: ${applicationId} for user: ${userId}`,
       );
     }
 
-    console.log('Tailored application update successful:', updateResult);
-
-    // Step 3: Send success notification
-    console.log(
-      `Tailored application generation successful for user: ${userId}, application: ${applicationId}`,
-    );
+    // Notify
     await sendRealTimeUserNotification(
       io,
       userId,
@@ -109,15 +109,19 @@ export const processTailoredApplication = async (
         applicationId,
       ),
     );
+
+    console.log(
+      `[TAILORED] DONE user=${userId} app=${applicationId} status=completed`,
+    );
   } catch (error) {
     console.error(
-      `Tailored application generation failed for user: ${userId}, application: ${applicationId}`,
-      error,
+      `[TAILORED] FAIL user=${userId} app=${applicationId}:`,
+      error?.message || error,
     );
-    const errorMessage =
-      error.message || 'An unknown error occurred during generation.';
 
-    // Update with failed status
+    const errorMessage =
+      error?.message || 'An unknown error occurred during generation.';
+
     await Student.updateOne(
       {
         _id: userId,
@@ -132,7 +136,6 @@ export const processTailoredApplication = async (
       },
     );
 
-    // Send failure notification
     await sendRealTimeUserNotification(
       io,
       userId,
