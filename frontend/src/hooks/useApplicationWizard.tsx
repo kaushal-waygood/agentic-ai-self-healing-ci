@@ -536,8 +536,8 @@ export const useApplicationWizard = () => {
         title: 'Missing Information',
         description: 'Please ensure both job and CV information are provided.',
       });
-      navigateToStep('cv');
-      // router.push
+      navigateToStep('job');
+
       return;
     }
     setIsLoading(true);
@@ -586,17 +586,28 @@ export const useApplicationWizard = () => {
         formData,
       );
 
+      // const result = response.data;
+      // setGeneratedData({
+      //   refinedCv: result.data.tailoredCV,
+      //   tailoredCl: result.data.tailoredCoverLetter,
+      //   emailDraft: result.data.applicationEmail,
+      // });
+
       const result = response.data;
+
+      // Add this log to be 100% sure what the structure is
+      // console.log('API Response Data:', result);
+
       setGeneratedData({
-        refinedCv: result.data.tailoredCV,
-        tailoredCl: result.data.tailoredCoverLetter,
-        emailDraft: result.data.applicationEmail,
+        refinedCv: result.tailoredCV,
+        tailoredCl: result.tailoredCoverLetter,
+        emailDraft: result.applicationEmail,
       });
       toast({
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
-      navigateToStep('result');
+      // navigateToStep('result');
     } catch (error) {
       // catch (error) {
       console.error('Tailor Error:', error);
@@ -605,9 +616,11 @@ export const useApplicationWizard = () => {
         title: 'Generation Failed',
         description:
           (error as any).response?.data?.message ||
-          'Failed to generate application. Please try again.',
+          'Failed to generate application. Please try  again.',
       });
-      navigateToStep('cl'); // Go back to the previous step on failure
+      setIsLoading(false);
+
+      // navigateToStep('cl'); // Go back to the previous step on failure
     } finally {
       //   console.error('Tailor Error:', error);
       //   toast({
@@ -620,7 +633,7 @@ export const useApplicationWizard = () => {
       //   });
       //   navigateToStep('cl');
       // }
-      setIsLoading(false);
+      // setIsLoading(false);
     }
   }, [cvContext, jobContext, clContext, navigateToStep, toast, searchParams]);
 
@@ -829,6 +842,7 @@ export const useApplicationWizard = () => {
       handleCreateCvFormSubmit,
       handleClContextSubmit,
       handleGenerate,
+
       handleCVFileUpload,
       handleStartNew,
       handleSendEmail,
