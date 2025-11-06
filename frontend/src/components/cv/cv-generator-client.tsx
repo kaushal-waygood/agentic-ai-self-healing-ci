@@ -158,10 +158,20 @@ export function CvGeneratorClient() {
     }
   };
 
+  // const handleSetCvSource = (
+  //   mode: CvSource['mode'],
+  //   data: { value: string; name: string },
+  // ) => {
+  //   console.log('Setting CV Source:', mode, data.value, data.name);
+  //   setCvSource({ mode, ...data });
+  //   setWizardStep('context');
+  // };
+
   const handleSetCvSource = (
     mode: CvSource['mode'],
-    data: { value: string; name: string },
+    data: { value: string; name: string; id?: string },
   ) => {
+    console.log('Setting CV Source:', mode, data.value, data.name, data.id); // Also log the ID for debugging
     setCvSource({ mode, ...data });
     setWizardStep('context');
   };
@@ -295,9 +305,14 @@ export function CvGeneratorClient() {
       } else if (cvSource.mode === 'upload') {
         const blob = await fetch(cvSource.value).then((r) => r.blob());
         formData.append('cv', blob, cvSource.name);
-      } else if (cvSource.mode === 'saved') {
-        const blob = new Blob([cvSource.value], { type: 'text/html' });
-        formData.append('cv', blob, 'saved_cv.html');
+        // } else if (cvSource.mode === 'saved') {
+        //   const blob = new Blob([cvSource.value], { type: 'text/html' });
+        //   formData.append('cv', blob, 'saved_cv.html');
+        // }
+      } else if (cvSource.mode === 'saved' && cvSource.id) {
+        // Send the ID instead of the binary blob
+        formData.append('savedCVId', cvSource.id);
+        formData.append('useProfile', 'false');
       }
 
       if (additionalNarratives) {
@@ -357,14 +372,15 @@ export function CvGeneratorClient() {
       });
       setWizardStep('result');
     } catch (error) {
-      console.error('Generation error:', error);
+      const errorMessage =
+        (error as any).response?.data?.message ||
+        (error as any).message ||
+        'An unknown error occurred. Please try again.';
+
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description:
-          error.response?.data?.error ||
-          error.message ||
-          'Failed to generate CV. Please check the server logs.',
+        description: errorMessage, // This is now a string!
       });
       setWizardStep('context');
     } finally {

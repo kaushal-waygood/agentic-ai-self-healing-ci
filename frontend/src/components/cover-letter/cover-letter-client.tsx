@@ -192,11 +192,22 @@ export function CoverLetterGeneratorClient() {
     }
   };
 
+  // const handleSetCvContext = (
+  //   mode: 'saved' | 'profile' | 'upload',
+  //   data: { value: string; name: string; id?: string },
+  // ) => {
+  //   setCvSource({ mode, value: data.value, name: data.name });
+  //   setWizardStep('customize');
+  // };
+
   const handleSetCvContext = (
     mode: 'saved' | 'profile' | 'upload',
-    data: { value: string; name: string },
+    data: { value: string; name: string; id?: string },
   ) => {
-    setCvContext({ mode, value: data.value, name: data.name });
+    setCvSource({
+      mode,
+      ...data,
+    });
     setWizardStep('customize');
   };
 
@@ -284,6 +295,8 @@ export function CoverLetterGeneratorClient() {
   };
 
   const handleGenerate = async () => {
+    console.log('jobCotext ', jobContext);
+    console.log('cvsource ', cvSource);
     if (!jobContext || !cvSource) {
       toast({
         variant: 'destructive',
@@ -401,10 +414,15 @@ export function CoverLetterGeneratorClient() {
           // Convert data URI to blob if needed
           const blob = await fetch(cvSource.value).then((r) => r.blob());
           formData.append('cv', blob, cvSource.name);
-        } else if (cvSource.mode === 'saved') {
-          // Create a blob from saved CV content
-          const blob = new Blob([cvSource.value], { type: 'text/html' });
-          formData.append('cv', blob, 'saved_cv.html');
+          // } else if (cvSource.mode === 'saved') {
+          //   // Create a blob from saved CV content
+          //   const blob = new Blob([cvSource.value], { type: 'text/html' });
+          //   formData.append('cv', blob, 'saved_cv.html');
+          // }
+        } else if (cvSource.mode === 'saved' && cvSource.id) {
+          // Send the ID instead of the binary blob
+          formData.append('savedCVId', cvSource.id);
+          formData.append('useProfile', 'false');
         }
 
         // Add additional narratives if provided
@@ -439,15 +457,28 @@ export function CoverLetterGeneratorClient() {
         });
         setWizardStep('result');
       }
+      // } catch (error) {
+      //   console.error('Generation error:', error);
+      //   toast({
+      //     variant: 'destructive',
+      //     title: 'Generation Failed',
+      //     description:
+      //       error.response?.data?.error ||
+      //       error.message ||
+      //       'Failed to generate CV',
+      //   });
+      //   setWizardStep('context');
+      // } finally {
     } catch (error) {
-      console.error('Generation error:', error);
+      const errorMessage =
+        (error as any).response?.data?.message ||
+        (error as any).message ||
+        'An unknown error occurred. Please try again.';
+
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description:
-          error.response?.data?.error ||
-          error.message ||
-          'Failed to generate CV',
+        description: errorMessage, // This is now a string!
       });
       setWizardStep('context');
     } finally {

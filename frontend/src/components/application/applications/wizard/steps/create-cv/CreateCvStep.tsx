@@ -79,7 +79,10 @@ const SleekCvStep = ({
             {/* Saved CVs Section */}
             <div className="card-entrance staggered-1">
               <div className="flex flex-row flex-wrap justify-between text-sm  font-medium mb-2">
-                <label className="  ">Select From Saved CVs</label>
+                <label className="flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-blue-500" />
+                  Select From Saved CVs
+                </label>
                 <p>Total CVs: {stats.cvsCount}</p>
                 {/* render CV list */}
               </div>
