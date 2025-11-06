@@ -64,11 +64,15 @@ const extractResponsibilitiesFromDescription = (text) => {
     .slice(0, 12);
 };
 
-export const convertSalaryToYearly = (amount, period = 'YEAR') => {
-  if (amount == null) return null;
-  const p = normalizePeriod(period);
-  return Number(amount) * PERIOD_TO_YEAR[p];
-};
+export function convertSalaryToYearly(amount, period) {
+  if (!amount) return undefined;
+  const p = String(period || 'YEAR').toUpperCase();
+  if (p === 'MONTH') return amount * 12;
+  if (p === 'WEEK') return Math.round(amount * 52);
+  if (p === 'DAY') return Math.round(amount * 260);
+  if (p === 'HOUR') return Math.round(amount * 2080);
+  return amount;
+}
 
 export const calculateMatchScore = (job, student) => {
   try {

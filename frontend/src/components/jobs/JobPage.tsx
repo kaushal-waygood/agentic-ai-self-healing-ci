@@ -14,6 +14,7 @@ import { Search, Frown } from 'lucide-react';
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<HTMLDivElement>(null);
+  // const [recommendedJobs, setRecommendedJobs] = useState([]);
 
   const {
     jobs,
@@ -62,6 +63,15 @@ export default function JobsPage() {
       setSelectedJob(null); // Clear selection if there are no jobs
     }
   }, [jobs, searchParams, fetchJobDetails]);
+
+  // useEffect(() => {
+  //   const getRecommened = async () => {
+  //     const response = await apiInstance.get('/jobs/recommended');
+  //     setRecommendedJobs(response.data.jobs);
+  //   };
+
+  //   getRecommened();
+  // }, []);
 
   // Effect for infinite scrolling
   useEffect(() => {

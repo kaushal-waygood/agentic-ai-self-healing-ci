@@ -6,37 +6,63 @@ import { AppliedJob } from './src/models/AppliedJob.js';
 import { getRecommendedJobs } from './src/utils/getRecommendedJobs.js';
 import { buildEffectiveStudentProfile } from './src/utils/profileHydration.js';
 
-// Optional CV autogeneration (guarded by env AUTOGEN_CV)
-import { processCVGeneration } from './src/utils/cv.background.js';
 import { buildJobContextString } from './src/utils/jobContext.js';
+import { processTailoredApplication } from './src/utils/tailoredApply.background.js';
 
 const toBool = (v) => v === true || String(v).toLowerCase() === 'true';
 
 const logEnvOnce = () => {
   try {
     const uri = process.env.MONGO_URI || '';
-    // mask credentials if present
-    const masked =
-      uri.indexOf('@') > -1
-        ? uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')
-        : uri;
+    const masked = uri.includes('@')
+      ? uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')
+      : uri;
     console.log(`[DB] Using ${masked || 'MONGO_URI not set'}`);
-  } catch {
-    // ignore
-  }
+  } catch {}
+};
+
+const buildApplicationData = (job, effectiveStudent, finalTouch = '') => {
+  return {
+    job: {
+      title: job.title || '',
+      company: job.company || '',
+      description: job.description || '',
+      // Optional extras for your prompts if they read them:
+      country: job.country || '',
+      location: {
+        city: job.location?.city || '',
+        state: job.location?.state || '',
+      },
+      isRemote: !!job.isRemote,
+      jobTypes: Array.isArray(job.jobTypes) ? job.jobTypes : [],
+      qualifications: Array.isArray(job.qualifications)
+        ? job.qualifications
+        : [],
+      responsibilities: Array.isArray(job.responsibilities)
+        ? job.responsibilities
+        : [],
+      tags: Array.isArray(job.tags) ? job.tags : [],
+      applyMethod: job.applyMethod || {},
+      salary: job.salary || null,
+      jobContextString: buildJobContextString(job),
+    },
+    // Prompts expect `candidate` as a JSON string (matches your API path)
+    candidate: JSON.stringify(effectiveStudent),
+    coverLetter: '', // worker doesn’t have a prewritten CL
+    preferences: finalTouch,
+  };
 };
 
 const findAndProcessJobs = async () => {
   console.log('🚀 [Worker] Starting a new job-finding cycle...');
 
-  // Only students with autopilot enabled and at least one agent
   const students = await Student.find({
     'settings.autopilotEnabled': true,
     isActive: true,
     'autopilotAgent.0': { $exists: true },
   })
     .select(
-      'autopilotAgent settings isActive email jobRole jobPreferences skills experience education',
+      'autopilotAgent settings isActive email fullName phone jobRole jobPreferences skills experience education',
     )
     .lean();
 
@@ -50,10 +76,7 @@ const findAndProcessJobs = async () => {
       : [];
     console.log(`[Worker] Student ${student._id} has ${agents.length} agents.`);
 
-    if (agents.length === 0) {
-      console.log(`[Worker] Skipping student ${student._id}: no agents.`);
-      continue;
-    }
+    if (!agents.length) continue;
 
     for (const agent of agents) {
       const enabled = toBool(agent?.autopilotEnabled ?? true);
@@ -73,7 +96,7 @@ const findAndProcessJobs = async () => {
           }...`,
         );
 
-        // Exclude already-applied jobs
+        // exclude already-applied jobs
         const appliedJobs = await AppliedJob.find({ student: student._id })
           .select({ job: 1 })
           .lean();
@@ -82,7 +105,7 @@ const findAndProcessJobs = async () => {
           .filter(Boolean)
           .map((id) => new mongoose.Types.ObjectId(id));
 
-        // Sanitize agent config for downstream filter usage
+        // sanitize agentConfig for downstream filter
         const {
           _id,
           agentId,
@@ -95,15 +118,15 @@ const findAndProcessJobs = async () => {
           ...agentConfig
         } = agent || {};
 
-        // Hydrate per-agent effective profile (merges uploaded CV data if any)
+        // per-agent hydrated profile
         const effectiveStudent = buildEffectiveStudentProfile(student, agent);
 
-        // Optional signal check
         const hasSignals =
           (effectiveStudent.jobRole && effectiveStudent.jobRole.trim()) ||
           (effectiveStudent.skills && effectiveStudent.skills.length > 0) ||
           effectiveStudent.jobPreferences?.mustHaveSkills?.length > 0 ||
           effectiveStudent.jobPreferences?.preferredJobTitles?.length > 0;
+
         if (!hasSignals) {
           console.warn(
             '[Scoring] Effective profile has weak signals (role/skills/titles empty). Expect low scores.',
@@ -134,8 +157,6 @@ const findAndProcessJobs = async () => {
             agent.agentName || 'Unnamed'
           }".`,
         );
-
-        // Brief titles dump for visibility (not too spammy)
         console.log(
           `[Worker] Titles (${Math.min(10, recommendedJobs.length)} shown):`,
           recommendedJobs
@@ -143,67 +164,79 @@ const findAndProcessJobs = async () => {
             .map((j) => `${j.title} @ ${j.company} [${j.origin || 'HOSTED'}]`),
         );
 
-        // -----------------------------
-        // Optional: Auto-generate CVs
-        // -----------------------------
-        if (toBool(process.env.AUTOGEN_CV || 'false')) {
+        // ------------------------------------------------------------
+        // Auto-generate TAILORED APPLICATIONS (CV + CL + Email)
+        // ------------------------------------------------------------
+        if (toBool(process.env.AUTOGEN_TAILORED || 'false')) {
           const topN = Math.min(
             Number(agent.autopilotLimit || 3),
             recommendedJobs.length,
           );
+          const finalTouch = ''; // optionally pull from agent
 
           for (let i = 0; i < topN; i++) {
             const job = recommendedJobs[i];
 
             try {
-              const jobContextString = buildJobContextString(job);
+              // Build prompt payload
+              const applicationData = buildApplicationData(
+                job,
+                effectiveStudent,
+                finalTouch,
+              );
 
-              // Use the student's profile unless you have a file pipeline in worker
-              const studentDataStr = JSON.stringify(effectiveStudent);
+              // Create tailoredApplications subdoc with status=pending
+              const applicationId = new mongoose.Types.ObjectId();
+              const subdoc = {
+                _id: applicationId,
+                jobId: job._id, // link to Job
+                jobTitle: job.title,
+                companyName: job.company,
+                jobDescription: job.description,
+                useProfile: true, // worker uses hydrated profile
+                status: 'pending',
+                finalTouch,
+                createdAt: new Date(),
+              };
 
-              // Link CV subdoc to the real Job ObjectId
-              const cvJobId = new mongoose.Types.ObjectId(job._id);
-
-              await Student.updateOne(
+              const resPush = await Student.updateOne(
                 { _id: student._id },
                 {
                   $push: {
-                    cvs: {
-                      $each: [
-                        {
-                          jobId: cvJobId,
-                          status: 'pending',
-                          jobContextString,
-                          finalTouch: '', // optional agent-level tweak
-                          jobTitle: job.title,
-                          createdAt: new Date(),
-                        },
-                      ],
-                      $position: 0,
-                    },
+                    tailoredApplications: { $each: [subdoc], $position: 0 },
                   },
                 },
               );
 
-              // Worker typically has no socket.io; pass null
+              console.log('[Worker] push tailoredApplications =>', resPush);
+              if (resPush.matchedCount !== 1 || resPush.modifiedCount !== 1) {
+                console.error(
+                  '[Worker] FAILED to push tailoredApplications subdoc; skipping this job.',
+                );
+                continue;
+              }
+
+              // No socket.io in worker context
               const io = null;
-              processCVGeneration(
+
+              // Fire the background generator
+              processTailoredApplication(
                 student._id,
-                cvJobId,
-                studentDataStr,
-                jobContextString,
-                '',
+                applicationId,
+                applicationData,
                 io,
               );
 
               console.log(
-                `[Worker] CV generation queued for job "${job.title}" (${String(
-                  job._id,
-                )}).`,
+                `[Worker] Tailored application queued for "${
+                  job.title
+                }" (${String(job._id)}), applicationId=${String(
+                  applicationId,
+                )}.`,
               );
             } catch (e) {
               console.error(
-                '[Worker] Failed to queue CV generation:',
+                '[Worker] Failed to queue tailored application:',
                 e?.message || e,
               );
             }
@@ -226,8 +259,15 @@ const startWorker = async () => {
 
   await findAndProcessJobs();
 
-  console.log('\n✅ Cycle complete. Worker is now exiting.');
-  process.exit(0);
+  if (toBool(process.env.WORKER_KEEP_ALIVE || 'false')) {
+    console.log(
+      '\n✅ Cycle complete. Keeping process alive for background work...',
+    );
+    setInterval(() => {}, 1 << 30);
+  } else {
+    console.log('\n✅ Cycle complete. Worker is now exiting.');
+    process.exit(0);
+  }
 };
 
 startWorker();

@@ -3,7 +3,6 @@ export const buildJobContextString = (job) => {
   if (!job) return '';
 
   const lines = [];
-
   const safe = (v) => (v == null ? '' : String(v).trim());
   const arr = (a) => (Array.isArray(a) ? a.filter(Boolean).map(String) : []);
 
@@ -13,9 +12,8 @@ export const buildJobContextString = (job) => {
 
   const city = safe(job.location?.city);
   const country = safe(job.country);
-  if (city || country) {
+  if (city || country)
     lines.push(`Location: ${[city, country].filter(Boolean).join(', ')}`);
-  }
 
   if (Array.isArray(job.jobTypes) && job.jobTypes.length) {
     lines.push(`Employment: ${job.jobTypes.join(', ')}`);

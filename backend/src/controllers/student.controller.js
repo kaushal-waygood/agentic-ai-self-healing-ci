@@ -18,6 +18,8 @@ import {
   getFallbackJobsFromRapidAPI,
   convertSalaryToYearly,
 } from '../utils/jobUtils.js';
+import axios from 'axios';
+import { config } from '../config/config.js';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
@@ -1405,137 +1407,436 @@ export const getProfileCompletion = async (req, res) => {
   }
 };
 
-export const getRecommendedJobs = async (req, res) => {
+function safeRegex(value) {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(escaped, 'i');
+}
+
+function parseMaybeDate(s) {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function computeTotalExperienceYears(exps = []) {
+  let ms = 0;
+  const now = new Date();
+  for (const e of exps) {
+    const start = parseMaybeDate(e.startDate);
+    let end = parseMaybeDate(e.endDate);
+    if (!end && e.currentlyWorking) end = now;
+    if (start && end && end > start) ms += end - start;
+  }
+  const years = ms / (1000 * 60 * 60 * 24 * 365.25);
+  return Math.max(0, Math.round(years * 10) / 10);
+}
+
+function normalizeSet(arr = []) {
+  return Array.from(
+    new Set(
+      arr
+        .map((s) =>
+          (typeof s === 'string' ? s.trim() : s?.skill || '').toLowerCase(),
+        )
+        .filter(Boolean),
+    ),
+  );
+}
+
+// simple relevance scoring
+function scoreJob(job, profile) {
+  let score = 0;
+
+  const jobText = [
+    job.title || '',
+    job.description || '',
+    job.qualifications || '',
+    ...(Array.isArray(job.tags) ? job.tags : []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  let skillHits = 0;
+  for (const s of profile.skills) {
+    if (jobText.includes(s)) skillHits++;
+  }
+  score += Math.min(skillHits * 5, 40);
+
+  if (profile.titles.some((t) => new RegExp(t, 'i').test(job.title || '')))
+    score += 20;
+
+  if (typeof job.experience === 'number') {
+    if (job.experience <= profile.totalYears) score += 15;
+    else if (job.experience <= profile.totalYears + 1) score += 8;
+  }
+
+  if (profile.isRemote && job.isRemote) score += 10;
+
+  if (
+    profile.minYearly &&
+    job?.salary?.min &&
+    job.salary.min >= profile.minYearly
+  )
+    score += 10;
+
+  return score;
+}
+
+// Build a few pragmatic external search queries from titles + top skills
+function buildExternalQueries(titles, skills) {
+  const titleQueries = titles.slice(0, 3); // don’t spam the API
+  const topSkills = skills.slice(0, 3);
+  const combos = [];
+
+  for (const t of titleQueries) {
+    if (topSkills.length) {
+      combos.push(`${t} ${topSkills[0]}`);
+    }
+    combos.push(t);
+  }
+
+  // fallback if user has no titles
+  if (!combos.length && topSkills.length) combos.push(topSkills.join(' '));
+
+  // dedupe, preserve order
+  const seen = new Set();
+  return combos.filter((q) => {
+    const key = q.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function dedupeByTitleCompany(jobs) {
+  const seen = new Set();
+  const out = [];
+  for (const j of jobs) {
+    const key = `${(j.title || '').toLowerCase()}|${(
+      j.company || ''
+    ).toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(j);
+  }
+  return out;
+}
+
+const transformRapidApiJob = (apiJob, searchQuery) => {
+  const qualifications = apiJob.job_highlights?.Qualifications || [];
+  const responsibilities = apiJob.job_highlights?.Responsibilities || [];
+
+  return {
+    jobId: apiJob.job_id,
+    origin: 'EXTERNAL',
+    title: apiJob.job_title,
+    description: apiJob.job_description,
+    qualifications,
+    responsibilities,
+    company: apiJob.employer_name,
+    country: apiJob.job_country,
+    logo: apiJob.employer_logo,
+    location: {
+      city: apiJob.job_city,
+      state: apiJob.job_state,
+      lat: apiJob.job_latitude,
+      lng: apiJob.job_longitude,
+    },
+    slug:
+      (apiJob.job_title || 'job').toLowerCase().replace(/\s/g, '-') +
+      `-${apiJob.job_id?.slice(0, 4) || 'ext'}`,
+    applyMethod: { method: 'URL', url: apiJob.job_apply_link },
+    isActive: true,
+    jobTypes: apiJob.job_employment_types || [],
+    experience: [],
+    queries: searchQuery ? [searchQuery] : [],
+  };
+};
+
+const fetchExternalJobs = async (
+  apiQuery,
+  country,
+  state,
+  city,
+  datePosted,
+  employmentType,
+  experience,
+) => {
   try {
-    const studentId = req.user._id;
-    const { page = 1, limit = 10 } = req.query;
+    // Build query with location information
+    let query = apiQuery;
+    if (city && state) {
+      query = `${apiQuery} in ${city}, ${state}`;
+    } else if (state) {
+      query = `${apiQuery} in ${state}`;
+    } else if (city) {
+      query = `${apiQuery} in ${city}`;
+    }
 
-    const student = await Student.findById(studentId).select('jobPreferences');
+    const params = {
+      query: query,
+      page: '1',
+      num_pages: '1',
+    };
+
+    // Add optional parameters only if they have values
+    if (country) params.country = country;
+    if (state) params.state = state;
+    if (city) params.city = city;
+    if (datePosted) params.date_posted = datePosted;
+    if (employmentType) params.employment_type = employmentType;
+    if (experience) params.job_requirements = experience;
+
+    const response = await axios.get(config.rapidJobApi, {
+      params,
+      headers: {
+        'X-RapidAPI-Key': config.rapidApiKey,
+        'X-RapidAPI-Host': config.rapidApiHost,
+      },
+      timeout: 10000,
+    });
+
+    return response.data.data || [];
+  } catch (apiError) {
+    console.error(
+      `RapidAPI fetch failed for query "${apiQuery}":`,
+      apiError.response?.data || apiError.message,
+    );
+    return [];
+  }
+};
+
+export const getProfileBasedRecommendedJobs = async (req, res) => {
+  try {
+    const studentId = req.user?._id;
+    if (!studentId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(req.query.limit, 10) || 10),
+    );
+    const skip = (page - 1) * limit;
+
+    const student = await Student.findById(studentId)
+      .select('fullName email jobRole skills experience jobPreferences')
+      .lean();
+
     if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found',
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
     }
 
-    const preferences = student.jobPreferences;
+    const prefs = student.jobPreferences || {};
+    const profileSkills = normalizeSet(student.skills || []);
+    const titlesFromExp = normalizeSet(
+      (student.experience || []).map((e) => e.title || ''),
+    );
+    const titles = normalizeSet([
+      student.jobRole || '',
+      ...titlesFromExp,
+      ...(prefs.preferredJobTitles || []),
+    ]);
+    const totalYears = computeTotalExperienceYears(student.experience || []);
+    const minYearly = prefs?.preferredSalary?.min
+      ? convertSalaryToYearly(
+          prefs.preferredSalary.min,
+          prefs.preferredSalary.period,
+        )
+      : undefined;
 
-    const filter = { isActive: true };
+    // Build internal filter
+    const and = [{ isActive: true }];
+    const or = [];
 
-    if (preferences.isRemote) {
-      filter.isRemote = true;
+    if (!Number.isNaN(totalYears)) {
+      and.push({ experience: { $lte: Math.floor(totalYears + 1) } });
+    }
+
+    if (profileSkills.length) {
+      const rx = profileSkills.slice(0, 20).map(safeRegex).filter(Boolean);
+      if (rx.length) {
+        and.push({
+          $or: [
+            { qualifications: { $in: rx } },
+            { description: { $in: rx } },
+            { tags: { $in: rx } },
+          ],
+        });
+      }
+    }
+
+    if (titles.length) {
+      const titleClauses = titles
+        .map(safeRegex)
+        .filter(Boolean)
+        .map((rx) => ({ title: rx }));
+      if (titleClauses.length) or.push(...titleClauses);
+    }
+
+    if (prefs.isRemote === true) {
+      and.push({ isRemote: true });
     } else {
-      if (
-        preferences.preferedCountries &&
-        preferences.preferedCountries.length > 0
-      ) {
-        filter.country = {
-          $in: preferences.preferedCountries.map((c) => new RegExp(c, 'i')),
-        };
-      }
-      if (preferences.preferedCities && preferences.preferedCities.length > 0) {
-        filter['location.city'] = {
-          $in: preferences.preferedCities.map((c) => new RegExp(c, 'i')),
-        };
-      }
+      const countryRx = (prefs.preferredCountries || [])
+        .map(safeRegex)
+        .filter(Boolean);
+      if (countryRx.length) and.push({ country: { $in: countryRx } });
+
+      const cityRx = (prefs.preferredCities || [])
+        .map(safeRegex)
+        .filter(Boolean);
+      if (cityRx.length) and.push({ 'location.city': { $in: cityRx } });
     }
 
     if (
-      preferences.preferedJobTypes &&
-      preferences.preferedJobTypes.length > 0
+      Array.isArray(prefs.preferredJobTypes) &&
+      prefs.preferredJobTypes.length
     ) {
-      filter.jobTypes = { $in: preferences.preferedJobTypes };
+      and.push({ jobTypes: { $in: prefs.preferredJobTypes } });
     }
 
     if (
-      preferences.preferedJobTitles &&
-      preferences.preferedJobTitles.length > 0
+      Array.isArray(prefs.preferredIndustries) &&
+      prefs.preferredIndustries.length
     ) {
-      filter.$or = preferences.preferedJobTitles.map((title) => ({
-        title: { $regex: title, $options: 'i' },
-      }));
+      const indRx = prefs.preferredIndustries.map(safeRegex).filter(Boolean);
+      if (indRx.length) and.push({ industry: { $in: indRx } });
     }
 
-    // Salary filter
-    if (preferences.preferedSalary && preferences.preferedSalary.min) {
-      const minSalary = convertSalaryToYearly(
-        preferences.preferedSalary.min,
-        preferences.preferedSalary.period,
-      );
-      filter['salary.min'] = { $gte: minSalary };
-    }
+    if (minYearly) and.push({ 'salary.min': { $gte: minYearly } });
 
-    // Experience level filter
-    if (preferences.preferedExperienceLevel) {
-      let experienceValue;
-      switch (preferences.preferedExperienceLevel) {
-        case 'ENTRY_LEVEL':
-          experienceValue = 0;
-          break;
-        case 'MID_LEVEL':
-          experienceValue = 3;
-          break;
-        case 'SENIOR':
-          experienceValue = 5;
-          break;
-        default:
-          experienceValue = 0;
-      }
-      filter.experience = { $lte: experienceValue };
+    const filter = and.length ? { $and: and } : {};
+    if (or.length) {
+      if (!filter.$and) filter.$and = [];
+      filter.$and.push({ $or: or });
     }
-
-    // Must-have skills filter
-    if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
-      filter.$and = preferences.mustHaveSkills.map((skill) => ({
-        $or: [
-          { qualifications: { $regex: skill.skill, $options: 'i' } },
-          { description: { $regex: skill.skill, $options: 'i' } },
-          { tags: { $regex: skill.skill, $options: 'i' } },
-        ],
-      }));
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const [jobs, total] = await Promise.all([
-      Job.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit)),
+      Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Job.countDocuments(filter),
     ]);
 
-    // If no jobs found in our database, try to fetch from RapidAPI
-    if (jobs.length === 0) {
-      return await getFallbackJobsFromRapidAPI(req, res, preferences);
+    // If internal DB has results, score and return
+    if (jobs.length) {
+      const profileCtx = {
+        skills: profileSkills,
+        titles,
+        totalYears,
+        isRemote: !!prefs.isRemote,
+        minYearly,
+      };
+      const jobsWithScores = jobs
+        .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
+        .sort((a, b) => b.matchScore - a.matchScore);
+
+      return res.status(200).json({
+        success: true,
+        jobs: jobsWithScores,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+        profileSummary: {
+          titles,
+          skills: profileSkills,
+          totalYears,
+          minYearly,
+        },
+        source: 'internal',
+      });
     }
 
-    // Calculate match score for each job
-    const jobsWithScores = jobs.map((job) => ({
-      ...job.toObject(),
-      matchScore: calculateMatchScore(job, preferences),
-    }));
+    // ---------- RapidAPI fallback ----------
+    const queries = buildExternalQueries(titles, profileSkills);
+    const locCountry =
+      Array.isArray(prefs.preferredCountries) && prefs.preferredCountries[0]
+        ? prefs.preferredCountries[0]
+        : undefined;
+    const locCity =
+      Array.isArray(prefs.preferredCities) && prefs.preferredCities[0]
+        ? prefs.preferredCities[0]
+        : undefined;
 
-    // Sort by match score
-    jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
+    const externalPages = await Promise.all(
+      queries.map(async (q) => {
+        const data = await fetchExternalJobs(
+          q,
+          locCountry, // country
+          undefined, // state
+          locCity, // city
+          undefined, // datePosted
+          Array.isArray(prefs.preferredJobTypes) && prefs.preferredJobTypes[0]
+            ? prefs.preferredJobTypes[0]
+            : undefined, // employmentType
+          undefined, // experience requirement filter string; leave undefined unless your API expects a value
+        );
+        return (data || []).map((j) => transformRapidApiJob(j, q));
+      }),
+    );
 
-    res.status(200).json({
+    let externalJobs = externalPages.flat();
+    if (!externalJobs.length) {
+      // nothing at all, return empty but honest
+      return res.status(200).json({
+        success: true,
+        jobs: [],
+        pagination: { total: 0, page, limit, totalPages: 0 },
+        profileSummary: {
+          titles,
+          skills: profileSkills,
+          totalYears,
+          minYearly,
+        },
+        source: 'external',
+        note: 'No matches from RapidAPI.',
+      });
+    }
+
+    // Deduplicate and score
+    externalJobs = dedupeByTitleCompany(externalJobs);
+
+    const profileCtx = {
+      skills: profileSkills,
+      titles,
+      totalYears,
+      isRemote: !!prefs.isRemote,
+      minYearly,
+    };
+    const scoredExternal = externalJobs
+      .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
+      .sort((a, b) => b.matchScore - a.matchScore);
+
+    // Paginate external results locally
+    const extTotal = scoredExternal.length;
+    const paged = scoredExternal.slice(skip, skip + limit);
+
+    return res.status(200).json({
       success: true,
-      jobs: jobsWithScores,
+      jobs: paged,
       pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit),
+        total: extTotal,
+        page,
+        limit,
+        totalPages: Math.ceil(extTotal / limit),
       },
-      source: 'internal',
+      profileSummary: { titles, skills: profileSkills, totalYears, minYearly },
+      source: 'external',
     });
   } catch (error) {
-    console.error('Error fetching recommended jobs:', error);
-    res.status(500).json({
+    console.error(
+      'Error fetching profile-based recommended jobs (with fallback):',
+      error,
+    );
+    return res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: error.message,
+      error: error?.message || String(error),
     });
   }
 };
