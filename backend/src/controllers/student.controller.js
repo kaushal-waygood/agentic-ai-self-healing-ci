@@ -604,28 +604,38 @@ export const addEducations = async (req, res) => {
 };
 
 export const removeEducation = async (req, res) => {
-  const { eduId: educationId } = req.params;
-  const { _id } = req.user;
-
   try {
-    const student = await Student.findById(_id);
+    const { eduId } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    if (!eduId) {
+      return res.status(400).json({ message: 'Education id is required' });
+    }
+
+    const student = await Student.findById(userId);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    student.education = student.education.filter(
-      (edu) => edu.educationId !== educationId,
-    );
+    const edu = student.education.id(eduId);
+    if (!edu) {
+      return res.status(404).json({ message: 'Education not found' });
+    }
 
+    // remove the subdocument and save
+    edu.deleteOne(); // or edu.remove() in older Mongoose
     await student.save();
 
-    // Invalidate cache
-    await redisClient.invalidateStudentCache(_id);
-
-    res.status(200).json({ message: 'Education removed successfully' });
+    return res.status(200).json({
+      message: 'Education removed successfully',
+      removedId: eduId,
+    });
   } catch (error) {
     console.error('Error removing education:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -817,6 +827,28 @@ export const removeProject = async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing project:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const getAllProjects = async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Projects fetched successfully',
+      projects: student.projects,
+    });
+  } catch (error) {
+    console.error('Error fetching projects:', error);
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
