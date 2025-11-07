@@ -75,13 +75,11 @@ const JobPreferencesForm = () => {
     if (students && students.jobPreferences) {
       const { jobPreferences } = students;
 
-      // Helper function to convert an array of skill objects to a string
       const skillsToString = (skillsArray) => {
         if (!Array.isArray(skillsArray)) return '';
         return skillsArray.map((item) => item.skill).join(', ');
       };
 
-      // Helper function to convert an array of strings to a string
       const arrayToString = (stringArray) => {
         if (!Array.isArray(stringArray)) return '';
         return stringArray.join(', ');

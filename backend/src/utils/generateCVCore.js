@@ -27,6 +27,8 @@ export const initiateCVGeneration = async (
   try {
     const { _id } = req.user;
     const { useProfile, finalTouch, savedCVId } = req.body;
+
+    console.log('📡 Received CV generation request for user:', savedCVId);
     let studentData;
 
     if (useProfile === 'true' || useProfile === true) {
@@ -35,6 +37,48 @@ export const initiateCVGeneration = async (
         return res.status(404).json({ error: 'Student profile not found' });
       }
       studentData = JSON.stringify(student);
+    } else if (savedCVId) {
+      if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
+        return res.status(400).json({ error: 'Invalid savedCVId' });
+      }
+
+      // Fetch only what's needed
+      const studentWithCVs = await Student.findById(_id).select('htmlCV');
+      if (!studentWithCVs) {
+        return res.status(404).json({ error: 'Student profile not found' });
+      }
+
+      if (
+        !Array.isArray(studentWithCVs.htmlCV) ||
+        studentWithCVs.htmlCV.length === 0
+      ) {
+        return res
+          .status(404)
+          .json({ error: 'No saved CVs found for this student' });
+      }
+
+      const saved =
+        studentWithCVs.htmlCV.id(savedCVId) ||
+        studentWithCVs.htmlCV.find(
+          (cv) => String(cv._id) === String(savedCVId),
+        );
+
+      if (!saved) {
+        return res.status(404).json({ error: 'Saved CV not found' });
+      }
+
+      const html =
+        saved.html ?? saved.content ?? saved.htmlCV ?? saved.body ?? null;
+
+      if (!html || typeof html !== 'string' || !html.trim()) {
+        return res
+          .status(422)
+          .json({ error: 'Saved CV has no usable HTML content' });
+      }
+
+      studentData = JSON.stringify({ htmlCV: html });
+
+      console.log('📡 Using saved CV for generation:', savedCVId);
     } else {
       if (!req.file) {
         return res
@@ -90,8 +134,6 @@ export const initiateCVGeneration = async (
     }
 
     const cvTitle = `${student.fullName}'s CV (${jobTitle})`;
-
-    console.log('cvTitle', cvTitle);
 
     const jobId = new mongoose.Types.ObjectId();
     const newCVJob = {

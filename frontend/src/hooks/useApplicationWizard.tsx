@@ -491,16 +491,6 @@ export const useApplicationWizard = () => {
     if (clSource === 'paste' && pastedCl) {
       context = { mode: 'paste', value: pastedCl, name: 'Pasted Content' };
     } else if (clSource === 'saved' && savedClId) {
-      // const savedCl = mockUserProfile.savedCoverLetters.find(
-      //   (c) => c.id === savedClId,
-      // );
-      // if (savedCl)
-      //   context = {
-      //     mode: 'saved',
-      //     value: savedCl.htmlContent,
-      //     name: 'saved Cover Letters',
-      //   };
-
       context = {
         mode: 'saved',
         value: savedClId,
@@ -586,17 +576,7 @@ export const useApplicationWizard = () => {
         formData,
       );
 
-      // const result = response.data;
-      // setGeneratedData({
-      //   refinedCv: result.data.tailoredCV,
-      //   tailoredCl: result.data.tailoredCoverLetter,
-      //   emailDraft: result.data.applicationEmail,
-      // });
-
       const result = response.data;
-
-      // Add this log to be 100% sure what the structure is
-      // console.log('API Response Data:', result);
 
       setGeneratedData({
         refinedCv: result.tailoredCV,
@@ -607,7 +587,6 @@ export const useApplicationWizard = () => {
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
-      // navigateToStep('result');
     } catch (error) {
       // catch (error) {
       console.error('Tailor Error:', error);
@@ -619,116 +598,10 @@ export const useApplicationWizard = () => {
           'Failed to generate application. Please try  again.',
       });
       setIsLoading(false);
-
-      // navigateToStep('cl'); // Go back to the previous step on failure
     } finally {
-      //   console.error('Tailor Error:', error);
-      //   toast({
-      //     variant: 'destructive',
-      //     title: 'Generation Failed',
-      //     description:
-      //       error.response?.data?.message ||
-      //       error.message ||
-      //       'Unknown error occurred',
-      //   });
-      //   navigateToStep('cl');
-      // }
-      // setIsLoading(false);
+      setIsLoading(false);
     }
   }, [cvContext, jobContext, clContext, navigateToStep, toast, searchParams]);
-
-  // const handleGenerate = useCallback(async () => {
-  //   if (!cvContext || !jobContext) {
-  //     toast({
-  //       variant: 'destructive',
-  //       title: 'Missing Information',
-  //       description: 'Please ensure both job and CV information are provided.',
-  //     });
-  //     navigateToStep('cv');
-  //     return;
-  //   }
-
-  //   setIsLoading(true);
-  //   navigateToStep('generate');
-
-  //   try {
-  //     const formData = new FormData();
-
-  //     // ✅ Job Info
-  //     if (jobContext.jobId) formData.append('jobId', jobContext.jobId);
-  //     else {
-  //       formData.append('jobTitle', jobContext.jobTitle || '');
-  //       formData.append('companyName', jobContext.companyName || '');
-  //       const slug = searchParams.get('slug');
-  //       if (slug) {
-  //         const response = await apiInstance.get(`/jobs/find/${slug}`);
-  //         formData.append('jobDescription', response.data.description || '');
-  //       } else {
-  //         formData.append('jobDescription', jobContext.jobDescription || '');
-  //       }
-  //     }
-
-  //     // ✅ CV Info
-  //     if (cvContext.mode === 'profile') formData.append('useProfile', 'true');
-  //     else if (
-  //       cvContext.mode === 'saved' &&
-  //       typeof cvContext.value === 'string'
-  //     ) {
-  //       formData.append('savedCVId', cvContext.value);
-  //       formData.append('useProfile', 'false'); // <-- Add this
-  //     } else if (
-  //       cvContext.mode === 'upload' &&
-  //       cvContext.value instanceof File
-  //     ) {
-  //       formData.append('cv', cvContext.value);
-  //       formData.append('useProfile', 'false');
-  //     }
-
-  //     // ✅ Cover Letter Info (optional)
-  //     if (clContext) {
-  //       if (clContext.mode === 'saved' && typeof clContext.value === 'string')
-  //         formData.append('savedCoverLetterId', clContext.value);
-  //       else if (clContext.mode === 'paste' && clContext.value)
-  //         formData.append('coverLetterText', clContext.value);
-  //     }
-
-  //     // ✅ Final flag
-  //     formData.append('finalTouch', 'Tailor for ATS optimization');
-
-  //     // Debug again
-  //     for (let [key, value] of formData.entries()) console.log(key, value);
-
-  //     const response = await apiInstance.post(
-  //       '/students/applications/tailor',
-  //       formData,
-  //     );
-
-  //     const result = response.data;
-  //     setGeneratedData({
-  //       refinedCv: result.data.tailoredCV,
-  //       tailoredCl: result.data.tailoredCoverLetter,
-  //       emailDraft: result.data.applicationEmail,
-  //     });
-  //     toast({
-  //       title: 'Success!',
-  //       description: 'Your tailored documents are ready for review.',
-  //     });
-  //     navigateToStep('result');
-  //   } catch (error) {
-  //     console.error('Tailor Error:', error);
-  //     toast({
-  //       variant: 'destructive',
-  //       title: 'Generation Failed',
-  //       description:
-  //         error.response?.data?.message ||
-  //         error.message ||
-  //         'Failed to generate application. Please try again.',
-  //     });
-  //     navigateToStep('cl');
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // }, [cvContext, jobContext, clContext, navigateToStep, toast, searchParams]);
 
   const handleCVFileUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

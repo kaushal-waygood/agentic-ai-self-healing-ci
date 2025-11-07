@@ -462,9 +462,7 @@ export const useProfile = () => {
     formData.append('cv', file);
 
     try {
-      await apiInstance.post('/students/upload-resume', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await apiInstance.post('/students/upload-resume', formData);
 
       dispatch(getStudentDetailsRequest());
       toast({

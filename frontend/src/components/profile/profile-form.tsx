@@ -2,15 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
-import Link from 'next/link';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../ui/card';
-import { Separator } from '@/components/ui/separator';
 
 import {
   AddEducation,

@@ -187,7 +187,6 @@ const DocumentPage = () => {
         html: documentData?.content,
       });
       toast({ title: 'Cover Letter Saved Successfully!' });
-      // dispatch(savedStudentCoverLetterRequest());
     } catch (error) {
       console.error('Error saving cover letter:', error);
       toast({
