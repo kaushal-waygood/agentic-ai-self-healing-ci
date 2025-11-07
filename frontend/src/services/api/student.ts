@@ -15,10 +15,10 @@ export const removeEducation = async (data: any) => {
   return response;
 };
 
-export const updateEducation = async (educationId: any, eduData: any) => {
+export const updateEducation = async (index: any, data: any) => {
   const response = await apiInstance.patch(
-    `/students/education/update/${educationId}`,
-    eduData,
+    `/students/education/update/${index}`,
+    data,
   );
   return response;
 };
@@ -60,6 +60,11 @@ export const removeProject = async (index: any) => {
   const response = await apiInstance.delete(
     '/students/project/remove/' + index,
   );
+  return response;
+};
+
+export const getAllProjects = async () => {
+  const response = await apiInstance.get('/students/projects');
   return response;
 };
 

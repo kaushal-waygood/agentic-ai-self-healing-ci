@@ -10,11 +10,6 @@ import {
 } from 'lucide-react';
 
 const Project = ({
-  setAddEdu,
-  setEditEdu,
-  setEditEduIndex,
-  setDeleteEdu,
-  setDeleteEduIndex,
   setAddProj,
   setEditProj,
   setEditProjIndex,
@@ -78,7 +73,6 @@ const Project = ({
                       size="icon"
                       variant="outline"
                       onClick={(e) => {
-                        e.stopPropagation();
                         setDeleteProj(true);
                         setDeleteProjIndex(proj._id);
                       }}

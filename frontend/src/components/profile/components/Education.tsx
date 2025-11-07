@@ -11,46 +11,12 @@ import {
 import React from 'react';
 
 const Education = ({
-  personalInfoForm,
-  // careerDetailsForm,
-  fileInputRef,
-  file,
-  isDragging,
-  isUploading,
-  isJobPrefEditable,
-  careerDetailsForm,
-  expandedIndex,
   defaultValues,
-  handleFileChange,
-  handleButtonClick,
-  handleDragEnter,
-  handleDragLeave,
-  handleDragOver,
-  handleDrop,
-  handleRemoveFile,
-  handleUpload,
-  handleCareerDetailsSubmit,
-  setIsJobPrefEditable,
-  toggleExpand,
   setAddEdu,
   setEditEdu,
   setEditEduIndex,
   setDeleteEdu,
   setDeleteEduIndex,
-  setAddProj,
-  setEditProj,
-  setEditProjIndex,
-  setDeleteProj,
-  setDeleteProjIndex,
-  setAddExp,
-  setEditExp,
-  setEditExpIndex,
-  setDeleteExp,
-  setDeleteExpIndex,
-  setAddSkill,
-  setDeleteSkill,
-  setDeleteSkillIndex,
-  handleLevelChange,
 }: any) => {
   return (
     <div>
@@ -121,8 +87,9 @@ const Education = ({
                       size="icon"
                       variant="outline"
                       onClick={() => {
+                        console.log(edu._id);
                         setDeleteEdu(true);
-                        setDeleteEduIndex(edu.educationId);
+                        setDeleteEduIndex(edu._id);
                       }}
                       className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
                     >
