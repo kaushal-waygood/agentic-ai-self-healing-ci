@@ -1,4 +1,5 @@
 import React from 'react';
+import CountrySelector from '../common/CountrySelector';
 
 const Step1AgentConfig = ({
   nextStep,
@@ -82,17 +83,20 @@ const Step1AgentConfig = ({
               Country *
             </label>
             <div className="relative">
-              <select
-                onChange={handleChange('country')}
+              <CountrySelector
                 value={values.country}
-                disabled={isEditing} // Disable when editing
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                <option value="">Select a country</option>
-                <option value="USA">🇺🇸 United States</option>
-                <option value="Canada">🇨🇦 Canada</option>
-                <option value="UK">🇬🇧 United Kingdom</option>
-              </select>
+                onChange={(countryCode) =>
+                  handleChange('country')({ target: { value: countryCode } })
+                }
+                disabled={isEditing} // 👈 FIX 3: Disable selection in edit mode
+                className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl outline-none appearance-none transition-all duration-200 
+                  ${
+                    isEditing
+                      ? 'bg-gray-100 cursor-not-allowed'
+                      : 'focus:border-purple-500 focus:ring-4 focus:ring-purple-100'
+                  }
+                `}
+              />
             </div>
           </div>
           <div className="space-y-2">

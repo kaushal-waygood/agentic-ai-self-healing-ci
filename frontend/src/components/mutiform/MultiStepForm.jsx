@@ -37,6 +37,8 @@ const MultiStepForm = () => {
     setFormData({ ...formData, [input]: value });
   };
 
+  console.log('form data : ', formData);
+
   const handleDeleteAgent = async (agentId) => {
     if (window.confirm('Are you sure you want to delete this agent?')) {
       try {
