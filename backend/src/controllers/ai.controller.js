@@ -275,7 +275,6 @@ export const getSingleTailoredApplication = async (req, res) => {
   }
 };
 
-// If you need to also delete associated files
 export const deleteSingleCV = async (req, res) => {
   try {
     const { cvId } = req.params;
@@ -435,7 +434,6 @@ export const renameHtmlCV = async (req, res) => {
   }
 };
 
-// Corrected Cover Letter Rename Controller
 export const renameCoverLetter = async (req, res) => {
   try {
     const { _id } = req.user;
@@ -913,7 +911,6 @@ const extractTextFromBuffer = async (file) => {
   return extractedText;
 };
 
-// tiny HTML stripper so we can turn htmlCV into text without extra deps
 function stripHtmlToText(html = '') {
   if (typeof html !== 'string') return '';
   // remove scripts/styles
