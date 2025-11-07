@@ -136,6 +136,7 @@ const studentSlice = createSlice({
     },
 
     updateStudentExperienceRequest: (state) => {
+      console.log('updateStudentExperienceRequest');
       state.loading = true;
       state.error = null;
     },
@@ -200,6 +201,7 @@ const studentSlice = createSlice({
     },
 
     updateStudentProjectRequest: (state) => {
+      console.log('updateStudentProjectRequest');
       state.loading = true;
       state.error = null;
     },

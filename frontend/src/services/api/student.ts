@@ -35,9 +35,9 @@ export const removeExperience = async (data: any) => {
   return response;
 };
 
-export const updateExperience = async (data: any, index: any) => {
+export const updateExperience = async (index: any, data: any) => {
   const response = await apiInstance.patch(
-    `/students/experience/update/${data._id}`,
+    `/students/experience/update/${index}`,
     data,
   );
   return response;
@@ -48,9 +48,9 @@ export const addProject = async (data: any) => {
   return response;
 };
 
-export const updateProject = async (data: any, index: any) => {
+export const updateProject = async (index: any, data: any) => {
   const response = await apiInstance.patch(
-    `/students/project/update/${data._id}`,
+    `/students/project/update/${index}`,
     data,
   );
   return response;
