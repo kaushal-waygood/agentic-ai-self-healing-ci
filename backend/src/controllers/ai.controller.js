@@ -382,15 +382,13 @@ export const deleteSingleTailoredApplication = async (req, res) => {
   }
 };
 
-// Corrected CV Rename Controller
 export const renameHtmlCV = async (req, res) => {
   try {
     const { _id } = req.user;
-    const { id } = req.params; // <-- 1. Get ID from URL params
-    const { title } = req.body; // <-- 2. Get 'title' from body
+    const { id } = req.params;
+    const { title } = req.body;
 
     if (!id || !title?.trim()) {
-      // <-- 3. Use new variable names
       return res.status(400).json({
         error: 'CV ID and new title are required',
       });
@@ -405,16 +403,18 @@ export const renameHtmlCV = async (req, res) => {
     const student = await Student.findOneAndUpdate(
       {
         _id,
-        'htmlCV._id': id, // <-- 4. Find using the ID from params
+        'cvs._id': id,
       },
       {
         $set: {
-          'htmlCV.$.htmlCVTitle': title.trim(), // <-- 5. Set using 'title'
-          'htmlCV.$.updatedAt': new Date(),
+          'cvs.$.cvTitle': title.trim(),
+          'cvs.$.updatedAt': new Date(),
         },
       },
       { new: true },
     );
+
+    console.log('Updated student:', student);
 
     if (!student) {
       return res.status(404).json({
@@ -494,7 +494,9 @@ export const generateCVByTitle = async (req, res) => {
   if (!title) {
     return res.status(400).json({ error: 'Job title is required' });
   }
-  await initiateCVGeneration(req, res, title);
+
+  const jobTitle = title;
+  await initiateCVGeneration(req, res, jobTitle, title);
 };
 
 export const generateCVByJD = async (req, res) => {
@@ -516,7 +518,9 @@ export const generateCVByJobId = async (req, res) => {
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
   }
-  await initiateCVGeneration(req, res, job.description);
+
+  const jobTitle = job.title;
+  await initiateCVGeneration(req, res, job.description, jobTitle);
 };
 
 const getModelForType = (type) => {
@@ -909,6 +913,88 @@ const extractTextFromBuffer = async (file) => {
   return extractedText;
 };
 
+// tiny HTML stripper so we can turn htmlCV into text without extra deps
+function stripHtmlToText(html = '') {
+  if (typeof html !== 'string') return '';
+  // remove scripts/styles
+  const withoutScripts = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '');
+  // replace breaks/paragraphs with newlines
+  const withNewlines = withoutScripts
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n');
+  // remove remaining tags
+  const noTags = withNewlines.replace(/<[^>]+>/g, '');
+  // collapse whitespace
+  return noTags.replace(/\r?\n\s*\r?\n/g, '\n\n').trim();
+}
+
+function extractCvTextFromCvData(cvData) {
+  if (!cvData) return '';
+  if (typeof cvData === 'string') return cvData.trim();
+  // common fields people store
+  if (typeof cvData.rawText === 'string' && cvData.rawText.trim())
+    return cvData.rawText.trim();
+  if (typeof cvData.text === 'string' && cvData.text.trim())
+    return cvData.text.trim();
+  if (Array.isArray(cvData.sections)) {
+    try {
+      return cvData.sections
+        .map((s) => {
+          if (!s) return '';
+          if (typeof s === 'string') return s;
+          if (typeof s.title === 'string' || typeof s.content === 'string') {
+            return [s.title || '', s.content || ''].filter(Boolean).join('\n');
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+    } catch {
+      // fall through
+    }
+  }
+  // last resort: stringify
+  try {
+    return JSON.stringify(cvData);
+  } catch {
+    return '';
+  }
+}
+
+async function getCvContentBySavedId(studentId, savedCVId) {
+  if (!savedCVId) return null;
+
+  // Load only what we need
+  const student = await Student.findById(studentId).select('cvs htmlCV').lean();
+  if (!student) throw new Error('Student not found');
+
+  // Try Student.cvs subdoc
+  let cvText = null;
+  if (Array.isArray(student.cvs) && student.cvs.length) {
+    const found = student.cvs.find((d) => String(d._id) === String(savedCVId));
+    if (found) {
+      cvText = extractCvTextFromCvData(found.cvData);
+      if (cvText && cvText.trim()) return cvText.trim();
+    }
+  }
+
+  // Try Student.htmlCV subdoc
+  if (Array.isArray(student.htmlCV) && student.htmlCV.length) {
+    const foundHtml = student.htmlCV.find(
+      (d) => String(d._id) === String(savedCVId),
+    );
+    if (foundHtml && typeof foundHtml.html === 'string') {
+      cvText = stripHtmlToText(foundHtml.html);
+      if (cvText && cvText.trim()) return cvText.trim();
+    }
+  }
+
+  return null;
+}
+
 export const createTailoredApply = async (req, res) => {
   const { _id } = req.user;
   const {
@@ -918,21 +1004,24 @@ export const createTailoredApply = async (req, res) => {
     jobDescription,
     useProfile,
     savedCVId,
-    savedCoverLetterId,
+    savedCoverLetterId, // kept for future use
     coverLetterText,
     finalTouch,
   } = req.body;
 
   try {
-    let jobDetails;
-
     // Step 1: Determine Job Source and Validate
+    let jobDetails;
     if (jobId) {
-      const jobFromDb = await Job.findById(jobId);
+      const jobFromDb = await Job.findById(jobId).lean();
       if (!jobFromDb) {
         return res.status(404).json({ error: 'Job not found in database' });
       }
-      jobDetails = jobFromDb;
+      jobDetails = {
+        title: jobFromDb.title || jobFromDb.jobTitle || 'Untitled',
+        company: jobFromDb.company || jobFromDb.companyName || 'Unknown',
+        description: jobFromDb.description || jobFromDb.jobDescription || '',
+      };
     } else if (jobTitle && companyName && jobDescription) {
       jobDetails = {
         title: jobTitle,
@@ -946,23 +1035,39 @@ export const createTailoredApply = async (req, res) => {
       });
     }
 
-    let studentData;
-    let cvContent;
-
     // Step 2: Determine CV source
-    if (useProfile === 'true' || useProfile === true) {
-      const student = await Student.findById(_id);
+    let studentData = null;
+    let cvContent = null;
+
+    const wantsProfile = useProfile === 'true' || useProfile === true;
+
+    if (wantsProfile) {
+      const student = await Student.findById(_id)
+        .select('-token -appliedJobs -savedJobs -viewedJobs -visitedJobs')
+        .lean();
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
       }
       studentData = student;
+    } else if (savedCVId) {
+      cvContent = await getCvContentBySavedId(_id, savedCVId);
+      if (!cvContent) {
+        return res
+          .status(404)
+          .json({ error: 'No CV found for the provided savedCVId' });
+      }
     } else if (req.file) {
       cvContent = await extractTextFromBuffer(req.file);
-      console.log('🚀 ~ file: ai.controller.js:443 ~ cvContent:', cvContent);
+      if (!cvContent || !cvContent.trim()) {
+        return res
+          .status(400)
+          .json({ error: 'Failed to read text from uploaded CV file' });
+      }
     } else {
-      return res
-        .status(400)
-        .json({ error: 'A CV source is required (profile or file upload).' });
+      return res.status(400).json({
+        error:
+          'A CV source is required (useProfile=true, savedCVId, or file upload).',
+      });
     }
 
     // Step 3: Create application entry in database
@@ -973,20 +1078,24 @@ export const createTailoredApply = async (req, res) => {
       jobTitle: jobDetails.title,
       companyName: jobDetails.company,
       jobDescription: jobDetails.description,
-      useProfile: useProfile === 'true' || useProfile === true,
-      savedCVId,
-      savedCoverLetterId,
-      coverLetterText,
-      finalTouch,
+      useProfile: wantsProfile,
+      savedCVId: savedCVId || null,
+      savedCoverLetterId: savedCoverLetterId || null,
+      coverLetterText: coverLetterText || null,
+      finalTouch: finalTouch || null,
       status: 'pending',
       createdAt: new Date(),
     };
 
-    await Student.findByIdAndUpdate(_id, {
-      $push: {
-        tailoredApplications: { $each: [newApplication], $position: 0 },
+    await Student.findByIdAndUpdate(
+      _id,
+      {
+        $push: {
+          tailoredApplications: { $each: [newApplication], $position: 0 },
+        },
       },
-    });
+      { new: false },
+    );
 
     // Step 4: Prepare data for background processing
     const applicationData = {
@@ -998,15 +1107,15 @@ export const createTailoredApply = async (req, res) => {
       candidate: studentData
         ? JSON.stringify(studentData)
         : JSON.stringify({ cv: cvContent }),
-      coverLetter: coverLetterText,
-      preferences: finalTouch,
+      coverLetter: coverLetterText || '',
+      preferences: finalTouch || '',
     };
 
-    // Step 5: Trigger background processing
+    // Step 5: Trigger background processing (fire and forget)
     const io = req.app.get('io');
     processTailoredApplication(_id, applicationId, applicationData, io);
 
-    // Step 6: Immediately respond to the user
+    // Step 6: Immediate response
     return res.status(202).json({
       success: true,
       message:
@@ -1015,7 +1124,7 @@ export const createTailoredApply = async (req, res) => {
     });
   } catch (error) {
     console.error('Error initiating tailored application:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to start tailored application generation',
       details: error.message,
     });

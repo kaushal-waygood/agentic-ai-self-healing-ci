@@ -311,8 +311,7 @@ export const DocumentCard = ({
         }`}
         onClick={openContent}
       >
-        {/* Display item.title if it exists, otherwise use the generated title */}
-        {item.title || getTitle()}
+        {item.cvTitle || getTitle()}
         {!isClickable && status === 'failed' && (
           <span className="text-xs text-gray-400 ml-2">
             (Failed to generate)

@@ -5,6 +5,7 @@ import {
   getAllJobsByOrgAdmin,
   updateJobStatus,
   searchJobs,
+  getRecommendJobs,
 } from '@/services/api/job';
 import { call, put, take, takeLatest } from 'redux-saga/effects';
 import {
@@ -29,6 +30,9 @@ import {
   searchJobRequest,
   searchJobSuccess,
   searchJobFailure,
+  getRecommendJobsRequest,
+  getRecommendJobsSuccess,
+  getRecommendJobsFailure,
 } from '../reducers/jobReducer';
 import { AxiosResponse } from 'axios';
 import { PayloadAction } from '@reduxjs/toolkit';
@@ -192,6 +196,17 @@ function* searchJobsSaga(
   }
 }
 
+function* getRecommendJobsSaga() {
+  try {
+    console.log('getRecommendJobsSaga');
+    const response: AxiosResponse = yield call(getRecommendJobs);
+    console.log('response', response.data.jobs);
+    yield put(getRecommendJobsSuccess(response.data.jobs));
+  } catch (error: unknown | Error) {
+    yield put(getRecommendJobsFailure((error as Error).message));
+  }
+}
+
 export function* jobsWatcher() {
   // yield takeLatest(fetchJobsStream.type, handleJobStreamSaga);
   yield takeLatest(getAllJobsRequest.type, getAllJobsSaga);
@@ -207,4 +222,5 @@ export function* jobsWatcher() {
   yield takeLatest(updateJobStatusRequest.type, updateJobStatusSaga);
   yield takeLatest(getJobPreferenceRequest.type, preferedJobs);
   yield takeLatest(searchJobRequest.type, searchJobsSaga);
+  yield takeLatest(getRecommendJobsRequest.type, getRecommendJobsSaga);
 }

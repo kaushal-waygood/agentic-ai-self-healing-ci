@@ -1347,17 +1347,14 @@ export const isSavedOrNot = async (req, res) => {
   }
 };
 
-// path: (your-backend)/controllers/studentController.js
-
 export const getProfileCompletion = async (req, res) => {
   const studentId = req.user._id;
   const cacheKey = `student:${studentId}:profileCompletion`;
 
   try {
-    // The call to withCache will fetch from Redis or execute the function if not cached.
     const completionData = await redisClient.withCache(
       cacheKey,
-      86400, // Cache for 1 day (in seconds)
+      86400,
       async () => {
         // OPTIMIZED: Removed resumeUrl and coverLetter from select as they are not needed here.
         const student = await Student.findById(studentId).select(
@@ -1407,6 +1404,14 @@ export const getProfileCompletion = async (req, res) => {
   }
 };
 
+const rand = () => Math.random().toString(36).slice(2, 8);
+const makeSlug = (title) =>
+  `${slugify(title || 'job', {
+    lower: true,
+    strict: true,
+    trim: true,
+  })}-${rand()}`;
+
 function safeRegex(value) {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1423,10 +1428,10 @@ function computeTotalExperienceYears(exps = []) {
   let ms = 0;
   const now = new Date();
   for (const e of exps) {
-    const start = parseMaybeDate(e.startDate);
-    let end = parseMaybeDate(e.endDate);
-    if (!end && e.currentlyWorking) end = now;
-    if (start && end && end > start) ms += end - start;
+    const start = parseMaybeDate(e?.startDate);
+    let end = parseMaybeDate(e?.endDate);
+    if (!end && e?.currentlyWorking) end = now;
+    if (start && end && end > start) ms += end.getTime() - start.getTime();
   }
   const years = ms / (1000 * 60 * 60 * 24 * 365.25);
   return Math.max(0, Math.round(years * 10) / 10);
@@ -1444,14 +1449,12 @@ function normalizeSet(arr = []) {
   );
 }
 
-// simple relevance scoring
 function scoreJob(job, profile) {
   let score = 0;
-
   const jobText = [
     job.title || '',
     job.description || '',
-    job.qualifications || '',
+    Array.isArray(job.qualifications) ? job.qualifications.join(' ') : '',
     ...(Array.isArray(job.tags) ? job.tags : []),
   ]
     .join(' ')
@@ -1466,10 +1469,7 @@ function scoreJob(job, profile) {
   if (profile.titles.some((t) => new RegExp(t, 'i').test(job.title || '')))
     score += 20;
 
-  if (typeof job.experience === 'number') {
-    if (job.experience <= profile.totalYears) score += 15;
-    else if (job.experience <= profile.totalYears + 1) score += 8;
-  }
+  // your schema uses experience: [String], so skip numeric comparison here
 
   if (profile.isRemote && job.isRemote) score += 10;
 
@@ -1483,23 +1483,17 @@ function scoreJob(job, profile) {
   return score;
 }
 
-// Build a few pragmatic external search queries from titles + top skills
 function buildExternalQueries(titles, skills) {
-  const titleQueries = titles.slice(0, 3); // don’t spam the API
+  const titleQueries = titles.slice(0, 3);
   const topSkills = skills.slice(0, 3);
   const combos = [];
 
   for (const t of titleQueries) {
-    if (topSkills.length) {
-      combos.push(`${t} ${topSkills[0]}`);
-    }
+    if (topSkills.length) combos.push(`${t} ${topSkills[0]}`);
     combos.push(t);
   }
-
-  // fallback if user has no titles
   if (!combos.length && topSkills.length) combos.push(topSkills.join(' '));
 
-  // dedupe, preserve order
   const seen = new Set();
   return combos.filter((q) => {
     const key = q.toLowerCase();
@@ -1523,38 +1517,39 @@ function dedupeByTitleCompany(jobs) {
   return out;
 }
 
-const transformRapidApiJob = (apiJob, searchQuery) => {
-  const qualifications = apiJob.job_highlights?.Qualifications || [];
-  const responsibilities = apiJob.job_highlights?.Responsibilities || [];
+function transformRapidApiJob(apiJob, searchQuery) {
+  const qualifications = apiJob?.job_highlights?.Qualifications || [];
+  const responsibilities = apiJob?.job_highlights?.Responsibilities || [];
 
   return {
-    jobId: apiJob.job_id,
+    jobId: apiJob.job_id, // REQUIRED + UNIQUE in your schema
     origin: 'EXTERNAL',
-    title: apiJob.job_title,
-    description: apiJob.job_description,
-    qualifications,
+    title: apiJob.job_title || '',
+    description: apiJob.job_description || '',
     responsibilities,
-    company: apiJob.employer_name,
-    country: apiJob.job_country,
-    logo: apiJob.employer_logo,
+    qualifications,
+    company: apiJob.employer_name || '',
+    country: apiJob.job_country || '',
+    logo: apiJob.employer_logo || '',
     location: {
-      city: apiJob.job_city,
-      state: apiJob.job_state,
-      lat: apiJob.job_latitude,
-      lng: apiJob.job_longitude,
+      city: apiJob.job_city || '',
+      postalCode: '',
+      lat: Number(apiJob.job_latitude) || undefined,
+      lng: Number(apiJob.job_longitude) || undefined,
     },
-    slug:
-      (apiJob.job_title || 'job').toLowerCase().replace(/\s/g, '-') +
-      `-${apiJob.job_id?.slice(0, 4) || 'ext'}`,
-    applyMethod: { method: 'URL', url: apiJob.job_apply_link },
+    slug: makeSlug(apiJob.job_title || 'job'), // pre('save') won’t run in bulkWrite
+    applyMethod: { method: 'URL', url: apiJob.job_apply_link || '' },
     isActive: true,
-    jobTypes: apiJob.job_employment_types || [],
+    jobTypes: Array.isArray(apiJob.job_employment_types)
+      ? apiJob.job_employment_types
+      : [],
     experience: [],
+    tags: [],
     queries: searchQuery ? [searchQuery] : [],
   };
-};
+}
 
-const fetchExternalJobs = async (
+async function fetchExternalJobs(
   apiQuery,
   country,
   state,
@@ -1562,25 +1557,15 @@ const fetchExternalJobs = async (
   datePosted,
   employmentType,
   experience,
-) => {
+  page = 1,
+) {
   try {
-    // Build query with location information
     let query = apiQuery;
-    if (city && state) {
-      query = `${apiQuery} in ${city}, ${state}`;
-    } else if (state) {
-      query = `${apiQuery} in ${state}`;
-    } else if (city) {
-      query = `${apiQuery} in ${city}`;
-    }
+    if (city && state) query = `${apiQuery} in ${city}, ${state}`;
+    else if (state) query = `${apiQuery} in ${state}`;
+    else if (city) query = `${apiQuery} in ${city}`;
 
-    const params = {
-      query: query,
-      page: '1',
-      num_pages: '1',
-    };
-
-    // Add optional parameters only if they have values
+    const params = { query, page: String(page), num_pages: '1' };
     if (country) params.country = country;
     if (state) params.state = state;
     if (city) params.city = city;
@@ -1594,25 +1579,69 @@ const fetchExternalJobs = async (
         'X-RapidAPI-Key': config.rapidApiKey,
         'X-RapidAPI-Host': config.rapidApiHost,
       },
-      timeout: 10000,
+      timeout: 12000,
     });
-
-    return response.data.data || [];
-  } catch (apiError) {
+    return response?.data?.data || [];
+  } catch (e) {
     console.error(
-      `RapidAPI fetch failed for query "${apiQuery}":`,
-      apiError.response?.data || apiError.message,
+      `RapidAPI fetch failed for "${apiQuery}" p${page}:`,
+      e?.response?.data || e?.message,
     );
     return [];
   }
-};
+}
+
+async function upsertExternalJobs(externalJobs) {
+  if (!externalJobs.length) return;
+
+  const ops = externalJobs
+    .filter((j) => j.jobId)
+    .map((j) => ({
+      updateOne: {
+        filter: { jobId: j.jobId, origin: 'EXTERNAL' },
+        update: {
+          $set: {
+            title: j.title,
+            description: j.description,
+            responsibilities: j.responsibilities,
+            qualifications: j.qualifications,
+            company: j.company,
+            country: j.country,
+            logo: j.logo,
+            location: j.location,
+            applyMethod: j.applyMethod,
+            isActive: true,
+            jobTypes: j.jobTypes,
+            experience: j.experience,
+          },
+          $addToSet: {
+            tags: { $each: Array.isArray(j.tags) ? j.tags : [] },
+            queries: { $each: Array.isArray(j.queries) ? j.queries : [] },
+          },
+          $setOnInsert: { slug: j.slug || makeSlug(j.title) },
+        },
+        upsert: true,
+      },
+    }));
+
+  if (!ops.length) return;
+
+  try {
+    await Job.bulkWrite(ops, { ordered: false });
+  } catch (e) {
+    const dupesOnly =
+      e?.writeErrors &&
+      Array.isArray(e.writeErrors) &&
+      e.writeErrors.every((w) => w?.code === 11000);
+    if (!dupesOnly) throw e;
+  }
+}
 
 export const getProfileBasedRecommendedJobs = async (req, res) => {
   try {
     const studentId = req.user?._id;
-    if (!studentId) {
+    if (!studentId)
       return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
 
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(
@@ -1624,17 +1653,15 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
     const student = await Student.findById(studentId)
       .select('fullName email jobRole skills experience jobPreferences')
       .lean();
-
-    if (!student) {
+    if (!student)
       return res
         .status(404)
         .json({ success: false, message: 'Student not found' });
-    }
 
     const prefs = student.jobPreferences || {};
     const profileSkills = normalizeSet(student.skills || []);
     const titlesFromExp = normalizeSet(
-      (student.experience || []).map((e) => e.title || ''),
+      (student.experience || []).map((e) => e?.title || ''),
     );
     const titles = normalizeSet([
       student.jobRole || '',
@@ -1642,20 +1669,11 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       ...(prefs.preferredJobTitles || []),
     ]);
     const totalYears = computeTotalExperienceYears(student.experience || []);
-    const minYearly = prefs?.preferredSalary?.min
-      ? convertSalaryToYearly(
-          prefs.preferredSalary.min,
-          prefs.preferredSalary.period,
-        )
-      : undefined;
+    const minYearly = undefined; // implement convertSalaryToYearly if you want salary filtering
 
-    // Build internal filter
-    const and = [{ isActive: true }];
+    // Internal/hosted filter first
+    const and = [{ isActive: true }, { origin: 'HOSTED' }];
     const or = [];
-
-    if (!Number.isNaN(totalYears)) {
-      and.push({ experience: { $lte: Math.floor(totalYears + 1) } });
-    }
 
     if (profileSkills.length) {
       const rx = profileSkills.slice(0, 20).map(safeRegex).filter(Boolean);
@@ -1679,7 +1697,7 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
     }
 
     if (prefs.isRemote === true) {
-      and.push({ isRemote: true });
+      // no isRemote in your schema; skipping
     } else {
       const countryRx = (prefs.preferredCountries || [])
         .map(safeRegex)
@@ -1704,10 +1722,8 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       prefs.preferredIndustries.length
     ) {
       const indRx = prefs.preferredIndustries.map(safeRegex).filter(Boolean);
-      if (indRx.length) and.push({ industry: { $in: indRx } });
+      if (indRx.length) and.push({ tags: { $in: indRx } });
     }
-
-    if (minYearly) and.push({ 'salary.min': { $gte: minYearly } });
 
     const filter = and.length ? { $and: and } : {};
     if (or.length) {
@@ -1715,13 +1731,13 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       filter.$and.push({ $or: or });
     }
 
-    const [jobs, total] = await Promise.all([
+    // 1) Try internal/hosted first
+    const [internalJobs, internalTotal] = await Promise.all([
       Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Job.countDocuments(filter),
     ]);
 
-    // If internal DB has results, score and return
-    if (jobs.length) {
+    if (internalTotal > 0) {
       const profileCtx = {
         skills: profileSkills,
         titles,
@@ -1729,18 +1745,18 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
         isRemote: !!prefs.isRemote,
         minYearly,
       };
-      const jobsWithScores = jobs
+      const scored = internalJobs
         .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
         .sort((a, b) => b.matchScore - a.matchScore);
 
       return res.status(200).json({
         success: true,
-        jobs: jobsWithScores,
+        jobs: scored,
         pagination: {
-          total,
+          total: internalTotal,
           page,
           limit,
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(internalTotal / limit),
         },
         profileSummary: {
           titles,
@@ -1752,7 +1768,7 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       });
     }
 
-    // ---------- RapidAPI fallback ----------
+    // 2) Fallback to RapidAPI, PERSIST, then return from DB
     const queries = buildExternalQueries(titles, profileSkills);
     const locCountry =
       Array.isArray(prefs.preferredCountries) && prefs.preferredCountries[0]
@@ -1763,26 +1779,30 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
         ? prefs.preferredCities[0]
         : undefined;
 
-    const externalPages = await Promise.all(
-      queries.map(async (q) => {
+    const PAGES_PER_QUERY = 2; // tune to avoid throttling
+    const externalTransformed = [];
+
+    for (const q of queries) {
+      for (let p = 1; p <= PAGES_PER_QUERY; p++) {
         const data = await fetchExternalJobs(
           q,
-          locCountry, // country
-          undefined, // state
-          locCity, // city
-          undefined, // datePosted
+          locCountry,
+          undefined,
+          locCity,
+          undefined,
           Array.isArray(prefs.preferredJobTypes) && prefs.preferredJobTypes[0]
             ? prefs.preferredJobTypes[0]
-            : undefined, // employmentType
-          undefined, // experience requirement filter string; leave undefined unless your API expects a value
+            : undefined,
+          undefined,
+          p,
         );
-        return (data || []).map((j) => transformRapidApiJob(j, q));
-      }),
-    );
+        for (const raw of data)
+          externalTransformed.push(transformRapidApiJob(raw, q));
+      }
+    }
 
-    let externalJobs = externalPages.flat();
+    let externalJobs = externalTransformed;
     if (!externalJobs.length) {
-      // nothing at all, return empty but honest
       return res.status(200).json({
         success: true,
         jobs: [],
@@ -1798,8 +1818,16 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       });
     }
 
-    // Deduplicate and score
     externalJobs = dedupeByTitleCompany(externalJobs);
+
+    // Persist idempotently by jobId + origin
+    await upsertExternalJobs(externalJobs);
+
+    // Re-query saved docs so the UI gets consistent shape + _id
+    const ids = externalJobs.map((j) => j.jobId).filter(Boolean);
+    const saved = await Job.find({ origin: 'EXTERNAL', jobId: { $in: ids } })
+      .sort({ createdAt: -1 })
+      .lean();
 
     const profileCtx = {
       skills: profileSkills,
@@ -1808,29 +1836,23 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       isRemote: !!prefs.isRemote,
       minYearly,
     };
-    const scoredExternal = externalJobs
+    const scored = saved
       .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
       .sort((a, b) => b.matchScore - a.matchScore);
 
-    // Paginate external results locally
-    const extTotal = scoredExternal.length;
-    const paged = scoredExternal.slice(skip, skip + limit);
+    const total = scored.length;
+    const paged = scored.slice(skip, skip + limit);
 
     return res.status(200).json({
       success: true,
       jobs: paged,
-      pagination: {
-        total: extTotal,
-        page,
-        limit,
-        totalPages: Math.ceil(extTotal / limit),
-      },
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
       profileSummary: { titles, skills: profileSkills, totalYears, minYearly },
-      source: 'external',
+      source: 'external-persisted',
     });
   } catch (error) {
     console.error(
-      'Error fetching profile-based recommended jobs (with fallback):',
+      'Error fetching profile-based recommended jobs (persisted):',
       error,
     );
     return res.status(500).json({
@@ -1946,8 +1968,6 @@ export const toggleAutopilot = async (req, res, next) => {
     next(createHttpError(500, error.message));
   }
 };
-
-// In your jobController.js
 
 export const jobViewedByStudent = async (req, res, next) => {
   try {

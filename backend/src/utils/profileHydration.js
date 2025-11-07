@@ -24,7 +24,7 @@ const COUNTRY_ALIAS = new Map([
 const sanitizeEmploymentType = (et) => {
   if (!et) return null;
   const raw = lower(et);
-  return EMPLOYMENT_TYPE_MAP.get(raw) || et.toUpperCase();
+  return EMPLOYMENT_TYPE_MAP.get(raw) || String(et).toUpperCase();
 };
 
 const sanitizePreferredJobTypes = (arr) => {
@@ -72,7 +72,6 @@ export function buildEffectiveStudentProfile(student, agent) {
   const preferredJobTypes = sanitizePreferredJobTypes(
     student?.jobPreferences?.preferredJobTypes,
   );
-
   const agentType = sanitizeEmploymentType(agent?.employmentType);
   if (agentType) preferredJobTypes.push(agentType);
 
@@ -83,6 +82,8 @@ export function buildEffectiveStudentProfile(student, agent) {
   if (agentCountry && !preferredCountries.includes(agentCountry)) {
     preferredCountries.push(agentCountry);
   }
+
+  console.log(student);
 
   return {
     ...student,
