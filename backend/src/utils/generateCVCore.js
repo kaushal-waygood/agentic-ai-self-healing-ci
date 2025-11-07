@@ -18,10 +18,15 @@ import { processCVGeneration } from '../utils/cv.background.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const initiateCVGeneration = async (req, res, jobContextString) => {
+export const initiateCVGeneration = async (
+  req,
+  res,
+  jobContextString,
+  jobTitle,
+) => {
   try {
     const { _id } = req.user;
-    const { useProfile, finalTouch } = req.body;
+    const { useProfile, finalTouch, savedCVId } = req.body;
     let studentData;
 
     if (useProfile === 'true' || useProfile === true) {
@@ -79,8 +84,18 @@ export const initiateCVGeneration = async (req, res, jobContextString) => {
       }
     }
 
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+
+    const cvTitle = `${student.fullName}'s CV (${jobTitle})`;
+
+    console.log('cvTitle', cvTitle);
+
     const jobId = new mongoose.Types.ObjectId();
     const newCVJob = {
+      cvTitle,
       jobId,
       status: 'pending',
       jobContextString,

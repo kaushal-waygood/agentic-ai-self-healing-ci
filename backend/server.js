@@ -8,7 +8,6 @@ import app from './src/app.js';
 import connectDb from './src/config/db.js';
 import { setupNotificationSocket } from './src/socket/notification.socket.js';
 import { config as appConfig } from './src/config/config.js';
-
 dotenv.config({ quiet: true, override: true, path: ['.env'] });
 
 const NODE_ENV = process.env.NODE_ENV || appConfig.nodeEnv || 'development';
@@ -23,6 +22,7 @@ const sockets = new Set();
 
 async function startHttpServer() {
   await connectDb();
+  // startWorker();
 
   server = createServer(app);
 

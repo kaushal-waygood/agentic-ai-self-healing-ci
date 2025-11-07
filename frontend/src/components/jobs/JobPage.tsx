@@ -31,6 +31,8 @@ export default function JobsPage() {
     notification,
   } = useJobs();
 
+  console.log('jobs', jobs);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useMediaQuery('(max-width: 1024px)');
