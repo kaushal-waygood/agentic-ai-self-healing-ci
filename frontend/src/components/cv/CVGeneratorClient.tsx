@@ -180,6 +180,7 @@ const CVGeneratorClient = ({
                                     <div className="w-full h-full bg-white rounded-full scale-50"></div>
                                   )}
                                 </div>
+
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800 text-lg">
                                     {cv.htmlCVTitle || 'Untitled CV'}

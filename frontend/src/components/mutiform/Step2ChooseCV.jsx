@@ -1,8 +1,46 @@
-import React, { useState } from 'react';
+import apiInstance from '@/services/api';
+import {
+  Briefcase,
+  Loader2,
+  User,
+  ArrowLeft,
+  Check,
+  Clock,
+  ChevronDown,
+  Calendar,
+  UploadCloud,
+  Star,
+  FileText,
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
   const [dragActive, setDragActive] = useState(false);
   const [savedCVs] = useState([]); // Mock saved CVs array
+  const [expandedCv, setExpandedCv] = useState(null);
+  const [cvs, setCvs] = useState([]);
+  const [stats, setStats] = useState({ cvsCount: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCvs = async () => {
+      try {
+        setLoading(true);
+        const response = await apiInstance.get('/students/resume/saved');
+        setCvs(response.data.html || []);
+        setStats((prev) => ({
+          ...prev,
+          cvsCount: response.data.html?.length || 0,
+        }));
+      } catch (error) {
+        console.error('Failed to fetch CVs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCvs();
+  }, []);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -52,52 +90,55 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
             Select a Base CV *
           </label>
-
-          {savedCVs.length === 0 ? (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200 rounded-xl p-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                <svg
-                  className="w-8 h-8 text-blue-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-              <p className="text-gray-600 font-medium mb-2">
-                No saved CVs found
-              </p>
-              <p className="text-sm text-gray-500">
-                Please create or upload one below
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {savedCVs.map((cv, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 cursor-pointer group"
-                >
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                    📄
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
-                      {cv.name}
-                    </div>
-                    <div className="text-sm text-gray-500">{cv.date}</div>
-                  </div>
-                  <div className="w-6 h-6 border-2 border-gray-300 rounded-full group-hover:border-blue-500 transition-colors"></div>
+          <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+            {cvs.length === 0 ? (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200 rounded-xl p-8 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <svg
+                    className="w-8 h-8 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
                 </div>
-              ))}
-            </div>
-          )}
+                <p className="text-gray-600 font-medium mb-2">
+                  No saved CVs found
+                </p>
+                <p className="text-sm text-gray-500">
+                  Please create or upload one below
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {cvs.map((cv, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 cursor-pointer group"
+                  >
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                      📄
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
+                        {cv.htmlCVTitle || 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {cv.createdAt}
+                      </div>
+                    </div>
+                    <div className="w-6 h-6 border-2 border-gray-300 rounded-full group-hover:border-blue-500 transition-colors"></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Divider */}
