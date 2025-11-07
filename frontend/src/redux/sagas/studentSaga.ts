@@ -88,6 +88,7 @@ import {
   getAllSavedJobs,
 } from '@/services/api/student';
 import { PayloadAction } from '@reduxjs/toolkit';
+
 function* getStudentDetailsSaga() {
   try {
     const response: AxiosResponse = yield call(getStudentDetails);
@@ -149,11 +150,12 @@ function* removeStudentExperienceSaga(action: PayloadAction<any>) {
 }
 
 function* updateStudentExperienceSaga(action: PayloadAction<any>) {
+  console.log('action.payload.expData', action.payload);
   try {
     const response: AxiosResponse = yield call(
       updateExperience,
-      action.payload.experienceId,
-      action.payload.expData,
+      action.payload.index,
+      action.payload.data,
     );
     yield put(updateStudentExperienceSuccess(response.data));
   } catch (error: unknown) {
@@ -207,8 +209,8 @@ function* updateStudentProjectsSaga(action: PayloadAction<any>) {
   try {
     const response: AxiosResponse = yield call(
       updateProject,
-      action.payload.projectId,
-      action.payload.projectData,
+      action.payload.index,
+      action.payload.data,
     );
     yield put(updateStudentProjectSuccess(response.data));
   } catch (error: unknown) {

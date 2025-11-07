@@ -26,7 +26,6 @@ const makeSlug = (title) =>
     trim: true,
   })}-${Math.random().toString(36).slice(2, 7)}`;
 
-// ---------- helpers ----------
 const extractEmails = (text) => {
   if (!text) return [];
   const re = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
@@ -96,7 +95,7 @@ const transformApiJobToSchema = (apiJob) => {
       email: firstEmail,
       url: apiJob.job_apply_link || '',
     };
-    
+
     if (process.env.DEBUG_JOBS === '1') {
       console.log('[ApplyEmail]', title, '->', firstEmail);
     }
