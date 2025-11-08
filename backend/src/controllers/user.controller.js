@@ -3,7 +3,7 @@ import { User } from '../models/User.model.js';
 import { generateReferralCode } from '../utils/generateReferralCode.js';
 import crypto from 'crypto';
 import admin from '../config/firebase.js';
-import { transporter } from '../utils/transporter.js';
+import { getTransporter as transporter } from '../utils/transporter.js';
 import bcrypt from 'bcryptjs';
 import redisClient from '../config/redis.js';
 import { google } from 'googleapis';

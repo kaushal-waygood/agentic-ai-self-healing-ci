@@ -18,6 +18,8 @@ import {
   getFallbackJobsFromRapidAPI,
   convertSalaryToYearly,
 } from '../utils/jobUtils.js';
+import axios from 'axios';
+import { config } from '../config/config.js';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
@@ -381,7 +383,8 @@ export const updateStudentSkills = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    const skill = student.skills.find((s) => s.skillId === skillId);
+    const skill = student.skills.find((s) => s._id === _id);
+    console.log(skill);
     if (!skill) {
       return res.status(404).json({ message: 'Skill not found' });
     }
@@ -399,7 +402,6 @@ export const updateStudentSkills = async (req, res) => {
   }
 };
 
-// Experience controller
 export const addExperience = async (req, res) => {
   const { company, title, startDate, endDate, description, currentlyWorking } =
     req.body;
@@ -602,28 +604,38 @@ export const addEducations = async (req, res) => {
 };
 
 export const removeEducation = async (req, res) => {
-  const { eduId: educationId } = req.params;
-  const { _id } = req.user;
-
   try {
-    const student = await Student.findById(_id);
+    const { eduId } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    if (!eduId) {
+      return res.status(400).json({ message: 'Education id is required' });
+    }
+
+    const student = await Student.findById(userId);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    student.education = student.education.filter(
-      (edu) => edu.educationId !== educationId,
-    );
+    const edu = student.education.id(eduId);
+    if (!edu) {
+      return res.status(404).json({ message: 'Education not found' });
+    }
 
+    // remove the subdocument and save
+    edu.deleteOne(); // or edu.remove() in older Mongoose
     await student.save();
 
-    // Invalidate cache
-    await redisClient.invalidateStudentCache(_id);
-
-    res.status(200).json({ message: 'Education removed successfully' });
+    return res.status(200).json({
+      message: 'Education removed successfully',
+      removedId: eduId,
+    });
   } catch (error) {
     console.error('Error removing education:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -647,13 +659,11 @@ export const updateEducation = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // const education = student.education.find((edu) => {
-    //   return edu.educationId === educationId;
-    // });
-
     const education = student.education.find(
       (edu) => edu._id.toString() === educationId,
     );
+
+    console.log(education);
 
     if (!education) {
       return res.status(404).json({ message: 'Education not found' });
@@ -674,7 +684,6 @@ export const updateEducation = async (req, res) => {
     await student.save();
 
     // Invalidate cache
-    await redisClient.invalidateStudentCache(_id);
 
     res.status(200).json({ message: 'Education updated successfully' });
   } catch (error) {
@@ -815,6 +824,28 @@ export const removeProject = async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing project:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const getAllProjects = async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Projects fetched successfully',
+      projects: student.projects,
+    });
+  } catch (error) {
+    console.error('Error fetching projects:', error);
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
@@ -1345,17 +1376,14 @@ export const isSavedOrNot = async (req, res) => {
   }
 };
 
-// path: (your-backend)/controllers/studentController.js
-
 export const getProfileCompletion = async (req, res) => {
   const studentId = req.user._id;
   const cacheKey = `student:${studentId}:profileCompletion`;
 
   try {
-    // The call to withCache will fetch from Redis or execute the function if not cached.
     const completionData = await redisClient.withCache(
       cacheKey,
-      86400, // Cache for 1 day (in seconds)
+      86400,
       async () => {
         // OPTIMIZED: Removed resumeUrl and coverLetter from select as they are not needed here.
         const student = await Student.findById(studentId).select(
@@ -1405,137 +1433,461 @@ export const getProfileCompletion = async (req, res) => {
   }
 };
 
-export const getRecommendedJobs = async (req, res) => {
+const rand = () => Math.random().toString(36).slice(2, 8);
+const makeSlug = (title) =>
+  `${slugify(title || 'job', {
+    lower: true,
+    strict: true,
+    trim: true,
+  })}-${rand()}`;
+
+function safeRegex(value) {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(escaped, 'i');
+}
+
+function parseMaybeDate(s) {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function computeTotalExperienceYears(exps = []) {
+  let ms = 0;
+  const now = new Date();
+  for (const e of exps) {
+    const start = parseMaybeDate(e?.startDate);
+    let end = parseMaybeDate(e?.endDate);
+    if (!end && e?.currentlyWorking) end = now;
+    if (start && end && end > start) ms += end.getTime() - start.getTime();
+  }
+  const years = ms / (1000 * 60 * 60 * 24 * 365.25);
+  return Math.max(0, Math.round(years * 10) / 10);
+}
+
+function normalizeSet(arr = []) {
+  return Array.from(
+    new Set(
+      arr
+        .map((s) =>
+          (typeof s === 'string' ? s.trim() : s?.skill || '').toLowerCase(),
+        )
+        .filter(Boolean),
+    ),
+  );
+}
+
+function scoreJob(job, profile) {
+  let score = 0;
+  const jobText = [
+    job.title || '',
+    job.description || '',
+    Array.isArray(job.qualifications) ? job.qualifications.join(' ') : '',
+    ...(Array.isArray(job.tags) ? job.tags : []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  let skillHits = 0;
+  for (const s of profile.skills) {
+    if (jobText.includes(s)) skillHits++;
+  }
+  score += Math.min(skillHits * 5, 40);
+
+  if (profile.titles.some((t) => new RegExp(t, 'i').test(job.title || '')))
+    score += 20;
+
+  // your schema uses experience: [String], so skip numeric comparison here
+
+  if (profile.isRemote && job.isRemote) score += 10;
+
+  if (
+    profile.minYearly &&
+    job?.salary?.min &&
+    job.salary.min >= profile.minYearly
+  )
+    score += 10;
+
+  return score;
+}
+
+function buildExternalQueries(titles, skills) {
+  const titleQueries = titles.slice(0, 3);
+  const topSkills = skills.slice(0, 3);
+  const combos = [];
+
+  for (const t of titleQueries) {
+    if (topSkills.length) combos.push(`${t} ${topSkills[0]}`);
+    combos.push(t);
+  }
+  if (!combos.length && topSkills.length) combos.push(topSkills.join(' '));
+
+  const seen = new Set();
+  return combos.filter((q) => {
+    const key = q.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function dedupeByTitleCompany(jobs) {
+  const seen = new Set();
+  const out = [];
+  for (const j of jobs) {
+    const key = `${(j.title || '').toLowerCase()}|${(
+      j.company || ''
+    ).toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(j);
+  }
+  return out;
+}
+
+function transformRapidApiJob(apiJob, searchQuery) {
+  const qualifications = apiJob?.job_highlights?.Qualifications || [];
+  const responsibilities = apiJob?.job_highlights?.Responsibilities || [];
+
+  return {
+    jobId: apiJob.job_id, // REQUIRED + UNIQUE in your schema
+    origin: 'EXTERNAL',
+    title: apiJob.job_title || '',
+    description: apiJob.job_description || '',
+    responsibilities,
+    qualifications,
+    company: apiJob.employer_name || '',
+    country: apiJob.job_country || '',
+    logo: apiJob.employer_logo || '',
+    location: {
+      city: apiJob.job_city || '',
+      postalCode: '',
+      lat: Number(apiJob.job_latitude) || undefined,
+      lng: Number(apiJob.job_longitude) || undefined,
+    },
+    slug: makeSlug(apiJob.job_title || 'job'), // pre('save') won’t run in bulkWrite
+    applyMethod: { method: 'URL', url: apiJob.job_apply_link || '' },
+    isActive: true,
+    jobTypes: Array.isArray(apiJob.job_employment_types)
+      ? apiJob.job_employment_types
+      : [],
+    experience: [],
+    tags: [],
+    queries: searchQuery ? [searchQuery] : [],
+  };
+}
+
+async function fetchExternalJobs(
+  apiQuery,
+  country,
+  state,
+  city,
+  datePosted,
+  employmentType,
+  experience,
+  page = 1,
+) {
   try {
-    const studentId = req.user._id;
-    const { page = 1, limit = 10 } = req.query;
+    let query = apiQuery;
+    if (city && state) query = `${apiQuery} in ${city}, ${state}`;
+    else if (state) query = `${apiQuery} in ${state}`;
+    else if (city) query = `${apiQuery} in ${city}`;
 
-    const student = await Student.findById(studentId).select('jobPreferences');
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found',
-      });
+    const params = { query, page: String(page), num_pages: '1' };
+    if (country) params.country = country;
+    if (state) params.state = state;
+    if (city) params.city = city;
+    if (datePosted) params.date_posted = datePosted;
+    if (employmentType) params.employment_type = employmentType;
+    if (experience) params.job_requirements = experience;
+
+    const response = await axios.get(config.rapidJobApi, {
+      params,
+      headers: {
+        'X-RapidAPI-Key': config.rapidApiKey,
+        'X-RapidAPI-Host': config.rapidApiHost,
+      },
+      timeout: 12000,
+    });
+    return response?.data?.data || [];
+  } catch (e) {
+    console.error(
+      `RapidAPI fetch failed for "${apiQuery}" p${page}:`,
+      e?.response?.data || e?.message,
+    );
+    return [];
+  }
+}
+
+async function upsertExternalJobs(externalJobs) {
+  if (!externalJobs.length) return;
+
+  const ops = externalJobs
+    .filter((j) => j.jobId)
+    .map((j) => ({
+      updateOne: {
+        filter: { jobId: j.jobId, origin: 'EXTERNAL' },
+        update: {
+          $set: {
+            title: j.title,
+            description: j.description,
+            responsibilities: j.responsibilities,
+            qualifications: j.qualifications,
+            company: j.company,
+            country: j.country,
+            logo: j.logo,
+            location: j.location,
+            applyMethod: j.applyMethod,
+            isActive: true,
+            jobTypes: j.jobTypes,
+            experience: j.experience,
+          },
+          $addToSet: {
+            tags: { $each: Array.isArray(j.tags) ? j.tags : [] },
+            queries: { $each: Array.isArray(j.queries) ? j.queries : [] },
+          },
+          $setOnInsert: { slug: j.slug || makeSlug(j.title) },
+        },
+        upsert: true,
+      },
+    }));
+
+  if (!ops.length) return;
+
+  try {
+    await Job.bulkWrite(ops, { ordered: false });
+  } catch (e) {
+    const dupesOnly =
+      e?.writeErrors &&
+      Array.isArray(e.writeErrors) &&
+      e.writeErrors.every((w) => w?.code === 11000);
+    if (!dupesOnly) throw e;
+  }
+}
+
+export const getProfileBasedRecommendedJobs = async (req, res) => {
+  try {
+    const studentId = req.user?._id;
+    if (!studentId)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(req.query.limit, 10) || 10),
+    );
+    const skip = (page - 1) * limit;
+
+    const student = await Student.findById(studentId)
+      .select('fullName email jobRole skills experience jobPreferences')
+      .lean();
+    if (!student)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
+
+    const prefs = student.jobPreferences || {};
+    const profileSkills = normalizeSet(student.skills || []);
+    const titlesFromExp = normalizeSet(
+      (student.experience || []).map((e) => e?.title || ''),
+    );
+    const titles = normalizeSet([
+      student.jobRole || '',
+      ...titlesFromExp,
+      ...(prefs.preferredJobTitles || []),
+    ]);
+    const totalYears = computeTotalExperienceYears(student.experience || []);
+    const minYearly = undefined; // implement convertSalaryToYearly if you want salary filtering
+
+    // Internal/hosted filter first
+    const and = [{ isActive: true }, { origin: 'HOSTED' }];
+    const or = [];
+
+    if (profileSkills.length) {
+      const rx = profileSkills.slice(0, 20).map(safeRegex).filter(Boolean);
+      if (rx.length) {
+        and.push({
+          $or: [
+            { qualifications: { $in: rx } },
+            { description: { $in: rx } },
+            { tags: { $in: rx } },
+          ],
+        });
+      }
     }
 
-    const preferences = student.jobPreferences;
+    if (titles.length) {
+      const titleClauses = titles
+        .map(safeRegex)
+        .filter(Boolean)
+        .map((rx) => ({ title: rx }));
+      if (titleClauses.length) or.push(...titleClauses);
+    }
 
-    const filter = { isActive: true };
-
-    if (preferences.isRemote) {
-      filter.isRemote = true;
+    if (prefs.isRemote === true) {
+      // no isRemote in your schema; skipping
     } else {
-      if (
-        preferences.preferedCountries &&
-        preferences.preferedCountries.length > 0
-      ) {
-        filter.country = {
-          $in: preferences.preferedCountries.map((c) => new RegExp(c, 'i')),
-        };
-      }
-      if (preferences.preferedCities && preferences.preferedCities.length > 0) {
-        filter['location.city'] = {
-          $in: preferences.preferedCities.map((c) => new RegExp(c, 'i')),
-        };
-      }
+      const countryRx = (prefs.preferredCountries || [])
+        .map(safeRegex)
+        .filter(Boolean);
+      if (countryRx.length) and.push({ country: { $in: countryRx } });
+
+      const cityRx = (prefs.preferredCities || [])
+        .map(safeRegex)
+        .filter(Boolean);
+      if (cityRx.length) and.push({ 'location.city': { $in: cityRx } });
     }
 
     if (
-      preferences.preferedJobTypes &&
-      preferences.preferedJobTypes.length > 0
+      Array.isArray(prefs.preferredJobTypes) &&
+      prefs.preferredJobTypes.length
     ) {
-      filter.jobTypes = { $in: preferences.preferedJobTypes };
+      and.push({ jobTypes: { $in: prefs.preferredJobTypes } });
     }
 
     if (
-      preferences.preferedJobTitles &&
-      preferences.preferedJobTitles.length > 0
+      Array.isArray(prefs.preferredIndustries) &&
+      prefs.preferredIndustries.length
     ) {
-      filter.$or = preferences.preferedJobTitles.map((title) => ({
-        title: { $regex: title, $options: 'i' },
-      }));
+      const indRx = prefs.preferredIndustries.map(safeRegex).filter(Boolean);
+      if (indRx.length) and.push({ tags: { $in: indRx } });
     }
 
-    // Salary filter
-    if (preferences.preferedSalary && preferences.preferedSalary.min) {
-      const minSalary = convertSalaryToYearly(
-        preferences.preferedSalary.min,
-        preferences.preferedSalary.period,
-      );
-      filter['salary.min'] = { $gte: minSalary };
+    const filter = and.length ? { $and: and } : {};
+    if (or.length) {
+      if (!filter.$and) filter.$and = [];
+      filter.$and.push({ $or: or });
     }
 
-    // Experience level filter
-    if (preferences.preferedExperienceLevel) {
-      let experienceValue;
-      switch (preferences.preferedExperienceLevel) {
-        case 'ENTRY_LEVEL':
-          experienceValue = 0;
-          break;
-        case 'MID_LEVEL':
-          experienceValue = 3;
-          break;
-        case 'SENIOR':
-          experienceValue = 5;
-          break;
-        default:
-          experienceValue = 0;
-      }
-      filter.experience = { $lte: experienceValue };
-    }
-
-    // Must-have skills filter
-    if (preferences.mustHaveSkills && preferences.mustHaveSkills.length > 0) {
-      filter.$and = preferences.mustHaveSkills.map((skill) => ({
-        $or: [
-          { qualifications: { $regex: skill.skill, $options: 'i' } },
-          { description: { $regex: skill.skill, $options: 'i' } },
-          { tags: { $regex: skill.skill, $options: 'i' } },
-        ],
-      }));
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const [jobs, total] = await Promise.all([
-      Job.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit)),
+    // 1) Try internal/hosted first
+    const [internalJobs, internalTotal] = await Promise.all([
+      Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Job.countDocuments(filter),
     ]);
 
-    // If no jobs found in our database, try to fetch from RapidAPI
-    if (jobs.length === 0) {
-      return await getFallbackJobsFromRapidAPI(req, res, preferences);
+    if (internalTotal > 0) {
+      const profileCtx = {
+        skills: profileSkills,
+        titles,
+        totalYears,
+        isRemote: !!prefs.isRemote,
+        minYearly,
+      };
+      const scored = internalJobs
+        .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
+        .sort((a, b) => b.matchScore - a.matchScore);
+
+      return res.status(200).json({
+        success: true,
+        jobs: scored,
+        pagination: {
+          total: internalTotal,
+          page,
+          limit,
+          totalPages: Math.ceil(internalTotal / limit),
+        },
+        profileSummary: {
+          titles,
+          skills: profileSkills,
+          totalYears,
+          minYearly,
+        },
+        source: 'internal',
+      });
     }
 
-    // Calculate match score for each job
-    const jobsWithScores = jobs.map((job) => ({
-      ...job.toObject(),
-      matchScore: calculateMatchScore(job, preferences),
-    }));
+    // 2) Fallback to RapidAPI, PERSIST, then return from DB
+    const queries = buildExternalQueries(titles, profileSkills);
+    const locCountry =
+      Array.isArray(prefs.preferredCountries) && prefs.preferredCountries[0]
+        ? prefs.preferredCountries[0]
+        : undefined;
+    const locCity =
+      Array.isArray(prefs.preferredCities) && prefs.preferredCities[0]
+        ? prefs.preferredCities[0]
+        : undefined;
 
-    // Sort by match score
-    jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
+    const PAGES_PER_QUERY = 2; // tune to avoid throttling
+    const externalTransformed = [];
 
-    res.status(200).json({
+    for (const q of queries) {
+      for (let p = 1; p <= PAGES_PER_QUERY; p++) {
+        const data = await fetchExternalJobs(
+          q,
+          locCountry,
+          undefined,
+          locCity,
+          undefined,
+          Array.isArray(prefs.preferredJobTypes) && prefs.preferredJobTypes[0]
+            ? prefs.preferredJobTypes[0]
+            : undefined,
+          undefined,
+          p,
+        );
+        for (const raw of data)
+          externalTransformed.push(transformRapidApiJob(raw, q));
+      }
+    }
+
+    let externalJobs = externalTransformed;
+    if (!externalJobs.length) {
+      return res.status(200).json({
+        success: true,
+        jobs: [],
+        pagination: { total: 0, page, limit, totalPages: 0 },
+        profileSummary: {
+          titles,
+          skills: profileSkills,
+          totalYears,
+          minYearly,
+        },
+        source: 'external',
+        note: 'No matches from RapidAPI.',
+      });
+    }
+
+    externalJobs = dedupeByTitleCompany(externalJobs);
+
+    // Persist idempotently by jobId + origin
+    await upsertExternalJobs(externalJobs);
+
+    // Re-query saved docs so the UI gets consistent shape + _id
+    const ids = externalJobs.map((j) => j.jobId).filter(Boolean);
+    const saved = await Job.find({ origin: 'EXTERNAL', jobId: { $in: ids } })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const profileCtx = {
+      skills: profileSkills,
+      titles,
+      totalYears,
+      isRemote: !!prefs.isRemote,
+      minYearly,
+    };
+    const scored = saved
+      .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
+      .sort((a, b) => b.matchScore - a.matchScore);
+
+    const total = scored.length;
+    const paged = scored.slice(skip, skip + limit);
+
+    return res.status(200).json({
       success: true,
-      jobs: jobsWithScores,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit),
-      },
-      source: 'internal',
+      jobs: paged,
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      profileSummary: { titles, skills: profileSkills, totalYears, minYearly },
+      source: 'external-persisted',
     });
   } catch (error) {
-    console.error('Error fetching recommended jobs:', error);
-    res.status(500).json({
+    console.error(
+      'Error fetching profile-based recommended jobs (persisted):',
+      error,
+    );
+    return res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: error.message,
+      error: error?.message || String(error),
     });
   }
 };
@@ -1645,8 +1997,6 @@ export const toggleAutopilot = async (req, res, next) => {
     next(createHttpError(500, error.message));
   }
 };
-
-// In your jobController.js
 
 export const jobViewedByStudent = async (req, res, next) => {
   try {

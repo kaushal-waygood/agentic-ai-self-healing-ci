@@ -347,7 +347,7 @@ export const useApplicationWizard = () => {
     async (mode: JobContext['mode'], value: File | string) => {
       setIsLoading(true);
       setLoadingMessage('Processing job details...');
-      console.log('value', value);
+      // console.log('value', value);
       try {
         let context: JobContext;
         if (mode === 'select' && typeof value === 'string') {
@@ -403,14 +403,16 @@ export const useApplicationWizard = () => {
     async (mode: CvContext['mode'], value?: string | File) => {
       console.log('handleCvContextSubmit called with:', { mode, value });
       if (mode === 'profile') {
-        setCvContext({ mode, value: 'profile', name: 'Your Zobsai Profile' });
-      } else if (value) {
-        const cvName = typeof value === 'string';
-        // ? resume?.find((r) => r._id === value)?.name || 'Saved CV'
-        // : value.name;
-        setCvContext({ mode, value, name: cvName });
-      } else if (mode === 'saved') {
-        setCvContext({ mode, value: 'saved', name: 'Your saved cv' });
+        setCvContext({ mode, value: 'profile', name: 'Your Profile' });
+      }
+      // else if (value) {
+      //   const cvName = typeof value === 'string';
+      //   // ? resume?.find((r) => r._id === value)?.name || 'Saved CV'
+      //   // : value.name;
+      //   setCvContext({ mode, value, name: cvName });
+      // }
+      else if (mode === 'saved') {
+        setCvContext({ mode, value: value as string, name: 'Your saved cv' });
       } else {
         return;
       }
@@ -484,20 +486,19 @@ export const useApplicationWizard = () => {
 
   const handleClContextSubmit = useCallback(async () => {
     const { clSource, pastedCl, savedClId } = clForm.getValues();
+    console.log('handleClContextSubmit called with:', savedClId);
     let context: ClContext = { mode: 'skip' };
     if (clSource === 'paste' && pastedCl) {
       context = { mode: 'paste', value: pastedCl, name: 'Pasted Content' };
     } else if (clSource === 'saved' && savedClId) {
-      const savedCl = mockUserProfile.savedCoverLetters.find(
-        (c) => c.id === savedClId,
-      );
-      if (savedCl)
-        context = {
-          mode: 'saved',
-          value: savedCl.htmlContent,
-          name: savedCl.name,
-        };
+      context = {
+        mode: 'saved',
+        value: savedClId,
+        name: 'selected cover letter',
+      };
     }
+    console.log('CL Context:', context);
+
     setClContext(context);
     navigateToStep('generate');
   }, [clForm, navigateToStep]);
@@ -525,8 +526,8 @@ export const useApplicationWizard = () => {
         title: 'Missing Information',
         description: 'Please ensure both job and CV information are provided.',
       });
-      navigateToStep('cv');
-      // router.push
+      navigateToStep('job');
+
       return;
     }
     setIsLoading(true);
@@ -549,9 +550,13 @@ export const useApplicationWizard = () => {
       else if (
         cvContext.mode === 'saved' &&
         typeof cvContext.value === 'string'
-      )
+      ) {
         formData.append('savedCVId', cvContext.value);
-      else if (cvContext.mode === 'upload' && cvContext.value instanceof File) {
+        formData.append('useProfile', 'false');
+      } else if (
+        cvContext.mode === 'upload' &&
+        cvContext.value instanceof File
+      ) {
         formData.append('cv', cvContext.value);
         formData.append('useProfile', 'false');
       }
@@ -561,31 +566,38 @@ export const useApplicationWizard = () => {
         else if (clContext.mode === 'paste' && clContext.value)
           formData.append('coverLetterText', clContext.value);
       }
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+
       formData.append('finalTouch', 'Tailor for ATS optimization');
       const response = await apiInstance.post(
         '/students/applications/tailor',
         formData,
       );
+
       const result = response.data;
+
       setGeneratedData({
-        refinedCv: result.data.tailoredCV,
-        tailoredCl: result.data.tailoredCoverLetter,
-        emailDraft: result.data.applicationEmail,
+        refinedCv: result.tailoredCV,
+        tailoredCl: result.tailoredCoverLetter,
+        emailDraft: result.applicationEmail,
       });
       toast({
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
-      navigateToStep('result');
     } catch (error) {
+      // catch (error) {
+      console.error('Tailor Error:', error);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
         description:
           (error as any).response?.data?.message ||
-          'Failed to generate application. Please try again.',
+          'Failed to generate application. Please try  again.',
       });
-      navigateToStep('cl'); // Go back to the previous step on failure
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -703,6 +715,7 @@ export const useApplicationWizard = () => {
       handleCreateCvFormSubmit,
       handleClContextSubmit,
       handleGenerate,
+
       handleCVFileUpload,
       handleStartNew,
       handleSendEmail,

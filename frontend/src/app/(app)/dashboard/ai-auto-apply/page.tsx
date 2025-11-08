@@ -6,8 +6,8 @@ import LaunchCountdown from './LanchCountDown';
 function App() {
   return (
     <div className="App">
-      {/* <MultiStepForm /> */}
-      <LaunchCountdown />
+      <MultiStepForm />
+      {/* <LaunchCountdown /> */}
     </div>
   );
 }

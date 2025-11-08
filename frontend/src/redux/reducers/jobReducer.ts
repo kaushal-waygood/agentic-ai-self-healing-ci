@@ -225,6 +225,20 @@ const jobSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    getRecommendJobsRequest: (state) => {
+      console.log('getRecommendJobsRequest');
+      state.loading = true;
+      state.error = null;
+    },
+    getRecommendJobsSuccess: (state, action: PayloadAction<Job[]>) => {
+      state.loading = false;
+      state.jobs = action.payload;
+    },
+    getRecommendJobsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -251,6 +265,9 @@ export const {
   searchJobRequest,
   searchJobSuccess,
   searchJobFailure,
+  getRecommendJobsRequest,
+  getRecommendJobsSuccess,
+  getRecommendJobsFailure,
 } = jobSlice.actions;
 
 export default jobSlice.reducer;
