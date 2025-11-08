@@ -186,7 +186,7 @@ const Skills = ({
                       <select
                         value={skill.level}
                         onChange={(e) => {
-                          handleLevelChange(skill.skillId, e.target.value);
+                          handleLevelChange(skill._id, e.target.value);
                         }}
                         className="w-full text-gray-600 rounded border-gray-300 px-3 py-2 text-sm border shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                       >

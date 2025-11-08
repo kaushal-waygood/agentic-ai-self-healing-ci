@@ -383,7 +383,8 @@ export const updateStudentSkills = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    const skill = student.skills.find((s) => s.skillId === skillId);
+    const skill = student.skills.find((s) => s._id === _id);
+    console.log(skill);
     if (!skill) {
       return res.status(404).json({ message: 'Skill not found' });
     }
@@ -401,7 +402,6 @@ export const updateStudentSkills = async (req, res) => {
   }
 };
 
-// Experience controller
 export const addExperience = async (req, res) => {
   const { company, title, startDate, endDate, description, currentlyWorking } =
     req.body;
@@ -658,10 +658,6 @@ export const updateEducation = async (req, res) => {
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
-
-    // const education = student.education.find((edu) => {
-    //   return edu.educationId === educationId;
-    // });
 
     const education = student.education.find(
       (edu) => edu._id.toString() === educationId,

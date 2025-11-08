@@ -302,9 +302,14 @@ function* removeStudentSkillsSaga(action: PayloadAction<ID>) {
 function* updateStudentSkillsSaga(
   action: PayloadAction<{ data: Partial<Skill> & { _id: ID }; index: ID }>,
 ) {
+  console.log(action.payload);
   try {
-    const { index, data } = action.payload;
-    const response: AxiosResponse<Skill> = yield call(updateSkill, index, data);
+    const { skillId, skillData } = action.payload;
+    const response: AxiosResponse<Skill> = yield call(
+      updateSkill,
+      skillId,
+      skillData,
+    );
     yield put(updateStudentSkillSuccess(response.data));
     yield put(getStudentDetailsRequest());
   } catch (error) {
