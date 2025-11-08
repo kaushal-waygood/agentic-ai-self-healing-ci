@@ -225,7 +225,7 @@ const Experience = ({
   return (
     <div>
       {/* --- Header --- */}
-      <div className="flex w-full items-center justify-between pb-4">
+      <div className="flex w-full items-center justify-between pb-4 ">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl">
             <Briefcase className="h-6 w-6 text-white" />
@@ -250,7 +250,8 @@ const Experience = ({
       {/* --- Experience List --- */}
       <div
         id="experience"
-        className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-200"
+        // className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-200 max-h-[70vh] overflow-y-auto "
+        className=" p-6  border-purple-200 max-h-[70vh] overflow-y-auto "
       >
         <div className="space-y-4">
           {defaultValues.experience && defaultValues.experience.length > 0 ? (

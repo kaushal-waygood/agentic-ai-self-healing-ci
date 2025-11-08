@@ -16,9 +16,9 @@ const Step1AgentConfig = ({
     values.employmentTypes.length > 0;
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
       {/* ... Header remains the same ... */}
-      <div className="relative bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 rounded-2xl p-8 mb-6 text-white shadow-xl overflow-hidden">
+      <div className="relative bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 rounded-2xl p-4 mb-2 text-white shadow-xl overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center font-bold text-xl">
@@ -39,7 +39,7 @@ const Step1AgentConfig = ({
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-xl p-8 space-y-4 border border-gray-100">
         {/* Agent Identity (Editable) */}
         <div className="space-y-2 group">
           <label className="flex items-center gap-2 font-semibold text-gray-700 text-sm">
@@ -52,7 +52,7 @@ const Step1AgentConfig = ({
               placeholder="e.g. Senior Product Manager Hunter"
               onChange={handleChange('agentName')}
               value={values.agentName} // Use value for controlled component
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 outline-none"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 outline-none hover:border-blue-400 hover:bg-blue-50"
             />
           </div>
         </div>
@@ -60,7 +60,7 @@ const Step1AgentConfig = ({
         {/* Job Title (Disabled on Edit) */}
         <div className="space-y-2 group">
           <label className="flex items-center gap-2 font-semibold text-gray-700 text-sm">
-            <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
             Job Title / Keywords *
           </label>
           <div className="relative">
@@ -70,7 +70,7 @@ const Step1AgentConfig = ({
               onChange={handleChange('jobTitle')}
               value={values.jobTitle}
               disabled={isEditing} // Disable when editing
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl transition-all duration-200 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl transition-all duration-200 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed hover:border-blue-400 hover:bg-blue-50"
             />
           </div>
         </div>
@@ -93,7 +93,7 @@ const Step1AgentConfig = ({
                   ${
                     isEditing
                       ? 'bg-gray-100 cursor-not-allowed'
-                      : 'focus:border-purple-500 focus:ring-4 focus:ring-purple-100'
+                      : 'focus:border-purple-500 focus:ring-4 focus:ring-purple-100 hover:border-blue-400 hover:bg-blue-50'
                   }
                 `}
               />
@@ -144,7 +144,7 @@ const Step1AgentConfig = ({
                 value: 'Full-time',
                 icon: '💼',
                 desc: 'Standard 40-hour work week',
-                color: 'indigo',
+                color: 'purple',
               },
               {
                 value: 'Contractor',
@@ -156,13 +156,13 @@ const Step1AgentConfig = ({
                 value: 'Part-time',
                 icon: '⏰',
                 desc: 'Flexible hours, less than full-time',
-                color: 'pink',
+                color: 'purple',
               },
               {
                 value: 'Internship',
                 icon: '🎓',
                 desc: 'Learning-focused positions',
-                color: 'orange',
+                color: 'purple',
               },
             ].map((type) => (
               <label
@@ -174,7 +174,7 @@ const Step1AgentConfig = ({
                 } ${
                   isEditing
                     ? 'cursor-not-allowed opacity-70'
-                    : 'cursor-pointer hover:border-gray-300 hover:shadow-sm'
+                    : 'cursor-pointer   hover:border-blue-400 hover:bg-blue-50'
                 }`}
               >
                 <input
@@ -226,7 +226,7 @@ const Step1AgentConfig = ({
             disabled={!canProceed}
             className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 ${
               canProceed
-                ? 'bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
