@@ -667,6 +667,8 @@ export const updateEducation = async (req, res) => {
       (edu) => edu._id.toString() === educationId,
     );
 
+    console.log(education);
+
     if (!education) {
       return res.status(404).json({ message: 'Education not found' });
     }
@@ -686,7 +688,6 @@ export const updateEducation = async (req, res) => {
     await student.save();
 
     // Invalidate cache
-    await redisClient.invalidateStudentCache(_id);
 
     res.status(200).json({ message: 'Education updated successfully' });
   } catch (error) {

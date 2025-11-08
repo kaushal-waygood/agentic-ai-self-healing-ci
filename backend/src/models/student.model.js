@@ -264,8 +264,7 @@ const studentSchema = new Schema(
         _id: false,
         job: {
           type: Schema.Types.ObjectId,
-          ref: 'Job', // Now, Mongoose knows what 'Job' is.
-          required: true,
+          ref: 'Job',
         },
         viewedAt: {
           type: Date,

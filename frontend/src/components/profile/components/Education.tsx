@@ -46,14 +46,15 @@ const Education = ({
 
       <div
         id="education"
-        className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200"
+        // className="bg-gradient-to-r  from-blue-50 to-cyan-50 rounded-2xl p-6 border max-h-[70vh] overflow-y-auto  border-blue-200"
+        className=" rounded-2xl p-6  max-h-[70vh] overflow-y-auto  border-blue-200"
       >
-        <div className="space-y-4">
+        <div className="space-y-4  ">
           {defaultValues.education && defaultValues.education.length > 0 ? (
             defaultValues.education.map((edu, index) => (
               <div
                 key={edu._id}
-                className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100"
+                className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100 "
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">

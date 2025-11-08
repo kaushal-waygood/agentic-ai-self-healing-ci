@@ -41,7 +41,8 @@ const Project = ({
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-cyan-50 to-purple-50 rounded-2xl p-6 border border-cyan-200">
+      {/* <div className="bg-gradient-to-r from-cyan-50 to-purple-50 rounded-2xl p-6 border border-cyan-200 max-h-[70vh] overflow-y-auto "> */}
+      <div className=" rounded-2xl p-6 max-h-[70vh] overflow-y-auto ">
         <div className="space-y-4">
           {defaultValues.projects && defaultValues.projects.length > 0 ? (
             defaultValues.projects.map((proj, index) => (
