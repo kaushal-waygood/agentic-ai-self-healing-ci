@@ -379,11 +379,11 @@ export const useProfile = () => {
 
   const onCancel = () => setAddEdu(false);
 
-  const handleLevelChange = (index: number, level: string) => {
-    const skill = studentData?.skills?.[index];
-    if (skill?._id) {
+  const handleLevelChange = (index: string, level: string) => {
+    console.log('handleLevelChange', index, level);
+    if (index) {
       dispatch(
-        updateStudentSkillRequest({ skillId: skill._id, skillData: { level } }),
+        updateStudentSkillRequest({ skillId: index, skillData: { level } }),
       );
     } else {
       console.error('Skill ID not found for update');

@@ -293,34 +293,28 @@ const Skills = ({
                         {skill.level}
                       </span>
                     </div>
-                  </div>
-
-                  {/* Controls (Select and Delete) */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2">
-                    {/* Level Selector */}
-
-                    <select
-                      value={skill.level}
-                      onChange={(e) => {
-                        handleLevelChange(skill._id, e.target.value);
-                      }}
-                      className="flex-1 text-gray-600 rounded-lg border-gray-300   text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none bg-white pr-8"
-                    >
-                      <option value="BEGINNER">Beginner</option>
-                      <option value="INTERMEDIATE">Intermediate</option>
-                      <option value="EXPERT">Expert</option>
-                    </select>
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => {
-                        setDeleteSkill(true);
-                        setDeleteSkillIndex(skill._id);
-                      }}
-                      className="p-2 border border-red-300 rounded-lg text-red-600 hover:bg-red-50 transition-colors flex-shrink-0 w-full sm:w-auto"
-                      title="Delete Skill"
-                    >
-                      <Trash2 className="h-4 w-4 mx-auto sm:mx-0" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={skill.level}
+                        onChange={(e) => {
+                          handleLevelChange(skill._id, e.target.value);
+                        }}
+                        className="w-full text-gray-600 rounded border-gray-300 px-3 py-2 text-sm border shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      >
+                        <option value="BEGINNER">Beginner</option>
+                        <option value="INTERMEDIATE">Intermediate</option>
+                        <option value="EXPERT">Expert</option>
+                      </select>
+                      <button
+                        onClick={() => {
+                          setDeleteSkill(true);
+                          setDeleteSkillIndex(skill._id);
+                        }}
+                        className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))

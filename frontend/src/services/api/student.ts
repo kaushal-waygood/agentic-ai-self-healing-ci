@@ -78,11 +78,11 @@ export const removeSkill = async (data: any) => {
   return response;
 };
 
-export const updateSkill = async (data: any) => {
-  const response = await apiInstance.patch(
-    `/students/skill/update/${data.index}`,
-    { level: data.level },
-  );
+export const updateSkill = async (index: string, data: any) => {
+  console.log('data', data);
+  const response = await apiInstance.patch(`/students/skill/update/${index}`, {
+    level: data.level,
+  });
   return response;
 };
 

@@ -23,9 +23,6 @@ export const initiateCoverLetterGeneration = async (
     const { useProfile, finalTouch, savedCVId } = req.body;
     let studentData;
 
-    console.log('initiateCoverLetterGeneration');
-
-    // Step 1: Get student data (same as CV generation)
     if (useProfile === 'true' || useProfile === true) {
       const student = await Student.findById(_id);
       if (!student) {
@@ -72,8 +69,6 @@ export const initiateCoverLetterGeneration = async (
       }
 
       studentData = JSON.stringify({ htmlCV: html });
-
-      console.log('📡 Using saved CV for generation:', savedCVId);
     } else {
       if (!req.file) {
         return res
