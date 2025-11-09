@@ -127,7 +127,6 @@ const LoginForm = () => {
       dispatch(loginRequest(data));
 
       if (user) {
-        console.log('Login successful! Redirecting to your dashboard...', user);
         router.push('/dashboard');
         successToast('Login successful! Redirecting to your dashboard...');
       } else {

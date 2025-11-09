@@ -1,25 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Save,
-  DollarSign,
-  Settings as SettingsIcon,
-  Briefcase,
-  History,
-  AlertTriangle,
-  X,
-  Trash2,
-} from 'lucide-react';
-import Link from 'next/link';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../ui/card';
-import { Separator } from '@/components/ui/separator';
+import { AlertTriangle, Trash2, X } from 'lucide-react';
 
 import {
   AddEducation,
@@ -33,10 +15,15 @@ import { useCallback, useRef, useState } from 'react';
 import apiInstance from '@/services/api';
 import ProfileInfo from './ProfileInfo';
 import { CareerDetailsComponent } from './CareerDetails';
+import { useDispatch } from 'react-redux';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
+
+type DragEvt = React.DragEvent<HTMLDivElement>;
+type InputChangeEvt = React.ChangeEvent<HTMLInputElement>;
 
 export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
   const {
-    //state
+    // state
     isNameEditable,
     isEmailEditable,
     isPhoneEditable,
@@ -91,14 +78,14 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handleDeleteProject,
     togglePhoneEdit,
 
-    //form
+    // forms
     personalInfoForm,
     careerDetailsForm,
     narrativesForm,
 
     handleDeleteExp,
 
-    //handlers
+    // handlers
     handlePersonalInfoSubmit,
     handleCareerDetailsSubmit,
     handleNarrativesSubmit,
@@ -114,37 +101,20 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handlePersonalInfoEdit,
   } = useProfile();
 
-  const [file, setFile] = useState(null);
+  // File upload state
+  const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const handleFileChange = async (selectedFile) => {
-    if (selectedFile) {
-      setFile(selectedFile);
-    }
-  };
 
-  // const handleUpload = async () => {
-  //   if (!file) return;
+  const dispatch = useDispatch();
 
-  //   setIsUploading(true);
-  //   const formData = new FormData();
-  //   formData.append('cv', file);
+  const handleFileChange = useCallback((selectedFile: File | null) => {
+    if (selectedFile) setFile(selectedFile);
+  }, []);
 
-  //   try {
-  //     const response = await apiInstance.post(
-  //       '/students/resume/extract',
-  //       formData,
-  //     );
-  //   } catch (error) {
-  //     console.error('Error uploading file:', error);
-  //   } finally {
-  //     setIsUploading(false);
-  //   }
-  // };
-
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async () => {
     if (!file) return;
 
     setIsUploading(true);
@@ -153,27 +123,29 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     const formData = new FormData();
     formData.append('cv', file);
 
-    let timer: NodeJS.Timeout | null = null;
+    let rampTimer: ReturnType<typeof setInterval> | null = null;
 
-    // --- Start Simulated Smooth Progress ---
-    timer = setInterval(() => {
+    // Smooth ramp up to ~95%
+    rampTimer = setInterval(() => {
       setProgress((prev) => {
         if (prev < 95) {
-          return prev + Math.floor(Math.random() * 8 + 2); // +2 to +10%
-        } else {
-          clearInterval(timer!);
-          return prev;
+          return Math.min(95, prev + Math.floor(Math.random() * 8 + 2)); // +2..+10
         }
+        if (rampTimer) {
+          clearInterval(rampTimer);
+          rampTimer = null;
+        }
+        return prev;
       });
-    }, 1000);
+    }, 800);
 
     try {
-      // 👇 Add this small delay before making the upload call
-      await new Promise((r) => setTimeout(r, 500));
+      // tiny delay for UX
+      await new Promise((r) => setTimeout(r, 300));
 
       await apiInstance.post('/students/resume/extract', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (event) => {
+        onUploadProgress: (event: ProgressEvent) => {
           if (event.total) {
             const percent = Math.round((event.loaded * 100) / event.total);
             if (percent < 95) setProgress(percent);
@@ -181,71 +153,80 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         },
       });
 
-      // --- After successful upload, complete the bar to 100% smoothly ---
-      clearInterval(timer!);
-      setProgress(95);
+      if (rampTimer) {
+        clearInterval(rampTimer);
+        rampTimer = null;
+      }
 
-      const finishTimer = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(finishTimer);
-            return 100;
-          }
-          return prev + 1;
-        });
-      }, 30);
+      // finish to 100 smoothly
+      let finishTimer: ReturnType<typeof setInterval> | null = setInterval(
+        () => {
+          setProgress((prev) => {
+            if (prev >= 100) {
+              if (finishTimer) clearInterval(finishTimer);
+              finishTimer = null;
+              return 100;
+            }
+            return prev + 1;
+          });
+        },
+        20,
+      );
+
+      dispatch(getStudentDetailsRequest());
     } catch (error) {
+      if (rampTimer) clearInterval(rampTimer);
+      // eslint-disable-next-line no-console
       console.error('Error uploading file:', error);
-      clearInterval(timer!);
     } finally {
-      // --- Reset state after short delay ---
       setTimeout(() => {
         setIsUploading(false);
         setProgress(0);
-      }, 1200);
+      }, 1000);
     }
-  };
+  }, [file]);
 
-  const handleRemoveFile = () => {
+  const handleRemoveFile = useCallback(() => {
     setFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
-  const handleButtonClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
+  const handleButtonClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
-  const handleDragEnter = useCallback((e) => {
+  const handleDragEnter = useCallback((e: DragEvt) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback((e) => {
+  const handleDragLeave = useCallback((e: DragEvt) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   }, []);
 
-  const handleDragOver = useCallback((e) => {
+  const handleDragOver = useCallback((e: DragEvt) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+  const handleDrop = useCallback(
+    (e: DragEvt) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
 
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      handleFileChange(files[0]);
-    }
-  }, []);
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        handleFileChange(files[0]);
+      }
+    },
+    [handleFileChange],
+  );
 
   return (
     <div className="">
@@ -263,7 +244,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         setHandleName={setHandleName}
         setHandleEmail={setHandleEmail}
         togglePhoneEdit={togglePhoneEdit}
-        // creer details
+        // career details + upload
         fileInputRef={fileInputRef}
         file={file}
         isDragging={isDragging}
@@ -347,65 +328,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         handleLevelChange={handleLevelChange}
       />
 
-      {/* <Card id="narratives">
-        <CardHeader>
-          <CardTitle className="text-xl font-headline">
-            Personalize Your AI Documents
-          </CardTitle>
-          <CardDescription>
-            Share key experiences to help the AI tailor your CV and cover
-            letters more effectively, making them unique to you.
-          </CardDescription>
-        </CardHeader>
-      </Card> */}
-      {/* <div className="max-w-full mx-auto p-4 sm:p-6">
-        <Card className="" id="search-prefs">
-          <CardHeader>
-            <CardTitle className=" text-xl font-headline flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary" />
-              Job Search Preferences
-            </CardTitle>
-            <CardDescription>
-              Configure your default preferences for job searching.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <JobPreferencesForm />
-          </CardContent>
-        </Card>
-      </div> */}
-
-      {/* Account Management section */}
-      {/* {!isOnboarding && (
-        <>
-          <Separator />
-          <div>
-            <h3 className="text-lg font-medium mb-3 font-headline">
-              Account Management
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <Button variant="outline" asChild>
-                <Link href="/subscriptions">
-                  <DollarSign className="mr-2 h-4 w-4" /> Manage Subscription
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/applications">
-                  <History className="mr-2 h-4 w-4" /> View Application History
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/settings">
-                  <SettingsIcon className="mr-2 h-4 w-4" /> Account Settings
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </>
-      )} */}
-
-      {/* add education, project, experience, skill */}
+      {/* Add modals */}
       {addEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
@@ -438,13 +361,13 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         </div>
       )}
 
-      {/* edit education, project, experience */}
+      {/* Edit modals (guarded with optional chaining to avoid undefined indices) */}
       {editEdu && (
         <div className="w-full h-full z-[999] fixed top-0 left-0 bg-black bg-opacity-50">
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
             <AddEducation
               onCancel={() => setEditEdu(false)}
-              data={defaultValues.education[editEduIndex]}
+              data={defaultValues?.education?.[editEduIndex]}
               isEdit={true}
             />
           </div>
@@ -456,7 +379,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
             <AddExperience
               onCancel={() => setEditExp(false)}
-              data={defaultValues.experience[editExpIndex]}
+              data={defaultValues?.experience?.[editExpIndex]}
               index={editExpIndex}
               isEdit={true}
             />
@@ -469,17 +392,17 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
           <div className="w-full max-w-3xl md:h-full max-h-[80vh] overflow-y-auto z-[1000] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  p-4 rounded-lg">
             <AddProject
               onCancel={() => setEditProj(false)}
-              data={defaultValues.projects[editProjIndex]}
+              data={defaultValues?.projects?.[editProjIndex]}
               isEdit={true}
             />
           </div>
         </div>
       )}
 
+      {/* Delete dialogs — all close buttons now call the correct setter */}
       {deleteEdu && (
         <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
             <div className="relative p-6 pb-4">
               <button
                 onClick={() => setDeleteEdu(false)}
@@ -503,16 +426,13 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
               </div>
             </div>
 
-            {/* Content */}
             <div className="px-6 pb-2">
               <p className="text-gray-600 leading-relaxed">
                 Are you sure you want to permanently delete this education
-                entry? All associated information will be removed from your
-                profile.
+                entry?
               </p>
             </div>
 
-            {/* Actions */}
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
               <Button onClick={() => setDeleteEdu(false)} className="px-6">
                 Cancel
@@ -520,7 +440,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
               <Button
                 variant="destructive"
                 onClick={() => {
-                  console.log('deleteEduIndex', deleteEduIndex);
+                  console.log(deleteEduIndex);
                   deleteEducation(deleteEduIndex);
                   setDeleteEdu(false);
                 }}
@@ -537,10 +457,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       {deleteExp && (
         <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
             <div className="relative p-6 pb-4">
               <button
-                onClick={() => setDeleteEdu(false)}
+                onClick={() => setDeleteExp(false)}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
               >
                 <X className="w-4 h-4 text-gray-400" />
@@ -552,7 +471,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Delete Education Entry
+                    Delete Experience Entry
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
                     This action cannot be undone
@@ -561,16 +480,13 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
               </div>
             </div>
 
-            {/* Content */}
             <div className="px-6 pb-2">
               <p className="text-gray-600 leading-relaxed">
-                Are you sure you want to permanently delete this education
-                entry? All associated information will be removed from your
-                profile.
+                Are you sure you want to permanently delete this experience
+                entry?
               </p>
             </div>
 
-            {/* Actions */}
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
               <Button onClick={() => setDeleteExp(false)} className="px-6">
                 Cancel
@@ -594,10 +510,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       {deleteSkill && (
         <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
             <div className="relative p-6 pb-4">
               <button
-                onClick={() => setDeleteEdu(false)}
+                onClick={() => setDeleteSkill(false)}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
               >
                 <X className="w-4 h-4 text-gray-400" />
@@ -609,7 +524,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Delete Education Entry
+                    Delete Skill
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
                     This action cannot be undone
@@ -618,16 +533,12 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
               </div>
             </div>
 
-            {/* Content */}
             <div className="px-6 pb-2">
               <p className="text-gray-600 leading-relaxed">
-                Are you sure you want to permanently delete this education
-                entry? All associated information will be removed from your
-                profile.
+                Are you sure you want to permanently delete this skill?
               </p>
             </div>
 
-            {/* Actions */}
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
               <Button onClick={() => setDeleteSkill(false)} className="px-6">
                 Cancel
@@ -651,10 +562,9 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
       {deleteProj && (
         <div className="w-full z-[999] h-full fixed top-0 left-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
             <div className="relative p-6 pb-4">
               <button
-                onClick={() => setDeleteEdu(false)}
+                onClick={() => setDeleteProj(false)}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
               >
                 <X className="w-4 h-4 text-gray-400" />
@@ -666,7 +576,7 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Delete Education Entry
+                    Delete Project
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
                     This action cannot be undone
@@ -675,16 +585,12 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
               </div>
             </div>
 
-            {/* Content */}
             <div className="px-6 pb-2">
               <p className="text-gray-600 leading-relaxed">
-                Are you sure you want to permanently delete this education
-                entry? All associated information will be removed from your
-                profile.
+                Are you sure you want to permanently delete this project?
               </p>
             </div>
 
-            {/* Actions */}
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
               <Button onClick={() => setDeleteProj(false)} className="px-6">
                 Cancel

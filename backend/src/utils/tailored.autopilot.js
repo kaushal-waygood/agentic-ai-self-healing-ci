@@ -1,4 +1,4 @@
-// src/utils/tailoredApply.background.js
+// src/utils/tailored.autopilot.js
 import { genAI } from '../config/gemini.js';
 import {
   generateCVPrompts,
@@ -34,11 +34,7 @@ const genAIWithRetry = async (prompt, retries = 3, delay = 1000) => {
 
 // Normalize payload so both API path and worker path work
 const normalizeApplicationData = (raw) => {
-  // API shape: { job: {title, company, description}, candidate: JSON, coverLetter, preferences }
-  // Worker shape (old): { job: {...rich}, student: {...}, finalTouch }
-  if (raw?.candidate) {
-    return raw;
-  }
+  if (raw?.candidate) return raw;
   return {
     job: {
       title: raw?.job?.title || '',
@@ -100,15 +96,24 @@ export const processTailoredApplication = async (
       );
     }
 
-    // Notify
-    await sendRealTimeUserNotification(
-      io,
-      userId,
-      notificationTemplates.TAILORED_APPLICATION_GENERATED_SUCCESS(
-        'Your tailored application is ready!',
-        applicationId,
-      ),
-    );
+    // Notify (null-safe)
+    try {
+      if (io) {
+        await sendRealTimeUserNotification(
+          io,
+          userId,
+          notificationTemplates.TAILORED_APPLICATION_GENERATED_SUCCESS(
+            'Your tailored application is ready!',
+            applicationId,
+          ),
+        );
+      }
+    } catch (notifyErr) {
+      console.warn(
+        '[TAILORED] Notification failed:',
+        notifyErr?.message || notifyErr,
+      );
+    }
 
     console.log(
       `[TAILORED] DONE user=${userId} app=${applicationId} status=completed`,
@@ -116,33 +121,50 @@ export const processTailoredApplication = async (
   } catch (error) {
     console.error(
       `[TAILORED] FAIL user=${userId} app=${applicationId}:`,
-      error?.message || error,
+      error?.stack || error?.message || error,
     );
 
     const errorMessage =
       error?.message || 'An unknown error occurred during generation.';
 
-    await Student.updateOne(
-      {
-        _id: userId,
-        'tailoredApplications._id': applicationId,
-      },
-      {
-        $set: {
-          'tailoredApplications.$.status': 'failed',
-          'tailoredApplications.$.error': errorMessage,
-          'tailoredApplications.$.completedAt': new Date(),
+    try {
+      await Student.updateOne(
+        {
+          _id: userId,
+          'tailoredApplications._id': applicationId,
         },
-      },
-    );
+        {
+          $set: {
+            'tailoredApplications.$.status': 'failed',
+            'tailoredApplications.$.error': errorMessage,
+            'tailoredApplications.$.completedAt': new Date(),
+          },
+        },
+      );
+    } catch (updateErr) {
+      console.error(
+        '[TAILORED] Failed to mark application as failed:',
+        updateErr,
+      );
+    }
 
-    await sendRealTimeUserNotification(
-      io,
-      userId,
-      notificationTemplates.TAILORED_APPLICATION_GENERATED_FAILED(
-        'Tailored application generation failed.',
-        errorMessage,
-      ),
-    );
+    // Notify (null-safe)
+    try {
+      if (io) {
+        await sendRealTimeUserNotification(
+          io,
+          userId,
+          notificationTemplates.TAILORED_APPLICATION_GENERATED_FAILED(
+            'Tailored application generation failed.',
+            errorMessage,
+          ),
+        );
+      }
+    } catch (notifyErr) {
+      console.warn(
+        '[TAILORED] Notification failed (error path):',
+        notifyErr?.message || notifyErr,
+      );
+    }
   }
 };

@@ -49,46 +49,42 @@ export const updateJobStatus = async (id: string) => {
   return response;
 };
 
-// services/api/job.ts
+  export const searchJobs = async (params: {
+    page: number;
+    query?: string;
+    country?: string;
+    city?: string;
+    state: string;
+    datePosted?: string;
+    employmentType?: string;
+    experience?: string;
+    limit?: number;
+  }) => {
+    const { page, limit = 10, query, ...filters } = params;
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
 
-// ... (keep other functions like getAllJobs, getJobBySlug, etc.)
+    // The main search term
+    if (query) queryParams.append('q', query);
 
-// CORRECTED: Make searchJobs accept the same parameters as getAllJobs
-export const searchJobs = async (params: {
-  page: number;
-  query?: string;
-  country?: string;
-  city?: string;
-  state: string;
-  datePosted?: string;
-  employmentType?: string;
-  experience?: string;
-  limit?: number;
-}) => {
-  const { page, limit = 10, query, ...filters } = params;
-  const queryParams = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-  });
+    // Add other filters if they exist
+    if (filters.country) queryParams.append('country', filters.country);
+    if (filters.state) queryParams.append('state', filters.state);
+    if (filters.datePosted) queryParams.append('datePosted', filters.datePosted);
+    if (filters.employmentType)
+      queryParams.append('employmentType', filters.employmentType);
+    if (filters.experience) queryParams.append('experience', filters.experience);
 
-  console.log(params);
+    // Note the endpoint is /jobs/search
+    const response = await apiInstance.get(
+      `/jobs/search?${queryParams.toString()}`,
+    );
+    return response;
+  };
 
-  // The main search term
-  if (query) queryParams.append('q', query);
-
-  // Add other filters if they exist
-  if (filters.country) queryParams.append('country', filters.country);
-  if (filters.state) queryParams.append('state', filters.state);
-  if (filters.datePosted) queryParams.append('datePosted', filters.datePosted);
-  if (filters.employmentType)
-    queryParams.append('employmentType', filters.employmentType);
-  if (filters.experience) queryParams.append('experience', filters.experience);
-
-  console.log(queryParams.toString());
-
-  // Note the endpoint is /jobs/search
-  const response = await apiInstance.get(
-    `/jobs/search?${queryParams.toString()}`,
-  );
-  return response;
-};
+  export const getRecommendJobs = async () => {
+    const response = await apiInstance.get('/students/jobs/recommended');
+    return response;
+  };

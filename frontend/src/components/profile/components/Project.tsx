@@ -10,11 +10,6 @@ import {
 } from 'lucide-react';
 
 const Project = ({
-  setAddEdu,
-  setEditEdu,
-  setEditEduIndex,
-  setDeleteEdu,
-  setDeleteEduIndex,
   setAddProj,
   setEditProj,
   setEditProjIndex,
@@ -46,7 +41,8 @@ const Project = ({
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-cyan-50 to-purple-50 rounded-2xl p-6 border border-cyan-200">
+      {/* <div className="bg-gradient-to-r from-cyan-50 to-purple-50 rounded-2xl p-6 border border-cyan-200 max-h-[70vh] overflow-y-auto "> */}
+      <div className=" rounded-2xl p-6 max-h-[70vh] overflow-y-auto ">
         <div className="space-y-4">
           {defaultValues.projects && defaultValues.projects.length > 0 ? (
             defaultValues.projects.map((proj, index) => (
@@ -78,7 +74,6 @@ const Project = ({
                       size="icon"
                       variant="outline"
                       onClick={(e) => {
-                        e.stopPropagation();
                         setDeleteProj(true);
                         setDeleteProjIndex(proj._id);
                       }}

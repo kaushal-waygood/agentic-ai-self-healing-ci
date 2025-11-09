@@ -15,10 +15,10 @@ export const removeEducation = async (data: any) => {
   return response;
 };
 
-export const updateEducation = async (educationId: any, eduData: any) => {
+export const updateEducation = async (index: any, data: any) => {
   const response = await apiInstance.patch(
-    `/students/education/update/${educationId}`,
-    eduData,
+    `/students/education/update/${index}`,
+    data,
   );
   return response;
 };
@@ -35,9 +35,9 @@ export const removeExperience = async (data: any) => {
   return response;
 };
 
-export const updateExperience = async (data: any, index: any) => {
+export const updateExperience = async (index: any, data: any) => {
   const response = await apiInstance.patch(
-    `/students/experience/update/${data._id}`,
+    `/students/experience/update/${index}`,
     data,
   );
   return response;
@@ -48,9 +48,9 @@ export const addProject = async (data: any) => {
   return response;
 };
 
-export const updateProject = async (data: any, index: any) => {
+export const updateProject = async (index: any, data: any) => {
   const response = await apiInstance.patch(
-    `/students/project/update/${data._id}`,
+    `/students/project/update/${index}`,
     data,
   );
   return response;
@@ -60,6 +60,11 @@ export const removeProject = async (index: any) => {
   const response = await apiInstance.delete(
     '/students/project/remove/' + index,
   );
+  return response;
+};
+
+export const getAllProjects = async () => {
+  const response = await apiInstance.get('/students/projects');
   return response;
 };
 
@@ -73,11 +78,11 @@ export const removeSkill = async (data: any) => {
   return response;
 };
 
-export const updateSkill = async (data: any) => {
-  const response = await apiInstance.patch(
-    `/students/skill/update/${data.index}`,
-    { level: data.level },
-  );
+export const updateSkill = async (index: string, data: any) => {
+  console.log('data', data);
+  const response = await apiInstance.patch(`/students/skill/update/${index}`, {
+    level: data.level,
+  });
   return response;
 };
 

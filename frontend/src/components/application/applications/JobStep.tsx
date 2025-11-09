@@ -176,7 +176,6 @@ export function JobStep({
 
     fetchSavedJobs();
   }, []);
-  console.log('jobs ', savedJobs);
 
   // ✅ Added: Character tracking logic (non-breaking)
   const charCount = pastedJobDesc.trim().length;

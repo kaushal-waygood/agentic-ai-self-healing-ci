@@ -32,6 +32,8 @@ import {
   deleteSingleCL,
   deleteSingleTailoredApplication,
   refreshStatus,
+  renameHtmlCV,
+  renameCoverLetter,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 import {
@@ -112,14 +114,11 @@ router.post(
   generateCoverLetterByJD,
 );
 
+router.patch('/cv/:id/rename', authMiddleware, isStudent, renameHtmlCV);
+router.patch('/cl/:id/rename', authMiddleware, isStudent, renameCoverLetter);
 router.get('/status/:type/:id', authMiddleware, isStudent, refreshStatus);
-
-// SSE route for real-time updates
 router.get('/sse/:jobId', authMiddleware, isStudent, cvGenerationSSE);
-
-// Fallback polling route
 router.get('/status/:jobId', getCVGenerationStatus);
-
 router.post(
   '/coverletter/generate/jobid',
   authMiddleware,

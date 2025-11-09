@@ -2,15 +2,19 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'; // 1. Import useRef
 import { useDispatch, useSelector } from 'react-redux';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
-import { searchJobRequest } from '@/redux/reducers/jobReducer';
+import {
+  getRecommendJobsRequest,
+  searchJobRequest,
+} from '@/redux/reducers/jobReducer';
 import { RootState } from '@/redux/rootReducer';
 import apiInstance from '@/services/api';
 
 export const useJobs = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
+  const pathName = usePathname();
 
   const {
     jobs,
@@ -35,7 +39,11 @@ export const useJobs = () => {
       employmentType: searchParams.get('employmentType')?.split(',') || [],
       experience: searchParams.get('experience')?.split(',') || [],
     };
-    dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
+    if (pathName === '/dashboard/search-jobs') {
+      searchJobRequest({ ...filtersFromUrl, page: 1, append: false });
+      // dispatch(getRecommendJobsRequest());
+    } else if (pathName === '/search-jobs')
+      dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
   }, [dispatch, searchParams]);
 
   // Effect to fetch static metadata for filters (runs once)

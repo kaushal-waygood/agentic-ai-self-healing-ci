@@ -30,6 +30,7 @@ import SkillsExperienceStep from './SkillsExperienceStep';
 import ProjectsStep from './ProjectsStep';
 import JobPreferencesStep from './JobPreferencesStep';
 import AvailabilityStep from './AvailabilityStep';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 
 // --- START: TYPE DEFINITIONS ---
 // Matches the EducationStep component

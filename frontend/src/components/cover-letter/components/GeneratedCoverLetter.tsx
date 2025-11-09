@@ -108,6 +108,7 @@ const GeneratedCoverLetter = ({
                   handleRegenerate={handleRegenerate}
                   isHtml
                   handleSave={handleInitiateSave}
+                  type="coverletter"
                 />
               </CardContent>
             </Card>

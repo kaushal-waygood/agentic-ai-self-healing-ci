@@ -20,18 +20,55 @@ export const initiateCoverLetterGeneration = async (
 ) => {
   try {
     const { _id } = req.user;
-    const { useProfile, finalTouch } = req.body;
+    const { useProfile, finalTouch, savedCVId } = req.body;
     let studentData;
 
-    console.log('initiateCoverLetterGeneration');
-
-    // Step 1: Get student data (same as CV generation)
     if (useProfile === 'true' || useProfile === true) {
       const student = await Student.findById(_id);
       if (!student) {
         return res.status(404).json({ error: 'Student profile not found' });
       }
       studentData = JSON.stringify(student);
+    } else if (savedCVId) {
+      if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
+        return res.status(400).json({ error: 'Invalid savedCVId' });
+      }
+
+      // Fetch only what's needed
+      const studentWithCVs = await Student.findById(_id).select('htmlCV');
+      if (!studentWithCVs) {
+        return res.status(404).json({ error: 'Student profile not found' });
+      }
+
+      if (
+        !Array.isArray(studentWithCVs.htmlCV) ||
+        studentWithCVs.htmlCV.length === 0
+      ) {
+        return res
+          .status(404)
+          .json({ error: 'No saved CVs found for this student' });
+      }
+
+      const saved =
+        studentWithCVs.htmlCV.id(savedCVId) ||
+        studentWithCVs.htmlCV.find(
+          (cv) => String(cv._id) === String(savedCVId),
+        );
+
+      if (!saved) {
+        return res.status(404).json({ error: 'Saved CV not found' });
+      }
+
+      const html =
+        saved.html ?? saved.content ?? saved.htmlCV ?? saved.body ?? null;
+
+      if (!html || typeof html !== 'string' || !html.trim()) {
+        return res
+          .status(422)
+          .json({ error: 'Saved CV has no usable HTML content' });
+      }
+
+      studentData = JSON.stringify({ htmlCV: html });
     } else {
       if (!req.file) {
         return res

@@ -58,7 +58,6 @@ const GeneratedCV = ({
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
 
-  // Use mock data if no generatedCvOutput is provided
   const cvData = generatedCvOutput || mockData;
 
   useEffect(() => {
@@ -135,7 +134,7 @@ const GeneratedCV = ({
 
   // Safe data extraction with fallbacks
   const atsScore = cvData?.atsScore || cvData?.ats || 0;
-  const cvContent = cvData?.cv || '';
+  const cvContent = cvData?.cv;
 
   return (
     <div className="min-h-screen p-2 md:p-3 lg:p-4">
@@ -189,13 +188,16 @@ const GeneratedCV = ({
             <div className="p-2 md:p-3 lg:p-4">
               <EditableMaterial
                 isEditing={isEditing}
-                content={cvContent.cv}
+                content={
+                  typeof cvContent.cv === 'object' ? cvContent.cv : cvContent
+                }
                 isHtml={true}
                 setContent={setEditableContent}
                 handleEditToggle={handleEditToggle}
                 handleDownload={handleDownload}
                 isDownloadingPdf={isDownloadingPdf}
                 isDownloadingDocx={isDownloadingDocx}
+                type="resume"
               />
             </div>
           ) : (
