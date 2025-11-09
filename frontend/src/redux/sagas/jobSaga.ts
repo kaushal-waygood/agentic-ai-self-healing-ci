@@ -198,7 +198,6 @@ function* searchJobsSaga(
 
 function* getRecommendJobsSaga() {
   try {
-    console.log('getRecommendJobsSaga');
     const response: AxiosResponse = yield call(getRecommendJobs);
     console.log('response', response.data.jobs);
     yield put(getRecommendJobsSuccess(response.data.jobs));
