@@ -39,9 +39,10 @@ export const useJobs = () => {
       employmentType: searchParams.get('employmentType')?.split(',') || [],
       experience: searchParams.get('experience')?.split(',') || [],
     };
-    if (pathName === '/dashboard/search-jobs')
-      dispatch(getRecommendJobsRequest());
-    else if (pathName === '/search-jobs')
+    if (pathName === '/dashboard/search-jobs') {
+      searchJobRequest({ ...filtersFromUrl, page: 1, append: false });
+      // dispatch(getRecommendJobsRequest());
+    } else if (pathName === '/search-jobs')
       dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
   }, [dispatch, searchParams]);
 
