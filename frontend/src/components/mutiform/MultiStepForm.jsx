@@ -7,12 +7,20 @@ import Step2ChooseCV from './Step2ChooseCV';
 import Step3CoverLetter from './Step3CoverLetter';
 import Step4ConfigureSave from './Step4ConfigureSave';
 import apiInstance from '@/services/api';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import {
+  createAutopilotRequest,
+  getAutopilotRequest,
+} from '@/redux/reducers/autopilotReducer';
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(0);
   // State to hold the list of created agents
   const [agents, setAgents] = useState([]);
   const [editingAgentId, setEditingAgentId] = useState(null); // Track agent being edited
+  const dispatch = useDispatch();
+  const { autopilot, error, loading } = useSelector((state) => state.autopilot);
 
   const initialFormData = {
     agentName: '',
@@ -37,8 +45,6 @@ const MultiStepForm = () => {
     setFormData({ ...formData, [input]: value });
   };
 
-  console.log('form data : ', formData);
-
   const handleDeleteAgent = async (agentId) => {
     if (window.confirm('Are you sure you want to delete this agent?')) {
       try {
@@ -47,6 +53,7 @@ const MultiStepForm = () => {
 
         // 2. Only update the UI state after a successful deletion
         setAgents(agents.filter((agent) => agent._id !== agentId));
+        dispatch(getAutopilotRequest());
         alert('Agent deleted successfully.');
       } catch (error) {
         // 3. If the API fails, show an error and do NOT change the UI
@@ -115,6 +122,7 @@ const MultiStepForm = () => {
         );
         alert(`Agent "${formData.agentName}" has been updated successfully!`);
         setEditingAgentId(null);
+        dispatch(getAutopilotRequest());
       } else {
         const response = await apiInstance.post(
           '/pilotagent/create',
@@ -122,9 +130,9 @@ const MultiStepForm = () => {
         );
         const newAgent = response.data;
 
-        // On successful API response, THEN update the local state
         setAgents((prevAgents) => [...prevAgents, newAgent]);
         alert(`Agent "${formData.agentName}" has been created successfully!`);
+        dispatch(getAutopilotRequest());
       }
 
       // Reset form and return to dashboard on success
@@ -139,9 +147,7 @@ const MultiStepForm = () => {
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const response = await apiInstance.get('/pilotagent/get');
-        const data = await response.data;
-        setAgents(data.data.autoPilot);
+        dispatch(getAutopilotRequest());
       } catch (error) {
         console.error('Error fetching agents:', error);
       }
@@ -156,7 +162,7 @@ const MultiStepForm = () => {
         return (
           <Step0_Intro
             nextStep={nextStep}
-            agents={agents}
+            agents={autopilot}
             onEdit={handleEditAgent}
             onDelete={handleDeleteAgent}
           />

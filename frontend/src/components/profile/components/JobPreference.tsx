@@ -689,18 +689,121 @@ const JobPreferencesForm = () => {
     }
   };
 
+  // return (
+  //   <div className="  dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+  //     <div className="rounded-2xl p-2 max-h-[70vh] overflow-y-auto ">
+  //       {/* Header */}
+  //       <div className="text-center mb-6">
+  //         {/* <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full mb-6 shadow-lg shadow-purple-400/30">
+  //           <Briefcase className="w-10 h-10 text-white" />
+  //         </div> */}
+  //         <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-4">
+  //           Job Preferences
+  //         </h1>
+  //         <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+  //           Tell us about your dream job and we'll help you find the perfect
+  //           match. Complete each section to get personalized job
+  //           recommendations.
+  //         </p>
+  //       </div>
+
+  //       {/* Navigation */}
+  //       <SectionNavigation />
+
+  //       {/* Form Content */}
+  //       <div className="max-w-6xl mx-auto">
+  //         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3">
+  //           <div className="mb-2">
+  //             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+  //               {sections.find((s) => s.id === activeSection)?.label}
+  //             </h2>
+  //             <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-24"></div>
+  //           </div>
+
+  //           {renderActiveSection()}
+  //         </div>
+  //       </div>
+
+  //       {/* Action Buttons */}
+
+  //       <div className="flex justify-center gap-4 mt-8">
+  //         {/* <button className="px-8 py-4 bg-gradient-to-r from-slate-400 to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-slate-400/30 hover:shadow-xl hover:shadow-slate-400/40 transform hover:scale-105 transition-all duration-300">
+  //           Save Draft
+  //         </button> */}
+
+  //         {/* Back button */}
+  //         {sections.findIndex((s) => s.id === activeSection) > 0 && (
+  //           <button
+  //             onClick={handlePreviousSection}
+  //             className="px-8 py-4 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+  //           >
+  //             Back
+  //           </button>
+  //         )}
+
+  //         {/* Next button */}
+  //         {sections.findIndex((s) => s.id === activeSection) <
+  //           sections.length - 1 && (
+  //           <button
+  //             onClick={handleNextSection}
+  //             className="px-8 py-4 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
+  //           >
+  //             Next
+  //           </button>
+  //         )}
+
+  //         {/* Save Preferences button only on the last section */}
+  //         {sections.findIndex((s) => s.id === activeSection) ===
+  //           sections.length - 1 && (
+  //           <button
+  //             onClick={handleSavePreferences}
+  //             className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
+  //           >
+  //             Save Preferences
+  //           </button>
+  //         )}
+  //         {/* <button
+  //           onClick={handleSavePreferences}
+  //           className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
+  //         >
+  //           Save Preferences
+  //         </button> */}
+  //       </div>
+
+  //       {/* Progress Indicator */}
+  //       <div className="max-w-md mx-auto mt-8">
+  //         <div className="flex justify-between items-center">
+  //           {sections.map((section, index) => (
+  //             <div key={section.id} className="flex items-center">
+  //               <div
+  //                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+  //                   activeSection === section.id
+  //                     ? `bg-gradient-to-r from-${section.color}-400 to-${section.color}-600 text-white shadow-lg`
+  //                     : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+  //                 }`}
+  //               >
+  //                 {index + 1}
+  //               </div>
+  //               {index < sections.length - 1 && (
+  //                 <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+  //               )}
+  //             </div>
+  //           ))}
+  //         </div>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="container mx-auto px-4 py-4">
+    <div className="  dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="rounded-xl p-4 sm:p-6 md:p-2 max-h-[80vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          {/* <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full mb-6 shadow-lg shadow-purple-400/30">
-            <Briefcase className="w-10 h-10 text-white" />
-          </div> */}
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-3 sm:mb-4">
             Job Preferences
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+          <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base max-w-2xl mx-auto px-2">
             Tell us about your dream job and we'll help you find the perfect
             match. Complete each section to get personalized job
             recommendations.
@@ -708,16 +811,18 @@ const JobPreferencesForm = () => {
         </div>
 
         {/* Navigation */}
-        <SectionNavigation />
+        <div className="mb-4 sm:mb-6">
+          <SectionNavigation />
+        </div>
 
         {/* Form Content */}
         <div className="max-w-6xl mx-auto">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3">
-            <div className="mb-2">
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3 sm:p-6 md:p-8">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
                 {sections.find((s) => s.id === activeSection)?.label}
               </h2>
-              <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-24"></div>
+              <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-20 sm:w-24"></div>
             </div>
 
             {renderActiveSection()}
@@ -725,54 +830,43 @@ const JobPreferencesForm = () => {
         </div>
 
         {/* Action Buttons */}
-
-        <div className="flex justify-center gap-4 mt-8">
-          {/* <button className="px-8 py-4 bg-gradient-to-r from-slate-400 to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-slate-400/30 hover:shadow-xl hover:shadow-slate-400/40 transform hover:scale-105 transition-all duration-300">
-            Save Draft
-          </button> */}
-
-          {/* Back button */}
+        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-8">
+          {/* Back Button */}
           {sections.findIndex((s) => s.id === activeSection) > 0 && (
             <button
               onClick={handlePreviousSection}
-              className="px-8 py-4 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
             >
               Back
             </button>
           )}
 
-          {/* Next button */}
+          {/* Next Button */}
           {sections.findIndex((s) => s.id === activeSection) <
             sections.length - 1 && (
             <button
               onClick={handleNextSection}
-              className="px-8 py-4 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
             >
               Next
             </button>
           )}
 
-          {/* Save Preferences button only on the last section */}
+          {/* Save Preferences (Only on Last Section) */}
           {sections.findIndex((s) => s.id === activeSection) ===
             sections.length - 1 && (
             <button
               onClick={handleSavePreferences}
-              className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
             >
               Save Preferences
             </button>
           )}
-          {/* <button
-            onClick={handleSavePreferences}
-            className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
-          >
-            Save Preferences
-          </button> */}
         </div>
 
         {/* Progress Indicator */}
-        <div className="max-w-md mx-auto mt-8">
-          <div className="flex justify-between items-center">
+        <div className="max-w-md mx-auto mt-8 ">
+          <div className="flex justify-between items-center flex-wrap gap-1 sm:gap-0">
             {sections.map((section, index) => (
               <div key={section.id} className="flex items-center">
                 <div
@@ -785,7 +879,7 @@ const JobPreferencesForm = () => {
                   {index + 1}
                 </div>
                 {index < sections.length - 1 && (
-                  <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                  <div className="w-6 sm:w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-2"></div>
                 )}
               </div>
             ))}
