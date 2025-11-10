@@ -19,9 +19,9 @@ const Project = ({
 }: any) => {
   return (
     <div>
-      <div className="flex w-full items-center justify-between pb-4">
+      <div className="flex w-full items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+          <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
             <Package className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl font-bold text-gray-800">Projects</h3>
@@ -33,7 +33,7 @@ const Project = ({
               e.stopPropagation();
               setAddProj(true);
             }}
-            className="w-full flex items-center justify-center py-2 px-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-cyan-600 hover:to-purple-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+            className="w-full  flex items-center justify-center py-2 px-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-cyan-600 hover:to-purple-700 text-white rounded-lg  transition-all duration-300"
           >
             <PlusCircle className="mr-2 h-5 w-5" />
             Add Project
@@ -42,13 +42,13 @@ const Project = ({
       </div>
 
       {/* <div className="bg-gradient-to-r from-cyan-50 to-purple-50 rounded-2xl p-6 border border-cyan-200 max-h-[70vh] overflow-y-auto "> */}
-      <div className=" rounded-2xl p-6 max-h-[70vh] overflow-y-auto ">
+      <div className=" rounded-lg p-2 max-h-[70vh] overflow-y-auto ">
         <div className="space-y-4">
           {defaultValues.projects && defaultValues.projects.length > 0 ? (
             defaultValues.projects.map((proj, index) => (
               <div
                 key={proj._id}
-                className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-cyan-100"
+                className="bg-white rounded-lg p-5  transition-all duration-300 border border-cyan-100"
               >
                 <div className="flex justify-between items-center">
                   <div className="flex-1 pr-4">

@@ -17,9 +17,9 @@ async function startHttpServer() {
   await connectDb();
 
   // Start worker supervisor after DB connects
-  startWorkerSupervisor().catch((err) => {
-    console.error('[WorkerSupervisor] Failed to start:', err);
-  });
+  // startWorkerSupervisor().catch((err) => {
+  //   console.error('[WorkerSupervisor] Failed to start:', err);
+  // });
 
   const server = createServer(app);
   const io = new SocketIOServer(server, {
@@ -28,7 +28,7 @@ async function startHttpServer() {
       credentials: true,
     },
   });
-  setupNotificationSocket(io);
+  // setupNotificationSocket(io);
   app.set('io', io);
 
   const PORT = process.env.PORT || appConfig.port || 8080;
@@ -38,7 +38,7 @@ async function startHttpServer() {
 
   const shutdown = async (signal) => {
     console.log(`${signal} received. Shutting down.`);
-    await stopWorkerSupervisor();
+    // await stopWorkerSupervisor();
     io.close();
     server.close(() => process.exit(0));
   };

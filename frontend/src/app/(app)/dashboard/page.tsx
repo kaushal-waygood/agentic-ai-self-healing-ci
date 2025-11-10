@@ -641,7 +641,7 @@ export default function DashboardPage() {
                 description="Total applications in your pipeline"
                 color="purple"
                 actionText="View Applications"
-                actionLink="/dashboard/applications"
+                actionLink="/dashboard/my-docs?tab=applications"
               />
               <StatCard
                 title="Saved CVs"
@@ -650,7 +650,7 @@ export default function DashboardPage() {
                 description="Total CVs generated with AI"
                 color="blue"
                 actionText="Manage CVs"
-                actionLink="/dashboard/cv-generator"
+                actionLink="/dashboard/my-docs?tab=cvs"
               />
               <StatCard
                 title="Saved Jobs"
@@ -668,7 +668,7 @@ export default function DashboardPage() {
                 description="Documents prepared with AI"
                 color="green"
                 actionText="Create More"
-                actionLink="/dashboard/cover-letter-generator"
+                actionLink="dashboard/my-docs?tab=cover-letters"
               />
               <StatCard
                 title="Referral Count"

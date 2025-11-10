@@ -4,6 +4,7 @@ import organizationsReducer from './reducers/organizationsReducer';
 import jobsReducer from './reducers/jobReducer';
 import studentReducer from './reducers/studentReducer';
 import aiReducer from './reducers/aiReducer';
+import autopilotReducer from './reducers/autopilotReducer';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -11,6 +12,7 @@ const rootReducer = combineReducers({
   jobs: jobsReducer,
   student: studentReducer,
   ai: aiReducer,
+  autopilot: autopilotReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
