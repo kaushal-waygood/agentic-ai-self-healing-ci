@@ -121,27 +121,7 @@ export function ApplicationWizardClient() {
           />
         );
       case 'generate':
-        // If the hook flagged rate-limited, show the purchase CTA immediately.
-        if (rateLimited) {
-          return (
-            <FinalResultView
-              cvlink={undefined}
-              rateLimited={true}
-              rateLimitMessage={rateLimitMessage}
-              planPath="/dashboard/plans"
-            />
-          );
-        }
-
-        return isLoading ? (
-          // When generation is in-flight show the normal generating UI (or FinalResultView spinner)
-          <FinalResultView
-            cvlink={undefined}
-            rateLimited={false}
-            rateLimitMessage={null}
-            planPath="/dashboard/plans"
-          />
-        ) : (
+        return (
           <GenerateStep
             jobContext={state.jobContext}
             cvContext={state.cvContext}
@@ -150,6 +130,7 @@ export function ApplicationWizardClient() {
             setWizardStep={navigateToStep}
           />
         );
+
       case 'result':
         // If the user was rate-limited, show the upgrade CTA instead of the normal result UI
         if (rateLimited) {

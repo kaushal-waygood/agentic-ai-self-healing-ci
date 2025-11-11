@@ -270,14 +270,14 @@ const ProfileInfo = ({
           <div className="flex-1  ">
             {/* Navigation Card */}
             <div className=" mb-4 sticky top-7 z-10">
-              <div className="absolute -inset-1 rounded-3xl border border-gray-200/50"></div>
-              <div className="relative bg-white p-3 sm:p-4 md:p-2 rounded-2xl shadow-sm ">
+              {/* <div className="absolute -inset-1 rounded-xl border border-gray-200/50"></div> */}
+              <div className="relative bg-white p-3 sm:p-4 md:p-2 rounded-lg shadow-sm ">
                 <nav className="flex flex-wrap justify-center sm:justify-start gap-3">
                   {navItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`group/btn flex items-center justify-between gap-3 w-full sm:w-auto px-4 py-2 text-left rounded-2xl transition-all duration-300 ${
+                      className={`group/btn flex items-center justify-between gap-3 w-full sm:w-auto px-4 py-2 text-left rounded-lg transition-all duration-300 ${
                         activeTab === item.id
                           ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg scale-105`
                           : 'text-gray-600 hover:bg-gray-100'
@@ -307,7 +307,7 @@ const ProfileInfo = ({
             </div>
 
             {/* Content Section */}
-            <div className="flex flex-col gap-6">{renderContent()}</div>
+            <div className="flex flex-col gap-6 ">{renderContent()}</div>
           </div>
         </main>
       </div>

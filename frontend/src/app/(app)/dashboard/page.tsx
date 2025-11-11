@@ -24,6 +24,9 @@ import {
   Calendar,
   Zap,
   Infinity,
+  Briefcase,
+  Globe,
+  Eye,
 } from 'lucide-react';
 import Link from 'next/link';
 import { mockUserProfile, ActionItem } from '@/lib/data/user';
@@ -433,7 +436,7 @@ export function SubscriptionStatusCard({ plan }: any) {
       </div>
 
       <Button variant="outline" className="w-full" asChild>
-        <Link href="/dashboard/settings/billing">Manage Subscription</Link>
+        <Link href="/dashboard/billing">Manage Subscription</Link>
       </Button>
     </div>
   );
@@ -447,6 +450,10 @@ export default function DashboardPage() {
     cvsGenerated: 0,
     coverLettersGenerated: 0,
     referralCount: 0,
+    tailoredApplications: 0,
+    jobsViewed: 0,
+    appliedJobsCount: 0,
+    visitedJobs: 0,
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
@@ -466,6 +473,7 @@ export default function DashboardPage() {
         // Fetch Job Stats
         const statsResponse = await apiInstance.get('/students/jobs/stats');
         const apiData = statsResponse.data;
+        console.log('API Data:', apiData);
 
         setStats({
           applicationsSent: apiData.applicationsSent || 0,
@@ -473,6 +481,10 @@ export default function DashboardPage() {
           cvsGenerated: apiData.cvsGenerated || 0,
           coverLettersGenerated: apiData.coverLettersGenerated || 0,
           referralCount: apiData.referralCount || 0,
+          tailoredApplications: apiData.tailoredApplications || 0,
+          jobsViewed: apiData.jobsViewed || 0,
+          appliedJobsCount: apiData.appliedJobsCount || 0,
+          visitedJobs: apiData.visitedJobs || 0,
         });
 
         const statusCounts = (apiData.applicationStats || []).reduce(
@@ -542,6 +554,10 @@ export default function DashboardPage() {
           cvsGenerated: apiData.cvsGenerated || 0,
           coverLettersGenerated: apiData.coverLettersGenerated || 0,
           referralCount: apiData.referralCount || 0,
+          tailoredApplications: apiData.tailoredApplications || 0,
+          jobsViewed: apiData.jobsViewed || 0,
+          appliedJobsCount: apiData.appliedJobsCount || 0,
+          visitedJobs: apiData.visitedJobs || 0,
         });
 
         const applicationStats = apiData.applicationStats || [];
@@ -631,18 +647,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3 mb-8">
-          <div className="lg:col-span-2 space-y-8">
+          {/* <div className="lg:col-span-2 space-y-8">
             <ProfileReadinessCard />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <StatCard
-                title="Applications Tracked"
-                value={stats.applicationsSent}
-                icon={Send}
-                description="Total applications in your pipeline"
-                color="purple"
-                actionText="View Applications"
-                actionLink="/dashboard/applications"
-              />
               <StatCard
                 title="Saved CVs"
                 value={stats.cvsGenerated}
@@ -650,8 +657,27 @@ export default function DashboardPage() {
                 description="Total CVs generated with AI"
                 color="blue"
                 actionText="Manage CVs"
-                actionLink="/dashboard/cv-generator"
+                actionLink="/dashboard/my-docs?tab=cvs"
               />
+              <StatCard
+                title="Cover Letters"
+                value={stats.coverLettersGenerated}
+                icon={Bot}
+                description="Documents prepared with AI"
+                color="green"
+                actionText="Create More"
+                actionLink="dashboard/my-docs?tab=cover-letters"
+              />
+              <StatCard
+                title="Applications Tracked"
+                value={stats.tailoredApplications}
+                icon={Send}
+                description="Total applications in your pipeline"
+                color="purple"
+                actionText="View Applications"
+                actionLink="/dashboard/my-docs?tab=applications"
+              />
+
               <StatCard
                 title="Saved Jobs"
                 value={stats.savedJobsCount}
@@ -662,14 +688,33 @@ export default function DashboardPage() {
                 actionLink="/dashboard/applications?status=Saved"
               />
               <StatCard
-                title="Cover Letters"
-                value={stats.coverLettersGenerated}
-                icon={Bot}
-                description="Documents prepared with AI"
-                color="green"
-                actionText="Create More"
-                actionLink="/dashboard/cover-letter-generator"
+                title="Viewed Jobs"
+                value={stats.jobsViewed}
+                icon={Bookmark}
+                description="Jobs you’ve recently viewed"
+                color="cyan"
+                actionText="View Saved Jobs"
+                actionLink="/dashboard/applications?status=Saved"
               />
+              <StatCard
+                title="Applied Jobs"
+                value={stats.appliedJobsCount}
+                icon={Bookmark}
+                description="Jobs you’ve officially applied for through the platform"
+                color="cyan"
+                actionText="View Saved Jobs"
+                actionLink="/dashboard/applications?status=Saved"
+              />
+              <StatCard
+                title="Visited Jobs"
+                value={stats.visitedJobs}
+                icon={Bookmark}
+                description="Job listings you’ve opened but not saved or applied to"
+                color="cyan"
+                actionText="View Saved Jobs"
+                actionLink="/dashboard/applications?status=Saved"
+              />
+
               <StatCard
                 title="Referral Count"
                 value={stats.referralCount}
@@ -680,7 +725,109 @@ export default function DashboardPage() {
                 actionLink="/dashboard/referrals"
               />
             </div>
+          </div> */}
+
+          <div className="lg:col-span-2 space-y-8">
+            <ProfileReadinessCard />
+            {/* 🚀 APPLICATIONS SECTION */}
+            <div>
+              <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
+                Applications
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StatCard
+                  title="Applications Tracked"
+                  value={stats.tailoredApplications}
+                  icon={Send}
+                  description="Total job applications currently in your pipeline."
+                  color="cyan"
+                  actionText="View Applications"
+                  actionLink="/dashboard/my-docs?tab=applications"
+                />
+                <StatCard
+                  title="Saved CVs"
+                  value={stats.cvsGenerated}
+                  icon={FileText}
+                  description="AI-generated CVs you’ve saved for future use."
+                  color="purple"
+                  actionText="Manage CVs"
+                  actionLink="/dashboard/my-docs?tab=cvs"
+                />
+                <StatCard
+                  title="Cover Letters"
+                  value={stats.coverLettersGenerated}
+                  icon={Bot}
+                  description="Personalized cover letters created using AI."
+                  color="blue"
+                  actionText="Create More"
+                  actionLink="/dashboard/my-docs?tab=cover-letters"
+                />
+              </div>
+            </div>
+            {/* 🧩 JOBS SECTION */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
+                Jobs
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StatCard
+                  title="Saved Jobs"
+                  value={stats.savedJobsCount}
+                  icon={Bookmark}
+                  description="Job opportunities you’ve bookmarked for later."
+                  color="cyan"
+                  actionText="View Saved Jobs"
+                  actionLink="/dashboard/applications?status=Saved"
+                />
+                <StatCard
+                  title="Viewed Jobs"
+                  value={stats.jobsViewed}
+                  icon={Eye}
+                  description="Jobs you’ve recently explored on the platform."
+                  color="purple"
+                  actionText="View Viewed Jobs"
+                  actionLink="/dashboard/applications?status=Viewed"
+                />
+                <StatCard
+                  title="Visited Jobs"
+                  value={stats.visitedJobs}
+                  icon={Globe}
+                  description="Job listings you’ve opened but not saved or applied to."
+                  color="blue"
+                  actionText="View Visited Jobs"
+                  actionLink="/dashboard/applications?status=Visited"
+                />
+                <StatCard
+                  title="Applied Jobs"
+                  value={stats.appliedJobsCount}
+                  icon={Briefcase}
+                  description="Jobs you’ve officially applied for through the platform."
+                  color="green"
+                  actionText="View Applied Jobs"
+                  actionLink="/dashboard/applications?status=Applied"
+                />
+              </div>
+            </div>
+
+            {/* 🎁 OTHERS SECTION */}
+            <div>
+              <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
+                Others
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StatCard
+                  title="Referral Count"
+                  value={stats.referralCount}
+                  icon={Award}
+                  description="Successful referrals you’ve made to friends."
+                  color="cyan"
+                  actionText="Refer Friends"
+                  actionLink="/dashboard/referrals"
+                />
+              </div>
+            </div>
           </div>
+
           <div className="space-y-8">
             <SubscriptionStatusCard plan={planDetails} />
 

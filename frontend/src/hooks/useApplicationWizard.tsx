@@ -532,67 +532,8 @@ export const useApplicationWizard = () => {
     setRateLimitMessage(null);
 
     setIsLoading(true);
-    setLoadingMessage('Checking plan & preparing generation...');
     navigateToStep('generate');
-
-    // PRE-FLIGHT plan check to avoid heavy uploads if user is blocked
     try {
-      let planResponse;
-      try {
-        planResponse = await apiInstance.post('/plan/usage', {
-          feature: 'cv-creation', // or 'cover-letter' depending on what you're billing
-          creditsUsed: 1,
-          action: 'generate',
-        });
-      } catch (err: any) {
-        const status = err?.response?.status;
-        const serverMessage =
-          err?.response?.data?.message || err?.message || null;
-
-        if (status === 429) {
-          // Rate-limited — do not proceed
-          setRateLimited(true);
-          setRateLimitMessage(
-            serverMessage ||
-              'You have reached your generation limit for this plan.',
-          );
-          setIsLoading(false);
-          setLoadingMessage('');
-          // send user to result view so FinalResultView can show upgrade CTA
-          navigateToStep('result');
-          return;
-        } else {
-          // other failures — show toast and return user to previous step (context)
-          toast({
-            variant: 'destructive',
-            title: 'Plan Check Failed',
-            description:
-              serverMessage || 'Failed to check plan usage. Try again.',
-          });
-          setIsLoading(false);
-          setLoadingMessage('');
-          navigateToStep('cl'); // or 'cv' depending on UX you want
-          return;
-        }
-      }
-
-      // server explicitly denies via success:false
-      if (planResponse?.data && planResponse.data.success === false) {
-        toast({
-          variant: 'destructive',
-          title: 'Usage Denied',
-          description:
-            planResponse.data.message ||
-            'Your plan does not allow this action right now.',
-        });
-        setIsLoading(false);
-        setLoadingMessage('');
-        navigateToStep('cl'); // back to customization/context step
-        return;
-      }
-
-      // PASS — plan ok. now build payload and actually call /students/applications/tailor
-      setLoadingMessage('Preparing documents for tailoring...');
       const formData = new FormData();
 
       if (jobContext.jobId) formData.append('jobId', jobContext.jobId);
@@ -651,11 +592,6 @@ export const useApplicationWizard = () => {
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
-
-      // go show results
-      setIsLoading(false);
-      setLoadingMessage('');
-      navigateToStep('result');
     } catch (error) {
       console.error('Tailor Error:', error);
       toast({

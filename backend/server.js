@@ -34,7 +34,7 @@ async function startHttpServer() {
       credentials: true,
     },
   });
-  setupNotificationSocket(io);
+  // setupNotificationSocket(io);
   app.set('io', io);
 
   const PORT = process.env.PORT || appConfig.port || 8080;

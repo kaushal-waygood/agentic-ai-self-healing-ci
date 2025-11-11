@@ -109,7 +109,7 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
+    <div className=" bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       {/* seach filter  */}
       <div className="container mx-auto px-1">
         <SearchFilters
