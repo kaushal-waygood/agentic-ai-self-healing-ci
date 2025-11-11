@@ -139,13 +139,6 @@ const engagingMessages = [
   'Almost there, just polishing the final details...',
 ];
 
-//================================================================
-// SECTION: Custom Hooks
-//================================================================
-
-/**
- * Hook for managing the CV creation form state and logic.
- */
 export const useCvForm = (jobTitle?: string) => {
   const form = useForm<CvDetailsValues>({
     resolver: zodResolver(cvDetailsSchema),
@@ -270,6 +263,10 @@ export const useApplicationWizard = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [selectedCvId, setSelectedCvId] = useState('');
   const isInitialized = useRef(false);
+
+  // Rate limit / plan check state
+  const [rateLimited, setRateLimited] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
 
   //--- External Data & Forms ---
   const { jobs, loading: jobsLoading, selectedJob } = useJobs({ searchParams });
@@ -527,27 +524,93 @@ export const useApplicationWizard = () => {
         description: 'Please ensure both job and CV information are provided.',
       });
       navigateToStep('job');
-
       return;
     }
+
+    // reset any prior rate-limit state
+    setRateLimited(false);
+    setRateLimitMessage(null);
+
     setIsLoading(true);
+    setLoadingMessage('Checking plan & preparing generation...');
     navigateToStep('generate');
+
+    // PRE-FLIGHT plan check to avoid heavy uploads if user is blocked
     try {
+      let planResponse;
+      try {
+        planResponse = await apiInstance.post('/plan/usage', {
+          feature: 'cv-creation', // or 'cover-letter' depending on what you're billing
+          creditsUsed: 1,
+          action: 'generate',
+        });
+      } catch (err: any) {
+        const status = err?.response?.status;
+        const serverMessage =
+          err?.response?.data?.message || err?.message || null;
+
+        if (status === 429) {
+          // Rate-limited — do not proceed
+          setRateLimited(true);
+          setRateLimitMessage(
+            serverMessage ||
+              'You have reached your generation limit for this plan.',
+          );
+          setIsLoading(false);
+          setLoadingMessage('');
+          // send user to result view so FinalResultView can show upgrade CTA
+          navigateToStep('result');
+          return;
+        } else {
+          // other failures — show toast and return user to previous step (context)
+          toast({
+            variant: 'destructive',
+            title: 'Plan Check Failed',
+            description:
+              serverMessage || 'Failed to check plan usage. Try again.',
+          });
+          setIsLoading(false);
+          setLoadingMessage('');
+          navigateToStep('cl'); // or 'cv' depending on UX you want
+          return;
+        }
+      }
+
+      // server explicitly denies via success:false
+      if (planResponse?.data && planResponse.data.success === false) {
+        toast({
+          variant: 'destructive',
+          title: 'Usage Denied',
+          description:
+            planResponse.data.message ||
+            'Your plan does not allow this action right now.',
+        });
+        setIsLoading(false);
+        setLoadingMessage('');
+        navigateToStep('cl'); // back to customization/context step
+        return;
+      }
+
+      // PASS — plan ok. now build payload and actually call /students/applications/tailor
+      setLoadingMessage('Preparing documents for tailoring...');
       const formData = new FormData();
+
       if (jobContext.jobId) formData.append('jobId', jobContext.jobId);
       else {
         formData.append('jobTitle', jobContext.jobTitle);
-        formData.append('companyName', jobContext.companyName);
+        formData.append('companyName', jobContext.companyName || '');
         const slug = searchParams.get('slug');
         if (slug) {
           const response = await apiInstance.get(`/jobs/find/${slug}`);
           formData.append('jobDescription', response.data.description);
         } else {
-          formData.append('jobDescription', jobContext.jobDescription);
+          formData.append('jobDescription', jobContext.jobDescription || '');
         }
       }
-      if (cvContext.mode === 'profile') formData.append('useProfile', 'true');
-      else if (
+
+      if (cvContext.mode === 'profile') {
+        formData.append('useProfile', 'true');
+      } else if (
         cvContext.mode === 'saved' &&
         typeof cvContext.value === 'string'
       ) {
@@ -560,17 +623,17 @@ export const useApplicationWizard = () => {
         formData.append('cv', cvContext.value);
         formData.append('useProfile', 'false');
       }
+
       if (clContext) {
         if (clContext.mode === 'saved' && typeof clContext.value === 'string')
           formData.append('savedCoverLetterId', clContext.value);
         else if (clContext.mode === 'paste' && clContext.value)
-          formData.append('coverLetterText', clContext.value);
-      }
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
+          formData.append('coverLetterText', clContext.value as string);
       }
 
+      // optional final touch
       formData.append('finalTouch', 'Tailor for ATS optimization');
+
       const response = await apiInstance.post(
         '/students/applications/tailor',
         formData,
@@ -583,23 +646,28 @@ export const useApplicationWizard = () => {
         tailoredCl: result.tailoredCoverLetter,
         emailDraft: result.applicationEmail,
       });
+
       toast({
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
+
+      // go show results
+      setIsLoading(false);
+      setLoadingMessage('');
+      navigateToStep('result');
     } catch (error) {
-      // catch (error) {
       console.error('Tailor Error:', error);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
         description:
           (error as any).response?.data?.message ||
-          'Failed to generate application. Please try  again.',
+          'Failed to generate application. Please try again.',
       });
       setIsLoading(false);
-    } finally {
-      setIsLoading(false);
+      setLoadingMessage('');
+      navigateToStep('cl');
     }
   }, [cvContext, jobContext, clContext, navigateToStep, toast, searchParams]);
 
@@ -707,6 +775,8 @@ export const useApplicationWizard = () => {
       student,
       resume,
       selectedCvId,
+      rateLimited,
+      rateLimitMessage,
     },
     actions: {
       navigateToStep,

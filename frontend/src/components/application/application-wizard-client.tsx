@@ -47,6 +47,8 @@ export function ApplicationWizardClient() {
     generatedData,
     jobs,
     selectedCvId,
+    rateLimited, // <-- added
+    rateLimitMessage, // <-- added
   } = state;
   const { navigateToStep, setGeneratedData } = actions;
 
@@ -119,10 +121,26 @@ export function ApplicationWizardClient() {
           />
         );
       case 'generate':
-        return isLoading ? (
-          // <SleekLoadingCard message={loadingMessage} />
+        // If the hook flagged rate-limited, show the purchase CTA immediately.
+        if (rateLimited) {
+          return (
+            <FinalResultView
+              cvlink={undefined}
+              rateLimited={true}
+              rateLimitMessage={rateLimitMessage}
+              planPath="/dashboard/plans"
+            />
+          );
+        }
 
-          <FinalResultView />
+        return isLoading ? (
+          // When generation is in-flight show the normal generating UI (or FinalResultView spinner)
+          <FinalResultView
+            cvlink={undefined}
+            rateLimited={false}
+            rateLimitMessage={null}
+            planPath="/dashboard/plans"
+          />
         ) : (
           <GenerateStep
             jobContext={state.jobContext}
@@ -133,6 +151,18 @@ export function ApplicationWizardClient() {
           />
         );
       case 'result':
+        // If the user was rate-limited, show the upgrade CTA instead of the normal result UI
+        if (rateLimited) {
+          return (
+            <FinalResultView
+              cvlink={undefined}
+              rateLimited={true}
+              rateLimitMessage={rateLimitMessage}
+              planPath="/dashboard/plans"
+            />
+          );
+        }
+
         return (
           <ResultStep
             jobContext={state.jobContext}
@@ -160,8 +190,6 @@ export function ApplicationWizardClient() {
         // Default to the loading state to handle undefined steps gracefully
         return (
           <div className="min-h-screen flex flex-col justify-center items-center py-20">
-            {/* <Loader2 className="h-12 w-12 mx-auto animate-spin text-purple-600" />{' '} */}
-            {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
             <div>
               <img
                 src="/logo.png"

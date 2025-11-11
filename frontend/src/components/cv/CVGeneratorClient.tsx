@@ -12,6 +12,7 @@ import {
   Star,
   FileText,
 } from 'lucide-react';
+import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 
 const CVGeneratorClient = ({
@@ -40,7 +41,6 @@ const CVGeneratorClient = ({
         setLoading(true);
         const response = await apiInstance.get('/students/resume/saved');
         setCvs(response.data.html || []);
-        console.log('Fetched CVs:', response.data);
         setStats((prev) => ({
           ...prev,
           cvsCount: response.data.html?.length || 0,
@@ -137,12 +137,13 @@ const CVGeneratorClient = ({
 
             {loading ? (
               <div className="flex flex-col items-center justify-center py-10 text-slate-500">
-                {/* <Loader2 className="w-6 h-6 animate-spin mb-2 text-purple-500" /> */}
                 <div>
-                  <img
+                  <Image
                     src="/logo.png"
                     alt=""
                     className="w-10 h-10 animate-bounce"
+                    width={100}
+                    height={100}
                   />
                 </div>
 
