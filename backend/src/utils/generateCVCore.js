@@ -18,6 +18,9 @@ import { processCVGeneration } from '../utils/cv.background.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// default free monthly limit (fallback)
+const DEFAULT_FREE_MONTHLY_CV_LIMIT = 3;
+
 export const initiateCVGeneration = async (
   req,
   res,
@@ -29,8 +32,54 @@ export const initiateCVGeneration = async (
     const { useProfile, finalTouch, savedCVId } = req.body;
 
     console.log('📡 Received CV generation request for user:', savedCVId);
-    let studentData;
 
+    // fetch user early (we need usage and plan info)
+    const user = await User.findById(_id).select(
+      'currentPlan currentPurchase plan usageLimits usageCounters email fullName',
+    );
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // normalize usageCounters and reset monthly when needed
+    const now = Date.now();
+    const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+    if (!user.usageCounters) {
+      user.usageCounters = {
+        cvCreation: 0,
+        coverLetter: 0,
+        aiApplication: 0,
+        autoApply: 0,
+        lastReset: now,
+      };
+    } else {
+      const lastReset = user.usageCounters.lastReset
+        ? new Date(user.usageCounters.lastReset).getTime()
+        : 0;
+      if (!lastReset || now - lastReset > MONTH_MS) {
+        user.usageCounters.cvCreation = 0;
+        user.usageCounters.coverLetter = 0;
+        user.usageCounters.aiApplication = 0;
+        user.usageCounters.autoApply = 0;
+        user.usageCounters.lastReset = now;
+      }
+    }
+
+    // Determine whether user has an active plan/purchase (tweak if you have expiry checks)
+    const hasPlan = !!(user.currentPlan || user.currentPurchase || user.plan);
+
+    // Determine free limit (prefer explicit user.usageLimits, fallback to default)
+    const freeLimit =
+      user.usageLimits && Number.isFinite(user.usageLimits.cvCreation)
+        ? user.usageLimits.cvCreation
+        : DEFAULT_FREE_MONTHLY_CV_LIMIT;
+
+    // We do NOT block. But mark overFreeLimit if unpaid user exceeded free limit
+    const overFreeLimit =
+      !hasPlan && user.usageCounters.cvCreation >= freeLimit;
+
+    // Proceed to build studentData (unchanged from your original flow)
+    let studentData;
     if (useProfile === 'true' || useProfile === true) {
       const student = await Student.findById(_id);
       if (!student) {
@@ -128,12 +177,20 @@ export const initiateCVGeneration = async (
       }
     }
 
+    // double-check student exists
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    const cvTitle = `${student.fullName}'s CV (${jobTitle})`;
+    // increment usage counter (we track even if over limit)
+    user.usageCounters.cvCreation = (user.usageCounters.cvCreation || 0) + 1;
+    // don't forget to persist user usage changes
+    await user.save();
+
+    const cvTitle = `${student.fullName || user.fullName}'s CV (${
+      jobTitle || ''
+    })`;
 
     const jobId = new mongoose.Types.ObjectId();
     const newCVJob = {
@@ -143,8 +200,16 @@ export const initiateCVGeneration = async (
       jobContextString,
       finalTouch,
       createdAt: new Date(),
+      // extra metadata so front-end and background worker can act
+      meta: {
+        hasPlan,
+        overFreeLimit,
+        usageThisMonth: user.usageCounters.cvCreation,
+        freeLimit,
+      },
     };
 
+    // push job with metadata
     await Student.findByIdAndUpdate(_id, {
       $push: { cvs: { $each: [newCVJob], $position: 0 } },
     });
@@ -163,6 +228,12 @@ export const initiateCVGeneration = async (
       message:
         'CV generation has started. You will be notified when it is complete.',
       jobId: jobId.toString(),
+      meta: {
+        hasPlan,
+        overFreeLimit,
+        usageThisMonth: user.usageCounters.cvCreation,
+        freeLimit,
+      },
     });
   } catch (error) {
     console.error('Error initiating CV generation:', error);

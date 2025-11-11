@@ -294,9 +294,10 @@ export function CoverLetterGeneratorClient() {
     }
   };
 
+  const [rateLimited, setRateLimited] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+
   const handleGenerate = async () => {
-    console.log('jobCotext ', jobContext);
-    console.log('cvsource ', cvSource);
     if (!jobContext || !cvSource) {
       toast({
         variant: 'destructive',
@@ -306,7 +307,6 @@ export function CoverLetterGeneratorClient() {
       return;
     }
 
-    // Check if student data is available
     if (!student) {
       toast({
         variant: 'destructive',
@@ -316,36 +316,83 @@ export function CoverLetterGeneratorClient() {
       return;
     }
 
-    setIsLoading(true);
-    // setWizardStep('generating');
-    setWizardStep('result');
+    // clear previous rate-limit state
+    setRateLimited(false);
+    setRateLimitMessage(null);
 
+    setIsLoading(true);
+    setWizardStep('result');
     setGeneratedCvOutput(null);
     setCurrentCvContent('');
 
     try {
-      let response;
+      // PRE-FLIGHT: check usage/plan first to avoid heavy uploads/generation if blocked
+      let planResponse;
+      try {
+        planResponse = await apiInstance.post('/plan/usage', {
+          feature: 'cover-letter',
+          creditsUsed: 1,
+          action: 'generate', // server should either reserve/approve or reject
+        });
+      } catch (err: any) {
+        const status = err?.response?.status;
+        const serverMessage =
+          err?.response?.data?.message || err?.message || null;
 
-      // Handle different job context modes
+        if (status === 429) {
+          // Rate limited: stop here and show purchase UI
+          setRateLimited(true);
+          setRateLimitMessage(
+            serverMessage ||
+              'You have reached your cover-letter generation limit.',
+          );
+          setIsLoading(false);
+          setWizardStep('result');
+          return;
+        } else {
+          const msg = serverMessage || 'Failed to check plan usage. Try again.';
+          toast({
+            variant: 'destructive',
+            title: 'Plan Check Failed',
+            description: msg,
+          });
+          setIsLoading(false);
+          setWizardStep('context');
+          return;
+        }
+      }
+
+      // server explicit deny via success:false
+      if (planResponse?.data && planResponse.data.success === false) {
+        toast({
+          variant: 'destructive',
+          title: 'Usage Denied',
+          description:
+            planResponse.data.message ||
+            'Your plan does not allow this action right now.',
+        });
+        setIsLoading(false);
+        setWizardStep('context');
+        return;
+      }
+
+      // PLAN OK — now build payload and call generation endpoints
+      let response: any = null;
+
       if (jobContext.mode === 'paste') {
-        // JD-based CV generation
         const formData = new FormData();
-
         formData.append('jobDescription', jobContext.description);
 
         if (cvSource.mode === 'profile') {
           formData.append('useProfile', 'true');
         } else if (cvSource.mode === 'upload') {
-          // Convert data URI to blob if needed
           const blob = await fetch(cvSource.value).then((r) => r.blob());
           formData.append('cv', blob, cvSource.name);
         } else if (cvSource.mode === 'saved') {
-          // Create a blob from saved CV content
           const blob = new Blob([cvSource.value], { type: 'text/html' });
           formData.append('cv', blob, 'saved_cv.html');
         }
 
-        // Add additional narratives if provided
         if (additionalNarratives) {
           formData.append('finalTouch', additionalNarratives);
         }
@@ -353,38 +400,24 @@ export function CoverLetterGeneratorClient() {
         const apiResponse = await apiInstance.post(
           'students/coverletter/generate/jd',
           formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          },
+          { headers: { 'Content-Type': 'multipart/form-data' } },
         );
 
-        // Handle HTML response
-        response = {
-          letter: apiResponse.data,
-        };
-
-        setGeneratedCvOutput(response.letter);
-        setCurrentCvContent(response.letter);
+        response = { letter: apiResponse.data };
       } else if (jobContext.mode === 'title') {
         const formData = new FormData();
-
         formData.append('title', jobContext.title);
 
         if (cvSource.mode === 'profile') {
           formData.append('useProfile', 'true');
         } else if (cvSource.mode === 'upload') {
-          // Convert data URI to blob if needed
           const blob = await fetch(cvSource.value).then((r) => r.blob());
           formData.append('cv', blob, cvSource.name);
         } else if (cvSource.mode === 'saved') {
-          // Create a blob from saved CV content
           const blob = new Blob([cvSource.value], { type: 'text/html' });
           formData.append('cv', blob, 'saved_cv.html');
         }
 
-        // Add additional narratives if provided
         if (additionalNarratives) {
           formData.append('finalTouch', additionalNarratives);
         }
@@ -392,40 +425,24 @@ export function CoverLetterGeneratorClient() {
         const apiResponse = await apiInstance.post(
           'students/coverletter/generate/jobtitle',
           formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          },
+          { headers: { 'Content-Type': 'multipart/form-data' } },
         );
 
-        // Handle HTML response
-        response = {
-          letter: apiResponse.data,
-        };
+        response = { letter: apiResponse.data };
       } else if (jobContext.mode === 'select') {
         const formData = new FormData();
-
         formData.append('jobId', jobContext.value);
 
         if (cvSource.mode === 'profile') {
           formData.append('useProfile', 'true');
         } else if (cvSource.mode === 'upload') {
-          // Convert data URI to blob if needed
           const blob = await fetch(cvSource.value).then((r) => r.blob());
           formData.append('cv', blob, cvSource.name);
-          // } else if (cvSource.mode === 'saved') {
-          //   // Create a blob from saved CV content
-          //   const blob = new Blob([cvSource.value], { type: 'text/html' });
-          //   formData.append('cv', blob, 'saved_cv.html');
-          // }
-        } else if (cvSource.mode === 'saved' && cvSource.id) {
-          // Send the ID instead of the binary blob
-          formData.append('savedCVId', cvSource.id);
+        } else if (cvSource.mode === 'saved' && (cvSource as any).id) {
+          formData.append('savedCVId', (cvSource as any).id);
           formData.append('useProfile', 'false');
         }
 
-        // Add additional narratives if provided
         if (additionalNarratives) {
           formData.append('finalTouch', additionalNarratives);
         }
@@ -435,40 +452,33 @@ export function CoverLetterGeneratorClient() {
           formData,
         );
 
-        // Handle HTML response
-        response = {
-          letter: apiResponse.data,
-        };
+        response = { letter: apiResponse.data };
       }
 
+      // If we got a letter, continue to record usage (you do this after success)
       if (response?.letter) {
-        await apiInstance.post('/plan/usage', {
-          feature: 'cover-letter',
-          creditsUsed: 1,
-          action: 'generate',
-        });
+        // post-usage increment (optional, but you had this previously)
+        try {
+          await apiInstance.post('/plan/usage', {
+            feature: 'cover-letter',
+            creditsUsed: 1,
+            action: 'generate',
+          });
+        } catch (usageErr) {
+          // non-fatal: log or ignore; generation succeeded
+          console.warn('Usage increment failed after generation', usageErr);
+        }
+
         setGeneratedCvOutput(response.letter);
         setCurrentCvContent(response.letter);
 
         toast({
-          title: 'CV Generated & Auto-saved!',
+          title: 'Cover Letter Generated & Auto-saved!',
           description:
-            'Your new CV draft has been added to your saved list below.',
+            'Your new cover letter draft has been added to your saved list below.',
         });
         setWizardStep('result');
       }
-      // } catch (error) {
-      //   console.error('Generation error:', error);
-      //   toast({
-      //     variant: 'destructive',
-      //     title: 'Generation Failed',
-      //     description:
-      //       error.response?.data?.error ||
-      //       error.message ||
-      //       'Failed to generate CV',
-      //   });
-      //   setWizardStep('context');
-      // } finally {
     } catch (error) {
       const errorMessage =
         (error as any).response?.data?.message ||
@@ -478,7 +488,7 @@ export function CoverLetterGeneratorClient() {
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: errorMessage, // This is now a string!
+        description: errorMessage,
       });
       setWizardStep('context');
     } finally {
@@ -600,16 +610,14 @@ export function CoverLetterGeneratorClient() {
 
       case 'result':
         return (
-          // <GeneratedCoverLetter
-          //   generatedLetter={generatedCvOutput} // <-- FIX 1: Pass the state that holds the API response
-          //   setGeneratedLetter={setCurrentCvContent} // <-- FIX 2: Pass the updater for the editable content
-          //   handleInitiateSave={handleInitiateSave}
-          //   handleRegenerate={regenerateLetter} // Pass the regenerate function
-          //   // customizationOptions={customizationOptions} // Pass the customization options
-          // />
-
-          <FinalResultView />
+          <FinalResultView
+            cvlink={undefined}
+            rateLimited={rateLimited}
+            rateLimitMessage={rateLimitMessage}
+            planPath="/dashboard/subscriptions"
+          />
         );
+
       default:
         return null;
     }
