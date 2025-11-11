@@ -17,14 +17,20 @@ async function startHttpServer() {
   await connectDb();
 
   // Start worker supervisor after DB connects
-  startWorkerSupervisor().catch((err) => {
-    console.error('[WorkerSupervisor] Failed to start:', err);
-  });
+  // startWorkerSupervisor().catch((err) => {
+  //   console.error('[WorkerSupervisor] Failed to start:', err);
+  // });
 
   const server = createServer(app);
   const io = new SocketIOServer(server, {
     cors: {
-      origin: ['http://localhost:3000', 'https://zobsai.com'],
+      origin: [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3003',
+        'https://zobsai.com',
+        'https://dev.zobsai.com',
+      ],
       credentials: true,
     },
   });
@@ -38,7 +44,7 @@ async function startHttpServer() {
 
   const shutdown = async (signal) => {
     console.log(`${signal} received. Shutting down.`);
-    await stopWorkerSupervisor();
+    // await stopWorkerSupervisor();
     io.close();
     server.close(() => process.exit(0));
   };
