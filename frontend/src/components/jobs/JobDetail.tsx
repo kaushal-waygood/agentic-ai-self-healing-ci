@@ -701,27 +701,36 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 className="group relative overflow-hidden px-3 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
               >
                 <div className=" absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <div className="relative flex items-center justify-center gap-2">
-                  <FilePlus2 className="w-5 h-5" />
-                  <span>Tailor My Docs</span>
-                </div>
+                <Link
+                  href={`/dashboard/apply?slug=${encodeURIComponent(
+                    job._id,
+                  )}&step=cv`}
+                >
+                  <div className="relative flex items-center justify-center gap-2">
+                    <FilePlus2 className="w-5 h-5" />
+                    <span>Tailor My Docs</span>
+                  </div>
+                </Link>
               </Button>
             )}
 
             {/* Company Site Button */}
             {job.applyMethod?.url && (
               <Button
-                href={`${job.applyMethod.url}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 onClick={handleApplyOnSite}
                 className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
               >
-                <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <div className="relative flex items-center justify-center gap-2">
-                  <ExternalLink className="w-5 h-5" />
-                  <span>Company Site</span>
-                </div>
+                <Link
+                  href={`${job.applyMethod.url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                  <div className="relative flex items-center justify-center gap-2">
+                    <ExternalLink className="w-5 h-5" />
+                    <span>Company Site</span>
+                  </div>
+                </Link>
               </Button>
             )}
 

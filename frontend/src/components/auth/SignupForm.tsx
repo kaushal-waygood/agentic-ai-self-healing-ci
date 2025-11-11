@@ -550,14 +550,14 @@ const SignupForm = () => {
               <p className="text-gray-600">
                 By signing up, you agree to our{' '}
                 <Link
-                  href="/terms"
+                  href="/terms-of-service"
                   className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
                 >
                   Terms of Service
                 </Link>{' '}
                 and{' '}
                 <Link
-                  href="/privacy"
+                  href="/privacy-policy"
                   className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
                 >
                   Privacy Policy

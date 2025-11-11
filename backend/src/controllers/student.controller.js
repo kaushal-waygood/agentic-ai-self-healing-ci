@@ -1143,27 +1143,34 @@ export const getAppliedJobs = async (req, res) => {
 
 export const StudentAnalytics = async (req, res) => {
   const { _id } = req.user;
-  const cacheKey = `student:${_id}:analytics`;
 
   try {
-    const analytics = await redisClient.withCache(cacheKey, 3600, async () => {
-      const [student, studentReferal] = await Promise.all([
-        Student.findById(_id, 'appliedJobs savedJobs htmlCV coverLetter'),
-        User.findById(_id, 'referralCount referralCode isEmailVerified'),
-      ]);
+    // Fetch both student and user data in parallel
+    const [student, studentReferral] = await Promise.all([
+      Student.findById(
+        _id,
+        'visitedJobs appliedJobs viewedJobs savedJobs cls cvs tailoredApplications ',
+      ),
+      User.findById(_id, 'referralCount referralCode isEmailVerified'),
+    ]);
 
-      if (!student) throw new Error('Student not found');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
 
-      return {
-        applicationsSent: student.appliedJobs.length,
-        savedJobsCount: student.savedJobs.length,
-        cvsGenerated: student.htmlCV.length,
-        coverLettersGenerated: student.coverLetter.length,
-        referralCount: studentReferal?.referralCount || 0,
-        isEmailVerified: studentReferal?.isEmailVerified || false,
-        referralCode: studentReferal?.referralCode || '',
-      };
-    });
+    const analytics = {
+      applicationsSent: student.appliedJobs?.length || 0,
+      jobsVisited: student.visitedJobs?.length || 0,
+      jobsViewed: student.viewedJobs?.length || 0,
+      savedJobsCount: student.savedJobs?.length || 0,
+      appliedJobsCount: student.appliedJobs?.length || 0,
+      cvsGenerated: student.cvs?.length || 0,
+      coverLettersGenerated: student.cls?.length || 0,
+      tailoredApplications: student.tailoredApplications?.length || 0,
+      referralCount: studentReferral?.referralCount || 0,
+      isEmailVerified: studentReferral?.isEmailVerified || false,
+      referralCode: studentReferral?.referralCode || '',
+    };
 
     return res.status(200).json(analytics);
   } catch (error) {

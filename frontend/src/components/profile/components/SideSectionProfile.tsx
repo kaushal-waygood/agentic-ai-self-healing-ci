@@ -290,6 +290,7 @@ const SideSectionProfile = ({
               <Input
                 name="email"
                 type="email"
+                disabled
                 value={tempFormData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"

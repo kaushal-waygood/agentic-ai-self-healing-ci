@@ -99,28 +99,18 @@ export const Navigation = () => {
           {/* Enhanced Desktop Search Box */}
           <div className="hidden lg:flex flex-1 max-w-lg mx-8">
             <div className="relative w-full group">
-              {/* Enhanced glow effect */}
-              <div
-                className={`absolute -inset-1 bg-gradient-to-r from-violet-500/40 via-indigo-500/40 to-cyan-500/40 rounded-2xl blur-xl transition-all duration-500 ${
-                  isSearchFocused
-                    ? 'opacity-100 scale-105'
-                    : 'opacity-30 scale-100'
-                }`}
-              ></div>
-
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-white/15 to-white/10 rounded-2xl"></div>
                 <div className="relative flex items-center">
                   <button
                     onClick={handleSearchSubmit}
                     aria-label="Search"
-                    className="absolute left-4 w-5 h-5 text-gray-400 transition-all duration-300 group-hover:text-violet-500 group-hover:scale-110 focus:outline-none"
+                    className="absolute left-4 w-5 h-5 text-gray-900 transition-all duration-300 group-hover:text-violet-500 group-hover:scale-110 focus:outline-none"
                   >
                     <Search />
                   </button>
                   <input
                     type="text"
-                    placeholder="Start Job Search (e.g. digital marketing)"
+                    placeholder="Start Job Search (e.g. Digital Marketing)"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
@@ -130,7 +120,7 @@ export const Navigation = () => {
                         handleSearchSubmit();
                       }
                     }}
-                    className="w-full pl-12 pr-6 py-4 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-white/30 transition-all duration-300 hover:bg-white/15 text-sm font-medium"
+                    className="w-full pl-12 pr-6 py-4 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-white/30 transition-all duration-300 hover:bg-white/15 text-sm font-medium"
                   />
                 </div>
               </div>

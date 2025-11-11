@@ -93,7 +93,7 @@ const Project = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="whitespace-nowrap font-bold">
+                      <span className="whitespace-nowrap ">
                         {formatDateForMonthInput(proj.startDate)} to{' '}
                         {formatDateForMonthInput(proj.endDate) || 'Present'}
                       </span>

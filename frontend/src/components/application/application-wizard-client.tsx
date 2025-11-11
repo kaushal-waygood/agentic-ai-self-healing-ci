@@ -119,11 +119,7 @@ export function ApplicationWizardClient() {
           />
         );
       case 'generate':
-        return isLoading ? (
-          // <SleekLoadingCard message={loadingMessage} />
-
-          <FinalResultView />
-        ) : (
+        return (
           <GenerateStep
             jobContext={state.jobContext}
             cvContext={state.cvContext}
@@ -132,6 +128,9 @@ export function ApplicationWizardClient() {
             setWizardStep={navigateToStep}
           />
         );
+
+      case 'loading':
+        return <FinalResultView />;
       case 'result':
         return (
           <ResultStep
