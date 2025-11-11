@@ -531,7 +531,7 @@ export const useApplicationWizard = () => {
       return;
     }
     setIsLoading(true);
-    navigateToStep('generate');
+    // navigateToStep('generate');
     try {
       const formData = new FormData();
       if (jobContext.jobId) formData.append('jobId', jobContext.jobId);
@@ -587,6 +587,7 @@ export const useApplicationWizard = () => {
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
+      navigateToStep('loading');
     } catch (error) {
       // catch (error) {
       console.error('Tailor Error:', error);

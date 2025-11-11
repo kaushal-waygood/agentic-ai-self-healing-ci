@@ -18,6 +18,15 @@ const Education = ({
   setDeleteEdu,
   setDeleteEduIndex,
 }: any) => {
+  // Optional: define this helper if it exists elsewhere
+  const formatDateForMonthInput = (date: string) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return `${d.toLocaleString('default', {
+      month: 'short',
+    })} ${d.getFullYear()}`;
+  };
+
   return (
     <div className=" ">
       {/* button  */}
@@ -102,7 +111,9 @@ const Education = ({
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span>
-                      {edu.startDate} - {edu.endDate || 'Present'}
+                      {formatDateForMonthInput(edu.startDate)} to{' '}
+                      {formatDateForMonthInput(edu.endDate) || 'Present'}
+                      {/* {edu.startDate} - {edu.endDate || 'Present'} */}
                     </span>
                   </div>
                   {edu.gpa && (

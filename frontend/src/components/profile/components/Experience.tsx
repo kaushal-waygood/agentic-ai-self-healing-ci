@@ -16,6 +16,14 @@ const Experience = ({
   setDeleteExp,
   setDeleteExpIndex,
 }: any) => {
+  // Optional: define this helper if it exists elsewhere
+  const formatDateForMonthInput = (date: string) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return `${d.toLocaleString('default', {
+      month: 'short',
+    })} ${d.getFullYear()}`;
+  };
   return (
     <div>
       {/* --- Header --- */}
@@ -104,7 +112,9 @@ const Experience = ({
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span>
-                        {exp.startDate} - {exp.endDate || 'Present'}
+                        {/* {exp.startDate} - {exp.endDate || 'Present'} */}
+                        {formatDateForMonthInput(exp.startDate)} to{' '}
+                        {formatDateForMonthInput(exp.endDate) || 'Present'}
                       </span>
                     </div>
                     {exp.location && (
