@@ -39,8 +39,8 @@ router.post('/usage', authMiddleware, trackUsage);
 router.get('/usage', authMiddleware, getUserUsage);
 router.get('/usage-limit', authMiddleware, getUserUsageLimits);
 router.get('/:id', getSinglePlan);
-router.post('/payment/create-intent', authMiddleware, createPaymentIntent);
-// router.post('/payment/create-intent', authMiddleware, createSimplePurchase);
+// router.post('/payment/create-intent', authMiddleware, createPaymentIntent);
+router.post('/payment/create-intent', authMiddleware, createSimplePurchase);
 router.get('/payment/status/:id', authMiddleware, getPaymentStatus);
 
 export default router;

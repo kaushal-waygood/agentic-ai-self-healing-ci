@@ -18,12 +18,21 @@ const Education = ({
   setDeleteEdu,
   setDeleteEduIndex,
 }: any) => {
+  // Optional: define this helper if it exists elsewhere
+  const formatDateForMonthInput = (date: string) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return `${d.toLocaleString('default', {
+      month: 'short',
+    })} ${d.getFullYear()}`;
+  };
+
   return (
-    <div>
+    <div className=" ">
       {/* button  */}
-      <div className="flex w-full items-center justify-between pb-4">
+      <div className="flex w-full items-center justify-between mb-4 ">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
+          <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <GraduationCap className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl font-bold text-gray-800">Education</h3>
@@ -35,7 +44,7 @@ const Education = ({
               e.stopPropagation();
               setAddEdu(true);
             }}
-            className="w-full flex items-center justify-center py-2 px-1 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+            className="w-full  flex items-center justify-center py-2 px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg  transition-all duration-300"
           >
             <PlusCircle className="mr-2 h-5 w-5" />
             Add Education
@@ -47,14 +56,14 @@ const Education = ({
       <div
         id="education"
         // className="bg-gradient-to-r  from-blue-50 to-cyan-50 rounded-2xl p-6 border max-h-[70vh] overflow-y-auto  border-blue-200"
-        className=" rounded-2xl p-6  max-h-[70vh] overflow-y-auto  border-blue-200"
+        className=" rounded-xl p-2 max-h-[70vh] overflow-y-auto  border-blue-200"
       >
         <div className="space-y-4  ">
           {defaultValues.education && defaultValues.education.length > 0 ? (
             defaultValues.education.map((edu, index) => (
               <div
                 key={edu._id}
-                className="bg-white rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100 "
+                className="bg-white rounded-lg p-5  transition-all duration-300 border border-blue-100 "
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
@@ -102,7 +111,9 @@ const Education = ({
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span>
-                      {edu.startDate} - {edu.endDate || 'Present'}
+                      {formatDateForMonthInput(edu.startDate)} to{' '}
+                      {formatDateForMonthInput(edu.endDate) || 'Present'}
+                      {/* {edu.startDate} - {edu.endDate || 'Present'} */}
                     </span>
                   </div>
                   {edu.gpa && (

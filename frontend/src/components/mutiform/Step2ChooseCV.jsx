@@ -63,9 +63,9 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
       {/* Step Header */}
-      <div className="relative bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 rounded-2xl p-8 mb-6 text-white shadow-xl overflow-hidden">
+      <div className="relative bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 rounded-lg p-4 mb-2 text-white shadow-xl overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center font-bold text-xl">
@@ -78,12 +78,12 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
             required.
           </p>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+        {/* <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div> */}
+        {/* <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div> */}
       </div>
 
       {/* Form Card */}
-      <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100">
+      <div className="bg-white rounded-lg shadow-xl py-4 px-8  border border-gray-100">
         {/* Saved CVs Section */}
         <div className="space-y-3">
           <label className="flex items-center gap-2 font-semibold text-gray-700 text-sm">
@@ -92,7 +92,7 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
           </label>
           <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
             {cvs.length === 0 ? (
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200 rounded-xl p-8 text-center">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200 rounded-lg p-8 text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
                   <svg
                     className="w-8 h-8 text-blue-500"
@@ -120,7 +120,7 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
                 {cvs.map((cv, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 cursor-pointer group"
+                    className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 cursor-pointer group"
                   >
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
                       📄
@@ -154,14 +154,14 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
         </div>
 
         {/* Upload Section */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <label className="flex items-center gap-2 font-semibold text-gray-700 text-sm">
             <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
             Add a New CV
           </label>
 
           <div
-            className={`relative border-3 border-dashed rounded-2xl p-8 transition-all duration-300 ${
+            className={`relative border-3 border-dashed rounded-lg p-2 transition-all duration-300 ${
               dragActive
                 ? 'border-indigo-500 bg-indigo-50 scale-105'
                 : values.cvFile
@@ -185,7 +185,7 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
               <div className="flex flex-col items-center text-center space-y-4">
                 {values.cvFile ? (
                   <>
-                    <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center text-white text-4xl animate-bounce-slow shadow-lg">
+                    <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center text-white text-4xl animate-bounce-slow shadow-lg">
                       ✓
                     </div>
                     <div>
@@ -209,7 +209,7 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
                   </>
                 ) : (
                   <>
-                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center text-4xl animate-float">
+                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center text-4xl animate-float">
                       📤
                     </div>
                     <div>
@@ -219,16 +219,6 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
                       <p className="text-sm text-gray-500">
                         Supports PDF, DOC, DOCX, PNG, JPG
                       </p>
-                    </div>
-                    <div className="flex gap-2 flex-wrap justify-center">
-                      {['PDF', 'DOC', 'DOCX', 'PNG', 'JPG'].map((format) => (
-                        <span
-                          key={format}
-                          className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full"
-                        >
-                          {format}
-                        </span>
-                      ))}
                     </div>
                   </>
                 )}
@@ -241,7 +231,7 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
         <div className="pt-2">
           <button
             type="button"
-            className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
+            className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
           >
             <svg
               className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300"
@@ -264,7 +254,7 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
         <div className="flex items-center justify-between pt-6 border-t-2 border-gray-100">
           <button
             onClick={prevStep}
-            className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all duration-200 hover:scale-105"
+            className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all duration-200 hover:scale-105"
           >
             <svg
               className="w-5 h-5"
@@ -284,7 +274,7 @@ const Step2ChooseCV = ({ nextStep, prevStep, handleFileChange, values }) => {
 
           <button
             onClick={nextStep}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
           >
             Next: Cover Letter
             <svg

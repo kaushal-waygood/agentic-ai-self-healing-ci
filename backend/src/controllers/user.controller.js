@@ -3,7 +3,7 @@ import { User } from '../models/User.model.js';
 import { generateReferralCode } from '../utils/generateReferralCode.js';
 import crypto from 'crypto';
 import admin from '../config/firebase.js';
-import { getTransporter as transporter } from '../utils/transporter.js';
+import { transporter, sendEmailWithRetry } from '../utils/transporter.js';
 import bcrypt from 'bcryptjs';
 import redisClient from '../config/redis.js';
 import { google } from 'googleapis';
@@ -12,7 +12,15 @@ import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
 import { Notify } from '../models/notify.js';
+import TemplateManager from '../email-templates/lib/templateLoader.js';
+import path from 'path';
+import { __dirname } from '../utils/fileUploadingManaging.js';
 // import { SCOPES, oauth2Client } from '../config/googleConsole.js';
+
+const tm = new TemplateManager({
+  baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
+});
+await tm.init();
 
 export const firebaseAuth = async (req, res) => {
   try {
@@ -183,17 +191,24 @@ export const signUpUser = async (req, res) => {
 
     const savedUser = await user.save();
 
+    const { html, text } = await tm.compileWithTextFallback('verify', {
+      name: savedUser.fullName,
+      dashboardUrl: process.env.DASHBOARD_URL,
+      supportEmail: 'support@zobsai.com',
+      brandName: 'ZobsAI',
+      companyUrl: 'https://zobsai.com',
+      companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+      unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+      otp,
+    });
+
     // Send OTP email
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Verify Your Email Address',
-      html: `
-        <h2>Welcome to Our Platform, ${fullName}!</h2>
-        <p>Your verification code is: <strong>${otp}</strong></p>
-        <p>This code will expire in 15 minutes.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `,
+      subject: 'Welcome to ZobsAI – Your AI Job Application Assistant is Here!',
+      html,
+      text,
     };
 
     await transporter.sendMail(mailOptions);
@@ -269,8 +284,25 @@ export const verifyEmail = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (change from 30 days)
     };
 
-    // Remove sensitive data before sending user info
     user.password = undefined;
+
+    const { html, text } = await tm.compileWithTextFallback('welcome_zobsai', {
+      name: user.fullName,
+      dashboardUrl: process.env.DASHBOARD_URL,
+      supportEmail: 'support@zobsai.com',
+      brandName: 'ZobsAI',
+      companyUrl: 'https://zobsai.com',
+      companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+      unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM,
+      to: user.email,
+      subject: 'Welcome to ZobsAI – Your AI Job Assistant',
+      html,
+      text,
+    });
 
     return res
       .status(200)
@@ -294,10 +326,8 @@ export const resendVerificationEmail = async (req, res) => {
   const { _id } = req.user;
 
   try {
-    // Find user by email
     const user = await User.findById(_id).select('+otp +otpExpires');
 
-    // Validation checks
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -306,23 +336,29 @@ export const resendVerificationEmail = async (req, res) => {
       return res.status(400).json({ message: 'OTP already sent' });
     }
 
-    // Generate new OTP
     const otp = Math.floor(100000 + Math.random() * 900000);
     user.otp = otp;
     user.otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     await user.save();
 
+    const { html, text } = await tm.compileWithTextFallback('verify', {
+      name: user.fullName,
+      dashboardUrl: process.env.DASHBOARD_URL,
+      supportEmail: 'support@zobsai.com',
+      brandName: 'ZobsAI',
+      companyUrl: 'https://zobsai.com',
+      companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+      unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+      otp,
+    });
+
     // Send OTP email
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Verify Your Email Address',
-      html: `
-        <h2>Welcome to Our Platform, ${user.fullName}!</h2>
-        <p>Your verification code is: <strong>${otp}</strong></p>
-        <p>This code will expire in 15 minutes.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `,
+      subject: 'Change your email address',
+      html,
+      text,
     };
 
     await transporter.sendMail(mailOptions);
@@ -404,22 +440,18 @@ export const resendOtp = async (req, res) => {
   const { email } = req.body;
 
   try {
-    // 1. Validate email input
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    // 2. Find the user by email, including OTP fields
     const user = await User.findOne({ email }).select(
       '+otp +otpExpires +isEmailVerified',
     );
 
-    // 3. Handle user not found
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // 4. Check if the email is already verified
     if (user.isEmailVerified) {
       return res
         .status(400)
@@ -430,23 +462,27 @@ export const resendOtp = async (req, res) => {
     const newOtp = crypto.randomInt(100000, 999999).toString();
     const newOtpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
 
-    // 6. Update the user document with the new OTP and expiry
     user.otp = newOtp;
     user.otpExpires = newOtpExpires;
     await user.save();
 
-    // 7. Send the new OTP email
+    const { html, text } = await tm.compileWithTextFallback('verify', {
+      name: user.fullName,
+      dashboardUrl: process.env.DASHBOARD_URL,
+      supportEmail: 'support@zobsai.com',
+      brandName: 'ZobsAI',
+      companyUrl: 'https://zobsai.com',
+      companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+      unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+      otp: newOtp,
+    });
+
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Resend: Verify Your Email Address',
-      html: `
-        <h2>Hello ${user.fullName || 'User'},</h2>
-        <p>You requested to resend your verification code.</p>
-        <p>Your new verification code is: <strong>${newOtp}</strong></p>
-        <p>This code will expire in 15 minutes.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `,
+      subject: 'Welcome to ZobsAI – Your Verification Email OTP!',
+      html,
+      text,
     };
 
     await transporter.sendMail(mailOptions);
@@ -528,15 +564,12 @@ export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    // 1. Validate email input
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    // 2. Find the user by email
     const user = await User.findOne({ email });
     if (!user) {
-      // For security, don't reveal if the email doesn't exist
       return res.status(200).json({
         message:
           'If an account with that email exists, a password reset link has been sent',
@@ -578,7 +611,6 @@ export const forgotPassword = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    // 7. Respond with success message
     res.status(200).json({
       message:
         'If an account with that email exists, a password reset link has been sent',
@@ -596,7 +628,6 @@ export const resetPassword = async (req, res) => {
   const { token, newPassword, confirmPassword, email } = req.body;
 
   try {
-    // 1. Validate inputs
     if (!token || !newPassword || !confirmPassword) {
       return res.status(400).json({ message: 'All fields are required' });
     }
@@ -605,32 +636,27 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    // 2. Find user by email
     const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // 3. Verify the reset token
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     if (hashedToken !== user.passwordResetToken) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    // 4. Check if token has expired
     if (user.resetPasswordTokenExpires < new Date()) {
       return res.status(400).json({ message: 'Token has expired' });
     }
 
-    // 5. Update password and clear reset token fields
     user.password = newPassword;
     user.passwordResetToken = undefined;
     user.resetPasswordTokenExpires = undefined;
     await user.save();
 
-    // 6. Send confirmation email
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
@@ -644,7 +670,6 @@ export const resetPassword = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    // 7. Respond with success
     res.status(200).json({ message: 'Password reset successfully' });
   } catch (error) {
     console.error('Reset password error:', error);
@@ -705,13 +730,11 @@ export const changePassword = async (req, res) => {
   const { _id } = req.user;
 
   try {
-    // *** FIX: Use .select('+password') to retrieve the hashed password ***
     const user = await User.findById(_id).select('+password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // This check will now work correctly
     const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
     if (!isPasswordCorrect) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -728,6 +751,27 @@ export const changePassword = async (req, res) => {
     }
 
     user.password = newPassword;
+
+    const { html, text } = await tm.compileWithTextFallback(
+      'password_updated',
+      {
+        subject: 'Your ZobsAI Password Has Been Updated',
+        name: savedUser.fullName,
+        dateTime: new Date().toISOString(), // or formatted string
+        ipInfo: req.ip || 'Unknown device',
+        loginUrl: process.env.DASHBOARD_URL || 'https://zobsai.com/login',
+        resetUrl: `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`,
+        companyUrl: 'https://zobsai.com',
+      },
+    );
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM,
+      to: savedUser.email,
+      subject: 'Your ZobsAI Password Has Been Updated',
+      html,
+      text,
+    });
     await user.save();
     res.status(200).json({ message: 'Password changed successfully' });
   } catch (error) {
@@ -997,7 +1041,7 @@ export const authGoogle = async (req, res) => {
       prompt: 'consent',
       scope: SCOPES,
       state: userId,
-      redirect_uri: oauth2Client.redirect_uri, // Add this line
+      redirect_uri: oauth2Client.redirect_uri,
     });
     res.redirect(url);
   } catch (error) {
@@ -1183,6 +1227,26 @@ export const handleGoogleCallback = async (req, res) => {
         isEmailVerified: true,
       });
       await user.save();
+      const { html, text } = await tm.compileWithTextFallback(
+        'welcome_zobsai',
+        {
+          name: user.fullName,
+          dashboardUrl: process.env.DASHBOARD_URL,
+          supportEmail: 'support@zobsai.com',
+          brandName: 'ZobsAI',
+          companyUrl: 'https://zobsai.com',
+          companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+          unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+        },
+      );
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_FROM,
+        to: user.email,
+        subject: 'Welcome to ZobsAI – Your AI Job Assistant',
+        html,
+        text,
+      });
     }
 
     // Create a JWT for the user session
@@ -1252,7 +1316,7 @@ export const notifyUserForAutopilot = async (req, res) => {
       email,
       isNotifyMailSend: true,
     });
-    // Send the response and return to stop execution
+
     return res
       .status(200)
       .json({ notify, message: 'Email has been sent successfully' });

@@ -65,6 +65,9 @@ export const createAutopilotAgent = async (req, res) => {
       'country',
       'employmentType',
     ];
+
+    console.log(req.body);
+
     const missing = requiredFields.filter((f) => !req.body[f]);
     if (missing.length) {
       return res.status(400).json({

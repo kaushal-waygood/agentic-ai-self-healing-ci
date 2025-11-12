@@ -101,13 +101,13 @@ const SideSectionProfile = ({
     <div>
       <aside className="w-full lg:w-80 space-y-5">
         {/* Profile Card */}
-        <div className="relative bg-white p-8 border border-gray-200 rounded-3xl shadow-lg">
+        <div className="relative bg-white p-8 border border-gray-200 rounded-lg ">
           <div className="flex flex-col items-center text-center mb-6">
             <div className="relative mb-4">
               <img
                 src={preview || dummyUser.avatar}
                 alt="Avatar"
-                className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
+                className="w-24 h-24 rounded-full border-4 border-white  object-cover"
               />
             </div>
 
@@ -122,7 +122,7 @@ const SideSectionProfile = ({
 
             <Button
               onClick={openEditModal}
-              className="mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-indigo-500 hover:to-blue-600 text-white px-5 py-2 rounded-xl shadow-md transition-all duration-300 flex items-center gap-2"
+              className="mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-indigo-500 hover:to-blue-600 text-white px-5 py-2 rounded-lg  transition-all duration-300 flex items-center gap-2"
             >
               <Edit size={16} /> Edit Profile
             </Button>
@@ -130,7 +130,7 @@ const SideSectionProfile = ({
         </div>
 
         {/* Upload CV Section (unchanged) */}
-        <div className="bg-white rounded-2xl p-6 border border-cyan-200 shadow-lg">
+        <div className="bg-white rounded-lg p-6 border  ">
           <div className="text-center mb-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               Upload Your CV
@@ -149,10 +149,10 @@ const SideSectionProfile = ({
           />
 
           <div
-            className={`relative w-full h-48 p-6 border-2 border-dashed rounded-xl text-center cursor-pointer transition-all duration-300 ${
+            className={`relative w-full h-48 p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-all duration-300 ${
               isDragging
-                ? 'border-cyan-500 bg-cyan-100 shadow-lg scale-105'
-                : 'border-gray-300 hover:border-cyan-400 hover:bg-cyan-50 hover:shadow-md'
+                ? 'border-cyan-500 bg-cyan-100  scale-105'
+                : 'border-gray-300 hover:border-cyan-400 hover:bg-cyan-50 '
             }`}
             onClick={handleButtonClick}
             onDragEnter={handleDragEnter}
@@ -186,7 +186,7 @@ const SideSectionProfile = ({
 
           {file && (
             <div className="mt-6 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-3 p-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-md">
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg  border border-gray-200 w-full max-w-md">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Sparkles className="w-6 h-6 text-blue-600" />
                 </div>
@@ -209,7 +209,7 @@ const SideSectionProfile = ({
               <button
                 onClick={handleUpload}
                 disabled={isUploading}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-base flex flex-col items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-8 py-3 rounded-lg  transition-all duration-300 text-base flex flex-col items-center justify-center gap-2"
               >
                 {isUploading ? (
                   <>
@@ -251,7 +251,7 @@ const SideSectionProfile = ({
               <img
                 src={preview || dummyUser.avatar}
                 alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 shadow"
+                className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 "
               />
               <label
                 htmlFor="profile-pic"
@@ -290,6 +290,7 @@ const SideSectionProfile = ({
               <Input
                 name="email"
                 type="email"
+                disabled
                 value={tempFormData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"

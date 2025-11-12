@@ -1,67 +1,86 @@
 /** @format */
 // hooks/useNotifications.js (frontend)
 import apiInstance from '@/services/api';
-import { useEffect, useState, useCallback } from 'react'; // <-- Import useCallback
+import { useEffect, useState, useCallback, useRef } from 'react'; // <-- Import useCallback
 import { io } from 'socket.io-client';
+import { API_BASE_URL } from '@/services/api';
 
 export function useNotifications() {
+  const socketRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [socket, setSocket] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
-  // --- Socket Connection Effect ---
   useEffect(() => {
-    const backendUrl = 'http://localhost:8080';
+    const backendUrl = API_BASE_URL || 'http://127.0.0.1:8080';
     console.log('🔔 Attempting to connect to:', backendUrl);
 
-    const newSocket = io(`${backendUrl}/notifications`, {
-      auth: {
-        token: localStorage.getItem('accessToken'),
-      },
-      transports: ['websocket', 'polling'],
+    // Avoid re-creating socket in dev strict mode / HMR
+    if (socketRef.current && socketRef.current.connected) {
+      console.log('🔔 Reusing existing socket instance');
+      return;
+    }
+
+    const token = localStorage.getItem('accessToken') || '';
+
+    const opts = {
+      path: '/socket.io', // be explicit; must match server
+      transports: ['websocket'], // avoid polling noise in dev
+      autoConnect: false, // prevents instant connect on mount
       withCredentials: true,
-    });
+      auth: { token: `Bearer ${token}` }, // server strips 'Bearer ' — be explicit
+    };
 
-    newSocket.on('connect', () => {
-      console.log(
-        '🔔 ✅ Connected to notification server, Socket ID:',
-        newSocket.id,
-      );
+    const sock = io(`${backendUrl}/notifications`, opts);
+    socketRef.current = sock;
+    setSocket(sock);
+
+    const onConnect = () => {
+      console.log('🔔 ✅ Connected, id:', sock.id);
       setConnectionStatus('connected');
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('🔔 ❌ Connection error:', error.message);
+    };
+    const onConnectError = (err) => {
+      console.error(
+        '🔔 ❌ Connection error:',
+        err && err.message ? err.message : err,
+      );
       setConnectionStatus('error');
-    });
-
-    newSocket.on('disconnect', (reason) => {
+    };
+    const onDisconnect = (reason) => {
       console.log('🔔 🔌 Disconnected:', reason);
       setConnectionStatus('disconnected');
-    });
+    };
 
-    newSocket.on('new-notification', (notification) => {
-      console.log('🔔 📨 New notification received:', notification);
+    sock.on('connect', onConnect);
+    sock.on('connect_error', onConnectError);
+    sock.on('disconnect', onDisconnect);
+
+    sock.on('new-notification', (notification) => {
       setNotifications((prev) => [notification, ...prev]);
-      setUnreadCount((prev) => prev + 1);
+      setUnreadCount((p) => p + 1);
     });
 
-    newSocket.on('notification-read', (data) => {
-      console.log('🔔 ✅ Notification marked as read:', data);
-    });
+    // keep a global ref for quick debug in console
+    window.__notifSocket = sock;
 
-    newSocket.onAny((event, ...args) => {
-      console.log('🔔 📡 Socket event:', event, args);
-    });
-
-    setSocket(newSocket);
+    // now actually connect once wired
+    sock.connect();
 
     return () => {
       console.log('🔔 🧹 Cleaning up socket connection');
-      newSocket.disconnect();
+      try {
+        sock.off('connect', onConnect);
+        sock.off('connect_error', onConnectError);
+        sock.off('disconnect', onDisconnect);
+        sock.disconnect();
+      } catch (e) {
+        console.warn('🔔 cleanup error', e);
+      }
+      socketRef.current = null;
+      setSocket(null);
     };
-  }, []); // This runs once on mount to set up the socket
+  }, []); // run once
 
   // --- Data Fetching Functions (Wrapped in useCallback) ---
 
@@ -113,6 +132,29 @@ export function useNotifications() {
     fetchUnreadCount();
     fetchNotifications(); // Fetches the first page of notifications
   }, [fetchUnreadCount, fetchNotifications]); // Depends on the stable useCallback functions
+
+  function connectSocket(token) {
+    // connect to namespace explicitly and pass auth token
+    const socket = io(`${API_BASE_URL}/notifications`, {
+      // or io(API_BASE_URL + '/notifications', { ... })
+      auth: {
+        token: `Bearer ${token}`, // server strips 'Bearer ' — you do that on server
+      },
+      transports: ['websocket'], // helps avoid polling in some dev setups
+      path: '/socket.io', // default, but make explicit if custom server config
+      // autoConnect: false, // if you want manual control
+    });
+
+    socket.on('connect', () => {
+      console.log('🔔 ✅ connected to notifications', socket.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('🔔 ❌ Connection error:', err.message);
+    });
+
+    return socket;
+  }
 
   return {
     notifications,

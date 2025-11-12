@@ -10,7 +10,7 @@ const planConfig = {
     Icon: Zap,
     title: 'Free Plan',
     buttonClasses:
-      'flex items-center space-x-2 px-1 py-1 rounded-lg bg-gradient-to-r from-blue-100 to-gray-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 transition-all duration-200 border border-blue-300',
+      'flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-blue-100 to-gray-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 transition-all duration-200 border border-blue-300',
     headerClasses: 'p-4 bg-gradient-to-r from-blue-400 to-blue-600',
   },
   Weekly: {
@@ -44,14 +44,14 @@ const PlanDropdown = ({
 
   return (
     <div className="relative">
-      <button onClick={onToggle} className={config.buttonClasses} >
+      <button onClick={onToggle} className={config.buttonClasses}>
         <Icon className="w-4 h-4" />
         <span className="text-xs font-medium hidden sm:inline">{planType}</span>
         <ChevronDown className="w-3 h-3" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden z-50">
           <div className={config.headerClasses}>
             <div className="flex items-center space-x-3 text-white">
               <Icon className="w-6 h-6" />
@@ -89,11 +89,16 @@ const PlanDropdown = ({
           {planType === 'Free' || planType === 'Weekly' ? (
             <div className="p-4 border-t border-slate-100">
               <button
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
                 onClick={() => router.push('/dashboard/subscriptions')}
               >
                 <Crown className="w-4 h-4" />
-                <span>Upgrade Plan</span>
+                <span>
+                  {planType === 'Free'
+                    ? 'Upgrade to Weekly '
+                    : 'Upgrade to Monthly'}
+                </span>
+                {/* <span>Upgrade Plan</span> */}
               </button>
             </div>
           ) : (

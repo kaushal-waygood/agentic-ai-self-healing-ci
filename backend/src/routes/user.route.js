@@ -55,7 +55,7 @@ router.post('/signin', signInUser);
 router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, getUserProfile);
 router.patch('/me/password/change', authMiddleware, changePassword);
-router.post('/resend-otp', authMiddleware, resendOtp);
+router.post('/resend-otp', resendOtp);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 

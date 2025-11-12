@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import Stripe from 'stripe';
 import { Purchase } from '../models/Purchase.js';
 import { User } from '../models/User.model.js'; // Adjust path
-import {config} from "../config/config.js"
+import { config } from '../config/config.js';
 
 //OK
 export const createPlan = async (req, res) => {
@@ -443,6 +443,26 @@ export const handleStripeWebhook = async (req, res) => {
 
       // If all operations succeed, commit the transaction
       await session.commitTransaction();
+
+      const { html, text } = await tm.compileWithTextFallback('plan_upgrade', {
+        subject: `Congrats! You've Upgraded to ${planName} on ZobsAI`,
+        name: user.fullName,
+        planName,
+        billingUrl: `${process.env.FRONTEND_URL}/account/billing`,
+        managePlanUrl: `${process.env.FRONTEND_URL}/account/manage-plan`,
+        companyUrl: process.env.FRONTEND_URL,
+        companyAddress: process.env.COMPANY_ADDRESS || '',
+        unsubscribeUrl: `${process.env.FRONTEND_URL}/unsubscribe`,
+        supportEmail: process.env.SUPPORT_EMAIL || 'support@zobsai.com',
+      });
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_FROM,
+        to: user.email,
+        subject: `Congrats! You've Upgraded to ${planName} on ZobsAI`,
+        html,
+        text,
+      });
     } catch (error) {
       // If any operation fails, abort the transaction
       await session.abortTransaction();
