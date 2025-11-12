@@ -58,6 +58,14 @@ export const generateCoverLetterPrompts = (
     projects: studentProfile.projects,
   };
 
+  const formatPrettyDate = () => {
+    const d = new Date();
+    const day = d.getDate();
+    const month = d.toLocaleString('en-US', { month: 'short' });
+    const year = d.getFullYear();
+    return `${day} ${month}., ${year}`;
+  };
+
   return `You are an expert career coach tasked with creating a powerful, general-purpose cover letter template. The final output must be a clean, unstyled, and semantically structured HTML string.
 
 **TARGET ROLE:**
@@ -94,15 +102,17 @@ ${
 * Follow a standard business letter format using \`<p>\` tags for paragraphs and \`<br>\` for line breaks within a block.
 * As requested, use the class "roboto-font" on the main container div. For example: \`<div class="roboto-font">...</div>\`.
 * **Permitted Tags:** You may only use \`div\`, \`p\`, \`br\`, and \`strong\`.
+* always takes real date which already comes form function formatPrettyDate which is ${formatPrettyDate()}
 
 **Example of expected raw HTML output:**
 <div class="roboto-font">
   <div>
-    <p><strong>Mohd Arsalan</strong><br>
-    +91 9711 62 9495<br>
-    arsalanden@gmail.com</p>
+    <p><strong>Mohd Arsalan</strong><p>
+    <p>+91 9711 62 9495</p>
+    <p>arsalanden@gmail.com</p>
+    <p>12 May 2023</p>
   </div>
-  <p>September 8, 2025</p>
+  <p></p>
   <p>Dear Hiring Manager,</p>
   <p>I am writing to express my profound interest in MERN Stack Developer opportunities. With over two years of hands-on experience developing and maintaining full-stack applications, I have a proven track record of building robust backend services with Node.js/Express.js and creating dynamic, responsive user interfaces with React.</p>
   <p>My experience at Padhai Karo involved implementing REST APIs, integrating AWS S3 for asset management, and participating in the full software development lifecycle. I am confident that my technical skills and project experience, detailed in my attached resume, make me a strong candidate for a role requiring a dedicated and proficient developer.</p>

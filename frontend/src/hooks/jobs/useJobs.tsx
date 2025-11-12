@@ -40,8 +40,7 @@ export const useJobs = () => {
       experience: searchParams.get('experience')?.split(',') || [],
     };
     if (pathName === '/dashboard/search-jobs') {
-      searchJobRequest({ ...filtersFromUrl, page: 1, append: false });
-      // dispatch(getRecommendJobsRequest());
+      dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
     } else if (pathName === '/search-jobs')
       dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
   }, [dispatch, searchParams]);
@@ -62,8 +61,6 @@ export const useJobs = () => {
     };
     fetchJobMetadata();
   }, []);
-
-  // ✅ --- THE FIX --- ✅
 
   // 2. Create a ref to hold the latest filters. This doesn't trigger re-renders.
   const latestFiltersRef = useRef(reduxFilters);
