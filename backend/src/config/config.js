@@ -33,7 +33,7 @@ export const config = {
   rapidJobApi: 'https://jsearch.p.rapidapi.com/search',
   rapidApiKey: getEnv('RAPID_API_KEY'),
   rapidApiHost: 'jsearch.p.rapidapi.com',
-  geminiAPI: getEnv('GOOGLE_GENERATIVE_AI_KEY'),
+  geminiAPI: getEnv('GEMINI_API_KEY'),
 
   // Redis
   redisHost: process.env.REDIS_HOST,
