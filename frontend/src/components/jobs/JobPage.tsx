@@ -64,15 +64,6 @@ export default function JobsPage() {
     }
   }, [jobs, searchParams, fetchJobDetails]);
 
-  // useEffect(() => {
-  //   const getRecommened = async () => {
-  //     const response = await apiInstance.get('/jobs/recommended');
-  //     setRecommendedJobs(response.data.jobs);
-  //   };
-
-  //   getRecommened();
-  // }, []);
-
   // Effect for infinite scrolling
   useEffect(() => {
     const observer = new IntersectionObserver(
