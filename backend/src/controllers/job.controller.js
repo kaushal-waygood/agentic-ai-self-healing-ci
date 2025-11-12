@@ -939,12 +939,9 @@ export const searchJobs = async (req, res) => {
 
 export const getJobDetailBySlug = async (req, res) => {
   const { slug } = req.query;
-  
-  console.log(slug);
+
   try {
     const singleJob = await Job.find({ slug });
-
-    console.log(singleJob);
 
     if (!singleJob) {
       return res.status(404).json({ message: 'Job not found' });

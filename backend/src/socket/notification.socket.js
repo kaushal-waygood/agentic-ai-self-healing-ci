@@ -87,20 +87,14 @@ export function sendRealTimeNotification(io, userId, notification) {
   try {
     const userRoom = `user:${userId}`;
 
-    console.log(`🔔 📤 Sending notification to room: ${userRoom}`);
-    console.log(`🔔 📦 Notification data:`, notification);
-
     // Get the namespace
     const notificationNamespace = io.of('/notifications');
 
     // Check if room exists and has clients
     const room = notificationNamespace.adapter.rooms.get(userRoom);
-    console.log(`🔔 👥 Clients in room ${userRoom}:`, room ? room.size : 0);
 
     // Send to specific room
     notificationNamespace.to(userRoom).emit('new-notification', notification);
-
-    console.log(`🔔 ✅ Real-time notification sent to user ${userId}`);
 
     return true;
   } catch (error) {
