@@ -45,8 +45,7 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     const checkAuth = () => {
-      const accessToken =
-        localStorage.getItem('accessToken') || getCookie('accessToken');
+      const accessToken = localStorage.getItem('accessToken');
 
       if (accessToken && isTokenValid(accessToken)) {
         setAuthStatus('authenticated');

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
-import { upload } from '../middlewares/multer.js';
+import { memoryUpload, upload } from '../middlewares/multer.js';
 import {
   extractStudentDataFromCV,
   convertDataIntoHTML,
@@ -47,7 +47,7 @@ router.post(
   '/resume/extract',
   authMiddleware,
   isStudent,
-  upload.single('cv'),
+  memoryUpload.single('cv'),
   extractStudentDataFromCV,
 );
 

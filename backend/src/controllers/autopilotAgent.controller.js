@@ -63,7 +63,7 @@ export const createAutopilotAgent = async (req, res) => {
       'agentName',
       'jobTitle',
       'country',
-      'employmentType',
+      'employmentTypes',
     ];
 
     console.log(req.body);
@@ -88,7 +88,7 @@ export const createAutopilotAgent = async (req, res) => {
     // read & sanitize inputs
     const agentName = String(req.body.agentName).trim();
     const jobTitle = String(req.body.jobTitle).trim();
-    const employmentType = normalizeEmploymentType(req.body.employmentType);
+    const employmentType = normalizeEmploymentType(req.body.employmentTypes);
     const isRemote = toBool(req.body.isRemote);
     const isOnsite = toBool(req.body.isOnsite);
     const cvOption =
