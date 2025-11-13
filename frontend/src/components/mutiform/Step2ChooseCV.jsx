@@ -88,7 +88,7 @@ const Step2ChooseCV = ({
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 rounded-lg p-4 mb-4 text-white shadow-xl">
+      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-6 py-4 rounded-lg shadow-lg mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center font-bold">
             2
@@ -129,6 +129,7 @@ const Step2ChooseCV = ({
                   <li
                     key={cv._id ?? idx}
                     role="button"
+                    value={cvs.htmlCVTitle || 'Untitled CV'}
                     tabIndex={0}
                     onClick={() => onSelectSavedCv(cv)}
                     onKeyDown={(e) =>
@@ -190,7 +191,7 @@ const Step2ChooseCV = ({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white shadow-sm"
           >
             <UploadCloud className="w-4 h-4" />
             Browse or drop file
@@ -224,30 +225,31 @@ const Step2ChooseCV = ({
         </div>
 
         {/* CTA */}
-        <div className="mt-4">
+        {/* <div className="mt-4">
           <button
             type="button"
             onClick={() => {
-              /* If user wants an explicit create-flow */
               nextStep();
             }}
-            className="w-full px-4 py-3 rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold"
+            className="w-full px-4 py-3 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white font-semibold"
           >
             Create / Use Selected CV
           </button>
-        </div>
+        </div> */}
 
         {/* Footer nav */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t">
           <button
             onClick={prevStep}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-gray-100"
+            className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all duration-200 hover:scale-105"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
           <button
             onClick={nextStep}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-white border"
+            className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 
+              bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105
+                "
           >
             Next <ArrowRight className="w-4 h-4" />
           </button>

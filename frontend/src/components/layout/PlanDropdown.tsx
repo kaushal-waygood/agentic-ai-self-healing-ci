@@ -41,6 +41,8 @@ const PlanDropdown = ({
   // Select the correct configuration based on planType, with 'Free' as a fallback
   const config = planConfig[planType] || planConfig.Free;
   const { Icon } = config;
+  console.log('usage data', usageData);
+  console.log('plan limits', planLimits);
 
   return (
     <div className="relative">
@@ -65,11 +67,6 @@ const PlanDropdown = ({
           </div>
           <div className="p-4  space-y-4">
             <UsageTracker
-              label="AI Applications"
-              used={usageData.aiJobApply}
-              limit={planLimits.aiJobApply}
-            />
-            <UsageTracker
               label="AI CV Generations"
               used={usageData.aiCvGenerator}
               limit={planLimits.aiCvGenerator}
@@ -80,10 +77,16 @@ const PlanDropdown = ({
               limit={planLimits.aiCoverLetterGenerator}
             />
             <UsageTracker
+              label="AI Applications"
+              used={usageData.aiJobApply}
+              limit={planLimits.aiJobApply}
+            />
+
+            {/* <UsageTracker
               label="Tracked Applications"
               used={usageData.applications}
               limit={planLimits.applicationLimit}
-            />
+            /> */}
           </div>
 
           {planType === 'Free' || planType === 'Weekly' ? (
