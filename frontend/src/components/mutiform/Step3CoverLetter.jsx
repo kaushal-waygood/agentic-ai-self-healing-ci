@@ -1,101 +1,3 @@
-// import React, { useEffect, useState } from 'react';
-// import apiInstance from '@/services/api';
-
-// const Step3CoverLetter = ({ nextStep, prevStep, handleChange, values }) => {
-//   const [coverLetters, setCoverLetters] = useState([]);
-
-//   const [stats, setStats] = useState({ clsCount: 0 });
-
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     const fetchCoverLetters = async () => {
-//       try {
-//         setLoading(true);
-//         const response = await apiInstance.get('/students/letter/saved');
-
-//         setCoverLetters(response.data.html || []);
-//         setStats((prev) => ({
-//           ...prev,
-//           coverLettersCount: response.data.html?.length || 0,
-//         }));
-//       } catch (error) {
-//         console.error('Failed to fetch cover letters:', error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchCoverLetters();
-//   }, []);
-
-//   return (
-//     <div className="form-step">
-//       <div className="step-header">
-//         <h2>Step 3: Set Cover Letter Strategy</h2>
-//         <p>Choose how you want to handle your cover letter (optional).</p>
-//       </div>
-//       <div className="form-card">
-//         <label>Cover Letter Strategy</label>
-//         <div className="strategy-options">
-//           <label
-//             className={`strategy-option ${
-//               values.coverLetterStrategy === 'generate' ? 'selected' : ''
-//             }`}
-//           >
-//             <input
-//               type="radio"
-//               name="strategy"
-//               value="generate"
-//               checked={values.coverLetterStrategy === 'generate'}
-//               onChange={handleChange('coverLetterStrategy')}
-//             />
-//             <strong>Generate from scratch</strong>
-//             <small>AI will create a unique letter tailored to each job.</small>
-//           </label>
-//           <label
-//             className={`strategy-option ${
-//               values.coverLetterStrategy === 'template' ? 'selected' : ''
-//             }`}
-//           >
-//             <input
-//               type="radio"
-//               name="strategy"
-//               value="template"
-//               checked={values.coverLetterStrategy === 'template'}
-//               onChange={handleChange('coverLetterStrategy')}
-//             />
-//             <strong>Use a saved template</strong>
-//             <small>
-//               Start with a saved letter and let AI optimize it for each
-//               application.
-//             </small>
-//           </label>
-//         </div>
-
-//         <div className="form-group">
-//           <label>Specific Instructions (Optional)</label>
-//           <textarea
-//             placeholder="e.g. Always mention my passion for sustainable technology."
-//             onChange={handleChange('coverLetterInstructions')}
-//             defaultValue={values.coverLetterInstructions}
-//           ></textarea>
-//         </div>
-//         <div className="form-navigation">
-//           <button className="back-btn" onClick={prevStep}>
-//             ← Back
-//           </button>
-//           <button className="next-btn" onClick={nextStep}>
-//             Next: Final Config →
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Step3CoverLetter;
-
 import React, { useEffect, useState } from 'react';
 import apiInstance from '@/services/api';
 import { Clock, FileText } from 'lucide-react';
@@ -127,19 +29,26 @@ const Step3CoverLetter = ({ nextStep, prevStep, handleChange, values }) => {
   }, []);
 
   return (
-    <div className="form-step">
-      <div className="step-header">
-        <h2>Step 3: Set Cover Letter Strategy</h2>
-        <p>Choose how you want to handle your cover letter (optional).</p>
+    <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
+      {/* header  */}
+      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-6 py-4 rounded-lg shadow-lg mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center font-bold">
+            3
+          </div>
+          <h2 className="text-2xl font-bold">Set Cover Letter Strategy</h2>
+        </div>
+        <p className="text-white/90 mt-2">
+          Choose how you want to handle your cover letter (optional).
+        </p>
       </div>
-
       <div className="form-card">
         <label>Cover Letter Strategy</label>
 
-        <div className="strategy-options">
+        <div className="flex flex-col gap-4">
           {/* Option 1: Generate new letter */}
           <label
-            className={`strategy-option ${
+            className={`strategy-option  ${
               values.coverLetterStrategy === 'generate' ? 'selected' : ''
             }`}
           >
@@ -150,8 +59,10 @@ const Step3CoverLetter = ({ nextStep, prevStep, handleChange, values }) => {
               checked={values.coverLetterStrategy === 'generate'}
               onChange={handleChange('coverLetterStrategy')}
             />
-            <strong>Generate from scratch</strong>
-            <small>AI will create a unique letter tailored to each job.</small>
+            <h1 className="text-md font-semibold">Generate from scratch</h1>
+            <p className="text-sm font-normal">
+              AI will create a unique letter tailored to each job.
+            </p>
           </label>
 
           {/* Option 2: Use saved template */}
@@ -167,11 +78,11 @@ const Step3CoverLetter = ({ nextStep, prevStep, handleChange, values }) => {
               checked={values.coverLetterStrategy === 'template'}
               onChange={handleChange('coverLetterStrategy')}
             />
-            <strong>Use a saved Cover Letter</strong>
-            <small>
+            <h2 className="text-md font-semibold">Use a saved Cover Letter</h2>
+            <p className="text-sm font-normal">
               Start with a saved letter and let AI optimize it for each
               application.
-            </small>
+            </p>
           </label>
         </div>
 

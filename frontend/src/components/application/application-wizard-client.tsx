@@ -136,6 +136,8 @@ export function ApplicationWizardClient() {
               rateLimited={true}
               rateLimitMessage={rateLimitMessage}
               planPath="/dashboard/subscriptions"
+              title="Application"
+              targetLink={'/dashboard/my-docs?tab=applications'}
             />
           );
         }

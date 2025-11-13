@@ -7,6 +7,8 @@ import Step3CoverLetter from './Step3CoverLetter';
 import Step4ConfigureSave from './Step4ConfigureSave';
 import apiInstance from '@/services/api';
 import { useDispatch, useSelector } from 'react-redux';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 import {
   createAutopilotRequest,
   getAutopilotRequest,
@@ -21,7 +23,12 @@ const MultiStepForm = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false); // NEW
 
   const dispatch = useDispatch();
+  const { toast } = useToast();
   const { autopilot } = useSelector((state) => state.autopilot);
+  const [deletePopup, setDeletePopup] = useState({
+    open: false,
+    agentId: null,
+  });
 
   const initialFormData = {
     agentName: '',
@@ -67,17 +74,42 @@ const MultiStepForm = () => {
     }
   };
 
-  const handleDeleteAgent = async (agentId) => {
-    if (!window.confirm('Are you sure you want to delete this agent?')) return;
+  // const handleDeleteAgent = async (agentId) => {
+  //   if (!window.confirm('Are you sure you want to delete this agent?')) return;
+  //   try {
+  //     await apiInstance.delete(`/pilotagent/delete/${agentId}`);
+  //     setAgents(agents.filter((agent) => agent._id !== agentId));
+  //     dispatch(getAutopilotRequest());
+  //     alert('Agent deleted successfully.');
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert('Error deleting agent. Try again.');
+  //   }
+  // };
+  const handleDeleteAgent = (agentId) => {
+    setDeletePopup({ open: true, agentId });
+  };
+  const confirmDelete = async () => {
+    const agentId = deletePopup.agentId;
+    setDeletePopup({ open: false, agentId: null });
+
     try {
       await apiInstance.delete(`/pilotagent/delete/${agentId}`);
-      setAgents(agents.filter((agent) => agent._id !== agentId));
+      setAgents((prev) => prev.filter((agent) => agent._id !== agentId));
       dispatch(getAutopilotRequest());
-      alert('Agent deleted successfully.');
+      toast({
+        variant: 'success',
+        title: 'Deleted Successfully',
+        description: 'Agent deleted successfully',
+      });
     } catch (err) {
       console.error(err);
       alert('Error deleting agent. Try again.');
     }
+  };
+
+  const cancelDelete = () => {
+    setDeletePopup({ open: false, agentId: null });
   };
 
   // 🔸 Instead of immediately saving, open preview modal
@@ -126,7 +158,8 @@ const MultiStepForm = () => {
         await apiInstance.post('/pilotagent/create', submissionData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        alert('Agent created successfully!');
+        // alert('Agent created successfully!');
+
         dispatch(getAutopilotRequest());
       }
 
@@ -136,6 +169,7 @@ const MultiStepForm = () => {
     } catch (err) {
       console.error('Submit error:', err);
       alert('There was an error saving the agent.');
+      setStep(0);
     }
   };
 
@@ -148,6 +182,10 @@ const MultiStepForm = () => {
       case 0:
         return (
           <Step0_Intro
+            confirmDelete={confirmDelete}
+            cancelDelete={cancelDelete}
+            deletePopup={deletePopup}
+            setDeletePopup={setDeletePopup}
             nextStep={nextStep}
             agents={autopilot}
             onEdit={handleEditAgent}
@@ -187,10 +225,27 @@ const MultiStepForm = () => {
         return (
           <Step4ConfigureSave
             prevStep={prevStep}
+            nextStep={nextStep}
             handleChange={handleChange}
             handleSubmit={handlePreview} // CHANGED
             values={formData}
           />
+        );
+
+      case 5:
+        return (
+          <div className="flex items-center flex-col justify-center min-h-screen">
+            <div>
+              <Image
+                src="/logo.png"
+                alt="zobsai logo"
+                width={100}
+                height={100}
+                className="w-10 h-10 animate-bounce"
+              />
+            </div>
+            <div className="text-lg">Generating agent Please wait...</div>
+          </div>
         );
       default:
         return <div>Done.</div>;
@@ -204,6 +259,7 @@ const MultiStepForm = () => {
       {isPreviewOpen && (
         <AgentPreviewModal
           formData={formData}
+          nextStep={nextStep}
           onCancel={() => setIsPreviewOpen(false)}
           onConfirm={confirmSubmit}
         />
