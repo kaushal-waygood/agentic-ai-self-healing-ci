@@ -1,6 +1,8 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { cloudinary } from '../config/cloudinary.js';
+import streamifier from 'streamifier';
 
 // Define paths and ensure directories exist
 const formUploadDir = 'public/form';
@@ -61,6 +63,54 @@ const fileFilter = (req, file, cb) => {
     cb(new Error('Unknown file field'));
   }
 };
+
+export const memoryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname !== 'cv')
+      return cb(new Error('This route expects field "cv"'));
+    const allowed = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'image/jpeg',
+      'image/png',
+      'application/octet-stream',
+    ];
+    allowed.includes(file.mimetype)
+      ? cb(null, true)
+      : cb(new Error('Invalid CV file type'));
+  },
+});
+
+// Upload buffer -> Cloudinary (resource_type: 'auto' so pdf/doc ok)
+export function uploadBufferToCloudinary(buffer, options = {}) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      options,
+      (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      },
+    );
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+}
+
+async function downloadUrlToTempFile(url) {
+  const resp = await axios.get(url, {
+    responseType: 'arraybuffer',
+    timeout: 30000,
+  });
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-'));
+  // try to preserve extension
+  let ext = path.extname(new URL(url).pathname) || '.pdf';
+  if (!ext) ext = '.pdf';
+  const tmpPath = path.join(tmpDir, `upload${ext}`);
+  fs.writeFileSync(tmpPath, Buffer.from(resp.data));
+  return tmpPath;
+}
 
 export const upload = multer({
   storage,

@@ -219,6 +219,7 @@ const studentSchema = new Schema(
       trim: true,
     },
     token: tokenSchema,
+    uploadedCV: String,
     phone: String,
     profileImage: String,
     resumeUrl: String,
