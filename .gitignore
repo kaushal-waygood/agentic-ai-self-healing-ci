@@ -1,4 +1,5 @@
 .env
 develop.deploy
+manifests/*
 
 main.deploy
