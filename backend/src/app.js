@@ -27,11 +27,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 // 0) Morgan FIRST so it sees everything (even stuff that gets short-circuited)
-app.use(
-  morgan('dev', {
-    immediate: true, // log on request arrival; you’ll still see a second line on completion if you also add a non-immediate logger
-  }),
-);
+app.use(morgan('dev'));
 
 // If you also want completion logs, add a second one (optional):
 // app.use(morgan('dev'));

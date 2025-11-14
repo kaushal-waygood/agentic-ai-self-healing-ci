@@ -391,7 +391,6 @@ export const addStudentSkills = async (req, res) => {
 
 /**
  * Remove a skill
- * Note: we remove by `skillId` (the slug you created), not by Mongo _id.
  */
 export const removeStudentSkills = async (req, res) => {
   const { skillId } = req.params;
@@ -402,23 +401,33 @@ export const removeStudentSkills = async (req, res) => {
   }
 
   try {
-    // Pull by skillId property (consistent with addStudentSkills)
-    const result = await Student.findByIdAndUpdate(
-      _id,
-      { $pull: { skills: { skillId } } },
-      { new: true, select: 'skills' },
-    ).lean();
+    const isObjectId = mongoose.Types.ObjectId.isValid(skillId);
 
-    if (!result) {
+    let updated;
+    if (isObjectId) {
+      const objectId = new mongoose.Types.ObjectId(skillId); // <-- use new
+      updated = await Student.findByIdAndUpdate(
+        _id,
+        { $pull: { skills: { _id: objectId } } },
+        { new: true, select: 'skills' },
+      ).lean();
+    } else {
+      updated = await Student.findByIdAndUpdate(
+        _id,
+        { $pull: { skills: { skillId } } },
+        { new: true, select: 'skills' },
+      ).lean();
+    }
+
+    if (!updated) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Invalidate cache
     await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({
       message: 'Skill removed successfully',
-      skills: result.skills,
+      skills: updated.skills || [],
     });
   } catch (error) {
     console.error('Error removing skill:', error);
