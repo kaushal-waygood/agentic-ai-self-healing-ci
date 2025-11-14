@@ -41,8 +41,6 @@ const PlanDropdown = ({
   // Select the correct configuration based on planType, with 'Free' as a fallback
   const config = planConfig[planType] || planConfig.Free;
   const { Icon } = config;
-  console.log('usage data', usageData);
-  console.log('plan limits', planLimits);
 
   return (
     <div className="relative">
