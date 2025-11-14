@@ -28,7 +28,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const StyledCard = (props) => (
+const StyledCard = (props: any) => (
   <Card className="bg-white border-slate-200 text-slate-800" {...props} />
 );
 
@@ -47,10 +47,15 @@ export function ApplicationWizardClient() {
     generatedData,
     jobs,
     selectedCvId,
+    // these should be supplied by your hook
+    rateLimited = false,
+    rateLimitMessage = null,
   } = state;
+
   const { navigateToStep, setGeneratedData } = actions;
 
   const renderStep = () => {
+    // Loading card when initializing
     if (isLoading && wizardStep === 'loading') {
       return (
         <StyledCard className="min-h-[400px] flex items-center justify-center">
@@ -77,6 +82,7 @@ export function ApplicationWizardClient() {
             handleJobContextSubmit={actions.handleJobContextSubmit}
           />
         );
+
       case 'cv':
         return (
           <SleekCvStep
@@ -90,6 +96,7 @@ export function ApplicationWizardClient() {
             handleCVContext={actions.handleCVFileUpload}
           />
         );
+
       case 'createCv':
         return (
           <CreateCvStep
@@ -108,6 +115,7 @@ export function ApplicationWizardClient() {
             appendProject={formActions.appendProject}
           />
         );
+
       case 'cl':
         return (
           <SleekClStep
@@ -118,12 +126,24 @@ export function ApplicationWizardClient() {
             itemVariants={itemVariants}
           />
         );
-      case 'generate':
-        return isLoading ? (
-          // <SleekLoadingCard message={loadingMessage} />
 
-          <FinalResultView />
-        ) : (
+      case 'generate':
+        // If rate-limited, short-circuit to purchase CTA
+        if (rateLimited) {
+          return (
+            <FinalResultView
+              cvlink={undefined}
+              rateLimited={true}
+              rateLimitMessage={rateLimitMessage}
+              planPath="/dashboard/subscriptions"
+              title="Application"
+              targetLink={'/dashboard/my-docs?tab=applications'}
+            />
+          );
+        }
+
+        // Otherwise show the GenerateStep (which triggers actions.handleGenerate)
+        return (
           <GenerateStep
             jobContext={state.jobContext}
             cvContext={state.cvContext}
@@ -132,7 +152,20 @@ export function ApplicationWizardClient() {
             setWizardStep={navigateToStep}
           />
         );
+
       case 'result':
+        // If the user was rate-limited, show the upgrade CTA instead of normal result UI
+        if (rateLimited) {
+          return (
+            <FinalResultView
+              cvlink={undefined}
+              rateLimited={true}
+              rateLimitMessage={rateLimitMessage}
+              planPath="/dashboard/subscriptions"
+            />
+          );
+        }
+
         return (
           <ResultStep
             jobContext={state.jobContext}
@@ -156,20 +189,17 @@ export function ApplicationWizardClient() {
             handleStartNew={actions.handleStartNew}
           />
         );
+
       default:
-        // Default to the loading state to handle undefined steps gracefully
         return (
           <div className="min-h-screen flex flex-col justify-center items-center py-20">
-            {/* <Loader2 className="h-12 w-12 mx-auto animate-spin text-purple-600" />{' '} */}
-            {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
             <div>
               <img
                 src="/logo.png"
-                alt=""
+                alt="logo"
                 className="w-10 h-10 animate-bounce"
               />
             </div>
-
             <div className="text-lg">LOADING...</div>
           </div>
         );

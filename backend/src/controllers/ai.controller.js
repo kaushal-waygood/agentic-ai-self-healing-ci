@@ -18,80 +18,9 @@ import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
 import mongoose from 'mongoose';
 import { processTailoredApplication } from '../utils/tailoredApply.background.js';
-
-const retryOperation = async (operation, retries = 3, delay = 1000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await operation();
-    } catch (error) {
-      if (error.status === 503 && i < retries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        delay *= 2;
-      } else {
-        throw error;
-      }
-    }
-  }
-};
-
-export const extractStudentDataFromCV = async (req, res) => {
-  const { _id } = req.user;
-
-  if (!req.file) {
-    return res.status(400).json({ error: 'No PDF file uploaded' });
-  }
-
-  const filePath = path.join(
-    __dirname,
-    '..',
-    '..',
-    'public',
-    'pdf',
-    req.file.filename,
-  );
-
-  try {
-    // Wrap the extraction logic in our retry helper
-    const extractedData = await retryOperation(() =>
-      extractDataFromCV(filePath),
-    );
-
-    // Clean up file
-    fs.unlinkSync(filePath);
-
-    // Update student record
-    const updatedStudent = await Student.findByIdAndUpdate(
-      _id,
-      {
-        fullName: extractedData.personalInfo.fullName,
-        phone: extractedData.personalInfo.phone,
-        skills: extractedData.skills,
-        education: extractedData.education,
-        experience: extractedData.experience,
-        projects: extractedData.projects,
-        jobPreferences: extractedData.jobPreferences,
-      },
-      { new: true, runValidators: true },
-    );
-
-    return res.json({ success: true, data: updatedStudent });
-  } catch (error) {
-    console.error('Error updating student from CV:', error);
-
-    // Send a more specific error message to the client
-    if (error.status === 503) {
-      return res.status(503).json({
-        error:
-          'The AI service is temporarily busy. Please try again in a few moments.',
-      });
-    }
-
-    res.status(500).json({
-      error: 'Failed to extract or update student data from CV',
-      message: error.message,
-    });
-  }
-};
+import { uploadBufferToCloudinary } from '../middlewares/multer.js';
+import axios from 'axios';
+import os from 'os';
 
 export const convertDataIntoHTML = async (req, res) => {
   const { _id } = req.user;

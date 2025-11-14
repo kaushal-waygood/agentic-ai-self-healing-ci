@@ -706,7 +706,7 @@ export function ApplicationWizardClient() {
         description: 'Your tailored documents are ready for review.',
       });
 
-      setWizardStep('result');
+      setWizardStep('loading');
     } catch (error) {
       console.error('Full error:', {
         message: error.message,

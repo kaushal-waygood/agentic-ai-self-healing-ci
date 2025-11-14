@@ -19,17 +19,14 @@ const GoogleAuthCallback = () => {
 
     if (token) {
       try {
-        // 1. Store the token in localStorage
         localStorage.setItem('accessToken', token);
 
         dispatch(googleLoginSuccess(token));
         dispatch(getGetMeRequest());
 
-        // 4. Redirect to the dashboard
         navigate.push('/dashboard');
       } catch (error) {
         console.error('Invalid token:', error);
-        // Redirect to login page with an error
         navigate.push('/login?error=invalid_token');
       }
     } else {

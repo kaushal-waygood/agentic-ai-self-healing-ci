@@ -23,43 +23,58 @@ import { config } from '../config/config.js';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
+  const cacheKey = `student:${_id}:details`;
+  const TTL_SECONDS = 300; // 5 minutes
 
   try {
-    const user = await User.findById(_id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Use withCache wrapper to fetch from redis or run the DB callback on miss
+    const student = await redisClient.withCache(
+      cacheKey,
+      TTL_SECONDS,
+      async () => {
+        // DB read — keep projection minimal to avoid leaking sensitive fields
+        const s = await Student.findById(_id)
+          .select('-__v') // drop mongoose internals; adjust as needed
+          .lean();
 
-    if (user.role !== 'student') {
-      return res
-        .status(403)
-        .json({ message: 'Only students can create student profile' });
-    }
+        if (s) return s;
 
-    let student = await Student.findById(_id);
-    if (!student) {
-      try {
-        student = await Student.create({
+        // If Student doesn't exist, ensure user exists and role is student, then create
+        const user = await User.findById(_id).lean();
+        if (!user) {
+          // No user, don't cache errors
+          throw { status: 404, message: 'User not found' };
+        }
+
+        if (user.role !== 'student') {
+          throw {
+            status: 403,
+            message: 'Only students can create student profile',
+          };
+        }
+
+        const created = await Student.create({
           _id: user._id,
           fullName: user.fullName,
           email: user.email,
         });
-      } catch (createError) {
-        if (createError.code === 11000) {
-          student = await Student.findById(_id);
-          if (!student) {
-            throw createError;
-          }
-        } else {
-          throw createError;
-        }
-      }
-    }
+
+        // return plain object (lean was used earlier; created is a doc — convert)
+        return created.toObject();
+      },
+    );
 
     return res.status(200).json({
       studentDetails: student,
-      fromCache: false,
+      fromCache: false, // you could detect cache hit and return true if needed
     });
   } catch (error) {
-    console.error('Error creating student details:', error);
+    console.error('Error creating/fetching student details:', error);
+
+    // If we threw a custom status object earlier:
+    if (error && error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
 
     if (error.code === 11000) {
       return res.status(400).json({
@@ -70,7 +85,7 @@ export const studentDetails = async (req, res) => {
 
     return res.status(500).json({
       message: 'Internal server error',
-      error: error.message,
+      error: error.message || error,
     });
   }
 };
@@ -295,7 +310,47 @@ export const updateJobRole = async (req, res) => {
   }
 };
 
-//Skills controller
+// TTLs
+const STUDENT_TTL = 300;
+const SKILLS_CACHE_KEY = (userId) => `student:${userId}:skills`;
+
+/**
+ * GET cached student skills
+ */
+export const getStudentSkills = async (req, res) => {
+  const { _id } = req.user;
+  const cacheKey = SKILLS_CACHE_KEY(_id);
+
+  try {
+    const skills = await redisClient.withCache(
+      cacheKey,
+      STUDENT_TTL,
+      async () => {
+        const student = await Student.findById(_id)
+          .select('skills -_id')
+          .lean();
+        if (!student) {
+          // do not cache a not-found user; throw to let caller handle
+          throw { status: 404, message: 'Student not found' };
+        }
+        // return the skills array (could be empty)
+        return student.skills || [];
+      },
+    );
+
+    return res.status(200).json({ skills, fromCache: false });
+  } catch (err) {
+    console.error('Error fetching skills:', err);
+    if (err && err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * Add a skill
+ */
 export const addStudentSkills = async (req, res) => {
   const { skill, level } = req.body;
   const { _id } = req.user;
@@ -311,14 +366,14 @@ export const addStudentSkills = async (req, res) => {
     const result = await Student.findByIdAndUpdate(
       _id,
       { $addToSet: { skills: newSkill } },
-      { new: true },
-    );
+      { new: true, select: 'skills' },
+    ).lean();
 
     if (!result) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Invalidate cache
+    // Invalidate cache for skills/details
     await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({
@@ -334,6 +389,10 @@ export const addStudentSkills = async (req, res) => {
   }
 };
 
+/**
+ * Remove a skill
+ * Note: we remove by `skillId` (the slug you created), not by Mongo _id.
+ */
 export const removeStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { _id } = req.user;
@@ -343,11 +402,12 @@ export const removeStudentSkills = async (req, res) => {
   }
 
   try {
+    // Pull by skillId property (consistent with addStudentSkills)
     const result = await Student.findByIdAndUpdate(
       _id,
-      { $pull: { skills: { _id: skillId } } },
-      { new: true },
-    );
+      { $pull: { skills: { skillId } } },
+      { new: true, select: 'skills' },
+    ).lean();
 
     if (!result) {
       return res.status(404).json({ message: 'Student not found' });
@@ -362,9 +422,6 @@ export const removeStudentSkills = async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing skill:', error);
-    if (error.name === 'CastError') {
-      return res.status(400).json({ message: 'Invalid skill ID format' });
-    }
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
@@ -372,19 +429,30 @@ export const removeStudentSkills = async (req, res) => {
   }
 };
 
+/**
+ * Update a skill level
+ */
 export const updateStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { level } = req.body;
   const { _id } = req.user;
 
+  if (!skillId) {
+    return res.status(400).json({ message: 'Skill ID is required' });
+  }
+  if (!level) {
+    return res.status(400).json({ message: 'New level is required' });
+  }
+
   try {
+    // Find the student
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    const skill = student.skills.find((s) => s._id === _id);
-    console.log(skill);
+    // Find skill by the skillId property (string slug)
+    const skill = student.skills.find((s) => String(s._id) === String(skillId));
     if (!skill) {
       return res.status(404).json({ message: 'Skill not found' });
     }
@@ -395,25 +463,77 @@ export const updateStudentSkills = async (req, res) => {
     // Invalidate cache
     await redisClient.invalidateStudentCache(_id);
 
-    res.status(200).json({ message: 'Skills updated successfully' });
+    return res
+      .status(200)
+      .json({ message: 'Skill updated successfully', skill });
   } catch (error) {
     console.error('Error updating skills:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 };
 
-export const addExperience = async (req, res) => {
-  const { company, title, startDate, endDate, description, currentlyWorking } =
-    req.body;
+const EXPERIENCE_TTL = 300; // seconds (5 minutes)
+const EXPERIENCE_CACHE_KEY = (userId) => `student:${userId}:experience`;
+
+/**
+ * GET cached experience list
+ */
+export const getExperience = async (req, res) => {
   const { _id } = req.user;
+  const cacheKey = EXPERIENCE_CACHE_KEY(_id);
+
+  try {
+    const experience = await redisClient.withCache(
+      cacheKey,
+      EXPERIENCE_TTL,
+      async () => {
+        const student = await Student.findById(_id)
+          .select('experience -_id')
+          .lean();
+        if (!student) throw { status: 404, message: 'Student not found' };
+        return student.experience || [];
+      },
+    );
+
+    return res.status(200).json({ experience, fromCache: false });
+  } catch (err) {
+    console.error('Error fetching experience:', err);
+    if (err && err.status)
+      return res.status(err.status).json({ message: err.message });
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * Add experience
+ */
+export const addExperience = async (req, res) => {
+  const {
+    company,
+    designation,
+    startDate,
+    endDate,
+    responsibilities,
+    currentlyWorking,
+    location,
+  } = req.body;
+
+  const { _id } = req.user;
+
+  if (!company || !designation || !startDate) {
+    return res
+      .status(400)
+      .json({ message: 'company, title and startDate are required' });
+  }
 
   try {
     const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    if (!student) return res.status(404).json({ message: 'Student not found' });
 
-    const experienceId = slugify(`${company}-${title}`, { lower: true });
+    const experienceId = slugify(`${company}-${designation}`, { lower: true });
 
     if (student.experience.find((exp) => exp.experienceId === experienceId)) {
       return res.status(400).json({ message: 'Experience already exists' });
@@ -425,112 +545,145 @@ export const addExperience = async (req, res) => {
       currentlyWorking,
     );
 
-    student.experience.push({
+    const newExp = {
       experienceId,
       company,
-      title,
+      designation,
       startDate,
       endDate,
-      description,
+      responsibilities,
       currentlyWorking,
       experienceYrs,
-    });
+      location,
+    };
 
+    student.experience.push(newExp);
     await student.save();
 
-    // Invalidate cache
     await redisClient.invalidateStudentCache(_id);
 
-    res.status(200).json({
+    return res.status(200).json({
       message: 'Experience added successfully',
       experience: student.experience,
     });
   } catch (error) {
     console.error('Error adding experience:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
+/**
+ * Remove experience
+ * Accepts either slug `experienceId` or Mongo _id in params (param name: expId)
+ */
 export const removeExperience = async (req, res) => {
-  const { expId: experienceId } = req.params;
+  const { expId } = req.params;
   const { _id } = req.user;
+
+  if (!expId)
+    return res.status(400).json({ message: 'Experience id is required' });
 
   try {
     const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    if (!student) return res.status(404).json({ message: 'Student not found' });
 
-    student.experience = student.experience.filter(
-      (exp) => exp._id.toString() !== experienceId,
-    );
+    // Determine whether expId is an ObjectId or your slug (experienceId)
+    const isObjectId = mongoose.Types.ObjectId.isValid(expId);
+
+    const beforeCount = student.experience.length;
+
+    student.experience = student.experience.filter((exp) => {
+      if (isObjectId) return exp._id.toString() !== expId;
+      return exp.experienceId !== expId;
+    });
+
+    if (student.experience.length === beforeCount) {
+      return res.status(404).json({ message: 'Experience not found' });
+    }
 
     await student.save();
 
     // Invalidate cache
     await redisClient.invalidateStudentCache(_id);
 
-    res.status(200).json({ message: 'Experience removed successfully' });
+    return res.status(200).json({
+      message: 'Experience removed successfully',
+      experience: student.experience,
+    });
   } catch (error) {
     console.error('Error removing experience:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
+/**
+ * Update experience
+ * Accepts either slug `experienceId` or Mongo _id in params (param name: expId)
+ */
 export const updateExperience = async (req, res) => {
-  const { expId: experienceId } = req.params;
+  const { expId } = req.params;
   const {
     company,
-    title,
+    designation: title,
     employmentType,
     designation: jobType,
     startDate,
     endDate,
-    description,
-    experienceYrs,
+    responsibilities: description,
     location,
     currentlyWorking,
   } = req.body;
-
   const { _id } = req.user;
+
+  if (!expId)
+    return res.status(400).json({ message: 'Experience id is required' });
 
   try {
     const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    const isObjectId = mongoose.Types.ObjectId.isValid(expId);
 
     const experience = student.experience.find((exp) => {
-      return exp._id.toString() === experienceId;
+      if (isObjectId) return exp._id.toString() === expId;
+      return exp.experienceId === expId;
     });
 
-    if (!experience) {
+    if (!experience)
       return res.status(404).json({ message: 'Experience not found' });
-    }
 
-    // Update experience fields
-    experience.company = company;
-    experience.title = title;
-    experience.startDate = startDate;
-    experience.endDate = endDate;
-    experience.description = description;
-    experience.currentlyWorking = currentlyWorking;
-    experience.experienceYrs = experienceYrs;
-    experience.location = location;
-    experience.designation = jobType;
+    // Update only provided fields (avoid clobbering)
+    if (company !== undefined) experience.company = company;
+    if (title !== undefined) experience.title = title;
+    if (startDate !== undefined) experience.startDate = startDate;
+    if (endDate !== undefined) experience.endDate = endDate;
+    if (description !== undefined) experience.description = description;
+    if (location !== undefined) experience.location = location;
+    if (jobType !== undefined) experience.designation = jobType;
+    if (employmentType !== undefined)
+      experience.employmentType = employmentType;
+    if (currentlyWorking !== undefined)
+      experience.currentlyWorking = currentlyWorking;
 
-    if (employmentType) experience.employmentType = employmentType;
-    if (currentlyWorking === false) experience.endDate = null;
+    // Recalculate experience years if dates or currentlyWorking changed
+    experience.experienceYrs = calculateExperience(
+      experience.startDate,
+      experience.endDate,
+      experience.currentlyWorking,
+    );
 
+    // If you accept changing company/title, you might want to regenerate experienceId — left unchanged on purpose.
     await student.save();
 
     // Invalidate cache
     await redisClient.invalidateStudentCache(_id);
 
-    res.status(200).json({ message: 'Experience updated successfully' });
+    return res
+      .status(200)
+      .json({ message: 'Experience updated successfully', experience });
   } catch (error) {
     console.error('Error updating experience:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -1143,27 +1296,34 @@ export const getAppliedJobs = async (req, res) => {
 
 export const StudentAnalytics = async (req, res) => {
   const { _id } = req.user;
-  const cacheKey = `student:${_id}:analytics`;
 
   try {
-    const analytics = await redisClient.withCache(cacheKey, 3600, async () => {
-      const [student, studentReferal] = await Promise.all([
-        Student.findById(_id, 'appliedJobs savedJobs htmlCV coverLetter'),
-        User.findById(_id, 'referralCount referralCode isEmailVerified'),
-      ]);
+    // Fetch both student and user data in parallel
+    const [student, studentReferral] = await Promise.all([
+      Student.findById(
+        _id,
+        'visitedJobs appliedJobs viewedJobs savedJobs cls cvs tailoredApplications ',
+      ),
+      User.findById(_id, 'referralCount referralCode isEmailVerified'),
+    ]);
 
-      if (!student) throw new Error('Student not found');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
 
-      return {
-        applicationsSent: student.appliedJobs.length,
-        savedJobsCount: student.savedJobs.length,
-        cvsGenerated: student.htmlCV.length,
-        coverLettersGenerated: student.coverLetter.length,
-        referralCount: studentReferal?.referralCount || 0,
-        isEmailVerified: studentReferal?.isEmailVerified || false,
-        referralCode: studentReferal?.referralCode || '',
-      };
-    });
+    const analytics = {
+      applicationsSent: student.appliedJobs?.length || 0,
+      jobsVisited: student.visitedJobs?.length || 0,
+      jobsViewed: student.viewedJobs?.length || 0,
+      savedJobsCount: student.savedJobs?.length || 0,
+      appliedJobsCount: student.appliedJobs?.length || 0,
+      cvsGenerated: student.cvs?.length || 0,
+      coverLettersGenerated: student.cls?.length || 0,
+      tailoredApplications: student.tailoredApplications?.length || 0,
+      referralCount: studentReferral?.referralCount || 0,
+      isEmailVerified: studentReferral?.isEmailVerified || false,
+      referralCode: studentReferral?.referralCode || '',
+    };
 
     return res.status(200).json(analytics);
   } catch (error) {

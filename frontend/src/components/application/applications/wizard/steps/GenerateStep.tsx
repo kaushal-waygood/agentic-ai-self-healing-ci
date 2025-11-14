@@ -171,6 +171,7 @@ export const GenerateStep = ({
                   <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
                   <div className="relative flex items-center justify-center space-x-3">
                     <Zap className="w-6 h-6" />
+
                     <span>Tailor My Application</span>
                     <Sparkles className="w-6 h-6" />
                   </div>

@@ -2,16 +2,12 @@
 
 import axios from 'axios';
 
-console.log('NEXT_PUBLIC_NODE_ENV:', process.env.NEXT_PUBLIC_NODE_ENV);
-
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
     ? 'https://api.dev.zobsai.com'
     : 'http://127.0.0.1:8080';
-
-console.log('API_BASE_URL:', API_BASE_URL);
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {

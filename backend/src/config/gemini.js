@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from './config.js';
 
-const genAIKey = new GoogleGenerativeAI(config.geminiAPI);
+const genAIKey = new GoogleGenerativeAI(
+  'AIzaSyAy4pHPJEPWWDXHWw06MTGs4q4RYSTJM_M',
+);
 
 export async function genAI(prompt) {
   const model = genAIKey.getGenerativeModel({ model: 'gemini-2.5-flash' });

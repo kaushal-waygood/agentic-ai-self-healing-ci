@@ -460,6 +460,21 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [scoreError, setScoreError] = useState<string | null>(null);
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(true);
+  const [token, setToken] = useState<string | undefined>(undefined);
+  const getCookie = (name: string): string | undefined => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift();
+  };
+  // On component mount, check if the access token cookie exists
+  useEffect(() => {
+    const accessToken =
+      localStorage.getItem('accessToken') || getCookie('accessToken');
+    setToken(accessToken);
+  }, []);
 
   useEffect(() => {
     if (!job?._id) return;
@@ -674,96 +689,117 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           </div>
 
           {/* Enhanced Action Buttons Grid */}
-          <div className="flex flex-col justify-end md:flex-row gap-2 items-center flex-1 md:gap-4  ">
-            {/* Tailor & Apply Button */}
-            {job.applyMethod?.url === 'email' ? (
-              <Button
-                asChild
-                className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0"
-              >
-                <Link
+          {token ? (
+            <div className="flex flex-col justify-end md:flex-row gap-2 items-center flex-1 md:gap-4  ">
+              {/* Tailor & Apply Button */}
+              {job.applyMethod?.url === 'email' ? (
+                <Button
+                  asChild
+                  className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0"
+                >
+                  <Link
+                    href={`/dashboard/apply?slug=${encodeURIComponent(
+                      job._id,
+                    )}&step=cv`}
+                  >
+                    <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <div className="relative flex items-center justify-center gap-2">
+                      <FilePlus2 className="w-5 h-5" />
+                      <span>Tailor & Apply</span>
+                    </div>
+                  </Link>
+                </Button>
+              ) : (
+                <Button
                   href={`/dashboard/apply?slug=${encodeURIComponent(
                     job._id,
                   )}&step=cv`}
+                  className="group relative overflow-hidden px-3 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                >
+                  <div className=" absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                  <Link
+                    href={`/dashboard/apply?slug=${encodeURIComponent(
+                      job._id,
+                    )}&step=cv`}
+                  >
+                    <div className="relative flex items-center justify-center gap-2">
+                      <FilePlus2 className="w-5 h-5" />
+                      <span>Tailor My Docs</span>
+                    </div>
+                  </Link>
+                </Button>
+              )}
+
+              {/* Company Site Button */}
+              {job.applyMethod?.url && (
+                <Button
+                  onClick={handleApplyOnSite}
+                  className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                >
+                  <Link
+                    href={`${job.applyMethod.url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <div className="relative flex items-center justify-center gap-2">
+                      <ExternalLink className="w-5 h-5" />
+                      <span>Company Site</span>
+                    </div>
+                  </Link>
+                </Button>
+              )}
+
+              {/* Match Score Button/Display - Enhanced */}
+              {!matchScore && !isLoadingScore && (
+                <Button
+                  href="#"
+                  onClick={handleGetMatchScore}
+                  className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
                 >
                   <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                   <div className="relative flex items-center justify-center gap-2">
-                    <FilePlus2 className="w-5 h-5" />
-                    <span>Tailor & Apply</span>
+                    <Sparkles className="w-5 h-5" />
+                    <span>AI Match Score</span>
                   </div>
-                </Link>
-              </Button>
-            ) : (
+                </Button>
+              )}
+
+              {isLoadingScore && (
+                <div className="relative overflow-hidden px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-purple-400/50 to-blue-400/50 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                  <div className="relative flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="font-semibold">{progress}%</span>
+                  </div>
+                </div>
+              )}
+
+              {matchScore && !isLoadingScore && (
+                <div className="relative overflow-hidden px-6 py-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30 animate-in fade-in zoom-in duration-500">
+                  <div className="flex items-center justify-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="font-bold text-lg">
+                      {matchScore.matchScore}/10
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col justify-end md:flex-row gap-2 items-center flex-1 md:gap-4">
               <Button
-                href={`/dashboard/apply?slug=${encodeURIComponent(
-                  job._id,
-                )}&step=cv`}
-                className="group relative overflow-hidden px-3 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                onClick={() => router.push('/login')}
+                className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm rounded-xl px-6 py-3 font-semibold text-sm border border-white/20"
               >
-                <div className=" absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <div className="relative flex items-center justify-center gap-2">
-                  <FilePlus2 className="w-5 h-5" />
-                  <span>Tailor My Docs</span>
-                </div>
+                Sign up
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               </Button>
-            )}
-
-            {/* Company Site Button */}
-            {job.applyMethod?.url && (
-              <Button
-                href={`${job.applyMethod.url}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleApplyOnSite}
-                className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
-              >
-                <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <div className="relative flex items-center justify-center gap-2">
-                  <ExternalLink className="w-5 h-5" />
-                  <span>Company Site</span>
-                </div>
-              </Button>
-            )}
-
-            {/* Match Score Button/Display - Enhanced */}
-            {!matchScore && !isLoadingScore && (
-              <Button
-                href="#"
-                onClick={handleGetMatchScore}
-                className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
-              >
-                <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <div className="relative flex items-center justify-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  <span>AI Match Score</span>
-                </div>
-              </Button>
-            )}
-
-            {isLoadingScore && (
-              <div className="relative overflow-hidden px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                <div
-                  className="absolute inset-0 bg-gradient-to-r from-purple-400/50 to-blue-400/50 transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-                <div className="relative flex items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="font-semibold">{progress}%</span>
-                </div>
-              </div>
-            )}
-
-            {matchScore && !isLoadingScore && (
-              <div className="relative overflow-hidden px-6 py-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30 animate-in fade-in zoom-in duration-500">
-                <div className="flex items-center justify-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="font-bold text-lg">
-                    {matchScore.matchScore}/10
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

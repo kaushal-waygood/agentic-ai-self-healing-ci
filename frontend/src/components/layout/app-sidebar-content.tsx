@@ -297,8 +297,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
             </div>
             {user.plan !== 'Pro' &&
               user.plan !== 'OrgAdmin' &&
-              user.plan !== 'Monthly' &&
-              user.plan !== 'Weekly' && (
+              user.plan !== 'Monthly' && (
                 <div className="p-2 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white">
                   <div className="flex items-center space-x-2 mb-2">
                     <Zap className="w-4 h-4" />

@@ -16,7 +16,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { AnimatePresence, motion } from 'framer-motion';
-import { mockJobListings } from '@/lib/data/jobs';
 import { Input } from '../ui/input';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
@@ -27,8 +26,6 @@ import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
 import JobWizard from './components/JobWizard';
 import CVGeneratorClient from './CVGeneratorClient'; // Renamed for clarity from CVGeneratorClient
 import ContextWizard from './ContextWizard';
-import SleekLoadingCard from '../application/applications/wizard/steps/LoadingStep';
-import GeneratedCV from './GeneratedCV';
 import SavedCvs from './components/SavedCvs';
 import FinalResultView from '../cover-letter/components/FinalResultView';
 
@@ -158,20 +155,10 @@ export function CvGeneratorClient() {
     }
   };
 
-  // const handleSetCvSource = (
-  //   mode: CvSource['mode'],
-  //   data: { value: string; name: string },
-  // ) => {
-  //   console.log('Setting CV Source:', mode, data.value, data.name);
-  //   setCvSource({ mode, ...data });
-  //   setWizardStep('context');
-  // };
-
   const handleSetCvSource = (
     mode: CvSource['mode'],
     data: { value: string; name: string; id?: string },
   ) => {
-    console.log('Setting CV Source:', mode, data.value, data.name, data.id); // Also log the ID for debugging
     setCvSource({ mode, ...data });
     setWizardStep('context');
   };
@@ -263,6 +250,10 @@ export function CvGeneratorClient() {
     });
   };
 
+  // add these near other state declarations
+  const [rateLimited, setRateLimited] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+
   const handleGenerate = async () => {
     if (!jobContext || !cvSource) {
       toast({
@@ -282,14 +273,67 @@ export function CvGeneratorClient() {
       return;
     }
 
+    // reset any previous rate-limit state
+    setRateLimited(false);
+    setRateLimitMessage(null);
+
     setIsLoading(true);
-    // setWizardStep('generating');
-    setWizardStep('result');
+    setWizardStep('result'); // go to result view — we'll show spinner or rate-limit UI there
     setGeneratedCvOutput(null);
     setCurrentCvContent('');
 
     try {
-      let response: CVGenerationOutput | null = null;
+      // 1) Pre-flight: ask plan API if we can generate (avoid expensive upload/generation if over limit)
+      let planResponse;
+      try {
+        planResponse = await apiInstance.post('/plan/usage', {
+          feature: 'cv-creation',
+          creditsUsed: 1,
+          action: 'generate',
+        });
+      } catch (err: any) {
+        const status = err?.response?.status;
+        const serverMessage =
+          err?.response?.data?.message || err?.message || null;
+
+        if (status === 429) {
+          // IMPORTANT: do not proceed to call heavy generation when rate-limited.
+          setRateLimited(true);
+          setRateLimitMessage(
+            serverMessage || 'You have reached your limit for CV generation.',
+          );
+          setIsLoading(false);
+          // Ensure UI is in result step so FinalResultView can render the purchase CTA
+          setWizardStep('result');
+          return;
+        } else {
+          const msg = serverMessage || 'Failed to check plan usage. Try again.';
+          toast({
+            variant: 'destructive',
+            title: 'Plan Check Failed',
+            description: msg,
+          });
+          setIsLoading(false);
+          // Keep user on context so they can try again
+          setWizardStep('context');
+          return;
+        }
+      }
+
+      if (planResponse?.data && planResponse.data.success === false) {
+        toast({
+          variant: 'destructive',
+          title: 'Usage Denied',
+          description:
+            planResponse.data.message ||
+            'Your plan does not allow this action right now.',
+        });
+        setIsLoading(false);
+        setWizardStep('context');
+        return;
+      }
+
+      // Plan check passed — build form data and call generation API
       const formData = new FormData();
 
       if (jobContext.mode === 'paste') {
@@ -305,13 +349,8 @@ export function CvGeneratorClient() {
       } else if (cvSource.mode === 'upload') {
         const blob = await fetch(cvSource.value).then((r) => r.blob());
         formData.append('cv', blob, cvSource.name);
-        // } else if (cvSource.mode === 'saved') {
-        //   const blob = new Blob([cvSource.value], { type: 'text/html' });
-        //   formData.append('cv', blob, 'saved_cv.html');
-        // }
-      } else if (cvSource.mode === 'saved' && cvSource.id) {
-        // Send the ID instead of the binary blob
-        formData.append('savedCVId', cvSource.id);
+      } else if (cvSource.mode === 'saved' && (cvSource as any).id) {
+        formData.append('savedCVId', (cvSource as any).id);
         formData.append('useProfile', 'false');
       }
 
@@ -332,12 +371,8 @@ export function CvGeneratorClient() {
 
       const responseData = apiResponse.data.data || apiResponse.data;
 
+      let response: CVGenerationOutput | null = null;
       if (responseData && typeof responseData === 'object') {
-        await apiInstance.post('/plan/usage', {
-          feature: 'cv-creation',
-          creditsUsed: 1,
-          action: 'generate',
-        });
         response = {
           cv: responseData.cv,
           atsScore: responseData.atsScore,
@@ -371,16 +406,15 @@ export function CvGeneratorClient() {
         description: 'Your new CV draft has been added to your saved list.',
       });
       setWizardStep('result');
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
-        (error as any).response?.data?.message ||
-        (error as any).message ||
+        error?.response?.data?.message ||
+        error?.message ||
         'An unknown error occurred. Please try again.';
-
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: errorMessage, // This is now a string!
+        description: errorMessage,
       });
       setWizardStep('context');
     } finally {
@@ -518,21 +552,19 @@ export function CvGeneratorClient() {
             handleGenerate={handleGenerate}
           />
         );
-      // case 'generating':
-      //   return <SleekLoadingCard />;
 
       case 'result':
         return (
-          // <GeneratedCV
-          //   generatedCvOutput={generatedCvOutput}
-          //   handleInitiateSave={handleInitiateSave}
-          //   setCurrentCvContent={setCurrentCvContent}
-          //   handleRegenerate={regenerateCv}
-          //   setWizardStep={setWizardStep}
-          // />
-
-          <FinalResultView />
+          <FinalResultView
+            cvlink={undefined}
+            rateLimited={rateLimited}
+            rateLimitMessage={rateLimitMessage}
+            planPath="/dashboard/subscriptions" // change if your plan page lives elsewhere
+            title="CV"
+            targetLink={'/dashboard/my-docs?tab=cvs'}
+          />
         );
+
       default:
         return null;
     }

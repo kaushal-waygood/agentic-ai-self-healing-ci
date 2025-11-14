@@ -139,13 +139,6 @@ const engagingMessages = [
   'Almost there, just polishing the final details...',
 ];
 
-//================================================================
-// SECTION: Custom Hooks
-//================================================================
-
-/**
- * Hook for managing the CV creation form state and logic.
- */
 export const useCvForm = (jobTitle?: string) => {
   const form = useForm<CvDetailsValues>({
     resolver: zodResolver(cvDetailsSchema),
@@ -270,6 +263,10 @@ export const useApplicationWizard = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [selectedCvId, setSelectedCvId] = useState('');
   const isInitialized = useRef(false);
+
+  // Rate limit / plan check state
+  const [rateLimited, setRateLimited] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
 
   //--- External Data & Forms ---
   const { jobs, loading: jobsLoading, selectedJob } = useJobs({ searchParams });
@@ -527,27 +524,34 @@ export const useApplicationWizard = () => {
         description: 'Please ensure both job and CV information are provided.',
       });
       navigateToStep('job');
-
       return;
     }
+
+    // reset any prior rate-limit state
+    setRateLimited(false);
+    setRateLimitMessage(null);
+
     setIsLoading(true);
     navigateToStep('generate');
     try {
       const formData = new FormData();
+
       if (jobContext.jobId) formData.append('jobId', jobContext.jobId);
       else {
         formData.append('jobTitle', jobContext.jobTitle);
-        formData.append('companyName', jobContext.companyName);
+        formData.append('companyName', jobContext.companyName || '');
         const slug = searchParams.get('slug');
         if (slug) {
           const response = await apiInstance.get(`/jobs/find/${slug}`);
           formData.append('jobDescription', response.data.description);
         } else {
-          formData.append('jobDescription', jobContext.jobDescription);
+          formData.append('jobDescription', jobContext.jobDescription || '');
         }
       }
-      if (cvContext.mode === 'profile') formData.append('useProfile', 'true');
-      else if (
+
+      if (cvContext.mode === 'profile') {
+        formData.append('useProfile', 'true');
+      } else if (
         cvContext.mode === 'saved' &&
         typeof cvContext.value === 'string'
       ) {
@@ -560,17 +564,17 @@ export const useApplicationWizard = () => {
         formData.append('cv', cvContext.value);
         formData.append('useProfile', 'false');
       }
+
       if (clContext) {
         if (clContext.mode === 'saved' && typeof clContext.value === 'string')
           formData.append('savedCoverLetterId', clContext.value);
         else if (clContext.mode === 'paste' && clContext.value)
-          formData.append('coverLetterText', clContext.value);
-      }
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
+          formData.append('coverLetterText', clContext.value as string);
       }
 
+      // optional final touch
       formData.append('finalTouch', 'Tailor for ATS optimization');
+
       const response = await apiInstance.post(
         '/students/applications/tailor',
         formData,
@@ -583,23 +587,23 @@ export const useApplicationWizard = () => {
         tailoredCl: result.tailoredCoverLetter,
         emailDraft: result.applicationEmail,
       });
+
       toast({
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
     } catch (error) {
-      // catch (error) {
       console.error('Tailor Error:', error);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
         description:
           (error as any).response?.data?.message ||
-          'Failed to generate application. Please try  again.',
+          'Failed to generate application. Please try again.',
       });
       setIsLoading(false);
-    } finally {
-      setIsLoading(false);
+      setLoadingMessage('');
+      navigateToStep('cl');
     }
   }, [cvContext, jobContext, clContext, navigateToStep, toast, searchParams]);
 
@@ -707,6 +711,8 @@ export const useApplicationWizard = () => {
       student,
       resume,
       selectedCvId,
+      rateLimited,
+      rateLimitMessage,
     },
     actions: {
       navigateToStep,

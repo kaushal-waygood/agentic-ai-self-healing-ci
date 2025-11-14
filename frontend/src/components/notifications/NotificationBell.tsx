@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export function NotificationBell() {
+  // hooks first, always
+  const router = useRouter();
+
   const {
     notifications,
     unreadCount,
@@ -19,15 +22,38 @@ export function NotificationBell() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     const loadInitialData = async () => {
-      setIsLoading(true);
-      await fetchNotifications();
-      await fetchUnreadCount();
-      setIsLoading(false);
+      try {
+        setIsLoading(true);
+        await fetchNotifications();
+        await fetchUnreadCount();
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
     };
 
     loadInitialData();
-  }, []);
+
+    return () => {
+      mounted = false;
+    };
+  }, [fetchNotifications, fetchUnreadCount]);
+
+  const handleNotificationClick = (notification) => {
+    // navigate first
+    if (notification.actionUrl) {
+      router.push(`/dashboard/my-docs/${notification.actionUrl}`);
+    }
+
+    // optimistic update: mark locally then call server
+    if (!notification.isRead) {
+      // optional: uncomment if you want client-side optimistic update
+      // markAsRead(notification._id).catch(() => {
+      //   // handle error, maybe refetch notifications
+      // });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -37,18 +63,8 @@ export function NotificationBell() {
     );
   }
 
-  const router = useRouter();
-
-  const handleNotificationClick = (notification) => {
-    router.push(`/dashboard/my-docs/${notification.actionUrl}`);
-    // !notification.isRead && markAsRead(notification._id);
-  };
-
   return (
     <div className="p-4 w-full max-w-sm mx-auto">
-      {/* Refresh Button */}
-
-      {/* Bell Icon */}
       <div className="relative flex justify-between mb-4">
         <div className="relative text-xl cursor-pointer hover:scale-110 transition-transform">
           <BellIcon className="w-6 h-6 text-gray-600" />
@@ -58,23 +74,23 @@ export function NotificationBell() {
             </span>
           )}
         </div>
-        {/* Connection Status */}
+
         <div
-          className={`text-sm flex flex-wrap justify-between font-semibold  ${
+          className={`text-sm flex flex-wrap justify-between font-semibold ${
             connectionStatus === 'connected' ? 'text-green-500' : 'text-red-500'
           }`}
         >
           Status: {connectionStatus}
         </div>
+
         <div className="flex justify-end ">
           <RefreshCcw
             className="h-5 w-5 cursor-pointer text-gray-500 hover:text-gray-700 transition"
-            onClick={fetchNotifications}
+            onClick={() => fetchNotifications()}
           />
         </div>
       </div>
 
-      {/* Notifications List */}
       <div className="space-y-3">
         {notifications.slice(0, 5).map((notification) => (
           <div
@@ -88,15 +104,10 @@ export function NotificationBell() {
           >
             <div className="flex justify-between items-center mb-1">
               <strong>{notification.title}</strong>
-              {/* {!notification.isRead && (
-                <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
-                  New
-                </span>
-              )} */}
             </div>
             <p className="text-sm mb-1">{notification.message}</p>
             <small className="text-gray-400 text-xs">
-              {new Date(notification.createdAt).toLocaleDateString()}
+              {new Date(notification.createdAt).toLocaleString()}
             </small>
           </div>
         ))}

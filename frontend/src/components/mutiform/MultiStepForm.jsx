@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useEffect, useState } from 'react';
 import Step0_Intro from './Step0_Intro';
 import Step1AgentConfig from './Step1AgentConfig';
@@ -7,12 +6,29 @@ import Step2ChooseCV from './Step2ChooseCV';
 import Step3CoverLetter from './Step3CoverLetter';
 import Step4ConfigureSave from './Step4ConfigureSave';
 import apiInstance from '@/services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import {
+  createAutopilotRequest,
+  getAutopilotRequest,
+} from '@/redux/reducers/autopilotReducer';
+
+import AgentPreviewModal from './AgentPreviewModal'; // NEW FILE (see below)
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(0);
-  // State to hold the list of created agents
   const [agents, setAgents] = useState([]);
-  const [editingAgentId, setEditingAgentId] = useState(null); // Track agent being edited
+  const [editingAgentId, setEditingAgentId] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false); // NEW
+
+  const dispatch = useDispatch();
+  const { toast } = useToast();
+  const { autopilot } = useSelector((state) => state.autopilot);
+  const [deletePopup, setDeletePopup] = useState({
+    open: false,
+    agentId: null,
+  });
 
   const initialFormData = {
     agentName: '',
@@ -25,7 +41,6 @@ const MultiStepForm = () => {
     coverLetterInstructions: '',
     maxApplications: 1,
   };
-
   const [formData, setFormData] = useState(initialFormData);
 
   const nextStep = () => setStep((prev) => prev + 1);
@@ -37,126 +52,142 @@ const MultiStepForm = () => {
     setFormData({ ...formData, [input]: value });
   };
 
-  console.log('form data : ', formData);
+  const handleCheckboxChange = (e) => {
+    const { value, checked } = e.target;
+    const newEmploymentTypes = checked
+      ? [...formData.employmentTypes, value]
+      : formData.employmentTypes.filter((type) => type !== value);
+    setFormData({ ...formData, employmentTypes: newEmploymentTypes });
+  };
 
-  const handleDeleteAgent = async (agentId) => {
-    if (window.confirm('Are you sure you want to delete this agent?')) {
-      try {
-        // 1. Wait for the API call to complete successfully
-        await apiInstance.delete(`/pilotagent/delete/${agentId}`);
-
-        // 2. Only update the UI state after a successful deletion
-        setAgents(agents.filter((agent) => agent._id !== agentId));
-        alert('Agent deleted successfully.');
-      } catch (error) {
-        // 3. If the API fails, show an error and do NOT change the UI
-        console.error('Failed to delete agent:', error);
-        alert('Error: Could not delete the agent. Please try again.');
-      }
-    }
+  const handleFileChange = (e) => {
+    const file = e?.target?.files?.[0] ?? null;
+    setFormData((prev) => ({ ...prev, cvFile: file }));
   };
 
   const handleEditAgent = (agentId) => {
     const agentToEdit = agents.find((agent) => agent.id === agentId);
     if (agentToEdit) {
-      // Merge fetched agent data with the initial state
-      // This ensures all fields, especially arrays like employmentTypes, are present.
       setFormData({ ...initialFormData, ...agentToEdit });
-
       setEditingAgentId(agentId);
       setStep(1);
     }
   };
 
-  const handleCheckboxChange = (e) => {
-    const { value, checked } = e.target;
-    let newEmploymentTypes = [...formData.employmentTypes];
-    if (checked) {
-      newEmploymentTypes.push(value);
-    } else {
-      newEmploymentTypes = newEmploymentTypes.filter((type) => type !== value);
-    }
-    setFormData({ ...formData, employmentTypes: newEmploymentTypes });
+  // const handleDeleteAgent = async (agentId) => {
+  //   if (!window.confirm('Are you sure you want to delete this agent?')) return;
+  //   try {
+  //     await apiInstance.delete(`/pilotagent/delete/${agentId}`);
+  //     setAgents(agents.filter((agent) => agent._id !== agentId));
+  //     dispatch(getAutopilotRequest());
+  //     alert('Agent deleted successfully.');
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert('Error deleting agent. Try again.');
+  //   }
+  // };
+  const handleDeleteAgent = (agentId) => {
+    setDeletePopup({ open: true, agentId });
   };
-
-  const handleFileChange = (e) => {
-    setFormData({ ...formData, cvFile: e.target.files[0] });
-  };
-
-  const handleSubmit = async () => {
-    const submissionData = new FormData();
-    submissionData.append('agentName', formData.agentName);
-    submissionData.append('jobTitle', formData.jobTitle);
-    submissionData.append('country', formData.country);
-    submissionData.append('isRemote', formData.isRemote);
-    submissionData.append('maxApplications', formData.maxApplications);
-    submissionData.append(
-      'employmentType',
-      JSON.stringify(formData.employmentTypes),
-    );
-    if (formData.cvFile) {
-      submissionData.append('cv', formData.cvFile, formData.cvFile.name);
-    }
+  const confirmDelete = async () => {
+    const agentId = deletePopup.agentId;
+    setDeletePopup({ open: false, agentId: null });
 
     try {
-      // --- UPDATE an existing agent ---
-      if (editingAgentId) {
-        const response = await apiInstance.put(
-          `/pilotagent/update/${editingAgentId}`,
-          submissionData,
-        );
-        const updatedAgent = response.data; // Assuming the API returns the updated agent
+      await apiInstance.delete(`/pilotagent/delete/${agentId}`);
+      setAgents((prev) => prev.filter((agent) => agent._id !== agentId));
+      dispatch(getAutopilotRequest());
+      toast({
+        variant: 'success',
+        title: 'Deleted Successfully',
+        description: 'Agent deleted successfully',
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting agent. Try again.');
+    }
+  };
 
-        // On successful API response, THEN update the local state
-        setAgents(
-          agents.map((agent) =>
-            agent.id === editingAgentId ? updatedAgent : agent,
-          ),
-        );
-        alert(`Agent "${formData.agentName}" has been updated successfully!`);
-        setEditingAgentId(null);
-      } else {
-        const response = await apiInstance.post(
-          '/pilotagent/create',
-          submissionData,
-        );
-        const newAgent = response.data;
+  const cancelDelete = () => {
+    setDeletePopup({ open: false, agentId: null });
+  };
 
-        // On successful API response, THEN update the local state
-        setAgents((prevAgents) => [...prevAgents, newAgent]);
-        alert(`Agent "${formData.agentName}" has been created successfully!`);
+  // 🔸 Instead of immediately saving, open preview modal
+  const handlePreview = () => {
+    setIsPreviewOpen(true);
+  };
+
+  // 🔸 The real submit logic happens after confirmation
+  const confirmSubmit = async () => {
+    setIsPreviewOpen(false);
+    try {
+      const submissionData = new FormData();
+      submissionData.append('agentName', formData.agentName);
+      submissionData.append('jobTitle', formData.jobTitle);
+      submissionData.append('country', formData.country);
+      submissionData.append('isRemote', String(!!formData.isRemote));
+      submissionData.append(
+        'maxApplications',
+        String(formData.maxApplications),
+      );
+      submissionData.append(
+        'employmentTypes',
+        JSON.stringify(formData.employmentTypes || []),
+      );
+
+      if (formData.cvFile) {
+        const f = formData.cvFile;
+        if (f instanceof File || f instanceof Blob) {
+          submissionData.append('cv', f, f.name || 'cv');
+        } else if (f.__savedCvId) {
+          submissionData.append('savedCvId', String(f.__savedCvId));
+        }
       }
 
-      // Reset form and return to dashboard on success
+      if (editingAgentId) {
+        await apiInstance.put(
+          `/pilotagent/update/${editingAgentId}`,
+          submissionData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          },
+        );
+        alert('Agent updated successfully!');
+        dispatch(getAutopilotRequest());
+      } else {
+        await apiInstance.post('/pilotagent/create', submissionData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        // alert('Agent created successfully!');
+
+        dispatch(getAutopilotRequest());
+      }
+
+      setEditingAgentId(null);
       setFormData(initialFormData);
       setStep(0);
-    } catch (error) {
-      console.error('Error submitting agent data:', error);
-      alert('There was an error saving the agent. Please try again.');
+    } catch (err) {
+      console.error('Submit error:', err);
+      alert('There was an error saving the agent.');
+      setStep(0);
     }
   };
 
   useEffect(() => {
-    const fetchAgents = async () => {
-      try {
-        const response = await apiInstance.get('/pilotagent/get');
-        const data = await response.data;
-        setAgents(data.data.autoPilot);
-      } catch (error) {
-        console.error('Error fetching agents:', error);
-      }
-    };
-    fetchAgents();
-  }, []);
+    dispatch(getAutopilotRequest());
+  }, [dispatch]);
 
   const renderStep = () => {
     switch (step) {
       case 0:
-        // Pass the agents list to the intro component
         return (
           <Step0_Intro
+            confirmDelete={confirmDelete}
+            cancelDelete={cancelDelete}
+            deletePopup={deletePopup}
+            setDeletePopup={setDeletePopup}
             nextStep={nextStep}
-            agents={agents}
+            agents={autopilot}
             onEdit={handleEditAgent}
             onDelete={handleDeleteAgent}
           />
@@ -194,17 +225,47 @@ const MultiStepForm = () => {
         return (
           <Step4ConfigureSave
             prevStep={prevStep}
+            nextStep={nextStep}
             handleChange={handleChange}
-            handleSubmit={handleSubmit}
+            handleSubmit={handlePreview} // CHANGED
             values={formData}
           />
         );
+
+      case 5:
+        return (
+          <div className="flex items-center flex-col justify-center min-h-screen">
+            <div>
+              <Image
+                src="/logo.png"
+                alt="zobsai logo"
+                width={100}
+                height={100}
+                className="w-10 h-10 animate-bounce"
+              />
+            </div>
+            <div className="text-lg">Generating agent Please wait...</div>
+          </div>
+        );
       default:
-        return <div>Form Submitted Successfully!</div>;
+        return <div>Done.</div>;
     }
   };
 
-  return <div className="form-container">{renderStep()}</div>;
+  return (
+    <div className="form-container relative">
+      {renderStep()}
+      {/* Preview Modal */}
+      {isPreviewOpen && (
+        <AgentPreviewModal
+          formData={formData}
+          nextStep={nextStep}
+          onCancel={() => setIsPreviewOpen(false)}
+          onConfirm={confirmSubmit}
+        />
+      )}
+    </div>
+  );
 };
 
 export default MultiStepForm;
