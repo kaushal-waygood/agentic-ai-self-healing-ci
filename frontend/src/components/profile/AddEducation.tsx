@@ -3,8 +3,8 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { ReactNode, useEffect, useState } from 'react';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 
 import {
@@ -56,18 +56,188 @@ import {
 
 import { countries } from '@/lib/data/countries';
 
-/* ------------------------------------------------------------------ */
-/* Helpers: month <-> ISO conversions                                  */
-/* ------------------------------------------------------------------ */
+/* ---------------------------- Utilities ---------------------------------- */
 const toMonth = (iso?: string) =>
   iso ? new Date(iso).toISOString().slice(0, 7) : '';
 
 const monthToIso = (month?: string) =>
   month ? new Date(`${month}-01T00:00:00.000Z`).toISOString() : undefined;
 
-/* ------------------------------------------------------------------ */
-/* DegreeSelector: avoid dynamic Tailwind classes getting purged       */
-/* ------------------------------------------------------------------ */
+/* ---------------------------- Shared UI pieces --------------------------- */
+
+type ModalShellProps = {
+  title: string;
+  subtitle?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  onClose: () => void;
+  children: ReactNode;
+  headerGradient?: string;
+};
+
+const ModalShell: React.FC<ModalShellProps> = ({
+  title,
+  subtitle,
+  icon: Icon,
+  onClose,
+  children,
+  headerGradient = 'from-purple-500 to-cyan-500',
+}) => {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div
+          className={`bg-gradient-to-r ${headerGradient} p-5 text-white relative`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                {Icon ? <Icon className="w-6 h-6" /> : null}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">{title}</h2>
+                {subtitle && (
+                  <p className="text-white/80 text-sm">{subtitle}</p>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="w-10 h-10 bg-white/20 rounded-full hover:bg-white/30 text-white"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+type StepDef = {
+  id: string;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  fields: string[];
+};
+
+const Stepper: React.FC<{
+  steps: StepDef[];
+  current: number;
+  activeColor?: string;
+}> = ({ steps, current, activeColor = 'purple' }) => {
+  return (
+    <div className="px-6 py-4 bg-gray-50">
+      <div className="flex items-center">
+        {steps.map((step, idx) => (
+          <React.Fragment key={step.id}>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                idx <= current
+                  ? `bg-${activeColor}-500 text-white`
+                  : 'bg-gray-200 text-gray-500'
+              }`}
+            >
+              {idx < current ? (
+                <Check className="w-5 h-5" />
+              ) : (
+                <step.icon className="w-5 h-5" />
+              )}
+            </div>
+            {idx < steps.length - 1 && (
+              <div
+                className={`flex-1 h-1 mx-2 rounded-full transition-all duration-500 ${
+                  idx < current ? `bg-${activeColor}-500` : 'bg-gray-200'
+                }`}
+              />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const FormFooter: React.FC<{
+  currentStep: number;
+  stepsLength: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onSubmitLabel?: string;
+  onCancel?: () => void;
+  isLast?: boolean;
+}> = ({
+  currentStep,
+  stepsLength,
+  onPrev,
+  onNext,
+  onSubmitLabel,
+  onCancel,
+  isLast,
+}) => {
+  return (
+    <div className="pt-4 flex justify-between items-center px-6 pb-6 bg-white">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onPrev}
+        disabled={currentStep === 0}
+      >
+        <ChevronLeft className="w-4 h-4 mr-2" /> Previous
+      </Button>
+      {!isLast ? (
+        <Button
+          type="button"
+          onClick={onNext}
+          className="bg-purple-600 hover:bg-purple-700"
+        >
+          Next <ChevronRight className="w-4 h-4 ml-2" />
+        </Button>
+      ) : (
+        <div className="flex gap-4">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button type="submit" className="bg-green-600 hover:bg-green-700">
+            <Check className="w-4 h-4 mr-2" /> {onSubmitLabel || 'Save'}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ---------------------------- Small helpers -------------------------------- */
+
+/**
+ * Hook to manage step index and step validation via react-hook-form's trigger.
+ * Keeps step-handling DRY.
+ */
+const useStepControls = (initial = 0) => {
+  const [currentStep, setCurrentStep] = useState(initial);
+
+  const next = async (
+    trigger: (names?: string | string[]) => Promise<boolean>,
+    fields: string[],
+  ) => {
+    const ok = await trigger(fields);
+    if (ok) setCurrentStep((s) => s + 1);
+    return ok;
+  };
+
+  const prev = () => setCurrentStep((s) => Math.max(0, s - 1));
+
+  const goto = (i: number) => setCurrentStep(i);
+
+  return { currentStep, next, prev, goto, setCurrentStep };
+};
+
+/* ---------------------------- UI bits left alone --------------------------- */
+
 type DegreeField = { value: string; onChange: (v: string) => void };
 
 const colorMap: Record<string, string> = {
@@ -112,9 +282,6 @@ const DegreeSelector: React.FC<{ field: DegreeField }> = ({ field }) => {
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* TechnologyInput: RHF string[] binding via comma separated input     */
-/* ------------------------------------------------------------------ */
 const TechnologyInput: React.FC<{
   field: { value: string[]; onChange: (v: string[]) => void };
 }> = ({ field }) => {
@@ -134,9 +301,8 @@ const TechnologyInput: React.FC<{
   );
 };
 
-/* ================================================================== */
-/* AddEducation                                                        */
-/* ================================================================== */
+/* ---------------------------- AddEducation (refactored) ------------------------- */
+
 export const AddEducation: React.FC<{
   onCancel: () => void;
   isEdit?: boolean;
@@ -151,8 +317,6 @@ export const AddEducation: React.FC<{
     endDate: string;
   }>;
 }> = ({ onCancel, isEdit, data }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
@@ -169,8 +333,7 @@ export const AddEducation: React.FC<{
 
   const dispatch = useDispatch();
   const { handleSubmit, control, reset, trigger } = form;
-
-  const steps = [
+  const steps: StepDef[] = [
     {
       id: 'basic',
       title: 'Institution & Degree',
@@ -189,16 +352,17 @@ export const AddEducation: React.FC<{
       icon: Calendar,
       fields: ['startDate', 'gpa', 'endDate'],
     },
-  ] as const;
+  ];
 
-  const handleFormSubmit = (formData: any) => {
+  const { currentStep, next, prev } = useStepControls(0);
+
+  const onSubmit = (formData: any) => {
     const payload = {
       ...formData,
       startDate: monthToIso(formData.startDate)!,
       endDate: formData.endDate ? monthToIso(formData.endDate) : undefined,
     };
 
-    console.log(payload);
     if (isEdit && payload._id) {
       dispatch(
         updateStudentEducationRequest({ data: payload, index: payload._id }),
@@ -211,99 +375,113 @@ export const AddEducation: React.FC<{
     onCancel();
   };
 
-  const handleNextStep = async () => {
-    const fields = steps[currentStep].fields as string[];
-    const ok = await trigger(fields);
-    if (ok && currentStep < steps.length - 1) setCurrentStep((s) => s + 1);
+  const handleNext = async () => {
+    await next(trigger, steps[currentStep].fields);
   };
 
-  const handlePrevStep = () => currentStep > 0 && setCurrentStep((s) => s - 1);
-
-  const handleFormCancel = () => {
+  const handleCancel = () => {
     reset();
     onCancel();
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="bg-gradient-to-r from-purple-500 to-cyan-500 p-5 text-white relative">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">
-                  {isEdit ? 'Edit Education' : 'Add Education'}
-                </h2>
-                <p className="text-white/80 text-sm">
-                  Step {currentStep + 1}: {steps[currentStep].title}
-                </p>
-              </div>
+    <ModalShell
+      title={isEdit ? 'Edit Education' : 'Add Education'}
+      subtitle={`Step ${currentStep + 1}: ${steps[currentStep].title}`}
+      icon={GraduationCap}
+      onClose={handleCancel}
+      headerGradient="from-purple-500 to-cyan-500"
+    >
+      <Stepper steps={steps} current={currentStep} activeColor="purple" />
+      <div className="p-6 overflow-y-auto flex-1">
+        <Form {...form}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Step 1 */}
+            <div className={currentStep !== 0 ? 'hidden' : 'block'}>
+              <FormField
+                control={control}
+                name="institution"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Institution*</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g., University of Technology"
+                        required
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="degree"
+                render={({ field }) => (
+                  <FormItem className="mt-6">
+                    <FormLabel>Degree*</FormLabel>
+                    <FormControl>
+                      <DegreeSelector field={field as any} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleFormCancel}
-              className="w-10 h-10 bg-white/20 rounded-full hover:bg-white/30 text-white"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
 
-        {/* Progress */}
-        <div className="px-6 py-4 bg-gray-50">
-          <div className="flex items-center">
-            {steps.map((step, idx) => (
-              <React.Fragment key={step.id}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    idx <= currentStep
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {idx < currentStep ? (
-                    <Check className="w-5 h-5" />
-                  ) : (
-                    <step.icon className="w-5 h-5" />
-                  )}
-                </div>
-                {idx < steps.length - 1 && (
-                  <div
-                    className={`flex-1 h-1 mx-2 rounded-full transition-all duration-500 ${
-                      idx < currentStep ? 'bg-purple-500' : 'bg-gray-200'
-                    }`}
-                  />
+            {/* Step 2 */}
+            <div className={currentStep !== 1 ? 'hidden' : 'block'}>
+              <FormField
+                control={control}
+                name="fieldOfStudy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Field of Study</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., Computer Science" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+              />
+              <FormField
+                control={control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem className="mt-6">
+                    <FormLabel>Country*</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a country" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-white z-[9999]">
+                        {countries.map((c) => (
+                          <SelectItem key={c.code} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        {/* Form */}
-        <div className="p-6 overflow-y-auto flex-1">
-          <Form {...form}>
-            <form
-              onSubmit={handleSubmit(handleFormSubmit)}
-              className="space-y-6"
-            >
-              {/* Step 1 */}
-              <div className={currentStep !== 0 ? 'hidden' : 'block'}>
+            {/* Step 3 */}
+            <div className={currentStep !== 2 ? 'hidden' : 'block'}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={control}
-                  name="institution"
+                  name="startDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Institution*</FormLabel>
+                      <FormLabel>Start Date*</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="e.g., University of Technology"
-                          required
-                        />
+                        <Input type="month" {...field} required />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -311,161 +489,58 @@ export const AddEducation: React.FC<{
                 />
                 <FormField
                   control={control}
-                  name="degree"
-                  render={({ field }) => (
-                    <FormItem className="mt-6">
-                      <FormLabel>Degree*</FormLabel>
-                      <FormControl>
-                        <DegreeSelector field={field as any} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Step 2 */}
-              <div className={currentStep !== 1 ? 'hidden' : 'block'}>
-                <FormField
-                  control={control}
-                  name="fieldOfStudy"
+                  name="endDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Field of Study</FormLabel>
+                      <FormLabel>End Date</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="e.g., Computer Science"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={control}
-                  name="country"
-                  render={({ field }) => (
-                    <FormItem className="mt-6">
-                      <FormLabel>Country*</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a country" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-white z-[9999]">
-                          {countries.map((c) => (
-                            <SelectItem key={c.code} value={c.name}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Step 3 */}
-              <div className={currentStep !== 2 ? 'hidden' : 'block'}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date*</FormLabel>
-                        <FormControl>
-                          <Input type="month" {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="month"
-                            {...field}
-                            placeholder="Present"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={control}
-                  name="gpa"
-                  render={({ field }) => (
-                    <FormItem className="mt-6">
-                      <FormLabel>Overall Grades (Optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="e.g., 3.8"
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="4"
-                        />
+                        <Input type="month" {...field} placeholder="Present" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-
-              {/* Footer */}
-              <div className="pt-4 flex justify-between items-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevStep}
-                  disabled={currentStep === 0}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-2" /> Previous
-                </Button>
-                {currentStep < steps.length - 1 ? (
-                  <Button
-                    type="button"
-                    onClick={handleNextStep}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    Next <ChevronRight className="w-4 h-4 ml-2" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Check className="w-4 h-4 mr-2" />{' '}
-                    {isEdit ? 'Update Education' : 'Save Education'}
-                  </Button>
+              <FormField
+                control={control}
+                name="gpa"
+                render={({ field }) => (
+                  <FormItem className="mt-6">
+                    <FormLabel>Overall Grades (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g., 3.8"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="4"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </div>
-            </form>
-          </Form>
-        </div>
+              />
+            </div>
+
+            <FormFooter
+              currentStep={currentStep}
+              stepsLength={steps.length}
+              onPrev={prev}
+              onNext={handleNext}
+              onCancel={handleCancel}
+              isLast={currentStep === steps.length - 1}
+              onSubmitLabel={isEdit ? 'Update Education' : 'Save Education'}
+            />
+          </form>
+        </Form>
       </div>
-    </div>
+    </ModalShell>
   );
 };
 
-/* ================================================================== */
-/* AddProject                                                          */
-/* ================================================================== */
+/* ---------------------------- AddProject (refactored) ------------------------- */
+
 export const AddProject: React.FC<{
   onCancel: () => void;
   isEdit?: boolean;
@@ -480,8 +555,6 @@ export const AddProject: React.FC<{
     link: string;
   }>;
 }> = ({ onCancel, data, isEdit }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
@@ -511,7 +584,7 @@ export const AddProject: React.FC<{
     if (isCurrent) setValue('endDate', '');
   }, [isCurrent, setValue]);
 
-  const steps = [
+  const steps: StepDef[] = [
     {
       id: 'core',
       title: 'Core Details',
@@ -530,9 +603,11 @@ export const AddProject: React.FC<{
       icon: Code,
       fields: ['technologies', 'link'],
     },
-  ] as const;
+  ];
 
-  const handleFormSubmit = (formData: any) => {
+  const { currentStep, next, prev } = useStepControls(0);
+
+  const onSubmit = (formData: any) => {
     const payload = {
       ...formData,
       startDate: monthToIso(formData.startDate)!,
@@ -554,117 +629,94 @@ export const AddProject: React.FC<{
     onCancel();
   };
 
-  const handleNextStep = async () => {
-    const fields = steps[currentStep].fields as string[];
-    const ok = await trigger(fields);
-    if (ok && currentStep < steps.length - 1) setCurrentStep((s) => s + 1);
+  const handleNext = async () => {
+    await next(trigger, steps[currentStep].fields);
   };
 
-  const handlePrevStep = () => currentStep > 0 && setCurrentStep((s) => s - 1);
-
-  const handleFormCancel = () => {
+  const handleCancel = () => {
     reset();
     onCancel();
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
-      <div className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-white">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-teal-500 p-5 text-white relative">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <FolderOpen className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">
-                  {isEdit ? 'Edit Project' : 'Add Project'}
-                </h2>
-                <p className="text-white/80 text-sm">
-                  Step {currentStep + 1}: {steps[currentStep].title}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleFormCancel}
-              className="w-10 h-10 bg-white/20 rounded-full hover:bg-white/30 text-white"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div className="px-6 py-4 bg-gray-50">
-          <div className="flex items-center">
-            {steps.map((step, idx) => (
-              <React.Fragment key={step.id}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    idx <= currentStep
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {idx < currentStep ? (
-                    <Check className="w-5 h-5" />
-                  ) : (
-                    <step.icon className="w-5 h-5" />
-                  )}
-                </div>
-                {idx < steps.length - 1 && (
-                  <div
-                    className={`flex-1 h-1 mx-2 rounded-full transition-all duration-500 ${
-                      idx < currentStep ? 'bg-blue-500' : 'bg-gray-200'
-                    }`}
-                  />
+    <ModalShell
+      title={isEdit ? 'Edit Project' : 'Add Project'}
+      subtitle={`Step ${currentStep + 1}: ${steps[currentStep].title}`}
+      icon={FolderOpen}
+      onClose={handleCancel}
+      headerGradient="from-blue-500 to-teal-500"
+    >
+      <Stepper steps={steps} current={currentStep} activeColor="blue" />
+      <div className="p-6 overflow-y-auto flex-1">
+        <Form {...form}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Step 1 */}
+            <div className={currentStep !== 0 ? 'hidden' : 'block'}>
+              <FormField
+                control={control}
+                name="projectName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Name*</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., AI-Powered Chatbot"
+                        {...field}
+                        required
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+              />
+              <FormField
+                control={control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem className="mt-6">
+                    <FormLabel>Description*</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe your project, its goals, and your role."
+                        rows={5}
+                        {...field}
+                        required
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        {/* Form */}
-        <div className="p-6 overflow-y-auto flex-1">
-          <Form {...form}>
-            <form
-              onSubmit={handleSubmit(handleFormSubmit)}
-              className="space-y-6"
-            >
-              {/* Step 1 */}
-              <div className={currentStep !== 0 ? 'hidden' : 'block'}>
+            {/* Step 2 */}
+            <div className={currentStep !== 1 ? 'hidden' : 'block'}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={control}
-                  name="projectName"
+                  name="startDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Project Name*</FormLabel>
+                      <FormLabel>Start Date*</FormLabel>
+                      <FormControl>
+                        <Input type="month" {...field} required />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="e.g., AI-Powered Chatbot"
+                          type="month"
                           {...field}
-                          required
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem className="mt-6">
-                      <FormLabel>Description*</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe your project, its goals, and your role."
-                          rows={5}
-                          {...field}
-                          required
+                          disabled={isCurrent}
+                          value={isCurrent ? '' : field.value ?? ''}
                         />
                       </FormControl>
                       <FormMessage />
@@ -672,137 +724,80 @@ export const AddProject: React.FC<{
                   )}
                 />
               </div>
-
-              {/* Step 2 */}
-              <div className={currentStep !== 1 ? 'hidden' : 'block'}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date*</FormLabel>
-                        <FormControl>
-                          <Input type="month" {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="month"
-                            {...field}
-                            disabled={isCurrent}
-                            value={isCurrent ? '' : field.value ?? ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={control}
-                  name="isCurrent"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2 mt-6">
-                      <FormControl>
-                        <Checkbox
-                          checked={!!field.value}
-                          onCheckedChange={(v) => field.onChange(v === true)}
-                        />
-                      </FormControl>
-                      <FormLabel className="!mt-0">
-                        I am currently working on this project
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Step 3 */}
-              <div className={currentStep !== 2 ? 'hidden' : 'block'}>
-                <FormField
-                  control={control}
-                  name="technologies"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Technologies Used</FormLabel>
-                      <FormControl>
-                        <TechnologyInput field={field as any} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={control}
-                  name="link"
-                  render={({ field }) => (
-                    <FormItem className="mt-6">
-                      <FormLabel>Project Link (Optional)</FormLabel>
-                      <div className="relative">
-                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <FormControl>
-                          <Input
-                            placeholder="https://github.com/user/project"
-                            {...field}
-                            className="pl-9"
-                          />
-                        </FormControl>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Footer */}
-              <div className="pt-4 flex justify-between items-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevStep}
-                  disabled={currentStep === 0}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-2" /> Previous
-                </Button>
-                {currentStep < steps.length - 1 ? (
-                  <Button
-                    type="button"
-                    onClick={handleNextStep}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Next <ChevronRight className="w-4 h-4 ml-2" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Check className="w-4 h-4 mr-2" />{' '}
-                    {isEdit ? 'Update Project' : 'Save Project'}
-                  </Button>
+              <FormField
+                control={control}
+                name="isCurrent"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2 mt-6">
+                    <FormControl>
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={(v) => field.onChange(v === true)}
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0">
+                      I am currently working on this project
+                    </FormLabel>
+                  </FormItem>
                 )}
-              </div>
-            </form>
-          </Form>
-        </div>
+              />
+            </div>
+
+            {/* Step 3 */}
+            <div className={currentStep !== 2 ? 'hidden' : 'block'}>
+              <FormField
+                control={control}
+                name="technologies"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Technologies Used</FormLabel>
+                    <FormControl>
+                      <TechnologyInput field={field as any} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="link"
+                render={({ field }) => (
+                  <FormItem className="mt-6">
+                    <FormLabel>Project Link (Optional)</FormLabel>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <FormControl>
+                        <Input
+                          placeholder="https://github.com/user/project"
+                          {...field}
+                          className="pl-9"
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormFooter
+              currentStep={currentStep}
+              stepsLength={steps.length}
+              onPrev={prev}
+              onNext={handleNext}
+              onCancel={handleCancel}
+              isLast={currentStep === steps.length - 1}
+              onSubmitLabel={isEdit ? 'Update Project' : 'Save Project'}
+            />
+          </form>
+        </Form>
       </div>
-    </div>
+    </ModalShell>
   );
 };
 
-/* ================================================================== */
-/* AddExperience                                                       */
-/* ================================================================== */
+/* ---------------------------- AddExperience (refactored) ------------------------- */
+
 const employmentTypes = [
   'Full-time',
   'Part-time',
@@ -828,8 +823,6 @@ export const AddExperience: React.FC<{
     responsibilities: string;
   }>;
 }> = ({ onCancel, data, isEdit }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
@@ -853,7 +846,7 @@ export const AddExperience: React.FC<{
     if (isCurrent) setValue('endDate', '');
   }, [isCurrent, setValue]);
 
-  const steps = [
+  const steps: StepDef[] = [
     {
       id: 'role',
       title: 'Company & Role',
@@ -872,9 +865,11 @@ export const AddExperience: React.FC<{
       icon: Calendar,
       fields: ['startDate', 'endDate', 'isCurrent', 'responsibilities'],
     },
-  ] as const;
+  ];
 
-  const handleFormSubmit = (formData: any) => {
+  const { currentStep, next, prev } = useStepControls(0);
+
+  const onSubmit = (formData: any) => {
     const payload = {
       ...formData,
       startDate: monthToIso(formData.startDate)!,
@@ -894,100 +889,122 @@ export const AddExperience: React.FC<{
     onCancel();
   };
 
-  const handleNextStep = async () => {
-    const fields = steps[currentStep].fields as string[];
-    const ok = await trigger(fields);
-    if (ok && currentStep < steps.length - 1) setCurrentStep((s) => s + 1);
+  const handleNext = async () => {
+    await next(trigger, steps[currentStep].fields);
   };
 
-  const handlePrevStep = () => currentStep > 0 && setCurrentStep((s) => s - 1);
-
-  const handleFormCancel = () => {
+  const handleCancel = () => {
     reset();
     onCancel();
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 p-5 text-white relative">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <Briefcase className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">
-                  {isEdit ? 'Edit Experience' : 'Add Experience'}
-                </h2>
-                <p className="text-white/80 text-sm">
-                  Step {currentStep + 1}: {steps[currentStep].title}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleFormCancel}
-              className="w-10 h-10 bg-white/20 rounded-full hover:bg-white/30 text-white"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div className="px-6 py-4 bg-gray-50">
-          <div className="flex items-center">
-            {steps.map((step, idx) => (
-              <React.Fragment key={step.id}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    idx <= currentStep
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {idx < currentStep ? (
-                    <Check className="w-5 h-5" />
-                  ) : (
-                    <step.icon className="w-5 h-5" />
-                  )}
-                </div>
-                {idx < steps.length - 1 && (
-                  <div
-                    className={`flex-1 h-1 mx-2 rounded-full transition-all duration-500 ${
-                      idx < currentStep ? 'bg-purple-500' : 'bg-gray-200'
-                    }`}
-                  />
+    <ModalShell
+      title={isEdit ? 'Edit Experience' : 'Add Experience'}
+      subtitle={`Step ${currentStep + 1}: ${steps[currentStep].title}`}
+      icon={Briefcase}
+      onClose={handleCancel}
+      headerGradient="from-purple-500 to-indigo-500"
+    >
+      <Stepper steps={steps} current={currentStep} activeColor="purple" />
+      <div className="p-6 overflow-y-auto flex-1">
+        <Form {...form}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className={currentStep !== 0 ? 'hidden' : 'block'}>
+              <FormField
+                control={control}
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company*</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g., Company Inc."
+                        required
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+              />
+              <FormField
+                control={control}
+                name="designation"
+                render={({ field }) => (
+                  <FormItem className="mt-6">
+                    <FormLabel>Designation*</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g., Software Engineer"
+                        required
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        {/* Form */}
-        <div className="p-6 overflow-y-auto flex-1">
-          <Form {...form}>
-            <form
-              onSubmit={handleSubmit(handleFormSubmit)}
-              className="space-y-6"
-            >
-              {/* Step 1 */}
-              <div className={currentStep !== 0 ? 'hidden' : 'block'}>
+            <div className={currentStep !== 1 ? 'hidden' : 'block'}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={control}
-                  name="company"
+                  name="employmentType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company*</FormLabel>
+                      <FormLabel>Employment Type</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-white z-[9999]">
+                          {employmentTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
                       <FormControl>
                         <Input
+                          placeholder="e.g., San Francisco, CA"
                           {...field}
-                          placeholder="e.g., Company Inc."
-                          required
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className={currentStep !== 2 ? 'hidden' : 'block'}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date*</FormLabel>
+                      <FormControl>
+                        <Input type="month" {...field} required />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -995,15 +1012,16 @@ export const AddExperience: React.FC<{
                 />
                 <FormField
                   control={control}
-                  name="designation"
+                  name="endDate"
                   render={({ field }) => (
-                    <FormItem className="mt-6">
-                      <FormLabel>Designation*</FormLabel>
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
                       <FormControl>
                         <Input
+                          type="month"
                           {...field}
-                          placeholder="e.g., Software Engineer"
-                          required
+                          disabled={isCurrent}
+                          value={isCurrent ? '' : field.value ?? ''}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1011,166 +1029,60 @@ export const AddExperience: React.FC<{
                   )}
                 />
               </div>
-
-              {/* Step 2 */}
-              <div className={currentStep !== 1 ? 'hidden' : 'block'}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={control}
-                    name="employmentType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Employment Type</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white z-[9999]">
-                            {employmentTypes.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., San Francisco, CA"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className={currentStep !== 2 ? 'hidden' : 'block'}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date*</FormLabel>
-                        <FormControl>
-                          <Input type="month" {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="month"
-                            {...field}
-                            disabled={isCurrent}
-                            value={isCurrent ? '' : field.value ?? ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={control}
-                  name="isCurrent"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2 mt-6">
-                      <FormControl>
-                        <Checkbox
-                          checked={!!field.value}
-                          onCheckedChange={(v) => field.onChange(v === true)}
-                        />
-                      </FormControl>
-                      <FormLabel className="!mt-0">
-                        I am currently working here
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={control}
-                  name="responsibilities"
-                  render={({ field }) => (
-                    <FormItem className="mt-6">
-                      <FormLabel>Responsibilities (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe your key responsibilities and achievements."
-                          rows={4}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Footer */}
-              <div className="pt-4 flex justify-between items-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevStep}
-                  disabled={currentStep === 0}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-2" /> Previous
-                </Button>
-                {currentStep < steps.length - 1 ? (
-                  <Button
-                    type="button"
-                    onClick={handleNextStep}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    Next <ChevronRight className="w-4 h-4 ml-2" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Check className="w-4 h-4 mr-2" />{' '}
-                    {isEdit ? 'Update Experience' : 'Save Experience'}
-                  </Button>
+              <FormField
+                control={control}
+                name="isCurrent"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2 mt-6">
+                    <FormControl>
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={(v) => field.onChange(v === true)}
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0">
+                      I am currently working here
+                    </FormLabel>
+                  </FormItem>
                 )}
-              </div>
-            </form>
-          </Form>
-        </div>
+              />
+              <FormField
+                control={control}
+                name="responsibilities"
+                render={({ field }) => (
+                  <FormItem className="mt-6">
+                    <FormLabel>Responsibilities (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe your key responsibilities and achievements."
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormFooter
+              currentStep={currentStep}
+              stepsLength={steps.length}
+              onPrev={prev}
+              onNext={handleNext}
+              onCancel={handleCancel}
+              isLast={currentStep === steps.length - 1}
+              onSubmitLabel={isEdit ? 'Update Experience' : 'Save Experience'}
+            />
+          </form>
+        </Form>
       </div>
-    </div>
+    </ModalShell>
   );
 };
 
-/* ================================================================== */
-/* AddSkill                                                            */
-/* ================================================================== */
+/* ---------------------------- AddSkill (unchanged behaviour, small cleanup) ------------------------- */
+
 const skillTypes = ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] as const;
 
 export const AddSkill: React.FC<{ onCancel: () => void }> = ({ onCancel }) => {
@@ -1180,7 +1092,7 @@ export const AddSkill: React.FC<{ onCancel: () => void }> = ({ onCancel }) => {
   });
 
   const dispatch = useDispatch();
-  useSelector((state: RootState) => state.student); // if you need loading/error, wire it here
+  useSelector((state: RootState) => state.student);
 
   const { handleSubmit, control } = form;
 
