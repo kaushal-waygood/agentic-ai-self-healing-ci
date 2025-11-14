@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -282,22 +282,113 @@ const DegreeSelector: React.FC<{ field: DegreeField }> = ({ field }) => {
   );
 };
 
+const splitToTags = (s: string) =>
+  s
+    .split(/[,\s]+/) // split on comma or any whitespace
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+const uniq = (arr: string[]) => Array.from(new Set(arr));
+
+const SeparatorKeys = new Set(['Enter', ',', ' ']);
+
 const TechnologyInput: React.FC<{
   field: { value: string[]; onChange: (v: string[]) => void };
 }> = ({ field }) => {
+  const [input, setInput] = useState('');
+  const isComposing = useRef(false);
+
+  // Keep local input synced when external value changes (e.g. reset / edit)
+  useEffect(() => {
+    // don't overwrite while user is typing; only sync if input is empty
+    if (!input) {
+      setInput('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [field.value.join(',')]);
+
+  const commit = (raw: string) => {
+    const newTags = splitToTags(raw);
+    if (newTags.length === 0) return;
+    const merged = uniq([...(field.value || []), ...newTags]);
+    field.onChange(merged);
+  };
+
+  const flushInput = () => {
+    if (!input.trim()) {
+      setInput('');
+      return;
+    }
+    commit(input);
+    setInput('');
+  };
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (isComposing.current) return; // IME in progress
+    if (SeparatorKeys.has(e.key)) {
+      e.preventDefault();
+      // If user typed a separator but input is empty and separator is space/comma, do nothing
+      if (input.trim()) flushInput();
+    } else if (e.key === 'Backspace' && !input && (field.value || []).length) {
+      // nice UX: backspace when input empty removes last tag
+      const next = (field.value || []).slice(0, -1);
+      field.onChange(next);
+    }
+  };
+
+  const handlePaste: React.ClipboardEventHandler<HTMLInputElement> = (e) => {
+    const text = e.clipboardData.getData('text');
+    if (!text) return;
+    e.preventDefault();
+    commit(text);
+    setInput('');
+  };
+
+  const removeTag = (tag: string) => {
+    field.onChange((field.value || []).filter((t) => t !== tag));
+  };
+
   return (
-    <Input
-      placeholder="comma separated e.g. React, Node.js, MongoDB"
-      value={(field.value || []).join(', ')}
-      onChange={(e) =>
-        field.onChange(
-          e.target.value
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean),
-        )
-      }
-    />
+    <div className="flex flex-col">
+      <div className="flex flex-wrap gap-2 p-2 border rounded-md">
+        {(field.value || []).map((tag, i) => (
+          <span
+            key={i}
+            className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded"
+          >
+            <span className="text-sm">{tag}</span>
+            <button
+              type="button"
+              onClick={() => removeTag(tag)}
+              aria-label={`Remove ${tag}`}
+              className="text-xs"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+
+        <input
+          className="flex-1 min-w-[120px] outline-none p-1"
+          placeholder="Type tech and press Enter, comma or space"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          onBlur={() => flushInput()}
+          onCompositionStart={() => (isComposing.current = true)}
+          onCompositionEnd={() => {
+            isComposing.current = false;
+            // IME commit: flush if separators present
+            if (/[,\s]/.test(input)) flushInput();
+          }}
+        />
+      </div>
+      <small className="text-xs text-gray-500 mt-1">
+        Separate by comma, space, or press Enter. Backspace (empty) removes last
+        tag.
+      </small>
+    </div>
   );
 };
 
@@ -555,10 +646,11 @@ export const AddProject: React.FC<{
     link: string;
   }>;
 }> = ({ onCancel, data, isEdit }) => {
+  console.log('Form data:', data);
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
-      projectName: data?.projectName || '',
+      projectName: data?.name || '',
       description: data?.description || '',
       startDate: toMonth(data?.startDate),
       endDate: data?.isCurrent ? '' : toMonth(data?.endDate),
