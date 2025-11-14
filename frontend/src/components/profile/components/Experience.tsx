@@ -26,13 +26,14 @@ const Experience = ({
   };
   return (
     <div>
-      {/* --- Header --- */}
       <div className="flex w-full items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg">
             <Briefcase className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">Experience</h3>
+          <h3 className="text-xl font-bold text-gray-800">
+            Experience ({defaultValues.experience.length})
+          </h3>
         </div>
         <div className="flex items-center gap-4">
           <button

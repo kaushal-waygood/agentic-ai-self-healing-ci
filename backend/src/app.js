@@ -16,8 +16,10 @@ import aiRoutes from './routes/ai.route.js';
 import agentRoutes from './routes/autopilotAgent.route.js';
 import planRoutes from './routes/plan.route.js';
 import formRoutes from './routes/form.route.js';
+import autofillRoutes from './routes/autofill.route.js';
 import notificationRoutes from './routes/notification.route.js';
 import { handleStripeWebhook } from './controllers/plan.controller.js';
+
 import newFeatureRoutes from './routes/newFeature.route.js';
 import { config } from './config/config.js';
 
@@ -110,6 +112,7 @@ app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/new-feature', newFeatureRoutes);
+app.use('/api/v1/autofill', autofillRoutes);
 
 // 8) 404
 app.use((req, res, next) => next(createHttpError(404, 'Endpoint not found')));

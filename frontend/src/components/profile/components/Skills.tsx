@@ -29,7 +29,9 @@ const Skills = ({
           <div className="p-2 bg-gradient-to-r from-green-500 to-teal-600 rounded-lg">
             <Code className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-2xl font-extrabold text-gray-800">Skills</h3>
+          <h3 className="text-2xl font-extrabold text-gray-800">
+            Skills ({defaultValues.skills.length})
+          </h3>
         </div>
 
         {/* Add Skill Button - Responsive */}
