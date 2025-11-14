@@ -560,6 +560,8 @@ export function CvGeneratorClient() {
             rateLimited={rateLimited}
             rateLimitMessage={rateLimitMessage}
             planPath="/dashboard/subscriptions" // change if your plan page lives elsewhere
+            title="CV"
+            targetLink={'/dashboard/my-docs?tab=cvs'}
           />
         );
 

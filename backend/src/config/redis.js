@@ -1,3 +1,4 @@
+// services/redisClient.js
 import { createClient } from 'redis';
 import { config } from '../config/config.js';
 
@@ -5,22 +6,37 @@ const url = `redis://${config.redisHost}:${config.redisPort}`;
 
 class RedisClient {
   constructor() {
-    this.client = createClient({
-      url,
-    });
+    this.client = createClient({ url });
 
     this.client.on('error', (err) => console.error('Redis Client Error', err));
-    this.client.connect();
+    // Attempt connect but do not throw — methods ensure connection before using.
+    this._connecting = this.client.connect().catch((err) => {
+      console.error('Initial redis connect error', err);
+    });
+  }
+
+  async ensureConnected() {
+    // wait for initial connect attempt to finish, then connect if not ready
+    await this._connecting;
+    if (!this.client.isReady) {
+      try {
+        await this.client.connect();
+      } catch (err) {
+        // If connect fails, log and let callers handle degraded mode.
+        console.error('Redis ensureConnected error', err);
+      }
+    }
   }
 
   async isReady() {
-    return this.client.isReady;
+    return !!this.client?.isReady;
   }
 
   async get(key) {
     try {
-      if (!(await this.isReady())) await this.client.connect();
-      return await this.client.get(key);
+      await this.ensureConnected();
+      const value = await this.client.get(key);
+      return value;
     } catch (err) {
       console.error('Redis get error:', err);
       return null;
@@ -29,17 +45,27 @@ class RedisClient {
 
   async set(key, value, ttl = 3600) {
     try {
-      if (!(await this.isReady())) await this.client.connect();
-      await this.client.set(key, value, { EX: ttl });
+      await this.ensureConnected();
+      if (ttl > 0) {
+        await this.client.set(key, value, { EX: ttl });
+      } else {
+        await this.client.set(key, value);
+      }
     } catch (err) {
       console.error('Redis set error:', err);
     }
   }
 
-  async del(key) {
+  async del(keys) {
     try {
-      if (!(await this.isReady())) await this.client.connect();
-      await this.client.del(key);
+      await this.ensureConnected();
+      if (!keys) return;
+      if (Array.isArray(keys)) {
+        if (keys.length === 0) return;
+        await this.client.del(keys);
+      } else {
+        await this.client.del(keys);
+      }
     } catch (err) {
       console.error('Redis delete error:', err);
     }
@@ -47,7 +73,7 @@ class RedisClient {
 
   async keys(pattern) {
     try {
-      if (!(await this.isReady())) await this.client.connect();
+      await this.ensureConnected();
       return await this.client.keys(pattern);
     } catch (err) {
       console.error('Redis keys error:', err);
@@ -65,8 +91,7 @@ class RedisClient {
     ];
 
     try {
-      if (!(await this.isReady())) await this.client.connect();
-
+      await this.ensureConnected();
       for (const pattern of patterns) {
         const keys = await this.client.keys(pattern);
         if (keys.length > 0) {
@@ -87,8 +112,7 @@ class RedisClient {
     ];
 
     try {
-      if (!(await this.isReady())) await this.client.connect();
-
+      await this.ensureConnected();
       for (const pattern of patterns) {
         const keys = await this.client.keys(pattern);
         if (keys.length > 0) {
@@ -99,25 +123,27 @@ class RedisClient {
       console.error('All jobs cache invalidation error:', err);
     }
   }
-  async withCache(key, ttl, callback) {
-    // Add ttl as a separate parameter
-    try {
-      // Try to get from cache first
-      const cached = await this.get(key);
-      if (cached) return JSON.parse(cached);
 
-      // Execute callback if cache miss
+  async withCache(key, ttl = 3600, callback) {
+    try {
+      await this.ensureConnected();
+      const cached = await this.get(key);
+      if (cached) {
+        // assume we store JSON strings
+        return JSON.parse(cached);
+      }
+
       const result = await callback();
 
-      // Cache the result
-      if (result) {
+      if (result !== undefined && result !== null) {
         await this.set(key, JSON.stringify(result), ttl);
       }
 
       return result;
     } catch (err) {
       console.error('Cache operation error:', err);
-      return await callback(); // Fallback to direct call
+      // fallback to direct call if redis fails
+      return await callback();
     }
   }
 }

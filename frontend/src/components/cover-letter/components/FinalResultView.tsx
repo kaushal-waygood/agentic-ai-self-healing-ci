@@ -9,6 +9,8 @@ type Props = {
   rateLimited?: boolean;
   rateLimitMessage?: string | null;
   planPath?: string;
+  title?: string;
+  targetLink?: string;
 };
 
 export default function FinalResultView({
@@ -16,6 +18,8 @@ export default function FinalResultView({
   rateLimited = false,
   rateLimitMessage = null,
   planPath = '/dashboard/plans',
+  title,
+  targetLink,
 }: Props) {
   const [isGenerating, setIsGenerating] = useState(true);
   const [showNotification, setShowNotification] = useState(false);
@@ -35,7 +39,13 @@ export default function FinalResultView({
   }, [rateLimited]);
 
   const handleRedirectDocs = () => {
-    router.push('/dashboard/my-docs');
+    if (typeof targetLink === 'string' && targetLink.length > 0) {
+      router.push(targetLink);
+    } else {
+      // Fallback route when no targetLink was provided
+      alert('please provide a target link');
+      router.push('/dashboard/my-docs');
+    }
   };
 
   const handleGoToPlans = () => {
@@ -84,7 +94,7 @@ export default function FinalResultView({
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Generating Your Cover Letter...
+                Generating Your {title}...
               </h2>
               <p className="text-gray-600 mb-6">
                 Running in the background. This may take a few moments.
@@ -117,18 +127,18 @@ export default function FinalResultView({
                 <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Cover Letter Ready!
+                {title} Ready!
               </h2>
               <p className="text-gray-600 mb-8">
-                Your cover letter has been successfully generated and is ready
-                to view.
+                Your {title} has been successfully generated and is ready to
+                view.
               </p>
               <div className="flex gap-3 flex-col">
                 <button
                   onClick={handleRedirectDocs}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
                 >
-                  View Cover Letters
+                  View {title}
                 </button>
                 <button
                   onClick={() => cvlink && window.open(cvlink, '_blank')}
@@ -149,7 +159,7 @@ export default function FinalResultView({
                 Generation Complete!
               </p>
               <p className="text-sm text-green-700">
-                Your cover letter is now available to view.
+                Your {title} is now available to view.
               </p>
             </div>
           </div>

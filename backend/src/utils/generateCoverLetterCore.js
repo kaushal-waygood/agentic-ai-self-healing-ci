@@ -18,13 +18,6 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/**
- * POST /api/coverletters
- * body: { useProfile, finalTouch, savedCVId, jobContextString, outputFormat }
- * file: optional CV file (pdf/docx/image)
- *
- * Note: outputFormat optional: 'plain' (default) | 'html'
- */
 export const initiateCoverLetterGeneration = async (
   req,
   res,
@@ -105,11 +98,9 @@ export const initiateCoverLetterGeneration = async (
           .json({ error: 'No saved CVs found for this student' });
       }
 
-      const saved =
-        studentWithCVs.htmlCV.id(savedCVId) ||
-        studentWithCVs.htmlCV.find(
-          (cv) => String(cv._id) === String(savedCVId),
-        );
+      const saved = studentWithCVs.htmlCV.find(
+        (cv) => String(cv._id) === String(savedCVId),
+      );
 
       if (!saved) {
         return res.status(404).json({ error: 'Saved CV not found' });

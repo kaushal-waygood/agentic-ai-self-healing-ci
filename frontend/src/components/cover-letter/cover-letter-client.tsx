@@ -615,6 +615,8 @@ export function CoverLetterGeneratorClient() {
             rateLimited={rateLimited}
             rateLimitMessage={rateLimitMessage}
             planPath="/dashboard/subscriptions"
+            title="Cover Letter"
+            targetLink={'/dashboard/my-docs?tab=cover-letters'}
           />
         );
 

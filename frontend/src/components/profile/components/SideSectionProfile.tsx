@@ -1,6 +1,14 @@
 'use client';
 import React, { useState } from 'react';
-import { Edit, UploadCloud, X, Sparkles, Camera, Check } from 'lucide-react';
+import {
+  Edit,
+  UploadCloud,
+  X,
+  Sparkles,
+  Camera,
+  Check,
+  FileText,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -34,7 +42,7 @@ const SideSectionProfile = ({
   handlePersonalInfoEdit,
   handleCancelEdit,
 }: any) => {
-  const { fullName, email, phone, jobPreference } =
+  const { fullName, email, phone, jobPreference, uploadedCV } =
     personalInfoForm.control._formValues;
 
   // ✅ Displayed profile info
@@ -127,6 +135,22 @@ const SideSectionProfile = ({
               <Edit size={16} /> Edit Profile
             </Button>
           </div>
+        </div>
+
+        <div className="w-full bg-white rounded-lg p-6 border flex items-center justify-center">
+          <a href={uploadedCV} target="_blank" rel="noopener noreferrer">
+            {uploadedCV ? (
+              <div className="flex items-center gap-2">
+                <FileText className="w-6 h-6 text-gray-600" />
+                <span className="text-gray-600">View Uploaded CV</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <UploadCloud className="w-6 h-6 text-gray-600" />
+                <span className="text-gray-600">Upload CV</span>
+              </div>
+            )}
+          </a>
         </div>
 
         {/* Upload CV Section (unchanged) */}

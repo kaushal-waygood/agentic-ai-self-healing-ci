@@ -1,11 +1,17 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-const AgentPreviewModal = ({ formData, onCancel, onConfirm }) => {
+const AgentPreviewModal = ({
+  formData,
+  onCancel,
+  onConfirm,
+  nextStep,
+}: any) => {
   const {
     agentName,
     jobTitle,
     country,
+    cvFile,
     isRemote,
     employmentTypes,
     coverLetterStrategy,
@@ -14,8 +20,8 @@ const AgentPreviewModal = ({ formData, onCancel, onConfirm }) => {
   } = formData;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 ">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative animate-fade-in">
         <button
           onClick={onCancel}
           className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
@@ -41,6 +47,7 @@ const AgentPreviewModal = ({ formData, onCancel, onConfirm }) => {
             }
           />
           <Row label="Max Applications" value={maxApplications} />
+          <Row label="CV File" value={cvFile.name} />
           <Row label="Cover Letter Mode" value={coverLetterStrategy} />
           {coverLetterInstructions && (
             <Row
@@ -59,7 +66,10 @@ const AgentPreviewModal = ({ formData, onCancel, onConfirm }) => {
             Cancel
           </button>
           <button
-            onClick={onConfirm}
+            onClick={() => {
+              onConfirm();
+              nextStep();
+            }}
             className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
           >
             Confirm & Save
