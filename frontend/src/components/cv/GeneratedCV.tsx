@@ -172,7 +172,7 @@ const GeneratedCV = ({
                   {cvData ? 'Your AI Generated CV' : 'Loading CV...'}
                 </h3>
               </div>
-              {cvData && (
+              {/* {cvData && (
                 <button
                   onClick={onSave}
                   className="w-full lg:w-auto bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl px-6 py-2.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 text-sm font-medium flex-shrink-0"
@@ -180,7 +180,7 @@ const GeneratedCV = ({
                   <Save className="h-4 w-4" />
                   <span>Save Final Version</span>
                 </button>
-              )}
+              )} */}
             </div>
           </div>
 

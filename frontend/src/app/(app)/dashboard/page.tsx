@@ -453,7 +453,8 @@ export default function DashboardPage() {
     tailoredApplications: 0,
     jobsViewed: 0,
     appliedJobsCount: 0,
-    visitedJobs: 0,
+
+    jobsVisited: 0,
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
@@ -484,7 +485,8 @@ export default function DashboardPage() {
           tailoredApplications: apiData.tailoredApplications || 0,
           jobsViewed: apiData.jobsViewed || 0,
           appliedJobsCount: apiData.appliedJobsCount || 0,
-          visitedJobs: apiData.visitedJobs || 0,
+
+          jobsVisited: apiData.jobsVisited || 0,
         });
 
         const statusCounts = (apiData.applicationStats || []).reduce(
@@ -557,7 +559,8 @@ export default function DashboardPage() {
           tailoredApplications: apiData.tailoredApplications || 0,
           jobsViewed: apiData.jobsViewed || 0,
           appliedJobsCount: apiData.appliedJobsCount || 0,
-          visitedJobs: apiData.visitedJobs || 0,
+
+          jobsVisited: apiData.jobsVisited || 0,
         });
 
         const applicationStats = apiData.applicationStats || [];
@@ -732,7 +735,7 @@ export default function DashboardPage() {
             {/* 🚀 APPLICATIONS SECTION */}
             <div>
               <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
-                Applications
+                My Documents
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
@@ -767,7 +770,7 @@ export default function DashboardPage() {
             {/* 🧩 JOBS SECTION */}
             <div>
               <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
-                Jobs
+                My Applications
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
@@ -790,7 +793,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Visited Jobs"
-                  value={stats.visitedJobs}
+                  value={stats.jobsVisited}
                   icon={Globe}
                   description="Job listings you’ve opened but not saved or applied to."
                   color="blue"

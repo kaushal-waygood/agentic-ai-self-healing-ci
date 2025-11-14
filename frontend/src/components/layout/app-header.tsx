@@ -231,7 +231,6 @@ const AppHeader = ({ setIsSearchOpen }) => {
       aiCvGenerator: usageLimits.cvCreation,
       aiCoverLetterGenerator: usageLimits.coverLetter,
       applicationLimit: usageLimits.autoApply,
-      monog,
     }),
     [usageLimits],
   );

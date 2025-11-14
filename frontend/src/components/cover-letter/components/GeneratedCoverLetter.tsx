@@ -90,13 +90,13 @@ const GeneratedCoverLetter = ({
                       </CardDescription>
                     </div>
                   </div>
-                  <Button
+                  {/* <Button
                     onClick={handleInitiateSave}
                     className="bg-white/20 hover:bg-white/30 border-white/30 text-white rounded-xl h-10 transition-all duration-300"
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save Final Version
-                  </Button>
+                  </Button> */}
                 </div>
               </CardHeader>
               <CardContent className=" sm:p-4">
