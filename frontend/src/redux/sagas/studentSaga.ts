@@ -114,7 +114,23 @@ import {
 
   // prefer toggle
   updateJobPrefered,
+
+  // saved josb
+  saveJob,
+  visitedJobs,
+  viewedJobs,
 } from '@/services/api/student';
+import {
+  savedStudentJobsRequest,
+  savedStudentJobsSuccess,
+  savedStudentJobsFailure,
+  visitedJobsRequest,
+  visitedJobsSuccess,
+  visitedJobsFailure,
+  viewedJobsRequest,
+  viewedJobsSuccess,
+  viewedJobsFailure,
+} from '../reducers/jobReducer';
 import { get } from 'lodash';
 
 /* ============================================================
@@ -429,6 +445,38 @@ function* updateJobPreferedByStudentSaga(
   }
 }
 
+function* savedJobsSaga(action: PayloadAction<Record<string, any>>) {
+  try {
+    console.log(action.payload);
+    const response: AxiosResponse = yield call(saveJob, action.payload);
+    yield put(savedStudentJobsSuccess(response.data));
+    yield put(getStudentDetailsRequest());
+  } catch (error) {
+    yield put(savedStudentJobsFailure(getErrorMessage(error)));
+  }
+}
+
+function* visitedJobsSaga(action: PayloadAction<Record<string, any>>) {
+  try {
+    console.log(action.payload);
+    const response: AxiosResponse = yield call(visitedJobs, action.payload);
+    yield put(visitedJobsSuccess(response.data));
+    yield put(getStudentDetailsRequest());
+  } catch (error) {
+    yield put(visitedJobsFailure(getErrorMessage(error)));
+  }
+}
+
+function* viewedJobsSaga(action: PayloadAction<Record<string, any>>) {
+  try {
+    const response: AxiosResponse = yield call(viewedJobs, action.payload);
+    yield put(viewedJobsSuccess(response.data));
+    yield put(getStudentDetailsRequest());
+  } catch (error) {
+    yield put(viewedJobsFailure(getErrorMessage(error)));
+  }
+}
+
 export function* studentWatcher() {
   // details
   yield takeLatest(getStudentDetailsRequest.type, getStudentDetailsSaga);
@@ -485,4 +533,8 @@ export function* studentWatcher() {
     updateJobPreferedByStudentRequest.type,
     updateJobPreferedByStudentSaga,
   );
+
+  yield takeLatest(savedStudentJobsRequest.type, savedJobsSaga);
+  yield takeLatest(visitedJobsRequest.type, visitedJobsSaga);
+  yield takeLatest(viewedJobsRequest.type, viewedJobsSaga);
 }

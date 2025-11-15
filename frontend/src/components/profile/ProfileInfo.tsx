@@ -214,7 +214,6 @@ const ProfileInfo = ({
             />
           </div>
         );
-
       case 'skills':
         return (
           <div>
@@ -227,7 +226,6 @@ const ProfileInfo = ({
             />
           </div>
         );
-
       case 'jobPreferences':
         return (
           <div>
