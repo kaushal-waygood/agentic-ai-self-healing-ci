@@ -1,9 +1,15 @@
 import {
+  Badge,
   Briefcase,
+  BriefcaseBusiness,
   Calendar,
+  CaseLower,
+  Luggage,
   MapPin,
+  PanelsTopLeft,
   Pencil,
   PlusCircle,
+  SquareSplitVertical,
   Trash2,
 } from 'lucide-react';
 import React from 'react';
@@ -17,6 +23,8 @@ const Experience = ({
   setDeleteExpIndex,
 }: any) => {
   // Optional: define this helper if it exists elsewhere
+
+  console.log('values : ', defaultValues);
   const formatDateForMonthInput = (date: string) => {
     if (!date) return '';
     const d = new Date(date);
@@ -70,7 +78,7 @@ const Experience = ({
                       {exp.company}
                     </h4>
                     <p className="text-purple-600 font-medium mt-1">
-                      {exp.position}
+                      {exp.designation}
                     </p>
                   </div>
                   <div className="flex gap-2 items-center">
@@ -122,6 +130,8 @@ const Experience = ({
                       <div className="flex items-center gap-2 text-gray-600">
                         <MapPin className="h-4 w-4 text-gray-400" />
                         <span>{exp.location}</span>
+                        <BriefcaseBusiness className="h-4 w-4 text-gray-400" />
+                        <span>{exp.employmentType} </span>
                       </div>
                     )}
                   </div>

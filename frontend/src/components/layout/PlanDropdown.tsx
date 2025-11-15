@@ -42,6 +42,9 @@ const PlanDropdown = ({
   const config = planConfig[planType] || planConfig.Free;
   const { Icon } = config;
 
+  console.log('Usage Data:', usageData);
+  console.log('Plan Limits:', planLimits);
+
   return (
     <div className="relative">
       <button onClick={onToggle} className={config.buttonClasses}>
@@ -76,15 +79,16 @@ const PlanDropdown = ({
             />
             <UsageTracker
               label="AI Applications"
-              used={usageData.aiJobApply}
-              limit={planLimits.aiJobApply}
-            />
-
-            {/* <UsageTracker
-              label="Tracked Applications"
               used={usageData.applications}
               limit={planLimits.applicationLimit}
-            /> */}
+            />
+            <UsageTracker label="AI Auto Pilot" used={0} limit={0} />
+            <UsageTracker
+              label="AI Auto Apply Daily limit"
+              used={0}
+              limit={0}
+            />
+            <UsageTracker label="AI Manual Application" used={0} limit={0} />
           </div>
 
           {planType === 'Free' || planType === 'Weekly' ? (
