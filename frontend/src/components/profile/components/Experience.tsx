@@ -1,9 +1,15 @@
 import {
+  Badge,
   Briefcase,
+  BriefcaseBusiness,
   Calendar,
+  CaseLower,
+  Luggage,
   MapPin,
+  PanelsTopLeft,
   Pencil,
   PlusCircle,
+  SquareSplitVertical,
   Trash2,
 } from 'lucide-react';
 import React from 'react';
@@ -17,6 +23,8 @@ const Experience = ({
   setDeleteExpIndex,
 }: any) => {
   // Optional: define this helper if it exists elsewhere
+
+  console.log('values : ', defaultValues);
   const formatDateForMonthInput = (date: string) => {
     if (!date) return '';
     const d = new Date(date);
@@ -26,13 +34,14 @@ const Experience = ({
   };
   return (
     <div>
-      {/* --- Header --- */}
       <div className="flex w-full items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg">
             <Briefcase className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">Experience</h3>
+          <h3 className="text-xl font-bold text-gray-800">
+            Experience ({defaultValues.experience.length})
+          </h3>
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -69,7 +78,7 @@ const Experience = ({
                       {exp.company}
                     </h4>
                     <p className="text-purple-600 font-medium mt-1">
-                      {exp.position}
+                      {exp.designation}
                     </p>
                   </div>
                   <div className="flex gap-2 items-center">
@@ -121,6 +130,8 @@ const Experience = ({
                       <div className="flex items-center gap-2 text-gray-600">
                         <MapPin className="h-4 w-4 text-gray-400" />
                         <span>{exp.location}</span>
+                        <BriefcaseBusiness className="h-4 w-4 text-gray-400" />
+                        <span>{exp.employmentType} </span>
                       </div>
                     )}
                   </div>

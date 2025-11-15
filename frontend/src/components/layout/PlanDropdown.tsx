@@ -4,7 +4,6 @@ import { Crown, Zap, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { UsageTracker } from '@/app/(app)/dashboard/UsageAndLimitsCard';
 
-// --- UPDATED: Added 'Weekly' and 'Monthly' plan configurations ---
 const planConfig = {
   Free: {
     Icon: Zap,
@@ -35,14 +34,12 @@ const PlanDropdown = ({
   onToggle,
   usageData,
   planLimits,
-}) => {
+}: any) => {
   const router = useRouter();
 
   // Select the correct configuration based on planType, with 'Free' as a fallback
   const config = planConfig[planType] || planConfig.Free;
   const { Icon } = config;
-  console.log('usage data', usageData);
-  console.log('plan limits', planLimits);
 
   return (
     <div className="relative">
@@ -78,15 +75,16 @@ const PlanDropdown = ({
             />
             <UsageTracker
               label="AI Applications"
-              used={usageData.aiJobApply}
-              limit={planLimits.aiJobApply}
-            />
-
-            {/* <UsageTracker
-              label="Tracked Applications"
               used={usageData.applications}
               limit={planLimits.applicationLimit}
-            /> */}
+            />
+            <UsageTracker label="AI Auto Docs" used={0} limit={0} />
+            <UsageTracker
+              label="AI Auto Apply Daily limit"
+              used={0}
+              limit={0}
+            />
+            <UsageTracker label="AI Manual Application" used={0} limit={0} />
           </div>
 
           {planType === 'Free' || planType === 'Weekly' ? (

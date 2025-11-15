@@ -391,7 +391,6 @@ export const addStudentSkills = async (req, res) => {
 
 /**
  * Remove a skill
- * Note: we remove by `skillId` (the slug you created), not by Mongo _id.
  */
 export const removeStudentSkills = async (req, res) => {
   const { skillId } = req.params;
@@ -402,23 +401,33 @@ export const removeStudentSkills = async (req, res) => {
   }
 
   try {
-    // Pull by skillId property (consistent with addStudentSkills)
-    const result = await Student.findByIdAndUpdate(
-      _id,
-      { $pull: { skills: { skillId } } },
-      { new: true, select: 'skills' },
-    ).lean();
+    const isObjectId = mongoose.Types.ObjectId.isValid(skillId);
 
-    if (!result) {
+    let updated;
+    if (isObjectId) {
+      const objectId = new mongoose.Types.ObjectId(skillId); // <-- use new
+      updated = await Student.findByIdAndUpdate(
+        _id,
+        { $pull: { skills: { _id: objectId } } },
+        { new: true, select: 'skills' },
+      ).lean();
+    } else {
+      updated = await Student.findByIdAndUpdate(
+        _id,
+        { $pull: { skills: { skillId } } },
+        { new: true, select: 'skills' },
+      ).lean();
+    }
+
+    if (!updated) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Invalidate cache
     await redisClient.invalidateStudentCache(_id);
 
     return res.status(200).json({
       message: 'Skill removed successfully',
-      skills: result.skills,
+      skills: updated.skills || [],
     });
   } catch (error) {
     console.error('Error removing skill:', error);
@@ -687,23 +696,41 @@ export const updateExperience = async (req, res) => {
   }
 };
 
-// Education controller
+const EDUCATION_TTL = 300; // seconds (5 minutes)
+const EDUCATION_CACHE_KEY = (userId) => `student:${userId}:education`;
+
+/**
+ * GET cached educations for the authenticated student
+ */
 export const getEducationsById = async (req, res) => {
   const { _id } = req.user;
+  const cacheKey = EDUCATION_CACHE_KEY(_id);
 
   try {
-    const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    const educations = await redisClient.withCache(
+      cacheKey,
+      EDUCATION_TTL,
+      async () => {
+        const student = await Student.findById(_id)
+          .select('education -_id')
+          .lean();
+        if (!student) throw { status: 404, message: 'Student not found' };
+        return student.education || [];
+      },
+    );
 
-    res.status(200).json({ educations: student.education });
+    return res.status(200).json({ educations, fromCache: false });
   } catch (error) {
     console.error('Error getting educations:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    if (error && error.status)
+      return res.status(error.status).json({ message: error.message });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
+/**
+ * Add an education entry
+ */
 export const addEducations = async (req, res) => {
   const {
     degree,
@@ -717,11 +744,15 @@ export const addEducations = async (req, res) => {
   } = req.body;
   const { _id } = req.user;
 
+  if (!degree || !fieldOfStudy) {
+    return res
+      .status(400)
+      .json({ message: 'degree and fieldOfStudy are required' });
+  }
+
   try {
     const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    if (!student) return res.status(404).json({ message: 'Student not found' });
 
     const educationId = slugify(`${degree}-${fieldOfStudy}`, { lower: true });
 
@@ -729,7 +760,7 @@ export const addEducations = async (req, res) => {
       return res.status(400).json({ message: 'Education already exists' });
     }
 
-    student.education.push({
+    const newEdu = {
       educationId,
       degree,
       fieldOfStudy,
@@ -739,48 +770,68 @@ export const addEducations = async (req, res) => {
       institute,
       country,
       isCurrentlyStudying,
-    });
+    };
 
+    student.education.push(newEdu);
     await student.save();
 
-    // Invalidate cache
+    // Invalidate cache so next read repopulates fresh data
     await redisClient.invalidateStudentCache(_id);
 
-    res.status(200).json({
+    return res.status(200).json({
       message: 'Education added successfully',
       education: student.education,
     });
   } catch (error) {
     console.error('Error adding education:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
+/**
+ * Remove education - accepts either Mongo _id or your slug educationId in :eduId
+ */
 export const removeEducation = async (req, res) => {
   try {
     const { eduId } = req.params;
     const userId = req.user?._id;
 
-    if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-    if (!eduId) {
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    if (!eduId)
       return res.status(400).json({ message: 'Education id is required' });
-    }
 
     const student = await Student.findById(userId);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    // Try to remove by subdocument ObjectId first
+    let removed = null;
+    if (mongoose.Types.ObjectId.isValid(eduId)) {
+      const subdoc = student.education.id(eduId);
+      if (subdoc) {
+        removed = subdoc.toObject();
+        subdoc.deleteOne();
+      }
     }
 
-    const edu = student.education.id(eduId);
-    if (!edu) {
+    // If not removed by ObjectId, try by slug field `educationId`
+    if (!removed) {
+      const beforeLen = student.education.length;
+      student.education = student.education.filter(
+        (edu) => edu.educationId !== eduId,
+      );
+      if (student.education.length < beforeLen) {
+        removed = { educationId: eduId };
+      }
+    }
+
+    if (!removed) {
       return res.status(404).json({ message: 'Education not found' });
     }
 
-    // remove the subdocument and save
-    edu.deleteOne(); // or edu.remove() in older Mongoose
     await student.save();
+
+    // Invalidate cache
+    await redisClient.invalidateStudentCache(userId);
 
     return res.status(200).json({
       message: 'Education removed successfully',
@@ -792,6 +843,9 @@ export const removeEducation = async (req, res) => {
   }
 };
 
+/**
+ * Update education - accepts either Mongo _id or your slug educationId in :eduId
+ */
 export const updateEducation = async (req, res) => {
   const { eduId: educationId } = req.params;
   const {
@@ -806,46 +860,88 @@ export const updateEducation = async (req, res) => {
   } = req.body;
   const { _id } = req.user;
 
+  if (!educationId)
+    return res.status(400).json({ message: 'Education id is required' });
+
   try {
     const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    if (!student) return res.status(404).json({ message: 'Student not found' });
 
-    const education = student.education.find(
-      (edu) => edu._id.toString() === educationId,
+    const isObjectId = mongoose.Types.ObjectId.isValid(educationId);
+    const education = student.education.find((edu) =>
+      isObjectId
+        ? edu._id.toString() === educationId
+        : edu.educationId === educationId,
     );
 
-    console.log(education);
-
-    if (!education) {
+    if (!education)
       return res.status(404).json({ message: 'Education not found' });
-    }
 
-    // Update education fields
-    if (degree) education.degree = degree;
-    if (fieldOfStudy) education.fieldOfStudy = fieldOfStudy;
-    if (startDate) education.startDate = startDate;
-    if (endDate) education.endDate = endDate;
-    if (grade) education.grade = grade;
-    if (institute) education.institute = institute;
+    // Update only provided fields
+    if (degree !== undefined) education.degree = degree;
+    if (fieldOfStudy !== undefined) education.fieldOfStudy = fieldOfStudy;
+    if (startDate !== undefined) education.startDate = startDate;
+    if (endDate !== undefined) education.endDate = endDate;
+    if (grade !== undefined) education.grade = grade;
+    if (institute !== undefined) education.institute = institute;
+    if (country !== undefined) education.country = country;
     if (isCurrentlyStudying !== undefined)
       education.isCurrentlyStudying = isCurrentlyStudying;
     if (isCurrentlyStudying === false) education.endDate = null;
-    if (country) education.country = country;
 
     await student.save();
 
     // Invalidate cache
+    await redisClient.invalidateStudentCache(_id);
 
-    res.status(200).json({ message: 'Education updated successfully' });
+    return res
+      .status(200)
+      .json({ message: 'Education updated successfully', education });
   } catch (error) {
     console.error('Error updating education:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-// Projects controller
+const PROJECTS_TTL = 300; // 5 minutes
+const PROJECTS_CACHE_KEY = (userId) => `student:${userId}:projects`;
+
+/**
+ * GET cached projects
+ */
+export const getAllProjects = async (req, res) => {
+  const { _id } = req.user;
+  const cacheKey = PROJECTS_CACHE_KEY(_id);
+
+  try {
+    const projects = await redisClient.withCache(
+      cacheKey,
+      PROJECTS_TTL,
+      async () => {
+        const student = await Student.findById(_id)
+          .select('projects -_id')
+          .lean();
+        if (!student) throw { status: 404, message: 'Student not found' };
+        return student.projects || [];
+      },
+    );
+
+    return res.status(200).json({
+      message: 'Projects fetched successfully',
+      projects,
+      fromCache: false,
+    });
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    if (error && error.status)
+      return res.status(error.status).json({ message: error.message });
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * Add project
+ */
 export const addProjects = async (req, res) => {
   const {
     projectName,
@@ -858,11 +954,13 @@ export const addProjects = async (req, res) => {
   } = req.body;
   const { _id } = req.user;
 
+  if (!projectName) {
+    return res.status(400).json({ message: 'projectName is required' });
+  }
+
   try {
     const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    if (!student) return res.status(404).json({ message: 'Student not found' });
 
     student.projects.push({
       projectName,
@@ -876,16 +974,22 @@ export const addProjects = async (req, res) => {
 
     await student.save();
 
-    // Invalidate cache
+    // Invalidate cache so next read repopulates
     await redisClient.invalidateStudentCache(_id);
 
-    return res.status(200).json({ message: 'Project added successfully' });
+    return res.status(200).json({
+      message: 'Project added successfully',
+      projects: student.projects,
+    });
   } catch (error) {
     console.error('Error adding project:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
+/**
+ * Update project (updates only provided fields)
+ */
 export const updateProjects = async (req, res) => {
   const { projectId } = req.params;
   const {
@@ -904,68 +1008,91 @@ export const updateProjects = async (req, res) => {
   }
 
   try {
+    // use positional operator to atomically update array element
+    const setOps = {};
+    if (projectName !== undefined)
+      setOps['projects.$.projectName'] = projectName;
+    if (description !== undefined)
+      setOps['projects.$.description'] = description;
+    if (startDate !== undefined) setOps['projects.$.startDate'] = startDate;
+    if (endDate !== undefined) setOps['projects.$.endDate'] = endDate;
+    if (technologies !== undefined)
+      setOps['projects.$.technologies'] = technologies;
+    if (link !== undefined) setOps['projects.$.link'] = link;
+    if (isWorkingActive !== undefined)
+      setOps['projects.$.isWorkingActive'] = isWorkingActive;
+    setOps['projects.$.updatedAt'] = new Date();
+
     const result = await Student.findOneAndUpdate(
       {
-        _id: _id,
+        _id,
         'projects._id': projectId,
       },
-      {
-        $set: {
-          'projects.$.projectName': projectName,
-          'projects.$.description': description,
-          'projects.$.startDate': startDate,
-          'projects.$.endDate': endDate,
-          'projects.$.technologies': technologies,
-          'projects.$.link': link,
-          'projects.$.isWorkingActive': isWorkingActive,
-          'projects.$.updatedAt': new Date(),
-        },
-      },
-      { new: true },
-    );
+      { $set: setOps },
+      { new: true, select: 'projects' },
+    ).lean();
 
     if (!result) {
-      return res.status(404).json({
-        message: 'Student or project not found',
-      });
+      return res.status(404).json({ message: 'Student or project not found' });
     }
 
     // Invalidate cache
     await redisClient.invalidateStudentCache(_id);
 
+    const updatedProject = result.projects.find(
+      (p) => p._id.toString() === projectId,
+    );
     return res.status(200).json({
       message: 'Project updated successfully',
-      project: result.projects.find((p) => p._id.toString() === projectId),
+      project: updatedProject,
     });
   } catch (error) {
     console.error('Error updating project:', error);
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid project ID format' });
     }
-    return res.status(500).json({
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
+/**
+ * Remove project
+ */
 export const removeProject = async (req, res) => {
   const { projectId } = req.params;
   const { _id } = req.user;
 
-  if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
-    return res.status(400).json({ message: 'Invalid project ID' });
+  if (!projectId) {
+    return res.status(400).json({ message: 'Project ID is required' });
   }
 
+  // allow either slug or ObjectId — prefer ObjectId removal if valid
+  const isObjectId = mongoose.Types.ObjectId.isValid(projectId);
+
   try {
-    const updatedStudent = await Student.findByIdAndUpdate(
-      _id,
-      { $pull: { projects: { _id: projectId } } },
-      { new: true },
-    );
+    let updatedStudent = null;
+
+    if (isObjectId) {
+      updatedStudent = await Student.findByIdAndUpdate(
+        _id,
+        { $pull: { projects: { _id: projectId } } },
+        { new: true, select: 'projects' },
+      ).lean();
+    }
+
+    // If not found/removed and projectId is not ObjectId, try removing by a `projectId` slug field
+    if (!updatedStudent) {
+      updatedStudent = await Student.findByIdAndUpdate(
+        _id,
+        { $pull: { projects: { projectId } } },
+        { new: true, select: 'projects' },
+      ).lean();
+    }
 
     if (!updatedStudent) {
-      return res.status(404).json({ message: 'Student not found' });
+      return res
+        .status(404)
+        .json({ message: 'Student not found or project not present' });
     }
 
     // Invalidate cache
@@ -977,32 +1104,7 @@ export const removeProject = async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing project:', error);
-    return res.status(500).json({
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-export const getAllProjects = async (req, res) => {
-  const { _id } = req.user;
-
-  try {
-    const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    return res.status(200).json({
-      message: 'Projects fetched successfully',
-      projects: student.projects,
-    });
-  } catch (error) {
-    console.error('Error fetching projects:', error);
-    return res.status(500).json({
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -1426,116 +1528,6 @@ export const getJobPreferences = async (req, res) => {
   }
 };
 
-export const toggleSavedJob = async (req, res) => {
-  const studentId = req.user._id;
-  const { jobId } = req.body;
-
-  console.log(studentId, jobId);
-
-  if (!jobId) {
-    return res.status(400).json({ message: 'Job ID is required.' });
-  }
-
-  try {
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found.' });
-    }
-
-    // FIX: Clean up invalid viewedJobs entries before proceeding
-    if (student.viewedJobs && student.viewedJobs.length > 0) {
-      student.viewedJobs = student.viewedJobs.filter(
-        (viewedJob) =>
-          viewedJob && viewedJob.job && viewedJob.job.toString().trim() !== '',
-      );
-    }
-
-    // Find the index of the job in the savedJobs array
-    const jobIndex = student.savedJobs.findIndex(
-      (savedItem) =>
-        (savedItem.job?.toString() || savedItem.toString()) === jobId,
-    );
-
-    let message;
-
-    if (jobIndex > -1) {
-      // If jobIndex is found (i.e., not -1), the job is already saved. Remove it.
-      student.savedJobs.splice(jobIndex, 1);
-      message = 'Job removed from saved list.';
-    } else {
-      // If jobIndex is -1, the job is not saved. Add it.
-      student.savedJobs.push({ job: jobId });
-      message = 'Job saved successfully.';
-    }
-
-    // FIX: Use updateOne instead of save to avoid validation issues
-    await Student.updateOne(
-      { _id: studentId },
-      {
-        $set: {
-          savedJobs: student.savedJobs,
-          viewedJobs: student.viewedJobs, // Include cleaned viewedJobs
-        },
-      },
-    );
-
-    // Invalidate caches in both cases (add or remove)
-    await redisClient.invalidateStudentCache(studentId);
-    await redisClient.del(`student:${studentId}:savedJobs`);
-    await redisClient.del(`student:${studentId}:isSaved:${jobId}`);
-
-    return res.status(200).json({
-      success: true,
-      message,
-    });
-  } catch (error) {
-    console.error('Error toggling saved job:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-export const getSavedJobs = async (req, res) => {
-  const { _id } = req.user;
-  const cacheKey = `student:${_id}:savedJobs`;
-
-  try {
-    const savedJobs = await redisClient.withCache(cacheKey, 1800, async () => {
-      const student = await Student.findById(_id).populate({
-        path: 'savedJobs',
-        select: '-__v',
-        options: { lean: true },
-      });
-
-      if (!student) throw new Error('Student not found');
-      return student.savedJobs;
-    });
-
-    return res.status(200).json({ savedJobs });
-  } catch (error) {
-    console.error('Error getting saved jobs:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-export const isSavedOrNot = async (req, res) => {
-  const { _id } = req.user;
-  const { jobId } = req.query;
-  const cacheKey = `student:${_id}:isSaved:${jobId}`;
-
-  try {
-    const isSaved = await redisClient.withCache(cacheKey, 600, async () => {
-      const student = await Student.findById(_id);
-      if (!student) throw new Error('Student not found');
-      return student.savedJobs.some((id) => id.toString() === jobId);
-    });
-
-    return res.status(200).json({ isSaved });
-  } catch (error) {
-    console.error('Error checking saved status:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
 export const getProfileCompletion = async (req, res) => {
   const studentId = req.user._id;
   const cacheKey = `student:${studentId}:profileCompletion`;
@@ -1549,8 +1541,6 @@ export const getProfileCompletion = async (req, res) => {
         const student = await Student.findById(studentId).select(
           'fullName phone email jobRole profileImage jobRole education experience skills projects jobPreferences',
         );
-
-        console.log(student);
 
         if (!student) throw new Error('Student not found');
 
@@ -2158,12 +2148,11 @@ export const toggleAutopilot = async (req, res, next) => {
   }
 };
 
+// Job View Controllers
 export const jobViewedByStudent = async (req, res, next) => {
   try {
     const studentId = req.user._id;
     const { jobId } = req.params;
-
-    // console.log( jobId);
 
     // Check if the student has already viewed this specific job
     const student = await Student.findOne({
@@ -2171,11 +2160,11 @@ export const jobViewedByStudent = async (req, res, next) => {
       'viewedJobs.slug': jobId,
     });
 
-    // If 'student' is not null, the job is already in their viewed list
     if (student) {
-      return res
-        .status(200)
-        .json({ success: true, message: 'Job view was already recorded.' });
+      return res.status(200).json({
+        success: true,
+        message: 'Job view was already recorded.',
+      });
     }
 
     // If not viewed, add the job reference to the array
@@ -2185,9 +2174,15 @@ export const jobViewedByStudent = async (req, res, next) => {
       },
     });
 
-    res
-      .status(200)
-      .json({ success: true, message: 'Job view recorded successfully.' });
+    // Invalidate relevant caches
+    await redisClient.invalidateJobCacheForStudent(studentId, jobId);
+    await redisClient.del(`student:${studentId}:viewedJobs`);
+    await redisClient.del(`stats:${studentId}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Job view recorded successfully.',
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -2197,22 +2192,23 @@ export const isStudentViewedJob = async (req, res, next) => {
   try {
     const studentId = req.user._id;
     const { jobId } = req.params;
+    const cacheKey = `student:${studentId}:isViewed:${jobId}`;
 
-    const jobExists = await Job.findById(jobId).select('_id').lean();
-    if (!jobExists) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
-    }
+    const isViewed = await redisClient.withCache(cacheKey, 1800, async () => {
+      const jobExists = await Job.findById(jobId).select('_id').lean();
+      if (!jobExists) {
+        throw new Error('Job not found');
+      }
 
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
-    }
+      const student = await Student.findById(studentId);
+      if (!student) {
+        throw new Error('Student not found');
+      }
 
-    student.isJobViewed = true; // Set the flag to true
-
-    const isViewed = student.jobsViewed.includes(jobId);
+      return student.viewedJobs.some(
+        (viewedJob) => viewedJob.slug.toString() === jobId,
+      );
+    });
 
     res.status(200).json({ success: true, isViewed });
   } catch (error) {
@@ -2220,6 +2216,7 @@ export const isStudentViewedJob = async (req, res, next) => {
   }
 };
 
+// Job Visit Controllers
 export const jobVisitedByStudent = async (req, res) => {
   try {
     const { jobId } = req.params;
@@ -2247,6 +2244,11 @@ export const jobVisitedByStudent = async (req, res) => {
 
     await student.save();
 
+    // Invalidate relevant caches
+    await redisClient.invalidateJobCacheForStudent(studentId, jobId);
+    await redisClient.del(`student:${studentId}:visitedJobs`);
+    await redisClient.del(`stats:${studentId}`);
+
     res.status(200).json({
       success: true,
       message: 'Job marked as visited successfully.',
@@ -2269,45 +2271,54 @@ export const isJobVisitedByStudent = async (req, res) => {
   try {
     const { jobId } = req.params;
     const studentId = req.user._id;
+    const cacheKey = `student:${studentId}:isVisited:${jobId}`;
 
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    const isVisited = await redisClient.withCache(cacheKey, 1800, async () => {
+      const student = await Student.findById(studentId);
+      if (!student) {
+        throw new Error('Student not found');
+      }
 
-    res.status(200).json({
-      success: true,
-      isVisited: student.visitedJobs.some(
+      return student.visitedJobs.some(
         (visitedJob) => visitedJob.job.toString() === jobId,
-      ),
+      );
     });
+
+    res.status(200).json({ success: true, isVisited });
   } catch (error) {
-    console.error('Error in jobNotVisitedByStudent:', error);
+    console.error('Error in isJobVisitedByStudent:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
+// Get All Jobs with Caching
 export const getAllVisitedJobs = async (req, res) => {
   try {
     const studentId = req.user._id;
+    const cacheKey = `student:${studentId}:visitedJobs`;
 
-    const student = await Student.findById(studentId)
-      .select('visitedJobs')
-      .populate({
-        path: 'visitedJobs.job',
-        select: 'title company salary location jobTypes slug', // Specify which job fields to return
-      });
+    const visitedJobs = await redisClient.withCache(
+      cacheKey,
+      1800,
+      async () => {
+        const student = await Student.findById(studentId)
+          .select('visitedJobs')
+          .populate({
+            path: 'visitedJobs.job',
+            select: 'title company salary location jobTypes slug',
+          });
 
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+        if (!student) {
+          throw new Error('Student not found');
+        }
 
-    res.status(200).json({
-      success: true,
-      jobs: student.visitedJobs,
-    });
+        return student.visitedJobs;
+      },
+    );
+
+    res.status(200).json({ success: true, jobs: visitedJobs });
   } catch (error) {
-    console.error('Error in jobNotVisitedByStudent:', error);
+    console.error('Error in getAllVisitedJobs:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -2315,74 +2326,250 @@ export const getAllVisitedJobs = async (req, res) => {
 export const getAllViewedJobs = async (req, res) => {
   try {
     const studentId = req.user._id;
+    const cacheKey = `student:${studentId}:viewedJobs`;
 
-    const student = await Student.findById(studentId)
-      .select('viewedJobs')
-      .populate({
-        path: 'viewedJobs.job',
-        select: 'title company salary location jobTypes slug', // Specify which job fields to return
-      });
+    const viewedJobs = await redisClient.withCache(cacheKey, 1800, async () => {
+      const student = await Student.findById(studentId)
+        .select('viewedJobs')
+        .populate({
+          path: 'viewedJobs.job',
+          select: 'title company salary location jobTypes slug',
+        });
 
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+      if (!student) {
+        throw new Error('Student not found');
+      }
 
-    res.status(200).json({
-      success: true,
-      jobs: student.viewedJobs, // This now contains the full job details
+      return student.viewedJobs;
     });
+
+    res.status(200).json({ success: true, jobs: viewedJobs });
   } catch (error) {
     console.error('Error fetching viewed jobs:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
+// Enhanced Saved Jobs with Better Caching
+export const toggleSavedJob = async (req, res) => {
+  const studentId = req.user._id;
+  const { jobId } = req.body;
+
+  if (!jobId) {
+    return res.status(400).json({ message: 'Job ID is required.' });
+  }
+
+  try {
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // Clean up invalid viewedJobs entries
+    if (student.viewedJobs && student.viewedJobs.length > 0) {
+      student.viewedJobs = student.viewedJobs.filter(
+        (viewedJob) =>
+          viewedJob && viewedJob.job && viewedJob.job.toString().trim() !== '',
+      );
+    }
+
+    // Find the index of the job in the savedJobs array
+    const jobIndex = student.savedJobs.findIndex(
+      (savedItem) =>
+        (savedItem.job?.toString() || savedItem.toString()) === jobId,
+    );
+
+    let message;
+    let isSaved;
+
+    if (jobIndex > -1) {
+      student.savedJobs.splice(jobIndex, 1);
+      message = 'Job removed from saved list.';
+      isSaved = false;
+    } else {
+      student.savedJobs.push({ job: jobId });
+      message = 'Job saved successfully.';
+      isSaved = true;
+    }
+
+    await Student.updateOne(
+      { _id: studentId },
+      {
+        $set: {
+          savedJobs: student.savedJobs,
+          viewedJobs: student.viewedJobs,
+        },
+      },
+    );
+
+    // Enhanced cache invalidation
+    await redisClient.invalidateStudentCache(studentId);
+    await redisClient.del(`student:${studentId}:savedJobs`);
+    await redisClient.del(`student:${studentId}:isSaved:${jobId}`);
+    await redisClient.del(`stats:${studentId}`);
+
+    // Pre-warm the cache with new state
+    await redisClient.set(
+      `student:${studentId}:isSaved:${jobId}`,
+      JSON.stringify(isSaved),
+      1800,
+    );
+
+    return res.status(200).json({ success: true, message, isSaved });
+  } catch (error) {
+    console.error('Error toggling saved job:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getSavedJobs = async (req, res) => {
+  const studentId = req.user._id;
+  const cacheKey = `student:${studentId}:savedJobs`;
+
+  try {
+    const savedJobs = await redisClient.withCache(cacheKey, 1800, async () => {
+      const student = await Student.findById(studentId).populate({
+        path: 'savedJobs.job',
+        select: 'title company salary location jobTypes slug -_id',
+        options: { lean: true },
+      });
+
+      if (!student) throw new Error('Student not found');
+      return student.savedJobs;
+    });
+
+    return res.status(200).json({ success: true, savedJobs });
+  } catch (error) {
+    console.error('Error getting saved jobs:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const getAllSavedJobs = async (req, res) => {
   try {
     const studentId = req.user._id;
+    const cacheKey = `student:${studentId}:savedJobs`;
 
-    const student = await Student.findById(studentId)
-      .select('savedJobs')
-      .populate({
-        path: 'savedJobs.job',
-        select: 'title company salary location jobTypes slug', // Specify which job fields to return
-      });
+    const savedJobs = await redisClient.withCache(cacheKey, 1800, async () => {
+      const student = await Student.findById(studentId)
+        .select('savedJobs')
+        .populate({
+          path: 'savedJobs.job',
+          select: 'title company salary location jobTypes slug',
+        });
 
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+      if (!student) {
+        throw new Error('Student not found');
+      }
 
-    res.status(200).json({
-      success: true,
-      jobs: student.savedJobs,
+      return student.savedJobs;
     });
+
+    res.status(200).json({ success: true, jobs: savedJobs });
   } catch (error) {
-    console.error('Error in jobNotVisitedByStudent:', error);
+    console.error('Error fetching saved jobs:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
+export const isSavedOrNot = async (req, res) => {
+  const studentId = req.user._id;
+  const { jobId } = req.query;
+  const cacheKey = `student:${studentId}:isSaved:${jobId}`;
+
+  try {
+    const isSaved = await redisClient.withCache(cacheKey, 1800, async () => {
+      const student = await Student.findById(studentId);
+      if (!student) throw new Error('Student not found');
+
+      return student.savedJobs.some(
+        (savedItem) =>
+          (savedItem.job?.toString() || savedItem.toString()) === jobId,
+      );
+    });
+
+    return res.status(200).json({ success: true, isSaved });
+  } catch (error) {
+    console.error('Error checking saved status:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Enhanced Stats with Caching
 export const getAllStatCounts = async (req, res) => {
   try {
     const studentId = req.user._id;
+    const cacheKey = `stats:${studentId}`;
 
-    const student = await Student.findById(studentId);
+    const statCounts = await redisClient.withCache(cacheKey, 900, async () => {
+      const student = await Student.findById(studentId);
+      if (!student) {
+        throw new Error('Student not found');
+      }
 
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+      // You might want to add appliedJobsCount logic here
+      const appliedJobsCount = 0; // Replace with actual logic
 
-    res.status(200).json({
-      success: true,
-      statCounts: {
+      return {
         viewedJobsCount: student.viewedJobs.length,
         visitedJobsCount: student.visitedJobs.length,
         savedJobsCount: student.savedJobs.length,
-        appliedJobsCount: 0,
-      },
+        appliedJobsCount,
+      };
     });
+
+    res.status(200).json({ success: true, statCounts });
   } catch (error) {
     console.error('Error in getAllStatCounts:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Batch Operations for Better Performance
+export const getMultipleJobStatuses = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const { jobIds } = req.body;
+
+    if (!Array.isArray(jobIds)) {
+      return res.status(400).json({ message: 'jobIds must be an array' });
+    }
+
+    const statuses = {};
+    const cacheKeys = jobIds.map(
+      (jobId) => `student:${studentId}:isSaved:${jobId}`,
+    );
+
+    // Try to get all from cache first
+    const cachedResults = await redisClient.mget(cacheKeys);
+
+    for (let i = 0; i < jobIds.length; i++) {
+      const jobId = jobIds[i];
+      const cached = cachedResults[i];
+
+      if (cached) {
+        statuses[jobId] = { isSaved: JSON.parse(cached) };
+      } else {
+        // Fallback to database for uncached items
+        const student = await Student.findById(studentId);
+        const isSaved = student.savedJobs.some(
+          (savedItem) =>
+            (savedItem.job?.toString() || savedItem.toString()) === jobId,
+        );
+        statuses[jobId] = { isSaved };
+
+        // Cache the result
+        await redisClient.set(
+          `student:${studentId}:isSaved:${jobId}`,
+          JSON.stringify(isSaved),
+          1800,
+        );
+      }
+    }
+
+    res.status(200).json({ success: true, statuses });
+  } catch (error) {
+    console.error('Error in getMultipleJobStatuses:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };

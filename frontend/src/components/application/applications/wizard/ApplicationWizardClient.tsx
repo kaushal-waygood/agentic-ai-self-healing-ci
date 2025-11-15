@@ -703,7 +703,7 @@ export function ApplicationWizardClient() {
 
       toast({
         title: 'Success!',
-        description: 'Your tailored documents are ready for review.',
+        description: 'Your tailored documents are ready for hjkhkhkjreview.',
       });
 
       setWizardStep('loading');

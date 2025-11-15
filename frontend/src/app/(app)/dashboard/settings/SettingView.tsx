@@ -154,9 +154,9 @@ export default function SettingsView() {
   const sections = [
     { id: 'account', label: 'Account', icon: UserCircle },
     { id: 'security', label: 'Security', icon: Shield },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
+    // { id: 'notifications', label: 'Notifications', icon: Bell },
     // { id: 'appearance', label: 'Appearance', icon: Palette },
-    { id: 'danger', label: 'Danger Zone', icon: Trash2 },
+    // { id: 'danger', label: 'Danger Zone', icon: Trash2 },
   ];
 
   // Render Functions for Sections

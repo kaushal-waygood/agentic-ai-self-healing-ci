@@ -1,40 +1,15 @@
-// app/search-jobs/page.tsx (or wherever your page component is)
-import { Suspense } from 'react';
-import type { Metadata } from 'next';
-import JobsPage from '@/components/jobs/JobPage';
-// export const dynamic = 'force-dynamic';
+import React from 'react';
+import SearchJobsPage from './components/searchJobPage';
+import { searchJobsMetadata } from '@/metadata/metadata';
 
-export const metadata: Metadata = {
-  title: 'Search Jobs | Find Your Next Career Opportunity',
-  description:
-    'Explore thousands of job openings across various industries. Use our search filters to find the perfect job for you and apply today.',
-  keywords: [
-    'jobs',
-    'career',
-    'employment',
-    'job search',
-    'work',
-    'hiring',
-    'job listings',
-    'recruitment',
-  ],
+export const metadata = {
+  title: searchJobsMetadata.title,
+  description: searchJobsMetadata.description,
+  keywords: searchJobsMetadata.keywords,
 };
 
-export default function SearchJobsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center flex-col justify-center min-h-screen">
-          {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
-          <div>
-            <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
-          </div>
+const page = () => {
+  return <SearchJobsPage />;
+};
 
-          <div className="text-lg">LOADING...</div>
-        </div>
-      }
-    >
-      <JobsPage />
-    </Suspense>
-  );
-}
+export default page;

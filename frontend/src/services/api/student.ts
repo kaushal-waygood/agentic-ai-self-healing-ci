@@ -11,7 +11,9 @@ export const addEducation = async (data: any) => {
 };
 
 export const removeEducation = async (data: any) => {
-  const response = await apiInstance.post(`/students/education/remove/${data}`);
+  const response = await apiInstance.delete(
+    `/students/education/remove/${data}`,
+  );
   return response;
 };
 
@@ -112,5 +114,31 @@ export const updateJobPrefered = async (data: any) => {
 
 export const getAllSavedJobs = async () => {
   const response = await apiInstance.get('/students/jobs/saved');
+  return response;
+};
+
+export const saveJob = async (data: any) => {
+  console.log('data', data);
+  const response = await apiInstance.post('/students/jobs/saved', {
+    jobId: data,
+  });
+  return response;
+};
+
+export const visitedJobs = async (data: any) => {
+  console.log('data', data);
+  const response = await apiInstance.get(`/students/jobs/visited/${data}`);
+  return response;
+};
+
+export const viewedJobs = async (data: any) => {
+  console.log('data', data);
+  const response = await apiInstance.get(`/students/jobs/viewed/${data}`);
+  return response;
+};
+
+export const isVisited = async (data: any) => {
+  console.log('data', data);
+  const response = await apiInstance.get(`/students/jobs/is-visited/${data}`);
   return response;
 };

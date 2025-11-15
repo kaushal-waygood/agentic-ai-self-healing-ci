@@ -1,4 +1,3 @@
-// services/redisClient.js
 import { createClient } from 'redis';
 import { config } from '../config/config.js';
 
@@ -7,36 +6,27 @@ const url = `redis://${config.redisHost}:${config.redisPort}`;
 class RedisClient {
   constructor() {
     this.client = createClient({ url });
-
     this.client.on('error', (err) => console.error('Redis Client Error', err));
-    // Attempt connect but do not throw — methods ensure connection before using.
     this._connecting = this.client.connect().catch((err) => {
       console.error('Initial redis connect error', err);
     });
   }
 
   async ensureConnected() {
-    // wait for initial connect attempt to finish, then connect if not ready
     await this._connecting;
     if (!this.client.isReady) {
       try {
         await this.client.connect();
       } catch (err) {
-        // If connect fails, log and let callers handle degraded mode.
         console.error('Redis ensureConnected error', err);
       }
     }
   }
 
-  async isReady() {
-    return !!this.client?.isReady;
-  }
-
   async get(key) {
     try {
       await this.ensureConnected();
-      const value = await this.client.get(key);
-      return value;
+      return await this.client.get(key);
     } catch (err) {
       console.error('Redis get error:', err);
       return null;
@@ -53,6 +43,21 @@ class RedisClient {
       }
     } catch (err) {
       console.error('Redis set error:', err);
+    }
+  }
+
+  // Atomic set-if-not-exists with TTL. Returns true if key was set, false otherwise.
+  async setNxWithTtl(key, value, ttlSeconds) {
+    try {
+      await this.ensureConnected();
+      const res = await this.client.set(key, value, {
+        NX: true,
+        EX: ttlSeconds,
+      });
+      return res === 'OK';
+    } catch (err) {
+      console.error('Redis setNxWithTtl error:', err);
+      return false;
     }
   }
 
@@ -88,6 +93,9 @@ class RedisClient {
       `jobs:recommended:${studentId}:*`,
       `jobs:applied:${studentId}:*`,
       `jobs:saved:${studentId}:*`,
+      `jobs:viewed:${studentId}:*`,
+      `jobs:visited:${studentId}:*`,
+      `stats:${studentId}:*`,
     ];
 
     try {
@@ -100,6 +108,21 @@ class RedisClient {
       }
     } catch (err) {
       console.error('Cache invalidation error:', err);
+    }
+  }
+
+  async invalidateJobCacheForStudent(studentId, jobId) {
+    const keysToDelete = [
+      `student:${studentId}:isSaved:${jobId}`,
+      `student:${studentId}:isViewed:${jobId}`,
+      `student:${studentId}:isVisited:${jobId}`,
+    ];
+
+    try {
+      await this.ensureConnected();
+      await this.del(keysToDelete);
+    } catch (err) {
+      console.error('Job cache invalidation error:', err);
     }
   }
 
@@ -128,22 +151,43 @@ class RedisClient {
     try {
       await this.ensureConnected();
       const cached = await this.get(key);
-      if (cached) {
-        // assume we store JSON strings
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const result = await callback();
-
       if (result !== undefined && result !== null) {
         await this.set(key, JSON.stringify(result), ttl);
       }
-
       return result;
     } catch (err) {
       console.error('Cache operation error:', err);
-      // fallback to direct call if redis fails
       return await callback();
+    }
+  }
+
+  async mget(keys) {
+    try {
+      await this.ensureConnected();
+      return await this.client.mGet(keys);
+    } catch (err) {
+      console.error('Redis mget error:', err);
+      return [];
+    }
+  }
+
+  async mset(keyValuePairs, ttl = 3600) {
+    try {
+      await this.ensureConnected();
+      const pipeline = this.client.multi();
+      for (const [key, value] of keyValuePairs) {
+        if (ttl > 0) {
+          pipeline.set(key, JSON.stringify(value), { EX: ttl });
+        } else {
+          pipeline.set(key, JSON.stringify(value));
+        }
+      }
+      await pipeline.exec();
+    } catch (err) {
+      console.error('Redis mset error:', err);
     }
   }
 }

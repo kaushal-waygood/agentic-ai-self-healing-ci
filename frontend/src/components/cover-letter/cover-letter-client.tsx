@@ -334,6 +334,7 @@ export function CoverLetterGeneratorClient() {
           creditsUsed: 1,
           action: 'generate', // server should either reserve/approve or reject
         });
+        console.log('Plan response:', planResponse);
       } catch (err: any) {
         const status = err?.response?.status;
         const serverMessage =

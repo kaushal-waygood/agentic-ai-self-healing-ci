@@ -24,7 +24,9 @@ const Project = ({
           <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
             <Package className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">Projects</h3>
+          <h3 className="text-xl font-bold text-gray-800">
+            Projects ({defaultValues.projects.length}){' '}
+          </h3>
         </div>
         <div className="flex items-center gap-4">
           <button

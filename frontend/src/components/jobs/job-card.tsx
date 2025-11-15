@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -19,6 +18,8 @@ import { truncate } from '@/utils/formatTitle';
 import { Skeleton } from '@/components/ui/skeleton';
 import apiInstance from '@/services/api';
 import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { visitedJobsRequest } from '@/redux/reducers/jobReducer';
 
 interface JobCardProps {
   job: JobListing;
@@ -27,9 +28,11 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
+  const dispatch = useDispatch();
   const handleClick = async () => {
     try {
-      await apiInstance.post(`/students/job/viewed/${job.slug}`);
+      dispatch(visitedJobsRequest(job._id));
+      await apiInstance.get(`/jobs/job/views/${job._id}`);
       onClick();
     } catch (error) {
       console.error('Failed to log job view on click:', error);
@@ -37,23 +40,23 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
     }
   };
 
-  useEffect(() => {
-    if (!job?._id) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!job?._id) {
+  //     return;
+  //   }
 
-    const isVisited = async () => {
-      try {
-        const response = await apiInstance.get(
-          `/students/jobs/is-visited/${job._id}`,
-        );
-      } catch (error) {
-        console.error('Failed to check if job was visited.', error);
-      }
-    };
+  //   const isVisited = async () => {
+  //     try {
+  //       const response = await apiInstance.get(
+  //         `/students/jobs/is-visited/${job._id}`,
+  //       );
+  //     } catch (error) {
+  //       console.error('Failed to check if job was visited.', error);
+  //     }
+  //   };
 
-    isVisited();
-  }, [job]);
+  //   isVisited();
+  // }, [job]);
 
   return (
     <div
@@ -133,15 +136,12 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               <span className="truncate">{job.location.city}</span>
             </div>
 
-            {/* Bottom info row with enhanced styling */}
             <div className="flex items-center justify-between gap-3 pt-1">
-              {/* Time ago with clock icon */}
               <div className="flex items-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-600 transition-colors">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0 text-purple-400" />
                 <span className="font-medium">4 hours ago</span>
               </div>
 
-              {/* Views counter with enhanced design */}
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-gray-100 to-gray-50 group-hover:from-purple-100 group-hover:to-blue-100 rounded-full transition-all duration-300 shadow-sm group-hover:shadow-md">
                 <Eye className="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-600 transition-colors" />
                 <span className="text-xs font-semibold text-gray-600 group-hover:text-purple-700 transition-colors">
@@ -150,7 +150,6 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               </div>
             </div>
 
-            {/* Trending indicator for high-view jobs */}
             {job.views > 100 && (
               <div className="flex items-center gap-1 text-xs font-semibold text-green-600 animate-in fade-in duration-500">
                 <TrendingUp className="w-3 h-3" />
@@ -159,23 +158,17 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
             )}
           </div>
         </div>
-
-        {/* Bottom border accent */}
-        {/* <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-b-2xl"></div> */}
       </div>
     </div>
   );
 }
 
-// Enhanced JobCardSkeleton with modern shimmer effect
 export function JobCardSkeleton() {
   return (
     <div className="relative bg-white border border-gray-200 rounded-2xl p-4 overflow-hidden">
-      {/* Shimmer effect overlay */}
       <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
 
       <div className="flex items-start gap-4 mb-3">
-        {/* Logo skeleton with gradient */}
         <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-200 to-gray-100 animate-pulse"></div>
 
         <div className="flex-1 space-y-3">

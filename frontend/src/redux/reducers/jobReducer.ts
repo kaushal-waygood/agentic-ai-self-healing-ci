@@ -2,6 +2,7 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Job } from '../types/jobType';
+import { visitedJobs } from '@/services/api/student';
 
 // --- FIX: Removed the duplicate interface definitions ---
 interface Pagination {
@@ -13,6 +14,9 @@ interface Pagination {
 
 interface JobState {
   jobs: Job[];
+  savedJobs: Job[];
+  viewedJobs: Job[];
+  visitedJobs: Job[];
   job: Job | null;
   preferedJob: Job[];
   loading: boolean;
@@ -239,6 +243,47 @@ const jobSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    savedStudentJobsRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    savedStudentJobsSuccess: (state, action: PayloadAction<Job[]>) => {
+      state.loading = false;
+      state.savedJobs = action.payload;
+    },
+    savedStudentJobsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    visitedJobsRequest: (state) => {
+      console.log('visitedJobsRequest');
+      state.loading = true;
+      state.error = null;
+    },
+    visitedJobsSuccess: (state, action: PayloadAction<Job[]>) => {
+      state.loading = false;
+      state.visitedJobs = action.payload;
+    },
+    visitedJobsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    viewedJobsRequest: (state) => {
+      console.log('viewedJobsRequest');
+      state.loading = true;
+      state.error = null;
+    },
+    viewedJobsSuccess: (state, action: PayloadAction<Job[]>) => {
+      state.loading = false;
+      state.viewedJobs = action.payload;
+    },
+    viewedJobsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -268,6 +313,15 @@ export const {
   getRecommendJobsRequest,
   getRecommendJobsSuccess,
   getRecommendJobsFailure,
+  savedStudentJobsRequest,
+  savedStudentJobsSuccess,
+  savedStudentJobsFailure,
+  visitedJobsRequest,
+  visitedJobsSuccess,
+  visitedJobsFailure,
+  viewedJobsRequest,
+  viewedJobsSuccess,
+  viewedJobsFailure,
 } = jobSlice.actions;
 
 export default jobSlice.reducer;
