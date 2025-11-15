@@ -128,21 +128,6 @@ export function ApplicationWizardClient() {
         );
 
       case 'generate':
-        // If rate-limited, short-circuit to purchase CTA
-        if (rateLimited) {
-          return (
-            <FinalResultView
-              cvlink={undefined}
-              rateLimited={true}
-              rateLimitMessage={rateLimitMessage}
-              planPath="/dashboard/subscriptions"
-              title="Application"
-              targetLink={'/dashboard/my-docs?tab=applications'}
-            />
-          );
-        }
-
-        // Otherwise show the GenerateStep (which triggers actions.handleGenerate)
         return (
           <GenerateStep
             jobContext={state.jobContext}
@@ -155,40 +140,42 @@ export function ApplicationWizardClient() {
 
       case 'result':
         // If the user was rate-limited, show the upgrade CTA instead of normal result UI
-        if (rateLimited) {
-          return (
-            <FinalResultView
-              cvlink={undefined}
-              rateLimited={true}
-              rateLimitMessage={rateLimitMessage}
-              planPath="/dashboard/subscriptions"
-            />
-          );
-        }
-
+        // if (rateLimited) {
         return (
-          <ResultStep
-            jobContext={state.jobContext}
-            refinedCv={generatedData.refinedCv}
-            setRefinedCv={(val) =>
-              setGeneratedData((d) => ({ ...d, refinedCv: val }))
-            }
-            tailoredCl={generatedData.tailoredCl}
-            setTailoredCl={(val) =>
-              setGeneratedData((d) => ({ ...d, tailoredCl: val }))
-            }
-            emailDraft={generatedData.emailDraft}
-            setEmailDraft={(val) =>
-              setGeneratedData((d) => ({ ...d, emailDraft: val }))
-            }
-            setWizardStep={navigateToStep}
-            handleSendEmail={actions.handleSendEmail}
-            handleSaveAndFinish={() => {
-              actions.handleSaveAndFinish();
-            }}
-            handleStartNew={actions.handleStartNew}
+          <FinalResultView
+            cvlink={undefined}
+            rateLimited={rateLimited}
+            rateLimitMessage={rateLimitMessage}
+            planPath="/dashboard/subscriptions"
+            title="Application"
+            targetLink={'/dashboard/my-docs?tab=applications'}
           />
         );
+      // }
+
+      // return (
+      //   <ResultStep
+      //     jobContext={state.jobContext}
+      //     refinedCv={generatedData.refinedCv}
+      //     setRefinedCv={(val) =>
+      //       setGeneratedData((d) => ({ ...d, refinedCv: val }))
+      //     }
+      //     tailoredCl={generatedData.tailoredCl}
+      //     setTailoredCl={(val) =>
+      //       setGeneratedData((d) => ({ ...d, tailoredCl: val }))
+      //     }
+      //     emailDraft={generatedData.emailDraft}
+      //     setEmailDraft={(val) =>
+      //       setGeneratedData((d) => ({ ...d, emailDraft: val }))
+      //     }
+      //     setWizardStep={navigateToStep}
+      //     handleSendEmail={actions.handleSendEmail}
+      //     handleSaveAndFinish={() => {
+      //       actions.handleSaveAndFinish();
+      //     }}
+      //     handleStartNew={actions.handleStartNew}
+      //   />
+      // );
 
       default:
         return (
