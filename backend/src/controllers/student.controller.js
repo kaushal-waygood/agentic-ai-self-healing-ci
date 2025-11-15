@@ -1542,8 +1542,6 @@ export const getProfileCompletion = async (req, res) => {
           'fullName phone email jobRole profileImage jobRole education experience skills projects jobPreferences',
         );
 
-        console.log(student);
-
         if (!student) throw new Error('Student not found');
 
         // This object now defines the 6 core categories for profile completion.

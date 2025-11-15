@@ -592,6 +592,8 @@ export const useApplicationWizard = () => {
         title: 'Success!',
         description: 'Your tailored documents are ready for review.',
       });
+
+      navigateToStep('result');
     } catch (error) {
       console.error('Tailor Error:', error);
       toast({

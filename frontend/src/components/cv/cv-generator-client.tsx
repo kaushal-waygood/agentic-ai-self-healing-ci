@@ -514,6 +514,8 @@ export function CvGeneratorClient() {
     }
   };
 
+  console.log('rate limit ', rateLimited, rateLimitMessage);
+
   const renderStep = () => {
     switch (wizardStep) {
       case 'job':
