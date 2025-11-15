@@ -7,29 +7,21 @@ const url = `redis://${config.redisHost}:${config.redisPort}`;
 class RedisClient {
   constructor() {
     this.client = createClient({ url });
-
     this.client.on('error', (err) => console.error('Redis Client Error', err));
-    // Attempt connect but do not throw — methods ensure connection before using.
     this._connecting = this.client.connect().catch((err) => {
       console.error('Initial redis connect error', err);
     });
   }
 
   async ensureConnected() {
-    // wait for initial connect attempt to finish, then connect if not ready
     await this._connecting;
     if (!this.client.isReady) {
       try {
         await this.client.connect();
       } catch (err) {
-        // If connect fails, log and let callers handle degraded mode.
         console.error('Redis ensureConnected error', err);
       }
     }
-  }
-
-  async isReady() {
-    return !!this.client?.isReady;
   }
 
   async get(key) {
@@ -81,6 +73,7 @@ class RedisClient {
     }
   }
 
+  // Enhanced cache invalidation methods
   async invalidateStudentCache(studentId) {
     const patterns = [
       `student:${studentId}:*`,
@@ -88,6 +81,9 @@ class RedisClient {
       `jobs:recommended:${studentId}:*`,
       `jobs:applied:${studentId}:*`,
       `jobs:saved:${studentId}:*`,
+      `jobs:viewed:${studentId}:*`,
+      `jobs:visited:${studentId}:*`,
+      `stats:${studentId}:*`,
     ];
 
     try {
@@ -100,6 +96,21 @@ class RedisClient {
       }
     } catch (err) {
       console.error('Cache invalidation error:', err);
+    }
+  }
+
+  async invalidateJobCacheForStudent(studentId, jobId) {
+    const keysToDelete = [
+      `student:${studentId}:isSaved:${jobId}`,
+      `student:${studentId}:isViewed:${jobId}`,
+      `student:${studentId}:isVisited:${jobId}`,
+    ];
+
+    try {
+      await this.ensureConnected();
+      await this.del(keysToDelete);
+    } catch (err) {
+      console.error('Job cache invalidation error:', err);
     }
   }
 
@@ -129,7 +140,6 @@ class RedisClient {
       await this.ensureConnected();
       const cached = await this.get(key);
       if (cached) {
-        // assume we store JSON strings
         return JSON.parse(cached);
       }
 
@@ -142,8 +152,37 @@ class RedisClient {
       return result;
     } catch (err) {
       console.error('Cache operation error:', err);
-      // fallback to direct call if redis fails
       return await callback();
+    }
+  }
+
+  // Batch cache operations for better performance
+  async mget(keys) {
+    try {
+      await this.ensureConnected();
+      return await this.client.mGet(keys);
+    } catch (err) {
+      console.error('Redis mget error:', err);
+      return [];
+    }
+  }
+
+  async mset(keyValuePairs, ttl = 3600) {
+    try {
+      await this.ensureConnected();
+      const pipeline = this.client.multi();
+
+      for (const [key, value] of keyValuePairs) {
+        if (ttl > 0) {
+          pipeline.set(key, JSON.stringify(value), { EX: ttl });
+        } else {
+          pipeline.set(key, JSON.stringify(value));
+        }
+      }
+
+      await pipeline.exec();
+    } catch (err) {
+      console.error('Redis mset error:', err);
     }
   }
 }

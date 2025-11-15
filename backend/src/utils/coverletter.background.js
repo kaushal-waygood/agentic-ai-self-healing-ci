@@ -1,6 +1,6 @@
 // src/utils/coverletter.background.js
 
-import { genAI } from '../config/gemini.js';
+import { generateContent } from '../config/gemini.js';
 import { generateCoverLetterPrompts } from '../prompt/generateCoverletter.js';
 import { Student } from '../models/student.model.js';
 import {
@@ -102,7 +102,11 @@ export const processCoverLetterGeneration = async (
       finalTouch,
     );
 
-    const rawResponse = await genAI(prompt);
+    // Use the enhanced Gemini function with built-in retry logic
+    console.log(
+      `Starting cover letter generation for user ${userId}, job ${jobId}`,
+    );
+    const rawResponse = await generateContent(prompt);
     const rawStr =
       typeof rawResponse === 'string' ? rawResponse : String(rawResponse || '');
 
@@ -130,7 +134,7 @@ export const processCoverLetterGeneration = async (
 
     // ------------------ update DB with result ------------------
     const updateResult = await Student.updateOne(
-      { 'cls._id': clId }, // Use the unique sub-document _id for the update
+      { 'cls._id': clId },
       {
         $set: {
           'cls.$.status': 'completed',
@@ -158,21 +162,61 @@ export const processCoverLetterGeneration = async (
         clId,
       ),
     );
+
+    console.log(
+      `Cover letter generation completed successfully for user ${userId}, job ${jobId}`,
+    );
   } catch (error) {
     console.error(
       `Cover letter generation failed for user: ${userId}, job: ${jobId}`,
       error,
     );
-    const errorMessage =
-      error && error.message
-        ? error.message
-        : 'An unknown error occurred during generation.';
+
+    // Enhanced error handling with user-friendly messages
+    let errorMessage = 'An unknown error occurred during generation.';
+    let userFriendlyMessage =
+      'Sorry, we encountered an issue generating your cover letter.';
+
+    if (error?.status === 503) {
+      errorMessage =
+        'AI service is temporarily overloaded. Please try again in a few moments.';
+      userFriendlyMessage =
+        'The AI service is currently busy. Please try again in a few minutes.';
+    } else if (error?.status === 429) {
+      errorMessage = 'Rate limit exceeded. Please try again later.';
+      userFriendlyMessage =
+        "We're processing too many requests. Please wait a moment and try again.";
+    } else if (error?.status === 401) {
+      errorMessage = 'Invalid API key or authentication failed.';
+      userFriendlyMessage =
+        'Service configuration issue. Please contact support.';
+    } else if (error?.status === 400) {
+      errorMessage = 'Bad request - invalid prompt or parameters.';
+      userFriendlyMessage =
+        'There was an issue with the generation request. Please try again.';
+    } else if (error?.message) {
+      errorMessage = error.message;
+
+      // Extract user-friendly message from specific error types
+      if (
+        error.message.includes('overloaded') ||
+        error.message.includes('overload')
+      ) {
+        userFriendlyMessage =
+          'The AI service is currently overloaded. Please try again in a few minutes.';
+      } else if (
+        error.message.includes('quota') ||
+        error.message.includes('limit')
+      ) {
+        userFriendlyMessage = 'Service limit reached. Please try again later.';
+      }
+    }
 
     const failureFilter = clId
       ? { 'cls._id': clId }
       : { _id: userId, 'cls.jobId': jobId };
 
-    // Update with failed status (defensive: wrap in try/catch)
+    // Update with failed status
     try {
       await Student.updateOne(failureFilter, {
         $set: {
@@ -185,13 +229,13 @@ export const processCoverLetterGeneration = async (
       console.error('Failed to mark cover letter job as failed in DB:', e);
     }
 
-    // Send a failure notification (defensive: wrap in try/catch)
+    // Send a failure notification
     try {
       await sendRealTimeUserNotification(
         io,
         userId,
         notificationTemplates.COVER_LETTER_GENERATED_FAILED(
-          'Cover letter generation failed.',
+          userFriendlyMessage,
           errorMessage,
         ),
       );

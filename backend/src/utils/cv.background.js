@@ -84,7 +84,6 @@ export const processCVGeneration = async (
         break; // success
       } catch (err) {
         lastErr = err;
-        // If it's a 429 / quota issue, try to use suggested retry delay
         const retryDelayFromService = parseRetryDelayFromError(err);
         let backoff =
           retryDelayFromService ??
