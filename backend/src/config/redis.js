@@ -1,4 +1,3 @@
-// services/redisClient.js
 import { createClient } from 'redis';
 import { config } from '../config/config.js';
 
@@ -27,8 +26,7 @@ class RedisClient {
   async get(key) {
     try {
       await this.ensureConnected();
-      const value = await this.client.get(key);
-      return value;
+      return await this.client.get(key);
     } catch (err) {
       console.error('Redis get error:', err);
       return null;
@@ -45,6 +43,21 @@ class RedisClient {
       }
     } catch (err) {
       console.error('Redis set error:', err);
+    }
+  }
+
+  // Atomic set-if-not-exists with TTL. Returns true if key was set, false otherwise.
+  async setNxWithTtl(key, value, ttlSeconds) {
+    try {
+      await this.ensureConnected();
+      const res = await this.client.set(key, value, {
+        NX: true,
+        EX: ttlSeconds,
+      });
+      return res === 'OK';
+    } catch (err) {
+      console.error('Redis setNxWithTtl error:', err);
+      return false;
     }
   }
 
@@ -73,7 +86,6 @@ class RedisClient {
     }
   }
 
-  // Enhanced cache invalidation methods
   async invalidateStudentCache(studentId) {
     const patterns = [
       `student:${studentId}:*`,
@@ -139,16 +151,12 @@ class RedisClient {
     try {
       await this.ensureConnected();
       const cached = await this.get(key);
-      if (cached) {
-        return JSON.parse(cached);
-      }
+      if (cached) return JSON.parse(cached);
 
       const result = await callback();
-
       if (result !== undefined && result !== null) {
         await this.set(key, JSON.stringify(result), ttl);
       }
-
       return result;
     } catch (err) {
       console.error('Cache operation error:', err);
@@ -156,7 +164,6 @@ class RedisClient {
     }
   }
 
-  // Batch cache operations for better performance
   async mget(keys) {
     try {
       await this.ensureConnected();
@@ -171,7 +178,6 @@ class RedisClient {
     try {
       await this.ensureConnected();
       const pipeline = this.client.multi();
-
       for (const [key, value] of keyValuePairs) {
         if (ttl > 0) {
           pipeline.set(key, JSON.stringify(value), { EX: ttl });
@@ -179,7 +185,6 @@ class RedisClient {
           pipeline.set(key, JSON.stringify(value));
         }
       }
-
       await pipeline.exec();
     } catch (err) {
       console.error('Redis mset error:', err);

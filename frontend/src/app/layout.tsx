@@ -19,46 +19,8 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // const cookieStore = cookies();
-  // const consentCookie = cookieStore.get('cookie_consent');
-
-  // let hasAnalyticsConsent = false;
-
-  // if (consentCookie) {
-  //   try {
-  //     const consentData = JSON.parse(consentCookie.value);
-  //     if (consentData.analytics === true) {
-  //       hasAnalyticsConsent = true;
-  //     }
-  //   } catch (e) {
-  //     console.error('Could not parse cookie consent JSON:', e);
-  //   }
-  // }
-
   return (
     <html lang="en" suppressHydrationWarning>
-      {/* <head>
-        {hasAnalyticsConsent && (
-          <>
-            <Script
-              strategy="afterInteractive"
-              src={`https://www.googletagmanager.com/gtag/js?id=G-6RKXBX7Y5K`}
-            />
-            <Script
-              id="gtag-init"
-              strategy="afterInteractive"
-              dangerouslySetInnerHTML={{
-                __html: `
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  gtag('config', 'G-6RKXBX7Y5K');
-                `,
-              }}
-            />
-          </>
-        )}
-      </head> */}
       <body
         className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >

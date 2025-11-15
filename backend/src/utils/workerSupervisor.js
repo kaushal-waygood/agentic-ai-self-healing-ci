@@ -13,30 +13,50 @@ let leaderRenewInterval = null;
 let agentStream = null;
 let pollingInterval = null;
 
-// --- Leader lock via MongoDB ---
 async function tryAcquireLeader() {
   try {
     const db = mongoose.connection.db;
     const locks = db.collection('process_locks');
+
+    // Ensure TTL index exists
     await locks
       .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
-      .catch(() => {});
+      .catch(() => {}); // Ignore if index already exists
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + LEADER_TTL_SECONDS * 1000);
 
-    const res = await locks.findOneAndUpdate(
+    const result = await locks.findOneAndUpdate(
       {
         _id: LEADER_LOCK_ID,
         $or: [{ expiresAt: { $lte: now } }, { expiresAt: { $exists: false } }],
       },
-      { $set: { _id: LEADER_LOCK_ID, owner: process.pid, expiresAt } },
-      { upsert: true, returnDocument: 'after' },
+      {
+        $set: {
+          _id: LEADER_LOCK_ID,
+          owner: process.pid,
+          expiresAt,
+          createdAt: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        returnDocument: 'after',
+      },
     );
 
-    if (res.value && res.value.owner === process.pid) {
+    // MongoDB driver returns different structures in different versions
+    const lockDoc = result?.value || result;
+
+    if (lockDoc && lockDoc.owner === process.pid) {
       isLeader = true;
+      console.log(
+        '[Leader] Lock acquired successfully, expires at:',
+        lockDoc.expiresAt,
+      );
       return true;
     }
+
     return false;
   } catch (err) {
     console.warn('[Leader] Lock acquire failed:', err?.message || err);
@@ -45,25 +65,47 @@ async function tryAcquireLeader() {
 }
 
 async function renewLeader() {
+  if (!isLeader) return;
+
   try {
     const db = mongoose.connection.db;
     const locks = db.collection('process_locks');
     const now = new Date();
     const expiresAt = new Date(now.getTime() + LEADER_TTL_SECONDS * 1000);
 
-    const res = await locks.findOneAndUpdate(
-      { _id: LEADER_LOCK_ID, owner: process.pid },
-      { $set: { expiresAt } },
-      { returnDocument: 'after' },
+    const result = await locks.findOneAndUpdate(
+      {
+        _id: LEADER_LOCK_ID,
+        owner: process.pid,
+      },
+      {
+        $set: {
+          expiresAt,
+          lastRenewed: new Date(),
+        },
+      },
+      {
+        returnDocument: 'after',
+      },
     );
 
-    if (!res.value) {
-      console.warn('[Leader] Lost leadership.');
+    // MongoDB driver returns different structures in different versions
+    const lockDoc = result?.value || result;
+
+    if (!lockDoc) {
+      console.warn(
+        '[Leader] Lost leadership - lock not found or owned by another process',
+      );
       await stopWorker();
       isLeader = false;
+      return;
     }
+
+    console.log('[Leader] Lock renewed until:', lockDoc.expiresAt);
   } catch (err) {
     console.warn('[Leader] Renew failed:', err?.message || err);
+    // Don't immediately give up leadership on transient errors
+    // Let the TTL expire naturally
   }
 }
 
@@ -207,7 +249,40 @@ function stopAgentPolling() {
   }
 }
 
-// --- Supervisor Lifecycle ---
+async function createForcedLeaderLock() {
+  try {
+    const db = mongoose.connection.db;
+    const locks = db.collection('process_locks');
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + LEADER_TTL_SECONDS * 1000);
+
+    // Ensure TTL index exists
+    await locks
+      .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+      .catch(() => {});
+
+    await locks.updateOne(
+      { _id: LEADER_LOCK_ID },
+      {
+        $set: {
+          _id: LEADER_LOCK_ID,
+          owner: process.pid,
+          expiresAt,
+          createdAt: new Date(),
+          forced: true,
+        },
+      },
+      { upsert: true },
+    );
+
+    console.log('[Leader] Forced leader lock created/updated');
+    return true;
+  } catch (err) {
+    console.warn('[Leader] Failed to create forced lock:', err?.message || err);
+    return false;
+  }
+}
+
 export async function startWorkerSupervisor() {
   // Allow explicit forcing of leadership in dev or CI via env
   const forceLeader = process.env.FORCE_LEADER === 'true';
@@ -218,17 +293,34 @@ export async function startWorkerSupervisor() {
     console.log(
       '[WorkerSupervisor] Running as leader due to env override or non-production environment.',
     );
+
+    // Create the lock document first
+    const lockCreated = await createForcedLeaderLock();
+    if (!lockCreated) {
+      console.warn(
+        '[WorkerSupervisor] Failed to create forced leader lock, continuing anyway...',
+      );
+    }
+
     isLeader = true;
+
+    // Start renewal interval
     leaderRenewInterval = setInterval(
       renewLeader,
-      (LEADER_TTL_SECONDS * 1000) / 2,
+      (LEADER_TTL_SECONDS * 1000) / 3, // Renew more frequently - every 10 seconds
     );
+
+    // Start agent monitoring and worker if needed
     const hasAgents = await checkAgentsCount();
-    if (hasAgents) startWorker();
+    if (hasAgents) {
+      startWorker();
+    }
     await setupAgentWatcher();
+
     return;
   }
 
+  // Normal leader election flow
   const gotLock = await tryAcquireLeader();
   if (!gotLock) {
     console.log(
@@ -237,10 +329,10 @@ export async function startWorkerSupervisor() {
     return;
   }
 
-  console.log('[WorkerSupervisor] Leadership acquired.');
+  console.log('[WorkerSupervisor] Leadership acquired through election.');
   leaderRenewInterval = setInterval(
     renewLeader,
-    (LEADER_TTL_SECONDS * 1000) / 2,
+    (LEADER_TTL_SECONDS * 1000) / 3, // Renew more frequently
   );
 
   const hasAgents = await checkAgentsCount();

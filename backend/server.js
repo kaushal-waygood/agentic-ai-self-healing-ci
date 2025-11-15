@@ -13,13 +13,21 @@ import {
 
 dotenv.config();
 
+const toBool = (v) => v === true || String(v).toLowerCase() === 'true';
+
 async function startHttpServer() {
   await connectDb();
 
-  // Start worker supervisor after DB connects
-  // startWorkerSupervisor().catch((err) => {
-  //   console.error('[WorkerSupervisor] Failed to start:', err);
-  // });
+  // Start worker supervisor after DB connects, only if explicitly enabled
+  // if (toBool(process.env.WORKER_SUPERVISOR_ENABLED || 'false')) {
+  //   startWorkerSupervisor().catch((err) => {
+  //     console.error('[WorkerSupervisor] Failed to start:', err);
+  //   });
+  // } else {
+  //   console.log(
+  //     '[WorkerSupervisor] Disabled (WORKER_SUPERVISOR_ENABLED=false).',
+  //   );
+  // }
 
   const server = createServer(app);
   const io = new SocketIOServer(server, {
@@ -37,7 +45,7 @@ async function startHttpServer() {
       credentials: true,
     },
   });
-  // setupNotificationSocket(io);
+  setupNotificationSocket(io);
   app.set('io', io);
 
   const PORT = process.env.PORT || appConfig.port || 8080;
@@ -47,7 +55,11 @@ async function startHttpServer() {
 
   const shutdown = async (signal) => {
     console.log(`${signal} received. Shutting down.`);
-    // await stopWorkerSupervisor();
+    try {
+      // await stopWorkerSupervisor();
+    } catch (e) {
+      console.error('[WorkerSupervisor] stop failed:', e?.message || e);
+    }
     io.close();
     server.close(() => process.exit(0));
   };
