@@ -341,13 +341,6 @@ export const DocumentCard = ({
         <div className="mt-3">
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
             <span>{isRefreshing ? 'Refreshing...' : 'Processing...'}</span>
-            <span>0%</span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300 animate-pulse"
-              style={{ width: `0%` }}
-            ></div>
           </div>
         </div>
       )}
