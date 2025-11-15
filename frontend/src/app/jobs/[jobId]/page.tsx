@@ -1,38 +1,15 @@
-'use client';
+import React from 'react';
+import JobDetailPage from './components/jobDetailPage';
+import { jobDetailsMetadata } from '@/metadata/metadata';
 
-import { useEffect, useState } from 'react';
+export const metadata = {
+  title: jobDetailsMetadata.title,
+  description: jobDetailsMetadata.description,
+  keywords: jobDetailsMetadata.keywords,
+};
 
-import { useParams } from 'next/navigation';
+const page = () => {
+  return <JobDetailPage />;
+};
 
-import apiInstance from '@/services/api';
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-import { Badge } from '@/components/ui/badge';
-
-import { Button } from '@/components/ui/button';
-import JobDetail from '@/components/jobs/JobDetail';
-
-export default function JobDetailPage() {
-  const { jobId } = useParams();
-
-  const [job, setJob] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchJobDetails = async () => {
-      try {
-        const response = await apiInstance.get(`/jobs/find?slug=${jobId}`);
-
-        setJob(response.data.singleJob);
-      } catch (error) {
-        console.error('Error fetching job details:', error);
-      }
-    };
-
-    fetchJobDetails();
-  }, [jobId]);
-
-  if (!job) return <p className="p-4">Loading job details...</p>;
-
-  return <JobDetail job={job} />;
-}
+export default page;

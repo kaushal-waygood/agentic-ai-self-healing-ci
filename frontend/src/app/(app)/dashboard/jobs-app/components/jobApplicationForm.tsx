@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import GoogleAuthButton from './GoogleAuthButton';
+import GoogleAuthButton from '../GoogleAuthButton';
 import { initializeApp } from 'firebase/app';
 import { useDispatch, useSelector } from 'react-redux';
 

@@ -78,7 +78,7 @@ const PlanDropdown = ({
               used={usageData.applications}
               limit={planLimits.applicationLimit}
             />
-            <UsageTracker label="AI Auto Pilot" used={0} limit={0} />
+            <UsageTracker label="AI Auto Docs" used={0} limit={0} />
             <UsageTracker
               label="AI Auto Apply Daily limit"
               used={0}

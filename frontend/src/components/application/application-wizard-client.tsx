@@ -10,8 +10,7 @@ import SleekCvStep from './applications/wizard/steps/create-cv/CreateCvStep';
 import CreateCvStep from './applications/CreateCvStep';
 import SleekClStep from './applications/wizard/steps/ClStep';
 import { GenerateStep } from './applications/wizard/steps/GenerateStep';
-import SleekLoadingCard from './applications/wizard/steps/LoadingStep';
-import ResultStep from './applications/wizard/steps/result/ResultStep';
+
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import FinalResultView from '../cover-letter/components/FinalResultView';
