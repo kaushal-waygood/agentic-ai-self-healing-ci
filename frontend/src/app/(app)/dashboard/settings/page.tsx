@@ -1,6 +1,12 @@
 import React, { Suspense } from 'react';
 import SettingsView from './SettingView';
-import { Skeleton } from '@/components/ui/skeleton';
+import { settingsMetadata } from '@/metadata/metadata';
+
+export const metadata = {
+  title: settingsMetadata.title,
+  description: settingsMetadata.description,
+  keywords: settingsMetadata.keywords,
+};
 
 // A simple loading UI to show while the client component loads
 const SettingsSkeleton = () => (

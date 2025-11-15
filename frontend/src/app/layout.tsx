@@ -8,10 +8,12 @@ import Script from 'next/script';
 import { cookies } from 'next/headers'; // This is a dynamic function
 import { poppins, pt_sans } from './fonts';
 
-export const metadata: Metadata = {
-  title: 'Zobsai - Your AI Job Application Assistant',
-  description:
-    'Streamline your job application process with AI-powered tools and automation.',
+import { zobsAiHomeMetadata } from '@/metadata/metadata';
+
+export const metadata = {
+  title: zobsAiHomeMetadata.title,
+  description: zobsAiHomeMetadata.description,
+  keywords: zobsAiHomeMetadata.keywords,
 };
 
 export default async function RootLayout({

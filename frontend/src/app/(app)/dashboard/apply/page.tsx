@@ -1,8 +1,13 @@
-'use client';
-
-import { Suspense, useEffect } from 'react';
+import { Suspense } from 'react';
 import { ApplicationWizardClient } from '@/components/application/application-wizard-client';
-import apiInstance from '@/services/api';
+
+import { applicationWizardMetadata } from '@/metadata/metadata';
+
+export const metadata = {
+  title: applicationWizardMetadata.title,
+  description: applicationWizardMetadata.description,
+  keywords: applicationWizardMetadata.keywords,
+};
 
 function ApplyPageContent() {
   return <ApplicationWizardClient />;

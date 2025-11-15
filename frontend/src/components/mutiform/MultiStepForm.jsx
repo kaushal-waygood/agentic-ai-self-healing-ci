@@ -73,19 +73,6 @@ const MultiStepForm = () => {
       setStep(1);
     }
   };
-
-  // const handleDeleteAgent = async (agentId) => {
-  //   if (!window.confirm('Are you sure you want to delete this agent?')) return;
-  //   try {
-  //     await apiInstance.delete(`/pilotagent/delete/${agentId}`);
-  //     setAgents(agents.filter((agent) => agent._id !== agentId));
-  //     dispatch(getAutopilotRequest());
-  //     alert('Agent deleted successfully.');
-  //   } catch (err) {
-  //     console.error(err);
-  //     alert('Error deleting agent. Try again.');
-  //   }
-  // };
   const handleDeleteAgent = (agentId) => {
     setDeletePopup({ open: true, agentId });
   };

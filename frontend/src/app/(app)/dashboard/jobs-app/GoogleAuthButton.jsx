@@ -68,3 +68,5 @@ export const InteractiveGoogleButton = ({ onSuccess, onError }) => {
     </button>
   );
 };
+
+export default GoogleAuthButton;
