@@ -122,7 +122,6 @@ const checkUsageLimit = async (userId, feature, creditsUsed) => {
 };
 
 const updateUsageCounter = async (userId, feature, creditsUsed) => {
-  // Map feature names from request to schema property names
   const featureMap = {
     'cv-creation': 'cvCreation',
     'cover-letter': 'coverLetter',
