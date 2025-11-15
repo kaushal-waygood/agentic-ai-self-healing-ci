@@ -35,7 +35,9 @@ const Education = ({
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <GraduationCap className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">Education</h3>
+          <h3 className="text-xl font-bold text-gray-800">
+            Education ({defaultValues.education.length})
+          </h3>
         </div>
         <div className="flex  items-center gap-4">
           <button

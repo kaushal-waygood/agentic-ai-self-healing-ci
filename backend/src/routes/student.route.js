@@ -94,7 +94,7 @@ router.patch(
 );
 
 router.post('/education/add', authMiddleware, isStudent, addEducations);
-router.post(
+router.delete(
   '/education/remove/:eduId',
   authMiddleware,
   isStudent,

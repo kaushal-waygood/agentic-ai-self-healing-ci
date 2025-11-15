@@ -11,7 +11,9 @@ export const addEducation = async (data: any) => {
 };
 
 export const removeEducation = async (data: any) => {
-  const response = await apiInstance.post(`/students/education/remove/${data}`);
+  const response = await apiInstance.delete(
+    `/students/education/remove/${data}`,
+  );
   return response;
 };
 
