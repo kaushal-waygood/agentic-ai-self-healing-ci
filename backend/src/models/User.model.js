@@ -113,6 +113,9 @@ const userSchema = new Schema(
       coverLetter: { type: Number, default: 0 },
       aiApplication: { type: Number, default: 0 },
       autoApply: { type: Number, default: 0 },
+      aiAutoApply: { type: Number, default: 0 },
+      aiAutoApplyDailyLimit: { type: Number, default: 0 },
+      aiMannualApplication: { type: Number, default: 0 },
     },
     usageCounters: {
       cvCreation: { type: Number, default: 0 },
