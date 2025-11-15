@@ -650,86 +650,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3 mb-8">
-          {/* <div className="lg:col-span-2 space-y-8">
-            <ProfileReadinessCard />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <StatCard
-                title="Saved CVs"
-                value={stats.cvsGenerated}
-                icon={FileText}
-                description="Total CVs generated with AI"
-                color="blue"
-                actionText="Manage CVs"
-                actionLink="/dashboard/my-docs?tab=cvs"
-              />
-              <StatCard
-                title="Cover Letters"
-                value={stats.coverLettersGenerated}
-                icon={Bot}
-                description="Documents prepared with AI"
-                color="green"
-                actionText="Create More"
-                actionLink="dashboard/my-docs?tab=cover-letters"
-              />
-              <StatCard
-                title="Applications Tracked"
-                value={stats.tailoredApplications}
-                icon={Send}
-                description="Total applications in your pipeline"
-                color="purple"
-                actionText="View Applications"
-                actionLink="/dashboard/my-docs?tab=applications"
-              />
-
-              <StatCard
-                title="Saved Jobs"
-                value={stats.savedJobsCount}
-                icon={Bookmark}
-                description="Opportunities you are watching"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Viewed Jobs"
-                value={stats.jobsViewed}
-                icon={Bookmark}
-                description="Jobs you’ve recently viewed"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Applied Jobs"
-                value={stats.appliedJobsCount}
-                icon={Bookmark}
-                description="Jobs you’ve officially applied for through the platform"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Visited Jobs"
-                value={stats.visitedJobs}
-                icon={Bookmark}
-                description="Job listings you’ve opened but not saved or applied to"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-
-              <StatCard
-                title="Referral Count"
-                value={stats.referralCount}
-                icon={Award}
-                description="Successful referrals made"
-                color="purple"
-                actionText="Refer Friends"
-                actionLink="/dashboard/referrals"
-              />
-            </div>
-          </div> */}
-
           <div className="lg:col-span-2 space-y-8">
             <ProfileReadinessCard />
             {/* 🚀 APPLICATIONS SECTION */}
@@ -772,7 +692,7 @@ export default function DashboardPage() {
               <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
                 My Applications
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <StatCard
                   title="Saved Jobs"
                   value={stats.savedJobsCount}

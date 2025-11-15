@@ -14,6 +14,7 @@ import { config } from '../config/config.js';
 import { genAI } from '../config/gemini.js';
 import { fetchAndSaveJobsService } from '../utils/fetchAndSaveJobsService.js';
 import { Student } from '../models/student.model.js';
+import mongoose from 'mongoose';
 
 export const postManualJob = async (req, res) => {
   const { _id } = req.user;
@@ -1086,31 +1087,6 @@ export const toggleJobStatus = async (req, res) => {
   }
 };
 
-export const jobViewsCount = async (req, res) => {
-  const { jobId } = req.params;
-  try {
-    const job = await Job.findById(jobId);
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
-
-    job.views++;
-    console.log(`Job ${jobId} views incremented to ${job.views}`);
-    await job.save();
-
-    // Invalidate cache for this job
-    // await redisClient.   invalidateJobCache(jobId);
-
-    res.status(200).json({ message: 'Job views count updated successfully' });
-  } catch (error) {
-    console.error('Error updating job views count:', error);
-    res.status(500).json({
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
 export const jobApplications = async (req, res) => {
   const { jobId } = req.params;
   try {
@@ -1184,5 +1160,153 @@ export const getAllJobsForStudent = async (req, res, next) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+const VIEW_COOLDOWN_SECONDS = Number(process.env.VIEW_COOLDOWN_SECONDS ?? 3600); // 0 disables dedupe
+const REDIS_PREFIX = 'jobs:view';
+
+// build a robust query that matches either _id or jobId with type coercion
+function buildJobQuery(raw) {
+  const id = decodeURIComponent(String(raw || '').trim());
+  const ors = [];
+
+  if (mongoose.isValidObjectId(id)) {
+    ors.push({ _id: new mongoose.Types.ObjectId(id) });
+  }
+
+  ors.push({ jobId: id });
+
+  const asNum = Number(id);
+  if (!Number.isNaN(asNum)) {
+    ors.push({ jobId: asNum });
+  }
+
+  return ors.length === 1 ? ors[0] : { $or: ors };
+}
+
+export const jobViewsCount = async (req, res) => {
+  try {
+    const { jobId: rawJobId } = req.params;
+    if (!rawJobId) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Job ID required.' });
+    }
+
+    // Optional: block org admins from inflating views
+    if (req.user?.role === 'ORG_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Organization admins cannot increase job view count.',
+      });
+    }
+
+    // Identify the viewer (prefer stable user id; fallback to IP)
+    const viewer = req.user?._id?.toString();
+    const ip = (req.headers['x-forwarded-for'] || req.ip || '')
+      .toString()
+      .split(',')[0]
+      .trim();
+    const viewerKey = viewer ? `u:${viewer}` : `ip:${ip || 'unknown'}`;
+
+    // Find the job once to normalize the ID and get current views
+    const jobQuery = buildJobQuery(rawJobId);
+    const job = await Job.findOne(jobQuery, {
+      _id: 1,
+      jobId: 1,
+      views: 1,
+    }).lean();
+
+    if (!job) {
+      console.warn(
+        '[jobViewsCount] Job not found. param=',
+        rawJobId,
+        'query=',
+        jobQuery,
+      );
+      return res
+        .status(404)
+        .json({ success: false, message: 'Job not found.' });
+    }
+
+    const canonicalKeyId = job.jobId ?? job._id.toString();
+
+    // If cooldown <= 0, count EVERY view. No dedupe, just increment.
+    if (VIEW_COOLDOWN_SECONDS <= 0) {
+      const updated = await Job.findOneAndUpdate(
+        { _id: job._id },
+        { $inc: { views: 1 } },
+        { new: true, projection: { _id: 1, jobId: 1, views: 1 } },
+      );
+
+      // Extremely unlikely to fail since we just fetched it, but be defensive
+      if (!updated) {
+        return res
+          .status(404)
+          .json({ success: false, message: 'Job not found.' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'View counted.',
+        data: {
+          jobId: updated.jobId ?? updated._id.toString(),
+          views: updated.views,
+          counted: true,
+        },
+      });
+    }
+
+    // Otherwise: de-dupe for VIEW_COOLDOWN_SECONDS per viewer
+    const dedupeKey = `${REDIS_PREFIX}:${canonicalKeyId}:${viewerKey}`;
+
+    // Atomic set-if-not-exists with TTL to avoid double increments on concurrent hits
+    const setOk = await redisClient.setNxWithTtl(
+      dedupeKey,
+      '1',
+      VIEW_COOLDOWN_SECONDS,
+    );
+
+    if (setOk) {
+      const updated = await Job.findOneAndUpdate(
+        { _id: job._id },
+        { $inc: { views: 1 } },
+        { new: true, projection: { _id: 1, jobId: 1, views: 1 } },
+      );
+
+      if (!updated) {
+        // Roll back the de-dupe key so a later valid request can count
+        await redisClient.del(dedupeKey).catch(() => {});
+        return res
+          .status(404)
+          .json({ success: false, message: 'Job not found.' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'View counted.',
+        data: {
+          jobId: updated.jobId ?? updated._id.toString(),
+          views: updated.views,
+          counted: true,
+        },
+      });
+    }
+
+    // Already counted within cooldown window
+    return res.status(200).json({
+      success: true,
+      message: 'Already counted recently.',
+      data: {
+        jobId: job.jobId ?? job._id.toString(),
+        views: job.views,
+        counted: false,
+      },
+    });
+  } catch (err) {
+    console.error('[jobViewsCount] error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error.' });
   }
 };
