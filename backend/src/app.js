@@ -39,7 +39,7 @@ app.use(compression());
 // 2) Rate limit (note: can terminate early; morgan already ran)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: 5000,
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many requests from this IP, please try again after 15 minutes.',

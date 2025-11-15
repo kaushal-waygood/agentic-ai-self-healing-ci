@@ -791,6 +791,36 @@ const fetchExternalJobs = async (
   }
 };
 
+const SEARCH_TTL = 120; // seconds - tune as needed
+
+const makeSearchCacheKey = (params) => {
+  const {
+    q,
+    pageNum,
+    limitNum,
+    country,
+    state,
+    city,
+    employmentType,
+    experience,
+    datePosted,
+  } = params;
+
+  // Keep key readable for debugging, but include all relevant params
+  return [
+    'jobs:search',
+    `q:${q || ''}`,
+    `p:${pageNum}`,
+    `l:${limitNum}`,
+    `c:${country || ''}`,
+    `s:${state || ''}`,
+    `ci:${city || ''}`,
+    `et:${employmentType || ''}`,
+    `exp:${experience || ''}`,
+    `dp:${datePosted || ''}`,
+  ].join('|');
+};
+
 export const searchJobs = async (req, res) => {
   const {
     q,
@@ -808,120 +838,148 @@ export const searchJobs = async (req, res) => {
   const limitNum = parseInt(limit, 10);
   const skip = (pageNum - 1) * limitNum;
 
+  const cacheKey = makeSearchCacheKey({
+    q,
+    pageNum,
+    limitNum,
+    country,
+    state,
+    city,
+    employmentType,
+    experience,
+    datePosted,
+  });
+
   try {
-    const searchCriteria = {};
-
-    // Build search criteria
-    if (q) {
-      searchCriteria.$or = [
-        { title: new RegExp(escapeRegex(q), 'i') },
-        { description: new RegExp(escapeRegex(q), 'i') },
-        { queries: new RegExp(escapeRegex(q), 'i') },
-      ];
-    }
-
-    if (country) searchCriteria.country = country;
-    if (state) searchCriteria['location.state'] = state;
-    if (city) searchCriteria['location.city'] = city;
-    if (employmentType) {
-      searchCriteria.jobTypes = { $in: employmentType.split(',') };
-    }
-    if (experience) {
-      searchCriteria.experience = { $in: experience.split(',') };
-    }
-
-    let totalJobs = await Job.countDocuments(searchCriteria);
-    let jobs = await Job.find(searchCriteria)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum);
-
-    let notification = null;
-
-    // If no jobs found in database and this is the first page with a query
-    if (jobs.length === 0 && q && pageNum === 1) {
-      const externalJobsRaw = await fetchExternalJobs(
-        q,
-        country,
-        state,
-        city,
-        datePosted,
-        employmentType,
-        experience,
-      );
-
-      if (externalJobsRaw.length > 0) {
-        const externalJobsFormatted = externalJobsRaw.map((apiJob) =>
-          transformRapidApiJob(apiJob, q),
-        );
-
-        // Save to database in background - FIXED BULKWRITE OPERATION
-        try {
-          const bulkOps = externalJobsFormatted.map((job) => ({
-            updateOne: {
-              filter: { jobId: job.jobId },
-              update: {
-                // Use $set for all fields that should always be updated
-                $set: {
-                  title: job.title,
-                  description: job.description,
-                  company: job.company,
-                  country: job.country,
-                  'location.city': job.location.city,
-                  'location.state': job.location.state,
-                  'location.lat': job.location.lat,
-                  'location.lng': job.location.lng,
-                  logo: job.logo,
-                  applyMethod: job.applyMethod,
-                  jobTypes: job.jobTypes,
-                  isActive: job.isActive,
-                  origin: job.origin,
-                  qualifications: job.qualifications,
-                  responsibilities: job.responsibilities,
-                  slug: job.slug,
-                  experience: job.experience,
-                },
-                // Only use $setOnInsert for fields that should ONLY be set on insert
-                $setOnInsert: {
-                  createdAt: new Date(),
-                  // Remove queries from $setOnInsert since we handle it separately
-                },
-                // Use $addToSet for array fields to avoid duplicates
-                $addToSet: {
-                  queries: q,
-                },
-              },
-              upsert: true,
-            },
-          }));
-
-          await Job.bulkWrite(bulkOps);
-          console.log('Successfully saved external jobs to database');
-        } catch (dbError) {
-          console.error('Background DB save failed:', dbError);
+    // The entire search response is cached. on cache-miss the callback runs and returns
+    // an object { jobs, totalJobs, notification } which we send to client.
+    const cachedResult = await redisClient.withCache(
+      cacheKey,
+      SEARCH_TTL,
+      async () => {
+        // Build search criteria
+        const searchCriteria = {};
+        if (q) {
+          searchCriteria.$or = [
+            { title: new RegExp(escapeRegex(q), 'i') },
+            { description: new RegExp(escapeRegex(q), 'i') },
+            { queries: new RegExp(escapeRegex(q), 'i') },
+          ];
         }
 
-        jobs = externalJobsFormatted;
-        totalJobs = externalJobsFormatted.length;
-      } else {
-        console.log('No external jobs found either');
-      }
-    }
+        if (country) searchCriteria.country = country;
+        if (state) searchCriteria['location.state'] = state;
+        if (city) searchCriteria['location.city'] = city;
+        if (employmentType) {
+          searchCriteria.jobTypes = { $in: employmentType.split(',') };
+        }
+        if (experience) {
+          searchCriteria.experience = { $in: experience.split(',') };
+        }
 
-    // Create notification if no jobs found
-    if (jobs.length === 0 && q) {
-      const locationString = [city, state, country].filter(Boolean).join(', ');
-      notification = locationString
-        ? `We couldn't find any jobs for "${q}" in ${locationString}. Try broadening your search.`
-        : `We couldn't find any jobs matching your search for "${q}".`;
-    }
+        // Query DB
+        let totalJobs = await Job.countDocuments(searchCriteria);
+        let jobs = await Job.find(searchCriteria)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limitNum)
+          .lean();
 
-    const totalPages = Math.ceil(totalJobs / limitNum);
+        let notification = null;
 
-    res.status(200).json({
+        // If no jobs found in DB and this is first page with a query, try external
+        if ((jobs.length === 0 || totalJobs === 0) && q && pageNum === 1) {
+          const externalJobsRaw = await fetchExternalJobs(
+            q,
+            country,
+            state,
+            city,
+            datePosted,
+            employmentType,
+            experience,
+          );
+
+          if (externalJobsRaw.length > 0) {
+            const externalJobsFormatted = externalJobsRaw.map((apiJob) =>
+              transformRapidApiJob(apiJob, q),
+            );
+
+            // Save to DB (best-effort; failures don't block response)
+            try {
+              const bulkOps = externalJobsFormatted.map((job) => ({
+                updateOne: {
+                  filter: { jobId: job.jobId },
+                  update: {
+                    $set: {
+                      title: job.title,
+                      description: job.description,
+                      company: job.company,
+                      country: job.country,
+                      'location.city': job.location.city,
+                      'location.state': job.location.state,
+                      'location.lat': job.location.lat,
+                      'location.lng': job.location.lng,
+                      logo: job.logo,
+                      applyMethod: job.applyMethod,
+                      jobTypes: job.jobTypes,
+                      isActive: job.isActive,
+                      origin: job.origin,
+                      qualifications: job.qualifications,
+                      responsibilities: job.responsibilities,
+                      slug: job.slug,
+                      experience: job.experience,
+                    },
+                    $setOnInsert: {
+                      createdAt: new Date(),
+                    },
+                    $addToSet: {
+                      queries: q,
+                    },
+                  },
+                  upsert: true,
+                },
+              }));
+
+              await Job.bulkWrite(bulkOps);
+              console.log('Successfully saved external jobs to database');
+            } catch (dbError) {
+              console.error('Background DB save failed:', dbError);
+            }
+
+            // Return external jobs as the search result (they are already formatted)
+            jobs = externalJobsFormatted;
+            totalJobs = externalJobsFormatted.length;
+          } else {
+            console.log('No external jobs found either');
+          }
+        }
+
+        // Notification when nothing found
+        if ((!jobs || jobs.length === 0) && q) {
+          const locationString = [city, state, country]
+            .filter(Boolean)
+            .join(', ');
+          notification = locationString
+            ? `We couldn't find any jobs for "${q}" in ${locationString}. Try broadening your search.`
+            : `We couldn't find any jobs matching your search for "${q}".`;
+        }
+
+        return {
+          jobs,
+          totalJobs,
+          notification,
+        };
+      },
+    );
+
+    // cachedResult now holds { jobs, totalJobs, notification }
+    const { jobs, totalJobs, notification } = cachedResult;
+    const totalPages = Math.ceil((totalJobs || 0) / limitNum);
+
+    return res.status(200).json({
       jobs,
       pagination: {
-        totalJobs,
+        totalJobs: totalJobs || 0,
         totalPages,
         currentPage: pageNum,
         hasNextPage: pageNum < totalPages,
@@ -930,7 +988,7 @@ export const searchJobs = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in searchJobs controller:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: 'Server Error',
       error: error.message,
     });
