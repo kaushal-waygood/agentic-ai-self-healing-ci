@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navigation } from '@/components/layout/site-header';
 import { Footer } from '@/components/layout/footer';
 import { Hero } from '@/components/home/Hero';
@@ -11,10 +15,19 @@ import { Platforms } from '@/components/home/Platforms';
 import { Solutions } from '@/components/home/Solutions';
 
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      router.push('/dashboard');
+    }
+  }, [router]);
+
   return (
     <div>
       <Navigation />
-      <div className=" flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen">
         <main className="flex-1">
           <Hero />
           <PainPoints />

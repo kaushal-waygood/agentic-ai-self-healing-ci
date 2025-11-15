@@ -86,7 +86,11 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         href: '/dashboard/cover-letter-generator',
         icon: Newspaper,
       },
-      { title: 'AI Auto Apply', href: '/dashboard/ai-auto-apply', icon: Bot },
+      {
+        title: 'AI Auto Docs ',
+        href: '/dashboard/ai-auto-apply',
+        icon: Bot,
+      },
       { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
       {
         title: 'My Applications',

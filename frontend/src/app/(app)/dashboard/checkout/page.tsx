@@ -2,6 +2,13 @@ import { Suspense } from 'react';
 // Corrected the import path to be a relative path
 import CheckoutPage from '../../../../components/home/PurchaseModel';
 import { Loader } from 'lucide-react';
+import { checkOutStatusMetadata } from '@/metadata/metadata';
+
+export const metadata = {
+  title: checkOutStatusMetadata.title,
+  description: checkOutStatusMetadata.description,
+  keywords: checkOutStatusMetadata.keywords,
+};
 
 // This is the page component that will be rendered for the route.
 export default function page() {

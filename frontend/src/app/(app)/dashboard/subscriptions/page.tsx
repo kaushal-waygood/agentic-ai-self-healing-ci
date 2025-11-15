@@ -1,6 +1,11 @@
-import { PageHeader } from '@/components/common/page-header';
 import { Pricing } from '@/components/home/Pricing';
-import { DollarSign } from 'lucide-react';
+import { subscriptionsMetadata } from '@/metadata/metadata';
+
+export const metadata = {
+  title: subscriptionsMetadata.title,
+  description: subscriptionsMetadata.description,
+  keywords: subscriptionsMetadata.keywords,
+};
 
 export default function SubscriptionsPage() {
   return (
