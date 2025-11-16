@@ -7,13 +7,57 @@ spec:
   project: default
 
   source:
-    repoURL: oci://registry-1.docker.io/bitnamicharts
+    repoURL: https://charts.bitnami.com/bitnami
     chart: wordpress
     targetRevision: 27.1.8
     helm:
       releaseName: wp-zobsai
-      valueFiles:
-        - values-zobsai.yaml   # MUST be inside your Git repo
+      values: |
+        image:
+          registry: docker.io
+          repository: bitnami/wordpress
+          tag: "latest"
+          pullPolicy: IfNotPresent
+
+        wordpressUsername: admin
+        wordpressPassword: "admin1234!"
+        wordpressEmail: admin@zobsai.com
+        wordpressBlogName: "Zobsai Blog"
+
+        service:
+          type: ClusterIP
+
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          hostname: blog.zobsai.com
+          annotations:
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+          tls: true
+          certManager:
+            enabled: true
+            issuer:
+              name: letsencrypt-prod
+              kind: ClusterIssuer
+
+        persistence:
+          enabled: true
+          storageClass: "local-path"
+          accessMode: ReadWriteOnce
+          size: 10Gi
+
+        mariadb:
+          enabled: true
+          auth:
+            rootPassword: "admin1234!"
+            database: bitnami_wordpress
+            username: bn_wordpress
+            password: "admin1234!"
+          primary:
+            persistence:
+              enabled: true
+              storageClass: "local-path"
+              size: 10Gi
 
   destination:
     server: https://kubernetes.default.svc
