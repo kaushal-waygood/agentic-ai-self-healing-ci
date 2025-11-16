@@ -9,6 +9,9 @@ wordpressPassword: "admin1234!"
 wordpressEmail: admin@zobsai.com
 wordpressBlogName: "Zobsai Blog"
 
+service:
+  type: ClusterIP
+
 ingress:
   enabled: true
   ingressClassName: traefik
@@ -19,9 +22,6 @@ ingress:
     - hosts:
         - blog.zobsai.com
       secretName: zobsai-wp-tls
-
-service:
-  type: ClusterIP
 
 persistence:
   enabled: true
