@@ -2,18 +2,18 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: wp-zobsai
-  namespace: monitoring   # ArgoCD namespace
+  namespace: monitoring
 spec:
   project: default
 
   source:
-    repoURL: https://charts.bitnami.com/bitnami
+    repoURL: oci://registry-1.docker.io/bitnamicharts
     chart: wordpress
     targetRevision: 27.1.8
     helm:
       releaseName: wp-zobsai
       valueFiles:
-        - values-zobsai.yaml  # stored in your Git repo
+        - values-zobsai.yaml   # MUST be inside your Git repo
 
   destination:
     server: https://kubernetes.default.svc
