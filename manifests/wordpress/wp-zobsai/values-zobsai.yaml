@@ -1,0 +1,43 @@
+image:
+  registry: docker.io
+  repository: bitnami/wordpress
+  tag: "6.8.2-debian-12-r4"
+  pullPolicy: IfNotPresent
+
+wordpressUsername: admin
+wordpressPassword: "admin1234!"
+wordpressEmail: admin@zobsai.com
+wordpressBlogName: "Zobsai Blog"
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  hostname: blog.zobsai.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    - hosts:
+        - blog.zobsai.com
+      secretName: zobsai-wp-tls
+
+service:
+  type: ClusterIP
+
+persistence:
+  enabled: true
+  storageClass: "local-path"
+  accessMode: ReadWriteOnce
+  size: 10Gi
+
+mariadb:
+  enabled: true
+  auth:
+    rootPassword: "admin1234!"
+    database: bitnami_wordpress
+    username: bn_wordpress
+    password: "admin1234!"
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "local-path"
+      size: 10Gi
