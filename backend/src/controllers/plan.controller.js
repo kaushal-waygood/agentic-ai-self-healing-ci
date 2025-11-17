@@ -567,7 +567,7 @@ export const getActivePlan = async (req, res) => {
   }
 };
 
-export const createSimplePurchase = async (req, res) => {
+export const createSimplePurchaseDev = async (req, res) => {
   const { planId, period } = req.body;
   const userId = req.user._id;
 
