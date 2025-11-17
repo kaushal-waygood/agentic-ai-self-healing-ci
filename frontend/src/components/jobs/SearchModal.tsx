@@ -11,10 +11,8 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 
-const SearchModal = ({handleSearchInput}) => {
-    
-    
-      const handleFilterChange = (name: string, value: string | string[]) => {
+const SearchModal = ({ handleSearchInput }) => {
+  const handleFilterChange = (name: string, value: string | string[]) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
   return (

@@ -730,6 +730,7 @@ const transformRapidApiJob = (apiJob, searchQuery) => {
       `-${apiJob.job_id?.slice(0, 4) || 'ext'}`,
     applyMethod: { method: 'URL', url: apiJob.job_apply_link },
     isActive: true,
+    jobPosted: apiJob.job_posted_at,
     jobTypes: apiJob.job_employment_types || [],
     experience: [],
     queries: searchQuery ? [searchQuery] : [],
