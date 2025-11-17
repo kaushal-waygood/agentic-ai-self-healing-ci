@@ -14,7 +14,8 @@ const jobSchema = new Schema(
     responsibilities: [String],
     qualifications: [String], // KEPT: This is the correct field for qualifications
     experience: { type: [String], default: [] },
-    jobTypes: [String], // REMOVED: Duplicate of this field was taken out
+    jobTypes: [String],
+    jobPosted: { type: Date },
 
     // --- Company & Application ---
     company: { type: String },
