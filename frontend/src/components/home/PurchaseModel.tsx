@@ -84,8 +84,10 @@ export default function CheckoutPage() {
           setPlan(planResponse.data.data);
         }
 
+        let intentResponse;
+
         if (process.env.NEXT_PUBLIC_NODE_ENV === 'production') {
-          const intentResponse = await apiInstance.post(
+          intentResponse = await apiInstance.post(
             '/plan/payment/create-intent',
             { planId, period: selectedPeriod, currency },
           );
@@ -93,7 +95,7 @@ export default function CheckoutPage() {
           process.env.NEXT_PUBLIC_NODE_ENV === 'development' ||
           process.env.NEXT_PUBLIC_NODE_ENV === 'local'
         ) {
-          const intentResponse = await apiInstance.post(
+          intentResponse = await apiInstance.post(
             '/plan/payment//payment/create-intent-test',
             { planId, period: selectedPeriod, currency },
           );
