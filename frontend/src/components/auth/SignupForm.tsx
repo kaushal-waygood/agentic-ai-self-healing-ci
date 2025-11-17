@@ -309,7 +309,8 @@ const SignupForm = () => {
                               <UserPlus className="mb-2 h-7 w-7" /> Individual
                             </FormLabel>
                           </FormItem>
-                          <FormItem>
+                          {/* Insitution  */}
+                          {/* <FormItem>
                             <FormControl>
                               <RadioGroupItem
                                 value="institution"
@@ -323,7 +324,7 @@ const SignupForm = () => {
                             >
                               <Building className="mb-2 h-7 w-7" /> Institution
                             </FormLabel>
-                          </FormItem>
+                          </FormItem> */}
                         </RadioGroup>
                       </FormControl>
                       <FormMessage className="text-red-500 text-xs" />

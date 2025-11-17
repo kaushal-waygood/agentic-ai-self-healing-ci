@@ -46,6 +46,7 @@ import {
 } from 'recharts';
 import { JobCard } from '@/components/jobs/job-card';
 import { ApplicationRow } from './applications/components/statusConfig';
+import { useRouter } from 'next/navigation';
 
 export function StatCard({
   title,
@@ -147,6 +148,7 @@ export function ToolkitButton({
 
 export function ProfileReadinessCard() {
   const { data, isLoading, error } = useProfileCompletion();
+  const router = useRouter();
 
   if (isLoading || !data) {
     return (
@@ -192,6 +194,15 @@ export function ProfileReadinessCard() {
     return 'from-red-400 to-red-600';
   };
 
+  const tabRoutes = {
+    basicInfo: 'education',
+    educationDetails: 'education',
+    projects: 'project',
+    workExperience: 'experience',
+    skills: 'skills',
+    jobPreferences: 'jobPreferences',
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
       <div className="flex items-center justify-between mb-6">
@@ -218,11 +229,16 @@ export function ProfileReadinessCard() {
           style={{ width: `${score}%` }}
         />
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {checklistItems.map(({ key, label }) => (
           <div
             key={key}
-            className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
+            className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+            onClick={() => {
+              const tab = tabRoutes[key] || 'education';
+              router.push(`/dashboard/profile?tab=${tab}`);
+            }}
           >
             <CheckCircle2
               className={`w-5 h-5 transition-colors duration-300 ${
