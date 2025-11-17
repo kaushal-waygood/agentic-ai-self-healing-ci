@@ -24,16 +24,24 @@ spec:
         wordpressEmail: admin@zobsai.com
         wordpressBlogName: "Zobsai Blog"
 
+        ## 🔥 Make WordPress use /resources as base URL
+        extraEnvVars:
+          - name: WORDPRESS_CONFIG_EXTRA
+            value: |
+              define( 'WP_SITEURL', 'https://zobsai.com/resources' );
+              define( 'WP_HOME', 'https://zobsai.com/resources' );
+              define( 'WP_CONTENT_URL', 'https://zobsai.com/resources/wp-content' );
+              define( 'WP_PLUGIN_URL', 'https://zobsai.com/resources/wp-content/plugins' );
+              $_SERVER['REQUEST_URI'] = preg_replace('#^/resources#', '', $_SERVER['REQUEST_URI']);
+
         service:
           type: ClusterIP
 
-        ## ------------------------------
-        ## MAIN HOST (blog.zobsai.com)
-        ## ------------------------------
         ingress:
           enabled: true
           ingressClassName: traefik
-          hostname: blog.zobsai.com
+          hostname: zobsai.com
+          path: /resources
           annotations:
             cert-manager.io/cluster-issuer: letsencrypt-prod
           tls: true
@@ -85,24 +93,3 @@ spec:
         - /spec/template/spec/containers/0/image
         - /spec/volumeClaimTemplates
         - /spec/revisionHistoryLimit
-
----
-# Additional Traefik IngressRoute for zobsai.com/resources
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: wp-zobsai-resources
-  namespace: wordpress
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-spec:
-  entryPoints:
-    - websecure
-  routes:
-    - match: Host(`zobsai.com`) && PathPrefix(`/resources`)
-      kind: Rule
-      services:
-        - name: wp-zobsai-wordpress
-          port: 80
-  tls:
-    secretName: zobsai-main-tls
