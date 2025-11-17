@@ -117,10 +117,7 @@ ${
   <p>I am writing to express my profound interest in MERN Stack Developer opportunities. With over two years of hands-on experience developing and maintaining full-stack applications, I have a proven track record of building robust backend services with Node.js/Express.js and creating dynamic, responsive user interfaces with React.</p>
   <p>My experience at Padhai Karo involved implementing REST APIs, integrating AWS S3 for asset management, and participating in the full software development lifecycle. I am confident that my technical skills and project experience, detailed in my attached resume, make me a strong candidate for a role requiring a dedicated and proficient developer.</p>
   <p>Thank you for your consideration. I am eager to discuss how my expertise can contribute to your team's success.</p>
-  <div>
-    <p>Sincerely,</p>
-    <p>Mohd Arsalan</p>
-  </div>
+  
 </div>
 `;
 };

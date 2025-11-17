@@ -31,8 +31,8 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   const dispatch = useDispatch();
   const handleClick = async () => {
     try {
-      dispatch(visitedJobsRequest(job._id));
       await apiInstance.get(`/jobs/job/views/${job._id}`);
+      dispatch(visitedJobsRequest(job._id));
       onClick();
     } catch (error) {
       console.error('Failed to log job view on click:', error);

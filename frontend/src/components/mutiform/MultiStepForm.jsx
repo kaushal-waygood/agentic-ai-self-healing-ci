@@ -15,6 +15,7 @@ import {
 } from '@/redux/reducers/autopilotReducer';
 
 import AgentPreviewModal from './AgentPreviewModal'; // NEW FILE (see below)
+import GeneratingAgent from './step5GeneratingAgent';
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(0);
@@ -41,6 +42,7 @@ const MultiStepForm = () => {
     coverLetterInstructions: '',
     maxApplications: 1,
   };
+
   const [formData, setFormData] = useState(initialFormData);
 
   const nextStep = () => setStep((prev) => prev + 1);
@@ -220,20 +222,7 @@ const MultiStepForm = () => {
         );
 
       case 5:
-        return (
-          <div className="flex items-center flex-col justify-center min-h-screen">
-            <div>
-              <Image
-                src="/logo.png"
-                alt="zobsai logo"
-                width={100}
-                height={100}
-                className="w-10 h-10 animate-bounce"
-              />
-            </div>
-            <div className="text-lg">Generating agent Please wait...</div>
-          </div>
-        );
+        return <GeneratingAgent />;
       default:
         return <div>Done.</div>;
     }
