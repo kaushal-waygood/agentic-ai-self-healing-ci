@@ -20,6 +20,7 @@ import {
   Shield,
   Lock,
 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 // --- Type Definitions ---
 interface Price {
@@ -83,10 +84,27 @@ export default function CheckoutPage() {
           setPlan(planResponse.data.data);
         }
 
-        const intentResponse = await apiInstance.post(
-          '/plan/payment/create-intent',
-          { planId, period: selectedPeriod, currency },
-        );
+        if (process.env.NEXT_PUBLIC_NODE_ENV === 'production') {
+          const intentResponse = await apiInstance.post(
+            '/plan/payment/create-intent',
+            { planId, period: selectedPeriod, currency },
+          );
+        } else if (
+          process.env.NEXT_PUBLIC_NODE_ENV === 'development' ||
+          process.env.NEXT_PUBLIC_NODE_ENV === 'local'
+        ) {
+          const intentResponse = await apiInstance.post(
+            '/plan/payment//payment/create-intent-test',
+            { planId, period: selectedPeriod, currency },
+          );
+        } else {
+          toast({
+            title: 'Error',
+            description: 'Invalid environment.',
+            variant: 'destructive',
+          });
+          throw new Error('Invalid environment.');
+        }
 
         if (!intentResponse.data.success) {
           throw new Error(

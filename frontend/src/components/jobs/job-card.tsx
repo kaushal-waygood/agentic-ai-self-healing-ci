@@ -139,7 +139,9 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
             <div className="flex items-center justify-between gap-3 pt-1">
               <div className="flex items-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-600 transition-colors">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0 text-purple-400" />
-                <span className="font-medium">4 hours ago</span>
+                <span className="font-medium">
+                  {job.jobPosted || 'not found'}
+                </span>
               </div>
 
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-gray-100 to-gray-50 group-hover:from-purple-100 group-hover:to-blue-100 rounded-full transition-all duration-300 shadow-sm group-hover:shadow-md">
