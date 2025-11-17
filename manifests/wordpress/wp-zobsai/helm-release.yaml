@@ -19,20 +19,15 @@ spec:
           tag: "latest"
           pullPolicy: IfNotPresent
 
+        ## WORDPRESS URL OVERRIDE
+        wordpressScheme: https
+        wordpressHost: zobsai.com
+        wordpressPathPrefix: /resources
+
         wordpressUsername: admin
         wordpressPassword: "admin1234!"
         wordpressEmail: admin@zobsai.com
         wordpressBlogName: "Zobsai Blog"
-
-        ## 🔥 Make WordPress use /resources as base URL
-        extraEnvVars:
-          - name: WORDPRESS_CONFIG_EXTRA
-            value: |
-              define( 'WP_SITEURL', 'https://zobsai.com/resources' );
-              define( 'WP_HOME', 'https://zobsai.com/resources' );
-              define( 'WP_CONTENT_URL', 'https://zobsai.com/resources/wp-content' );
-              define( 'WP_PLUGIN_URL', 'https://zobsai.com/resources/wp-content/plugins' );
-              $_SERVER['REQUEST_URI'] = preg_replace('#^/resources#', '', $_SERVER['REQUEST_URI']);
 
         service:
           type: ClusterIP
@@ -41,8 +36,10 @@ spec:
           enabled: true
           ingressClassName: traefik
           hostname: zobsai.com
-          path: /resources
+          path: /resources(/|$)(.*)
           annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            traefik.ingress.kubernetes.io/router.tls: "true"
             cert-manager.io/cluster-issuer: letsencrypt-prod
           tls: true
           certManager:
