@@ -15,7 +15,7 @@ const jobSchema = new Schema(
     qualifications: [String], // KEPT: This is the correct field for qualifications
     experience: { type: [String], default: [] },
     jobTypes: [String],
-    jobPosted: { type: Date },
+    jobPosted: { type: String },
 
     // --- Company & Application ---
     company: { type: String },

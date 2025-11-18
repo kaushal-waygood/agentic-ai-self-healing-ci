@@ -1,4 +1,3 @@
-/** @format */
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -211,12 +210,18 @@ const AppHeader = ({ setIsSearchOpen }) => {
     coverLetter: 0,
     aiApplication: 0,
     autoApply: 0,
+    aiAutoApply: 0,
+    aiAutoApplyDailyLimit: 0,
+    aiMannualApplication: 0,
   });
   const [usageData, setUsageData] = useState({
     aiJobApply: 0,
     aiCvGenerator: 0,
     aiCoverLetterGenerator: 0,
     applications: 0,
+    aiAutoApply: 0,
+    aiAutoApplyDailyLimit: 0,
+    aiMannualApplication: 0,
   });
   const [planType, setPlanType] = useState('free');
 
@@ -231,6 +236,9 @@ const AppHeader = ({ setIsSearchOpen }) => {
       aiCvGenerator: usageLimits.cvCreation,
       aiCoverLetterGenerator: usageLimits.coverLetter,
       applicationLimit: usageLimits.autoApply,
+      aiAutoApply: usageLimits.aiAutoApply,
+      aiAutoApplyDailyLimit: usageLimits.aiAutoApplyDailyLimit,
+      aiMannualApplication: usageLimits.aiMannualApplication,
     }),
     [usageLimits],
   );
@@ -276,6 +284,9 @@ const AppHeader = ({ setIsSearchOpen }) => {
               aiCvGenerator: 0,
               aiCoverLetterGenerator: 0,
               applications: 0,
+              aiAutoApply: 0,
+              aiAutoApplyDailyLimit: 0,
+              aiMannualApplication: 0,
             },
           );
           setUsageData(totals);
@@ -287,21 +298,17 @@ const AppHeader = ({ setIsSearchOpen }) => {
       }
     };
 
-    // Conditions are safely placed *inside* the useEffect hook.
     if (user?._id) {
       fetchUsageData();
     }
   }, [user?._id]);
 
   useEffect(() => {
-    // Close menus on route change
     setIsNotificationOpen(false);
     setIsUserMenuOpen(false);
     setIsPlanOpen(false);
   }, [pathname]);
 
-  // --- SECTION 2: HANDLERS & LOGIC ---
-  // Regular functions and logic can go here.
   const closeAllMenus = () => {
     setIsNotificationOpen(false);
     setIsUserMenuOpen(false);
@@ -325,10 +332,6 @@ const AppHeader = ({ setIsSearchOpen }) => {
     }
   };
 
-  // const unreadCount = (user?.actionItems || []).filter(
-  //   (item) => !item.isRead,
-  // ).length;
-
   const getNotificationColor = (type) => {
     switch (type) {
       case 'application':
@@ -348,8 +351,15 @@ const AppHeader = ({ setIsSearchOpen }) => {
     router.push('/dashboard/notifications');
   };
 
-  // --- SECTION 3: CONDITIONAL RETURN ---
-  // This is the "early return". Because all hooks are defined above, this is safe.
+  console.log(
+    'Usage Data>>>:',
+    usageLimits,
+    usageData,
+    planType,
+    mounted,
+    effectivePlanLimits,
+  );
+
   if (!user) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
@@ -365,28 +375,11 @@ const AppHeader = ({ setIsSearchOpen }) => {
     );
   }
 
-  // --- SECTION 4: MAIN RENDER ---
-  // This JSX is only reached if the early return for !user was not triggered.
   return (
     <>
-      {/* ... Your main header JSX goes here, it remains unchanged ... */}
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">
         <div className="flex items-center justify-between px-6 py-2 ">
           <div className="flex items-center space-x-3"></div>
-          {/* <div className="flex flex-1 justify-center px-4">
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="w-full max-w-md flex items-center justify-between p-1 bg-slate-100 hover:bg-slate-200 border border-transparent hover:border-slate-300 rounded-lg text-slate-500 transition-all duration-200"
-            >
-              <div className="flex items-center space-x-2">
-                <Search className="w-4 h-4" />
-                <span className="text-sm">Search...</span>
-              </div>
-              <kbd className="font-sans text-xs bg-white text-slate-600 px-2 py-1 rounded border border-slate-200">
-                Ctrl K
-              </kbd>
-            </button>
-          </div> */}
 
           <div className="flex items-center space-x-4">
             <PlanDropdown
