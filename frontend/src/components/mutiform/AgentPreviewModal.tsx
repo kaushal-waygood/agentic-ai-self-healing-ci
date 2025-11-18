@@ -46,7 +46,7 @@ const AgentPreviewModal = ({
                 : 'Not specified'
             }
           />
-          <Row label="Max Applications" value={maxApplications} />
+          {/* <Row label="Max Applications" value={maxApplications} /> */}
           <Row label="CV File" value={cvFile.name} />
           <Row label="Cover Letter Mode" value={coverLetterStrategy} />
           {coverLetterInstructions && (

@@ -6,17 +6,16 @@ export default function GeneratingAgent() {
   return (
     <div className="w-full min-h-screen bg-white flex items-center justify-center p-4 overflow-hidden">
       {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center justify-center gap-8 md:gap-12">
+      <div className="relative z-10 flex flex-col items-center justify-center gap-8 md:gap-10">
         {/* Logo container with animation */}
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-2xl opacity-75 animate-pulse"></div>
-          <div className="relative w-24 h-24 md:w-32 md:h-32  rounded-full flex items-center justify-center shadow-2xl">
+          <div className="relative w-24 h-24 md:w-24 md:h-24 rounded-full flex items-center justify-center ">
             <Image
               src="/logo.png"
               alt="zobsai logo"
               width={100}
               height={100}
-              className="w-10 h-10 animate-bounce"
+              className="w-16 h-16 animate-bounce"
             />
           </div>
         </div>
@@ -44,15 +43,15 @@ export default function GeneratingAgent() {
         {/* Dots animation */}
         <div className="flex gap-2">
           <span
-            className="w-3 h-3 bg-blue-400 rounded-full animate-bounce"
+            className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"
             style={{ animationDelay: '0s' }}
           ></span>
           <span
-            className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"
+            className="w-3 h-3 bg-purple-600 rounded-full animate-bounce"
             style={{ animationDelay: '0.2s' }}
           ></span>
           <span
-            className="w-3 h-3 bg-cyan-400 rounded-full animate-bounce"
+            className="w-3 h-3 bg-cyan-600 rounded-full animate-bounce"
             style={{ animationDelay: '0.4s' }}
           ></span>
         </div>

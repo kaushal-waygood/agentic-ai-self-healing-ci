@@ -7,6 +7,8 @@ import StoreProvider from '../redux/storeProvider';
 import Script from 'next/script';
 import { cookies } from 'next/headers'; // This is a dynamic function
 import { poppins, pt_sans } from './fonts';
+import 'driver.js/dist/driver.css';
+import './driver-custom.css';
 
 import { zobsAiHomeMetadata } from '@/metadata/metadata';
 
