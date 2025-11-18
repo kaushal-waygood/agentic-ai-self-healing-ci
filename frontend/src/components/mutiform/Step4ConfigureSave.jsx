@@ -22,7 +22,7 @@ const Step4ConfigureSave = ({
         </p>
       </div>
       <div className="form-card">
-        <div className="form-group ">
+        {/* <div className="form-group ">
           <label>Max Applications to Prepare per Day *</label>
           <input
             type="number"
@@ -37,7 +37,7 @@ const Step4ConfigureSave = ({
             Your plan supports up to 8 applications per day. The agent will stop
             once this limit is reached. Must be at least 1.
           </small>
-        </div>
+        </div> */}
         <div className="form-navigation">
           <button
             className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all duration-200 hover:scale-105"

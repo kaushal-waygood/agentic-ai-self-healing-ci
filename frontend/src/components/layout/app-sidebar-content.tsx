@@ -109,6 +109,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         adminOnly: true,
       },
       { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
+
       {
         title: 'Request New Feature',
         href: '/dashboard/request-new-feature', // Replace with your actual form link

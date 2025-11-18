@@ -1,6 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { driver } from 'driver.js';
+import { useToast } from '@/hooks/use-toast';
+import confetti from 'canvas-confetti';
 
 import {
   LayoutDashboard,
@@ -28,6 +31,7 @@ import {
   Eye,
 } from 'lucide-react';
 import Link from 'next/link';
+
 import { mockUserProfile, ActionItem } from '@/lib/data/user';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -47,6 +51,7 @@ import {
 import { JobCard } from '@/components/jobs/job-card';
 import { ApplicationRow } from './applications/components/statusConfig';
 import { useRouter } from 'next/navigation';
+import CompletionModal from './CompletionModel';
 
 export function StatCard({
   title,
@@ -154,6 +159,7 @@ export function ProfileReadinessCard() {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 border-2 border-dashed rounded-lg">
+          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
           <p className="font-medium">Loading profile data...</p>
         </div>
       </div>
@@ -649,14 +655,151 @@ export default function DashboardPage() {
     fetchSavedJobs();
   }, []);
 
+  // Instrunction Demo logics
+  useEffect(() => {
+    const btn = document.getElementById('start-tour-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => startDashboardTour());
+  }, []);
+
+  const { toast } = useToast();
+
+  const fireConfetti = () => {
+    const end = Date.now() + 1000;
+
+    (function frame() {
+      confetti({
+        particleCount: 4,
+        startVelocity: 25,
+        spread: 360,
+        ticks: 60,
+        scalar: 1.2,
+        origin: {
+          x: Math.random(),
+          y: Math.random() - 0.2,
+        },
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    })();
+  };
+
+  const [showCompletionModal, setShowCompletionModal] =
+    useState<boolean>(false);
+
+  const startDashboardTour = () => {
+    const steps = [
+      {
+        element: '#profile-readiness',
+        popover: {
+          title: 'Profile Strength',
+          description: 'This shows your overall profile readiness score.',
+          position: 'right',
+        },
+      },
+      {
+        element: '#my-docsx',
+        popover: {
+          title: 'Saved Documents',
+          description: 'Your AI-generated Docs are stored here.',
+        },
+      },
+      {
+        element: '#my-applications',
+        popover: {
+          title: 'Applicatins',
+          description: 'All personalized AI-generated Applications letters.',
+        },
+      },
+      {
+        element: '#other-driver',
+        popover: {
+          title: 'Other Stuff',
+          description: 'Bookmarked job posts appear here.',
+        },
+      },
+
+      {
+        element: '#plan-driver',
+        popover: {
+          title: 'Your Current plan',
+          description:
+            'Jobs you applied for using ZobsAI Auto Apply or manually.',
+        },
+      },
+      {
+        element: '#coreToolkit-driver',
+        popover: {
+          title: 'Ai Toolkits',
+          description:
+            'Jobs you applied for using ZobsAI Auto Apply or manually.',
+        },
+      },
+
+      {
+        popover: {
+          title: 'Complete',
+          description: 'Thank you for visiting ZobsAi.',
+          position: 'top',
+        },
+      },
+    ];
+
+    const LAST_INDEX = steps.length - 1;
+    let isOnLastStep = false;
+
+    const tour = driver({
+      animate: true,
+      popoverClass: 'zobsai-tour',
+      showProgress: true,
+      smoothScroll: true,
+      allowClose: false,
+
+      steps,
+
+      // Fires every time a step becomes active
+      onHighlighted: (element, step, { state }) => {
+        // state.activeIndex is the current step index
+        if (state.activeIndex === LAST_INDEX) {
+          isOnLastStep = true;
+        } else {
+          isOnLastStep = false;
+        }
+      },
+
+      onDestroyed: () => {
+        if (isOnLastStep) {
+          toast({
+            title: 'Success',
+            description: '🎉 Onboarding completed! You can restart anytime.',
+          });
+          setShowCompletionModal(true);
+          fireConfetti();
+        }
+      },
+    });
+
+    tour.drive();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div id="dashboard-scroll" className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <LayoutDashboard className="w-8 h-8 mr-3 text-purple-600" />
             ZOBSAI Dashboard
+            <button
+              id="start-tour-btn"
+              className=" mx-5 border  rounded-lg px-2 text-white bg-purple-600 hover:bg-blue-800"
+            >
+              <p className="text-2xl ">Start Tour</p>
+            </button>
           </h1>
+
           {/* MODIFIED: Use `authUser` directly from Redux */}
           <p className="text-gray-600 mt-1">
             Welcome back, {authUser?.fullName || 'User'}! Here's your job
@@ -665,90 +808,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3 mb-8">
-          {/* <div className="lg:col-span-2 space-y-8">
-            <ProfileReadinessCard />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <StatCard
-                title="Saved CVs"
-                value={stats.cvsGenerated}
-                icon={FileText}
-                description="Total CVs generated with AI"
-                color="blue"
-                actionText="Manage CVs"
-                actionLink="/dashboard/my-docs?tab=cvs"
-              />
-              <StatCard
-                title="Cover Letters"
-                value={stats.coverLettersGenerated}
-                icon={Bot}
-                description="Documents prepared with AI"
-                color="green"
-                actionText="Create More"
-                actionLink="dashboard/my-docs?tab=cover-letters"
-              />
-              <StatCard
-                title="Applications Tracked"
-                value={stats.tailoredApplications}
-                icon={Send}
-                description="Total applications in your pipeline"
-                color="purple"
-                actionText="View Applications"
-                actionLink="/dashboard/my-docs?tab=applications"
-              />
-
-              <StatCard
-                title="Saved Jobs"
-                value={stats.savedJobsCount}
-                icon={Bookmark}
-                description="Opportunities you are watching"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Viewed Jobs"
-                value={stats.jobsViewed}
-                icon={Bookmark}
-                description="Jobs you’ve recently viewed"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Applied Jobs"
-                value={stats.appliedJobsCount}
-                icon={Bookmark}
-                description="Jobs you’ve officially applied for through the platform"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Visited Jobs"
-                value={stats.visitedJobs}
-                icon={Bookmark}
-                description="Job listings you’ve opened but not saved or applied to"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-
-              <StatCard
-                title="Referral Count"
-                value={stats.referralCount}
-                icon={Award}
-                description="Successful referrals made"
-                color="purple"
-                actionText="Refer Friends"
-                actionLink="/dashboard/referrals"
-              />
-            </div>
-          </div> */}
-
           <div className="lg:col-span-2 space-y-8">
-            <ProfileReadinessCard />
+            <div id="profile-readiness">
+              <ProfileReadinessCard />
+            </div>
             {/* 🚀 APPLICATIONS SECTION */}
-            <div>
+            <div id="my-docsx">
               <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
                 My Documents
               </h2>
@@ -783,7 +848,7 @@ export default function DashboardPage() {
               </div>
             </div>
             {/* 🧩 JOBS SECTION */}
-            <div>
+            <div id="my-applications">
               <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
                 My Applications
               </h2>
@@ -828,7 +893,7 @@ export default function DashboardPage() {
             </div>
 
             {/* 🎁 OTHERS SECTION */}
-            <div>
+            <div id="other-driver">
               <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
                 Others
               </h2>
@@ -847,9 +912,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-8">
-            <SubscriptionStatusCard plan={planDetails} />
+            <div id="plan-driver">
+              <SubscriptionStatusCard plan={planDetails} />
+            </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+            <div
+              id="coreToolkit-driver"
+              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
+            >
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Core AI Toolkit
@@ -892,6 +962,10 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <CompletionModal
+        open={showCompletionModal}
+        onClose={() => setShowCompletionModal(false)}
+      />
     </div>
   );
 }
