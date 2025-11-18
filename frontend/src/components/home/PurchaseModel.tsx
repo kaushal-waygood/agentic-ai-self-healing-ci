@@ -96,7 +96,7 @@ export default function CheckoutPage() {
           process.env.NEXT_PUBLIC_NODE_ENV === 'local'
         ) {
           intentResponse = await apiInstance.post(
-            '/plan/payment//payment/create-intent-test',
+            '/plan/payment/create-intent-test',
             { planId, period: selectedPeriod, currency },
           );
         } else {

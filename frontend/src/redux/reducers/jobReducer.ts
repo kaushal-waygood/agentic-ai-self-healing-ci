@@ -2,7 +2,6 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Job } from '../types/jobType';
-import { visitedJobs } from '@/services/api/student';
 
 // --- FIX: Removed the duplicate interface definitions ---
 interface Pagination {

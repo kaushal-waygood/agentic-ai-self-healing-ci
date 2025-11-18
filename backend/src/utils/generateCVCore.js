@@ -29,7 +29,7 @@ export const initiateCVGeneration = async (
 ) => {
   try {
     const { _id } = req.user;
-    const { useProfile, finalTouch, savedCVId } = req.body;
+    const { useProfile, finalTouch, savedCVId, flag } = req.body;
 
     console.log('📡 Received CV generation request for user:', savedCVId);
 
@@ -221,6 +221,7 @@ export const initiateCVGeneration = async (
       studentData,
       jobContextString,
       finalTouch,
+      flag,
       io,
     );
 

@@ -458,7 +458,7 @@ function* savedJobsSaga(action: PayloadAction<Record<string, any>>) {
 
 function* visitedJobsSaga(action: PayloadAction<Record<string, any>>) {
   try {
-    console.log(action.payload);
+    console.log('action.payload', action.payload);
     const response: AxiosResponse = yield call(visitedJobs, action.payload);
     yield put(visitedJobsSuccess(response.data));
     yield put(getStudentDetailsRequest());

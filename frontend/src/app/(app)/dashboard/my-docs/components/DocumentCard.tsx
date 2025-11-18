@@ -112,11 +112,9 @@ export const DocumentCard = ({
     }
   };
 
-  // Handle refresh dynamically based on type
   const handleRefresh = async () => {
     if (isRefreshing || status === 'completed') return;
 
-    console.log('🔄 Manual refresh for:', item._id, 'type:', type);
     setIsRefreshing(true);
 
     try {
