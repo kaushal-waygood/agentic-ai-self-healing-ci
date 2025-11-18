@@ -19,12 +19,14 @@ import {
   Trash2,
   RefreshCw,
   Edit3,
+  Eye,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export const DocumentCard = ({
   item,
+  index,
   type,
   onDelete,
   onCopy,
@@ -196,8 +198,11 @@ export const DocumentCard = ({
               status,
             )}`}
           >
-            {status === 'pending' ? 'processing' : status}
-            {isRefreshing && '...'}
+            {isRefreshing
+              ? 'Refreshing...'
+              : status === 'pending'
+              ? 'processing...'
+              : status}
           </span>
         </div>
         <div className="flex items-center space-x-2">
@@ -304,22 +309,37 @@ export const DocumentCard = ({
       </div>
 
       <h3
-        className={`font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 ${
+        className={`flex items-center justify-between font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1 ${
           isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
         }`}
-        onClick={openContent}
+        // onClick={openContent}
       >
-        {item.cvTitle || getTitle()}
+        <span className="truncate">
+          <span className="text-sm font-semibold text-gray-500  ">
+            {index}
+            {'. '}
+          </span>
+          {(item.cvTitle || getTitle()).slice(0, 40) +
+            ((item.cvTitle || getTitle()).length > 40 ? '...' : '')}
+        </span>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            openContent();
+          }}
+          className={`ml-3 px-3 py-1 border border-blue-600 text-blue-600 text-xs rounded hover:bg-blue-600 hover:text-white transition flex items-center gap-1 ${
+            isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+          } `}
+        >
+          <Eye className="w-3.5 h-3.5" />
+          View Doc
+        </button>
+
         {!isClickable && status === 'failed' && (
           <span className="text-xs text-gray-400 ml-2">
             (Failed to generate)
           </span>
-        )}
-        {isProcessing && (
-          <span className="text-xs text-blue-500 ml-2">(Generating...)</span>
-        )}
-        {isRefreshing && (
-          <span className="text-xs text-green-500 ml-2">(Refreshing...)</span>
         )}
       </h3>
 
@@ -333,14 +353,6 @@ export const DocumentCard = ({
         <p className="text-sm text-red-600 dark:text-red-400 mb-2">
           <strong>Error:</strong> {item.error}
         </p>
-      )}
-
-      {(isProcessing || isRefreshing) && (
-        <div className="mt-3">
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-            <span>{isRefreshing ? 'Refreshing...' : 'Processing...'}</span>
-          </div>
-        </div>
       )}
 
       <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-3">

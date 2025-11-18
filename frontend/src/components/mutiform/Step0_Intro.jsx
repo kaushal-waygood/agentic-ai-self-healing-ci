@@ -1,6 +1,6 @@
 // Step0_SimpleIntroSlim.jsx
-import React from 'react';
-import { Sparkles, Bot, Plus, Trash2, Edit } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bot, Plus, Trash2, Edit } from 'lucide-react';
 
 const Step0_SimpleIntroSlim = ({
   nextStep = () => {},
@@ -27,7 +27,7 @@ const Step0_SimpleIntroSlim = ({
     <div className="w-full max-w-5xl mx-auto p-6 animate-fade-in">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-6 py-4 rounded-lg shadow-lg mb-4">
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-wide">AI Job Agents</h1>
             <p className="text-sm opacity-90 mt-1">
@@ -42,7 +42,48 @@ const Step0_SimpleIntroSlim = ({
             <Plus className="w-4 h-4" />
             Create Agent
           </button>
+        </div> */}
+
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-wide">AI Job Agents</h1>
+            <p className="text-sm opacity-90 mt-1">
+              Manage, track & automate your job search
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-white/90 font-medium">
+                Autopilot
+              </span>
+
+              <button
+                onClick={() => onToggleAutoPilot()}
+                className={`
+          relative inline-flex h-6 w-12 items-center rounded-full transition-all
+          ${agents?.autopilotEnabled ? 'bg-green-500' : 'bg-gray-400'}
+        `}
+              >
+                <span
+                  className={`
+            inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-all
+            ${agents?.autopilotEnabled ? 'translate-x-6' : 'translate-x-1'}
+          `}
+                />
+              </button>
+            </div>
+
+            <button
+              onClick={nextStep}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-purple-700 font-medium shadow-md hover:shadow-lg transition-all hover:scale-[1.02]"
+            >
+              <Plus className="w-4 h-4" />
+              Create Agent
+            </button>
+          </div>
         </div>
+
         {/* Delete Confirmation Popup */}
         {deletePopup.open && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
