@@ -14,7 +14,6 @@ export default function JobDetailPage() {
     const fetchJobDetails = async () => {
       try {
         const response = await apiInstance.get(`/jobs/find?slug=${jobId}`);
-
         setJob(response.data.singleJob);
       } catch (error) {
         console.error('Error fetching job details:', error);

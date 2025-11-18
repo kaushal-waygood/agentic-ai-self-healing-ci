@@ -241,7 +241,10 @@ const PlanCard = ({
             <li key={feature.name} className="flex items-start gap-3">
               <Check className="w-4 h-4 text-purple-500 flex-shrink-0 mt-1" />
               <p className="text-sm text-gray-600">
-                <span className="font-bold text-gray-800">{feature.value}</span>{' '}
+                <span className="font-bold text-gray-800">
+                  {' '}
+                  {feature.value == -1 ? 'Unlimited' : feature.value}
+                </span>{' '}
                 {feature.name}
               </p>
             </li>

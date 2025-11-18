@@ -203,6 +203,7 @@ const tailoredApplicationSchema = new Schema({
   tailoredCoverLetter: { type: Object },
   applicationEmail: { type: Object },
   error: { type: String },
+  flag: { type: String, enum: ['web', 'app', 'extension'] },
   createdAt: { type: Date, default: Date.now },
   completedAt: { type: Date },
 });
@@ -297,6 +298,7 @@ const studentSchema = new Schema(
           enum: ['pending', 'completed', 'failed'],
           default: 'pending',
         },
+        flag: { type: String, enum: ['web', 'app', 'extension'] },
         clTitle: { type: String },
         jobContextString: { type: String },
         finalTouch: { type: String },
@@ -314,6 +316,7 @@ const studentSchema = new Schema(
           enum: ['pending', 'completed', 'failed'],
           default: 'pending',
         },
+        flag: { type: String, enum: ['web', 'app', 'extension'] },
         cvTitle: { type: String },
         jobContextString: { type: String },
         finalTouch: { type: String },

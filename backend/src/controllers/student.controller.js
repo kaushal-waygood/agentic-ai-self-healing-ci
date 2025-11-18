@@ -2148,17 +2148,16 @@ export const toggleAutopilot = async (req, res, next) => {
   }
 };
 
-// Job View Controllers
 export const jobViewedByStudent = async (req, res, next) => {
   try {
     const studentId = req.user._id;
     const { jobId } = req.params;
 
-    // Check if the student has already viewed this specific job
     const student = await Student.findOne({
       _id: studentId,
       'viewedJobs.slug': jobId,
     });
+
 
     if (student) {
       return res.status(200).json({
@@ -2167,14 +2166,12 @@ export const jobViewedByStudent = async (req, res, next) => {
       });
     }
 
-    // If not viewed, add the job reference to the array
     await Student.findByIdAndUpdate(studentId, {
       $push: {
         viewedJobs: { slug: jobId },
       },
     });
 
-    // Invalidate relevant caches
     await redisClient.invalidateJobCacheForStudent(studentId, jobId);
     await redisClient.del(`student:${studentId}:viewedJobs`);
     await redisClient.del(`stats:${studentId}`);
@@ -2216,54 +2213,74 @@ export const isStudentViewedJob = async (req, res, next) => {
   }
 };
 
-// Job Visit Controllers
 export const jobVisitedByStudent = async (req, res) => {
   try {
     const { jobId } = req.params;
-    const studentId = req.user._id;
+    const studentId = req.user?._id;
 
-    const jobExists = await Job.findById(jobId);
-    if (!jobExists) {
+    if (!studentId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const or = [{ slug: jobId }];
+    if (mongoose.Types.ObjectId.isValid(jobId)) {
+      or.unshift({ _id: jobId });
+    }
+
+    // 1) Find the job (single doc, not an array)
+    const job = await Job.findOne({ $or: or })
+      .select('_id title salary location jobTypes company')
+      .lean();
+
+    if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    const student = await Student.findById(studentId);
+    const student = await Student.findById(studentId).select('visitedJobs');
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    const visitedJob = student.visitedJobs.find(
-      (vj) => vj.job.toString() === jobId,
+    if (!Array.isArray(student.visitedJobs)) {
+      student.visitedJobs = [];
+    }
+
+    const now = new Date();
+    const existing = student.visitedJobs.find(
+      (vj) => vj.job && vj.job.toString() === job._id.toString(),
     );
 
-    if (visitedJob) {
-      visitedJob.visitedAt = new Date();
+    if (existing) {
+      existing.visitedAt = now;
     } else {
-      student.visitedJobs.push({ job: jobId });
+      student.visitedJobs.push({ job: job._id, visitedAt: now });
     }
 
     await student.save();
 
-    // Invalidate relevant caches
-    await redisClient.invalidateJobCacheForStudent(studentId, jobId);
-    await redisClient.del(`student:${studentId}:visitedJobs`);
-    await redisClient.del(`stats:${studentId}`);
+    try {
+      if (redisClient?.invalidateJobCacheForStudent) {
+        await redisClient.invalidateJobCacheForStudent(
+          studentId,
+          job._id.toString(),
+        );
+      }
+      if (redisClient?.del) {
+        await redisClient.del(`student:${studentId}:visitedJobs`);
+        await redisClient.del(`stats:${studentId}`);
+      }
+    } catch (e) {
+      console.error('Redis invalidate error:', e);
+    }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Job marked as visited successfully.',
-      job: {
-        _id: jobExists._id,
-        title: jobExists.title,
-        salary: jobExists.salary,
-        location: jobExists.location,
-        jobTypes: jobExists.jobTypes,
-        company: jobExists.company,
-      },
+      job,
     });
   } catch (error) {
     console.error('Error in jobVisitedByStudent:', error);
-    res.status(500).json({ message: 'Server Error' });
+    return res.status(500).json({ message: 'Server Error' });
   }
 };
 

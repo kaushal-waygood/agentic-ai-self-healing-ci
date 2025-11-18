@@ -10,6 +10,7 @@ import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
 import { Search, Frown } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
@@ -96,7 +97,12 @@ export default function JobsPage() {
   };
 
   if (error) {
-    return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: error,
+    });
+    // return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
   }
 
   return (

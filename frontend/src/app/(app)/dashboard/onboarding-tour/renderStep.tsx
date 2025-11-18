@@ -52,7 +52,7 @@ const renderStep = () => {
       content: <SkillsExperienceStep {...stepProps} />,
     },
     {
-      title: 'Job Preferences',
+      title: 'Job Preferenhjgyjgjces',
       subtitle: 'What are you looking for?',
       icon: Briefcase,
       content: <JobPreferencesStep {...stepProps} />,

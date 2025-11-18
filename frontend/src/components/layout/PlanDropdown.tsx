@@ -1,8 +1,7 @@
-// components/PlanDropdown.js
-
+// components/PlanDropdown.tsx
 import { Crown, Zap, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { UsageTracker } from '@/app/(app)/dashboard/UsageAndLimitsCard';
+import { UsageTracker } from '@/components/dashboard/UtilsComp'; // adjust path if necessary
 
 const planConfig = {
   Free: {
@@ -28,6 +27,13 @@ const planConfig = {
   },
 };
 
+const safeNum = (v: any, fallback = 0) => {
+  if (v === -1) return -1;
+  if (v === undefined || v === null || v === '') return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+
 const PlanDropdown = ({
   planType,
   isOpen,
@@ -36,10 +42,23 @@ const PlanDropdown = ({
   planLimits,
 }: any) => {
   const router = useRouter();
-
-  // Select the correct configuration based on planType, with 'Free' as a fallback
   const config = planConfig[planType] || planConfig.Free;
   const { Icon } = config;
+
+  // normalize values passed to UsageTracker (avoid undefined)
+  const cvUsed = safeNum(usageData?.aiCvGenerator, 0);
+  const cvLimit = planLimits?.aiCvGenerator ?? planLimits?.cvCreation ?? null;
+
+  const coverUsed = safeNum(usageData?.aiCoverLetterGenerator, 0);
+  const coverLimit =
+    planLimits?.aiCoverLetterGenerator ?? planLimits?.coverLetter ?? null;
+
+  const appUsed = safeNum(usageData?.applications, 0);
+  const appLimit =
+    planLimits?.applicationLimit ?? planLimits?.aiApplication ?? null;
+
+  const autoDocsUsed = safeNum(usageData?.autoDocs, 0);
+  const autoDocsLimit = planLimits?.autoDocs ?? 0;
 
   return (
     <div className="relative">
@@ -62,29 +81,38 @@ const PlanDropdown = ({
               </div>
             </div>
           </div>
-          <div className="p-4  space-y-4">
+
+          <div className="p-4 space-y-4">
             <UsageTracker
               label="AI CV Generations"
-              used={usageData.aiCvGenerator}
-              limit={planLimits.aiCvGenerator}
+              used={cvUsed}
+              limit={cvLimit ?? 0}
             />
             <UsageTracker
               label="AI Cover Letters"
-              used={usageData.aiCoverLetterGenerator}
-              limit={planLimits.aiCoverLetterGenerator}
+              used={coverUsed}
+              limit={coverLimit ?? 0}
             />
             <UsageTracker
               label="AI Applications"
-              used={usageData.applications}
-              limit={planLimits.applicationLimit}
+              used={appUsed}
+              limit={appLimit ?? 0}
             />
-            <UsageTracker label="AI Auto Docs" used={0} limit={0} />
+            <UsageTracker
+              label="AI Auto Docs"
+              used={autoDocsUsed}
+              limit={autoDocsLimit ?? 0}
+            />
             <UsageTracker
               label="AI Auto Apply Daily limit"
               used={0}
-              limit={0}
+              limit={planLimits?.autoApplyDailyLimit ?? 0}
             />
-            <UsageTracker label="AI Manual Application" used={0} limit={0} />
+            <UsageTracker
+              label="AI Manual Application"
+              used={0}
+              limit={planLimits?.manualApplication ?? 0}
+            />
           </div>
 
           {planType === 'Free' || planType === 'Weekly' ? (
@@ -99,11 +127,10 @@ const PlanDropdown = ({
                     ? 'Upgrade to Weekly '
                     : 'Upgrade to Monthly'}
                 </span>
-                {/* <span>Upgrade Plan</span> */}
               </button>
             </div>
           ) : (
-            <div></div>
+            <div />
           )}
         </div>
       )}
