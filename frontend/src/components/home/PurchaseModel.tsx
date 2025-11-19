@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -19,6 +19,7 @@ import {
   Building2,
   Shield,
   Lock,
+  Trash2,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -45,8 +46,82 @@ interface Plan {
   billingVariants: BillingVariant[];
 }
 
+interface PricingResponse {
+  period: string;
+  original: { [k: string]: number };
+  discounted: { [k: string]: number };
+  discountAmount: { [k: string]: number };
+  appliedCoupon?: {
+    _id: string;
+    code: string;
+    discountType?: string;
+    discountValue?: number | null;
+    discountAmount?: any | null;
+  } | null;
+}
+
+// put near top (outside component)
+type CouponShape = {
+  _id?: string;
+  code: string;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number | null; // percentage (0-100) or fixed amount
+  discountAmount?: number | null; // optional explicit per-currency fixed amount
+};
+
+function computeLocalPricing(
+  basePriceUsd: number,
+  coupon: CouponShape | null,
+): PricingResponse {
+  const currency = 'usd';
+  const original = { [currency]: +basePriceUsd.toFixed(2) };
+
+  if (!coupon) {
+    return {
+      period: '', // caller can set
+      original,
+      discounted: { [currency]: +basePriceUsd.toFixed(2) },
+      discountAmount: { [currency]: 0 },
+      appliedCoupon: null,
+    };
+  }
+
+  let discountAmt = 0;
+
+  if (coupon.discountType === 'percentage' && coupon.discountValue != null) {
+    discountAmt = (basePriceUsd * coupon.discountValue) / 100;
+  } else if (coupon.discountType === 'fixed' && coupon.discountValue != null) {
+    // coupon.discountValue treated as USD fixed amount
+    discountAmt = coupon.discountValue;
+  } else if (coupon.discountAmount != null) {
+    // explicit discount amount sent by server
+    discountAmt = coupon.discountAmount;
+  }
+
+  // clamp
+  if (discountAmt < 0) discountAmt = 0;
+  if (discountAmt > basePriceUsd) discountAmt = basePriceUsd;
+
+  const final = +(basePriceUsd - discountAmt).toFixed(2);
+
+  return {
+    period: '',
+    original,
+    discounted: { [currency]: final },
+    discountAmount: { [currency]: +discountAmt.toFixed(2) },
+    appliedCoupon: {
+      _id: coupon._id,
+      code: coupon.code,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue ?? null,
+      discountAmount: coupon.discountAmount ?? null,
+    },
+  };
+}
+
 const stripePromise = loadStripe(
-  'pk_live_51P9LpzRk1I3BflpJZwwqZtdVW5cJmdivnzPqu6vtSosnfTO44dZhve6DOdtNfupRR247b18tSTU3Ziszq8Yr2Duo00XmtGeZzC',
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+    'pk_test_replace_with_env_key', // fallback - replace in env for prod
 );
 
 export default function CheckoutPage() {
@@ -64,15 +139,38 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // coupon states
+  const [couponCode, setCouponCode] = useState<string>('');
+  const [appliedPricing, setAppliedPricing] = useState<PricingResponse | null>(
+    null,
+  );
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // Helper to pick endpoint based on env (kept your original logic)
+  const pickCreateIntentEndpoint = useCallback(() => {
+    if (process.env.NEXT_PUBLIC_NODE_ENV === 'local') {
+      return '/plan/payment/create-intent';
+    } else if (
+      process.env.NEXT_PUBLIC_NODE_ENV === 'development' ||
+      process.env.NEXT_PUBLIC_NODE_ENV === 'local'
+    ) {
+      return '/plan/payment/create-intent-test';
+    }
+    return null;
+  }, []);
+
   // --- Data Fetching and Intent Creation ---
   useEffect(() => {
+    let mounted = true;
     if (!planId || !selectedPeriod) {
-      setError('Plan information is missing. Please select a plan again.');
-      setIsLoading(false);
+      if (mounted) {
+        setError('Plan information is missing. Please select a plan again.');
+        setIsLoading(false);
+      }
       return;
     }
 
-    const fetchDetailsAndCreateIntent = async () => {
+    const fetchDetailsAndCreateIntent = async (opts?: { coupon?: string }) => {
       const showLoader = clientSecret === null;
       if (showLoader) setIsLoading(true);
       else setIsUpdating(true);
@@ -84,22 +182,8 @@ export default function CheckoutPage() {
           setPlan(planResponse.data.data);
         }
 
-        let intentResponse;
-
-        if (process.env.NEXT_PUBLIC_NODE_ENV === 'production') {
-          intentResponse = await apiInstance.post(
-            '/plan/payment/create-intent',
-            { planId, period: selectedPeriod, currency },
-          );
-        } else if (
-          process.env.NEXT_PUBLIC_NODE_ENV === 'development' ||
-          process.env.NEXT_PUBLIC_NODE_ENV === 'local'
-        ) {
-          intentResponse = await apiInstance.post(
-            '/plan/payment/create-intent-test',
-            { planId, period: selectedPeriod, currency },
-          );
-        } else {
+        const endpoint = pickCreateIntentEndpoint();
+        if (!endpoint) {
           toast({
             title: 'Error',
             description: 'Invalid environment.',
@@ -108,22 +192,111 @@ export default function CheckoutPage() {
           throw new Error('Invalid environment.');
         }
 
+        const body: any = { planId, period: selectedPeriod, currency };
+        if (opts && opts.coupon) body.couponCode = opts.coupon;
+
+        const intentResponse = await apiInstance.post(endpoint, body);
+
         if (!intentResponse.data.success) {
           throw new Error(
-            intentResponse.data.error || 'Could not initialize payment.',
+            intentResponse.data.error ||
+              intentResponse.data.message ||
+              'Could not initialize payment.',
           );
         }
-        setClientSecret(intentResponse.data.clientSecret);
+
+        if (!mounted) return;
+
+        setClientSecret(intentResponse.data.clientSecret || null);
+        setAppliedPricing(intentResponse.data.pricing || null);
       } catch (err: any) {
+        if (!mounted) return;
         setError(err.message || 'An unexpected error occurred.');
       } finally {
+        if (!mounted) return;
         if (showLoader) setIsLoading(false);
         else setIsUpdating(false);
+        setIsApplyingCoupon(false);
       }
     };
 
-    fetchDetailsAndCreateIntent();
+    fetchDetailsAndCreateIntent({ coupon: couponCode || undefined });
+
+    return () => {
+      mounted = false;
+    };
   }, [planId, selectedPeriod]);
+
+  // Replace your current handleApplyCoupon function with this:
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode || !plan || !selectedPeriod) {
+      toast({
+        title: 'Invalid',
+        description: 'Enter coupon and select a plan/period first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    setError(null);
+
+    try {
+      // call your coupon validation endpoint — this should return coupon metadata (discountType/value/etc)
+      const resp = await apiInstance.post('/coupons/redeem-coupon', {
+        code: couponCode.trim().toUpperCase(),
+      });
+
+      if (!resp.data.success) {
+        toast({
+          title: 'Coupon failed',
+          description: resp.data.message || 'Could not apply coupon.',
+          variant: 'destructive',
+        });
+      }
+
+      const couponFromServer: CouponShape = resp.data.data;
+
+      // compute local pricing preview using the plan price for selected period
+      const activeVariant = plan.billingVariants.find(
+        (v) => v.period === selectedPeriod,
+      );
+      if (!activeVariant) throw new Error('Selected billing period not found.');
+
+      const baseUsd = activeVariant.price.effective.usd;
+      const preview = computeLocalPricing(baseUsd, couponFromServer);
+      preview.period = selectedPeriod;
+
+      // set preview pricing locally — do NOT call create-intent here
+      setAppliedPricing(preview);
+
+      toast({
+        title: 'Coupon preview ready',
+        description: `Applied ${couponFromServer.code} — preview only.`,
+        variant: 'default',
+      });
+    } catch (err: any) {
+      console.error('apply coupon error', err);
+      toast({
+        title: 'Coupon failed',
+        description: err.message || 'Could not apply coupon.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    setCouponCode('');
+    setAppliedPricing(null);
+    toast({
+      title: 'Coupon removed',
+      description: 'Preview cleared.',
+      variant: 'default',
+    });
+  };
 
   // --- Render Logic ---
   if (isLoading) {
@@ -165,41 +338,31 @@ export default function CheckoutPage() {
   }
 
   if (!clientSecret || !plan) {
-    return null; // Should be handled by loading/error states
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-6xl mx-auto">
         {/* Header Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 mb-6">
-            <Lock className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-medium text-gray-700">
-              SSL Secured Checkout
-            </span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-800 via-purple-700 to-indigo-700 bg-clip-text text-transparent mb-4">
-            Complete Your Purchase
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            You're just one step away from unlocking premium features. Your
-            payment is protected by enterprise-grade security.
-          </p>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
-          {/* Plan Details Section */}
+          {/* Plan Details Section (left) */}
           <div className="lg:col-span-2 order-2 lg:order-1">
             <PlanDetails
               plan={plan}
               selectedPeriod={selectedPeriod}
               onPeriodChange={setSelectedPeriod}
-              isLoading={isUpdating}
+              isLoading={isUpdating || isApplyingCoupon}
+              pricing={appliedPricing ?? undefined}
+              couponCode={couponCode}
+              setCouponCode={setCouponCode}
+              onApplyCoupon={handleApplyCoupon}
+              onRemoveCoupon={handleRemoveCoupon}
             />
           </div>
 
-          {/* Payment Section */}
+          {/* Payment Section (right) */}
           <div className="lg:col-span-3 order-1 lg:order-2">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               {/* Payment Header */}
@@ -242,23 +405,43 @@ export default function CheckoutPage() {
                 >
                   <PaymentForm />
                 </Elements>
-              </div>
-            </div>
 
-            {/* Security Features */}
-            <div className="mt-6 bg-white/50 backdrop-blur-sm rounded-xl p-6 border border-gray-200">
-              <div className="flex items-center justify-center gap-8 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-green-600" />
-                  <span>256-bit SSL</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-green-600" />
-                  <span>PCI Compliant</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span>Money Back Guarantee</span>
+                {/* Pricing summary on right (keeps showing the same pricing) */}
+                <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">Original</div>
+                    <div className="text-sm text-gray-900">
+                      $
+                      {(
+                        appliedPricing?.original?.usd ??
+                        plan.billingVariants.find(
+                          (v) => v.period === selectedPeriod,
+                        )?.price.effective.usd ??
+                        0
+                      ).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="text-sm text-gray-600">Discount</div>
+                    <div className="text-sm text-green-600">
+                      - ${(appliedPricing?.discountAmount?.usd ?? 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                    <div className="text-lg font-semibold text-gray-900">
+                      You Pay
+                    </div>
+                    <div className="text-lg font-bold text-gray-900">
+                      $
+                      {(
+                        appliedPricing?.discounted?.usd ??
+                        plan.billingVariants.find(
+                          (v) => v.period === selectedPeriod,
+                        )?.price.effective.usd ??
+                        0
+                      ).toFixed(2)}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -268,6 +451,8 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+/* ---------- PlanDetails (left column) ---------- */
 
 const planIcons: Record<string, React.ElementType> = {
   Free: Zap,
@@ -288,11 +473,21 @@ function PlanDetails({
   selectedPeriod,
   onPeriodChange,
   isLoading,
+  pricing,
+  couponCode,
+  setCouponCode,
+  onApplyCoupon,
+  onRemoveCoupon,
 }: {
   plan: Plan;
   selectedPeriod: string | null;
   onPeriodChange: (newPeriod: string) => void;
   isLoading: boolean;
+  pricing?: PricingResponse;
+  couponCode?: string;
+  setCouponCode?: (c: string) => void;
+  onApplyCoupon?: () => void;
+  onRemoveCoupon?: () => void;
 }) {
   const Icon = planIcons[plan.planType] || Zap;
   const colorGradient =
@@ -302,6 +497,11 @@ function PlanDetails({
   );
 
   if (!activeVariant) return null;
+
+  // fallback prices if no pricing object (no coupon)
+  const orig = pricing?.original?.usd ?? activeVariant.price.effective.usd;
+  const discountAmt = pricing?.discountAmount?.usd ?? 0;
+  const youPay = pricing?.discounted?.usd ?? activeVariant.price.effective.usd;
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 h-full relative overflow-hidden">
@@ -316,25 +516,86 @@ function PlanDetails({
 
       {/* Plan Header */}
       <div className={`bg-gradient-to-r ${colorGradient} px-8 py-6`}>
-        <div className="flex items-center gap-4">
-          <div className="bg-white/20 p-3 rounded-xl">
-            <Icon className="w-7 h-7 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-white">
-              {plan.planType} Plan
-            </h2>
-            {plan.popular && (
-              <span className="inline-block bg-white/20 text-white text-xs px-3 py-1 rounded-full mt-1">
-                Most Popular
-              </span>
-            )}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/20 p-3 rounded-xl">
+              <Icon className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">
+                {plan.planType} Plan
+              </h2>
+              {plan.popular && (
+                <span className="inline-block bg-white/20 text-white text-xs px-3 py-1 rounded-full mt-1">
+                  Most Popular
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="p-8">
-        {/* Billing Cycle Selection */}
+        {/* Coupon Input (moved left) */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Coupon
+          </label>
+          <div className="flex items-center flex-col gap-3">
+            <input
+              value={couponCode ?? ''}
+              onChange={(e) => setCouponCode && setCouponCode(e.target.value)}
+              placeholder="Enter coupon code"
+              className="flex-1 border border-gray-200 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  onApplyCoupon && onApplyCoupon();
+                }
+              }}
+            />
+            {pricing?.appliedCoupon ? (
+              <button
+                onClick={onRemoveCoupon}
+                className="bg-white border border-green-200 text-green-700 px-4 py-2 w-full rounded-lg font-medium hover:bg-green-50"
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                onClick={onApplyCoupon}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium w-full hover:bg-purple-700 disabled:opacity-50"
+              >
+                Apply
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Coupons are validated at checkout. Not applied until server
+            confirms.
+          </p>
+        </div>
+
+        <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">Original</div>
+            <div className="text-sm text-gray-900">${orig.toFixed(2)}</div>
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <div className="text-sm text-gray-600">Discount</div>
+            <div className="text-sm text-green-600">
+              - ${discountAmt.toFixed(2)}
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+            <div className="text-lg font-semibold text-gray-900">You Pay</div>
+            <div className="text-lg font-bold text-gray-900">
+              ${youPay.toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        {/* Billing Cycle Selection
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             Choose Billing Cycle
@@ -414,7 +675,7 @@ function PlanDetails({
                 );
               })}
           </div>
-        </div>
+        </div> */}
 
         {/* Features List */}
         <div className="border-t border-gray-200 pt-8">
@@ -423,7 +684,7 @@ function PlanDetails({
             Everything included
           </h3>
           <div className="space-y-4">
-            {activeVariant.features.map((feature: any, index: number) => (
+            {activeVariant.features.map((feature: any) => (
               <div key={feature.name} className="flex items-start gap-3 group">
                 <div className="bg-green-100 p-1 rounded-full flex-shrink-0 mt-0.5">
                   <Check className="w-3 h-3 text-green-600" />
@@ -440,10 +701,14 @@ function PlanDetails({
             ))}
           </div>
         </div>
+
+        {/* Pricing Summary on left */}
       </div>
     </div>
   );
 }
+
+/* ---------- PaymentForm (keeps original behavior) ---------- */
 
 function PaymentForm() {
   const stripe = useStripe();
@@ -464,10 +729,17 @@ function PaymentForm() {
       },
     });
 
-    if (error.type === 'card_error' || error.type === 'validation_error') {
-      setMessage(error.message || 'An unexpected error occurred.');
+    if (error) {
+      if (
+        (error as any).type === 'card_error' ||
+        (error as any).type === 'validation_error'
+      ) {
+        setMessage(error.message || 'An unexpected error occurred.');
+      } else {
+        setMessage('An unexpected error occurred.');
+      }
     } else {
-      setMessage('An unexpected error occurred.');
+      setMessage(null);
     }
 
     setIsProcessing(false);

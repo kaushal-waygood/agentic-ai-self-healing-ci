@@ -1,5 +1,3 @@
-// path: components/protected/OnboardingGuard.jsx
-
 'use client';
 
 import { useEffect } from 'react';

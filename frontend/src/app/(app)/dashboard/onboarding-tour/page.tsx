@@ -356,7 +356,7 @@ const OnboardingPage = () => {
   }
 
   const handleDashboardRedirect = () => {
-    router.push('/dashboard');
+    router.push('/dashboard/search-jobs');
   };
 
   if (step === 0) {
