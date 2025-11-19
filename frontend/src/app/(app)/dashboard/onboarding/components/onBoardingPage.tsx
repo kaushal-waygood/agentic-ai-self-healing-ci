@@ -33,7 +33,6 @@ export default function OnboardingPage() {
         icon={UserCheck}
       />
       <div className="max-w-full mx-auto">
-        {/* We now use the centralized ProfileForm for a consistent experience */}
         <ProfileForm
           onSave={handleProfileSave}
           isSubmitting={isSubmitting}

@@ -2204,7 +2204,6 @@ export const jobViewedByStudent = async (req, res) => {
       or.unshift({ _id: jobId });
     }
 
-    // 1) Find the job (single doc, not an array)
     const job = await Job.findOne({ $or: or })
       .select('_id title salary location jobTypes company')
       .lean();
@@ -2218,11 +2217,14 @@ export const jobViewedByStudent = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    if (!Array.isArray(student.visitedJobs)) {
+    // <- fixed: check the correct property name and initialize it
+    if (!Array.isArray(student.viewedJobs)) {
       student.viewedJobs = [];
     }
 
     const now = new Date();
+
+    // <- consistent key: viewedAt
     const existing = student.viewedJobs.find(
       (vj) => vj.job && vj.job.toString() === job._id.toString(),
     );
@@ -2230,7 +2232,7 @@ export const jobViewedByStudent = async (req, res) => {
     if (existing) {
       existing.viewedAt = now;
     } else {
-      student.viewedJobs.push({ job: job._id, visitedAt: now });
+      student.viewedJobs.push({ job: job._id, viewedAt: now });
     }
 
     await student.save();
@@ -2299,41 +2301,45 @@ export const jobVisitedByStudent = async (req, res) => {
     }
 
     const or = [{ slug: jobId }];
-    if (mongoose.Types.ObjectId.isValid(jobId)) {
-      or.unshift({ _id: jobId });
-    }
+    if (mongoose.Types.ObjectId.isValid(jobId)) or.unshift({ _id: jobId });
 
-    // 1) Find the job (single doc, not an array)
+    // find the job (single doc)
     const job = await Job.findOne({ $or: or })
       .select('_id title salary location jobTypes company')
       .lean();
 
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
+    console.log('job', job);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
 
+    // ensure student exists
     const student = await Student.findById(studentId).select('visitedJobs');
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    if (!Array.isArray(student.visitedJobs)) {
-      student.visitedJobs = [];
-    }
+    console.log('student', student);
+    if (!student) return res.status(404).json({ message: 'Student not found' });
 
     const now = new Date();
-    const existing = student.visitedJobs.find(
-      (vj) => vj.job && vj.job.toString() === job._id.toString(),
+
+    // 1) Try to atomically update an existing visitedJobs entry
+    const updateExisting = await Student.updateOne(
+      { _id: studentId, 'visitedJobs.job': job._id },
+      { $set: { 'visitedJobs.$.visitedAt': now } },
     );
 
-    if (existing) {
-      existing.visitedAt = now;
-    } else {
-      student.visitedJobs.push({ job: job._id, visitedAt: now });
+    // 2) If no existing entry was updated, push a new one (atomic)
+    if (!updateExisting.modifiedCount && updateExisting.matchedCount !== 0) {
+      // matched but nothing modified (rare) -> still safe to push
+      await Student.updateOne(
+        { _id: studentId },
+        { $push: { visitedJobs: { job: job._id, visitedAt: now } } },
+      );
+    } else if (!updateExisting.matchedCount) {
+      // no matched element -> push
+      await Student.updateOne(
+        { _id: studentId },
+        { $push: { visitedJobs: { job: job._id, visitedAt: now } } },
+      );
     }
 
-    await student.save();
-
+    // invalidate cache if available
     try {
       if (redisClient?.invalidateJobCacheForStudent) {
         await redisClient.invalidateJobCacheForStudent(

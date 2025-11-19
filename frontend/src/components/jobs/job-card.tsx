@@ -10,6 +10,7 @@ import {
   viewedJobsRequest,
   visitedJobsRequest,
 } from '@/redux/reducers/jobReducer';
+import { viewedJobs } from '@/services/api/student';
 
 interface JobCardProps {
   job: JobListing;
@@ -21,7 +22,10 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   const dispatch = useDispatch();
   const handleClick = async () => {
     try {
-      dispatch(viewedJobsRequest(job._id || job.slug));
+      // dispatch(viewedJobsRequest(job._id || job.slug));
+
+      const response = await viewedJobs(job._id || job.slug);
+      console.log('response', response);
       onClick();
     } catch (error) {
       console.error('Failed to log job view on click:', error);

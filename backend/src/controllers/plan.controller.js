@@ -5,6 +5,7 @@ import { Plan } from '../models/Plans.model.js'; // keep the path you used
 import { Purchase } from '../models/Purchase.js';
 import { User } from '../models/User.model.js';
 import { config } from '../config/config.js';
+import { Coupon } from '../models/coupon.model.js';
 
 const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
@@ -298,7 +299,7 @@ export const getSinglePlan = getPlan;
 export const createPaymentIntent = async (req, res) => {
   try {
     const userId = req.user && req.user._id;
-    const { planId, period, currency = 'usd' } = req.body;
+    const { planId, period, currency = 'usd', couponCode } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -313,10 +314,17 @@ export const createPaymentIntent = async (req, res) => {
         .json({ success: false, error: 'Plan ID and period are required.' });
     }
 
+    const currencyLower = String(currency || 'usd').toLowerCase();
+    if (!['usd', 'inr'].includes(currencyLower)) {
+      return res
+        .status(400)
+        .json({ success: false, error: 'Invalid currency specified.' });
+    }
+
+    // Check if user already has active plan (same behavior as before)
     const userWithPurchase = await User.findById(userId)
       .populate('currentPurchase')
       .lean();
-
     if (
       userWithPurchase &&
       userWithPurchase.currentPurchase &&
@@ -333,13 +341,7 @@ export const createPaymentIntent = async (req, res) => {
       });
     }
 
-    const currencyLower = String(currency || 'usd').toLowerCase();
-    if (!['usd', 'inr'].includes(currencyLower)) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Invalid currency specified.' });
-    }
-
+    // Load plan and billing variant
     const plan = await Plan.findById(planId).lean();
     if (!plan) {
       return res.status(404).json({ success: false, error: 'Plan not found.' });
@@ -353,24 +355,127 @@ export const createPaymentIntent = async (req, res) => {
       });
     }
 
-    const priceForCurrency =
+    const basePrice =
       variant.price &&
       variant.price.effective &&
       variant.price.effective[currencyLower];
-    if (typeof priceForCurrency !== 'number') {
+
+    if (typeof basePrice !== 'number') {
       return res.status(400).json({
         success: false,
         error: `Price for currency '${currencyLower}' not found.`,
       });
     }
 
-    const amountInSmallestUnit = Math.round(priceForCurrency * 100); // cents/paise
-    if (amountInSmallestUnit <= 0) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Invalid amount for payment.' });
+    // Prepare pricing response
+    const pricingResponse = {
+      period,
+      original: { [currencyLower]: +basePrice.toFixed(2) },
+      discounted: null,
+      discountAmount: null,
+      appliedCoupon: null,
+    };
+
+    let finalPrice = basePrice;
+
+    // If coupon provided, do validation (but DO NOT mutate coupon here)
+    if (couponCode) {
+      const code = String(couponCode).trim().toUpperCase();
+      const coupon = await Coupon.findOne({ code }).lean();
+
+      if (!coupon) {
+        return res
+          .status(404)
+          .json({ success: false, message: 'Coupon not found.' });
+      }
+
+      if (!coupon.isActive) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Coupon is not active.' });
+      }
+
+      const now = new Date();
+      if (coupon.startsAt && coupon.startsAt > now) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Coupon not yet valid.' });
+      }
+      if (coupon.expiresAt && coupon.expiresAt < now) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Coupon expired.' });
+      }
+
+      if (coupon.maxUses != null && coupon.usedCount >= coupon.maxUses) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Coupon usage limit reached.' });
+      }
+
+      console.log('coupon', coupon);
+
+      // plan applicability check (coupon.plansApplicable expects Plan _id list)
+      if (coupon.plansApplicable && coupon.plansApplicable.length) {
+        const allowed = coupon.plansApplicable.some(
+          (p) => p.toString() === plan._id.toString(),
+        );
+
+        console.log('allowed', allowed);
+        if (!allowed) {
+          return res.status(400).json({
+            success: false,
+            message: 'Coupon not applicable for the selected plan.',
+          });
+        }
+      }
+
+      // Compute discounted price from your helper (uses variant.price.effective object)
+      const priceObj =
+        variant.price && variant.price.effective
+          ? variant.price.effective
+          : null;
+      if (!priceObj) {
+        return res
+          .status(500)
+          .json({ success: false, message: 'Plan pricing misconfigured.' });
+      }
+
+      const computed = computeDiscountedPriceForPriceObj(priceObj, coupon);
+
+      finalPrice = computed.final[currencyLower];
+      const discountAmt = computed.discount[currencyLower];
+
+      pricingResponse.discounted = { [currencyLower]: +finalPrice.toFixed(2) };
+      pricingResponse.discountAmount = {
+        [currencyLower]: +discountAmt.toFixed(2),
+      };
+      pricingResponse.appliedCoupon = {
+        _id: coupon._id,
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue ?? null,
+        discountAmount: coupon.discountAmount ?? null,
+      };
+    } else {
+      pricingResponse.discounted = { [currencyLower]: +finalPrice.toFixed(2) };
+      pricingResponse.discountAmount = { [currencyLower]: 0 };
     }
 
+    // If the final amount becomes 0 or negative, handle separately (do not create PaymentIntent)
+    const amountInSmallestUnit = Math.round(finalPrice * 100);
+    if (amountInSmallestUnit <= 0) {
+      // preserve existing behavior: do not create a stripe PaymentIntent for amount 0
+      // caller should use server-side free activation (createSimplePurchaseDev or a dedicated free flow)
+      return res.status(400).json({
+        success: false,
+        message:
+          'Final amount is zero or invalid. For free activations use the dev endpoint or server-side purchase flow.',
+        pricing: pricingResponse,
+      });
+    }
+
+    // Create Stripe PaymentIntent with metadata for later webhook reconciliation
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInSmallestUnit,
       currency: currencyLower,
@@ -380,15 +485,20 @@ export const createPaymentIntent = async (req, res) => {
         planId: plan._id.toString(),
         planType: plan.planType,
         billingPeriod: period,
+        ...(pricingResponse.appliedCoupon
+          ? { couponCode: pricingResponse.appliedCoupon.code }
+          : {}),
       },
     });
 
     return res.status(200).json({
       success: true,
       clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      pricing: pricingResponse,
     });
   } catch (error) {
-    console.error('createPaymentIntent API Error:', error);
+    console.error('createPaymentIntent error:', error);
     return res
       .status(500)
       .json({ success: false, error: 'Internal Server Error' });
