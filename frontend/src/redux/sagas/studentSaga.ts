@@ -458,7 +458,6 @@ function* savedJobsSaga(action: PayloadAction<Record<string, any>>) {
 
 function* visitedJobsSaga(action: PayloadAction<Record<string, any>>) {
   try {
-    console.log('action.payload', action.payload);
     const response: AxiosResponse = yield call(visitedJobs, action.payload);
     yield put(visitedJobsSuccess(response.data));
     yield put(getStudentDetailsRequest());
@@ -469,6 +468,7 @@ function* visitedJobsSaga(action: PayloadAction<Record<string, any>>) {
 
 function* viewedJobsSaga(action: PayloadAction<Record<string, any>>) {
   try {
+    console.log(action.payload);
     const response: AxiosResponse = yield call(viewedJobs, action.payload);
     yield put(viewedJobsSuccess(response.data));
     yield put(getStudentDetailsRequest());

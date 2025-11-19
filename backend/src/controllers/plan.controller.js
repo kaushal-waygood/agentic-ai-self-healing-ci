@@ -14,9 +14,9 @@ const USAGE_LIMIT_MAP = {
   'CV Creation': 'cvCreation',
   'Cover Letter': 'coverLetter',
   'AI Tailored Application': 'aiApplication',
-  'AI Auto-Apply Agent': 'autoApply',
-  'Auto-Apply Daily limit': 'autoApplyDailyLimit',
-  'Manual Application': 'manualApplication',
+  'AI Auto-Apply Agent': 'aiAutoApply', // schema key
+  'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit', // schema key
+  'Manual Application': 'aiMannualApplication', // schema key (typo kept)
 };
 
 // ---------- Helpers ----------
@@ -33,6 +33,7 @@ const parseFeatureLimitValue = (raw) => {
 };
 
 const buildUsageLimitsFromFeatures = (features = []) => {
+  console.log('buildUsageLimitsFromFeatures', features);
   const limits = {};
   features.forEach((feature) => {
     const key = USAGE_LIMIT_MAP[feature.name];
@@ -41,6 +42,8 @@ const buildUsageLimitsFromFeatures = (features = []) => {
     if (parsed === null) return; // don't set invalid values
     limits[key] = parsed;
   });
+
+  console.log('buildUsageLimitsFromFeatures', limits);
   return limits;
 };
 
@@ -465,6 +468,8 @@ export const handleStripeWebhook = async (req, res) => {
         variant.features || [],
       );
 
+      console.log('newUsageLimits', newUsageLimits);
+
       user.currentPlan = planId;
       user.currentPurchase = newPurchase._id;
       user.usageLimits = newUsageLimits;
@@ -679,6 +684,8 @@ export const createSimplePurchaseDev = async (req, res) => {
         throw new Error('Plan not found.');
       }
 
+      console.log('plan', plan);
+
       const variant = safeGetVariant(plan, period);
       if (!variant) {
         throw new Error('Invalid billing period for this plan.');
@@ -723,6 +730,8 @@ export const createSimplePurchaseDev = async (req, res) => {
         variant.features || [],
       );
 
+      console.log('newUsageLimits', newUsageLimits);
+
       user.currentPlan = planId;
       user.currentPurchase = newPurchase._id;
       user.usageLimits = newUsageLimits;
@@ -731,10 +740,14 @@ export const createSimplePurchaseDev = async (req, res) => {
         coverLetter: 0,
         aiApplication: 0,
         autoApply: 0,
-        autoApplyDailyLimit: 0,
-        manualApplication: 0,
+        aiAutoApply: 0,
+        aiAutoApplyDailyLimit: 0,
+        aiMannualApplication: 0,
         lastReset: new Date(),
       };
+
+      console.log(user.usageCounters);
+      console.log(user.usageLimits);
 
       await user.save({ session });
 

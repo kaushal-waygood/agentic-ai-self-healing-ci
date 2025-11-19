@@ -144,10 +144,19 @@ const MultiStepForm = () => {
         alert('Agent updated successfully!');
         dispatch(getAutopilotRequest());
       } else {
-        await apiInstance.post('/pilotagent/create', submissionData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        // alert('Agent created successfully!');
+        const timerPromise = new Promise((resolve) =>
+          setTimeout(resolve, 5000),
+        );
+
+        const apiPromise = apiInstance.post(
+          '/pilotagent/create',
+          submissionData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          },
+        );
+
+        await Promise.all([apiPromise, timerPromise]);
 
         dispatch(getAutopilotRequest());
       }

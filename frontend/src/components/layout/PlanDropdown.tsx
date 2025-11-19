@@ -46,19 +46,23 @@ const PlanDropdown = ({
   const { Icon } = config;
 
   // normalize values passed to UsageTracker (avoid undefined)
-  const cvUsed = safeNum(usageData?.aiCvGenerator, 0);
-  const cvLimit = planLimits?.aiCvGenerator ?? planLimits?.cvCreation ?? null;
+  const cvUsed = safeNum(usageData?.cvCreation, 0);
+  const cvLimit = planLimits?.aiCvGenerator ?? null;
 
-  const coverUsed = safeNum(usageData?.aiCoverLetterGenerator, 0);
-  const coverLimit =
-    planLimits?.aiCoverLetterGenerator ?? planLimits?.coverLetter ?? null;
+  const coverUsed = safeNum(usageData?.coverLetter, 0);
+  const coverLimit = planLimits?.aiCoverLetterGenerator ?? null;
 
-  const appUsed = safeNum(usageData?.applications, 0);
-  const appLimit =
-    planLimits?.applicationLimit ?? planLimits?.aiApplication ?? null;
+  const appUsed = safeNum(usageData?.aiApplication, 0);
+  const appLimit = planLimits?.aiJobApply ?? planLimits?.aiJobApply ?? null;
 
-  const autoDocsUsed = safeNum(usageData?.autoDocs, 0);
-  const autoDocsLimit = planLimits?.autoDocs ?? 0;
+  const autoDocsUsed = safeNum(usageData?.aiAutoApply, 0);
+  const autoDocsLimit = planLimits?.aiAutoApply ?? 0;
+
+  const autoDocsDailyLimit = safeNum(usageData?.aiAutoApplyDailyLimit, 0);
+  const autoDocsDailyLimitLimit = planLimits?.aiAutoApplyDailyLimit ?? 0;
+
+  const manualDocsUsed = safeNum(usageData?.aiMannualApplication, 0);
+  const manualDocsLimit = planLimits?.aiMannualApplication ?? 0;
 
   return (
     <div className="relative">
@@ -91,7 +95,7 @@ const PlanDropdown = ({
             <UsageTracker
               label="AI Cover Letters"
               used={coverUsed}
-              limit={coverLimit ?? 0}
+              limit={coverLimit}
             />
             <UsageTracker
               label="AI Applications"
@@ -105,13 +109,13 @@ const PlanDropdown = ({
             />
             <UsageTracker
               label="AI Auto Apply Daily limit"
-              used={0}
-              limit={planLimits?.autoApplyDailyLimit ?? 0}
+              used={autoDocsDailyLimit}
+              limit={autoDocsDailyLimitLimit ?? 0}
             />
             <UsageTracker
               label="AI Manual Application"
-              used={0}
-              limit={planLimits?.manualApplication ?? 0}
+              used={manualDocsUsed}
+              limit={manualDocsLimit ?? 0}
             />
           </div>
 
