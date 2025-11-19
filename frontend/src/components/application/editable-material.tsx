@@ -166,7 +166,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   };
 
   const handleEditToggle = async () => {
-
     if (isEditing) {
       // Save mode
       if (editorRef.current) {
@@ -391,7 +390,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         html,
         title: documentName,
       });
-
 
       const { title: successTitle, description: successDescription } =
         getSaveSuccessMessage(documentName);

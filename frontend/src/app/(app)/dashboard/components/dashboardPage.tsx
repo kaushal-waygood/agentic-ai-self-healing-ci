@@ -1,8 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { driver } from 'driver.js';
-import { useToast } from '@/hooks/use-toast';
 import confetti from 'canvas-confetti';
 
 import {
@@ -40,18 +38,9 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
-import { JobCard } from '@/components/jobs/job-card';
-import { ApplicationRow } from './applications/components/statusConfig';
 import { useRouter } from 'next/navigation';
 import CompletionModal from './CompletionModel';
+import { startDashboardTour } from './dashboardDriver';
 
 export function StatCard({
   title,
@@ -653,16 +642,40 @@ export default function DashboardPage() {
     fetchSavedJobs();
   }, []);
 
-  // Instrunction Demo logics
+  // Instruction Driver tour logic
+
+  const [showCompletionModal, setShowCompletionModal] =
+    useState<boolean>(false);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await apiInstance.get('/students/details');
+        const hasCompleted = res.data.studentDetails.hasCompletedOnboarding;
+        console.log('Fetched:', hasCompleted);
+
+        if (hasCompleted) {
+          // Auto-start tour if onboarding already completed
+          handleStartTour();
+        }
+      } catch (e) {
+        console.error('Error fetching:', e);
+      }
+    };
+
+    run();
+  }, []);
+
   useEffect(() => {
     const btn = document.getElementById('start-tour-btn');
     if (!btn) return;
 
-    btn.addEventListener('click', () => startDashboardTour());
+    btn.addEventListener('click', handleStartTour);
+
+    return () => {
+      btn.removeEventListener('click', handleStartTour);
+    };
   }, []);
-
-  const { toast } = useToast();
-
   const fireConfetti = () => {
     const end = Date.now() + 1000;
 
@@ -685,102 +698,11 @@ export default function DashboardPage() {
     })();
   };
 
-  const [showCompletionModal, setShowCompletionModal] =
-    useState<boolean>(false);
-
-  const startDashboardTour = () => {
-    const steps = [
-      {
-        element: '#profile-readiness',
-        popover: {
-          title: 'Profile Strength',
-          description: 'This shows your overall profile readiness score.',
-          position: 'right',
-        },
-      },
-      {
-        element: '#my-docsx',
-        popover: {
-          title: 'Saved Documents',
-          description: 'Your AI-generated Docs are stored here.',
-        },
-      },
-      {
-        element: '#my-applications',
-        popover: {
-          title: 'Applicatins',
-          description: 'All personalized AI-generated Applications letters.',
-        },
-      },
-      {
-        element: '#other-driver',
-        popover: {
-          title: 'Other Stuff',
-          description: 'Bookmarked job posts appear here.',
-        },
-      },
-
-      {
-        element: '#plan-driver',
-        popover: {
-          title: 'Your Current plan',
-          description:
-            'Jobs you applied for using ZobsAI Auto Apply or manually.',
-        },
-      },
-      {
-        element: '#coreToolkit-driver',
-        popover: {
-          title: 'Ai Toolkits',
-          description:
-            'Jobs you applied for using ZobsAI Auto Apply or manually.',
-        },
-      },
-
-      {
-        popover: {
-          title: 'Complete',
-          description: 'Thank you for visiting ZobsAi.',
-          position: 'top',
-        },
-      },
-    ];
-
-    const LAST_INDEX = steps.length - 1;
-    let isOnLastStep = false;
-
-    const tour = driver({
-      animate: true,
-      popoverClass: 'zobsai-tour',
-      showProgress: true,
-      smoothScroll: true,
-      allowClose: false,
-
-      steps,
-
-      // Fires every time a step becomes active
-      onHighlighted: (element, step, { state }) => {
-        // state.activeIndex is the current step index
-        if (state.activeIndex === LAST_INDEX) {
-          isOnLastStep = true;
-        } else {
-          isOnLastStep = false;
-        }
-      },
-
-      onDestroyed: () => {
-        if (isOnLastStep) {
-          toast({
-            title: 'Success',
-            description: '🎉 Onboarding completed! You can restart anytime.',
-          });
-          setShowCompletionModal(true);
-          fireConfetti();
-        }
-      },
+  const handleStartTour = () => {
+    startDashboardTour({
+      fireConfetti,
+      setShowCompletionModal,
     });
-
-    tour.drive();
   };
 
   return (

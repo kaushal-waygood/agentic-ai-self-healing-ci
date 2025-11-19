@@ -2,7 +2,13 @@ import React, { useEffect, useState } from 'react';
 import apiInstance from '@/services/api';
 import { Clock, FileText } from 'lucide-react';
 
-const Step3CoverLetter = ({ nextStep, prevStep, handleChange, values }) => {
+const Step3CoverLetter = ({
+  nextStep,
+  prevStep,
+  handleChange,
+  values,
+  handleSubmit,
+}) => {
   const [coverLetters, setCoverLetters] = useState([]);
   const [stats, setStats] = useState({ coverLettersCount: 0 });
   const [loading, setLoading] = useState(true);
@@ -168,7 +174,11 @@ const Step3CoverLetter = ({ nextStep, prevStep, handleChange, values }) => {
           </button>
           <button
             className="next-btn px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-            onClick={nextStep}
+            // onClick={nextStep}
+            onClick={() => {
+              handleSubmit();
+              // nextStep();
+            }}
           >
             Next: Final Config →
           </button>

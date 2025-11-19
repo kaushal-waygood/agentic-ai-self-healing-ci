@@ -8,7 +8,7 @@ import Step4ConfigureSave from './Step4ConfigureSave';
 import apiInstance from '@/services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
+
 import {
   createAutopilotRequest,
   getAutopilotRequest,
@@ -216,22 +216,22 @@ const MultiStepForm = () => {
             nextStep={nextStep}
             prevStep={prevStep}
             handleChange={handleChange}
+            handleSubmit={handlePreview}
             values={formData}
           />
         );
       case 4:
-        return (
-          <Step4ConfigureSave
-            prevStep={prevStep}
-            nextStep={nextStep}
-            handleChange={handleChange}
-            handleSubmit={handlePreview} // CHANGED
-            values={formData}
-          />
-        );
-
-      case 5:
         return <GeneratingAgent />;
+      // <Step4ConfigureSave
+      //   prevStep={prevStep}
+      //   nextStep={nextStep}
+      //   handleChange={handleChange}
+      //   handleSubmit={handlePreview} // CHANGED
+      //   values={formData}
+      // />
+
+      // case 5:
+      //   return <GeneratingAgent />;
       default:
         return <div>Done.</div>;
     }
