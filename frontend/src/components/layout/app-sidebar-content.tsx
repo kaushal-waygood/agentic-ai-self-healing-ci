@@ -102,6 +102,12 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         href: '/dashboard/my-docs',
         icon: Activity,
       },
+
+      {
+        title: 'ZobsAI Partnership',
+        href: '/dashboard/partnership',
+        icon: ZapIcon,
+      },
       {
         title: 'Organization',
         href: '/dashboard/organization',

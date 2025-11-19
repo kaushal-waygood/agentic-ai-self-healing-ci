@@ -1,10 +1,5 @@
-/* ===============================
-   ZobsAI ONBOARDING TOUR THEME
-   Tailwind-powered (via @apply)
-   =============================== */
-
 /* 1️⃣ Main Popover Box */
-.zobsai-tour.driver-popover {
+.zobsai-tour.driver-popov {
   @apply bg-white rounded-2xl shadow-xl p-5 border border-gray-100;
   animation: fadeIn 0.25s ease-out;
 }
