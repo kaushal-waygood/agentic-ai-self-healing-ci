@@ -6,7 +6,10 @@ import { MapPin, Clock, Building, Eye, TrendingUp } from 'lucide-react';
 import { truncate } from '@/utils/formatTitle';
 import apiInstance from '@/services/api';
 import { useDispatch } from 'react-redux';
-import { visitedJobsRequest } from '@/redux/reducers/jobReducer';
+import {
+  viewedJobsRequest,
+  visitedJobsRequest,
+} from '@/redux/reducers/jobReducer';
 
 interface JobCardProps {
   job: JobListing;
@@ -17,10 +20,8 @@ interface JobCardProps {
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   const dispatch = useDispatch();
   const handleClick = async () => {
-    console.log('job', job);
     try {
-      dispatch(visitedJobsRequest(job._id || job.slug));
-      await apiInstance.get(`/jobs/job/views/${job._id || job.slug}`);
+      dispatch(viewedJobsRequest(job._id || job.slug));
       onClick();
     } catch (error) {
       console.error('Failed to log job view on click:', error);

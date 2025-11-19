@@ -187,8 +187,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
   const handleApplyOnSite = useCallback(async () => {
     try {
-      await dispatch(visitedJobsRequest(job._id) as any);
-      // no toast on success to avoid double messaging; user is navigating away anyway
+      dispatch(visitedJobsRequest(job._id || job.slug));
     } catch {
       toast({
         variant: 'destructive',

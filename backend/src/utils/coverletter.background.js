@@ -8,6 +8,7 @@ import {
   sendRealTimeUserNotification,
 } from './notification.utils.js';
 import { convertToStyledHtml } from './coverletter.htmlify.js';
+import { User } from '../models/User.model.js';
 
 export const processCoverLetterGeneration = async (
   userId,
@@ -86,26 +87,12 @@ export const processCoverLetterGeneration = async (
     studentProfile.resumeText =
       studentProfile.resumeText || parsed.resumeText || '';
 
-    console.log(
-      'processCoverLetterGeneration: normalized studentProfile for prompt:',
-      {
-        fullName: studentProfile.fullName,
-        email: studentProfile.email,
-        phone: studentProfile.phone,
-        hasResumeText: !!studentProfile.resumeText,
-      },
-    );
-
     const prompt = generateCoverLetterPrompts(
       jobContextString,
       JSON.stringify(studentProfile),
       finalTouch,
     );
 
-    // Use the enhanced Gemini function with built-in retry logic
-    console.log(
-      `Starting cover letter generation for user ${userId}, job ${jobId}`,
-    );
     const rawResponse = await generateContent(prompt);
     const rawStr =
       typeof rawResponse === 'string' ? rawResponse : String(rawResponse || '');
@@ -132,7 +119,6 @@ export const processCoverLetterGeneration = async (
       fontFamily: 'Inter, Roboto, Arial, sans-serif',
     });
 
-    // ------------------ update DB with result ------------------
     const updateResult = await Student.updateOne(
       { 'cls._id': clId },
       {
@@ -143,7 +129,6 @@ export const processCoverLetterGeneration = async (
           'cls.$.jobContextString': jobContextString,
           'cls.$.finalTouch': finalTouch,
         },
-        $inc: { 'usageCounters.coverLetterCreation': 1 },
       },
     );
 
@@ -153,7 +138,18 @@ export const processCoverLetterGeneration = async (
       );
     }
 
-    // ------------------ notify user ------------------
+    try {
+      await User.updateOne(
+        { _id: userId },
+        { $inc: { 'usageCounters.coverLetter': 1 } },
+      );
+    } catch (incErr) {
+      console.error(
+        `Failed to increment coverLetterCreation for user ${userId}:`,
+        incErr,
+      );
+    }
+
     await sendRealTimeUserNotification(
       io,
       userId,
@@ -161,10 +157,6 @@ export const processCoverLetterGeneration = async (
         'Your new cover letter is ready!',
         clId,
       ),
-    );
-
-    console.log(
-      `Cover letter generation completed successfully for user ${userId}, job ${jobId}`,
     );
   } catch (error) {
     console.error(

@@ -2148,40 +2148,116 @@ export const toggleAutopilot = async (req, res, next) => {
   }
 };
 
-export const jobViewedByStudent = async (req, res, next) => {
+// export const jobViewedByStudent = async (req, res, next) => {
+//   try {
+//     const studentId = req.user._id;
+//     const { jobId } = req.params;
+
+//     console.log(studentId, jobId);
+
+//     const student = await Student.findOne({
+//       _id: studentId,
+//       'viewedJobs.slug': jobId,
+//     });
+
+//     const job = await Job.findOne({ $or: or })
+//       .select('_id title salary location jobTypes company')
+//       .lean();
+
+//     if (student) {
+//       return res.status(200).json({
+//         success: true,
+//         message: 'Job view was already recorded.',
+//       });
+//     }
+
+//     await Student.findByIdAndUpdate(studentId, {
+//       $push: {
+//         viewedJobs: { slug: jobId },
+//       },
+//     });
+
+//     await redisClient.invalidateJobCacheForStudent(studentId, jobId);
+//     await redisClient.del(`student:${studentId}:viewedJobs`);
+//     await redisClient.del(`stats:${studentId}`);
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Job view recorded successfully.',
+//     });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+export const jobViewedByStudent = async (req, res) => {
   try {
-    const studentId = req.user._id;
     const { jobId } = req.params;
+    const studentId = req.user?._id;
 
-    const student = await Student.findOne({
-      _id: studentId,
-      'viewedJobs.slug': jobId,
-    });
-
-
-    if (student) {
-      return res.status(200).json({
-        success: true,
-        message: 'Job view was already recorded.',
-      });
+    if (!studentId) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    await Student.findByIdAndUpdate(studentId, {
-      $push: {
-        viewedJobs: { slug: jobId },
-      },
-    });
+    const or = [{ slug: jobId }];
+    if (mongoose.Types.ObjectId.isValid(jobId)) {
+      or.unshift({ _id: jobId });
+    }
 
-    await redisClient.invalidateJobCacheForStudent(studentId, jobId);
-    await redisClient.del(`student:${studentId}:viewedJobs`);
-    await redisClient.del(`stats:${studentId}`);
+    // 1) Find the job (single doc, not an array)
+    const job = await Job.findOne({ $or: or })
+      .select('_id title salary location jobTypes company')
+      .lean();
 
-    res.status(200).json({
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    const student = await Student.findById(studentId).select('viewedJobs');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    if (!Array.isArray(student.visitedJobs)) {
+      student.viewedJobs = [];
+    }
+
+    const now = new Date();
+    const existing = student.viewedJobs.find(
+      (vj) => vj.job && vj.job.toString() === job._id.toString(),
+    );
+
+    if (existing) {
+      existing.viewedAt = now;
+    } else {
+      student.viewedJobs.push({ job: job._id, visitedAt: now });
+    }
+
+    await student.save();
+
+    try {
+      if (redisClient?.invalidateJobCacheForStudent) {
+        await redisClient.invalidateJobCacheForStudent(
+          studentId,
+          job._id.toString(),
+        );
+      }
+      if (redisClient?.del) {
+        await redisClient.del(`student:${studentId}:viewedJobs`);
+        await redisClient.del(`stats:${studentId}`);
+      }
+    } catch (e) {
+      console.error('Redis invalidate error:', e);
+    }
+
+    return res.status(200).json({
       success: true,
-      message: 'Job view recorded successfully.',
+      message: 'Job marked as viewed successfully.',
+      job,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error in jobVisitedByStudent:', error);
+    return res.status(500).json({ message: 'Server Error' });
   }
 };
 

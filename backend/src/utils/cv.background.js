@@ -8,6 +8,7 @@ import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
+import { User } from '../models/User.model.js';
 
 const MAX_RETRIES = 5;
 const INITIAL_BACKOFF_MS = 1000; // 1s
@@ -43,7 +44,6 @@ function sleep(ms) {
 export const processCVGeneration = async (
   userId,
   jobId,
-  flag,
   studentData,
   jobContextString,
   finalTouch,
@@ -53,6 +53,8 @@ export const processCVGeneration = async (
   let jobTitle = 'your recent job';
 
   try {
+    // Grab the CV subdocument created by initiateCVGeneration
+    // We expect the cvs array to include the entry with jobId.
     const student = await Student.findOne(
       { _id: userId, 'cvs.jobId': jobId },
       { 'cvs.$': 1 },
@@ -165,7 +167,6 @@ export const processCVGeneration = async (
       {
         $set: {
           'cvs.$.status': 'completed',
-          'cvs.$.flag': flag,
           'cvs.$.cvData': parsedJson,
           'cvs.$.atsScore': atsScore,
           'cvs.$.completedAt': new Date(),
@@ -177,6 +178,24 @@ export const processCVGeneration = async (
 
     if (!updateResult || updateResult.matchedCount === 0) {
       throw new Error(`Failed to update CV with cvId: ${cvId} (match count 0)`);
+    }
+
+    // Only increment user's cvCreation usage AFTER successful persist of CV
+    try {
+      await User.updateOne(
+        { _id: userId },
+        {
+          $inc: {
+            'usageCounters.cvCreation': 1,
+          },
+        },
+      );
+    } catch (incErr) {
+      // Log but don't fail the whole flow if increment fails
+      console.error(
+        `Failed to increment usageCounters.cvCreation for user ${userId}:`,
+        incErr,
+      );
     }
 
     // Notify success

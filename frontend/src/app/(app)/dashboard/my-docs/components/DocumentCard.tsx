@@ -323,18 +323,25 @@ export const DocumentCard = ({
             ((item.cvTitle || getTitle()).length > 40 ? '...' : '')}
         </span>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            openContent();
-          }}
-          className={`ml-3 px-3 py-1 border border-blue-600 text-blue-600 text-xs rounded hover:bg-blue-600 hover:text-white transition flex items-center gap-1 ${
-            isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-          } `}
-        >
-          <Eye className="w-3.5 h-3.5" />
-          View Doc
-        </button>
+        <div className="flex items-end flex-col">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openContent();
+            }}
+            className={`ml-3 px-3 py-1 border border-blue-600 text-blue-600 text-xs rounded hover:bg-blue-600 hover:text-white transition flex items-center gap-1 ${
+              isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+            } `}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View Doc
+          </button>{' '}
+          {item.flag && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 mt-1">
+              {item.flag}
+            </p>
+          )}
+        </div>
 
         {!isClickable && status === 'failed' && (
           <span className="text-xs text-gray-400 ml-2">
