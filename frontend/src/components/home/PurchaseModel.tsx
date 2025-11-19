@@ -120,8 +120,7 @@ function computeLocalPricing(
 }
 
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
-    'pk_test_replace_with_env_key', // fallback - replace in env for prod
+  'pk_live_51P9LpzRk1I3BflpJZwwqZtdVW5cJmdivnzPqu6vtSosnfTO44dZhve6DOdtNfupRR247b18tSTU3Ziszq8Yr2Duo00XmtGeZzC', // fallback - replace in env for prod
 );
 
 export default function CheckoutPage() {
