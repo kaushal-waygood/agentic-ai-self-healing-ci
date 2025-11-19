@@ -288,7 +288,7 @@ export function CvGeneratorClient() {
       try {
         planResponse = await apiInstance.post('/plan/usage', {
           feature: 'cv-creation',
-          creditsUsed: 1,
+          creditsUsed: 0,
           action: 'generate',
         });
       } catch (err: any) {
@@ -366,6 +366,8 @@ export function CvGeneratorClient() {
       } else if (jobContext.mode === 'select') {
         apiEndpoint = `/students/resume/generate/jobId`;
       }
+
+      formData.append('flag', 'web');
 
       const apiResponse = await apiInstance.post(apiEndpoint, formData);
 
@@ -513,8 +515,6 @@ export function CvGeneratorClient() {
       });
     }
   };
-
-  console.log('rate limit ', rateLimited, rateLimitMessage);
 
   const renderStep = () => {
     switch (wizardStep) {

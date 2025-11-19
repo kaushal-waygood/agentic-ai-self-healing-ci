@@ -331,7 +331,7 @@ export function CoverLetterGeneratorClient() {
       try {
         planResponse = await apiInstance.post('/plan/usage', {
           feature: 'cover-letter',
-          creditsUsed: 1,
+          creditsUsed: 0,
           action: 'generate', // server should either reserve/approve or reject
         });
         console.log('Plan response:', planResponse);
@@ -462,7 +462,7 @@ export function CoverLetterGeneratorClient() {
         try {
           await apiInstance.post('/plan/usage', {
             feature: 'cover-letter',
-            creditsUsed: 1,
+            creditsUsed: 0,
             action: 'generate',
           });
         } catch (usageErr) {
@@ -560,7 +560,7 @@ export function CoverLetterGeneratorClient() {
     await handleGenerate();
     const response = await apiInstance.post('/plan/usage', {
       feature: 'cover-letter',
-      creditsUsed: 1,
+      creditsUsed: 0,
       action: 'regenerate',
     });
     toast({

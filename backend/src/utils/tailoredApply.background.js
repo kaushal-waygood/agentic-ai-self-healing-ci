@@ -10,6 +10,7 @@ import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
+import { User } from '../models/User.model.js';
 
 // Cleanup helpers
 const processCVResponse = (response) =>
@@ -179,7 +180,17 @@ export const processTailoredApplication = async (
           'tailoredApplications.$.applicationEmail': applicationEmail,
           'tailoredApplications.$.completedAt': new Date(),
         },
-        $inc: { 'usageCounters.tailoredApplications': 1 },
+      },
+    );
+
+    await User.updateOne(
+      {
+        _id: userId,
+      },
+      {
+        $inc: {
+          'usageCounters.aiApplication': 1,
+        },
       },
     );
 

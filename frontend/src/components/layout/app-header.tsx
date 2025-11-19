@@ -25,30 +25,6 @@ import PlanDropdown from './PlanDropdown';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import { NotificationBell } from '../notifications/NotificationBell';
 
-// --- Helper Functions & Components (defined outside the main component) ---
-
-const fetchJobSuggestions = async (query) => {
-  const allPossibleJobs = [
-    'Software Engineer',
-    'Senior Software Developer',
-    'Frontend Developer',
-    'React Developer',
-    'Node.js Developer',
-    'Full-Stack Developer',
-    'Product Manager',
-    'UI/UX Designer',
-    'Data Scientist',
-    'DevOps Engineer',
-  ];
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  if (!query) return [];
-  const lowerCaseQuery = query.toLowerCase();
-  return allPossibleJobs.filter((job) =>
-    job.toLowerCase().includes(lowerCaseQuery),
-  );
-};
-
-// Moved UsageTracker outside AppHeader to prevent re-creation on every render.
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
   const isUnlimited = limit === -1;
@@ -73,45 +49,54 @@ const UsageTracker = ({ label, used, limit }) => {
   );
 };
 
+const fetchJobSuggestions = async (query: string) => {
+  const allPossibleJobs = [
+    'Software Engineer',
+    'Senior Software Developer',
+    'Frontend Developer',
+    'React Developer',
+    'Node.js Developer',
+    'Full-Stack Developer',
+    'Product Manager',
+    'UI/UX Designer',
+    'Data Scientist',
+    'DevOps Engineer',
+  ];
+  await new Promise((r) => setTimeout(r, 250));
+  if (!query) return [];
+  const q = query.toLowerCase();
+  return allPossibleJobs.filter((j) => j.toLowerCase().includes(q));
+};
+
 export const CommandPalette = ({ setIsSearchOpen }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const debouncedFetch = useCallback(
-    debounce(async (query) => {
-      if (!query) {
+  const debounced = useCallback(
+    debounce(async (q: string) => {
+      if (!q) {
         setSuggestions([]);
-        setIsLoading(false);
+        setLoading(false);
         return;
       }
-      setIsLoading(true);
-      const result = await fetchJobSuggestions(query);
-      setSuggestions(result);
-      setIsLoading(false);
+      setLoading(true);
+      const res = await fetchJobSuggestions(q);
+      setSuggestions(res);
+      setLoading(false);
     }, 300),
     [],
   );
 
   useEffect(() => {
-    debouncedFetch(searchQuery);
-  }, [searchQuery, debouncedFetch]);
+    debounced(query);
+    return () => debounced.cancel();
+  }, [query, debounced]);
 
-  const handleSearchSubmit = (e) => {
-    if (e.key === 'Enter' && searchQuery) {
-      e.preventDefault();
-      router.push(
-        `/dashboard/search-jobs?query=${encodeURIComponent(searchQuery)}`,
-      );
-      setIsSearchOpen(false);
-    }
-  };
-
-  const handleSuggestionClick = (suggestion) => {
-    router.push(
-      `/dashboard/search-jobs?query=${encodeURIComponent(suggestion)}`,
-    );
+  const doSearch = (q: string) => {
+    if (!q) return;
+    router.push(`/dashboard/search-jobs?query=${encodeURIComponent(q)}`);
     setIsSearchOpen(false);
   };
 
@@ -120,68 +105,62 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
       className="fixed inset-0 z-50 flex items-start justify-center pt-20"
       onClick={() => setIsSearchOpen(false)}
     >
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fadeIn"></div>
+      <div className="fixed inset-0 bg-black/30" />
       <div
-        className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 animate-slideDown"
+        className="relative z-10 w-full max-w-lg bg-white rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-3 border-b border-slate-200">
+        <div className="p-3 border-b">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" />
             <input
-              type="text"
-              placeholder="Search for jobs (e.g., 'React Developer')..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchSubmit}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') doSearch(query);
+                if (e.key === 'Escape') setIsSearchOpen(false);
+              }}
               autoFocus
-              className="w-full h-12 pl-12 pr-4 bg-slate-50 border-transparent focus:border-purple-500 focus:ring-purple-500 rounded-lg text-base"
+              className="w-full h-12 pl-12 pr-4 rounded-lg"
+              placeholder="Search for jobs..."
             />
           </div>
         </div>
+
         <div className="max-h-96 overflow-y-auto p-2">
-          {isLoading && (
-            <div className="flex items-center justify-center p-8 text-slate-500">
-              <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              <span>Loading...</span>
+          {loading && (
+            <div className="p-8 text-center">
+              <Loader2 className="animate-spin inline-block mr-2" /> Loading...
             </div>
           )}
-          {!isLoading && searchQuery && (
+
+          {!loading && query && (
             <>
               <div
-                onClick={() => handleSuggestionClick(searchQuery)}
-                className="flex items-center space-x-4 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
+                onClick={() => doSearch(query)}
+                className="p-3 bg-blue-50 rounded cursor-pointer flex items-center"
               >
-                <Search className="w-5 h-5 text-blue-500" />
-                <p className="font-medium text-slate-800">
-                  Search for jobs:{' '}
-                  <span className="text-blue-600 font-semibold">
-                    &quot;{searchQuery}&quot;
-                  </span>
-                </p>
+                <Search />{' '}
+                <span className="ml-3">Search for &quot;{query}&quot;</span>
               </div>
-              {suggestions.map((suggestion) => (
+              {suggestions.map((s) => (
                 <div
-                  key={suggestion}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="flex items-center space-x-4 p-3 rounded-lg hover:bg-slate-100 transition-colors duration-200 cursor-pointer"
+                  key={s}
+                  onClick={() => doSearch(s)}
+                  className="p-3 hover:bg-slate-100 rounded flex items-center"
                 >
-                  <Search className="w-5 h-5 text-slate-500" />
-                  <p className="font-medium text-slate-800">{suggestion}</p>
-                  <ChevronRight className="w-4 h-4 text-slate-400 ml-auto" />
+                  <Search />
+                  <span className="ml-3">{s}</span>
+                  <ChevronRight className="ml-auto" />
                 </div>
               ))}
+              {suggestions.length === 0 && (
+                <div className="p-8 text-center text-slate-500">
+                  No suggestions. Press Enter to search.
+                </div>
+              )}
             </>
           )}
-          {!isLoading && searchQuery && suggestions.length === 0 && (
-            <div className="text-center p-8 text-slate-500">
-              <p>No suggestions found. Press Enter to search.</p>
-            </div>
-          )}
-        </div>
-        <div className="p-3 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
-          <span>Press `Esc` to close</span>
-          <span>Press `Enter` to search</span>
         </div>
       </div>
     </div>
@@ -251,47 +230,15 @@ const AppHeader = ({ setIsSearchOpen }) => {
   useEffect(() => {
     const fetchUsageData = async () => {
       try {
-        const [usageRes, limitsRes, planRes] = await Promise.all([
-          apiInstance.get('/plan/usage'),
+        const [limitsRes, planRes] = await Promise.all([
           apiInstance.get('/plan/usage-limit'),
           apiInstance.get('/plan/get-user-plan-type'),
         ]);
 
-        if (usageRes.data?.success) {
-          const usageLogs = usageRes.data.data;
-          const totals = usageLogs.reduce(
-            (acc, log) => {
-              switch (log.feature) {
-                case 'cv-creation':
-                  acc.aiCvGenerator += log.creditsUsed;
-                  break;
-                case 'cover-letter':
-                  acc.aiCoverLetterGenerator += log.creditsUsed;
-                  break;
-                case 'auto-apply':
-                  acc.aiJobApply += log.creditsUsed;
-                  break;
-                case 'application-tracking':
-                  acc.applications += log.creditsUsed;
-                  break;
-                default:
-                  break;
-              }
-              return acc;
-            },
-            {
-              aiJobApply: 0,
-              aiCvGenerator: 0,
-              aiCoverLetterGenerator: 0,
-              applications: 0,
-              aiAutoApply: 0,
-              aiAutoApplyDailyLimit: 0,
-              aiMannualApplication: 0,
-            },
-          );
-          setUsageData(totals);
-        }
-        if (limitsRes.data?.success) setUsageLimits(limitsRes.data.data);
+        setUsageData(limitsRes.data.data.usageCounters);
+
+        if (limitsRes.data?.success)
+          setUsageLimits(limitsRes.data.data.usageLimits);
         if (planRes.data?.success) setPlanType(planRes.data.data.planType);
       } catch (error) {
         console.error('Failed to fetch user plan data:', error);
@@ -351,15 +298,6 @@ const AppHeader = ({ setIsSearchOpen }) => {
     router.push('/dashboard/notifications');
   };
 
-  console.log(
-    'Usage Data>>>:',
-    usageLimits,
-    usageData,
-    planType,
-    mounted,
-    effectivePlanLimits,
-  );
-
   if (!user) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm">
@@ -374,7 +312,6 @@ const AppHeader = ({ setIsSearchOpen }) => {
       </header>
     );
   }
-
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">

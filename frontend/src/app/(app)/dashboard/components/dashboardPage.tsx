@@ -380,8 +380,7 @@ function UsageMeter({ label, used, limit }: any) {
             {formatUsageKey(label)}
           </p>
           <p className="text-sm font-semibold text-gray-800">
-            {used} /{' '}
-            {isUnlimited ? <Infinity className="inline w-4 h-4" /> : limit}
+            {used} / {isUnlimited ? 'Unlimited' : limit}
           </p>
         </div>
         {!isUnlimited && (
@@ -495,7 +494,6 @@ export default function DashboardPage() {
         // Fetch Job Stats
         const statsResponse = await apiInstance.get('/students/jobs/stats');
         const apiData = statsResponse.data;
-        console.log('API Data:', apiData);
 
         setStats({
           applicationsSent: apiData.applicationsSent || 0,

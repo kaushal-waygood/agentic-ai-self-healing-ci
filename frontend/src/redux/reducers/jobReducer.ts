@@ -230,7 +230,6 @@ const jobSlice = createSlice({
     },
 
     getRecommendJobsRequest: (state) => {
-      console.log('getRecommendJobsRequest');
       state.loading = true;
       state.error = null;
     },
@@ -257,7 +256,6 @@ const jobSlice = createSlice({
     },
 
     visitedJobsRequest: (state) => {
-      console.log('visitedJobsRequest');
       state.loading = true;
       state.error = null;
     },

@@ -1,21 +1,18 @@
+// components/notifications/NotificationBell.tsx
 'use client';
-
-import { useNotifications } from '@/hooks/notifications/useNoifications';
-import { BellIcon, Circle, RefreshCcw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bell as BellIcon, Circle, RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useNotifications } from '@/hooks/notifications/useNoifications';
 
 export function NotificationBell() {
-  // hooks first, always
   const router = useRouter();
-
   const {
     notifications,
     unreadCount,
     markAsRead,
     fetchNotifications,
     fetchUnreadCount,
-    socket,
     connectionStatus,
   } = useNotifications();
 
@@ -23,7 +20,7 @@ export function NotificationBell() {
 
   useEffect(() => {
     let mounted = true;
-    const loadInitialData = async () => {
+    const load = async () => {
       try {
         setIsLoading(true);
         await fetchNotifications();
@@ -32,85 +29,72 @@ export function NotificationBell() {
         if (mounted) setIsLoading(false);
       }
     };
-
-    loadInitialData();
-
+    load();
     return () => {
       mounted = false;
     };
   }, [fetchNotifications, fetchUnreadCount]);
 
-  const handleNotificationClick = (notification) => {
-    // navigate first
-    if (notification.actionUrl) {
-      router.push(`/dashboard/my-docs/${notification.actionUrl}`);
-    }
-
-    // optimistic update: mark locally then call server
-    if (!notification.isRead) {
-      // optional: uncomment if you want client-side optimistic update
-      // markAsRead(notification._id).catch(() => {
-      //   // handle error, maybe refetch notifications
-      // });
-    }
+  const handleClick = (n) => {
+    if (n.actionUrl)
+      router.push(
+        n.actionUrl.startsWith('/') ? n.actionUrl : `/dashboard/${n.actionUrl}`,
+      );
+    if (!n.isRead) markAsRead(n._id);
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-4 text-gray-500 animate-pulse">
+      <div className="flex items-center justify-center p-4">
         <Circle className="w-6 h-6 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 w-full max-w-sm mx-auto">
-      <div className="relative flex justify-between mb-4">
-        <div className="relative text-xl cursor-pointer hover:scale-110 transition-transform">
-          <BellIcon className="w-6 h-6 text-gray-600" />
+    <div className="p-4 max-w-sm">
+      <div className="flex items-center justify-between mb-3">
+        <div className="relative">
+          <BellIcon className="w-6 h-6 cursor-pointer" />
           {unreadCount > 0 && (
-            <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+            <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
               {unreadCount}
             </span>
           )}
         </div>
-
-        <div
-          className={`text-sm flex flex-wrap justify-between font-semibold ${
-            connectionStatus === 'connected' ? 'text-green-500' : 'text-red-500'
-          }`}
-        >
-          Status: {connectionStatus}
-        </div>
-
-        <div className="flex justify-end ">
-          <RefreshCcw
-            className="h-5 w-5 cursor-pointer text-gray-500 hover:text-gray-700 transition"
-            onClick={() => fetchNotifications()}
-          />
-        </div>
+        <div className="text-sm">{connectionStatus}</div>
+        <RefreshCcw
+          className="w-5 h-5 cursor-pointer"
+          onClick={() => fetchNotifications()}
+        />
       </div>
 
       <div className="space-y-3">
-        {notifications.slice(0, 5).map((notification) => (
+        {notifications.slice(0, 5).map((n) => (
           <div
-            key={notification._id}
-            onClick={() => handleNotificationClick(notification)}
-            className={`p-4 border rounded-lg shadow-sm transition hover:shadow-md cursor-pointer ${
-              notification.isRead
-                ? 'bg-white text-gray-700 border-gray-200'
-                : 'bg-blue-50 text-gray-900 border-blue-200'
+            key={n._id}
+            onClick={() => handleClick(n)}
+            className={`p-3 rounded-lg border transition cursor-pointer ${
+              n.isRead
+                ? 'bg-white border-gray-100'
+                : 'bg-blue-50 border-blue-100'
             }`}
           >
-            <div className="flex justify-between items-center mb-1">
-              <strong>{notification.title}</strong>
+            <div className="flex justify-between items-center">
+              <strong className="truncate">{n.title}</strong>
+              <small className="text-xs text-gray-400">
+                {new Date(n.createdAt).toLocaleString()}
+              </small>
             </div>
-            <p className="text-sm mb-1">{notification.message}</p>
-            <small className="text-gray-400 text-xs">
-              {new Date(notification.createdAt).toLocaleString()}
-            </small>
+            <p className="text-sm mt-1 truncate">{n.message}</p>
           </div>
         ))}
+
+        {notifications.length === 0 && (
+          <div className="text-center text-sm text-gray-500 p-4">
+            No notifications
+          </div>
+        )}
       </div>
     </div>
   );
