@@ -4,8 +4,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import StoreProvider from '../redux/storeProvider';
-import Script from 'next/script';
-import { cookies } from 'next/headers'; // This is a dynamic function
 import { poppins, pt_sans } from './fonts';
 import 'driver.js/dist/driver.css';
 import './driver-custom.css';
@@ -16,6 +14,9 @@ export const metadata = {
   title: zobsAiHomeMetadata.title,
   description: zobsAiHomeMetadata.description,
   keywords: zobsAiHomeMetadata.keywords,
+  alternates: {
+    canonical: 'https://www.zobsai.com',
+  },
 };
 
 export default async function RootLayout({

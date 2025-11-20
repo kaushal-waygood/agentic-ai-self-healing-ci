@@ -128,6 +128,7 @@ export const SearchFilters = ({
         <div className="flex-1 min-w-[250px] relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
+            id="search-bar"
             type="text"
             placeholder="Job title, keywords, or company..."
             value={localFilters.query}

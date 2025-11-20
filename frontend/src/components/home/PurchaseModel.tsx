@@ -147,7 +147,7 @@ export default function CheckoutPage() {
 
   // Helper to pick endpoint based on env (kept your original logic)
   const pickCreateIntentEndpoint = useCallback(() => {
-    if (process.env.NEXT_PUBLIC_NODE_ENV === 'local') {
+    if (process.env.NEXT_PUBLIC_NODE_ENV === 'production') {
       return '/plan/payment/create-intent';
     } else if (
       process.env.NEXT_PUBLIC_NODE_ENV === 'development' ||
