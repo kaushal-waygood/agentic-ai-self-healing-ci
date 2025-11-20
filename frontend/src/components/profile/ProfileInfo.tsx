@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 import {
   User,
@@ -15,7 +16,6 @@ import Project from './components/Project';
 import Experience from './components/Experience';
 import Skills from './components/Skills';
 import SideSectionProfile from './components/SideSectionProfile';
-import JobSearchPreferences from './components/JobPreference';
 import JobPreferencesForm from './components/JobPreference';
 const navItems = [
   {
@@ -104,9 +104,25 @@ const ProfileInfo = ({
   setDeleteSkillIndex,
   handleLevelChange,
 }: any) => {
-  const [activeTab, setActiveTab] = useState('education');
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const ProfileSidebar = ({ activeTab, setActiveTab }) => {
+  const defaultTab = searchParams.get('tab') || 'education';
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  // Sync URL → State (when URL changes)
+  useEffect(() => {
+    const urlTab = searchParams.get('tab') || 'education';
+    setActiveTab(urlTab);
+  }, [searchParams]);
+
+  // Function to update BOTH UI + URL
+  const handleTabChange = (tab: string) => {
+    router.push(`/dashboard/profile?tab=${tab}`, { scroll: false });
+    setActiveTab(tab);
+  };
+
+  const ProfileSidebar = () => {
     return (
       <SideSectionProfile
         personalInfoForm={personalInfoForm}
@@ -266,7 +282,7 @@ const ProfileInfo = ({
                   {navItems.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => setActiveTab(item.id)}
+                      onClick={() => handleTabChange(item.id)}
                       className={`group/btn flex items-center justify-between gap-3 w-full sm:w-auto px-4 py-2 text-left rounded-lg transition-all duration-300 ${
                         activeTab === item.id
                           ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg scale-105`

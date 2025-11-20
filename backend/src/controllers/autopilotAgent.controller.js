@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/config.js';
+import { User } from '../models/User.model.js';
 
 // ----------------- helpers -----------------
 const toBool = (v) => {
@@ -212,6 +213,15 @@ export const createAutopilotAgent = async (req, res) => {
         .status(404)
         .json({ success: false, message: 'Student not found after update' });
     }
+
+    await User.findByIdAndUpdate(
+      {
+        _id: studentId,
+      },
+      {
+        $inc: { 'usageCounters.aiAutoApply': 1 },
+      },
+    );
 
     const createdAgent = updated.autopilotAgent.find(
       (a) => a.agentId === agentId,

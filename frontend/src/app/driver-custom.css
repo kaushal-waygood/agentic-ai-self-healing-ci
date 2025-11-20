@@ -1,0 +1,57 @@
+/* 1️⃣ Main Popover Box */
+.zobsai-tour.driver-popov {
+  @apply bg-white rounded-2xl shadow-xl p-5 border border-gray-100;
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* 2️⃣ Title */
+.zobsai-tour .driver-popover-title {
+  @apply text-xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent mb-2;
+}
+
+/* 3️⃣ Description */
+.zobsai-tour .driver-popover-description {
+  @apply text-gray-700 text-sm leading-relaxed mb-4;
+}
+
+/* 4️⃣ Next Button */
+.zobsai-tour .driver-popover-next-btn {
+  @apply bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 
+         text-white font-semibold px-5 py-2 rounded-lg 
+         shadow-md hover:shadow-lg transition-all duration-300
+         hover:scale-105;
+}
+
+/* 5️⃣ Prev Button */
+.zobsai-tour .driver-popover-prev-btn {
+  @apply bg-gray-200 text-gray-700 px-4 py-2 rounded-lg 
+         font-medium hover:bg-gray-300 transition;
+}
+
+/* 6️⃣ Close Button */
+.zobsai-tour .driver-popover-close-btn {
+  @apply text-gray-400 hover:text-gray-600 transition;
+}
+
+/* 7️⃣ Progress Dots */
+.zobsai-tour .driver-popover-progress-text {
+  @apply text-gray-500 text-xs font-medium;
+}
+
+/* 8️⃣ Highlighted Element */
+.driver-highlighted-element {
+  @apply ring-4 ring-purple-300 rounded-xl transition-all duration-500;
+  box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.3) !important; /* extra glow */
+}
+
+/* Fade Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

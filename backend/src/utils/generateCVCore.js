@@ -2,23 +2,15 @@ import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-// Models
 import { Student } from '../models/student.model.js';
 import { User } from '../models/User.model.js';
-
-// Parsers for file uploads
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
-
-// Background processor
 import { processCVGeneration } from '../utils/cv.background.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// default free monthly limit (fallback)
 const DEFAULT_FREE_MONTHLY_CV_LIMIT = 3;
 
 export const initiateCVGeneration = async (
@@ -31,9 +23,6 @@ export const initiateCVGeneration = async (
     const { _id } = req.user;
     const { useProfile, finalTouch, savedCVId } = req.body;
 
-    console.log('📡 Received CV generation request for user:', savedCVId);
-
-    // fetch user early (we need usage and plan info)
     const user = await User.findById(_id).select(
       'currentPlan currentPurchase plan usageLimits usageCounters email fullName',
     );
@@ -41,44 +30,16 @@ export const initiateCVGeneration = async (
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // normalize usageCounters and reset monthly when needed
-    const now = Date.now();
-    const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
-    if (!user.usageCounters) {
-      user.usageCounters = {
-        cvCreation: 0,
-        coverLetter: 0,
-        aiApplication: 0,
-        autoApply: 0,
-        lastReset: now,
-      };
-    } else {
-      const lastReset = user.usageCounters.lastReset
-        ? new Date(user.usageCounters.lastReset).getTime()
-        : 0;
-      if (!lastReset || now - lastReset > MONTH_MS) {
-        user.usageCounters.cvCreation = 0;
-        user.usageCounters.coverLetter = 0;
-        user.usageCounters.aiApplication = 0;
-        user.usageCounters.autoApply = 0;
-        user.usageCounters.lastReset = now;
-      }
-    }
-
-    // Determine whether user has an active plan/purchase (tweak if you have expiry checks)
     const hasPlan = !!(user.currentPlan || user.currentPurchase || user.plan);
 
-    // Determine free limit (prefer explicit user.usageLimits, fallback to default)
     const freeLimit =
       user.usageLimits && Number.isFinite(user.usageLimits.cvCreation)
         ? user.usageLimits.cvCreation
         : DEFAULT_FREE_MONTHLY_CV_LIMIT;
 
-    // We do NOT block. But mark overFreeLimit if unpaid user exceeded free limit
     const overFreeLimit =
       !hasPlan && user.usageCounters.cvCreation >= freeLimit;
 
-    // Proceed to build studentData (unchanged from your original flow)
     let studentData;
     if (useProfile === 'true' || useProfile === true) {
       const student = await Student.findById(_id);
@@ -91,7 +52,6 @@ export const initiateCVGeneration = async (
         return res.status(400).json({ error: 'Invalid savedCVId' });
       }
 
-      // Fetch only what's needed
       const studentWithCVs = await Student.findById(_id).select('htmlCV');
       if (!studentWithCVs) {
         return res.status(404).json({ error: 'Student profile not found' });
@@ -177,15 +137,11 @@ export const initiateCVGeneration = async (
       }
     }
 
-    // double-check student exists
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    // increment usage counter (we track even if over limit)
-    user.usageCounters.cvCreation = (user.usageCounters.cvCreation || 0) + 1;
-    // don't forget to persist user usage changes
     await user.save();
 
     const cvTitle = `${student.fullName || user.fullName}'s CV (${

@@ -10,6 +10,7 @@ import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
 import { Search, Frown } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
@@ -96,13 +97,18 @@ export default function JobsPage() {
   };
 
   if (error) {
-    return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: error,
+    });
+    // return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
   }
 
   return (
     <div className=" bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       {/* seach filter  */}
-      <div className="container mx-auto px-1">
+      <div className="xl:container mx-auto px-1">
         <SearchFilters
           initialFilters={filters}
           onSearchChange={handleFilterChange}

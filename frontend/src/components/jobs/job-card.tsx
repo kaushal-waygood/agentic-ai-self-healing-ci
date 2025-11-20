@@ -2,24 +2,15 @@
 
 import Image from 'next/image';
 import { JobListing } from '@/lib/data/jobs';
-import {
-  MapPin,
-  Briefcase,
-  Clock,
-  Building,
-  View,
-  Eye,
-  EyeClosed,
-  TrendingUp,
-  Zap,
-  Building2,
-} from 'lucide-react';
+import { MapPin, Clock, Building, Eye, TrendingUp } from 'lucide-react';
 import { truncate } from '@/utils/formatTitle';
-import { Skeleton } from '@/components/ui/skeleton';
 import apiInstance from '@/services/api';
-import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { visitedJobsRequest } from '@/redux/reducers/jobReducer';
+import {
+  viewedJobsRequest,
+  visitedJobsRequest,
+} from '@/redux/reducers/jobReducer';
+import { viewedJobs } from '@/services/api/student';
 
 interface JobCardProps {
   job: JobListing;
@@ -31,32 +22,16 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   const dispatch = useDispatch();
   const handleClick = async () => {
     try {
-      dispatch(visitedJobsRequest(job._id));
-      await apiInstance.get(`/jobs/job/views/${job._id}`);
+      // dispatch(viewedJobsRequest(job._id || job.slug));
+
+      const response = await viewedJobs(job._id || job.slug);
+      console.log('response', response);
       onClick();
     } catch (error) {
       console.error('Failed to log job view on click:', error);
       onClick();
     }
   };
-
-  // useEffect(() => {
-  //   if (!job?._id) {
-  //     return;
-  //   }
-
-  //   const isVisited = async () => {
-  //     try {
-  //       const response = await apiInstance.get(
-  //         `/students/jobs/is-visited/${job._id}`,
-  //       );
-  //     } catch (error) {
-  //       console.error('Failed to check if job was visited.', error);
-  //     }
-  //   };
-
-  //   isVisited();
-  // }, [job]);
 
   return (
     <div
@@ -97,19 +72,23 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
           <div className="relative flex-shrink-0">
             {job.logo ? (
               <div className="w-14 h-14   overflow-hidden  ring-purple-100 group-hover:ring-purple-300 transition-all duration-300 shadow-md group-hover:shadow-lg group-hover:scale-110 transform">
-                <img
+                <Image
                   src={job.logo}
                   alt={job.company || 'Company Logo'}
                   className="w-full h-full object-contain  p-1"
+                  width={100}
+                  height={100}
                 />
               </div>
             ) : (
               <div className="w-14 h-14  flex items-center justify-center bg-gradient-to-br from-purple-100 via-blue-100 to-cyan-100  ring-purple-100 group-hover:ring-purple-300 transition-all duration-300 shadow-md group-hover:shadow-lg group-hover:scale-110 transform">
                 {/* <Building2 className="w-7 h-7 text-purple-600" /> */}
-                <img
+                <Image
                   src={'/logo.png'}
                   alt={job.company || 'Company Logo'}
                   className="w-full h-full object-contain bg-white p-1"
+                  width={100}
+                  height={100}
                 />
               </div>
             )}
@@ -133,14 +112,14 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
             {/* Location with icon */}
             <div className="flex items-center gap-1.5 text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
               <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-blue-500" />
-              <span className="truncate">{job.location.city}</span>
+              <span className="truncate">{job.location.city || 'Unknown'}</span>
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-1">
               <div className="flex items-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-600 transition-colors">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0 text-purple-400" />
                 <span className="font-medium">
-                  {job.jobPosted || 'not found'}
+                  {job.jobPosted || 'unknown'}
                 </span>
               </div>
 

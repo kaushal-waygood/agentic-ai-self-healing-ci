@@ -118,7 +118,6 @@ export const getAllSavedJobs = async () => {
 };
 
 export const saveJob = async (data: any) => {
-  console.log('data', data);
   const response = await apiInstance.post('/students/jobs/saved', {
     jobId: data,
   });
@@ -126,19 +125,16 @@ export const saveJob = async (data: any) => {
 };
 
 export const visitedJobs = async (data: any) => {
-  console.log('data', data);
   const response = await apiInstance.get(`/students/jobs/visited/${data}`);
   return response;
 };
 
 export const viewedJobs = async (data: any) => {
-  console.log('data', data);
-  const response = await apiInstance.get(`/students/jobs/viewed/${data}`);
+  const response = await apiInstance.post(`/students/job/viewed/${data}`);
   return response;
 };
 
 export const isVisited = async (data: any) => {
-  console.log('data', data);
   const response = await apiInstance.get(`/students/jobs/is-visited/${data}`);
   return response;
 };

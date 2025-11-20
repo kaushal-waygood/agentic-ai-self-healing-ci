@@ -23,6 +23,38 @@ class RedisClient {
     }
   }
 
+  async invalidateJobCache(jobId) {
+    if (!jobId) return;
+    const patterns = [
+      `job:${jobId}`,
+      `job:${jobId}:*`,
+      `job:*:${jobId}`, 
+      `jobs:search*`, // conservative: search caches may include job lists
+      `jobs:all:*`, // clear broad job lists if needed
+      `jobs:manual:*`,
+      `jobs:rapid:*`,
+    ];
+
+    try {
+      await this.ensureConnected();
+      const toDelete = new Set();
+
+      for (const pattern of patterns) {
+        // KEYS is ok for small deployments; use SCAN in heavy environments.
+        const keys = await this.client.keys(pattern);
+        if (keys && keys.length > 0) {
+          keys.forEach((k) => toDelete.add(k));
+        }
+      }
+
+      if (toDelete.size > 0) {
+        await this.client.del(Array.from(toDelete));
+      }
+    } catch (err) {
+      console.error('invalidateJobCache error:', err);
+    }
+  }
+
   async get(key) {
     try {
       await this.ensureConnected();

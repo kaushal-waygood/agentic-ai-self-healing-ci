@@ -279,7 +279,7 @@ const SignupForm = () => {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-1"
               >
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name="accountType"
                   render={({ field }) => (
@@ -309,6 +309,7 @@ const SignupForm = () => {
                               <UserPlus className="mb-2 h-7 w-7" /> Individual
                             </FormLabel>
                           </FormItem>
+
                           <FormItem>
                             <FormControl>
                               <RadioGroupItem
@@ -329,7 +330,7 @@ const SignupForm = () => {
                       <FormMessage className="text-red-500 text-xs" />
                     </FormItem>
                   )}
-                />
+                /> */}
 
                 {accountType === 'institution' && (
                   <FormField

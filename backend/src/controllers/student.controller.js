@@ -20,6 +20,7 @@ import {
 } from '../utils/jobUtils.js';
 import axios from 'axios';
 import { config } from '../config/config.js';
+import { addCredits, CREDIT_EARN, spendCredits } from '../utils/credits.js';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
@@ -27,25 +28,27 @@ export const studentDetails = async (req, res) => {
   const TTL_SECONDS = 300; // 5 minutes
 
   try {
-    // Use withCache wrapper to fetch from redis or run the DB callback on miss
+    // try cache first so we can report fromCache accurately
+    const cachedRaw = await redisClient.get(cacheKey);
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw);
+      return res.status(200).json({
+        studentDetails: cached,
+        fromCache: true,
+      });
+    }
+
+    // cache miss -> use withCache (it will set cache)
     const student = await redisClient.withCache(
       cacheKey,
       TTL_SECONDS,
       async () => {
-        // DB read — keep projection minimal to avoid leaking sensitive fields
-        const s = await Student.findById(_id)
-          .select('-__v') // drop mongoose internals; adjust as needed
-          .lean();
+        const s = await Student.findById(_id).select('-__v').lean();
 
         if (s) return s;
 
-        // If Student doesn't exist, ensure user exists and role is student, then create
         const user = await User.findById(_id).lean();
-        if (!user) {
-          // No user, don't cache errors
-          throw { status: 404, message: 'User not found' };
-        }
-
+        if (!user) throw { status: 404, message: 'User not found' };
         if (user.role !== 'student') {
           throw {
             status: 403,
@@ -59,30 +62,24 @@ export const studentDetails = async (req, res) => {
           email: user.email,
         });
 
-        // return plain object (lean was used earlier; created is a doc — convert)
         return created.toObject();
       },
     );
 
     return res.status(200).json({
       studentDetails: student,
-      fromCache: false, // you could detect cache hit and return true if needed
+      fromCache: false,
     });
   } catch (error) {
     console.error('Error creating/fetching student details:', error);
-
-    // If we threw a custom status object earlier:
-    if (error && error.status) {
+    if (error && error.status)
       return res.status(error.status).json({ message: error.message });
-    }
-
     if (error.code === 11000) {
       return res.status(400).json({
         message: 'Duplicate data error. Please try again.',
         error: 'Duplicate key violation',
       });
     }
-
     return res.status(500).json({
       message: 'Internal server error',
       error: error.message || error,
@@ -188,6 +185,18 @@ export const onboardingProfile = async (req, res) => {
     student.hasCompletedOnboarding = true;
     await student.save();
 
+    const cacheKey = `student:${studentId}:details`;
+    try {
+      await redisClient.invalidateStudentCache(studentId);
+      // set canonical key for quick reads
+      await redisClient.set(cacheKey, JSON.stringify(student.toObject()), 300); // 5min
+    } catch (cacheErr) {
+      console.warn(
+        'Cache update failed after onboardingProfile:',
+        cacheErr && cacheErr.message,
+      );
+    }
+
     // 9. Send Success Response
     return res.status(200).json({
       message: 'Profile updated successfully!',
@@ -203,14 +212,29 @@ export const completeOnboarding = async (req, res) => {
   try {
     const studentId = req.user._id;
 
-    // Find the user and update the flag to true
-    await Student.findByIdAndUpdate(studentId, {
-      hasCompletedOnboarding: true,
-    });
+    const updated = await Student.findByIdAndUpdate(
+      studentId,
+      { hasCompletedOnboarding: true },
+      { new: true, runValidators: true },
+    );
 
-    // It's good practice to clear any cached user data
-    const cacheKey = `student:${studentId}:profileCompletion`;
-    await redisClient.del(cacheKey); // Or any other relevant user caches
+    // Clear relevant user cache keys
+    try {
+      await redisClient.invalidateStudentCache(studentId);
+      // optionally set canonical details to up-to-date value if updated exists
+      if (updated) {
+        await redisClient.set(
+          `student:${studentId}:details`,
+          JSON.stringify(updated.toObject()),
+          300,
+        );
+      }
+    } catch (cacheErr) {
+      console.warn(
+        'Failed clearing student cache on completeOnboarding:',
+        cacheErr && cacheErr.message,
+      );
+    }
 
     res.status(200).json({
       success: true,
@@ -222,69 +246,51 @@ export const completeOnboarding = async (req, res) => {
   }
 };
 
-// update Full Name
 export const updateFullName = async (req, res) => {
   const { fullName, phone, email } = req.body;
   const { _id } = req.user;
 
-  let result;
-
   try {
-    // Atomic update operation
-    if (fullName) {
-      result = await Student.findByIdAndUpdate(
-        _id,
-        {
-          $set: {
-            fullName: fullName,
-            updatedAt: new Date(), // Optional: add update timestamp
-          },
-        },
-        { new: true }, // Return the updated document
-      );
-    } else if (phone) {
-      result = await Student.findByIdAndUpdate(
-        _id,
-        {
-          $set: {
-            phone: phone,
-            updatedAt: new Date(), // Optional: add update timestamp
-          },
-        },
-        { new: true }, // Return the updated document
-      );
-    } else if (email) {
-      result = await Student.findByIdAndUpdate(
-        _id,
-        {
-          $set: {
-            email: email,
-            updatedAt: new Date(), // Optional: add update timestamp
-          },
-        },
-        { new: true }, // Return the updated document
-      );
+    const update = {};
+    if (fullName) update.fullName = fullName;
+    if (phone) update.phone = phone;
+    if (email) update.email = email;
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ message: 'No fields provided to update' });
     }
+    update.updatedAt = new Date();
 
-    if (!result) {
-      return res.status(404).json({ message: 'Student not found' });
+    const result = await Student.findByIdAndUpdate(
+      _id,
+      { $set: update },
+      { new: true },
+    );
+    if (!result) return res.status(404).json({ message: 'Student not found' });
+
+    // update canonical cache ONLY for this student
+    try {
+      const cacheKey = `student:${_id}:details`;
+      await redisClient.del(cacheKey); // ensure stale gone
+      await redisClient.set(cacheKey, JSON.stringify(result.toObject()), 300);
+    } catch (cacheErr) {
+      console.warn(
+        'Failed to update student cache in updateFullName:',
+        cacheErr && cacheErr.message,
+      );
     }
 
     return res.status(200).json({
-      message: 'Full name updated successfully',
+      message: 'Profile updated successfully',
       updatedStudent: {
         fullName: result.fullName,
-        // Include other fields you want to return
+        phone: result.phone,
+        email: result.email,
       },
     });
   } catch (error) {
     console.error('Error updating full name:', error);
-
-    // Handle specific errors
-    if (error.name === 'CastError') {
+    if (error.name === 'CastError')
       return res.status(400).json({ message: 'Invalid student ID format' });
-    }
-
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
@@ -292,17 +298,58 @@ export const updateFullName = async (req, res) => {
   }
 };
 
-// update Job Role
+export const updatePhone = async (req, res) => {
+  const { phone } = req.body;
+  const { _id } = req.user;
+  try {
+    const result = await Student.findByIdAndUpdate(
+      _id,
+      { $set: { phone, updatedAt: new Date() } },
+      { new: true },
+    );
+    if (!result) return res.status(404).json({ message: 'Student not found' });
+
+    try {
+      const cacheKey = `student:${_id}:details`;
+      await redisClient.del(cacheKey);
+      await redisClient.set(cacheKey, JSON.stringify(result.toObject()), 300);
+    } catch (cacheErr) {
+      console.warn(
+        'Failed to update student cache in updatePhone:',
+        cacheErr && cacheErr.message,
+      );
+    }
+
+    res.status(200).json({ message: 'Phone number updated successfully' });
+  } catch (error) {
+    console.error('Error updating phone number:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const updateJobRole = async (req, res) => {
   const { jobRole } = req.body;
   const { _id } = req.user;
+
   try {
-    const student = await Student.findById(_id);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
+    const result = await Student.findByIdAndUpdate(
+      _id,
+      { $set: { jobRole, updatedAt: new Date() } },
+      { new: true },
+    );
+    if (!result) return res.status(404).json({ message: 'Student not found' });
+
+    try {
+      const cacheKey = `student:${_id}:details`;
+      await redisClient.del(cacheKey);
+      await redisClient.set(cacheKey, JSON.stringify(result.toObject()), 300);
+    } catch (cacheErr) {
+      console.warn(
+        'Failed to update student cache in updateJobRole:',
+        cacheErr && cacheErr.message,
+      );
     }
-    student.jobRole = jobRole;
-    await student.save();
+
     res.status(200).json({ message: 'Job role updated successfully' });
   } catch (error) {
     console.error('Error updating job role:', error);
@@ -2148,43 +2195,78 @@ export const toggleAutopilot = async (req, res, next) => {
   }
 };
 
-// Job View Controllers
-export const jobViewedByStudent = async (req, res, next) => {
+export const jobViewedByStudent = async (req, res) => {
   try {
-    const studentId = req.user._id;
     const { jobId } = req.params;
+    const studentId = req.user?._id;
 
-    // Check if the student has already viewed this specific job
-    const student = await Student.findOne({
-      _id: studentId,
-      'viewedJobs.slug': jobId,
-    });
-
-    if (student) {
-      return res.status(200).json({
-        success: true,
-        message: 'Job view was already recorded.',
-      });
+    if (!studentId) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    // If not viewed, add the job reference to the array
-    await Student.findByIdAndUpdate(studentId, {
-      $push: {
-        viewedJobs: { slug: jobId },
-      },
-    });
+    const or = [{ slug: jobId }];
+    if (mongoose.Types.ObjectId.isValid(jobId)) {
+      or.unshift({ _id: jobId });
+    }
 
-    // Invalidate relevant caches
-    await redisClient.invalidateJobCacheForStudent(studentId, jobId);
-    await redisClient.del(`student:${studentId}:viewedJobs`);
-    await redisClient.del(`stats:${studentId}`);
+    const job = await Job.findOne({ $or: or })
+      .select('_id title salary location jobTypes company')
+      .lean();
 
-    res.status(200).json({
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    const student = await Student.findById(studentId).select('viewedJobs');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // <- fixed: check the correct property name and initialize it
+    if (!Array.isArray(student.viewedJobs)) {
+      student.viewedJobs = [];
+    }
+
+    const now = new Date();
+
+    // <- consistent key: viewedAt
+    const existing = student.viewedJobs.find(
+      (vj) => vj.job && vj.job.toString() === job._id.toString(),
+    );
+
+    if (existing) {
+      existing.viewedAt = now;
+    } else {
+      student.viewedJobs.push({ job: job._id, viewedAt: now });
+    }
+
+    await student.save();
+
+    try {
+      if (redisClient?.invalidateJobCacheForStudent) {
+        await redisClient.invalidateJobCacheForStudent(
+          studentId,
+          job._id.toString(),
+        );
+      }
+      if (redisClient?.del) {
+        await redisClient.del(`student:${studentId}:viewedJobs`);
+        await redisClient.del(`stats:${studentId}`);
+      }
+    } catch (e) {
+      console.error('Redis invalidate error:', e);
+    }
+
+    spendCredits(req.user, 1);
+
+    return res.status(200).json({
       success: true,
-      message: 'Job view recorded successfully.',
+      message: 'Job marked as viewed successfully.',
+      job,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error in jobVisitedByStudent:', error);
+    return res.status(500).json({ message: 'Server Error' });
   }
 };
 
@@ -2216,54 +2298,82 @@ export const isStudentViewedJob = async (req, res, next) => {
   }
 };
 
-// Job Visit Controllers
 export const jobVisitedByStudent = async (req, res) => {
   try {
     const { jobId } = req.params;
-    const studentId = req.user._id;
+    const studentId = req.user?._id;
 
-    const jobExists = await Job.findById(jobId);
-    if (!jobExists) {
-      return res.status(404).json({ message: 'Job not found' });
+    if (!studentId) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    const or = [{ slug: jobId }];
+    if (mongoose.Types.ObjectId.isValid(jobId)) or.unshift({ _id: jobId });
 
-    const visitedJob = student.visitedJobs.find(
-      (vj) => vj.job.toString() === jobId,
+    // find the job (single doc)
+    const job = await Job.findOne({ $or: or })
+      .select('_id title salary location jobTypes company')
+      .lean();
+
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    // ensure student exists
+    const student = await Student.findById(studentId).select('visitedJobs');
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    const now = new Date();
+
+    // 1) Try to atomically update an existing visitedJobs entry
+    const updateExisting = await Student.updateOne(
+      { _id: studentId, 'visitedJobs.job': job._id },
+      { $set: { 'visitedJobs.$.visitedAt': now } },
     );
 
-    if (visitedJob) {
-      visitedJob.visitedAt = new Date();
-    } else {
-      student.visitedJobs.push({ job: jobId });
+    // 2) If no existing entry was updated, push a new one (atomic)
+    if (!updateExisting.modifiedCount && updateExisting.matchedCount !== 0) {
+      // matched but nothing modified (rare) -> still safe to push
+      await Student.updateOne(
+        { _id: studentId },
+        { $push: { visitedJobs: { job: job._id, visitedAt: now } } },
+      );
+    } else if (!updateExisting.matchedCount) {
+      // no matched element -> push
+      await Student.updateOne(
+        { _id: studentId },
+        { $push: { visitedJobs: { job: job._id, visitedAt: now } } },
+      );
     }
 
-    await student.save();
+    // invalidate cache if available
+    try {
+      if (redisClient?.invalidateJobCacheForStudent) {
+        await redisClient.invalidateJobCacheForStudent(
+          studentId,
+          job._id.toString(),
+        );
+      }
+      if (redisClient?.del) {
+        await redisClient.del(`student:${studentId}:visitedJobs`);
+        await redisClient.del(`stats:${studentId}`);
+      }
+    } catch (e) {
+      console.error('Redis invalidate error:', e);
+    }
 
-    // Invalidate relevant caches
-    await redisClient.invalidateJobCacheForStudent(studentId, jobId);
-    await redisClient.del(`student:${studentId}:visitedJobs`);
-    await redisClient.del(`stats:${studentId}`);
+    await addCredits(
+      student._id,
+      CREDIT_EARN.VISITJOB_SITE,
+      'jobVisitedByStudent',
+    );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Job marked as visited successfully.',
-      job: {
-        _id: jobExists._id,
-        title: jobExists.title,
-        salary: jobExists.salary,
-        location: jobExists.location,
-        jobTypes: jobExists.jobTypes,
-        company: jobExists.company,
-      },
+      job,
     });
   } catch (error) {
     console.error('Error in jobVisitedByStudent:', error);
-    res.status(500).json({ message: 'Server Error' });
+    return res.status(500).json({ message: 'Server Error' });
   }
 };
 
@@ -2571,5 +2681,293 @@ export const getMultipleJobStatuses = async (req, res) => {
   } catch (error) {
     console.error('Error in getMultipleJobStatuses:', error);
     res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const getTotalCredits = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).lean();
+    const totalCredits = user.credits || 0;
+    res.status(200).json({ success: true, credits: totalCredits });
+  } catch (error) {
+    console.error('Error in getTotalCredits:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const getCreditsSummary = async (req, res) => {
+  const { _id: userId } = req.user;
+
+  try {
+    if (!userId) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    const txs = Array.isArray(user.creditTransactions)
+      ? user.creditTransactions
+      : [];
+
+    let totalEarned = 0;
+    let totalSpent = 0;
+    txs.forEach((t) => {
+      if (!t || typeof t.amount !== 'number') return;
+      if (t.type === 'EARN') totalEarned += t.amount;
+      if (t.type === 'SPEND') totalSpent += t.amount;
+    });
+
+    const lastTxOfKind = (kind, metaFilter = {}) => {
+      const filtered = txs
+        .filter((t) => t.kind === kind)
+        .filter((t) => {
+          if (!metaFilter || Object.keys(metaFilter).length === 0) return true;
+          if (!t.meta) return false;
+          for (const k of Object.keys(metaFilter)) {
+            if (String(t.meta[k]) !== String(metaFilter[k])) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return filtered.length ? filtered[0] : null;
+    };
+
+    const hasClaimedKind = (kind, metaFilter = {}) =>
+      !!lastTxOfKind(kind, metaFilter);
+
+    const pending = [];
+
+    if (
+      !hasClaimedKind('FIRST_CV') &&
+      !(Array.isArray(user.htmlCV) && user.htmlCV.length > 0)
+    ) {
+      pending.push({
+        action: 'FIRST_CV',
+        credits: CREDIT_EARN.FIRST_CV || 0,
+        reason: 'Generate your first CV to claim these credits.',
+      });
+    }
+
+    if (
+      !hasClaimedKind('FIRST_CL') &&
+      !(Array.isArray(user.coverLetter) && user.coverLetter.length > 0)
+    ) {
+      pending.push({
+        action: 'FIRST_CL',
+        credits: CREDIT_EARN.FIRST_CL || 0,
+        reason: 'Generate your first cover letter to claim these credits.',
+      });
+    }
+    if (
+      !hasClaimedKind('FIRST_AUTO_AGENT_SETUP') &&
+      (!Array.isArray(user.autopilotAgent) || user.autopilotAgent.length === 0)
+    ) {
+      pending.push({
+        action: 'FIRST_AUTO_AGENT_SETUP',
+        credits: CREDIT_EARN.FIRST_AUTO_AGENT_SETUP || 0,
+        reason: 'Set up your first Auto-Apply agent.',
+      });
+    }
+
+    if (
+      !hasClaimedKind('FIRST_AUTO_APPLICATION_SENT') &&
+      Array.isArray(user.appliedJobs) &&
+      user.appliedJobs.length === 0
+    ) {
+      pending.push({
+        action: 'FIRST_AUTO_APPLICATION_SENT',
+        credits: CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 0,
+        reason: 'Send your first auto-application to claim credits.',
+      });
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_PERSONAL')) {
+      const hasPersonal = !!(user.phone || user.profileImage);
+      if (!hasPersonal) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PERSONAL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PERSONAL || 0,
+          reason:
+            'Add phone number or profile image to complete personal details.',
+        });
+      } else {
+        // If user already has personal info but hasn't claimed, offer claim
+        pending.push({
+          action: 'PROFILE_COMPLETE_PERSONAL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PERSONAL || 0,
+          reason: 'Claim credits for completing personal details.',
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_EDUCATION')) {
+      const hasEducation =
+        Array.isArray(user.education) && user.education.length > 0;
+      if (!hasEducation) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EDUCATION',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EDUCATION || 0,
+          reason: 'Add education details to claim credits.',
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EDUCATION',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EDUCATION || 0,
+          reason: 'Claim credits for your education details.',
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_EXPERIENCE')) {
+      const hasExp =
+        Array.isArray(user.experience) && user.experience.length > 0;
+      if (!hasExp) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EXPERIENCE',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE || 0,
+          reason: 'Add work experience to claim credits.',
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EXPERIENCE',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE || 0,
+          reason: 'Claim credits for your experience details.',
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_PROJECT')) {
+      const hasProj = Array.isArray(user.projects) && user.projects.length > 0;
+      if (!hasProj) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PROJECT',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PROJECT || 0,
+          reason: 'Add project details to claim credits.',
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PROJECT',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PROJECT || 0,
+          reason: 'Claim credits for your project details.',
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_SKILL')) {
+      const hasSkill = Array.isArray(user.skills) && user.skills.length > 0;
+      if (!hasSkill) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_SKILL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_SKILL || 0,
+          reason: 'Add skills to claim credits.',
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_SKILL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_SKILL || 0,
+          reason: 'Claim credits for adding skills.',
+        });
+      }
+    }
+
+    // 3) Allow browser notifications (one-time)
+    if (!hasClaimedKind('ALLOW_BROWSER_NOTIF')) {
+      // If you have a server-side flag for this, check it; otherwise show as pending claim.
+      const allowedFlag =
+        user.settings && user.settings.allowBrowserNotifications;
+      if (!allowedFlag) {
+        pending.push({
+          action: 'ALLOW_BROWSER_NOTIF',
+          credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
+          reason: 'Enable browser notifications to claim credits.',
+        });
+      } else {
+        // show claim option if not yet recorded in transactions
+        pending.push({
+          action: 'ALLOW_BROWSER_NOTIF',
+          credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
+          reason: 'Claim credits for enabling browser notifications.',
+        });
+      }
+    }
+
+    const socialPlatforms = [
+      { action: 'FOLLOW_LINKEDIN', label: 'LinkedIn' },
+      { action: 'FOLLOW_INSTAGRAM', label: 'Instagram' },
+      { action: 'FOLLOW_FACEBOOK', label: 'Facebook' },
+      { action: 'FOLLOW_YOUTUBE', label: 'YouTube' },
+      { action: 'FOLLOW_TIKTOK', label: 'TikTok' },
+    ];
+    socialPlatforms.forEach((p) => {
+      if (!hasClaimedKind(p.action)) {
+        pending.push({
+          action: p.action,
+          credits: CREDIT_EARN.FOLLOW_SOCIAL || 0,
+          reason: `Follow us on ${p.label} and then claim this credit (server verification recommended).`,
+        });
+      }
+    });
+
+    pending.push({
+      action: 'VISITJOB_SITE',
+      credits: CREDIT_EARN.VISITJOB_SITE || 0,
+      reason:
+        'Visit a job detail page (per job) to claim credits. Each job can be claimed once.',
+    });
+
+    pending.push({
+      action: 'APPLY_ON_COMPANY_SITE',
+      credits: CREDIT_EARN.APPLY_ON_COMPANY_SITE || 1,
+      reason:
+        'Visit company career page via the job listing and apply to claim credit (per job).',
+    });
+
+    const lastDaily = lastTxOfKind('DAILY_CHECKIN');
+    let dailyEligible = true;
+    let lastDailyAt = null;
+    if (lastDaily) {
+      lastDailyAt = lastDaily.createdAt;
+      const elapsed = Date.now() - new Date(lastDailyAt).getTime();
+      if (elapsed < 24 * 60 * 60 * 1000) dailyEligible = false;
+    }
+    pending.push({
+      action: 'DAILY_CHECKIN',
+      credits: CREDIT_EARN.DAILY_CHECKIN || 0,
+      reason: dailyEligible
+        ? 'You can claim daily check-in now.'
+        : `Already claimed. Next eligible after ${new Date(
+            Date.now() +
+              24 * 60 * 60 * 1000 -
+              (Date.now() - new Date(lastDailyAt).getTime()),
+          ).toISOString()}`,
+      eligible: dailyEligible,
+      lastClaimedAt: lastDailyAt || null,
+    });
+
+    // Prepare response
+    const recentTxs = txs
+      .slice()
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 50);
+
+    res.json({
+      success: true,
+      data: {
+        userId: user._id,
+        balance: Number(user.credits || 0),
+        totalEarned,
+        totalSpent,
+        transactionsCount: txs.length,
+        transactions: recentTxs,
+        pendingClaims: pending,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

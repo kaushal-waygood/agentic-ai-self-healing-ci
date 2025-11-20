@@ -132,10 +132,8 @@ router.post('/', authMiddleware, isStudent, async (req, res) => {
     const student = await Student.findById(studentId).lean().exec();
     if (!student) return res.status(404).json({ error: 'student not found' });
 
-    // Build outputs; preserve non-string values (arrays/objects) so your client can handle them
     const outputs = inputs.map((inp) => {
       const raw = mapInputToValue(inp.inputKey, student);
-      // For backward compatibility convert primitives to strings, but keep arrays/objects as-is
       const isPrimitive = (v) =>
         typeof v === 'string' ||
         typeof v === 'number' ||

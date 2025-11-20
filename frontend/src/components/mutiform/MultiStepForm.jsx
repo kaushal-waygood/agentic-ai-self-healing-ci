@@ -8,13 +8,14 @@ import Step4ConfigureSave from './Step4ConfigureSave';
 import apiInstance from '@/services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
+
 import {
   createAutopilotRequest,
   getAutopilotRequest,
 } from '@/redux/reducers/autopilotReducer';
 
 import AgentPreviewModal from './AgentPreviewModal'; // NEW FILE (see below)
+import GeneratingAgent from './step5GeneratingAgent';
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(0);
@@ -41,6 +42,7 @@ const MultiStepForm = () => {
     coverLetterInstructions: '',
     maxApplications: 1,
   };
+
   const [formData, setFormData] = useState(initialFormData);
 
   const nextStep = () => setStep((prev) => prev + 1);
@@ -142,10 +144,19 @@ const MultiStepForm = () => {
         alert('Agent updated successfully!');
         dispatch(getAutopilotRequest());
       } else {
-        await apiInstance.post('/pilotagent/create', submissionData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        // alert('Agent created successfully!');
+        const timerPromise = new Promise((resolve) =>
+          setTimeout(resolve, 5000),
+        );
+
+        const apiPromise = apiInstance.post(
+          '/pilotagent/create',
+          submissionData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          },
+        );
+
+        await Promise.all([apiPromise, timerPromise]);
 
         dispatch(getAutopilotRequest());
       }
@@ -205,35 +216,22 @@ const MultiStepForm = () => {
             nextStep={nextStep}
             prevStep={prevStep}
             handleChange={handleChange}
+            handleSubmit={handlePreview}
             values={formData}
           />
         );
       case 4:
-        return (
-          <Step4ConfigureSave
-            prevStep={prevStep}
-            nextStep={nextStep}
-            handleChange={handleChange}
-            handleSubmit={handlePreview} // CHANGED
-            values={formData}
-          />
-        );
+        return <GeneratingAgent />;
+      // <Step4ConfigureSave
+      //   prevStep={prevStep}
+      //   nextStep={nextStep}
+      //   handleChange={handleChange}
+      //   handleSubmit={handlePreview} // CHANGED
+      //   values={formData}
+      // />
 
-      case 5:
-        return (
-          <div className="flex items-center flex-col justify-center min-h-screen">
-            <div>
-              <Image
-                src="/logo.png"
-                alt="zobsai logo"
-                width={100}
-                height={100}
-                className="w-10 h-10 animate-bounce"
-              />
-            </div>
-            <div className="text-lg">Generating agent Please wait...</div>
-          </div>
-        );
+      // case 5:
+      //   return <GeneratingAgent />;
       default:
         return <div>Done.</div>;
     }

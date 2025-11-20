@@ -1,6 +1,7 @@
 import React from 'react';
 import SearchJobsPage from './components/searchJobPage';
 import { searchJobsMetadata } from '@/metadata/metadata';
+import TourManager from '@/components/TourManager';
 
 export const metadata = {
   title: searchJobsMetadata.title,
@@ -9,7 +10,12 @@ export const metadata = {
 };
 
 const page = () => {
-  return <SearchJobsPage />;
+  return (
+    <>
+      <TourManager pageKey="search-job" startImmediately={false} />
+      <SearchJobsPage />
+    </>
+  );
 };
 
 export default page;

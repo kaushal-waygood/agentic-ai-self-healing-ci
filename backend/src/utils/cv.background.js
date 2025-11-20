@@ -8,6 +8,7 @@ import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
+import { User } from '../models/User.model.js';
 
 const MAX_RETRIES = 5;
 const INITIAL_BACKOFF_MS = 1000; // 1s
@@ -177,6 +178,24 @@ export const processCVGeneration = async (
 
     if (!updateResult || updateResult.matchedCount === 0) {
       throw new Error(`Failed to update CV with cvId: ${cvId} (match count 0)`);
+    }
+
+    // Only increment user's cvCreation usage AFTER successful persist of CV
+    try {
+      await User.updateOne(
+        { _id: userId },
+        {
+          $inc: {
+            'usageCounters.cvCreation': 1,
+          },
+        },
+      );
+    } catch (incErr) {
+      // Log but don't fail the whole flow if increment fails
+      console.error(
+        `Failed to increment usageCounters.cvCreation for user ${userId}:`,
+        incErr,
+      );
     }
 
     // Notify success

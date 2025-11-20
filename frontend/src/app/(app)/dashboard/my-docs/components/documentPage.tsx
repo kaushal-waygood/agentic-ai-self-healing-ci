@@ -11,6 +11,7 @@ import {
   Copy,
   CheckCircle2,
   X,
+  Search,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
@@ -596,20 +597,30 @@ const DocumentSection = ({
   formatDate,
   type,
 }: any) => {
+  const [visibleCount, setVisibleCount] = useState(10);
+
   // 1. Add state to store the search input
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 2. Create the filtering logic
+  // actual search used for filtering
+  const [finalSearchTerm, setFinalSearchTerm] = useState('');
+
+  // Auto reset when input becomes empty
+  useEffect(() => {
+    if (searchTerm === '') {
+      setFinalSearchTerm('');
+    }
+  }, [searchTerm]);
+
+  //  the filtering logic
   const filteredItems = items.filter((item: any) => {
-    if (!searchTerm) return true; // If search is empty, show all items
+    if (!finalSearchTerm) return true;
 
-    const searchLower = searchTerm.toLowerCase();
+    const searchLower = finalSearchTerm.toLowerCase();
 
-    // Search against the fields used in DocumentCard's getTitle()
     const title = (item.jobTitle || '').toLowerCase();
     const company = (item.companyName || '').toLowerCase();
     const context = (item.jobContextString || '').toLowerCase();
-    const [documents, setDocuments] = useState([]); // Or however you fetch docs
 
     return (
       title.includes(searchLower) ||
@@ -617,6 +628,10 @@ const DocumentSection = ({
       context.includes(searchLower)
     );
   });
+
+  const handleSearch = () => {
+    setFinalSearchTerm(searchTerm); // 🔥 Search only when triggered
+  };
 
   const handleRenameDocument = async (documentId: string, newTitle: string) => {
     try {
@@ -651,19 +666,46 @@ const DocumentSection = ({
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white ">
           {title}
         </h2>
-        <div>
-          {/* 3. Wire up the input to the state */}
-          <input
-            type="text"
-            className="p-1 border border-gray-300 dark:border-gray-600 rounded-md"
-            placeholder="Search"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+
+        <div className="flex items-center">
+          {/* Input + X inside */}
+          <div className="relative">
+            <input
+              type="text"
+              className="p-1 pr-8 border border-gray-300 dark:border-gray-600 rounded-md"
+              placeholder="Search Doc"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearch();
+              }}
+            />
+
+            {/* X Button inside input */}
+            {searchTerm && (
+              <button
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                onClick={() => {
+                  setSearchTerm('');
+                  setFinalSearchTerm('');
+                }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Button OUTSIDE */}
+          <button
+            className="ml-2 p-1 border border-gray-300 dark:border-gray-600 rounded-md"
+            onClick={handleSearch}
+          >
+            <Search className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -704,21 +746,35 @@ const DocumentSection = ({
         // This shows the filtered results
         <div className="space-y-4">
           {/* 5. Map over the filtered list */}
-          {filteredItems.map((item: any) => (
-            <DocumentCard
-              key={item._id}
-              item={item}
-              type={type}
-              onDelete={onDelete}
-              onCopy={onCopy}
-              onDownload={onDownload}
-              copiedId={copiedId}
-              getStatusIcon={getStatusIcon}
-              getStatusColor={getStatusColor}
-              formatDate={formatDate}
-              onRename={handleRenameDocument}
-            />
-          ))}
+          {filteredItems
+            .slice(0, visibleCount)
+            .map((item: any, index: number) => (
+              <DocumentCard
+                key={item._id}
+                index={index + 1}
+                item={item}
+                type={type}
+                onDelete={onDelete}
+                onCopy={onCopy}
+                onDownload={onDownload}
+                copiedId={copiedId}
+                getStatusIcon={getStatusIcon}
+                getStatusColor={getStatusColor}
+                formatDate={formatDate}
+                onRename={handleRenameDocument}
+              />
+            ))}
+          {/* Show "See More" only if not all items are visible */}
+          {visibleCount < filteredItems.length && (
+            <div className="text-center mt-4">
+              <button
+                onClick={() => setVisibleCount(visibleCount + 10)}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              >
+                See More
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

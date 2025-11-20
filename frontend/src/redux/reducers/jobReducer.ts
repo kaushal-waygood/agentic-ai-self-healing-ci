@@ -2,7 +2,6 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Job } from '../types/jobType';
-import { visitedJobs } from '@/services/api/student';
 
 // --- FIX: Removed the duplicate interface definitions ---
 interface Pagination {
@@ -231,7 +230,6 @@ const jobSlice = createSlice({
     },
 
     getRecommendJobsRequest: (state) => {
-      console.log('getRecommendJobsRequest');
       state.loading = true;
       state.error = null;
     },
@@ -258,7 +256,6 @@ const jobSlice = createSlice({
     },
 
     visitedJobsRequest: (state) => {
-      console.log('visitedJobsRequest');
       state.loading = true;
       state.error = null;
     },

@@ -133,7 +133,7 @@ const ConfirmDialog: React.FC<{
 
       <div className="px-6 pb-2">
         <p className="text-gray-600 leading-relaxed">
-          {body ?? 'This action cannot be undone.'}
+          {'This action cannot be undone.'}
         </p>
       </div>
 

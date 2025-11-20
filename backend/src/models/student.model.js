@@ -203,6 +203,7 @@ const tailoredApplicationSchema = new Schema({
   tailoredCoverLetter: { type: Object },
   applicationEmail: { type: Object },
   error: { type: String },
+  flag: { type: String, enum: ['web', 'app', 'extension'] },
   createdAt: { type: Date, default: Date.now },
   completedAt: { type: Date },
 });
@@ -297,6 +298,7 @@ const studentSchema = new Schema(
           enum: ['pending', 'completed', 'failed'],
           default: 'pending',
         },
+        flag: { type: String, enum: ['web', 'app', 'extension'] },
         clTitle: { type: String },
         jobContextString: { type: String },
         finalTouch: { type: String },
@@ -314,6 +316,7 @@ const studentSchema = new Schema(
           enum: ['pending', 'completed', 'failed'],
           default: 'pending',
         },
+        flag: { type: String, enum: ['web', 'app', 'extension'] },
         cvTitle: { type: String },
         jobContextString: { type: String },
         finalTouch: { type: String },
@@ -325,6 +328,20 @@ const studentSchema = new Schema(
     ],
 
     tailoredApplications: [tailoredApplicationSchema],
+
+    tours: {
+      type: Map,
+      of: new Schema(
+        {
+          currentStep: { type: Number, default: 0 },
+          completed: { type: Boolean, default: false },
+          updatedAt: { type: Date, default: Date.now },
+        },
+        { _id: false },
+      ),
+      default: {},
+      select: true,
+    },
 
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {

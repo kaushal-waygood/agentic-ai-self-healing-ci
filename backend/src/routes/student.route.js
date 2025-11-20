@@ -17,6 +17,7 @@ import {
   updateJobPreferences,
   getJobPreferences,
   updateFullName,
+  updatePhone,
   // savedJobs,
   getSavedJobs,
   isSavedOrNot,
@@ -44,12 +45,15 @@ import {
   onboardingProfile,
   completeOnboarding,
   getAllProjects,
+  getCreditsSummary,
+  getTotalCredits,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import puppeteer from 'puppeteer';
 import pkg from 'generic-pool';
 import { spawn } from 'child_process';
+import fs from 'fs';
 
 const router = Router();
 
@@ -60,6 +64,8 @@ router.post('/job/apply/:jobId', authMiddleware, isStudent, appliedJob);
 router.get('/job/isapplied', authMiddleware, isStudent, isAppliedOrNot);
 
 router.patch('/fullname/update', authMiddleware, isStudent, updateFullName);
+
+router.patch('/phone/update', authMiddleware, isStudent, updatePhone);
 
 router.post('/job-role/update', authMiddleware, isStudent, updateJobRole);
 
@@ -219,6 +225,9 @@ router.post(
 
 router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
 
+router.get('/credits', authMiddleware, isStudent, getCreditsSummary);
+router.get('/total-credits', authMiddleware, isStudent, getTotalCredits);
+
 router.post(
   '/profile/onboarding',
   authMiddleware,
@@ -296,113 +305,211 @@ router.post('/pdf/generate-pdf', async (req, res) => {
   }
 });
 
-// router.post('/docx/generate-docx', (req, res) => {
-//   const { html, title } = req.body;
-
-//   if (!html) {
-//     return res.status(400).json({ message: 'HTML content is required.' });
-//   }
-
-//   // Define the command and its arguments.
-//   // Note: spawn expects arguments as an array of strings.
-//   const pandoc = spawn('pandoc', ['-f', 'html', '-t', 'docx']);
-
-//   // We will collect the output chunks of the DOCX file in this array.
-//   const docxChunks = [];
-//   const errorChunks = [];
-
-//   // Listen for data coming from Pandoc's output stream (the generated file).
-//   pandoc.stdout.on('data', (chunk) => {
-//     docxChunks.push(chunk);
-//   });
-
-//   // Listen for any errors that Pandoc might throw.
-//   pandoc.stderr.on('data', (chunk) => {
-//     errorChunks.push(chunk);
-//   });
-
-//   // When the Pandoc process finishes, this event is fired.
-//   pandoc.on('close', (code) => {
-//     // If Pandoc exited with an error code or we captured error messages...
-//     if (code !== 0 || errorChunks.length > 0) {
-//       const errorMessage = Buffer.concat(errorChunks).toString();
-//       console.error(`Pandoc Error (code ${code}): ${errorMessage}`);
-//       return res.status(500).json({
-//         message: 'Failed to generate DOCX file using Pandoc.',
-//         error: errorMessage,
-//       });
-//     }
-
-//     // If successful, combine all the collected chunks into a single buffer.
-//     const docxBuffer = Buffer.concat(docxChunks);
-
-//     // Set the response headers to trigger a download.
-//     res.setHeader(
-//       'Content-Type',
-//       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-//     );
-//     res.setHeader(
-//       'Content-Disposition',
-//       `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.docx"`,
-//     );
-
-//     res.send(docxBuffer);
-//   });
-
-//   // Write your HTML content to Pandoc's input stream.
-//   pandoc.stdin.write(html);
-//   // Close the input stream to signal that you're done sending data.
-//   pandoc.stdin.end();
-// });
-
-router.post('/docx/generate-docx', (req, res) => {
+router.post('/docx/generate-docx', async (req, res) => {
   const { html, title } = req.body;
 
   if (!html) {
     return res.status(400).json({ message: 'HTML content is required.' });
   }
 
-  // Define output file path
-  const outputPath = `./CareerPilot_${title.replace(/ /g, '_')}.docx`;
-
-  // Spawn Pandoc with proper output flag
-  const pandoc = spawn('pandoc', [
-    '-f',
-    'html',
-    '-t',
-    'docx',
-    '-o',
-    outputPath,
-  ]);
-
-  // Write HTML to Pandoc's stdin
-  pandoc.stdin.write(html);
-  pandoc.stdin.end();
-
-  const errorChunks = [];
-
-  pandoc.stderr.on('data', (chunk) => {
-    errorChunks.push(chunk);
-  });
-
-  pandoc.on('close', (code) => {
-    if (code !== 0) {
-      const errorMessage = Buffer.concat(errorChunks).toString();
-      console.error(`Pandoc Error (code ${code}): ${errorMessage}`);
-      return res.status(500).json({
-        message: 'Failed to generate DOCX file using Pandoc.',
-        error: errorMessage,
-      });
-    }
-
-    // Once DOCX is generated successfully, send it as download
-    res.download(outputPath, (err) => {
-      if (err) {
-        console.error('Error sending DOCX:', err);
-        res.status(500).json({ message: 'Error sending DOCX file.' });
-      }
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
-  });
+
+    const page = await browser.newPage();
+
+    // Simplified HTML structure for Pandoc
+    const docxOptimizedHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { 
+            font-family: 'Times New Roman', serif;
+            line-height: 1.2;
+            color: #000;
+            font-size: 11pt;
+            margin: 0;
+            padding: 20px;
+          }
+          
+          .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          
+          .name {
+            font-size: 22pt;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+          }
+          
+          .contact-info {
+            font-size: 11pt;
+            margin-bottom: 20px;
+          }
+          
+          .section {
+            margin-bottom: 18px;
+          }
+          
+          .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+          }
+          
+          .summary-text, .additional {
+            font-size: 11pt;
+            line-height: 1.3;
+            margin-bottom: 12px;
+          }
+          
+          /* Convert flex layouts to simple blocks */
+          .company-line, .role-line, .degree-line {
+            margin-bottom: 4px;
+          }
+          
+          .company, .university {
+            font-weight: bold;
+            font-size: 11pt;
+          }
+          
+          .location, .dates {
+            font-size: 11pt;
+            font-style: italic;
+            float: right;
+          }
+          
+          .role {
+            font-style: italic;
+            font-size: 11pt;
+          }
+          
+          .responsibilities {
+            margin: 8px 0;
+            padding-left: 20px;
+          }
+          
+          .responsibilities li {
+            font-size: 11pt;
+            line-height: 1.3;
+            margin-bottom: 4px;
+          }
+          
+          .highlight {
+            font-weight: bold;
+          }
+          
+          .skill-category {
+            margin-bottom: 6px;
+          }
+          
+          .skill-title {
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          ${html}
+        </div>
+      </body>
+      </html>
+    `;
+
+    await page.setContent(docxOptimizedHtml, {
+      waitUntil: 'load',
+      timeout: 30000,
+    });
+
+    // Get cleaned HTML
+    const cleanedHtml = await page.evaluate(() => {
+      // Remove title tags and other problematic elements
+      const titleElements = document.querySelectorAll('title');
+      titleElements.forEach((el) => el.remove());
+
+      // Remove scripts and styles that cause issues
+      const elementsToRemove = document.querySelectorAll('script, link, meta');
+      elementsToRemove.forEach((el) => el.remove());
+
+      // Convert flex to simple layouts
+      const flexElements = document.querySelectorAll('[style*="flex"]');
+      flexElements.forEach((el) => {
+        el.style.display = 'block';
+      });
+
+      return document.documentElement.outerHTML;
+    });
+
+    await browser.close();
+
+    // Use Pandoc WITHOUT the template reference
+    const outputPath = `./CareerPilot_${title.replace(/ /g, '_')}.docx`;
+
+    const pandoc = spawn('pandoc', [
+      '-f',
+      'html',
+      '-t',
+      'docx',
+      '-o',
+      outputPath,
+    ]);
+
+    pandoc.stdin.write(cleanedHtml);
+    pandoc.stdin.end();
+
+    const errorChunks = [];
+
+    pandoc.stderr.on('data', (chunk) => {
+      errorChunks.push(chunk);
+    });
+
+    pandoc.on('close', (code) => {
+      if (code !== 0) {
+        const errorMessage = Buffer.concat(errorChunks).toString();
+        console.error('Pandoc conversion failed:', errorMessage);
+        return res.status(500).json({
+          message: 'Failed to generate DOCX file.',
+          error: errorMessage,
+        });
+      }
+
+      console.log('DOCX generated successfully');
+      res.download(outputPath, (err) => {
+        if (err) {
+          console.error('Error sending DOCX:', err);
+          res.status(500).json({ message: 'Error sending DOCX file.' });
+        }
+        // Clean up
+        try {
+          fs.unlinkSync(outputPath);
+        } catch (cleanupError) {
+          console.error('Error cleaning up file:', cleanupError);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('DOCX Generation Error:', error);
+    if (browser) await browser.close();
+    res.status(500).json({
+      message: 'Failed to generate DOCX.',
+      error: error.message,
+    });
+  }
 });
 
 export default router;

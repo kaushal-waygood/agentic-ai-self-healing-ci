@@ -102,6 +102,12 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         href: '/dashboard/my-docs',
         icon: Activity,
       },
+
+      {
+        title: 'ZobsAI Partnership',
+        href: '/dashboard/partnership',
+        icon: ZapIcon,
+      },
       {
         title: 'Organization',
         href: '/dashboard/organization',
@@ -109,6 +115,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         adminOnly: true,
       },
       { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
+
       {
         title: 'Request New Feature',
         href: '/dashboard/request-new-feature', // Replace with your actual form link
@@ -234,6 +241,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
           return (
             <div
               key={item.href}
+              id={`sidebar-link-${index}`}
               className="relative"
               style={{
                 animation: `slideInLeft 0.5s ease-out ${index * 50}ms forwards`,

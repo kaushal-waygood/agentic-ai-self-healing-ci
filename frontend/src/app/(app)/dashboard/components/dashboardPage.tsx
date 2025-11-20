@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import confetti from 'canvas-confetti';
 
 import {
   LayoutDashboard,
@@ -28,6 +29,7 @@ import {
   Eye,
 } from 'lucide-react';
 import Link from 'next/link';
+
 import { mockUserProfile, ActionItem } from '@/lib/data/user';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -36,16 +38,9 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
-import { JobCard } from '@/components/jobs/job-card';
-import { ApplicationRow } from './applications/components/statusConfig';
+import { usePathname, useRouter } from 'next/navigation';
+import CompletionModal from './CompletionModel';
+import { startDashboardTour } from './dashboardDriver';
 
 export function StatCard({
   title,
@@ -63,14 +58,14 @@ export function StatCard({
     green: 'from-green-500 to-green-600',
   };
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+    <div className="group relative overflow-hidden rounded-lg bg-white border  transition-all duration-300 transform hover:-translate-y-1">
       <div
         className={`absolute top-0 left-0 h-1 w-full bg-gradient-to-r ${colorClasses[color]}`}
       ></div>
       <div className="relative p-6">
         <div className="flex items-start justify-between mb-4">
           <div
-            className={`p-3 rounded-lg bg-gradient-to-r ${colorClasses[color]} text-white shadow-lg`}
+            className={`p-3 rounded-lg bg-gradient-to-r ${colorClasses[color]} text-white `}
           >
             <Icon className="w-6 h-6" />
           </div>
@@ -119,7 +114,7 @@ export function ToolkitButton({
     <Link href={href} passHref>
       <button
         className={cn(
-          'w-full p-4 rounded-xl border-2 border-dashed transition-all duration-200 hover:border-solid hover:shadow-md group',
+          'w-full p-4 rounded-lg border-2 border-dashed transition-all duration-200 hover:border-solid hover: group',
           colorClasses[color],
         )}
       >
@@ -147,11 +142,13 @@ export function ToolkitButton({
 
 export function ProfileReadinessCard() {
   const { data, isLoading, error } = useProfileCompletion();
+  const router = useRouter();
 
   if (isLoading || !data) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-lg  p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 border-2 border-dashed rounded-lg">
+          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
           <p className="font-medium">Loading profile data...</p>
         </div>
       </div>
@@ -160,7 +157,7 @@ export function ProfileReadinessCard() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-lg  p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-red-500 border-2 border-dashed border-red-200 rounded-lg">
           <p className="font-medium">Error loading data</p>
         </div>
@@ -192,8 +189,17 @@ export function ProfileReadinessCard() {
     return 'from-red-400 to-red-600';
   };
 
+  const tabRoutes = {
+    basicInfo: 'education',
+    educationDetails: 'education',
+    projects: 'project',
+    workExperience: 'experience',
+    skills: 'skills',
+    jobPreferences: 'jobPreferences',
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -218,11 +224,16 @@ export function ProfileReadinessCard() {
           style={{ width: `${score}%` }}
         />
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {checklistItems.map(({ key, label }) => (
           <div
             key={key}
-            className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
+            className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+            onClick={() => {
+              const tab = tabRoutes[key] || 'education';
+              router.push(`/dashboard/profile?tab=${tab}`);
+            }}
           >
             <CheckCircle2
               className={`w-5 h-5 transition-colors duration-300 ${
@@ -287,7 +298,7 @@ export function ActionItemCard({ item, onMarkAsRead }: any) {
     <Link href={item.href} passHref>
       <div
         className={cn(
-          'p-4 rounded-r-xl border-l-4 cursor-pointer transition-all duration-200 hover:shadow-md',
+          'p-4 rounded-r-xl border-l-4 cursor-pointer transition-all duration-200 hover:',
           item.isRead
             ? 'border-l-gray-200 bg-gray-50 opacity-60'
             : getTypeColor(item.type),
@@ -358,8 +369,7 @@ function UsageMeter({ label, used, limit }: any) {
             {formatUsageKey(label)}
           </p>
           <p className="text-sm font-semibold text-gray-800">
-            {used} /{' '}
-            {isUnlimited ? <Infinity className="inline w-4 h-4" /> : limit}
+            {used} / {isUnlimited ? 'Unlimited' : limit}
           </p>
         </div>
         {!isUnlimited && (
@@ -376,10 +386,11 @@ function UsageMeter({ label, used, limit }: any) {
 }
 
 export function SubscriptionStatusCard({ plan }: any) {
+  const pathname = usePathname();
   // Fallback UI if there's no active plan
   if (!plan || !plan.isActive) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+      <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Your Plan</h3>
         <p className="text-gray-600 text-sm mb-4">
           You do not have an active subscription.
@@ -404,7 +415,7 @@ export function SubscriptionStatusCard({ plan }: any) {
   const daysRemaining = calculateDaysRemaining(plan.endDate);
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white rounded-lg border  p-6  transition-shadow duration-300">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -421,22 +432,23 @@ export function SubscriptionStatusCard({ plan }: any) {
       </div>
 
       <div className="space-y-4 mb-6">
-        {/* Render a meter for each usage counter from the API */}
-        {Object.keys(plan.usageCounters).map((key) =>
+        {Object.keys(plan?.usageCounters || {}).map((key) =>
           key !== 'lastReset' ? (
             <UsageMeter
               key={key}
               label={key}
-              used={plan.usageCounters[key]}
-              limit={plan.usageLimits[key]}
+              used={plan?.usageCounters?.[key] ?? 0}
+              limit={plan?.usageLimits?.[key] ?? 0}
             />
           ) : null,
         )}
       </div>
 
-      <Button variant="outline" className="w-full" asChild>
-        <Link href="/dashboard/billing">Manage Subscription</Link>
-      </Button>
+      {pathname === '/dashboard' && (
+        <Button variant="outline" className="w-full" asChild>
+          <Link href="/dashboard/billing">Manage Subscription</Link>
+        </Button>
+      )}
     </div>
   );
 }
@@ -458,8 +470,6 @@ export default function DashboardPage() {
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
   const [savedJobs, setSavedJobs] = useState([]);
-  const [cvsGenerated, setCvsGenerated] = useState(0);
-  const [coverLettersGenerated, setCoverLettersGenerated] = useState(0);
 
   const [planDetails, setPlanDetails] = useState(null);
 
@@ -473,7 +483,6 @@ export default function DashboardPage() {
         // Fetch Job Stats
         const statsResponse = await apiInstance.get('/students/jobs/stats');
         const apiData = statsResponse.data;
-        console.log('API Data:', apiData);
 
         setStats({
           applicationsSent: apiData.applicationsSent || 0,
@@ -633,14 +642,84 @@ export default function DashboardPage() {
     fetchSavedJobs();
   }, []);
 
+  // Instruction Driver tour logic
+
+  const [showCompletionModal, setShowCompletionModal] =
+    useState<boolean>(false);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await apiInstance.get('/students/details');
+        const hasCompleted = res.data.studentDetails.hasCompletedOnboarding;
+        console.log('Fetched:', hasCompleted);
+
+        if (hasCompleted) {
+          // Auto-start tour if onboarding already completed
+          handleStartTour();
+        }
+      } catch (e) {
+        console.error('Error fetching:', e);
+      }
+    };
+
+    run();
+  }, []);
+
+  useEffect(() => {
+    const btn = document.getElementById('start-tour-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', handleStartTour);
+
+    return () => {
+      btn.removeEventListener('click', handleStartTour);
+    };
+  }, []);
+  const fireConfetti = () => {
+    const end = Date.now() + 1000;
+
+    (function frame() {
+      confetti({
+        particleCount: 4,
+        startVelocity: 25,
+        spread: 360,
+        ticks: 60,
+        scalar: 1.2,
+        origin: {
+          x: Math.random(),
+          y: Math.random() - 0.2,
+        },
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    })();
+  };
+
+  const handleStartTour = () => {
+    startDashboardTour({
+      fireConfetti,
+      setShowCompletionModal,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div id="dashboard-scroll" className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <LayoutDashboard className="w-8 h-8 mr-3 text-purple-600" />
             ZOBSAI Dashboard
+            <button
+              id="start-tour-btn"
+              className=" mx-5 border  rounded-lg px-2 text-white bg-purple-600 hover:bg-blue-800"
+            >
+              <p className="text-2xl ">Start Tour</p>
+            </button>
           </h1>
+
           {/* MODIFIED: Use `authUser` directly from Redux */}
           <p className="text-gray-600 mt-1">
             Welcome back, {authUser?.fullName || 'User'}! Here's your job
@@ -649,90 +728,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3 mb-8">
-          {/* <div className="lg:col-span-2 space-y-8">
-            <ProfileReadinessCard />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <StatCard
-                title="Saved CVs"
-                value={stats.cvsGenerated}
-                icon={FileText}
-                description="Total CVs generated with AI"
-                color="blue"
-                actionText="Manage CVs"
-                actionLink="/dashboard/my-docs?tab=cvs"
-              />
-              <StatCard
-                title="Cover Letters"
-                value={stats.coverLettersGenerated}
-                icon={Bot}
-                description="Documents prepared with AI"
-                color="green"
-                actionText="Create More"
-                actionLink="dashboard/my-docs?tab=cover-letters"
-              />
-              <StatCard
-                title="Applications Tracked"
-                value={stats.tailoredApplications}
-                icon={Send}
-                description="Total applications in your pipeline"
-                color="purple"
-                actionText="View Applications"
-                actionLink="/dashboard/my-docs?tab=applications"
-              />
-
-              <StatCard
-                title="Saved Jobs"
-                value={stats.savedJobsCount}
-                icon={Bookmark}
-                description="Opportunities you are watching"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Viewed Jobs"
-                value={stats.jobsViewed}
-                icon={Bookmark}
-                description="Jobs you’ve recently viewed"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Applied Jobs"
-                value={stats.appliedJobsCount}
-                icon={Bookmark}
-                description="Jobs you’ve officially applied for through the platform"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-              <StatCard
-                title="Visited Jobs"
-                value={stats.visitedJobs}
-                icon={Bookmark}
-                description="Job listings you’ve opened but not saved or applied to"
-                color="cyan"
-                actionText="View Saved Jobs"
-                actionLink="/dashboard/applications?status=Saved"
-              />
-
-              <StatCard
-                title="Referral Count"
-                value={stats.referralCount}
-                icon={Award}
-                description="Successful referrals made"
-                color="purple"
-                actionText="Refer Friends"
-                actionLink="/dashboard/referrals"
-              />
-            </div>
-          </div> */}
-
           <div className="lg:col-span-2 space-y-8">
-            <ProfileReadinessCard />
+            <div id="profile-readiness">
+              <ProfileReadinessCard />
+            </div>
             {/* 🚀 APPLICATIONS SECTION */}
-            <div>
+            <div id="my-docsx">
               <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
                 My Documents
               </h2>
@@ -767,7 +768,7 @@ export default function DashboardPage() {
               </div>
             </div>
             {/* 🧩 JOBS SECTION */}
-            <div>
+            <div id="my-applications">
               <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
                 My Applications
               </h2>
@@ -812,7 +813,7 @@ export default function DashboardPage() {
             </div>
 
             {/* 🎁 OTHERS SECTION */}
-            <div>
+            <div id="other-driver">
               <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
                 Others
               </h2>
@@ -831,9 +832,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-8">
-            <SubscriptionStatusCard plan={planDetails} />
+            <div id="plan-driver">
+              <SubscriptionStatusCard plan={planDetails} />
+            </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+            <div
+              id="coreToolkit-driver"
+              className="bg-white border rounded-lg  p-6  transition-shadow duration-300"
+            >
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Core AI Toolkit
@@ -876,6 +882,10 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <CompletionModal
+        open={showCompletionModal}
+        onClose={() => setShowCompletionModal(false)}
+      />
     </div>
   );
 }

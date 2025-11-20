@@ -49,6 +49,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [loadingType, setLoadingType] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -166,7 +167,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   };
 
   const handleEditToggle = async () => {
-
     if (isEditing) {
       // Save mode
       if (editorRef.current) {
@@ -392,7 +392,6 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         title: documentName,
       });
 
-
       const { title: successTitle, description: successDescription } =
         getSaveSuccessMessage(documentName);
       toast({
@@ -584,22 +583,38 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
               <Copy className="w-4 h-4 mr-2" />
               Copy Text
             </button>
+
             <button
-              onClick={handleDownloadPdf}
-              disabled={!isHtml || !localContent || isLoading}
+              onClick={async () => {
+                setLoadingType('pdf');
+                await handleDownloadPdf();
+                setLoadingType(null);
+              }}
+              disabled={!isHtml || !localContent || loadingType === 'pdf'}
               className="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
             >
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {!isLoading && <Download className="w-4 h-4 mr-2" />}
+              {loadingType === 'pdf' ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
               PDF
             </button>
+
             <button
-              onClick={handleDownloadDocx}
-              disabled={!isHtml || !localContent || isLoading}
+              onClick={async () => {
+                setLoadingType('docx');
+                await handleDownloadDocx();
+                setLoadingType(null);
+              }}
+              disabled={!isHtml || !localContent || loadingType === 'docx'}
               className="flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold text-sm transition disabled:opacity-50"
             >
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {!isLoading && <FileText className="w-4 h-4 mr-2" />}
+              {loadingType === 'docx' ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4 mr-2" />
+              )}
               DOCX
             </button>
           </div>

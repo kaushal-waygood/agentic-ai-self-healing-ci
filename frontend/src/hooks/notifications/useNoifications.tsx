@@ -1,168 +1,160 @@
-/** @format */
-// hooks/useNotifications.js (frontend)
-import apiInstance from '@/services/api';
-import { useEffect, useState, useCallback, useRef } from 'react'; // <-- Import useCallback
-import { io } from 'socket.io-client';
-import { API_BASE_URL } from '@/services/api';
+// hooks/useNotifications.ts
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
+import apiInstance, { API_BASE_URL } from '@/services/api';
 
-export function useNotifications() {
-  const socketRef = useRef(null);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [socket, setSocket] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+type Notification = {
+  _id: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  actionUrl?: string;
+};
 
+export  function useNotifications() {
+  const socketRef = useRef<Socket | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [connectionStatus, setConnectionStatus] = useState<
+    'connected' | 'disconnected' | 'error'
+  >('disconnected');
+
+  // Helper: safely update state
+  const prependNotification = useCallback((n: Notification) => {
+    setNotifications((prev) => [n, ...prev]);
+    setUnreadCount((c) => c + (n.isRead ? 0 : 1));
+  }, []);
+
+  // Init socket once
   useEffect(() => {
     const backendUrl = API_BASE_URL || 'http://127.0.0.1:8080';
-    console.log('🔔 Attempting to connect to:', backendUrl);
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
 
-    // Avoid re-creating socket in dev strict mode / HMR
+    // reuse socket if already connected (helps with HMR/StrictMode)
     if (socketRef.current && socketRef.current.connected) {
-      console.log('🔔 Reusing existing socket instance');
       return;
     }
 
-    const token = localStorage.getItem('accessToken') || '';
-
-    const opts = {
-      path: '/socket.io', // be explicit; must match server
-      transports: ['websocket'], // avoid polling noise in dev
-      autoConnect: false, // prevents instant connect on mount
-      withCredentials: true,
-      auth: { token: `Bearer ${token}` }, // server strips 'Bearer ' — be explicit
-    };
-
-    const sock = io(`${backendUrl}/notifications`, opts);
-    socketRef.current = sock;
-    setSocket(sock);
-
-    const onConnect = () => {
-      console.log('🔔 ✅ Connected, id:', sock.id);
-      setConnectionStatus('connected');
-    };
-    const onConnectError = (err) => {
-      console.error(
-        '🔔 ❌ Connection error:',
-        err && err.message ? err.message : err,
-      );
-      setConnectionStatus('error');
-    };
-    const onDisconnect = (reason) => {
-      console.log('🔔 🔌 Disconnected:', reason);
-      setConnectionStatus('disconnected');
-    };
-
-    sock.on('connect', onConnect);
-    sock.on('connect_error', onConnectError);
-    sock.on('disconnect', onDisconnect);
-
-    sock.on('new-notification', (notification) => {
-      setNotifications((prev) => [notification, ...prev]);
-      setUnreadCount((p) => p + 1);
+    const socket = io(`${backendUrl}/notifications`, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      autoConnect: false,
+      auth: { token: token ? `Bearer ${token}` : '' },
     });
 
-    // keep a global ref for quick debug in console
-    window.__notifSocket = sock;
+    socketRef.current = socket;
 
-    // now actually connect once wired
-    sock.connect();
+    const onConnect = () => setConnectionStatus('connected');
+    const onError = (err: any) => {
+      console.error('notification socket error', err);
+      setConnectionStatus('error');
+    };
+    const onDisconnect = () => setConnectionStatus('disconnected');
+
+    const onNew = (notification: Notification) => {
+      prependNotification(notification);
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('connect_error', onError);
+    socket.on('disconnect', onDisconnect);
+    socket.on('new-notification', onNew);
+
+    // store globally for debug if you like
+    // @ts-ignore
+    window.__notifSocket = socket;
+
+    socket.connect();
 
     return () => {
-      console.log('🔔 🧹 Cleaning up socket connection');
+      // cleanup all listeners and disconnect
       try {
-        sock.off('connect', onConnect);
-        sock.off('connect_error', onConnectError);
-        sock.off('disconnect', onDisconnect);
-        sock.disconnect();
+        socket.off('connect', onConnect);
+        socket.off('connect_error', onError);
+        socket.off('disconnect', onDisconnect);
+        socket.off('new-notification', onNew);
+        socket.disconnect();
       } catch (e) {
-        console.warn('🔔 cleanup error', e);
+        console.warn('useNotifications cleanup failed', e);
       }
       socketRef.current = null;
-      setSocket(null);
     };
-  }, []); // run once
+  }, [prependNotification]);
 
-  // --- Data Fetching Functions (Wrapped in useCallback) ---
-
+  // --- API calls ---
   const fetchNotifications = useCallback(async (page = 1, limit = 20) => {
     try {
-      const response = await apiInstance.get(
+      const res = await apiInstance.get(
         `/notifications?page=${page}&limit=${limit}`,
       );
-      const data = response.data;
-      if (data.success) {
-        setNotifications(data.data.notifications);
+      if (res.data?.success) {
+        setNotifications(res.data.data.notifications || []);
       }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch (err) {
+      console.error('fetchNotifications failed', err);
     }
-  }, []); // Empty array means this function is stable
+  }, []);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const response = await apiInstance.get('/notifications/unread-count');
-      const data = response.data;
-      if (data.success) {
-        setUnreadCount(data.data.unreadCount);
-      }
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      const res = await apiInstance.get('/notifications/unread-count');
+      if (res.data?.success) setUnreadCount(res.data.data.unreadCount || 0);
+    } catch (err) {
+      console.error('fetchUnreadCount failed', err);
     }
-  }, []); // Empty array means this function is stable
+  }, []);
 
-  const markAsRead = useCallback(
-    async (notificationId) => {
-      if (socket) {
+  const markAsRead = useCallback(async (notificationId: string) => {
+    // optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n)),
+    );
+    setUnreadCount((c) => Math.max(0, c - 1));
+
+    // send to server (socket if connected, else fall back to HTTP)
+    const socket = socketRef.current;
+    try {
+      if (socket && socket.connected) {
         socket.emit('mark-as-read', { notificationId });
+      } else {
+        await apiInstance.post(`/notifications/${notificationId}/mark-as-read`);
       }
-      setNotifications((prev) =>
-        prev.map((notif) =>
-          notif._id === notificationId ? { ...notif, isRead: true } : notif,
-        ),
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    },
-    [socket],
-  ); // Depends on socket state
+    } catch (err) {
+      console.error('markAsRead failed', err);
+      // optionally refetch to reconcile
+    }
+  }, []);
 
-  // --- NEW: Initial Data Fetch Effect ---
-  // This hook runs once when the component mounts
-  // and fetches the initial data.
+  const markAllAsRead = useCallback(async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+    try {
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit('mark-all-as-read');
+      } else {
+        await apiInstance.post('/notifications/mark-all-as-read');
+      }
+    } catch (err) {
+      console.error('markAllAsRead failed', err);
+    }
+  }, []);
+
+  // initial fetch once
   useEffect(() => {
     fetchUnreadCount();
-    fetchNotifications(); // Fetches the first page of notifications
-  }, [fetchUnreadCount, fetchNotifications]); // Depends on the stable useCallback functions
-
-  function connectSocket(token) {
-    // connect to namespace explicitly and pass auth token
-    const socket = io(`${API_BASE_URL}/notifications`, {
-      // or io(API_BASE_URL + '/notifications', { ... })
-      auth: {
-        token: `Bearer ${token}`, // server strips 'Bearer ' — you do that on server
-      },
-      transports: ['websocket'], // helps avoid polling in some dev setups
-      path: '/socket.io', // default, but make explicit if custom server config
-      // autoConnect: false, // if you want manual control
-    });
-
-    socket.on('connect', () => {
-      console.log('🔔 ✅ connected to notifications', socket.id);
-    });
-
-    socket.on('connect_error', (err) => {
-      console.error('🔔 ❌ Connection error:', err.message);
-    });
-
-    return socket;
-  }
+    fetchNotifications();
+  }, [fetchNotifications, fetchUnreadCount]);
 
   return {
     notifications,
     unreadCount,
     markAsRead,
+    markAllAsRead,
     fetchNotifications,
     fetchUnreadCount,
-    socket,
+    socket: socketRef.current,
     connectionStatus,
   };
 }
