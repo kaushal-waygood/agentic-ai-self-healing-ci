@@ -136,7 +136,6 @@ const transformRapidApiJob = (apiJob, searchQuery) => {
     },
 
     slug: `${slugBase}-${slugId}`,
-
     applyMethod: { method: 'URL', url: apiJob.job_apply_link },
     isActive: true,
     jobPosted: apiJob.job_posted_at,
@@ -728,6 +727,8 @@ export const getSingleJobDetail = async (req, res) => {
   }
 };
 
+const LOCK_TTL = 10; // seconds for in-flight refresh lock
+
 export const searchJobs = async (req, res) => {
   const {
     q,
@@ -758,110 +759,198 @@ export const searchJobs = async (req, res) => {
   });
 
   try {
-    const cachedResult = await redisClient.withCache(
-      cacheKey,
-      SEARCH_TTL,
-      async () => {
-        const searchCriteria = {};
-        if (q)
-          searchCriteria.$or = [
-            { title: new RegExp(escapeRegex(q), 'i') },
-            { description: new RegExp(escapeRegex(q), 'i') },
-            { queries: new RegExp(escapeRegex(q), 'i') },
-          ];
-        if (country) searchCriteria.country = country;
-        if (state) searchCriteria['location.state'] = state;
-        if (city) searchCriteria['location.city'] = city;
-        if (employmentType)
-          searchCriteria.jobTypes = { $in: employmentType.split(',') };
-        if (experience)
-          searchCriteria.experience = { $in: experience.split(',') };
+    // 1) Try cache first so we can signal `fromCache`
+    try {
+      const cachedRaw = await redisClient.get(cacheKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        return res.status(200).json({
+          jobs: cached.jobs,
+          pagination: {
+            totalJobs: cached.totalJobs || 0,
+            totalPages: Math.ceil((cached.totalJobs || 0) / limitNum),
+            currentPage: pageNum,
+            hasNextPage:
+              pageNum < Math.ceil((cached.totalJobs || 0) / limitNum),
+          },
+          notification: cached.notification || null,
+          fromCache: true,
+        });
+      }
+    } catch (cacheReadErr) {
+      // cache failure shouldn't fail the request
+      console.warn(
+        'searchJobs: cache read failed',
+        cacheReadErr && cacheReadErr.message,
+      );
+    }
 
-        let totalJobs = await Job.countDocuments(searchCriteria);
-        let jobs = await Job.find(searchCriteria)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limitNum)
-          .lean();
+    // 2) Acquire a short lock to avoid thundering-herd when refreshing cache
+    const lockKey = `${cacheKey}:lock`;
+    const lockAcquired = await redisClient.setNxWithTtl(lockKey, '1', LOCK_TTL);
 
-        let notification = null;
+    // 3) Build DB search criteria
+    const searchCriteria = {};
+    if (q)
+      searchCriteria.$or = [
+        { title: new RegExp(escapeRegex(q), 'i') },
+        { description: new RegExp(escapeRegex(q), 'i') },
+        { queries: new RegExp(escapeRegex(q), 'i') },
+      ];
+    if (country) searchCriteria.country = country;
+    if (state) searchCriteria['location.state'] = state;
+    if (city) searchCriteria['location.city'] = city;
+    if (employmentType)
+      searchCriteria.jobTypes = { $in: employmentType.split(',') };
+    if (experience) searchCriteria.experience = { $in: experience.split(',') };
 
-        if ((jobs.length === 0 || totalJobs === 0) && q && pageNum === 1) {
-          const externalJobsRaw = await fetchExternalJobs(
-            q,
-            country,
-            state,
-            city,
-            datePosted,
-            employmentType,
-            experience,
-          );
-          if (externalJobsRaw.length > 0) {
-            const externalJobsFormatted = externalJobsRaw.map((apiJob) =>
-              transformRapidApiJob(apiJob, q),
-            );
+    // 4) Query DB (canonical)
+    let [totalJobs, jobs] = await Promise.all([
+      Job.countDocuments(searchCriteria),
+      Job.find(searchCriteria)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+    ]);
 
-            try {
-              const bulkOps = externalJobsFormatted.map((job) => ({
-                updateOne: {
-                  filter: { jobId: job.jobId },
-                  update: {
-                    $set: {
-                      title: job.title,
-                      description: job.description,
-                      company: job.company,
-                      country: job.country,
-                      'location.city': job.location.city,
-                      'location.state': job.location.state,
-                      'location.lat': job.location.lat,
-                      'location.lng': job.location.lng,
-                      logo: job.logo,
-                      applyMethod: job.applyMethod,
-                      jobPosted: job.jobPosted,
-                      jobTypes: job.jobTypes,
-                      isActive: job.isActive,
-                      origin: job.origin,
-                      qualifications: job.qualifications,
-                      responsibilities: job.responsibilities,
-                      slug: job.slug,
-                      experience: job.experience,
-                    },
-                    $setOnInsert: { createdAt: new Date() },
-                    $addToSet: { queries: q },
-                  },
-                  upsert: true,
+    let notification = null;
+
+    // 5) If no DB results and it's the first page, try external fetch
+    if ((jobs.length === 0 || totalJobs === 0) && q && pageNum === 1) {
+      let externalJobsRaw = [];
+      try {
+        externalJobsRaw = await fetchExternalJobs(
+          q,
+          country,
+          state,
+          city,
+          datePosted,
+          employmentType,
+          experience,
+        );
+      } catch (apiErr) {
+        console.warn('fetchExternalJobs failed:', apiErr && apiErr.message);
+      }
+
+      if (externalJobsRaw && externalJobsRaw.length > 0) {
+        const externalJobsFormatted = externalJobsRaw.map((apiJob) =>
+          transformRapidApiJob(apiJob, q),
+        );
+
+        // Try to upsert them into DB in background of this request.
+        // We will attempt DB save, but if it fails we still return the external jobs.
+        try {
+          const bulkOps = externalJobsFormatted.map((job) => ({
+            updateOne: {
+              filter: { jobId: job.jobId },
+              update: {
+                $set: {
+                  title: job.title,
+                  description: job.description,
+                  company: job.company,
+                  country: job.country,
+                  'location.city': job.location.city,
+                  'location.state': job.location.state,
+                  'location.lat': job.location.lat,
+                  'location.lng': job.location.lng,
+                  logo: job.logo,
+                  applyMethod: job.applyMethod,
+                  jobPosted: job.jobPosted,
+                  jobTypes: job.jobTypes,
+                  isActive: job.isActive,
+                  origin: job.origin,
+                  qualifications: job.qualifications,
+                  responsibilities: job.responsibilities,
+                  slug: job.slug,
+                  experience: job.experience,
                 },
-              }));
+                $setOnInsert: { createdAt: new Date() },
+                $addToSet: { queries: q },
+              },
+              upsert: true,
+            },
+          }));
 
-              await Job.bulkWrite(bulkOps);
-              console.log('Successfully saved external jobs to database');
-            } catch (dbError) {
-              console.error('Background DB save failed:', dbError);
-            }
+          await Job.bulkWrite(bulkOps);
 
-            jobs = externalJobsFormatted;
-            totalJobs = externalJobsFormatted.length;
-          } else {
-            console.log('No external jobs found either');
+          // If DB writes succeed, invalidate broader job search caches (conservative)
+          // so future searches can pick up newly persisted external jobs.
+          try {
+            // Invalidate keys that could be impacted. This is conservative.
+            await redisClient.del([
+              // exact key we just computed
+              cacheKey,
+              // also delete some likely list keys - adjust to your naming scheme
+              `jobs:search|q:${q}|p:1|l:${limitNum}|c:${country || ''}|s:${
+                state || ''
+              }|ci:${city || ''}|et:${employmentType || ''}|exp:${
+                experience || ''
+              }|dp:${datePosted || ''}`,
+              // a broad pattern deletion if you need it (use SCAN in heavy deployments)
+            ]);
+          } catch (delErr) {
+            console.warn(
+              'searchJobs: cache invalidation failed after DB save',
+              delErr && delErr.message,
+            );
           }
+
+          // After successful DB save, serve the external jobs as results
+          jobs = externalJobsFormatted;
+          totalJobs = externalJobsFormatted.length;
+        } catch (dbError) {
+          console.error('Background DB save failed:', dbError);
+          // still return external results even if DB save fails
+          jobs = externalJobsFormatted;
+          totalJobs = externalJobsFormatted.length;
         }
+      } else {
+        // no external jobs either
+        const locationString = [city, state, country]
+          .filter(Boolean)
+          .join(', ');
+        notification = locationString
+          ? `We couldn't find any jobs for "${q}" in ${locationString}. Try broadening your search.`
+          : `We couldn't find any jobs matching your search for "${q}".`;
+      }
+    }
 
-        if ((!jobs || jobs.length === 0) && q) {
-          const locationString = [city, state, country]
-            .filter(Boolean)
-            .join(', ');
-          notification = locationString
-            ? `We couldn't find any jobs for "${q}" in ${locationString}. Try broadening your search.`
-            : `We couldn't find any jobs matching your search for "${q}".`;
-        }
+    // 6) Prepare final payload
+    const resultPayload = {
+      jobs,
+      totalJobs,
+      notification,
+    };
 
-        return { jobs, totalJobs, notification };
-      },
-    );
+    // 7) Write to cache only if we hold the lock (avoid multiple writers)
+    try {
+      if (lockAcquired) {
+        await redisClient.set(
+          cacheKey,
+          JSON.stringify(resultPayload),
+          SEARCH_TTL,
+        );
+      } else {
+        // If lock not acquired, optionally try to set cache anyway but avoid stampede:
+        // Skip cache set to reduce collision — we'll let the owner of the lock populate it.
+      }
+    } catch (cacheWriteErr) {
+      console.warn(
+        'searchJobs: cache write failed',
+        cacheWriteErr && cacheWriteErr.message,
+      );
+    } finally {
+      // release lock if we own it
+      try {
+        if (lockAcquired) await redisClient.del(lockKey);
+      } catch (unlockErr) {
+        // not critical
+      }
+    }
 
-    const { jobs, totalJobs, notification } = cachedResult;
+    // 8) Return the computed result
     const totalPages = Math.ceil((totalJobs || 0) / limitNum);
-
     return res.status(200).json({
       jobs,
       pagination: {
@@ -871,6 +960,7 @@ export const searchJobs = async (req, res) => {
         hasNextPage: pageNum < totalPages,
       },
       notification,
+      fromCache: false,
     });
   } catch (error) {
     console.error('Error in searchJobs controller:', error);
@@ -1032,3 +1122,24 @@ export const jobViewsCount = async (req, res) => {
     });
   }
 };
+
+export async function countJobs(filter = { published: true }) {
+  return Job.countDocuments(filter).exec();
+}
+
+export async function fetchJobsPage({
+  page = 1,
+  limit = 5000,
+  fields = ['slug', 'updatedAt'],
+} = {}) {
+  const projection = {};
+  fields.forEach((f) => (projection[f] = 1));
+  const skip = (page - 1) * limit;
+  return Job.find()
+    .select(projection)
+    .sort({ updatedAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean()
+    .exec();
+}

@@ -167,6 +167,29 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
   );
 };
 
+export const TotalCredit = () => {
+  const [credits, setCredits] = useState(0);
+  useEffect(() => {
+    const res = async () => {
+      const response = await apiInstance.get('/students/total-credits');
+      setCredits(response.data.credits);
+    };
+
+    res();
+  }, []);
+
+  console.log(credits);
+  return (
+    <Link
+      href="/dashboard/credits"
+      className="flex items-center space-x-2 px-6 py-2 bg-slate-200 rounded-lg"
+    >
+      <span className="text-sm font-medium text-slate-700">Credits</span>
+      <span className="text-xs text-slate-500">{credits || 0}</span>
+    </Link>
+  );
+};
+
 // Main AppHeader Component
 const AppHeader = ({ setIsSearchOpen }) => {
   const {
@@ -319,6 +342,8 @@ const AppHeader = ({ setIsSearchOpen }) => {
           <div className="flex items-center space-x-3"></div>
 
           <div className="flex items-center space-x-4">
+            <TotalCredit />
+
             <PlanDropdown
               planType={planType}
               isOpen={isPlanOpen}

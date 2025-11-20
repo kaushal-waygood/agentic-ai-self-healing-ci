@@ -12,6 +12,7 @@ import jobRoleRoutes from './routes/jobRole.route.js';
 import organizationRoutes from './routes/organization.route.js';
 import jobRoutes from './routes/job.route.js';
 import studentRoutes from './routes/student.route.js';
+import tourguideRoutes from './routes/tourguide.route.js';
 import aiRoutes from './routes/ai.route.js';
 import agentRoutes from './routes/autopilotAgent.route.js';
 import planRoutes from './routes/plan.route.js';
@@ -19,6 +20,7 @@ import formRoutes from './routes/form.route.js';
 import autofillRoutes from './routes/autofill.route.js';
 import couponRoutes from './routes/coupon.route.js';
 import notificationRoutes from './routes/notification.route.js';
+import sitemapRoutes from './routes/sitemap.js';
 import { handleStripeWebhook } from './controllers/plan.controller.js';
 
 import newFeatureRoutes from './routes/newFeature.route.js';
@@ -104,6 +106,7 @@ app.use('/api/v1/organization', organizationRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/students', studentRoutes);
 app.use('/api/v1/students', aiRoutes);
+app.use('/api/v1/onboarding', tourguideRoutes);
 app.use('/api/v1/pilotagent', agentRoutes);
 app.use('/api/v1/plan', planRoutes);
 app.use('/api/v1/form', formRoutes);
@@ -111,6 +114,7 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/new-feature', newFeatureRoutes);
 app.use('/api/v1/autofill', autofillRoutes);
 app.use('/api/v1/coupons', couponRoutes);
+app.use('/api/v1', sitemapRoutes);
 
 // 8) 404
 app.use((req, res, next) => next(createHttpError(404, 'Endpoint not found')));

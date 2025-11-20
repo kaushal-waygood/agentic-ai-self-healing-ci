@@ -40,16 +40,6 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
-import { JobCard } from '@/components/jobs/job-card';
-import { ApplicationRow } from './applications/components/statusConfig';
 import { useRouter } from 'next/navigation';
 import CompletionModal from './CompletionModel';
 

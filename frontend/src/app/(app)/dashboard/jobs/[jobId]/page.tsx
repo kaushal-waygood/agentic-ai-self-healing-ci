@@ -12,7 +12,6 @@ export const metadata = {
 const page = () => {
   return (
     <>
-      <Navigation />
       <div className="container">
         <JobDetailPage />
       </div>

@@ -89,6 +89,32 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
+
+    // --- Credit & Referral additions ---
+    credits: { type: Number, default: 0 }, // current balance
+    referralCode: {
+      type: String,
+      unique: true,
+      default: () => uuidv4().slice(0, 8),
+    }, // short code
+    referredBy: { type: Schema.Types.ObjectId, ref: 'Student', default: null },
+
+    // Credit transaction log
+    creditTransactions: [
+      {
+        type: {
+          type: String,
+          enum: ['EARN', 'SPEND', 'ADJUST'],
+          required: true,
+        },
+        amount: { type: Number, required: true },
+        balanceAfter: { type: Number, required: true },
+        kind: { type: String }, // e.g., 'signup_referral', 'cv_generation', 'daily_checkin'
+        meta: { type: Schema.Types.Mixed },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
     passwordResetToken: {
       type: String,
     },
@@ -126,6 +152,10 @@ const userSchema = new Schema(
       aiAutoApplyDailyLimit: { type: Number, default: 0 },
       aiMannualApplication: { type: Number, default: 0 },
       lastReset: { type: Date, default: Date.now },
+    },
+    freeCreditsGranted: {
+      type: Boolean,
+      default: false,
     },
   },
 

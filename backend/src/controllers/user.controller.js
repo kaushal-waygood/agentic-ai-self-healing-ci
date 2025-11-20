@@ -1,9 +1,10 @@
+// controllers/user.controller.js
 import { Organization } from '../models/Organization.model.js';
 import { User } from '../models/User.model.js';
 import { generateReferralCode } from '../utils/generateReferralCode.js';
 import crypto from 'crypto';
 import admin from '../config/firebase.js';
-import { transporter, sendEmailWithRetry } from '../utils/transporter.js';
+import { transporter } from '../utils/transporter.js';
 import bcrypt from 'bcryptjs';
 import redisClient from '../config/redis.js';
 import { google } from 'googleapis';
@@ -15,36 +16,171 @@ import { Notify } from '../models/notify.js';
 import TemplateManager from '../email-templates/lib/templateLoader.js';
 import path from 'path';
 import { __dirname } from '../utils/fileUploadingManaging.js';
-// import { SCOPES, oauth2Client } from '../config/googleConsole.js';
 
 const tm = new TemplateManager({
   baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
 });
 await tm.init();
 
+/* -------------------------
+   Helper utilities
+   ------------------------- */
+
+const DEFAULT_OTP_EXP_MS = 15 * 60 * 1000; // 15 minutes
+const DEFAULT_RESET_EXP_MS = 60 * 60 * 1000; // 1 hour
+
+const sendTemplatedEmail = async ({
+  to,
+  templateName,
+  templateVars,
+  subjectOverride,
+}) => {
+  const { html, text } = await tm.compileWithTextFallback(
+    templateName,
+    templateVars,
+  );
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: subjectOverride || templateVars.subject || 'ZobsAI Notification',
+    html,
+    text,
+  });
+};
+
+// Non-template fallback send
+const sendRawEmail = async ({ to, subject, html }) =>
+  transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    html,
+  });
+
+const generateOtp = () => crypto.randomInt(100000, 999999).toString();
+
+const setAccessTokenCookie = (res, token) => {
+  const cookieOptions = {
+    // httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
+  };
+  return res.cookie('accessToken', token, cookieOptions);
+};
+
+const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
+  if (!html) throw new Error('HTML content is required.');
+
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '10mm',
+        right: '15mm',
+        bottom: '15mm',
+        left: '15mm',
+      },
+      ...options,
+    });
+
+    return pdfBuffer;
+  } finally {
+    await browser.close();
+  }
+};
+
+/* OAuth2 client used for user-level Gmail actions */
+const BACKEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://api.zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://api.dev.zobsai.com'
+    : 'http://127.0.0.1:8080';
+
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${BACKEND_API_BASE_URL}/api/v1/user/oauth2callback`,
+);
+
+/* Helper to send email using Gmail API (user must have refresh token stored) */
+const sendEmailViaGmailApi = async ({
+  user,
+  subject,
+  bodyHtml,
+  attachments = [],
+  to = [],
+}) => {
+  const userOAuthClient = oauth2Client;
+  userOAuthClient.setCredentials({
+    refresh_token: user.googleAuth.refreshToken,
+  });
+
+  // refreshAccessToken is deprecated in newer clients; use getAccessToken / refreshCredentials pattern
+  // but to keep compatibility with existing code we call refreshAccessToken if present
+  if (typeof userOAuthClient.refreshAccessToken === 'function') {
+    await userOAuthClient.refreshAccessToken();
+  } else {
+    await userOAuthClient.getAccessToken();
+  }
+
+  const gmail = google.gmail({ version: 'v1', auth: userOAuthClient });
+
+  const mailOptions = {
+    from: `"${user.name || user.fullName || 'User'}" <${user.email}>`,
+    to,
+    subject,
+    html: bodyHtml,
+    attachments,
+  };
+
+  const mail = new MailComposer(mailOptions);
+  const rawMessageBuffer = await mail.compile().build();
+  const encodedMessage = rawMessageBuffer
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: {
+      raw: encodedMessage,
+    },
+  });
+};
+
+/* -------------------------
+   Controllers (refactored)
+   ------------------------- */
+
 export const firebaseAuth = async (req, res) => {
   try {
     const { idToken } = req.body;
+    if (!idToken)
+      return res
+        .status(400)
+        .json({ success: false, message: 'ID token is required' });
 
-    if (!idToken) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID token is required',
-      });
-    }
-
-    // 1. Verify Firebase ID token
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
 
-    // 2. Check if user exists (by Firebase UID or email)
     let user = await User.findOne({
       $or: [{ firebaseUid: uid }, { email: email.toLowerCase() }],
     });
 
-    // 3. Handle new user or existing user
     if (!user) {
-      // New user - create with default values
       user = await User.create({
         firebaseUid: uid,
         authMethod: 'google',
@@ -52,8 +188,17 @@ export const firebaseAuth = async (req, res) => {
         fullName: name || 'Anonymous',
         avatar: picture || '',
         isEmailVerified: true,
-        role: 'student', // Default role
-        accountType: 'individual', // Default account type
+        role: 'student',
+        accountType: 'individual',
+        usageLimits: {
+          cvCreation: 1,
+          coverLetter: 1,
+          aiApplication: 1,
+          autoApply: 0,
+          aiAutoApply: 0,
+          aiAutoApplyDailyLimit: 0,
+          aiMannualApplication: -1,
+        },
       });
     } else if (!user.firebaseUid) {
       user.firebaseUid = uid;
@@ -62,17 +207,9 @@ export const firebaseAuth = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
+    setAccessTokenCookie(res, accessToken);
 
-    const cookieOptions = {
-      // httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    };
-
-    res.cookie('accessToken', accessToken, cookieOptions);
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       accessToken,
       user: {
@@ -85,16 +222,12 @@ export const firebaseAuth = async (req, res) => {
     });
   } catch (error) {
     console.error('Firebase auth error:', error);
-
-    // Handle specific Firebase errors
     if (error.code === 'auth/id-token-expired') {
       return res.status(401).json({
         success: false,
         message: 'Token expired. Please sign in again.',
       });
     }
-
-    // Handle MongoDB validation errors
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
@@ -102,9 +235,7 @@ export const firebaseAuth = async (req, res) => {
         errors: error.errors,
       });
     }
-
-    // Generic error response
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Authentication failed',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
@@ -121,46 +252,40 @@ export const signUpUser = async (req, res) => {
     confirmPassword,
     jobRole,
     organizationName,
-    referredBy,
+    referralCode,
   } = req.body;
 
   try {
     if (!accountType || !fullName || !email || !password) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-
-    if (password !== confirmPassword) {
+    if (password !== confirmPassword)
       return res.status(400).json({ message: 'Passwords do not match' });
-    }
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    if (existingUser)
       return res.status(400).json({ message: 'User already exists' });
-    }
 
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
+    const otp = generateOtp();
+    const otpExpires = new Date(Date.now() + DEFAULT_OTP_EXP_MS);
 
     const referralCode = generateReferralCode(email);
     let referrer = null;
-    if (referredBy) {
-      referrer = await User.findOne({ referralCode: referredBy });
-      if (!referrer) {
+    let referredBy = null;
+    if (referralCode) {
+      referrer = await User.findOne({ referralCode });
+      referredBy = referrer ? referrer._id : null;
+      if (!referrer)
         return res.status(400).json({ message: 'Invalid referral code' });
-      }
     }
 
-    // Handle organization
     let organization = null;
     if (accountType === 'institution') {
-      if (!organizationName) {
+      if (!organizationName)
         return res.status(400).json({
           message: 'Organization name is required for institutional accounts',
         });
-      }
-
       organization = await Organization.findOne({ name: organizationName });
-
       if (!organization) {
         const apiKey = `org_${Math.random().toString(36).substring(2, 15)}`;
         organization = new Organization({
@@ -172,7 +297,6 @@ export const signUpUser = async (req, res) => {
       }
     }
 
-    // Create user (unverified)
     const user = new User({
       accountType,
       fullName,
@@ -183,7 +307,7 @@ export const signUpUser = async (req, res) => {
       organization:
         accountType === 'institution' ? organization._id : undefined,
       referralCode,
-      referredBy: referredBy || undefined,
+      referredBy: referrer ? referrer._id : null,
       otp,
       otpExpires,
       isVerified: false,
@@ -191,27 +315,22 @@ export const signUpUser = async (req, res) => {
 
     const savedUser = await user.save();
 
-    const { html, text } = await tm.compileWithTextFallback('verify', {
-      name: savedUser.fullName,
-      dashboardUrl: process.env.DASHBOARD_URL,
-      supportEmail: 'support@zobsai.com',
-      brandName: 'ZobsAI',
-      companyUrl: 'https://zobsai.com',
-      companyAddress: 'ZobsAI Pvt Ltd, City, Country',
-      unsubscribeUrl: 'https://zobsai.com/unsubscribe',
-      otp,
-    });
-
-    // Send OTP email
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
+    await sendTemplatedEmail({
       to: email,
-      subject: 'Welcome to ZobsAI – Your AI Job Application Assistant is Here!',
-      html,
-      text,
-    };
-
-    await transporter.sendMail(mailOptions);
+      templateName: 'verify',
+      templateVars: {
+        name: savedUser.fullName,
+        dashboardUrl: process.env.DASHBOARD_URL,
+        supportEmail: 'support@zobsai.com',
+        brandName: 'ZobsAI',
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+        otp,
+      },
+      subjectOverride:
+        'Welcome to ZobsAI – Your AI Job Application Assistant is Here!',
+    });
 
     if (referrer) {
       await User.findByIdAndUpdate(referrer._id, {
@@ -226,15 +345,12 @@ export const signUpUser = async (req, res) => {
       fullName: savedUser.fullName,
       message: 'Verification OTP sent to your email',
     };
+    if (accountType === 'institution') response.organization = organization;
 
-    if (accountType === 'institution') {
-      response.organization = organization;
-    }
-
-    res.status(201).json(response);
+    return res.status(201).json(response);
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: 'Registration failed',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
@@ -243,48 +359,57 @@ export const signUpUser = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
-
   try {
-    // Find user by email
     const user = await User.findOne({ email }).select(
       '+otp +otpExpires +isEmailVerified',
     );
 
-    // Validation checks
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.isEmailVerified) {
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.isEmailVerified)
       return res.status(400).json({ message: 'Email already verified' });
-    }
-
-    if (user.otp !== otp) {
+    if (user.otp !== otp)
       return res.status(400).json({ message: 'Invalid OTP' });
-    }
-
-    if (user.otpExpires < new Date()) {
+    if (user.otpExpires < new Date())
       return res.status(400).json({ message: 'OTP expired' });
-    }
 
-    // Update user verification status
     user.isEmailVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
+
+    if (!user.freeCreditsGranted) {
+      user.usageLimits = {
+        cvCreation: 1,
+        coverLetter: 1,
+        aiApplication: 1,
+        autoApply: 0,
+        aiAutoApply: 0,
+        aiAutoApplyDailyLimit: 0,
+        aiMannualApplication: -1,
+      };
+      user.usageCounters = {
+        cvCreation: 0,
+        coverLetter: 0,
+        aiApplication: 0,
+        autoApply: 0,
+        aiAutoApply: 0,
+        aiAutoApplyDailyLimit: 0,
+        aiMannualApplication: 0,
+      };
+      currentPlan: '68e8fdbbf242c0ff967f20fe';
+
+      user.freeCreditsGranted = true;
+    }
+
     await user.save();
 
-    // Generate access token only
     const accessToken = user.generateAccessToken();
 
-    // Set cookies
     const cookieOptions = {
-      // httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (change from 30 days)
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
     };
-
-    user.password = undefined;
 
     const { html, text } = await tm.compileWithTextFallback('welcome_zobsai', {
       name: user.fullName,
@@ -304,6 +429,7 @@ export const verifyEmail = async (req, res) => {
       text,
     });
 
+    user.password = undefined;
     return res
       .status(200)
       .cookie('accessToken', accessToken, cookieOptions)
@@ -322,46 +448,37 @@ export const verifyEmail = async (req, res) => {
 };
 
 export const resendVerificationEmail = async (req, res) => {
+  // Keeps old behavior: expects logged-in user and uses req.user._id
   const { email } = req.body;
   const { _id } = req.user;
 
   try {
     const user = await User.findById(_id).select('+otp +otpExpires');
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.otpExpires > new Date()) {
+    if (user.otpExpires > new Date())
       return res.status(400).json({ message: 'OTP already sent' });
-    }
 
-    const otp = Math.floor(100000 + Math.random() * 900000);
+    const otp = generateOtp();
     user.otp = otp;
-    user.otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    user.otpExpires = new Date(Date.now() + DEFAULT_OTP_EXP_MS);
     await user.save();
 
-    const { html, text } = await tm.compileWithTextFallback('verify', {
-      name: user.fullName,
-      dashboardUrl: process.env.DASHBOARD_URL,
-      supportEmail: 'support@zobsai.com',
-      brandName: 'ZobsAI',
-      companyUrl: 'https://zobsai.com',
-      companyAddress: 'ZobsAI Pvt Ltd, City, Country',
-      unsubscribeUrl: 'https://zobsai.com/unsubscribe',
-      otp,
-    });
-
-    // Send OTP email
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
+    await sendTemplatedEmail({
       to: email,
-      subject: 'Change your email address',
-      html,
-      text,
-    };
-
-    await transporter.sendMail(mailOptions);
+      templateName: 'verify',
+      templateVars: {
+        name: user.fullName,
+        dashboardUrl: process.env.DASHBOARD_URL,
+        supportEmail: 'support@zobsai.com',
+        brandName: 'ZobsAI',
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+        otp,
+      },
+      subjectOverride: 'Change your email address',
+    });
 
     return res
       .status(200)
@@ -378,47 +495,32 @@ export const resendVerificationEmail = async (req, res) => {
 export const verifyUpdateEmail = async (req, res) => {
   const { _id } = req.user;
   const { email, otp } = req.body;
-  console.log(email, otp);
 
   try {
-    // Find user by email
-    const user = await User.findOneAndUpdate(
-      { _id },
-      { $set: { email } },
-    ).select('+otp +otpExpires');
+    // Update email first then validate otp on saved data
+    const user = await User.findById(_id).select('+otp +otpExpires');
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Validation checks
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.otp !== otp) {
+    // if the flow expects the email to be already set during OTP generation, check email param matches (optional)
+    if (user.otp !== otp)
       return res.status(400).json({ message: 'Invalid OTP' });
-    }
-
-    if (user.otpExpires < new Date()) {
+    if (user.otpExpires < new Date())
       return res.status(400).json({ message: 'OTP expired' });
-    }
 
-    // Update user verification status
+    user.email = email;
     user.otp = undefined;
     user.otpExpires = undefined;
     await user.save();
 
-    // Generate access token only
     const accessToken = user.generateAccessToken();
-
-    // Set cookies
     const cookieOptions = {
-      // httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (change from 30 days)
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
     };
 
-    // Remove sensitive data before sending user info
     user.password = undefined;
-
     return res
       .status(200)
       .cookie('accessToken', accessToken, cookieOptions)
@@ -440,60 +542,44 @@ export const resendOtp = async (req, res) => {
   const { email } = req.body;
 
   try {
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
+    if (!email) return res.status(400).json({ message: 'Email is required' });
 
     const user = await User.findOne({ email }).select(
       '+otp +otpExpires +isEmailVerified',
     );
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.isEmailVerified) {
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.isEmailVerified)
       return res
         .status(400)
         .json({ message: 'Email is already verified. No need to resend OTP.' });
-    }
 
-    // 5. Generate a new OTP and set a new expiry time
-    const newOtp = crypto.randomInt(100000, 999999).toString();
-    const newOtpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
-
+    const newOtp = generateOtp();
     user.otp = newOtp;
-    user.otpExpires = newOtpExpires;
+    user.otpExpires = new Date(Date.now() + DEFAULT_OTP_EXP_MS);
     await user.save();
 
-    const { html, text } = await tm.compileWithTextFallback('verify', {
-      name: user.fullName,
-      dashboardUrl: process.env.DASHBOARD_URL,
-      supportEmail: 'support@zobsai.com',
-      brandName: 'ZobsAI',
-      companyUrl: 'https://zobsai.com',
-      companyAddress: 'ZobsAI Pvt Ltd, City, Country',
-      unsubscribeUrl: 'https://zobsai.com/unsubscribe',
-      otp: newOtp,
+    await sendTemplatedEmail({
+      to: email,
+      templateName: 'verify',
+      templateVars: {
+        name: user.fullName,
+        dashboardUrl: process.env.DASHBOARD_URL,
+        supportEmail: 'support@zobsai.com',
+        brandName: 'ZobsAI',
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+        otp: newOtp,
+      },
+      subjectOverride: 'Welcome to ZobsAI – Your Verification Email OTP!',
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to: email,
-      subject: 'Welcome to ZobsAI – Your Verification Email OTP!',
-      html,
-      text,
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    // 8. Respond with success message
-    res
+    return res
       .status(200)
       .json({ message: 'New verification OTP sent to your email' });
   } catch (error) {
     console.error('Resend OTP error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: 'Failed to resend OTP',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
@@ -502,50 +588,38 @@ export const resendOtp = async (req, res) => {
 
 export const signInUser = async (req, res) => {
   const { email, password } = req.body;
-  console.log(req.body, 'check body come or not');
-
   try {
-    if (!email || !password) {
+    if (!email || !password)
       return res
         .status(400)
         .json({ message: 'Email and password are required' });
-    }
 
     const user = await User.findOne({ email }).select('+password');
-
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // 4. Check if the user's email is verified
-    if (!user.isEmailVerified) {
+    if (!user.isEmailVerified)
       return res
         .status(403)
         .json({ message: 'Please verify your email before signing in.' });
-    }
 
-    // 5. Generate the access token
-    const accessToken = user.generateAccessToken(); // Assumes you have this method on your User model
+    const accessToken = user.generateAccessToken();
 
-    // 6. Prepare user object for the response (without sensitive data)
     const userObject = user.toObject();
     delete userObject.password;
 
-    // 7. Define cookie options with production settings
     const cookieOptions = {
       httpOnly: true,
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     };
-
-    // Apply secure settings ONLY in production
     if (process.env.NODE_ENV === 'production') {
       cookieOptions.secure = true;
-      cookieOptions.sameSite = 'Lax'; // 'Lax' is suitable for subdomains
-      cookieOptions.domain = 'api.zobsai.com'; // CRITICAL: Sets cookie for all subdomains of zobsai.com
+      cookieOptions.sameSite = 'Lax';
+      cookieOptions.domain = 'api.zobsai.com';
     }
 
-    // 8. Send the response with the cookie
     return res
       .status(200)
       .cookie('accessToken', accessToken, cookieOptions)
@@ -562,62 +636,54 @@ export const signInUser = async (req, res) => {
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
-
   try {
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
+    if (!email) return res.status(400).json({ message: 'Email is required' });
 
     const user = await User.findOne({ email });
-    if (!user) {
+    if (!user)
       return res.status(200).json({
         message:
           'If an account with that email exists, a password reset link has been sent',
       });
-    }
 
-    // 3. Generate a password reset token with expiry (1 hour)
     const resetToken = crypto.randomBytes(32).toString('hex');
     const passwordResetToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
+    const passwordResetExpires = new Date(Date.now() + DEFAULT_RESET_EXP_MS);
 
-    const passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-    // 4. Save the token and expiry to the user document
     user.passwordResetToken = passwordResetToken;
     user.passwordResetExpires = passwordResetExpires;
     await user.save();
 
-    // 5. Create reset URL
-    const resetUrl = `${originUrl}/reset-password?token=${resetToken}&email=${email}`;
+    const resetUrl = `${
+      process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+    }/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
-    // 6. Send email with reset link
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
+    const mailHtml = `
+      <h2>Password Reset Request</h2>
+      <p>You requested to reset your password. Click the link below to proceed:</p>
+      <a href="${resetUrl}" style="display:inline-block;padding:10px 20px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:5px;">
+        Reset Password
+      </a>
+      <p>This link will expire in 1 hour.</p>
+      <p>If you didn't request this, please ignore this email and your password will remain unchanged.</p>
+    `;
+
+    await sendRawEmail({
       to: email,
       subject: 'Password Reset Request',
-      html: `
-        <h2>Password Reset Request</h2>
-        <p>You requested to reset your password. Click the link below to proceed:</p>
-        <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
-          Reset Password
-        </a>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email and your password will remain unchanged.</p>
-      `,
-    };
+      html: mailHtml,
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({
+    return res.status(200).json({
       message:
         'If an account with that email exists, a password reset link has been sent',
     });
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: 'Failed to process password reset request',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
@@ -626,54 +692,46 @@ export const forgotPassword = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   const { token, newPassword, confirmPassword, email } = req.body;
-
   try {
-    if (!token || !newPassword || !confirmPassword) {
+    if (!token || !newPassword || !confirmPassword || !email) {
       return res.status(400).json({ message: 'All fields are required' });
     }
-
-    if (newPassword !== confirmPassword) {
+    if (newPassword !== confirmPassword)
       return res.status(400).json({ message: 'Passwords do not match' });
-    }
 
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    const user = await User.findOne({ email }).select(
+      '+passwordResetToken +passwordResetExpires',
+    );
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    if (hashedToken !== user.passwordResetToken) {
+    if (hashedToken !== user.passwordResetToken)
       return res.status(400).json({ message: 'Invalid or expired token' });
-    }
-
-    if (user.resetPasswordTokenExpires < new Date()) {
+    if (user.passwordResetExpires < new Date())
       return res.status(400).json({ message: 'Token has expired' });
-    }
 
     user.password = newPassword;
     user.passwordResetToken = undefined;
-    user.resetPasswordTokenExpires = undefined;
+    user.passwordResetExpires = undefined;
     await user.save();
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
+    const mailHtml = `
+      <h2>Password Update Confirmation</h2>
+      <p>Your password has been successfully updated.</p>
+      <p>If you didn't make this change, please contact our support team immediately.</p>
+    `;
+
+    await sendRawEmail({
       to: email,
       subject: 'Password Changed Successfully',
-      html: `
-        <h2>Password Update Confirmation</h2>
-        <p>Your password has been successfully updated.</p>
-        <p>If you didn't make this change, please contact our support team immediately.</p>
-      `,
-    };
+      html: mailHtml,
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({ message: 'Password reset successfully' });
+    return res.status(200).json({ message: 'Password reset successfully' });
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: 'Failed to reset password',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
@@ -686,10 +744,9 @@ export const signout = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
+      path: '/',
     };
-
     res.clearCookie('accessToken', cookieOptions);
-
     return res.status(200).json({ message: 'User signed out successfully' });
   } catch (error) {
     console.error('Sign out error:', error);
@@ -707,18 +764,14 @@ export const getUserProfile = async (req, res) => {
         'organization',
         '-__v -apiKey',
       );
-
-      if (!userData) {
-        throw new Error('User not found');
-      }
-
+      if (!userData) throw new Error('User not found');
       return userData;
     });
 
-    res.status(200).json(user);
+    return res.status(200).json(user);
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message,
       error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
@@ -731,111 +784,49 @@ export const changePassword = async (req, res) => {
 
   try {
     const user = await User.findById(_id).select('+password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
-    if (!isPasswordCorrect) {
+    if (!isPasswordCorrect)
       return res.status(401).json({ message: 'Invalid credentials' });
-    }
 
-    if (currentPassword === newPassword) {
+    if (currentPassword === newPassword)
       return res.status(400).json({
         message: 'New password cannot be the same as the old password',
       });
-    }
-
-    if (newPassword !== confirmNewPassword) {
+    if (newPassword !== confirmNewPassword)
       return res.status(400).json({ message: 'Passwords do not match' });
-    }
 
     user.password = newPassword;
+    await user.save();
 
+    // Send notification email using template
     const { html, text } = await tm.compileWithTextFallback(
       'password_updated',
       {
         subject: 'Your ZobsAI Password Has Been Updated',
-        name: savedUser.fullName,
-        dateTime: new Date().toISOString(), // or formatted string
+        name: user.fullName,
+        dateTime: new Date().toISOString(),
         ipInfo: req.ip || 'Unknown device',
         loginUrl: process.env.DASHBOARD_URL || 'https://zobsai.com/login',
-        resetUrl: `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`,
         companyUrl: 'https://zobsai.com',
       },
     );
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
-      to: savedUser.email,
+      to: user.email,
       subject: 'Your ZobsAI Password Has Been Updated',
       html,
       text,
     });
-    await user.save();
-    res.status(200).json({ message: 'Password changed successfully' });
+
+    return res.status(200).json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error('Error changing password:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-const convertHtmlToPdf = async (html, title = 'document', options = {}) => {
-  if (!html) {
-    throw new Error('HTML content is required.');
-  }
-
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-
-  const pdfBuffer = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    margin: {
-      top: '10mm',
-      right: '15mm',
-      bottom: '15mm',
-      left: '15mm',
-    },
-    ...options, // allow overriding via options
-  });
-
-  await browser.close();
-  return pdfBuffer;
-};
-
-export const SCOPES = [
-  'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/gmail.send',
-];
-
-const BACKEND_API_BASE_URL =
-  process.env.NODE_ENV === 'production'
-    ? 'https://api.zobsai.com'
-    : process.env.NODE_ENV === 'development'
-    ? 'https://api.dev.zobsai.com'
-    : 'http://127.0.0.1:8080';
-
-const FRONTEND_API_BASE_URL =
-  process.env.NODE_ENV === 'production'
-    ? 'https://www.zobsai.com'
-    : process.env.NODE_ENV === 'development'
-    ? 'https://dev.zobsai.com'
-    : 'http://127.0.0.1:3000';
-
-// Use environment variables instead of hardcoded values
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  `${BACKEND_API_BASE_URL}/api/v1/user/oauth2callback`,
-);
-
-const originUrl = FRONTEND_API_BASE_URL;
 
 export const sendEmails = async (req, res) => {
   const {
@@ -845,26 +836,22 @@ export const sendEmails = async (req, res) => {
     htmlCoverLetter: coverLetterHtml,
   } = req.body;
 
-  const userEmail = await User.findById(req.user._id).select('email');
+  if (!req.user)
+    return res
+      .status(401)
+      .json({ message: 'Unauthorized. No user session found.' });
 
+  // receiverEmails includes user email and team addresses
+  const userEmailObj = await User.findById(req.user._id).select('email');
   const receiverEmails = [
-    userEmail.email,
+    userEmailObj?.email,
     'infozobsai@gmail.com',
     'prakhar@zobsai.com',
     'shadab@zobsai.com',
     'rahul@zobsai.com',
   ];
 
-  // 1. Validation and User Authorization
-  if (!req.user) {
-    return res
-      .status(401)
-      .json({ message: 'Unauthorized. No user session found.' });
-  }
-
-  // ✨ Updated validation to check for a non-empty array
   if (
-    !receiverEmails ||
     !Array.isArray(receiverEmails) ||
     receiverEmails.length === 0 ||
     !subject ||
@@ -872,7 +859,7 @@ export const sendEmails = async (req, res) => {
   ) {
     return res.status(400).json({
       message:
-        'Missing required fields: receiverEmails (must be a non-empty array), subject, and bodyHtml.',
+        'Missing required fields: receiverEmails, subject, and bodyHtml.',
     });
   }
 
@@ -884,16 +871,7 @@ export const sendEmails = async (req, res) => {
       });
     }
 
-    // 2. Set up OAuth2 client for the user
-    const userOAuthClient = oauth2Client;
-    userOAuthClient.setCredentials({
-      refresh_token: user.googleAuth.refreshToken,
-    });
-    await userOAuthClient.refreshAccessToken(); // Ensures access token is fresh
-
-    const gmail = google.gmail({ version: 'v1', auth: userOAuthClient });
-
-    // 3. Prepare attachments by converting HTML to PDF (no changes here)
+    // build attachments from HTML
     const attachments = [];
     if (resumeHtml) {
       const resumePdfBuffer = await convertHtmlToPdf(resumeHtml);
@@ -912,34 +890,15 @@ export const sendEmails = async (req, res) => {
       });
     }
 
-    // 4. Use Nodemailer's MailComposer to build the MIME message
-    const mailOptions = {
-      from: `"${user.name || 'User'}" <${user.email}>`,
-      to: receiverEmails, // ✨ Pass the array of emails directly here
-      subject: subject,
-      html: bodyHtml,
-      attachments: attachments,
-    };
-
-    const mail = new MailComposer(mailOptions);
-    const rawMessageBuffer = await mail.compile().build();
-
-    // 5. Encode the message for the Gmail API (no changes here)
-    const encodedMessage = rawMessageBuffer
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    // 6. Send the email via Gmail API (no changes here)
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: {
-        raw: encodedMessage,
-      },
+    await sendEmailViaGmailApi({
+      user,
+      subject,
+      bodyHtml,
+      attachments,
+      to: receiverEmails,
     });
 
-    res
+    return res
       .status(200)
       .json({ message: 'Email has been sent successfully to all recipients!' });
   } catch (error) {
@@ -949,7 +908,7 @@ export const sendEmails = async (req, res) => {
         .status(401)
         .json({ message: 'Authentication failed. Please re-authenticate.' });
     }
-    res
+    return res
       .status(500)
       .json({ message: 'An error occurred while trying to send the email.' });
   }
@@ -957,24 +916,25 @@ export const sendEmails = async (req, res) => {
 
 export const oAuth2Callback = async (req, res) => {
   const { code, state: userId } = req.query;
-
   if (!code) {
     console.error('No authorization code received from Google.');
     return res.redirect(
-      `${originUrl}/dashboard/settings?error=auth_failed_no_code`,
+      `${
+        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+      }/dashboard/settings?error=auth_failed_no_code`,
     );
   }
-
   if (!userId) {
     console.error('No state (userId) received from Google.');
     return res.redirect(
-      `${originUrl}/dashboard/settings?error=auth_failed_no_state`,
+      `${
+        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+      }/dashboard/settings?error=auth_failed_no_state`,
     );
   }
 
   try {
     const { tokens } = await oauth2Client.getToken(code);
-
     if (!tokens.access_token || !tokens.refresh_token) {
       console.error('Incomplete tokens received from Google:', tokens);
       throw new Error(
@@ -983,31 +943,20 @@ export const oAuth2Callback = async (req, res) => {
     }
 
     oauth2Client.setCredentials(tokens);
-
-    const oauth2 = google.oauth2({
-      version: 'v2',
-      auth: oauth2Client,
-    });
+    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     const { data: userInfo } = await oauth2.userinfo.get();
 
     const userEmail = userInfo.email;
-    if (!userEmail) {
+    if (!userEmail)
       throw new Error('Could not retrieve email from Google user profile.');
-    }
 
     const user = await User.findById(userId);
-
-    if (!user) {
+    if (!user)
       return res.redirect(
-        `${originUrl}/dashboard/settings?error=user_not_found`,
+        `${
+          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        }/dashboard/settings?error=user_not_found`,
       );
-    }
-
-    if (user.email !== userEmail) {
-      console.warn(
-        `Mismatched emails. DB: ${user.email}, Google: ${userEmail}. Proceeding with user ID.`,
-      );
-    }
 
     user.googleAuth = {
       refreshToken: tokens.refresh_token,
@@ -1016,59 +965,57 @@ export const oAuth2Callback = async (req, res) => {
     };
     await user.save();
 
-    console.log(
-      'Google OAuth callback process completed successfully.',
-      originUrl,
+    return res.redirect(
+      `${
+        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+      }/dashboard/settings?success=google_connected`,
     );
-
-    res.redirect(`${originUrl}/dashboard/settings?success=google_connected`);
   } catch (err) {
     console.error(
       'Error during OAuth callback process:',
       err.message,
       err.stack,
     );
-    res.redirect(`${originUrl}/dashboard/settings?error=auth_failed_internal`);
+    return res.redirect(
+      `${
+        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+      }/dashboard/settings?error=auth_failed_internal`,
+    );
   }
 };
 
 export const authGoogle = async (req, res) => {
   const userId = req.params.id;
-
   try {
     const url = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
-      scope: SCOPES,
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/gmail.send',
+      ],
       state: userId,
       redirect_uri: oauth2Client.redirect_uri,
     });
-    res.redirect(url);
+    return res.redirect(url);
   } catch (error) {
     console.error('Error generating Google auth URL:', error);
-    res.status(500).json({ message: 'An error occurred during Google OAuth.' });
+    return res
+      .status(500)
+      .json({ message: 'An error occurred during Google OAuth.' });
   }
 };
 
 export const disconnectGoogle = async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
   try {
-    // 1. Find the user in your database
     const user = await User.findById(req.user._id);
-
-    console.log(user);
-
-    // 2. Check if they have a refresh token to revoke
     const refreshToken = user?.googleAuth?.refreshToken;
-    console.log(refreshToken);
-    if (!refreshToken) {
+    if (!refreshToken)
       return res.status(400).json({
         message: 'Google account is not connected or already disconnected.',
       });
-    }
 
     try {
       await oauth2Client.revokeToken(refreshToken);
@@ -1079,22 +1026,26 @@ export const disconnectGoogle = async (req, res) => {
       );
     }
 
-    // 4. Remove the googleAuth details from the user's record
     user.googleAuth = undefined;
     await user.save();
 
-    res.status(200).json({
-      message: 'Google account has been successfully disconnected.',
-    });
+    return res
+      .status(200)
+      .json({ message: 'Google account has been successfully disconnected.' });
   } catch (error) {
     console.error('Error during Google account disconnection:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: 'An error occurred while trying to disconnect the account.',
     });
   }
 };
 
 export const testSendEmail = async (req, res) => {
+  if (!req.user)
+    return res
+      .status(401)
+      .json({ message: 'Unauthorized. No user session found.' });
+
   const receiverEmails = [
     req.user.email,
     'infozobsai@gmail.com',
@@ -1106,74 +1057,44 @@ export const testSendEmail = async (req, res) => {
   const bodyHtml =
     '<h1>Hello!</h1><p>This is a test email to confirm that the Gmail API integration is working correctly. No action is required.</p>';
 
-  if (!req.user) {
-    return res
-      .status(401)
-      .json({ message: 'Unauthorized. No user session found.' });
-  }
-
   try {
     const user = await User.findById(req.user._id);
-    if (!user || !user.googleAuth?.refreshToken) {
+    if (!user || !user.googleAuth?.refreshToken)
       return res.status(400).json({
         message: 'Google account not linked or permission not granted.',
       });
-    }
 
-    const userOAuthClient = oauth2Client;
-    userOAuthClient.setCredentials({
-      refresh_token: user.googleAuth.refreshToken,
-    });
-    await userOAuthClient.refreshAccessToken(); // Ensures access token is fresh
-
-    const gmail = google.gmail({ version: 'v1', auth: userOAuthClient });
-
-    const mailOptions = {
-      from: `"${user.name || 'Test User'}" <${user.email}>`,
+    await sendEmailViaGmailApi({
+      user,
+      subject,
+      bodyHtml,
+      attachments: [],
       to: receiverEmails,
-      subject: subject,
-      html: bodyHtml,
-    };
-
-    const mail = new MailComposer(mailOptions);
-    const rawMessageBuffer = await mail.compile().build();
-
-    // 4. Encode the message for the Gmail API
-    const encodedMessage = rawMessageBuffer
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    // 5. Send the email via Gmail API
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: {
-        raw: encodedMessage,
-      },
     });
 
-    res.status(200).json({ message: 'Test email has been sent successfully!' });
+    return res
+      .status(200)
+      .json({ message: 'Test email has been sent successfully!' });
   } catch (error) {
     console.error('Failed to send test email:', error);
-    if (error.response?.data?.error === 'invalid_grant') {
+    if (error.response?.data?.error === 'invalid_grant')
       return res
         .status(401)
         .json({ message: 'Authentication failed. Please re-authenticate.' });
-    }
-    res.status(500).json({
+    return res.status(500).json({
       message: 'An error occurred while trying to send the test email.',
     });
   }
 };
 
-// Define the single, correct redirect URI for this flow
+/* redirectToGoogle & handleGoogleCallback kept as-is but cleaned */
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
-
 const oauth2ClientRedirect = new google.auth.OAuth2(
-  '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
-  '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',
-  `${BACKEND_API_BASE_URL}${redirectURI}`, // Constructs the full, correct callback URL
+  process.env.GOOGLE_CLIENT_ID_REDIRECT ||
+    '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
+  process.env.GOOGLE_CLIENT_SECRET_REDIRECT ||
+    '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',
+  `${BACKEND_API_BASE_URL}${redirectURI}`,
 );
 
 export const redirectToGoogle = async (req, res) => {
@@ -1186,37 +1107,39 @@ export const redirectToGoogle = async (req, res) => {
         'https://www.googleapis.com/auth/userinfo.email',
       ],
     });
-    res.redirect(url);
+    return res.redirect(url);
   } catch (error) {
     console.error('Error generating Google auth URL:', error);
-    res
+    return res
       .status(500)
-      .redirect(`${FRONTEND_API_BASE_URL}/login?error=google_redirect_failed`);
+      .redirect(
+        `${
+          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        }/login?error=google_redirect_failed`,
+      );
   }
 };
 
 export const handleGoogleCallback = async (req, res) => {
   const { code } = req.query;
-
-  if (!code) {
+  if (!code)
     return res
       .status(400)
-      .redirect(`${FRONTEND_API_BASE_URL}/login?error=missing_auth_code`);
-  }
+      .redirect(
+        `${
+          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        }/login?error=missing_auth_code`,
+      );
 
   try {
-    // Exchange authorization code for tokens using the correct client
     const { tokens } = await oauth2ClientRedirect.getToken(code);
     oauth2ClientRedirect.setCredentials(tokens);
 
-    // Get user profile information from Google
-    const { data } = await google.oauth2('v2').userinfo.get({
-      auth: oauth2ClientRedirect,
-    });
+    const { data } = await google
+      .oauth2('v2')
+      .userinfo.get({ auth: oauth2ClientRedirect });
 
-    // Find or create a user in your database
     let user = await User.findOne({ email: data.email });
-
     if (!user) {
       user = new User({
         fullName: data.name,
@@ -1227,9 +1150,11 @@ export const handleGoogleCallback = async (req, res) => {
         isEmailVerified: true,
       });
       await user.save();
-      const { html, text } = await tm.compileWithTextFallback(
-        'welcome_zobsai',
-        {
+
+      await sendTemplatedEmail({
+        to: user.email,
+        templateName: 'welcome_zobsai',
+        templateVars: {
           name: user.fullName,
           dashboardUrl: process.env.DASHBOARD_URL,
           supportEmail: 'support@zobsai.com',
@@ -1238,24 +1163,13 @@ export const handleGoogleCallback = async (req, res) => {
           companyAddress: 'ZobsAI Pvt Ltd, City, Country',
           unsubscribeUrl: 'https://zobsai.com/unsubscribe',
         },
-      );
-
-      await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
-        to: user.email,
-        subject: 'Welcome to ZobsAI – Your AI Job Assistant',
-        html,
-        text,
       });
     }
 
-    // Create a JWT for the user session
     const token = jwt.sign(
       { id: user._id, email: user.email },
       config.accessTokenSecret,
-      {
-        expiresIn: '7d',
-      },
+      { expiresIn: '7d' },
     );
 
     res.cookie('accessToken', token, {
@@ -1264,52 +1178,46 @@ export const handleGoogleCallback = async (req, res) => {
       sameSite: 'none',
     });
 
-    console.log('User signed in:', user);
-
-    // Redirect to the dedicated frontend callback page with the token
-    res.redirect(
-      `${FRONTEND_API_BASE_URL}/auth/google/callback?token=${token}&state=${user}`,
+    return res.redirect(
+      `${
+        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+      }/auth/google/callback?token=${token}`,
     );
   } catch (error) {
     console.error('Error handling Google callback:', error);
-    res
+    return res
       .status(500)
-      .redirect(`${FRONTEND_API_BASE_URL}/login?error=auth_failed`);
+      .redirect(
+        `${
+          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        }/login?error=auth_failed`,
+      );
   }
 };
 
 export const getMe = async (req, res, next) => {
-  // Use a single variable for the ID
   const userId = req.user?.id || req.user?._id;
-
-  if (!userId) {
+  if (!userId)
     return res
       .status(401)
       .json({ message: 'Authentication error: User ID not found.' });
-  }
 
   try {
     const user = await User.findById(userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
-    }
-    // Send the response and return to stop execution
+    if (!user) return res.status(404).json({ message: 'User not found.' });
     return res.status(200).json(user);
   } catch (error) {
-    // Pass the error to your global error handler
-    next(error);
+    return next(error);
   }
 };
 
-export const notifyUserForAutopilot = async (req, res) => {
+export const notifyUserForAutopilot = async (req, res, next) => {
   const { email } = req.body;
   const userId = req.user?._id;
 
   try {
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found.' });
 
     const notify = await Notify.create({
       name: userId,
@@ -1321,24 +1229,20 @@ export const notifyUserForAutopilot = async (req, res) => {
       .status(200)
       .json({ notify, message: 'Email has been sent successfully' });
   } catch (error) {
-    // Pass the error to your global error handler
-    next(error);
+    return next(error);
   }
 };
 
-export const isEmailSentForNotify = async (req, res) => {
+export const isEmailSentForNotify = async (req, res, next) => {
   const { email } = req.body;
   try {
     const notify = await Notify.findOne({ email });
-    if (!notify.isNotifyMailSend) {
+    if (!notify || !notify.isNotifyMailSend)
       return res.status(404).json({ message: 'Email not found.' });
-    }
-    // Send the response and return to stop execution
     return res
       .status(200)
       .json({ sent: true, message: 'Email has been sent successfully' });
   } catch (error) {
-    // Pass the error to your global error handler
-    next(error);
+    return next(error);
   }
 };
