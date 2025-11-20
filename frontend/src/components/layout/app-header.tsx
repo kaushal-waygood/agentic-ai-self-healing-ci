@@ -352,7 +352,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
               planLimits={effectivePlanLimits}
             />
 
-            <div className="relative">
+            <div id="bell-driver" className="relative ">
               {/* Notification Bell icon */}
               <button
                 onClick={() => handleMenuToggle('notification')}
@@ -393,7 +393,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                 </div>
               )}
             </div>
-            <div className="relative">
+            <div id="user-driver" className="relative">
               <button
                 onClick={() => handleMenuToggle('user')}
                 className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"

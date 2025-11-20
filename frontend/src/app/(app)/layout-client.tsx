@@ -41,8 +41,8 @@ export default function DashboardLayoutClient({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isPinned, setPinned] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const [isPinned, setPinned] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // --- START: MODIFIED LOGIC ---

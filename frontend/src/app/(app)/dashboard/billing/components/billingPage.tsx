@@ -14,6 +14,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
+import { SubscriptionStatusCard } from '../../components/dashboardPage';
 
 // Define the types
 interface Price {
@@ -67,6 +68,15 @@ export default function BillingPage() {
 
   const [billingData, setBillingData] = useState<BillingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState(null);
+
+  useEffect(() => {
+    const loadPlan = async () => {
+      const res = await apiInstance.get('/plan/get-user-plan-type');
+      setPlan(res.data.data);
+    };
+    loadPlan();
+  }, []);
 
   useEffect(() => {
     const fetchBillingData = async () => {
@@ -75,6 +85,7 @@ export default function BillingPage() {
         if (res.data.success) {
           setBillingData(res.data.data);
         }
+        console.log('Billing Data:', res.data.data);
       } catch (error) {
         console.error('Error fetching billing data:', error);
       } finally {
@@ -116,18 +127,20 @@ export default function BillingPage() {
   const activeSubscriptions = billingData.filter(
     (record) => record.isActive,
   ).length;
-
+  console.log('active record', activeRecord?.billingVariant.price.usd);
   if (loading) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading billing information...</p>
+      <div className="min-h-[80vh] flex flex-col items-center justify-center">
+        {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
+        <div>
+          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
         </div>
+
+        <div className="text-lg">LOADING BILLING INFO... </div>
       </div>
     );
   }
-  console.log('active :', activeRecord);
+
   return (
     <div className="min-h-screen bg-gray-100/50 p-2 sm:p-3 md:p-6 font-sans">
       <div className="max-w-7xl mx-auto space-y-4">
@@ -135,7 +148,7 @@ export default function BillingPage() {
         <div className="flex justify-between flex-wrap items-center  border-b border-gray-200">
           <div className="">
             <div className="flex items-center gap-3 ">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 via-cyan-700 to-blue-500 bg-clip-text text-transparent">
+              <h1 className=" py-1 text-4xl font-bold bg-gradient-to-r from-blue-700 via-cyan-700 to-blue-500 bg-clip-text text-transparent">
                 Billing & Subscriptions
               </h1>
             </div>
@@ -145,7 +158,7 @@ export default function BillingPage() {
           </div>
           <button
             onClick={() => setIsLoading(true)} // Example interactive element
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg  hover:bg-blue-50 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh Data
@@ -155,7 +168,7 @@ export default function BillingPage() {
         {/* Stats Section - Elevated and Modern */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Total Subscriptions */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-start gap-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
+          <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-start gap-4   transition-all duration-300 transform hover:-translate-y-0.5">
             <div className="p-4 rounded-full bg-blue-50">
               <CreditCard className="w-6 h-6 text-blue-600" />
             </div>
@@ -170,7 +183,7 @@ export default function BillingPage() {
           </div>
 
           {/* Active Subscriptions */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-start gap-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
+          <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-start gap-4   transition-all duration-300 transform hover:-translate-y-0.5">
             <div className="p-4 rounded-full bg-green-50">
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
@@ -185,7 +198,7 @@ export default function BillingPage() {
           </div>
 
           {/* Total Paid */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-start gap-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
+          <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-start gap-4   transition-all duration-300 transform hover:-translate-y-0.5">
             <div className="p-4 rounded-full bg-purple-50">
               <DollarSign className="w-6 h-6 text-purple-600" />
             </div>
@@ -200,63 +213,86 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Current Plan - Card Focus */}
-        <div className="bg-white rounded-lg shadow-2xl border border-blue-300/50 p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 h-full w-1/4 bg-blue-50/50 clip-polygon-slant opacity-50 pointer-events-none"></div>
-          <div className="flex items-center justify-between flex-wrap gap-6 relative z-10">
-            {/* Plan Details */}
-            <div className="space-y-3">
+        {/* GRID LAYOUT FOR BOTH CARDS */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* LEFT CARD — PREMIUM UI */}
+          <div className="bg-white rounded-xl  border border-blue-200 p-6 flex flex-col justify-between h-full">
+            {/* Top */}
+            <div className="space-y-4">
               <p className="text-lg font-semibold text-blue-600">
                 Your Active Membership
               </p>
 
-              {activeRecord ? (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                  <span className="text-3xl font-extrabold text-gray-900">
-                    {activeRecord.billingVariant.period} Plan
-                  </span>
-                  <span className="px-3 py-1 text-sm rounded-full font-semibold bg-green-100 text-green-700 border border-green-300 shadow-sm">
-                    <CheckCircle className="w-4 h-4 inline-block mr-1 align-sub" />
+              <div className="flex items-center gap-3">
+                <h2 className="text-3xl font-extrabold text-gray-900">
+                  {activeRecord?.billingVariant.period} Plan
+                </h2>
+
+                {activeRecord && (
+                  <span className="px-3 py-1 text-sm rounded-full font-semibold bg-green-100 text-green-700 border border-green-300 ">
+                    <CheckCircle className="w-4 h-4 inline-block mr-1" />
                     Active
                   </span>
-                </div>
-              ) : (
-                <p className="text-2xl font-semibold text-gray-500">
-                  No active subscription
-                </p>
-              )}
+                )}
+              </div>
 
-              <p className="text-gray-500 text-sm">
+              <p className="text-sm text-gray-600 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-blue-500" />
                 Next renewal:{' '}
-                {activeRecord ? formatDate(activeRecord.endDate) : 'N/A'}
+                <span className="font-medium text-gray-800">
+                  {activeRecord ? formatDate(activeRecord.endDate) : 'N/A'}
+                </span>
               </p>
             </div>
 
-            {/* Price and Action */}
-            <div className="text-left sm:text-right space-y-2">
-              <p className="text-4xl font-extrabold text-blue-700">
+            {/* Divider */}
+            <div className="my-6 border-t border-gray-200" />
+
+            {/* Price Section */}
+            <div className="space-y-1">
+              <p className="text-5xl font-extrabold text-blue-700">
                 {activeRecord
                   ? formatCurrency(
-                      activeRecord.amountPaid,
+                      activeRecord?.billingVariant.price.usd,
                       activeRecord.currency,
                     )
-                  : 'Free Tier'}
+                  : '$0.00'}
               </p>
+
               <p className="text-sm text-gray-500 font-medium">
-                {activeRecord?.billingVariant.period || 'Access'}
+                {activeRecord?.billingVariant.period || 'Monthly'}
               </p>
-              {activeRecord && (
-                <button className="flex items-center gap-2 ml-auto text-sm font-semibold text-blue-600 hover:text-blue-800 transition">
-                  Manage Subscription
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              )}
             </div>
+
+            {/* Button */}
+            <button className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-400 rounded-lg hover:bg-blue-50 transition font-semibold">
+              Manage Subscription
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* RIGHT — PLAN DETAILS CARD */}
+          <div className="">
+            {plan ? (
+              <SubscriptionStatusCard plan={plan} />
+            ) : (
+              <div className="flex items-center flex-col justify-center ">
+                {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
+                <div>
+                  <img
+                    src="/logo.png"
+                    alt=""
+                    className="w-10 h-10 animate-bounce"
+                  />
+                </div>
+                <div className="text-lg">LOADING SUBSCRIPTION...</div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Billing History - Collapsible/Interactive */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg  border border-gray-200 overflow-hidden">
           <div
             className="px-6 py-5 border-b border-gray-200 flex justify-between items-center cursor-pointer"
             onClick={() => setIsHistoryOpen(!isHistoryOpen)}
@@ -356,185 +392,4 @@ export default function BillingPage() {
       </div>
     </div>
   );
-
-  // Old UI
-  // return (
-  //   <div className="min-h-[80vh] px-4 py-10 bg-gray-50">
-  //     <div className="max-w-6xl mx-auto space-y-10">
-  //       {/* Header */}
-  // <div className="mb-12">
-  //   <div className="flex items-center gap-3 mb-4">
-  //     <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-  //       <CreditCard className="w-8 h-8 text-white" />
-  //     </div>
-  //     <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 via-cyan-700 to-blue-500 bg-clip-text text-transparent">
-  //       Billing & Subscriptions
-  //     </h1>
-  //   </div>
-  //   <p className="text-slate-400 text-lg">
-  //     Manage your plans and payment history
-  //   </p>
-  // </div>
-
-  //       {/* Current Plan */}
-  //       <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6 md:p-8 transition-all hover:shadow-lg">
-  //         <div className="flex items-center justify-between flex-wrap gap-4">
-  //           <div className="space-y-2">
-  //             <h2 className="text-xl font-semibold text-gray-900">
-  //               Current Plan
-  //             </h2>
-
-  //             {activeRecord ? (
-  //               <div className="flex items-center gap-3">
-  //                 <div className="flex items-center gap-2">
-  //                   <CreditCard className="w-6 h-6 text-blue-600" />
-  //                   <span className="text-lg font-medium">
-  //                     {activeRecord.billingVariant.period} Plan
-  //                   </span>
-  //                 </div>
-
-  //                 <span className="px-3 py-1 text-sm rounded-full font-medium bg-green-100 text-green-700 border border-green-200">
-  //                   Active
-  //                 </span>
-  //               </div>
-  //             ) : (
-  //               <p className="text-gray-500">No active subscription</p>
-  //             )}
-  //           </div>
-
-  //           <div className="text-right">
-  //             <p className="text-3xl font-bold text-gray-900">
-  //               {activeRecord
-  //                 ? formatCurrency(
-  //                     activeRecord.amountPaid,
-  //                     activeRecord.currency,
-  //                   )
-  //                 : 'Free'}
-  //             </p>
-  //             <p className="text-sm text-gray-500">
-  //               {activeRecord?.billingVariant.period || 'No Plan'}
-  //             </p>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       {/* Billing History */}
-  //       <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
-  //         <div className="px-6 py-4 border-b border-gray-200">
-  //           <h2 className="text-xl font-semibold text-gray-900">
-  //             Billing History
-  //           </h2>
-  //         </div>
-
-  //         {billingData.length === 0 ? (
-  // <div className="text-center py-16">
-  //   <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-  //   <p className="text-gray-500 text-lg">No billing history found</p>
-  // </div>
-  //         ) : (
-  //           <div>
-  //             {billingData.map((record) => (
-  //               <div
-  //                 key={record._id}
-  //                 className="px-6 py-5 hover:bg-gray-50 transition-all border-b border-gray-100 last:border-b-0"
-  //               >
-  //                 <div className="flex items-center justify-between flex-wrap gap-4">
-  //                   <div className="flex items-start gap-4">
-  //                     {getStatusIcon(record.isActive)}
-
-  //                     <div>
-  //                       <div className="flex items-center gap-2">
-  //                         <h3 className="font-semibold text-gray-900">
-  //                           {record.billingVariant.period} Plan
-  //                         </h3>
-
-  //                         <span
-  //                           className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-  //                             record.isActive,
-  //                           )}`}
-  //                         >
-  //                           {getStatusText(record.isActive)}
-  //                         </span>
-  //                       </div>
-
-  //                       <div className="flex items-center gap-5 text-sm text-gray-500 mt-2">
-  //                         <span className="flex items-center gap-1">
-  //                           <Calendar className="w-4 h-4" />
-  //                           Start: {formatDate(record.startDate)}
-  //                         </span>
-
-  //                         <span className="flex items-center gap-1">
-  //                           <Clock className="w-4 h-4" />
-  //                           End: {formatDate(record.endDate)}
-  //                         </span>
-  //                       </div>
-
-  //                       <p className="text-xs text-gray-400 mt-1">
-  //                         Payment ID: {record.paymentId}
-  //                       </p>
-  //                     </div>
-  //                   </div>
-
-  //                   <div className="text-right">
-  //                     <p className="text-xl font-semibold text-gray-900">
-  //                       {formatCurrency(record.amountPaid, record.currency)}
-  //                     </p>
-  //                     <p className="text-sm text-gray-500 capitalize">
-  //                       {record.paymentStatus} • {record.paymentGateway}
-  //                     </p>
-  //                     <p className="text-xs text-gray-400 mt-1">
-  //                       {formatDate(record.createdAt)}
-  //                     </p>
-  //                   </div>
-  //                 </div>
-  //               </div>
-  //             ))}
-  //           </div>
-  //         )}
-  //       </div>
-
-  //       {/* Stats Section */}
-  //       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-  //         {/* Total Subscriptions */}
-  //         <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6 flex items-center gap-4 hover:shadow-lg transition-all">
-  //           <div className="p-3 rounded-lg bg-blue-100">
-  //             <CreditCard className="w-6 h-6 text-blue-700" />
-  //           </div>
-  //           <div>
-  //             <p className="text-sm text-gray-600">Total Subscriptions</p>
-  //             <p className="text-2xl font-bold text-gray-900">
-  //               {billingData.length}
-  //             </p>
-  //           </div>
-  //         </div>
-
-  //         {/* Active Subscriptions */}
-  //         <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6 flex items-center gap-4 hover:shadow-lg transition-all">
-  //           <div className="p-3 rounded-lg bg-green-100">
-  //             <CheckCircle className="w-6 h-6 text-green-700" />
-  //           </div>
-  //           <div>
-  //             <p className="text-sm text-gray-600">Active Subscriptions</p>
-  //             <p className="text-2xl font-bold text-gray-900">
-  //               {activeSubscriptions}
-  //             </p>
-  //           </div>
-  //         </div>
-
-  //         {/* Total Paid */}
-  //         <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6 flex items-center gap-4 hover:shadow-lg transition-all">
-  //           <div className="p-3 rounded-lg bg-purple-100">
-  //             <DollarSign className="w-6 h-6 text-purple-700" />
-  //           </div>
-  //           <div>
-  //             <p className="text-sm text-gray-600">Total Paid</p>
-  //             <p className="text-2xl font-bold text-gray-900">
-  //               {formatCurrency(totalPaid, 'usd')}
-  //             </p>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
 }
