@@ -329,6 +329,20 @@ const studentSchema = new Schema(
 
     tailoredApplications: [tailoredApplicationSchema],
 
+    tours: {
+      type: Map,
+      of: new Schema(
+        {
+          currentStep: { type: Number, default: 0 },
+          completed: { type: Boolean, default: false },
+          updatedAt: { type: Date, default: Date.now },
+        },
+        { _id: false },
+      ),
+      default: {},
+      select: true,
+    },
+
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {
       autopilotEnabled: { type: Boolean, default: false },

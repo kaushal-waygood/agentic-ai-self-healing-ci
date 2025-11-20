@@ -38,7 +38,7 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import CompletionModal from './CompletionModel';
 import { startDashboardTour } from './dashboardDriver';
 
@@ -58,14 +58,14 @@ export function StatCard({
     green: 'from-green-500 to-green-600',
   };
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+    <div className="group relative overflow-hidden rounded-lg bg-white border  transition-all duration-300 transform hover:-translate-y-1">
       <div
         className={`absolute top-0 left-0 h-1 w-full bg-gradient-to-r ${colorClasses[color]}`}
       ></div>
       <div className="relative p-6">
         <div className="flex items-start justify-between mb-4">
           <div
-            className={`p-3 rounded-lg bg-gradient-to-r ${colorClasses[color]} text-white shadow-lg`}
+            className={`p-3 rounded-lg bg-gradient-to-r ${colorClasses[color]} text-white `}
           >
             <Icon className="w-6 h-6" />
           </div>
@@ -114,7 +114,7 @@ export function ToolkitButton({
     <Link href={href} passHref>
       <button
         className={cn(
-          'w-full p-4 rounded-xl border-2 border-dashed transition-all duration-200 hover:border-solid hover:shadow-md group',
+          'w-full p-4 rounded-lg border-2 border-dashed transition-all duration-200 hover:border-solid hover: group',
           colorClasses[color],
         )}
       >
@@ -146,7 +146,7 @@ export function ProfileReadinessCard() {
 
   if (isLoading || !data) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-lg  p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 border-2 border-dashed rounded-lg">
           <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
           <p className="font-medium">Loading profile data...</p>
@@ -157,7 +157,7 @@ export function ProfileReadinessCard() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-lg  p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-red-500 border-2 border-dashed border-red-200 rounded-lg">
           <p className="font-medium">Error loading data</p>
         </div>
@@ -199,7 +199,7 @@ export function ProfileReadinessCard() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -298,7 +298,7 @@ export function ActionItemCard({ item, onMarkAsRead }: any) {
     <Link href={item.href} passHref>
       <div
         className={cn(
-          'p-4 rounded-r-xl border-l-4 cursor-pointer transition-all duration-200 hover:shadow-md',
+          'p-4 rounded-r-xl border-l-4 cursor-pointer transition-all duration-200 hover:',
           item.isRead
             ? 'border-l-gray-200 bg-gray-50 opacity-60'
             : getTypeColor(item.type),
@@ -386,10 +386,11 @@ function UsageMeter({ label, used, limit }: any) {
 }
 
 export function SubscriptionStatusCard({ plan }: any) {
+  const pathname = usePathname();
   // Fallback UI if there's no active plan
   if (!plan || !plan.isActive) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+      <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Your Plan</h3>
         <p className="text-gray-600 text-sm mb-4">
           You do not have an active subscription.
@@ -414,7 +415,7 @@ export function SubscriptionStatusCard({ plan }: any) {
   const daysRemaining = calculateDaysRemaining(plan.endDate);
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white rounded-lg border  p-6  transition-shadow duration-300">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -431,22 +432,23 @@ export function SubscriptionStatusCard({ plan }: any) {
       </div>
 
       <div className="space-y-4 mb-6">
-        {/* Render a meter for each usage counter from the API */}
-        {Object.keys(plan.usageCounters).map((key) =>
+        {Object.keys(plan?.usageCounters || {}).map((key) =>
           key !== 'lastReset' ? (
             <UsageMeter
               key={key}
               label={key}
-              used={plan.usageCounters[key]}
-              limit={plan.usageLimits[key]}
+              used={plan?.usageCounters?.[key] ?? 0}
+              limit={plan?.usageLimits?.[key] ?? 0}
             />
           ) : null,
         )}
       </div>
 
-      <Button variant="outline" className="w-full" asChild>
-        <Link href="/dashboard/billing">Manage Subscription</Link>
-      </Button>
+      {pathname === '/dashboard' && (
+        <Button variant="outline" className="w-full" asChild>
+          <Link href="/dashboard/billing">Manage Subscription</Link>
+        </Button>
+      )}
     </div>
   );
 }
@@ -468,8 +470,6 @@ export default function DashboardPage() {
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
   const [savedJobs, setSavedJobs] = useState([]);
-  const [cvsGenerated, setCvsGenerated] = useState(0);
-  const [coverLettersGenerated, setCoverLettersGenerated] = useState(0);
 
   const [planDetails, setPlanDetails] = useState(null);
 
@@ -838,7 +838,7 @@ export default function DashboardPage() {
 
             <div
               id="coreToolkit-driver"
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
+              className="bg-white border rounded-lg  p-6  transition-shadow duration-300"
             >
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">

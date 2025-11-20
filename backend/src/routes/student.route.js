@@ -17,6 +17,7 @@ import {
   updateJobPreferences,
   getJobPreferences,
   updateFullName,
+  updatePhone,
   // savedJobs,
   getSavedJobs,
   isSavedOrNot,
@@ -44,6 +45,8 @@ import {
   onboardingProfile,
   completeOnboarding,
   getAllProjects,
+  getCreditsSummary,
+  getTotalCredits,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -61,6 +64,8 @@ router.post('/job/apply/:jobId', authMiddleware, isStudent, appliedJob);
 router.get('/job/isapplied', authMiddleware, isStudent, isAppliedOrNot);
 
 router.patch('/fullname/update', authMiddleware, isStudent, updateFullName);
+
+router.patch('/phone/update', authMiddleware, isStudent, updatePhone);
 
 router.post('/job-role/update', authMiddleware, isStudent, updateJobRole);
 
@@ -219,6 +224,9 @@ router.post(
 );
 
 router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
+
+router.get('/credits', authMiddleware, isStudent, getCreditsSummary);
+router.get('/total-credits', authMiddleware, isStudent, getTotalCredits);
 
 router.post(
   '/profile/onboarding',

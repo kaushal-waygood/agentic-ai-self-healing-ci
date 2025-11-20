@@ -10,6 +10,7 @@ import { callGenAI } from '../utils/genAIWrapper.js';
 import { parseBasicFromText } from '../utils/basicParser.js';
 import { uploadBufferToCloudinary } from '../middlewares/multer.js'; // keep your existing util
 import { Student } from '../models/student.model.js';
+import redisClient from '../config/redis.js';
 
 export const extractStudentDataFromCV = async (req, res) => {
   try {
@@ -169,6 +170,17 @@ export const extractStudentDataFromCV = async (req, res) => {
       },
       { new: true, runValidators: true },
     );
+
+    // after you get updatedStudent
+    try {
+      // Option A: invalidate common student cache patterns
+      await redisClient.invalidateStudentCache(userId);
+    } catch (cacheErr) {
+      console.warn(
+        'Failed updating student cache:',
+        cacheErr && cacheErr.message,
+      );
+    }
 
     return res.json({ success: true, data: updatedStudent });
   } catch (err) {
