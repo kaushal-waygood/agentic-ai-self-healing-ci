@@ -711,7 +711,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <LayoutDashboard className="w-8 h-8 mr-3 text-purple-600" />
-            ZOBSAI Dashboard
+            ZobsAI Dashboard
             <button
               id="start-tour-btn"
               className=" mx-5 border  rounded-lg px-2 text-white bg-purple-600 hover:bg-blue-800"

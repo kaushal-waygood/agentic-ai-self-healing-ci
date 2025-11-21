@@ -502,6 +502,14 @@ function PlanDetails({
   const discountAmt = pricing?.discountAmount?.usd ?? 0;
   const youPay = pricing?.discounted?.usd ?? activeVariant.price.effective.usd;
 
+  function formatFeatureValue(v: string | number | null | undefined) {
+    if (v === null || v === undefined) return '—';
+    // handle numeric -1 or string "-1" (trim for safety)
+    if (v === -1) return 'Unlimited';
+    if (typeof v === 'string' && v.trim() === '-1') return 'Unlimited';
+    return String(v);
+  }
+
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 h-full relative overflow-hidden">
       {isLoading && (
@@ -691,7 +699,7 @@ function PlanDetails({
                 <div>
                   <p className="text-gray-700 leading-relaxed">
                     <span className="font-semibold text-gray-900">
-                      {feature.value}
+                      {formatFeatureValue(feature.value)}
                     </span>{' '}
                     {feature.name}
                   </p>

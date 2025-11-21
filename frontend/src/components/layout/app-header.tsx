@@ -12,6 +12,9 @@ import {
   HelpCircle,
   ChevronRight,
   Loader2,
+  Zap,
+  Coins,
+  Flame,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -168,25 +171,45 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 };
 
 export const TotalCredit = () => {
-  const [credits, setCredits] = useState(0);
+  const [credits, setCredits] = useState({
+    streak: 0,
+    gold: 0,
+  });
+
   useEffect(() => {
-    const res = async () => {
-      const response = await apiInstance.get('/students/total-credits');
-      setCredits(response.data.credits);
+    const fetchCredits = async () => {
+      try {
+        const res = await apiInstance.get('/students/total-credits');
+        setCredits(res.data);
+      } catch (e) {
+        console.error('Failed to load credits', e);
+      }
     };
-
-    res();
+    fetchCredits();
   }, []);
-
-  console.log(credits);
   return (
-    <Link
-      href="/dashboard/credits"
-      className="flex items-center space-x-2 px-6 py-2 bg-slate-200 rounded-lg"
-    >
-      <span className="text-sm font-medium text-slate-700">Credits</span>
-      <span className="text-xs text-slate-500">{credits || 0}</span>
-    </Link>
+    <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
+      {/* Fire */}
+      <Link
+        href="/dashboard/credits"
+        className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
+      >
+        <Flame className="w-6 h-6 text-pink-500" />
+        <span className="text-sm font-medium text-pink-500">
+          {credits.streak || 0}
+        </span>
+      </Link>
+      {/* Gold */}
+      <Link
+        href="/dashboard/credits"
+        className="flex items-center gap-1 ml-2 hover:bg-gray-50 px-2 py-1  rounded-lg"
+      >
+        <Coins className="w-6 h-6 text-yellow-500" />
+        <span className="text-sm font-medium text-gray-700">
+          {credits.gold || 0}
+        </span>
+      </Link>
+    </div>
   );
 };
 

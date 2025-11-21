@@ -112,6 +112,8 @@ router.post('/', authMiddleware, isStudent, async (req, res) => {
   const studentId = authId || req.body.studentId;
   let { inputs } = req.body || {};
 
+  console.log('🚀 POST /api/autofill', { studentId, inputs });
+
   // tolerate inputs being a JSON-string
   if (!Array.isArray(inputs) && typeof inputs === 'string') {
     try {
