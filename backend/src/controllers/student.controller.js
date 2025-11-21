@@ -2365,6 +2365,7 @@ export const jobVisitedByStudent = async (req, res) => {
       CREDIT_EARN.VISITJOB_SITE,
       'jobVisitedByStudent',
     );
+    
 
     return res.status(200).json({
       success: true,

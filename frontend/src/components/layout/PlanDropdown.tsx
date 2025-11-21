@@ -128,8 +128,8 @@ const PlanDropdown = ({
                 <Crown className="w-4 h-4" />
                 <span>
                   {planType === 'Free'
-                    ? 'Upgrade to Weekly '
-                    : 'Upgrade to Monthly'}
+                    ? 'Upgrade to Premium'
+                    : 'Upgrade to Premium'}
                 </span>
               </button>
             </div>

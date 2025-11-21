@@ -127,7 +127,7 @@ export default function BillingPage() {
   const activeSubscriptions = billingData.filter(
     (record) => record.isActive,
   ).length;
-  console.log('active record', activeRecord?.billingVariant.price.usd);
+
   if (loading) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center">
