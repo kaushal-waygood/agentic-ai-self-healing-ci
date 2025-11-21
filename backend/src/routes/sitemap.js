@@ -12,7 +12,7 @@ router.get('/sitemap-count', async (req, res) => {
   }
 });
 
-router.get('/sitemap-entries', async (req, res) => {
+router.get('/sitemap-enteries', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 5000, 5000); // protect limit
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
