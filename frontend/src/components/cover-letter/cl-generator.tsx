@@ -86,7 +86,7 @@ const ClGenerator = ({
         </div>
 
         {/* Main Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-xl border border-white/20 overflow-hidden">
           {/* Header */}
           <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 px-8 text-white">
             <h2 className="text-xl ">CV Context Selection</h2>
@@ -129,7 +129,7 @@ const ClGenerator = ({
                       {cvs?.map((cv: any) => (
                         <div
                           key={cv._id}
-                          className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer transform  ${
+                          className={`group relative overflow-hidden rounded-lg border-2 transition-all duration-300 cursor-pointer transform  ${
                             selectedSavedCvId === cv._id
                               ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg'
                               : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
@@ -240,7 +240,7 @@ const ClGenerator = ({
 
               {/* {selectedSavedCvId && (
                 <button
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
+                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
                   onClick={() =>
                     handleSetCvContext('saved', {
                       value:
@@ -258,7 +258,7 @@ const ClGenerator = ({
 
               {selectedSavedCvId && (
                 <button
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
+                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
                   onClick={() => {
                     const foundCv = cvs.find(
                       (c: any) => c._id === selectedSavedCvId,
@@ -299,7 +299,7 @@ const ClGenerator = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Active Profile CV */}
               <button
-                className="group p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all duration-300 text-left"
+                className="group p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-all duration-300 text-left"
                 onClick={handleUseActiveProfileCv}
               >
                 <div className="flex items-center space-x-3">
@@ -327,7 +327,7 @@ const ClGenerator = ({
                   disabled={isLoading}
                 />
                 <div
-                  className={`group p-6 border-2 border-dashed rounded-xl transition-all duration-300 text-left ${
+                  className={`group p-6 border-2 border-dashed rounded-lg transition-all duration-300 text-left ${
                     isLoading
                       ? 'border-blue-300 bg-blue-50'
                       : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'

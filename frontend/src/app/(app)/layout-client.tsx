@@ -53,6 +53,31 @@ export default function DashboardLayoutClient({
   // This new constant controls UI visibility
   const showDashboardUI = isDashboardPage && !isOnboardingPage;
   // --- END: MODIFIED LOGIC ---
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar-state');
+
+    // Only apply saved state if found — otherwise stay open
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      if (typeof parsed.isOpen === 'boolean') {
+        setIsOpen(parsed.isOpen);
+      }
+
+      if (typeof parsed.isPinned === 'boolean') {
+        setPinned(parsed.isPinned);
+      }
+    }
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(
+      'sidebar-state',
+      JSON.stringify({
+        isOpen,
+        isPinned,
+      }),
+    );
+  }, [isOpen, isPinned]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

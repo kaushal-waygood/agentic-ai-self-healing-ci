@@ -70,18 +70,18 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
 
   return (
     <div
-      className="w-full bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-2xl p-4 transition-all duration-500 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:-translate-y-1 cursor-pointer group relative overflow-hidden"
+      className="w-full bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-lg p-4 transition-all duration-500 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:-translate-y-1 cursor-pointer group relative overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-start gap-4 relative z-10">
         {/* Company Logo with enhanced animation */}
-        <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white">
+        <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white">
           {job.logo ? (
             <img
               src={job.logo}
               alt={`${job.company} logo`}
-              className="w-full h-full object-contain rounded-xl"
+              className="w-full h-full object-contain rounded-lg"
             />
           ) : (
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -216,7 +216,7 @@ const JobWizard = ({
           </p>
         </div>
 
-        <Card className="bg-white/90 backdrop-blur-xl border-0 shadow-2xl shadow-pink-500/10 rounded-xl overflow-hidden">
+        <Card className="bg-white/90 backdrop-blur-xl border-0 shadow-2xl shadow-pink-500/10 rounded-lg overflow-hidden">
           {/* Enhanced Animated Header */}
           <CardHeader className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white relative overflow-hidden p-2">
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30"></div>
@@ -225,7 +225,7 @@ const JobWizard = ({
 
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-2">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg border border-white/30">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-lg border border-white/30">
                   <Target className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -247,7 +247,7 @@ const JobWizard = ({
               className="w-full"
             >
               {/* Enhanced Tabs List */}
-              <TabsList className="grid grid-cols-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-1.5 mb-4 h-auto shadow-inner">
+              <TabsList className="grid grid-cols-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg p-1.5 mb-4 h-auto shadow-inner">
                 {tabData.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.value;
@@ -255,7 +255,7 @@ const JobWizard = ({
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className={`flex flex-row items-center gap-2 p-4 rounded-xl transition-all duration-500 ${
+                      className={`flex flex-row items-center gap-2 p-4 rounded-lg transition-all duration-500 ${
                         isActive
                           ? `bg-gradient-to-r ${tab.gradient} text-white shadow-xl scale-105 transform`
                           : 'hover:bg-white/80 hover:scale-102 transform'
@@ -296,7 +296,7 @@ const JobWizard = ({
                   <div className="relative group">
                     <Textarea
                       placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
-                      className={`min-h-[280px] border-2 rounded-2xl p-6 pr-16 focus:ring-4 resize-none transition-all duration-500 bg-gradient-to-br from-gray-50 to-white shadow-inner ${
+                      className={`min-h-[280px] border-2 rounded-lg p-6 pr-16 focus:ring-4 resize-none transition-all duration-500 bg-gradient-to-br from-gray-50 to-white shadow-inner ${
                         isFocused
                           ? 'border-purple-500 ring-purple-100 shadow-lg'
                           : charCount < 200
@@ -345,7 +345,7 @@ const JobWizard = ({
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                        className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
                           charCount < 200
                             ? 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border-2 border-red-200'
                             : 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-2 border-green-200'
@@ -372,7 +372,7 @@ const JobWizard = ({
 
                   <div className="flex flex-col gap-4">
                     <Button
-                      className={`h-16 text-lg font-bold rounded-2xl transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
+                      className={`h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                         charCount >= 200 && !isLoading
                           ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:shadow-2xl hover:shadow-pink-500/50 text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -396,7 +396,7 @@ const JobWizard = ({
                       )}
                     </Button>
 
-                    <div className="flex items-start gap-3  p-2 rounded-xl border-2 border-purple-100 shadow-sm">
+                    <div className="flex items-start gap-3  p-2 rounded-lg border-2 border-purple-100 shadow-sm">
                       <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg flex-shrink-0">
                         <Zap className="h-5 w-5 text-white" />
                       </div>
@@ -454,7 +454,7 @@ const JobWizard = ({
                     <div className="text-center py-20">
                       <div className="relative inline-block mb-6">
                         <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 blur-2xl opacity-30 animate-pulse"></div>
-                        <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl mx-auto flex items-center justify-center shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-300">
+                        <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg mx-auto flex items-center justify-center shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-300">
                           <Briefcase className="h-12 w-12 text-white" />
                         </div>
                       </div>
@@ -479,7 +479,7 @@ const JobWizard = ({
                   <div className="relative group">
                     <Input
                       placeholder="e.g., Senior Software Engineer, Product Manager..."
-                      className="h-16 border-2 border-gray-300 rounded-2xl px-6 pr-16 text-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-500 group-hover:border-gray-400 bg-gradient-to-br from-gray-50 to-white shadow-inner"
+                      className="h-16 border-2 border-gray-300 rounded-lg px-6 pr-16 text-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-500 group-hover:border-gray-400 bg-gradient-to-br from-gray-50 to-white shadow-inner"
                       value={enteredJobTitle}
                       onChange={(e) => setEnteredJobTitle(e.target.value)}
                     />
@@ -495,7 +495,7 @@ const JobWizard = ({
                   </div>
 
                   <Button
-                    className={`w-full h-16 text-lg font-bold rounded-2xl transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
+                    className={`w-full h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                       enteredJobTitle && !isLoading
                         ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-2xl hover:shadow-green-500/50 text-white'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -519,7 +519,7 @@ const JobWizard = ({
                     )}
                   </Button>
 
-                  <div className="flex items-start gap-3 bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-2xl border-2 border-green-100 shadow-sm">
+                  <div className="flex items-start gap-3 bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-100 shadow-sm">
                     <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg flex-shrink-0">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
