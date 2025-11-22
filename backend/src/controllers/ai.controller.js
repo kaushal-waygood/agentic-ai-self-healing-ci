@@ -933,6 +933,7 @@ export const createTailoredApply = async (req, res) => {
     savedCoverLetterId, // kept for future use
     coverLetterText,
     finalTouch,
+    flag,
   } = req.body;
 
   try {
@@ -1010,6 +1011,7 @@ export const createTailoredApply = async (req, res) => {
       coverLetterText: coverLetterText || null,
       finalTouch: finalTouch || null,
       status: 'pending',
+      flag,
       createdAt: new Date(),
     };
 

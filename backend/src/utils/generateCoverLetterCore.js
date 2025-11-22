@@ -30,6 +30,7 @@ export const initiateCoverLetterGeneration = async (
       finalTouch,
       savedCVId,
       outputFormat = 'plain',
+      flag,
     } = req.body;
     let normalized = {
       resumeText: '',
@@ -202,6 +203,7 @@ export const initiateCoverLetterGeneration = async (
       status: 'pending',
       jobContextString,
       finalTouch,
+      flag,
       outputFormat, // track requested format
       createdAt: new Date(),
     };

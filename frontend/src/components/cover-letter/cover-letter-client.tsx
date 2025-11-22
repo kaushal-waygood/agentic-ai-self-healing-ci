@@ -398,8 +398,10 @@ export function CoverLetterGeneratorClient() {
           formData.append('finalTouch', additionalNarratives);
         }
 
+        formData.append('flag', 'web');
+
         const apiResponse = await apiInstance.post(
-          'students/coverletter/generate/jd',
+          '/students/coverletter/generate/jd',
           formData,
           { headers: { 'Content-Type': 'multipart/form-data' } },
         );
@@ -423,8 +425,10 @@ export function CoverLetterGeneratorClient() {
           formData.append('finalTouch', additionalNarratives);
         }
 
+        formData.append('flag', 'web');
+
         const apiResponse = await apiInstance.post(
-          'students/coverletter/generate/jobtitle',
+          '/students/coverletter/generate/jobtitle',
           formData,
           { headers: { 'Content-Type': 'multipart/form-data' } },
         );
@@ -447,6 +451,8 @@ export function CoverLetterGeneratorClient() {
         if (additionalNarratives) {
           formData.append('finalTouch', additionalNarratives);
         }
+
+        formData.append('flag', 'web');
 
         const apiResponse = await apiInstance.post(
           '/students/coverletter/generate/jobId',
