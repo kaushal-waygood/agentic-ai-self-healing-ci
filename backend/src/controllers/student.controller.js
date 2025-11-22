@@ -20,7 +20,12 @@ import {
 } from '../utils/jobUtils.js';
 import axios from 'axios';
 import { config } from '../config/config.js';
-import { addCredits, CREDIT_EARN, spendCredits } from '../utils/credits.js';
+import {
+  addCredits,
+  CREDIT_EARN,
+  earnCreditsForAction,
+  spendCredits,
+} from '../utils/credits.js';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
@@ -3057,5 +3062,50 @@ export const getCreditsSummary = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const ALLOWED_SOCIAL_ACTIONS = new Set([
+  'FOLLOW_LINKEDIN',
+  'FOLLOW_INSTAGRAM',
+  'FOLLOW_FACEBOOK',
+  'FOLLOW_YOUTUBE',
+  'FOLLOW_TIKTOK',
+  'SHARE_SOCIAL_CONTENT',
+  'LIKE_COMMENT_SHARE',
+]);
+
+export const earnCreditsViaSocialLinks = async (req, res) => {
+  try {
+    const { action } = req.params;
+    const user = req.user;
+    const meta = req.body || {};
+
+    if (!user)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (!action)
+      return res
+        .status(400)
+        .json({ success: false, message: 'Missing action.' });
+    if (!ALLOWED_SOCIAL_ACTIONS.has(action)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid social action.' });
+    }
+
+    const result = await earnCreditsForAction(user, action);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Credits awarded (if rules allowed).',
+      tx: result.tx,
+      balance: result.balance,
+    });
+  } catch (err) {
+    console.error('claimSocialClick error', err);
+    const status = err.status || 500;
+    return res
+      .status(status)
+      .json({ success: false, message: err.message || 'Server error' });
   }
 };

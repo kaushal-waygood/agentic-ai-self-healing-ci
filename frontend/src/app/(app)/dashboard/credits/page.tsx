@@ -16,6 +16,16 @@ import { useRouter } from 'next/navigation';
 
 const API_BASE = 'http://127.0.0.1:8080';
 
+const ALLOWED_SOCIAL_ACTIONS = new Set([
+  'FOLLOW_LINKEDIN',
+  'FOLLOW_INSTAGRAM',
+  'FOLLOW_FACEBOOK',
+  'FOLLOW_YOUTUBE',
+  'FOLLOW_TIKTOK',
+  'SHARE_SOCIAL_CONTENT',
+  'LIKE_COMMENT_SHARE',
+]);
+
 export default function CreditsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,7 +41,7 @@ export default function CreditsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiInstance(`/students/credits`);
+      const res = await apiInstance.get(`/students/credits`);
       if (res.status !== 200) {
         toast({
           variant: 'destructive',
@@ -57,6 +67,33 @@ export default function CreditsPage() {
 
   const handleClaim = async (action, meta = {}, fallbackUrl = null) => {
     router.push(action.url);
+
+    if (!ALLOWED_SOCIAL_ACTIONS.has(action.type)) {
+      return;
+    }
+
+    try {
+      setTimeout(async () => {
+        const res = await apiInstance.get(
+          `/students/credit/earn/${action.action}`,
+          meta,
+        );
+        if (res.status !== 200) {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to claim credits',
+          });
+        }
+      }, 10000);
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to claim credits',
+      });
+    }
   };
 
   if (loading) {

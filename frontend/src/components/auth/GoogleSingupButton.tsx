@@ -80,3 +80,91 @@ export function GoogleSignInButton({ authType = 'login' }) {
     </Button>
   );
 }
+
+import { getAuth, signInWithPopup, OAuthProvider } from 'firebase/auth';
+import app from '@/lib/firebase-client'; // ⚠️ Make sure this points to your firebase config
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
+
+export function LinkedInSignInButton({ authType = 'login' }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleLinkedInAuth = async () => {
+    setIsLoading(true);
+    const auth = getAuth(app);
+
+    // This matches the Provider ID we set up in Firebase Console
+    const provider = new OAuthProvider('oidc.linkedin');
+    provider.addScope('openid');
+    provider.addScope('email');
+    provider.addScope('profile');
+
+    try {
+      // 1. Trigger Firebase Popup
+      const result = await signInWithPopup(auth, provider);
+
+      // 2. Get the ID Token from the result
+      const idToken = await result.user.getIdToken();
+
+      // 3. Send to your Backend Controller (The 'firebaseAuth' function you wrote)
+      const response = await axios.post(
+        `${API_BASE_URL}/api/v1/auth/firebase-login`,
+        {
+          idToken,
+        },
+      );
+
+      if (response.data.success) {
+        // Handle success (e.g., store token, redirect to dashboard)
+        // localStorage.setItem('accessToken', response.data.accessToken);
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      console.error('LinkedIn Auth Error:', error);
+      // Reset loading on error so user can try again
+      setIsLoading(false);
+    }
+  };
+
+  const buttonText =
+    authType === 'signup' ? 'Sign up with LinkedIn' : 'Login with LinkedIn';
+  const loadingText = 'Connecting to LinkedIn...';
+
+  return (
+    <Button
+      onClick={handleLinkedInAuth}
+      variant="outline"
+      className="w-full h-12 bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400
+                 transition-all duration-200 ease-in-out transform hover:scale-[1.02]
+                 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm hover:shadow-md
+                 disabled:opacity-60 disabled:cursor-not-allowed"
+      disabled={isLoading}
+    >
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-3">
+          <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+          <span className="text-gray-700 font-medium">{loadingText}</span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-3">
+          {/* LinkedIn Icon SVG */}
+          <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+              fill="#0077B5" // Official LinkedIn Blue
+            />
+          </svg>
+          <span className="text-gray-700 font-medium text-base">
+            {buttonText}
+          </span>
+        </div>
+      )}
+    </Button>
+  );
+}

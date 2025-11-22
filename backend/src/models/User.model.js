@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
 import crypto from 'crypto'; // Added for password reset token
+import { v4 as uuidv4 } from 'uuid'; // <-- use this
 
 const userSchema = new Schema(
   {
