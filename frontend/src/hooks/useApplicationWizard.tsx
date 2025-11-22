@@ -575,6 +575,8 @@ export const useApplicationWizard = () => {
       // optional final touch
       formData.append('finalTouch', 'Tailor for ATS optimization');
 
+      formData.append('flag', 'web');
+
       const response = await apiInstance.post(
         '/students/applications/tailor',
         formData,

@@ -1,4 +1,3 @@
-// utils/credits.js
 import mongoose from 'mongoose';
 import { User } from '../models/User.model.js'; // adjust path
 import dayjs from 'dayjs';
@@ -113,13 +112,6 @@ function countTxsInWindow(user, kind, msWindow = 24 * 60 * 60 * 1000) {
   ).length;
 }
 
-// ---------- main earn function ----------
-/**
- * Earn credits for a named action.
- * userOrId: user document or id
- * action: string key (see CREDIT_EARN keys)
- * meta: optional; for some actions you need meta (e.g., jobId, platform, blogId)
- */
 export async function earnCreditsForAction(userOrId, action, meta = {}) {
   const user = await resolveUser(userOrId);
   action = String(action);
@@ -267,8 +259,71 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
     err.status = 409;
     throw err;
   }
+  const redirectForAction = (act, m) => {
+    console.log('redirectForAction', act, m);
+    if (m && m.redirectUrl) return m.redirectUrl;
+
+    switch (act) {
+      case 'FIRST_CV':
+      case 'CV_GENERATION':
+        return '/dashboard/cv-builder';
+
+      case 'FIRST_CL':
+      case 'COVER_LETTER':
+        return '/dashboard/cover-letter';
+
+      case 'DAILY_CHECKIN':
+        return '/rewards';
+
+      case 'FOLLOW_LINKEDIN':
+      case 'FOLLOW_INSTAGRAM':
+      case 'FOLLOW_FACEBOOK':
+      case 'FOLLOW_YOUTUBE':
+      case 'FOLLOW_TIKTOK':
+        return '/social-follow';
+
+      case 'READ_BLOG':
+        return m.blogUrl || '/blogs';
+
+      case 'VISITJOB_SITE':
+      case 'APPLY_ON_COMPANY_SITE':
+        if (m && m.jobId) return `/jobs/${m.jobId}`;
+        return '/jobs';
+
+      case 'PROFILE_COMPLETE_PERSONAL':
+      case 'PROFILE_COMPLETE_EDUCATION':
+      case 'PROFILE_COMPLETE_EXPERIENCE':
+      case 'PROFILE_COMPLETE_PROJECT':
+      case 'PROFILE_COMPLETE_SKILL':
+        return '/dashboard/profile';
+
+      case 'ALLOW_BROWSER_NOTIF':
+        return '/settings/notifications';
+
+      case 'FIRST_AUTO_AGENT_SETUP':
+      case 'FIRST_AUTO_APPLICATION_SENT':
+        return '/dashboard/auto-agents';
+
+      default:
+        return '/rewards';
+    }
+  };
+
+  const finalMeta = Object.assign({}, meta || {});
+  try {
+    const inferred = redirectForAction(action, meta || {});
+    if (inferred) finalMeta.redirectUrl = finalMeta.redirectUrl || inferred;
+  } catch (e) {
+    // never block earning credits because redirect inference failed
+    // leave meta as-is
+  }
 
   // Finally add credits and return tx
-  const tx = await addCredits(user, amount, kind, meta || {});
+  const tx = await addCredits(user, amount, kind, finalMeta);
+
+  console.log(
+    `Earned ${amount} credits for ${action} by ${user._id} (${user.email})`,
+  );
+
   return { tx, balance: user.credits };
 }

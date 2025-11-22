@@ -338,7 +338,7 @@ export const DocumentCard = ({
           </button>{' '}
           {item.flag && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 mt-1">
-              {item.flag}
+              from: {item.flag}
             </p>
           )}
         </div>

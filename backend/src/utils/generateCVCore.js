@@ -21,7 +21,7 @@ export const initiateCVGeneration = async (
 ) => {
   try {
     const { _id } = req.user;
-    const { useProfile, finalTouch, savedCVId } = req.body;
+    const { useProfile, finalTouch, savedCVId, flag } = req.body;
 
     const user = await User.findById(_id).select(
       'currentPlan currentPurchase plan usageLimits usageCounters email fullName',
@@ -155,6 +155,7 @@ export const initiateCVGeneration = async (
       status: 'pending',
       jobContextString,
       finalTouch,
+      flag,
       createdAt: new Date(),
       // extra metadata so front-end and background worker can act
       meta: {
