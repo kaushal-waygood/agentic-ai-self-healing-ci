@@ -113,7 +113,7 @@ const CVGeneratorClient = ({
         </div>
 
         {/* Main Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-xl border border-white/20 overflow-hidden">
           {/* Header */}
           <div className=" p-2 bg-gradient-to-r from-blue-600 to-indigo-600 px-8  text-white">
             <h2 className="text-xl  ">CV Context Selection</h2>
@@ -157,7 +157,7 @@ const CVGeneratorClient = ({
                       {cvs?.map((cv: any) => (
                         <div
                           key={cv._id}
-                          className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer transform  ${
+                          className={`group relative overflow-hidden rounded-lg border-2 transition-all duration-300 cursor-pointer transform  ${
                             selectedSavedCvId === cv._id
                               ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg'
                               : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
@@ -262,7 +262,7 @@ const CVGeneratorClient = ({
 
                     {/* {selectedSavedCvId && (
                   <button
-                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
                     onClick={() =>
                       handleSetCvSource('saved', {
                         value:
@@ -280,7 +280,7 @@ const CVGeneratorClient = ({
 
                     {selectedSavedCvId && (
                       <button
-                        className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
+                        className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
                         onClick={() => {
                           const foundCv = cvs.find(
                             (c: any) => c._id === selectedSavedCvId,
@@ -327,7 +327,7 @@ const CVGeneratorClient = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Use Profile */}
               <button
-                className="group p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all duration-300 text-left"
+                className="group p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-all duration-300 text-left"
                 onClick={handleUseProfile}
                 disabled={isLoading}
               >
@@ -348,7 +348,7 @@ const CVGeneratorClient = ({
 
               {/* Upload New CV with Drag & Drop */}
               <div
-                className={`relative group p-6 border-2 border-dashed rounded-xl transition-all duration-300 text-left cursor-pointer ${
+                className={`relative group p-6 border-2 border-dashed rounded-lg transition-all duration-300 text-left cursor-pointer ${
                   isLoading
                     ? 'border-blue-300 bg-blue-50'
                     : dragActive

@@ -10,6 +10,7 @@ import {
   Sparkles,
   CheckCircle2,
 } from 'lucide-react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -55,13 +56,18 @@ const NotificationsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-        <div className="text-center">
-          <div className="relative w-16 h-16 mx-auto mb-4">
-            <Loader2 className="w-16 h-16 animate-spin text-blue-500" />
-          </div>
-          <p className="text-slate-600 font-medium">Loading notifications...</p>
+      <div className="flex items-center flex-col justify-center min-h-[80vh]">
+        <div>
+          <Image
+            width={100}
+            height={100}
+            src="/logo.png"
+            alt=""
+            className="w-10 h-10 animate-bounce"
+          />
         </div>
+
+        <div className="text-lg">LOADING YOUR WALLET...</div>
       </div>
     );
   }

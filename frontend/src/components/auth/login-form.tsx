@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { successToast, errorToast } from '@/utils/toasts';
 import { loginRequest } from '@/redux/reducers/authReducer';
-import { GoogleSignInButton } from './GoogleSingupButton';
+import { GoogleSignInButton, LinkedInSignInButton } from './GoogleSingupButton';
 
 // SHADCN/UI COMPONENTS (ensure paths are correct)
 import {
@@ -365,6 +365,7 @@ const LoginForm = () => {
           </div>
 
           <GoogleSignInButton form={loginForm} />
+          {/* <LinkedInSignInButton form={loginForm} /> */}
 
           {/* Sign Up Link */}
           <div className="mt-8 text-center">

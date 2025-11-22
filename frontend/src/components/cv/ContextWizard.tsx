@@ -161,7 +161,7 @@ const ContextWizard = ({
           </div>
         </div>
 
-        <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-indigo-500/10 rounded-3xl overflow-hidden">
+        <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-indigo-500/10 rounded-lg overflow-hidden">
           <CardHeader className="p-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
             <div className="absolute top-0 right-0 w- h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
@@ -198,7 +198,7 @@ const ContextWizard = ({
                     <button
                       key={suggestion.id}
                       onClick={() => toggleSuggestion(suggestion)} // FIX: Pass the whole suggestion object
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                      className={`p-3 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 ${
                         isSelected
                           ? `${getColorClasses(
                               suggestion.color,
@@ -221,7 +221,7 @@ const ContextWizard = ({
                 })}
               </div>
               {selectedSuggestions.length > 0 && (
-                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                   <div className="flex items-center gap-2 text-indigo-700 text-sm font-medium">
                     <Check className="h-4 w-4" />
                     {selectedSuggestions.length} enhancement
@@ -254,7 +254,7 @@ Examples:
 • Showcase my passion for user-centric design principles
 • Focus on my track record of driving revenue growth
 • Mention my expertise in agile methodologies"
-                  className="min-h-[180px] border-2 border-gray-200 rounded-2xl p-4 focus:border-indigo-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm text-base leading-relaxed"
+                  className="min-h-[180px] border-2 border-gray-200 rounded-lg p-4 focus:border-indigo-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm text-base leading-relaxed"
                   value={additionalNarratives}
                   onChange={(e) => setAdditionalNarratives(e.target.value)}
                 />
@@ -264,14 +264,14 @@ Examples:
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-2 text-sm text-gray-700 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                <div className="flex items-center gap-2 text-sm text-gray-700 bg-blue-50 p-3 rounded-lg border border-blue-100">
                   <Target className="h-4 w-4 text-blue-500 flex-shrink-0" />
                   <span>
                     <span className="font-medium">Pro tip:</span> Be specific
                     about achievements and technologies
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700 bg-green-50 p-3 rounded-xl border border-green-100">
+                <div className="flex items-center gap-2 text-sm text-gray-700 bg-green-50 p-3 rounded-lg border border-green-100">
                   <TrendingUp className="h-4 w-4 text-green-500 flex-shrink-0" />
                   <span>
                     <span className="font-medium">Focus on:</span> Quantifiable
@@ -281,9 +281,9 @@ Examples:
               </div>
             </div>
 
-            {/* <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
+            {/* <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-100">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
                   <Rocket className="h-5 w-5 text-white" />
                 </div>
                 <h4 className="font-semibold text-gray-900">
@@ -304,7 +304,7 @@ Examples:
               <Button
                 variant="ghost"
                 onClick={() => setWizardStep('cv')}
-                className="h-12 px-6 rounded-xl hover:bg-white/80 transition-all duration-300"
+                className="h-12 px-6 rounded-lg hover:bg-white/80 transition-all duration-300"
                 disabled={isGenerating}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -315,10 +315,10 @@ Examples:
                 size="lg"
                 onClick={handleGenerateClick}
                 disabled={isGenerating}
-                className={`h-14 px-8 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+                className={`h-14 px-8 text-lg font-semibold rounded-lg transition-all duration-300 transform hover:scale-[1.02] ${
                   isGenerating
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
+                    : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 '
                 } text-white`}
               >
                 {isGenerating ? (

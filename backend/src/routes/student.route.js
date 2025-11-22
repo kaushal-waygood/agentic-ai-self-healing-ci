@@ -47,6 +47,7 @@ import {
   getAllProjects,
   getCreditsSummary,
   getTotalCredits,
+  earnCreditsViaSocialLinks,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -227,6 +228,13 @@ router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
 
 router.get('/credits', authMiddleware, isStudent, getCreditsSummary);
 router.get('/total-credits', authMiddleware, isStudent, getTotalCredits);
+
+router.get(
+  '/credit/earn/:action',
+  authMiddleware,
+  isStudent,
+  earnCreditsViaSocialLinks,
+);
 
 router.post(
   '/profile/onboarding',

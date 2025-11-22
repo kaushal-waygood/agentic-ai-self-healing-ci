@@ -16,12 +16,24 @@ import { useRouter } from 'next/navigation';
 
 const API_BASE = 'http://127.0.0.1:8080';
 
+const ALLOWED_SOCIAL_ACTIONS = new Set([
+  'FOLLOW_LINKEDIN',
+  'FOLLOW_INSTAGRAM',
+  'FOLLOW_FACEBOOK',
+  'FOLLOW_YOUTUBE',
+  'FOLLOW_TIKTOK',
+  'SHARE_SOCIAL_CONTENT',
+  'LIKE_COMMENT_SHARE',
+]);
+
 export default function CreditsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
   const [claiming, setClaiming] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [howToClaimOpen, setHowToClaimOpen] = useState(false);
+  const [howToClaimData, setHowToClaimData] = useState(null);
 
   console.log(data);
 
@@ -29,7 +41,7 @@ export default function CreditsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiInstance(`/students/credits`);
+      const res = await apiInstance.get(`/students/credits`);
       if (res.status !== 200) {
         toast({
           variant: 'destructive',
@@ -55,25 +67,49 @@ export default function CreditsPage() {
 
   const handleClaim = async (action, meta = {}, fallbackUrl = null) => {
     router.push(action.url);
+
+    if (!ALLOWED_SOCIAL_ACTIONS.has(action.type)) {
+      return;
+    }
+
+    try {
+      setTimeout(async () => {
+        const res = await apiInstance.get(
+          `/students/credit/earn/${action.action}`,
+          meta,
+        );
+        if (res.status !== 200) {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to claim credits',
+          });
+        }
+      }, 10000);
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to claim credits',
+      });
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center flex-col justify-center min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-16 h-16">
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-spin"
-              style={{ animationDuration: '3s' }}
-            ></div>
-            <div className="absolute inset-2 bg-white rounded-full flex items-center justify-center">
-              <Zap className="w-8 h-8 text-blue-500 animate-pulse" />
-            </div>
-          </div>
-          <div className="text-lg font-semibold text-gray-800">
-            Loading your wallet...
-          </div>
+      <div className="flex items-center flex-col justify-center min-h-[80vh]">
+        <div>
+          <Image
+            src="/logo.png"
+            width={100}
+            height={100}
+            alt=""
+            className="w-10 h-10 animate-bounce"
+          />
         </div>
+
+        <div className="text-lg">LOADING YOUR WALLET...</div>
       </div>
     );
   }
@@ -249,12 +285,31 @@ export default function CreditsPage() {
                           )}
                         </button>
                         {actionKey.startsWith('FOLLOW_') && (
+                          // <button
+                          //   onClick={(e) => {
+                          //     e.preventDefault();
+                          //     alert(
+                          //       'Open the social link in a new tab, follow, then come back and claim.',
+                          //     );
+                          //   }}
+                          //   className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
+                          // >
+                          //   How to claim?
+                          // </button>
+
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              alert(
-                                'Open the social link in a new tab, follow, then come back and claim.',
-                              );
+                              setHowToClaimData({
+                                title: actionKey.replace(/_/g, ' '),
+                                steps: [
+                                  'Open the social link in a new tab.',
+                                  'Follow / Subscribe as required.',
+                                  'Return back to ZobsAI.',
+                                  'Click the "Claim" button to receive credits.',
+                                ],
+                              });
+                              setHowToClaimOpen(true);
                             }}
                             className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
                           >
@@ -346,6 +401,48 @@ export default function CreditsPage() {
           </button>
         </div>
       </div>
+      {/* HOW-TO-CLAIM MODAL */}
+      {howToClaimOpen && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md p-6 animate-in zoom-in-95 duration-300 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setHowToClaimOpen(false)}
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition"
+            >
+              ✕
+            </button>
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 capitalize bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {howToClaimData?.title || 'How to Claim'}
+            </h2>
+
+            {/* Steps */}
+            <div className="space-y-4">
+              {howToClaimData?.steps?.map((step, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-gray-200 shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="h-7 w-7 flex items-center justify-center rounded-full bg-blue-600 text-white text-sm font-semibold shadow-md">
+                    {index + 1}
+                  </div>
+                  <p className="text-gray-700 text-sm font-medium">{step}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA Button */}
+            <button
+              onClick={() => setHowToClaimOpen(false)}
+              className="w-full mt-6 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-700 text-white font-semibold shadow-md hover:shadow-xl active:scale-95 transition-all"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
