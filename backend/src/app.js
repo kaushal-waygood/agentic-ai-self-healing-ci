@@ -19,12 +19,14 @@ import planRoutes from './routes/plan.route.js';
 import formRoutes from './routes/form.route.js';
 import autofillRoutes from './routes/autofill.route.js';
 import couponRoutes from './routes/coupon.route.js';
+import socialRouter from './routes/social.js';
 import notificationRoutes from './routes/notification.route.js';
 import sitemapRoutes from './routes/sitemap.js';
 import { handleStripeWebhook } from './controllers/plan.controller.js';
 
 import newFeatureRoutes from './routes/newFeature.route.js';
 import { config } from './config/config.js';
+import { authMiddleware } from './middlewares/auth.middleware.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -115,6 +117,7 @@ app.use('/api/v1/new-feature', newFeatureRoutes);
 app.use('/api/v1/autofill', autofillRoutes);
 app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/v1', sitemapRoutes);
+app.use('/api/v1/social', socialRouter); // make sure auth is applied
 
 // 8) 404
 app.use((req, res, next) => next(createHttpError(404, 'Endpoint not found')));

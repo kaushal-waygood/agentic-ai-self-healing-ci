@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import {
   Bell,
   LogOut,
@@ -27,6 +33,9 @@ import { debounce } from 'lodash';
 import PlanDropdown from './PlanDropdown';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import { NotificationBell } from '../notifications/NotificationBell';
+import StreakDropdown from './StreakDropdown';
+import ReminderModal from './ReminderModal';
+import { Tooltip } from './tooltip';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -170,11 +179,66 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
   );
 };
 
+// export const TotalCredit = () => {
+//   const [credits, setCredits] = useState({
+//     streak: 0,
+//     gold: 0,
+//   });
+
+//   useEffect(() => {
+//     const fetchCredits = async () => {
+//       try {
+//         const res = await apiInstance.get('/students/total-credits');
+//         setCredits(res.data);
+//       } catch (e) {
+//         console.error('Failed to load credits', e);
+//       }
+//     };
+//     fetchCredits();
+//   }, []);
+//   return (
+// <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
+//   {/* Fire */}
+//   <Link
+//     href="/dashboard/credits"
+//     className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
+//   >
+//     <Flame className="w-6 h-6 text-pink-500" />
+//     <span className="text-sm font-medium text-pink-500">
+//       {credits.streak || 0}
+//     </span>
+//   </Link>
+//   {/* Gold */}
+//   <Link
+//     href="/dashboard/credits"
+//     className="flex items-center gap-1 ml-2 hover:bg-gray-50 px-2 py-1  rounded-lg"
+//   >
+//     <Coins className="w-6 h-6 text-yellow-500" />
+//     <span className="text-sm font-medium text-gray-700">
+//       {credits.gold || 0}
+//     </span>
+//   </Link>
+// </div>
+//   );
+// };
+
+// Main AppHeader Component
+
 export const TotalCredit = () => {
-  const [credits, setCredits] = useState({
+  const [credits, setCredits] = useState<{
+    streak: number;
+    gold: number;
+    longest?: number;
+    days?: any[];
+  }>({
     streak: 0,
     gold: 0,
+    longest: 0,
+    days: [],
   });
+  const [open, setOpen] = useState(false);
+
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const fetchCredits = async () => {
@@ -187,33 +251,59 @@ export const TotalCredit = () => {
     };
     fetchCredits();
   }, []);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   return (
-    <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
-      {/* Fire */}
-      <Link
-        href="/dashboard/credits"
-        className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
-      >
-        <Flame className="w-6 h-6 text-pink-500" />
-        <span className="text-sm font-medium text-pink-500">
-          {credits.streak || 0}
-        </span>
-      </Link>
-      {/* Gold */}
-      <Link
-        href="/dashboard/credits"
-        className="flex items-center gap-1 ml-2 hover:bg-gray-50 px-2 py-1  rounded-lg"
-      >
-        <Coins className="w-6 h-6 text-yellow-500" />
-        <span className="text-sm font-medium text-gray-700">
-          {credits.gold || 0}
-        </span>
-      </Link>
+    <div className="relative" ref={dropdownRef}>
+      <div className="flex items-center  bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
+        {/* Fire */}
+        <Tooltip label="Current streak">
+          <button
+            onClick={() => setOpen(!open)}
+            className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
+          >
+            <Flame className="w-6 h-6 text-pink-500" />
+            <span className="text-sm font-medium text-pink-500">
+              {credits.streak || 0}
+            </span>
+          </button>
+        </Tooltip>
+        {/* Gold */}
+        <Tooltip label="Total credits">
+          <Link
+            href="/dashboard/credits"
+            className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
+          >
+            <Coins className="w-6 h-6 text-yellow-500" />
+            <span className="text-sm font-medium text-gray-700">
+              {credits.gold || 0}
+            </span>
+          </Link>
+        </Tooltip>
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <StreakDropdown
+          streak={credits.streak}
+          longest={credits.longest}
+          activeDays={credits.days || []} // backend array
+        />
+      )}
     </div>
   );
 };
 
-// Main AppHeader Component
 const AppHeader = ({ setIsSearchOpen }) => {
   const {
     notifications,
@@ -366,14 +456,15 @@ const AppHeader = ({ setIsSearchOpen }) => {
 
           <div className="flex items-center space-x-4">
             <TotalCredit />
-
-            <PlanDropdown
-              planType={planType}
-              isOpen={isPlanOpen}
-              onToggle={() => handleMenuToggle('plan')}
-              usageData={usageData}
-              planLimits={effectivePlanLimits}
-            />
+            <div id="current-plan-driver">
+              <PlanDropdown
+                planType={planType}
+                isOpen={isPlanOpen}
+                onToggle={() => handleMenuToggle('plan')}
+                usageData={usageData}
+                planLimits={effectivePlanLimits}
+              />
+            </div>
 
             <div id="bell-driver" className="relative ">
               {/* Notification Bell icon */}
@@ -421,7 +512,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                 onClick={() => handleMenuToggle('user')}
                 className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
               >
-                <div className="w-8 h-8 bg-gradient-to-br  from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white  text-3xl">
+                <div className="w-8 h-8 bg-gradient-to-br  from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white  text-2xl">
                   {(user?.fullName || ' ').charAt(0)}
                 </div>
                 {/* <ChevronDown className="w-4 h-4 text-slate-600 hidden sm:block" /> */}
@@ -430,7 +521,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
                   <div className="p-4 border-b border-slate-100">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-4xl">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-4xl">
                         {(user?.fullName || ' ').charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">

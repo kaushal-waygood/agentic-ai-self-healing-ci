@@ -1,8 +1,16 @@
 /** @format */
+
 'use client';
 
 import { useNotifications } from '@/hooks/notifications/useNoifications';
-import { Loader2, RefreshCcw, Bell } from 'lucide-react';
+import {
+  Loader2,
+  RefreshCcw,
+  Bell,
+  Sparkles,
+  CheckCircle2,
+} from 'lucide-react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -17,9 +25,10 @@ const NotificationsPage = () => {
   } = useNotifications();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hoveredId, setHoveredId] = useState(null);
   const router = useRouter();
 
-  // This useEffect fetches data when the page loads
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
@@ -29,106 +38,246 @@ const NotificationsPage = () => {
     };
 
     loadInitialData();
-    // We only want this to run once on mount, so we leave the dependency array empty.
-    // fetchNotifications and fetchUnreadCount are stable from useNotifications hook.
-  }, [fetchNotifications, fetchUnreadCount]); // Add dependencies
+  }, [fetchNotifications, fetchUnreadCount]);
 
-  // This handler is for the manual refresh button
   const handleRefresh = async () => {
-    setIsLoading(true);
+    setIsRefreshing(true);
     await fetchNotifications();
     await fetchUnreadCount();
-    setIsLoading(false);
+    setIsRefreshing(false);
   };
 
-  // This handler processes a click on a single notification
   const handleNotificationClick = (notification) => {
-    // Mark as read *if* it's currently unread
     if (!notification.isRead) {
       markAsRead(notification._id);
     }
-    // Navigate to the relevant page
     router.push(`/dashboard/my-docs/${notification.actionUrl}`);
   };
 
-  // --- Render Loading State ---
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-10 text-gray-500">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Loading notifications...</span>
+      <div className="flex items-center flex-col justify-center min-h-[80vh]">
+        <div>
+          <Image
+            width={100}
+            height={100}
+            src="/logo.png"
+            alt=""
+            className="w-10 h-10 animate-bounce"
+          />
+        </div>
+
+        <div className="text-lg">LOADING YOUR WALLET...</div>
       </div>
     );
   }
 
-  // --- Render Main Content ---
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      {/* Page Header */}
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
-        <h2 className="text-2xl font-semibold text-gray-800">
-          All Notifications ({notifications.length})
-        </h2>
-        <div className="flex items-center space-x-4">
-          <span
-            className={`text-xs font-medium ${
-              connectionStatus === 'connected'
-                ? 'text-green-600'
-                : 'text-red-600'
-            }`}
-          >
-            Status: {connectionStatus}
-          </span>
-          <button
-            onClick={handleRefresh}
-            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition"
-            title="Refresh"
-          >
-            <RefreshCcw className="h-5 w-5" />
-          </button>
+    <div className="min-h-screen  bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      {/* Header Section */}
+      <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/80 border-b border-slate-200/50">
+        <div className="p-6 md:p-8 max-w-6xl mx-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                <Bell className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                  Notifications
+                </h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  {notifications.length}{' '}
+                  {notifications.length === 1
+                    ? 'notification'
+                    : 'notifications'}
+                  {unreadCount > 0 && (
+                    <span className="ml-2 font-semibold text-blue-600">
+                      • {unreadCount} unread
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="px-3 py-1.5 rounded-lg bg-slate-100 flex items-center gap-2">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    connectionStatus === 'connected'
+                      ? 'bg-green-500'
+                      : 'bg-red-500'
+                  } animate-pulse`}
+                ></div>
+                <span className="text-xs font-medium text-slate-700 capitalize">
+                  {connectionStatus}
+                </span>
+              </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className={`p-2.5 rounded-lg transition-all duration-200 ${
+                  isRefreshing
+                    ? 'bg-blue-100 text-blue-600'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                }`}
+                title="Refresh"
+              >
+                <RefreshCcw
+                  className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
+                />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Notifications List */}
-      <div className="space-y-3">
-        {notifications.length > 0 ? (
-          notifications.map((notification) => (
-            <div
-              key={notification._id}
-              onClick={() => handleNotificationClick(notification)}
-              className={`p-4 border rounded-lg shadow-sm transition hover:shadow-md cursor-pointer ${
-                notification.isRead
-                  ? 'bg-white text-gray-700 border-gray-200'
-                  : 'bg-blue-50 text-gray-900 border-blue-200 font-medium'
-              }`}
-            >
-              <div className="flex justify-between items-center mb-1">
-                <strong className="text-base">{notification.title}</strong>
-                {!notification.isRead && (
-                  <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
-                    New
-                  </span>
-                )}
+      {/* Main Content */}
+      <div className="p-6 md:p-8 max-w-6xl mx-auto">
+        <div className="space-y-3">
+          {notifications.length > 0 ? (
+            notifications.map((notification, index) => (
+              <div
+                key={notification._id}
+                onMouseEnter={() => setHoveredId(notification._id)}
+                onMouseLeave={() => setHoveredId(null)}
+                onClick={() => handleNotificationClick(notification)}
+                className={`group relative overflow-hidden rounded-xl border transition-all duration-300 cursor-pointer transform hover:scale-102 ${
+                  notification.isRead
+                    ? 'bg-white border-slate-200/50 hover:border-slate-300 shadow-sm hover:shadow-md'
+                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200/50 hover:border-blue-300 shadow-md hover:shadow-lg'
+                }`}
+                style={{
+                  animation: `slideIn 0.4s ease-out ${index * 0.05}s both`,
+                }}
+              >
+                {/* Animated background gradient */}
+                <div
+                  className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    notification.isRead
+                      ? 'bg-gradient-to-r from-slate-50 to-slate-100'
+                      : 'bg-gradient-to-r from-blue-100 to-indigo-100'
+                  }`}
+                />
+
+                <div className="relative p-5 md:p-6">
+                  <div className="flex gap-4">
+                    {/* Icon */}
+                    <div
+                      className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                        notification.isRead
+                          ? 'bg-slate-100 text-slate-400'
+                          : 'bg-blue-100 text-blue-600 group-hover:scale-110'
+                      }`}
+                    >
+                      {notification.isRead ? (
+                        <CheckCircle2 className="w-6 h-6" />
+                      ) : (
+                        <Sparkles className="w-6 h-6" />
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <h3
+                          className={`text-base font-semibold transition-colors duration-200 ${
+                            notification.isRead
+                              ? 'text-slate-900'
+                              : 'text-slate-900'
+                          }`}
+                        >
+                          {notification.title}
+                        </h3>
+                        {!notification.isRead && (
+                          <span className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-semibold rounded-full shadow-md hover:shadow-lg transition-shadow">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                            New
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`text-sm leading-relaxed transition-colors duration-200 ${
+                          notification.isRead
+                            ? 'text-slate-600'
+                            : 'text-slate-700'
+                        }`}
+                      >
+                        {notification.message}
+                      </p>
+
+                      <p className="text-xs text-slate-400 mt-3">
+                        {new Date(notification.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Hover indicator */}
+                    <div
+                      className={`flex-shrink-0 w-1 h-full rounded-full transition-all duration-300 ${
+                        hoveredId === notification._id
+                          ? notification.isRead
+                            ? 'bg-slate-300'
+                            : 'bg-gradient-to-b from-blue-400 to-indigo-500'
+                          : 'bg-transparent'
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
-              <p className="text-sm mb-1">{notification.message}</p>
-              <small className="text-gray-400 text-xs">
-                {new Date(notification.createdAt).toLocaleString()}
-              </small>
+            ))
+          ) : (
+            // Empty State
+            <div className="relative overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 p-12 md:p-16">
+              <div className="text-center">
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-20 blur-xl animate-pulse" />
+                  <div className="relative w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
+                    <Bell className="w-10 h-10 text-slate-400" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  You're all caught up!
+                </h3>
+                <p className="text-slate-600 max-w-sm mx-auto">
+                  No new notifications right now. We'll let you know when
+                  something important happens.
+                </p>
+              </div>
             </div>
-          ))
-        ) : (
-          // --- Render Empty State ---
-          <div className="text-center p-10 border-2 border-dashed rounded-lg">
-            <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700">
-              You're all caught up!
-            </h3>
-            <p className="text-sm text-gray-500">
-              You have no new notifications.
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes pulse {
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .hover\:scale-102:hover {
+          transform: scale(1.02);
+        }
+      `}</style>
     </div>
   );
 };

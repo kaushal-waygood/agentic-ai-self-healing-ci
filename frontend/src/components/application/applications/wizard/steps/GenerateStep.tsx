@@ -89,7 +89,7 @@ export const GenerateStep = ({
       </div>
 
       {/* Main Card */}
-      <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
         {/* Context Summary */}
         <div className="p-6 sm:p-8 border-b border-slate-100">
           <h3 className="text-xl font-semibold text-slate-800 mb-6 flex items-center">
@@ -103,7 +103,7 @@ export const GenerateStep = ({
               return (
                 <div
                   key={index}
-                  className="group flex items-start space-x-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 hover:from-purple-50 hover:to-blue-50 transition-all duration-300 border border-slate-100 hover:border-purple-200"
+                  className="group flex items-start space-x-4 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100/50 hover:from-purple-50 hover:to-blue-50 transition-all duration-300 border border-slate-100 hover:border-purple-200"
                   style={{
                     animation: `slideInUp 0.6s ease-out ${
                       index * 150
@@ -112,7 +112,7 @@ export const GenerateStep = ({
                   }}
                 >
                   <div
-                    className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r ${item.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                    className={`flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-r ${item.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
                   >
                     <Icon className="w-6 h-6 text-white" />
                   </div>
@@ -166,7 +166,7 @@ export const GenerateStep = ({
                 <button
                   onClick={handleGenerate}
                   disabled={isLoading}
-                  className="group relative w-full p-5 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 overflow-hidden"
+                  className="group relative w-full p-5 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 overflow-hidden"
                 >
                   <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
                   <div className="relative flex items-center justify-center space-x-3">
@@ -183,7 +183,7 @@ export const GenerateStep = ({
                 <button
                   type="button"
                   onClick={() => setWizardStep('cl')}
-                  className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-xl hover:bg-slate-100"
+                  className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-lg hover:bg-slate-100"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span className="font-medium">Back</span>

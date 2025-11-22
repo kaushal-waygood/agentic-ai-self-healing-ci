@@ -417,7 +417,7 @@ export default function DocumentsPage() {
         </div>
 
         {/* ✅ Conditional Sections */}
-        <div className="bg-white/50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-800 backdrop-blur-sm">
+        <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 backdrop-blur-sm">
           {isLoading ? (
             <div className="flex flex-col justify-center items-center py-20">
               <div>
@@ -485,7 +485,7 @@ export default function DocumentsPage() {
       {/* Rename Dialog */}
       {isRenameDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Rename {currentDocument?.type === 'cv' ? 'CV' : 'Cover Letter'}
@@ -562,7 +562,7 @@ const StatCard = ({
   onClick: () => void;
 }) => (
   <div
-    className={`p-6 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${
+    className={`p-6 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
       isActive
         ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-lg scale-105'
         : 'border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 hover:scale-102'
@@ -578,7 +578,7 @@ const StatCard = ({
           {value}
         </p>
       </div>
-      <div className={`p-3 rounded-xl bg-gradient-to-r ${color}`}>
+      <div className={`p-3 rounded-lg bg-gradient-to-r ${color}`}>
         <Icon className="h-6 w-6 text-white" />
       </div>
     </div>

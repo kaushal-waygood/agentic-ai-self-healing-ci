@@ -20,7 +20,12 @@ import {
 } from '../utils/jobUtils.js';
 import axios from 'axios';
 import { config } from '../config/config.js';
-import { addCredits, CREDIT_EARN, spendCredits } from '../utils/credits.js';
+import {
+  addCredits,
+  CREDIT_EARN,
+  earnCreditsForAction,
+  spendCredits,
+} from '../utils/credits.js';
 
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
@@ -2365,7 +2370,6 @@ export const jobVisitedByStudent = async (req, res) => {
       CREDIT_EARN.VISITJOB_SITE,
       'jobVisitedByStudent',
     );
-    
 
     return res.status(200).json({
       success: true,
@@ -2740,8 +2744,68 @@ export const getCreditsSummary = async (req, res) => {
     const hasClaimedKind = (kind, metaFilter = {}) =>
       !!lastTxOfKind(kind, metaFilter);
 
+    // helper to infer URLs for actions (same mapping you used in earnCreditsForAction)
+    const redirectForAction = (act, m = {}) => {
+      if (m && m.redirectUrl) return m.redirectUrl;
+
+      switch (act) {
+        case 'FIRST_CV':
+        case 'CV_GENERATION':
+          return '/dashboard/cv-generator';
+
+        case 'FIRST_CL':
+          return '/dashboard/cover-letter';
+
+        case 'DAILY_CHECKIN':
+          return '/rewards';
+
+        case 'FOLLOW_LINKEDIN':
+          return 'https://www.linkedin.com/company/zobsai-com/';
+        case 'FOLLOW_INSTAGRAM':
+          return 'https://www.instagram.com/zobsai.co';
+        case 'FOLLOW_FACEBOOK':
+          return 'https://www.facebook.com/zobsai.co';
+        case 'FOLLOW_YOUTUBE':
+          return 'https://www.youtube.com/@ZobsAI';
+        case 'FOLLOW_TIKTOK':
+          return '/social-follow';
+
+        case 'READ_BLOG':
+          return m.blogUrl || '/blogs';
+
+        case 'VISITJOB_SITE':
+        case 'APPLY_ON_COMPANY_SITE':
+          return '/dashboard/search-jobs';
+
+        case 'PROFILE_COMPLETE_PERSONAL':
+
+        case 'PROFILE_COMPLETE_EDUCATION':
+          return '/dashboard/profile?tab=education';
+
+        case 'PROFILE_COMPLETE_EXPERIENCE':
+          return '/dashboard/profile?tab=experience';
+
+        case 'PROFILE_COMPLETE_PROJECT':
+          return '/dashboard/profile?tab=projects';
+
+        case 'PROFILE_COMPLETE_SKILL':
+          return '/dashboard/profile?tab=skills';
+
+        case 'ALLOW_BROWSER_NOTIF':
+          return '/settings/notifications';
+
+        case 'FIRST_AUTO_AGENT_SETUP':
+        case 'FIRST_AUTO_APPLICATION_SENT':
+          return '/dashboard/auto-agents';
+
+        default:
+          return '/rewards';
+      }
+    };
+
     const pending = [];
 
+    // FIRST_CV: keep your original logic but add url (client decides whether to show claim button)
     if (
       !hasClaimedKind('FIRST_CV') &&
       !(Array.isArray(user.htmlCV) && user.htmlCV.length > 0)
@@ -2750,6 +2814,7 @@ export const getCreditsSummary = async (req, res) => {
         action: 'FIRST_CV',
         credits: CREDIT_EARN.FIRST_CV || 0,
         reason: 'Generate your first CV to claim these credits.',
+        url: redirectForAction('FIRST_CV'),
       });
     }
 
@@ -2761,8 +2826,10 @@ export const getCreditsSummary = async (req, res) => {
         action: 'FIRST_CL',
         credits: CREDIT_EARN.FIRST_CL || 0,
         reason: 'Generate your first cover letter to claim these credits.',
+        url: redirectForAction('FIRST_CL'),
       });
     }
+
     if (
       !hasClaimedKind('FIRST_AUTO_AGENT_SETUP') &&
       (!Array.isArray(user.autopilotAgent) || user.autopilotAgent.length === 0)
@@ -2771,6 +2838,7 @@ export const getCreditsSummary = async (req, res) => {
         action: 'FIRST_AUTO_AGENT_SETUP',
         credits: CREDIT_EARN.FIRST_AUTO_AGENT_SETUP || 0,
         reason: 'Set up your first Auto-Apply agent.',
+        url: redirectForAction('FIRST_AUTO_AGENT_SETUP'),
       });
     }
 
@@ -2783,6 +2851,7 @@ export const getCreditsSummary = async (req, res) => {
         action: 'FIRST_AUTO_APPLICATION_SENT',
         credits: CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 0,
         reason: 'Send your first auto-application to claim credits.',
+        url: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
       });
     }
 
@@ -2794,13 +2863,14 @@ export const getCreditsSummary = async (req, res) => {
           credits: CREDIT_EARN.PROFILE_COMPLETE_PERSONAL || 0,
           reason:
             'Add phone number or profile image to complete personal details.',
+          url: redirectForAction('PROFILE_COMPLETE_PERSONAL'),
         });
       } else {
-        // If user already has personal info but hasn't claimed, offer claim
         pending.push({
           action: 'PROFILE_COMPLETE_PERSONAL',
           credits: CREDIT_EARN.PROFILE_COMPLETE_PERSONAL || 0,
           reason: 'Claim credits for completing personal details.',
+          url: redirectForAction('PROFILE_COMPLETE_PERSONAL'),
         });
       }
     }
@@ -2813,12 +2883,14 @@ export const getCreditsSummary = async (req, res) => {
           action: 'PROFILE_COMPLETE_EDUCATION',
           credits: CREDIT_EARN.PROFILE_COMPLETE_EDUCATION || 0,
           reason: 'Add education details to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_EDUCATION'),
         });
       } else {
         pending.push({
           action: 'PROFILE_COMPLETE_EDUCATION',
           credits: CREDIT_EARN.PROFILE_COMPLETE_EDUCATION || 0,
           reason: 'Claim credits for your education details.',
+          url: redirectForAction('PROFILE_COMPLETE_EDUCATION'),
         });
       }
     }
@@ -2831,12 +2903,14 @@ export const getCreditsSummary = async (req, res) => {
           action: 'PROFILE_COMPLETE_EXPERIENCE',
           credits: CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE || 0,
           reason: 'Add work experience to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_EXPERIENCE'),
         });
       } else {
         pending.push({
           action: 'PROFILE_COMPLETE_EXPERIENCE',
           credits: CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE || 0,
           reason: 'Claim credits for your experience details.',
+          url: redirectForAction('PROFILE_COMPLETE_EXPERIENCE'),
         });
       }
     }
@@ -2848,12 +2922,14 @@ export const getCreditsSummary = async (req, res) => {
           action: 'PROFILE_COMPLETE_PROJECT',
           credits: CREDIT_EARN.PROFILE_COMPLETE_PROJECT || 0,
           reason: 'Add project details to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_PROJECT'),
         });
       } else {
         pending.push({
           action: 'PROFILE_COMPLETE_PROJECT',
           credits: CREDIT_EARN.PROFILE_COMPLETE_PROJECT || 0,
           reason: 'Claim credits for your project details.',
+          url: redirectForAction('PROFILE_COMPLETE_PROJECT'),
         });
       }
     }
@@ -2865,19 +2941,20 @@ export const getCreditsSummary = async (req, res) => {
           action: 'PROFILE_COMPLETE_SKILL',
           credits: CREDIT_EARN.PROFILE_COMPLETE_SKILL || 0,
           reason: 'Add skills to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_SKILL'),
         });
       } else {
         pending.push({
           action: 'PROFILE_COMPLETE_SKILL',
           credits: CREDIT_EARN.PROFILE_COMPLETE_SKILL || 0,
           reason: 'Claim credits for adding skills.',
+          url: redirectForAction('PROFILE_COMPLETE_SKILL'),
         });
       }
     }
 
-    // 3) Allow browser notifications (one-time)
+    // Allow browser notifications (one-time)
     if (!hasClaimedKind('ALLOW_BROWSER_NOTIF')) {
-      // If you have a server-side flag for this, check it; otherwise show as pending claim.
       const allowedFlag =
         user.settings && user.settings.allowBrowserNotifications;
       if (!allowedFlag) {
@@ -2885,13 +2962,14 @@ export const getCreditsSummary = async (req, res) => {
           action: 'ALLOW_BROWSER_NOTIF',
           credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
           reason: 'Enable browser notifications to claim credits.',
+          url: redirectForAction('ALLOW_BROWSER_NOTIF'),
         });
       } else {
-        // show claim option if not yet recorded in transactions
         pending.push({
           action: 'ALLOW_BROWSER_NOTIF',
           credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
           reason: 'Claim credits for enabling browser notifications.',
+          url: redirectForAction('ALLOW_BROWSER_NOTIF'),
         });
       }
     }
@@ -2909,15 +2987,18 @@ export const getCreditsSummary = async (req, res) => {
           action: p.action,
           credits: CREDIT_EARN.FOLLOW_SOCIAL || 0,
           reason: `Follow us on ${p.label} and then claim this credit (server verification recommended).`,
+          url: redirectForAction(p.action),
         });
       }
     });
 
+    // generic job visit / apply pending items (no specific jobId available here)
     pending.push({
       action: 'VISITJOB_SITE',
       credits: CREDIT_EARN.VISITJOB_SITE || 0,
       reason:
         'Visit a job detail page (per job) to claim credits. Each job can be claimed once.',
+      url: redirectForAction('VISITJOB_SITE'),
     });
 
     pending.push({
@@ -2925,6 +3006,7 @@ export const getCreditsSummary = async (req, res) => {
       credits: CREDIT_EARN.APPLY_ON_COMPANY_SITE || 1,
       reason:
         'Visit company career page via the job listing and apply to claim credit (per job).',
+      url: redirectForAction('APPLY_ON_COMPANY_SITE'),
     });
 
     const lastDaily = lastTxOfKind('DAILY_CHECKIN');
@@ -2947,13 +3029,23 @@ export const getCreditsSummary = async (req, res) => {
           ).toISOString()}`,
       eligible: dailyEligible,
       lastClaimedAt: lastDailyAt || null,
+      url: redirectForAction('DAILY_CHECKIN'),
     });
 
-    // Prepare response
+    // Prepare response: include redirectUrl on each tx (if present in tx.meta)
     const recentTxs = txs
       .slice()
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 50);
+      .slice(0, 50)
+      .map((t) => {
+        const txCopy = Object.assign({}, t);
+        if (t && t.meta && t.meta.redirectUrl) {
+          txCopy.redirectUrl = t.meta.redirectUrl;
+        } else {
+          txCopy.redirectUrl = null;
+        }
+        return txCopy;
+      });
 
     res.json({
       success: true,
@@ -2970,5 +3062,50 @@ export const getCreditsSummary = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const ALLOWED_SOCIAL_ACTIONS = new Set([
+  'FOLLOW_LINKEDIN',
+  'FOLLOW_INSTAGRAM',
+  'FOLLOW_FACEBOOK',
+  'FOLLOW_YOUTUBE',
+  'FOLLOW_TIKTOK',
+  'SHARE_SOCIAL_CONTENT',
+  'LIKE_COMMENT_SHARE',
+]);
+
+export const earnCreditsViaSocialLinks = async (req, res) => {
+  try {
+    const { action } = req.params;
+    const user = req.user;
+    const meta = req.body || {};
+
+    if (!user)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (!action)
+      return res
+        .status(400)
+        .json({ success: false, message: 'Missing action.' });
+    if (!ALLOWED_SOCIAL_ACTIONS.has(action)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid social action.' });
+    }
+
+    const result = await earnCreditsForAction(user, action);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Credits awarded (if rules allowed).',
+      tx: result.tx,
+      balance: result.balance,
+    });
+  } catch (err) {
+    console.error('claimSocialClick error', err);
+    const status = err.status || 500;
+    return res
+      .status(status)
+      .json({ success: false, message: err.message || 'Server error' });
   }
 };
