@@ -252,39 +252,49 @@ export const signUpUser = async (req, res) => {
     confirmPassword,
     jobRole,
     organizationName,
-    referralCode,
+    referralCode: providedReferralCode, // rename incoming code
   } = req.body;
 
   try {
+    // Basic validation
     if (!accountType || !fullName || !email || !password) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    if (password !== confirmPassword)
+    if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
+    }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
+    const normalizedEmail = String(email).toLowerCase();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
+    }
 
+    // OTP
     const otp = generateOtp();
     const otpExpires = new Date(Date.now() + DEFAULT_OTP_EXP_MS);
 
-    const referralCode = generateReferralCode(email);
+    // Handle referral: only validate if client actually provided one
     let referrer = null;
     let referredBy = null;
-    if (referralCode) {
-      referrer = await User.findOne({ referralCode });
-      referredBy = referrer ? referrer._id : null;
-      if (!referrer)
+    if (providedReferralCode) {
+      referrer = await User.findOne({ referralCode: providedReferralCode });
+      if (!referrer) {
         return res.status(400).json({ message: 'Invalid referral code' });
+      }
+      referredBy = referrer._id;
     }
 
+    // Organization creation for institutional accounts
     let organization = null;
     if (accountType === 'institution') {
-      if (!organizationName)
+      if (!organizationName) {
         return res.status(400).json({
           message: 'Organization name is required for institutional accounts',
         });
+      }
+
       organization = await Organization.findOne({ name: organizationName });
       if (!organization) {
         const apiKey = `org_${Math.random().toString(36).substring(2, 15)}`;
@@ -297,26 +307,31 @@ export const signUpUser = async (req, res) => {
       }
     }
 
+    // Generate a referral code FOR THE NEW USER (do not overwrite providedReferralCode)
+    const userReferralCode = generateReferralCode(normalizedEmail);
+
+    // Create user
     const user = new User({
       accountType,
       fullName,
-      email,
+      email: normalizedEmail,
       password,
       jobRole,
       role: accountType === 'institution' ? 'OrgAdmin' : 'student',
       organization:
         accountType === 'institution' ? organization._id : undefined,
-      referralCode,
-      referredBy: referrer ? referrer._id : null,
+      referralCode: userReferralCode,
+      referredBy: referredBy || null,
       otp,
       otpExpires,
-      isVerified: false,
+      isEmailVerified: false, // matches your model name
     });
 
     const savedUser = await user.save();
 
+    // Send OTP email
     await sendTemplatedEmail({
-      to: email,
+      to: normalizedEmail,
       templateName: 'verify',
       templateVars: {
         name: savedUser.fullName,
@@ -332,12 +347,14 @@ export const signUpUser = async (req, res) => {
         'Welcome to ZobsAI – Your AI Job Application Assistant is Here!',
     });
 
+    // If there was a valid referrer, increment their referralCount atomically
     if (referrer) {
       await User.findByIdAndUpdate(referrer._id, {
         $inc: { referralCount: 1 },
       });
     }
 
+    // Response: do not return password or sensitive info
     const response = {
       _id: savedUser._id,
       accountType: savedUser.accountType,
