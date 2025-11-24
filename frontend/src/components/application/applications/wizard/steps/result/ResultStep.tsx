@@ -401,17 +401,17 @@ const ResultStep = ({
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-6 bg-white rounded-2xl shadow-lg border border-slate-200">
-        <CustomButton
+        {/* <CustomButton
           variant="ghost"
           onClick={() => setWizardStep('generate')}
           className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-xl hover:bg-slate-100"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="font-medium">Back to Generate</span>
-        </CustomButton>
+        </CustomButton> */}
 
         <div className="flex items-center flex-wrap justify-end gap-3">
-          {user?.googleAuth ? (
+          {/* {user?.googleAuth ? (
             <CustomButton
               onClick={handleStartNew}
               className="flex items-center space-x-2 px-4 py-2 bg-white text-black rounded-lg font-medium shadow-md hover:bg-slate-700 transition-all duration-300 hover:scale-105"
@@ -427,7 +427,7 @@ const ResultStep = ({
               <PlusCircle className="w-4 h-4" />
               <span>Connect Google</span>
             </CustomButton>
-          )}
+          )} */}
 
           <CustomButton
             onClick={() => router.push('/dashboard/apply')}
