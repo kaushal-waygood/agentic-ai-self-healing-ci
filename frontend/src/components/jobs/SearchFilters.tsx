@@ -139,7 +139,7 @@ export const SearchFilters = ({
             aria-label="Search jobs"
           />
         </div>
-
+{/* 
         <div className="input-search-box-div">
           <Globe className="input-search-icon" />
           <CountrySelector
@@ -158,7 +158,7 @@ export const SearchFilters = ({
             disabled={!localFilters.country}
             className="input-search"
           />
-        </div>
+        </div> */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <button
