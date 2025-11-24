@@ -189,3 +189,15 @@ body {
   pointer-events: none;
   height: 0;
 }
+
+.input-search-icon {
+  @apply text-gray-400 w-5 h-5 mr-2;
+}
+
+.input-search-box-div {
+  @apply flex  col-span-3 justify-between items-center border border-gray-300 p-2 rounded-xl   relative;
+}
+
+.input-search {
+  @apply w-full  outline-none bg-gray-50;
+}

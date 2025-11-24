@@ -64,11 +64,11 @@ export async function addCredits(userOrId, amount, kind = 'adjust', meta = {}) {
   const user = await resolveUser(userOrId);
   const current = Number(user.credits || 0);
   const newBalance = current + Number(amount);
-  if (newBalance < 0) {
-    const err = new Error('Insufficient credits');
-    err.status = 402;
-    throw err;
-  }
+  // if (newBalance < 0) {
+  //   const err = new Error('Insufficient credits');
+  //   err.status = 402;
+  //   throw err;
+  // }
 
   user.credits = newBalance;
   const tx = {

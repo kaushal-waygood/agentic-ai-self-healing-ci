@@ -124,70 +124,73 @@ export const SearchFilters = ({
 
   return (
     <div className="p-2 md:p-1 mb-2">
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex-1 min-w-[250px] relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <div className="grid grid-cols-1  md:grid-cols-4 gap-2 ">
+        <div className="input-search-box-div">
+          <Search className="input-search-icon  " />
           <input
             id="search-bar"
             type="text"
-            placeholder="Job title, keywords, or company..."
+            // placeholder="Job title, keywords, or company..."
+            placeholder="eg. java developer in India"
             value={localFilters.query}
             onChange={(e) => handleInputChange('query', e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50"
+            className="input-search"
             aria-label="Search jobs"
           />
         </div>
 
-        <div className="flex-1 min-w-[150px] relative">
-          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+        <div className="input-search-box-div">
+          <Globe className="input-search-icon" />
           <CountrySelector
             value={localFilters.country || ''}
             onChange={handleCountryChange}
-            className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50 appearance-none"
+            className="input-search"
           />
         </div>
 
-        <div className="flex-1 min-w-[150px] relative">
-          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+        <div className="input-search-box-div">
+          <MapPin className="input-search-icon" />
           <StateSelector
             countryCode={localFilters.country}
             value={localFilters.state}
             onChange={handleStateChange}
             disabled={!localFilters.country}
-            className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all bg-gray-50 appearance-none disabled:bg-gray-200 disabled:cursor-not-allowed"
+            className="input-search"
           />
         </div>
 
-        <button
-          onClick={handleSearchClick}
-          disabled={isSearching}
-          aria-busy={isSearching}
-          className={`flex items-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform ${
-            isSearching
-              ? 'bg-gray-400 cursor-not-allowed text-white'
-              : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white hover:scale-105 shadow-lg hover:shadow-purple-200/50'
-          }`}
-        >
-          {isSearching ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" /> Searching...
-            </>
-          ) : (
-            <>
-              <SearchIcon className="w-4 h-4" />
-              Search
-            </>
-          )}
-        </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <button
+            onClick={handleSearchClick}
+            disabled={isSearching}
+            aria-busy={isSearching}
+            className={`flex items-center justify-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform ${
+              isSearching
+                ? 'bg-gray-400 cursor-not-allowed text-white'
+                : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white hover:scale-105 shadow-lg hover:shadow-purple-200/50'
+            }`}
+          >
+            {isSearching ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+              </>
+            ) : (
+              <>
+                <SearchIcon className="w-4 h-4" />
+                Search
+              </>
+            )}
+          </button>
 
-        <button
-          onClick={onOpenFilterModal}
-          className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
-        >
-          <Filter className="w-4 h-4" />
-          Filters
-        </button>
+          <button
+            onClick={onOpenFilterModal}
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+          </button>
+        </div>
       </div>
     </div>
   );
