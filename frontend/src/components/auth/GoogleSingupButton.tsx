@@ -90,8 +90,8 @@ export function LinkedInSignInButton({ authType = 'login' }) {
     try {
       const params = new URLSearchParams({
         response_type: 'code',
-        client_id: process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID,
-        redirect_uri: 'http://127.0.0.1:8080/api/v1/user/linkedin/callback',
+        client_id: '78cxzsxixqb18l',
+        redirect_uri: `${API_BASE_URL}/api/v1/user/linkedin/callback`,
         scope: 'openid email profile',
       });
 

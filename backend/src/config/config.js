@@ -4,6 +4,7 @@ dotenv.config({ quiet: true, override: true, path: ['.env'] }); // No need for s
 // --- Function to get a required environment variable ---
 const getEnv = (key) => {
   const value = process.env[key];
+  console.log(`[CONFIG] ${key} = ${value}`);
   if (!value) {
     console.error(`❌ Missing critical environment variable: ${key}`);
     process.exit(1); // Exit the process with an error code
