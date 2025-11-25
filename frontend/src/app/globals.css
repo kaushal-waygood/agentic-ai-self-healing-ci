@@ -195,9 +195,9 @@ body {
 }
 
 .input-search-box-div {
-  @apply flex  col-span-3 justify-between items-center border border-gray-300 p-2 rounded-xl   relative;
+  @apply flex justify-center items-center border border-gray-300 p-2 rounded-xl  min-w-[250px] relative;
 }
 
 .input-search {
-  @apply w-full  outline-none bg-gray-50;
+  @apply w-full outline-none bg-gray-50;
 }

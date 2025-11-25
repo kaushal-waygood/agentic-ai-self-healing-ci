@@ -197,7 +197,7 @@ const LoginForm = () => {
 
       <div className="relative z-10 w-full max-w-md">
         {/* THEME CHANGE: Card styling for light theme with glassmorphism effect. */}
-        <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 shadow-2xl transform transition-all duration-500">
+        <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 transform transition-all duration-500">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="relative inline-block mb-6">
@@ -364,8 +364,10 @@ const LoginForm = () => {
             </div>
           </div>
 
-          <GoogleSignInButton form={loginForm} />
-          {/* <LinkedInSignInButton form={loginForm} /> */}
+          <div className="flex flex-col gap-4">
+            <GoogleSignInButton form={loginForm} />
+            <LinkedInSignInButton form={loginForm} />
+          </div>
 
           {/* Sign Up Link */}
           <div className="mt-8 text-center">
@@ -379,12 +381,6 @@ const LoginForm = () => {
               </Link>
             </p>
           </div>
-        </div>
-
-        {/* THEME CHANGE: Security badge text color updated. */}
-        <div className="mt-6 flex items-center justify-center text-gray-500 text-xs">
-          <Shield className="h-4 w-4 mr-2 text-green-500" />
-          <span>Secured with 256-bit SSL encryption</span>
         </div>
       </div>
 

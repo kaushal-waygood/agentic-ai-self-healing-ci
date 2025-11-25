@@ -16,6 +16,8 @@ import { Notify } from '../models/notify.js';
 import TemplateManager from '../email-templates/lib/templateLoader.js';
 import path from 'path';
 import { __dirname } from '../utils/fileUploadingManaging.js';
+import axios from 'axios';
+import qs from 'querystring';
 
 const tm = new TemplateManager({
   baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
@@ -107,6 +109,13 @@ const BACKEND_API_BASE_URL =
     : process.env.NODE_ENV === 'development'
     ? 'https://api.dev.zobsai.com'
     : 'http://127.0.0.1:8080';
+
+const FRONTEND_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://dev.zobsai.com'
+    : 'http://127.0.0.1:3000';
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
@@ -239,6 +248,118 @@ export const firebaseAuth = async (req, res) => {
       success: false,
       message: 'Authentication failed',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+const getAccessToken = async (code) => {
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code: code,
+    client_id: process.env.LINKEDIN_CLIENT_ID,
+    client_secret: process.env.LINKEDIN_CLIENT_SECRET,
+    redirect_uri: 'http://127.0.0.1:8080/api/v1/user/linkedin/callback',
+  });
+
+  console.log(body);
+  const response = await fetch(
+    'https://www.linkedin.com/oauth/v2/accessToken',
+    {
+      method: 'post',
+      headers: {
+        'Content-type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(response.statusText);
+  }
+
+  const accessToken = await response.json();
+  return accessToken;
+};
+
+const getUserData = async (accessToken) => {
+  const response = await fetch('https://api.linkedin.com/v2/userinfo', {
+    method: 'get',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(response.statusText);
+  }
+
+  const userData = await response.json();
+  return userData;
+};
+
+export const linkedInCallback = async (req, res) => {
+  try {
+    const { code } = req.query;
+
+    console.log(code);
+
+    // get access token
+    const accessToken = await getAccessToken(code);
+
+    console.log(accessToken);
+
+    // get user data using access token
+
+    const userData = await getUserData(accessToken.access_token);
+
+    if (!userData) {
+      return res.status(500).json({
+        success: false,
+        error,
+      });
+    }
+
+    // check if user registered
+    let user;
+
+    user = await User.findOne({ email: userData.email });
+
+    if (!user) {
+      user = await User.create({
+        firebaseUid: uid,
+        authMethod: 'linkedin',
+        email: email.toLowerCase(),
+        fullName: name || 'Anonymous',
+        avatar: picture || '',
+        isEmailVerified: true,
+        role: 'student',
+        accountType: 'individual',
+        usageLimits: {
+          cvCreation: 1,
+          coverLetter: 1,
+          aiApplication: 1,
+          autoApply: 0,
+          aiAutoApply: 0,
+          aiAutoApplyDailyLimit: 0,
+          aiMannualApplication: -1,
+        },
+      });
+    } else if (!user.linkedInUid) {
+      user.linkedInUid = uid;
+      user.authMethod = 'linkedin';
+      await user.save();
+    }
+
+    const accessTokens = user.generateAccessToken();
+
+    console.log(accessTokens);
+
+    res.redirect(`${FRONTEND_URL}/auth/google/callback?token=${accessTokens}`);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      error,
     });
   }
 };

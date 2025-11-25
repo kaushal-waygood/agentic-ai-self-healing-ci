@@ -42,7 +42,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { GoogleSignInButton } from './GoogleSingupButton';
+import { GoogleSignInButton, LinkedInSignInButton } from './GoogleSingupButton';
 import Image from 'next/image';
 
 // Zod Schema
@@ -185,10 +185,10 @@ const SignupForm = () => {
       </div>
       <div className="relative z-10 w-full max-w-lg ">
         {signupSuccess ? (
-          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-8 sm:p-12 shadow-2xl">
+          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-8 sm:p-12 ">
             <div className="text-center mb-10">
               <div className="relative inline-block mb-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-lg">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center ">
                   <MailCheck className="h-10 w-10 text-white" />
                 </div>
               </div>
@@ -219,7 +219,7 @@ const SignupForm = () => {
                 <Button
                   onClick={handleVerification}
                   disabled={!verificationCode || isVerifying}
-                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-purple-200"
+                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-xl transition-all duration-300 "
                 >
                   {isVerifying ? 'Verifying...' : 'Verify Account'}
                 </Button>
@@ -252,7 +252,7 @@ const SignupForm = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-4 sm:p-6 shadow-2xl">
+          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-4 sm:p-6 ">
             <div className="text-center mb-5">
               <div className="relative inline-block mb-3">
                 <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
@@ -263,7 +263,7 @@ const SignupForm = () => {
                     height={100}
                   />
                 </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
+                <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
                   <Sparkles className="h-4 w-4 text-yellow-800" />
                 </div>
               </div>
@@ -521,7 +521,7 @@ const SignupForm = () => {
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
-                  className="w-full mt-5 group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-purple-200"
+                  className="w-full mt-5 group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-6 px-6 text-lg rounded-xl transition-all duration-300 "
                 >
                   {form.formState.isSubmitting ? (
                     'Creating Account...'
@@ -545,7 +545,10 @@ const SignupForm = () => {
               </div>
             </div>
 
-            <GoogleSignInButton form={form} />
+            <div className="flex flex-col gap-4">
+              <GoogleSignInButton form={form} />
+              <LinkedInSignInButton form={form} />
+            </div>
 
             <div className="mt-5 text-center text-sm">
               <p className="text-gray-600">
