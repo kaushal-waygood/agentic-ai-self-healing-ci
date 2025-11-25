@@ -185,10 +185,23 @@ export const firebaseAuth = async (req, res) => {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
 
+    // Find by firebaseUid OR email
     let user = await User.findOne({
       $or: [{ firebaseUid: uid }, { email: email.toLowerCase() }],
     });
 
+    // If an existing user is found by email but does not have firebaseUid,
+    // do NOT automatically attach firebaseUid or change authMethod.
+    // Instead, return an error telling the client the email is already registered.
+    if (user && !user.firebaseUid && user.email === email.toLowerCase()) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Email already registered. Please sign in with your existing method or link accounts from your profile settings.',
+      });
+    }
+
+    // If no user found, create as before
     if (!user) {
       user = await User.create({
         firebaseUid: uid,
@@ -209,10 +222,15 @@ export const firebaseAuth = async (req, res) => {
           aiMannualApplication: -1,
         },
       });
-    } else if (!user.firebaseUid) {
-      user.firebaseUid = uid;
-      user.authMethod = 'google';
-      await user.save();
+    } else if (user.firebaseUid && user.firebaseUid === uid) {
+      // existing, matches firebaseUid — proceed
+    } else if (user.firebaseUid && user.firebaseUid !== uid) {
+      // user exists and has a different firebaseUid — don't mutate, return error
+      return res.status(400).json({
+        success: false,
+        message:
+          'Account exists with this email but linked to a different provider. Please sign in with your original method.',
+      });
     }
 
     const accessToken = user.generateAccessToken();
@@ -258,8 +276,10 @@ const getAccessToken = async (code) => {
     code: code,
     client_id: process.env.LINKEDIN_CLIENT_ID,
     client_secret: process.env.LINKEDIN_CLIENT_SECRET,
-    redirect_uri: 'http://127.0.0.1:8080/api/v1/user/linkedin/callback',
+    redirect_uri: `${BACKEND_API_BASE_URL}/api/v1/user/linkedin/callback`,
   });
+
+  console.log(body);
 
   const response = await fetch(
     'https://www.linkedin.com/oauth/v2/accessToken',
@@ -318,6 +338,12 @@ export const linkedInCallback = async (req, res) => {
 
     // check if user registered
     let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user && !user.linkedInUid && user.email === email.toLowerCase()) {
+      return res.redirect(
+        `${FRONTEND_URL}/login?token=failed&error=account_exists&email=${email}`,
+      );
+    }
 
     if (!user) {
       user = await User.create({
