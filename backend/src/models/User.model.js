@@ -6,15 +6,19 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
 import crypto from 'crypto'; // Added for password reset token
 import { v4 as uuidv4 } from 'uuid'; // <-- use this
+import { link } from 'fs';
 
 const userSchema = new Schema(
   {
     firebaseUid: {
       type: String,
     },
+    linkedInUid: {
+      type: String,
+    },
     authMethod: {
       type: String,
-      enum: ['google', 'local', 'firebase'],
+      enum: ['google', 'local', 'firebase', 'linkedin'],
       default: 'local',
     },
     googleAuth: {

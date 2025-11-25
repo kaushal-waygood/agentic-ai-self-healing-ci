@@ -100,17 +100,17 @@ export const Navigation = () => {
           <div className="hidden lg:flex flex-1 max-w-lg mx-8">
             <div className="relative w-full group">
               <div className="relative">
-                <div className="relative flex items-center">
+                <div className="input-search-box-div">
                   <button
                     onClick={handleSearchSubmit}
                     aria-label="Search"
-                    className="absolute left-4 w-5 h-5 text-gray-900 transition-all duration-300 group-hover:text-violet-500 group-hover:scale-110 focus:outline-none"
+                    className="input-search-icon"
                   >
                     <Search />
                   </button>
                   <input
                     type="text"
-                    placeholder="Start Job Search (e.g. Digital Marketing)"
+                    placeholder="economist in New York, NY | system design in San Francisco, CA"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
@@ -120,7 +120,7 @@ export const Navigation = () => {
                         handleSearchSubmit();
                       }
                     }}
-                    className="w-full pl-12 pr-6 py-4 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-white/30 transition-all duration-300 hover:bg-white/15 text-sm font-medium"
+                    className="input-search py-2 "
                   />
                 </div>
               </div>
