@@ -74,7 +74,7 @@
 //         </div>
 
 //         {/* STUDENT SECTION */}
-//         <Card className="border-l-4 border-blue-500 rounded-xl">
+//         <Card className="border-l-4 border-blue-500 rounded-lg">
 //           <CardContent className="p-6 space-y-3">
 //             <div className="flex items-center gap-3">
 //               <GraduationCap className="text-blue-600" size={26} />
@@ -94,7 +94,7 @@
 //         </Card>
 
 //         {/* STAFF SECTION */}
-//         <Card className="border-l-4 border-green-500 rounded-xl">
+//         <Card className="border-l-4 border-green-500 rounded-lg">
 //           <CardContent className="p-6 space-y-3">
 //             <div className="flex items-center gap-3">
 //               <Users className="text-green-600" size={26} />
@@ -114,7 +114,7 @@
 //         </Card>
 
 //         {/* COMPANY SECTION */}
-//         <Card className="border-l-4 border-purple-500 rounded-xl">
+//         <Card className="border-l-4 border-purple-500 rounded-lg">
 //           <CardContent className="p-6 space-y-3">
 //             <div className="flex items-center gap-3">
 //               <Building2 className="text-purple-600" size={26} />
@@ -413,7 +413,7 @@
 //                 >
 //                   {/* Icon */}
 //                   <div
-//                     className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${card.gradient} mb-5 group-hover:scale-110 transition-transform duration-300 `}
+//                     className={`inline-flex p-3 rounded-lg bg-gradient-to-br ${card.gradient} mb-5 group-hover:scale-110 transition-transform duration-300 `}
 //                   >
 //                     <Icon className="text-white" size={28} />
 //                   </div>
@@ -429,7 +429,7 @@
 //                   {/* Button */}
 //                   <button
 //                     onClick={card.onClick}
-//                     className={`w-full ${card.buttonColor} text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-between group/btn  active:scale-95`}
+//                     className={`w-full ${card.buttonColor} text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-between group/btn  active:scale-95`}
 //                   >
 //                     <span>Get Started</span>
 //                     <ChevronRight
@@ -892,7 +892,7 @@
 //           return (
 //             <div
 //               key={card.id}
-//               className={`bg-gradient-to-br ${card.bgGradient} border p-6 rounded-xl `}
+//               className={`bg-gradient-to-br ${card.bgGradient} border p-6 rounded-lg `}
 //             >
 //               {/* CARD HEADER */}
 //               <div
@@ -901,7 +901,7 @@
 //               >
 //                 <div className="flex items-center gap-3">
 //                   <div
-//                     className={`p-3 rounded-xl bg-gradient-to-r ${card.gradient}`}
+//                     className={`p-3 rounded-lg bg-gradient-to-r ${card.gradient}`}
 //                   >
 //                     <Icon className="text-white" size={26} />
 //                   </div>
@@ -1074,7 +1074,7 @@
 //                     <div className="flex items-center gap-4 flex-1">
 //                       {/* ICON */}
 //                       <div
-//                         className={`p-3 rounded-xl bg-gradient-to-br ${card.gradient} group-hover:scale-110 transition-transform duration-300 shadow-lg`}
+//                         className={`p-3 rounded-lg bg-gradient-to-br ${card.gradient} group-hover:scale-110 transition-transform duration-300 shadow-lg`}
 //                       >
 //                         <Icon className="text-white" size={28} />
 //                       </div>
@@ -1088,7 +1088,7 @@
 //                     {/* BUTTON RIGHT */}
 //                     <button
 //                       onClick={() => setOpenCard(isOpen ? null : card.id)}
-//                       className={`${card.buttonColor} text-white font-semibold py-3 px-5 rounded-xl transition-all duration-300 flex items-center gap-2 hover:shadow-lg active:scale-95`}
+//                       className={`${card.buttonColor} text-white font-semibold py-3 px-5 rounded-lg transition-all duration-300 flex items-center gap-2 hover:shadow-lg active:scale-95`}
 //                     >
 //                       {isOpen ? 'Hide' : 'Get Started'}
 //                       <ChevronRight
@@ -1370,7 +1370,7 @@
 //     if (!activeCard) return null;
 
 //     return (
-//       <div className="mt-8 bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
+//       <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-lg">
 //         {/* STUDENT FORM */}
 //         {activeCard === 'student' && (
 //           <div className="space-y-4">
@@ -1542,7 +1542,7 @@
 //           w-full
 //           min-h-[170px]
 //           p-7
-//           rounded-2xl
+//           rounded-lg
 //           cursor-pointer
 //           border
 //           bg-gradient-to-br ${card.bgGradient}
@@ -1553,7 +1553,7 @@
 //               {/* ICON + TITLE */}
 //               <div className="flex items-center gap-3">
 //                 <div
-//                   className={`p-3 rounded-xl bg-gradient-to-br ${card.gradient} text-white shadow-lg`}
+//                   className={`p-3 rounded-lg bg-gradient-to-br ${card.gradient} text-white shadow-lg`}
 //                 >
 //                   <Icon size={28} />
 //                 </div>
@@ -1672,7 +1672,7 @@ export default function BringZobsAI() {
     if (!activeCard) return null;
 
     return (
-      <div className="mt-8 bg-white border border-gray-200 rounded-xl p-6 ">
+      <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6 ">
         {activeCard === 'student' && (
           <div className="space-y-6">
             {/* ROW 1 */}
@@ -1862,7 +1862,7 @@ export default function BringZobsAI() {
                 w-full
               
                 p-4                  /* Bigger padding */
-                rounded-2xl
+                rounded-lg
                 cursor-pointer
                 border
                 bg-gradient-to-br ${card.bgGradient}
@@ -1874,7 +1874,7 @@ export default function BringZobsAI() {
               {/* ICON + TITLE */}
               <div className="flex items-center gap-4">
                 <div
-                  className={`p-4 rounded-xl bg-gradient-to-br ${card.gradient} text-white `}
+                  className={`p-4 rounded-lg bg-gradient-to-br ${card.gradient} text-white `}
                 >
                   <Icon size={30} />
                 </div>

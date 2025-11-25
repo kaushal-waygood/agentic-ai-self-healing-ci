@@ -72,6 +72,11 @@ export const AppSidebarContent = ({ isCollapsed }) => {
     name: 'ZobsAI',
     sidebarNav: [
       {
+        title: 'Dashboard',
+        href: '/dashboard',
+        icon: Rocket,
+      },
+      {
         title: 'Job Search',
         href: '/dashboard/search-jobs',
         icon: Search,

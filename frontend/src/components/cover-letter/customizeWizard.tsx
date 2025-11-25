@@ -113,7 +113,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
           </div>
         </div>
 
-        <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-indigo-500/10 rounded-3xl overflow-hidden">
+        <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-indigo-500/10 rounded-lg overflow-hidden">
           {/* Header */}
           <CardHeader className="p-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
@@ -150,7 +150,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
                     <button
                       key={option.value}
                       onClick={() => updateFormData('tone', option.value)}
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                      className={`p-3 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 ${
                         isSelected
                           ? `${getColorClasses(
                               option.color,
@@ -181,7 +181,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
                     <button
                       key={option.value}
                       onClick={() => updateFormData('style', option.value)}
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                      className={`p-3 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 ${
                         isSelected
                           ? `${getColorClasses(
                               option.color,
@@ -203,7 +203,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
                   );
                 })}
               </div>
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 text-indigo-700 text-sm font-medium">
                   <Check className="h-4 w-4" />
                   Selected Tone: {formData.tone} & Style: {formData.style}
@@ -229,7 +229,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
               <div className="relative group">
                 <Textarea
                   placeholder="Share a specific achievement, personal connection to the company, or unique experience that makes you stand out..."
-                  className="min-h-[150px] border-2 border-gray-200 rounded-2xl p-4 focus:border-indigo-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm text-base leading-relaxed"
+                  className="min-h-[150px] border-2 border-gray-200 rounded-lg p-4 focus:border-indigo-500 focus:ring-0 resize-none transition-all duration-300 group-hover:border-gray-300 bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm text-base leading-relaxed"
                   value={formData.personalStory}
                   onChange={(e) =>
                     updateFormData('personalStory', e.target.value)
@@ -242,9 +242,9 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
             </div>
 
             {/* AI Enhancement Preview */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-2 border border-indigo-100">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-2 border border-indigo-100">
               <div className="flex items-center gap-3 ">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
                   <Rocket className="h-5 w-5 text-white" />
                 </div>
                 <h4 className="font-semibold text-gray-900">
@@ -265,7 +265,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
               <Button
                 variant="ghost"
                 onClick={() => setWizardStep('cv')}
-                className="h-12 px-6 rounded-xl hover:bg-white/80 transition-all duration-300"
+                className="h-12 px-6 rounded-lg hover:bg-white/80 transition-all duration-300"
                 disabled={isLoading}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -276,10 +276,10 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
                 size="lg"
                 onClick={handleGenerate}
                 disabled={isLoading}
-                className={`h-14 px-8 text-lg font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+                className={`h-14 px-8 text-lg font-semibold rounded-lg transition-all duration-300 transform hover:scale-[1.02] ${
                   isLoading
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
+                    : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 '
                 } text-white`}
               >
                 {isLoading ? (

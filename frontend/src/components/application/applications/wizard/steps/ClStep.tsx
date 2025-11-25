@@ -103,7 +103,7 @@ const SleekClStep = ({
       </div>
 
       {/* Main Card using react-hook-form */}
-      <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
         <div className="p-6 sm:p-8">
           <Form {...clForm}>
             <form onSubmit={clForm.handleSubmit(handleClContextSubmit)}>
@@ -120,7 +120,7 @@ const SleekClStep = ({
                       return (
                         <div
                           key={option.value}
-                          className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
+                          className={`group relative overflow-hidden rounded-lg border-2 transition-all duration-300 cursor-pointer ${
                             isSelected
                               ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-blue-50 shadow-lg scale-[1.02]'
                               : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-gradient-to-br hover:from-purple-50/30 hover:to-blue-50/30 hover:shadow-md'
@@ -152,7 +152,7 @@ const SleekClStep = ({
                                 )}
                               </div>
                               <div
-                                className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                                className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 ${
                                   isSelected
                                     ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-lg'
                                     : 'bg-slate-100 text-slate-600 group-hover:bg-gradient-to-br group-hover:from-purple-100 group-hover:to-blue-100'
@@ -186,7 +186,7 @@ const SleekClStep = ({
                                     <Textarea
                                       {...pastedField}
                                       placeholder="Paste your draft cover letter here..."
-                                      className="w-full h-32 p-4 border-2 border-purple-200 rounded-xl bg-gradient-to-br from-purple-50/30 to-blue-50/30 focus:border-purple-500 focus:outline-none transition-all duration-200 resize-none text-slate-700 placeholder-slate-400"
+                                      className="w-full h-32 p-4 border-2 border-purple-200 rounded-lg bg-gradient-to-br from-purple-50/30 to-blue-50/30 focus:border-purple-500 focus:outline-none transition-all duration-200 resize-none text-slate-700 placeholder-slate-400"
                                     />
                                   )}
                                 />
@@ -316,7 +316,7 @@ const SleekClStep = ({
                 <button
                   type="button"
                   onClick={() => setWizardStep('cv')}
-                  className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-xl hover:bg-slate-100"
+                  className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-lg hover:bg-slate-100"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span className="font-medium">Back</span>
@@ -328,7 +328,7 @@ const SleekClStep = ({
                 >
                   <button
                     type="submit"
-                    className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-medium shadow-lg transition-all duration-300 hover:shadow-xl hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-purple-300"
+                    className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium shadow-lg transition-all duration-300 hover:shadow-xl hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-purple-300"
                   >
                     <span>Next Step</span>
                     <ArrowRight className="w-4 h-4" />
@@ -472,7 +472,7 @@ export default SleekClStep;
 //       </div>
 
 //       {/* Main Card */}
-//       <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+//       <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
 //         <div className="p-6 sm:p-8">
 //           <Form {...clForm}>
 //             <form onSubmit={clForm.handleSubmit(handleClContextSubmit)}>
@@ -494,7 +494,7 @@ export default SleekClStep;
 //                           return (
 //                             <div
 //                               key={option.value}
-//                               className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
+//                               className={`group relative overflow-hidden rounded-lg border-2 transition-all duration-300 cursor-pointer ${
 //                                 isSelected
 //                                   ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-blue-50 shadow-lg scale-[1.02]'
 //                                   : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-gradient-to-br hover:from-purple-50/30 hover:to-blue-50/30 hover:shadow-md'
@@ -518,7 +518,7 @@ export default SleekClStep;
 //                                     )}
 //                                   </div>
 //                                   <div
-//                                     className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+//                                     className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 ${
 //                                       isSelected
 //                                         ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-lg'
 //                                         : 'bg-slate-100 text-slate-600 group-hover:bg-gradient-to-br group-hover:from-purple-100 group-hover:to-blue-100'
@@ -552,7 +552,7 @@ export default SleekClStep;
 //                                         <Textarea
 //                                           {...pastedField}
 //                                           placeholder="Paste your draft cover letter here..."
-//                                           className="w-full h-32 p-4 border-2 border-purple-200 rounded-xl bg-gradient-to-br from-purple-50/30 to-blue-50/30 focus:border-purple-500 focus:outline-none transition-all duration-200 resize-none text-slate-700 placeholder-slate-400"
+//                                           className="w-full h-32 p-4 border-2 border-purple-200 rounded-lg bg-gradient-to-br from-purple-50/30 to-blue-50/30 focus:border-purple-500 focus:outline-none transition-all duration-200 resize-none text-slate-700 placeholder-slate-400"
 //                                         />
 //                                       )}
 //                                     />
@@ -574,7 +574,7 @@ export default SleekClStep;
 //                           return (
 //                             <div
 //                               key={option.value}
-//                               className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
+//                               className={`group relative overflow-hidden rounded-lg border-2 transition-all duration-300 cursor-pointer ${
 //                                 isSelected
 //                                   ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-blue-50 shadow-lg scale-[1.02]'
 //                                   : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-gradient-to-br hover:from-purple-50/30 hover:to-blue-50/30 hover:shadow-md'
@@ -595,7 +595,7 @@ export default SleekClStep;
 //                                     )}
 //                                   </div>
 //                                   <div
-//                                     className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+//                                     className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 ${
 //                                       isSelected
 //                                         ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-lg'
 //                                         : 'bg-slate-100 text-slate-600 group-hover:bg-gradient-to-br group-hover:from-purple-100 group-hover:to-blue-100'
@@ -724,7 +724,7 @@ export default SleekClStep;
 //                 <button
 //                   type="button"
 //                   onClick={() => setWizardStep('cv')}
-//                   className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-xl hover:bg-slate-100"
+//                   className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-lg hover:bg-slate-100"
 //                 >
 //                   <ArrowLeft className="w-4 h-4" />
 //                   <span className="font-medium">Back</span>
@@ -736,7 +736,7 @@ export default SleekClStep;
 //                 >
 //                   <button
 //                     type="submit"
-//                     className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-medium shadow-lg transition-all duration-300 hover:shadow-xl hover:from-purple-700 hover:to-blue-700"
+//                     className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium shadow-lg transition-all duration-300 hover:shadow-xl hover:from-purple-700 hover:to-blue-700"
 //                   >
 //                     <span>Next Step</span>
 //                     <ArrowRight className="w-4 h-4" />

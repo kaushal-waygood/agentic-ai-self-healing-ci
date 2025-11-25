@@ -20,7 +20,7 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 // --- UI Components ---
 const Card = ({ children, className = '', hover = true }) => (
   <div
-    className={`bg-white rounded-2xl border border-slate-200 shadow-lg ${
+    className={`bg-white rounded-lg border border-slate-200  ${
       hover ? 'hover:shadow-xl hover:-translate-y-1' : ''
     } transition-all duration-300 ${className}`}
   >
@@ -52,13 +52,13 @@ const Button = ({
 }) => {
   const variants = {
     default:
-      'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl',
+      'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white  hover:shadow-xl',
     outline:
       'border-2 border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400',
     success:
-      'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg',
+      'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white ',
     secondary:
-      'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg',
+      'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white ',
   };
   const sizes = {
     default: 'px-6 py-3 text-sm font-medium',
@@ -67,7 +67,7 @@ const Button = ({
   };
   return (
     <button
-      className={`rounded-xl transition-all duration-200 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`rounded-lg transition-all duration-200 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
       onClick={onClick}
       disabled={disabled}
       {...props}
@@ -78,7 +78,7 @@ const Button = ({
 };
 const Input = ({ className = '', ...props }) => (
   <input
-    className={`w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-slate-50 ${className}`}
+    className={`w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-slate-50 ${className}`}
     {...props}
   />
 );

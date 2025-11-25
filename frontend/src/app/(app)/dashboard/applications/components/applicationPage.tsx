@@ -209,7 +209,7 @@ export default function ApplicationsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full lg:w-auto appearance-none pl-4 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500"
+              className="w-full lg:w-auto appearance-none pl-4 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               {extendedApplicationStatuses.map((status) => (
                 <option key={status} value={status}>
@@ -221,7 +221,7 @@ export default function ApplicationsPage() {
           </div>
         </div>
 
-        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4 rounded-2xl border border-gray-200 dark:border-gray-800">
+        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4 rounded-lg border border-gray-200 dark:border-gray-800">
           {isLoading ? (
             <div className="flex flex-col justify-center items-center py-20">
               {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
