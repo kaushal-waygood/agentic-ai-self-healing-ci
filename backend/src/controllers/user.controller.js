@@ -309,24 +309,26 @@ export const linkedInCallback = async (req, res) => {
     console.log(accessToken);
 
     // get user data using access token
-
     const userData = await getUserData(accessToken.access_token);
+
+    console.log('LinkedIn User Data:', userData);
 
     if (!userData) {
       return res.status(500).json({
         success: false,
-        error,
+        error: 'Failed to get user data from LinkedIn',
       });
     }
 
-    // check if user registered
-    let user;
+    // Extract user data from LinkedIn response
+    const { sub: uid, email, name, picture } = userData;
 
-    user = await User.findOne({ email: userData.email });
+    // check if user registered
+    let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
       user = await User.create({
-        firebaseUid: uid,
+        firebaseUid: uid, // Using LinkedIn UID as firebaseUid for consistency
         authMethod: 'linkedin',
         email: email.toLowerCase(),
         fullName: name || 'Anonymous',
@@ -356,10 +358,10 @@ export const linkedInCallback = async (req, res) => {
 
     res.redirect(`${FRONTEND_URL}/auth/google/callback?token=${accessTokens}`);
   } catch (error) {
-    console.error(error);
+    console.error('LinkedIn callback error:', error);
     res.status(500).json({
       success: false,
-      error,
+      error: error.message,
     });
   }
 };
