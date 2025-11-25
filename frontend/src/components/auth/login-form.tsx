@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -64,6 +64,7 @@ const LoginForm = () => {
 
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const { user, loading, error } = useSelector(
     (state: RootState) => state.auth,
@@ -165,6 +166,16 @@ const LoginForm = () => {
       setIsForgotPasswordSubmitting(false);
     }
   }
+
+  useEffect(() => {
+    if (searchParams.get('token') == 'failed') {
+      toast({
+        title: 'Login Failed',
+        description: 'Invalid email or password. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e) =>

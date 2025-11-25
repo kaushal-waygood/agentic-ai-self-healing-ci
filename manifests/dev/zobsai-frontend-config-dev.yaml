@@ -7,6 +7,8 @@ data:
   NEXT_PUBLIC_NODE_ENV: 'development' # Or 'development' if needed
   NEXT_PUBLIC_GOOGLE_CLIENT_ID: '584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com'
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_live_51P9LpzRk1I3BflpJZwwqZtdVW5cJmdivnzPqu6vtSosnfTO44dZhve6DOdtNfupRR247b18tSTU3Ziszq8Yr2Duo00XmtGeZzC'
-  NEXT_PUBLIC_API_URL: 'https://api.dev.zobsai.com' # HTTPS for dev
-  REACT_APP_API_URL: 'https://api.dev.zobsai.com' # Optional, for legacy code
-
+  REACT_APP_API_URL: 'http://zobsai-backend.zobsai.svc.cluster.local:8000'
+  NEXT_PUBLIC_SOCKET_URL: 'http://localhost:8080'
+  NEXT_PUBLIC_LINKEDIN_CLIENT_ID: '78cxzsxixqb18l'
+  NEXT_PUBLIC_SITEMAP_API_KEY: 'secret'
+  NEXT_PUBLIC_LOGROCKET_ID: 'jlthnd/zobsai'

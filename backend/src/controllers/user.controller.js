@@ -42,7 +42,7 @@ const sendTemplatedEmail = async ({
     templateVars,
   );
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+    from: config.emailUser,
     to,
     subject: subjectOverride || templateVars.subject || 'ZobsAI Notification',
     html,
@@ -53,7 +53,7 @@ const sendTemplatedEmail = async ({
 // Non-template fallback send
 const sendRawEmail = async ({ to, subject, html }) =>
   transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+    from: config.emailUser,
     to,
     subject,
     html,
@@ -185,10 +185,23 @@ export const firebaseAuth = async (req, res) => {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
 
+    // Find by firebaseUid OR email
     let user = await User.findOne({
       $or: [{ firebaseUid: uid }, { email: email.toLowerCase() }],
     });
 
+    // If an existing user is found by email but does not have firebaseUid,
+    // do NOT automatically attach firebaseUid or change authMethod.
+    // Instead, return an error telling the client the email is already registered.
+    if (user && !user.firebaseUid && user.email === email.toLowerCase()) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Email already registered. Please sign in with your existing method or link accounts from your profile settings.',
+      });
+    }
+
+    // If no user found, create as before
     if (!user) {
       user = await User.create({
         firebaseUid: uid,
@@ -209,10 +222,15 @@ export const firebaseAuth = async (req, res) => {
           aiMannualApplication: -1,
         },
       });
-    } else if (!user.firebaseUid) {
-      user.firebaseUid = uid;
-      user.authMethod = 'google';
-      await user.save();
+    } else if (user.firebaseUid && user.firebaseUid === uid) {
+      // existing, matches firebaseUid — proceed
+    } else if (user.firebaseUid && user.firebaseUid !== uid) {
+      // user exists and has a different firebaseUid — don't mutate, return error
+      return res.status(400).json({
+        success: false,
+        message:
+          'Account exists with this email but linked to a different provider. Please sign in with your original method.',
+      });
     }
 
     const accessToken = user.generateAccessToken();
@@ -258,10 +276,11 @@ const getAccessToken = async (code) => {
     code: code,
     client_id: process.env.LINKEDIN_CLIENT_ID,
     client_secret: process.env.LINKEDIN_CLIENT_SECRET,
-    redirect_uri: 'http://127.0.0.1:8080/api/v1/user/linkedin/callback',
+    redirect_uri: `${BACKEND_API_BASE_URL}/api/v1/user/linkedin/callback`,
   });
 
   console.log(body);
+
   const response = await fetch(
     'https://www.linkedin.com/oauth/v2/accessToken',
     {
@@ -301,32 +320,34 @@ export const linkedInCallback = async (req, res) => {
   try {
     const { code } = req.query;
 
-    console.log(code);
-
     // get access token
     const accessToken = await getAccessToken(code);
 
-    console.log(accessToken);
-
     // get user data using access token
-
     const userData = await getUserData(accessToken.access_token);
 
     if (!userData) {
       return res.status(500).json({
         success: false,
-        error,
+        error: 'Failed to get user data from LinkedIn',
       });
     }
 
-    // check if user registered
-    let user;
+    // Extract user data from LinkedIn response
+    const { sub: uid, email, name, picture } = userData;
 
-    user = await User.findOne({ email: userData.email });
+    // check if user registered
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user && !user.linkedInUid && user.email === email.toLowerCase()) {
+      return res.redirect(
+        `${FRONTEND_URL}/login?token=failed&error=account_exists&email=${email}`,
+      );
+    }
 
     if (!user) {
       user = await User.create({
-        firebaseUid: uid,
+        firebaseUid: uid, // Using LinkedIn UID as firebaseUid for consistency
         authMethod: 'linkedin',
         email: email.toLowerCase(),
         fullName: name || 'Anonymous',
@@ -352,14 +373,12 @@ export const linkedInCallback = async (req, res) => {
 
     const accessTokens = user.generateAccessToken();
 
-    console.log(accessTokens);
-
     res.redirect(`${FRONTEND_URL}/auth/google/callback?token=${accessTokens}`);
   } catch (error) {
-    console.error(error);
+    console.error('LinkedIn callback error:', error);
     res.status(500).json({
       success: false,
-      error,
+      error: error.message,
     });
   }
 };
@@ -560,7 +579,7 @@ export const verifyEmail = async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: config.emailUser,
       to: user.email,
       subject: 'Welcome to ZobsAI – Your AI Job Assistant',
       html,
@@ -796,7 +815,7 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     const resetUrl = `${
-      process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+      FRONTEND_URL || 'http://127.0.0.1:3000'
     }/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
     const mailHtml = `
@@ -952,7 +971,7 @@ export const changePassword = async (req, res) => {
     );
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: config.emailUser,
       to: user.email,
       subject: 'Your ZobsAI Password Has Been Updated',
       html,
@@ -1058,7 +1077,7 @@ export const oAuth2Callback = async (req, res) => {
     console.error('No authorization code received from Google.');
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_no_code`,
     );
   }
@@ -1066,7 +1085,7 @@ export const oAuth2Callback = async (req, res) => {
     console.error('No state (userId) received from Google.');
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_no_state`,
     );
   }
@@ -1092,7 +1111,7 @@ export const oAuth2Callback = async (req, res) => {
     if (!user)
       return res.redirect(
         `${
-          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/dashboard/settings?error=user_not_found`,
       );
 
@@ -1105,7 +1124,7 @@ export const oAuth2Callback = async (req, res) => {
 
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?success=google_connected`,
     );
   } catch (err) {
@@ -1116,7 +1135,7 @@ export const oAuth2Callback = async (req, res) => {
     );
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_internal`,
     );
   }
@@ -1252,7 +1271,7 @@ export const redirectToGoogle = async (req, res) => {
       .status(500)
       .redirect(
         `${
-          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/login?error=google_redirect_failed`,
       );
   }
@@ -1265,7 +1284,7 @@ export const handleGoogleCallback = async (req, res) => {
       .status(400)
       .redirect(
         `${
-          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/login?error=missing_auth_code`,
       );
 
@@ -1318,7 +1337,7 @@ export const handleGoogleCallback = async (req, res) => {
 
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/auth/google/callback?token=${token}`,
     );
   } catch (error) {
@@ -1326,9 +1345,7 @@ export const handleGoogleCallback = async (req, res) => {
     return res
       .status(500)
       .redirect(
-        `${
-          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
-        }/login?error=auth_failed`,
+        `${FRONTEND_URL || 'http://127.0.0.1:3000'}/login?error=auth_failed`,
       );
   }
 };

@@ -20,6 +20,20 @@ const USAGE_LIMIT_MAP = {
   'Manual Application': 'aiMannualApplication', // schema key (typo kept)
 };
 
+const BACKEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://api.zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://api.dev.zobsai.com'
+    : 'http://127.0.0.1:8080';
+
+const FRONTEND_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://zobsai.com'
+    : process.env.NODE_ENV === 'development'
+    ? 'https://dev.zobsai.com'
+    : 'http://127.0.0.1:3000';
+
 // ---------- Helpers ----------
 const parseFeatureLimitValue = (raw) => {
   // Accept: "-1", "-1" string, "unlimited", "Unlimited", numeric strings, numbers
@@ -607,16 +621,16 @@ export const handleStripeWebhook = async (req, res) => {
               subject: `Congrats! You've Upgraded to ${planName}`,
               name: user.fullName,
               planName,
-              billingUrl: `${process.env.FRONTEND_URL}/account/billing`,
-              managePlanUrl: `${process.env.FRONTEND_URL}/account/manage-plan`,
-              companyUrl: process.env.FRONTEND_URL,
-              companyAddress: process.env.COMPANY_ADDRESS || '',
-              unsubscribeUrl: `${process.env.FRONTEND_URL}/unsubscribe`,
+              billingUrl: `${FRONTEND_URL}/account/billing`,
+              managePlanUrl: `${FRONTEND_URL}/account/manage-plan`,
+              companyUrl: FRONTEND_URL,
+              companyAddress: COMPANY_ADDRESS || '',
+              unsubscribeUrl: `${FRONTEND_URL}/unsubscribe`,
               supportEmail: process.env.SUPPORT_EMAIL || 'support@zobsai.com',
             },
           );
           await transporter.sendMail({
-            from: process.env.EMAIL_FROM,
+            from: config.emailUser,
             to: user.email,
             subject: `Congrats! You've Upgraded to ${planName} on ZobsAI`,
             html,

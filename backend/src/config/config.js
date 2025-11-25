@@ -34,4 +34,8 @@ export const config = {
   // Stripe
   stripeSecretKey: getEnv('STRIPE_SECRET_KEY'),
   stripeWebhookSecret: getEnv('STRIPE_WEBHOOK_SECRET'),
+
+  // Email
+  emailUser: getEnv('EMAIL_USER'),
+  emailPassword: getEnv('EMAIL_PASSWORD'),
 };
