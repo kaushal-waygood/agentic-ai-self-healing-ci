@@ -261,7 +261,6 @@ const getAccessToken = async (code) => {
     redirect_uri: 'http://127.0.0.1:8080/api/v1/user/linkedin/callback',
   });
 
-  console.log(body);
   const response = await fetch(
     'https://www.linkedin.com/oauth/v2/accessToken',
     {
@@ -301,17 +300,11 @@ export const linkedInCallback = async (req, res) => {
   try {
     const { code } = req.query;
 
-    console.log(code);
-
     // get access token
     const accessToken = await getAccessToken(code);
 
-    console.log(accessToken);
-
     // get user data using access token
     const userData = await getUserData(accessToken.access_token);
-
-    console.log('LinkedIn User Data:', userData);
 
     if (!userData) {
       return res.status(500).json({
@@ -353,8 +346,6 @@ export const linkedInCallback = async (req, res) => {
     }
 
     const accessTokens = user.generateAccessToken();
-
-    console.log(accessTokens);
 
     res.redirect(`${FRONTEND_URL}/auth/google/callback?token=${accessTokens}`);
   } catch (error) {
