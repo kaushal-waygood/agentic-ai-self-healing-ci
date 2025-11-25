@@ -285,17 +285,7 @@ export default function CreditsPage() {
                           )}
                         </button>
                         {actionKey.startsWith('FOLLOW_') && (
-                          // <button
-                          //   onClick={(e) => {
-                          //     e.preventDefault();
-                          //     alert(
-                          //       'Open the social link in a new tab, follow, then come back and claim.',
-                          //     );
-                          //   }}
-                          //   className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
-                          // >
-                          //   How to claim?
-                          // </button>
+                         
 
                           <button
                             onClick={(e) => {

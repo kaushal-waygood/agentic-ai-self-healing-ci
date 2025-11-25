@@ -270,7 +270,7 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
 
       case 'FIRST_CL':
       case 'COVER_LETTER':
-        return '/dashboard/cover-letter';
+        return '/dashboard/cover-letter-generator';
 
       case 'DAILY_CHECKIN':
         return '/rewards';

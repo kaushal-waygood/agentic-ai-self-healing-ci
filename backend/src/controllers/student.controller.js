@@ -2754,7 +2754,7 @@ export const getCreditsSummary = async (req, res) => {
           return '/dashboard/cv-generator';
 
         case 'FIRST_CL':
-          return '/dashboard/cover-letter';
+          return '/dashboard/cover-letter-generator';
 
         case 'DAILY_CHECKIN':
           return '/rewards';
