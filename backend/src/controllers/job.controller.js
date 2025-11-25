@@ -722,7 +722,7 @@ export const getSingleJobDetail = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: config.nodeEnv === 'development' ? error.message : undefined,
     });
   }
 };
@@ -980,7 +980,7 @@ export const getJobDetailBySlug = async (req, res) => {
     console.error('Error fetching job by slug:', error);
     res.status(500).json({
       message: 'Server Error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: config.nodeEnv === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1034,7 +1034,7 @@ export const toggleJobStatus = async (req, res) => {
     console.error('Error toggling job status:', error);
     res.status(500).json({
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: config.nodeEnv === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1052,7 +1052,7 @@ export const jobApplications = async (req, res) => {
     console.error('Error fetching job applications:', error);
     res.status(500).json({
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: config.nodeEnv === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1070,7 +1070,7 @@ export const getSingleJobApplication = async (req, res) => {
     console.error('Error fetching job application:', error);
     res.status(500).json({
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: config.nodeEnv === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1118,7 +1118,7 @@ export const jobViewsCount = async (req, res) => {
     console.error('Error updating job views count:', error);
     res.status(500).json({
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: config.nodeEnv === 'development' ? error.message : undefined,
     });
   }
 };

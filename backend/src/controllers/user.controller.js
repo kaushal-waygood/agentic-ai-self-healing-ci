@@ -42,7 +42,7 @@ const sendTemplatedEmail = async ({
     templateVars,
   );
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+    from: config.emailUser,
     to,
     subject: subjectOverride || templateVars.subject || 'ZobsAI Notification',
     html,
@@ -53,7 +53,7 @@ const sendTemplatedEmail = async ({
 // Non-template fallback send
 const sendRawEmail = async ({ to, subject, html }) =>
   transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+    from: config.emailUser,
     to,
     subject,
     html,
@@ -579,7 +579,7 @@ export const verifyEmail = async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: config.emailUser,
       to: user.email,
       subject: 'Welcome to ZobsAI – Your AI Job Assistant',
       html,
@@ -815,7 +815,7 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     const resetUrl = `${
-      process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+      FRONTEND_URL || 'http://127.0.0.1:3000'
     }/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
     const mailHtml = `
@@ -971,7 +971,7 @@ export const changePassword = async (req, res) => {
     );
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: config.emailUser,
       to: user.email,
       subject: 'Your ZobsAI Password Has Been Updated',
       html,
@@ -1077,7 +1077,7 @@ export const oAuth2Callback = async (req, res) => {
     console.error('No authorization code received from Google.');
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_no_code`,
     );
   }
@@ -1085,7 +1085,7 @@ export const oAuth2Callback = async (req, res) => {
     console.error('No state (userId) received from Google.');
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_no_state`,
     );
   }
@@ -1111,7 +1111,7 @@ export const oAuth2Callback = async (req, res) => {
     if (!user)
       return res.redirect(
         `${
-          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/dashboard/settings?error=user_not_found`,
       );
 
@@ -1124,7 +1124,7 @@ export const oAuth2Callback = async (req, res) => {
 
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?success=google_connected`,
     );
   } catch (err) {
@@ -1135,7 +1135,7 @@ export const oAuth2Callback = async (req, res) => {
     );
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_internal`,
     );
   }
@@ -1271,7 +1271,7 @@ export const redirectToGoogle = async (req, res) => {
       .status(500)
       .redirect(
         `${
-          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/login?error=google_redirect_failed`,
       );
   }
@@ -1284,7 +1284,7 @@ export const handleGoogleCallback = async (req, res) => {
       .status(400)
       .redirect(
         `${
-          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/login?error=missing_auth_code`,
       );
 
@@ -1337,7 +1337,7 @@ export const handleGoogleCallback = async (req, res) => {
 
     return res.redirect(
       `${
-        process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/auth/google/callback?token=${token}`,
     );
   } catch (error) {
@@ -1345,9 +1345,7 @@ export const handleGoogleCallback = async (req, res) => {
     return res
       .status(500)
       .redirect(
-        `${
-          process.env.FRONTEND_URL || 'http://127.0.0.1:3000'
-        }/login?error=auth_failed`,
+        `${FRONTEND_URL || 'http://127.0.0.1:3000'}/login?error=auth_failed`,
       );
   }
 };
