@@ -1,0 +1,37 @@
+User-agent: *
+Disallow:
+
+# Allow all AI/LLM crawlers
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ChatGPT-GPTBot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: Bard
+Allow: /
+
+User-agent: PoeCrawler
+Allow: /
+
+# Sitemaps
+Sitemap: https://zobsai.com/sitemap.xml
+Sitemap: https://zobsai.com/sitemap_index.xml

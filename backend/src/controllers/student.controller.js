@@ -2365,11 +2365,11 @@ export const jobVisitedByStudent = async (req, res) => {
       console.error('Redis invalidate error:', e);
     }
 
-    await addCredits(
-      student._id,
-      CREDIT_EARN.VISITJOB_SITE,
-      'jobVisitedByStudent',
-    );
+    // await addCredits(
+    //   student._id,
+    //   CREDIT_EARN.VISITJOB_SITE,
+    //   'jobVisitedByStudent',
+    // );
 
     return res.status(200).json({
       success: true,

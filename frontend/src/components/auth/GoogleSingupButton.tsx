@@ -81,45 +81,23 @@ export function GoogleSignInButton({ authType = 'login' }) {
   );
 }
 
-import { getAuth, signInWithPopup, OAuthProvider } from 'firebase/auth';
-import app from '@/lib/firebase-client'; // ⚠️ Make sure this points to your firebase config
-import axios from 'axios';
-import { useRouter } from 'next/navigation';
-
 export function LinkedInSignInButton({ authType = 'login' }) {
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleLinkedInAuth = async () => {
     setIsLoading(true);
-    const auth = getAuth(app);
-
-    // This matches the Provider ID we set up in Firebase Console
-    const provider = new OAuthProvider('oidc.linkedin');
-    provider.addScope('openid');
-    provider.addScope('email');
-    provider.addScope('profile');
 
     try {
-      // 1. Trigger Firebase Popup
-      const result = await signInWithPopup(auth, provider);
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID,
+        redirect_uri: 'http://127.0.0.1:8080/api/v1/user/linkedin/callback',
+        scope: 'openid email profile',
+      });
 
-      // 2. Get the ID Token from the result
-      const idToken = await result.user.getIdToken();
+      console.log('LinkedIn Auth Params:', params);
 
-      // 3. Send to your Backend Controller (The 'firebaseAuth' function you wrote)
-      const response = await axios.post(
-        `${API_BASE_URL}/api/v1/auth/firebase-login`,
-        {
-          idToken,
-        },
-      );
-
-      if (response.data.success) {
-        // Handle success (e.g., store token, redirect to dashboard)
-        // localStorage.setItem('accessToken', response.data.accessToken);
-        router.push('/dashboard');
-      }
+      window.location.href = `https://www.linkedin.com/oauth/v2/authorization?${params}`;
     } catch (error) {
       console.error('LinkedIn Auth Error:', error);
       // Reset loading on error so user can try again

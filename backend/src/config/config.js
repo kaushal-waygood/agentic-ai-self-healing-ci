@@ -15,18 +15,10 @@ const getEnv = (key) => {
 export const config = {
   // General
   port: process.env.PORT || 8080,
-
-  // Database
   mongoUrl: getEnv('MONGO_URL'),
-
-  // Node Environment
   nodeEnv: process.env.NODE_ENV,
-
-  // JWT Tokens
   accessTokenSecret: getEnv('ACCESS_TOKEN_SECRET'),
-  accessTokenExpiry: '7d', // ✅ Longer-lived access token
-
-  // refreshTokenSecret: getEnv('REFRESH_TOKEN_SECRET'),
+  accessTokenExpiry: '7d',
   refreshTokenExpiry: '7d', // ✅ Longer-lived refresh token
 
   // External APIs
@@ -42,4 +34,8 @@ export const config = {
   // Stripe
   stripeSecretKey: getEnv('STRIPE_SECRET_KEY'),
   stripeWebhookSecret: getEnv('STRIPE_WEBHOOK_SECRET'),
+
+  // Email
+  emailUser: getEnv('EMAIL_USER'),
+  emailPassword: getEnv('EMAIL_PASSWORD'),
 };

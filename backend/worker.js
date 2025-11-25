@@ -7,6 +7,7 @@ import { getRecommendedJobs } from './src/utils/getRecommendedJobs.js';
 import { buildEffectiveStudentProfile } from './src/utils/profileHydration.js';
 import { buildJobContextString } from './src/utils/jobContext.js';
 import { processTailoredApplication } from './src/utils/tailored.autopilot.js';
+import { config } from './src/config/config.js';
 
 const toBool = (v) => v === true || String(v).toLowerCase() === 'true';
 
@@ -22,7 +23,7 @@ const normalizeLimit = (v, fallback, { min = 0, max = 200 } = {}) =>
 
 const logEnvOnce = () => {
   try {
-    const uri = process.env.MONGO_URI || '';
+    const uri = config.mongoUrl;
     const masked = uri.includes('@')
       ? uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')
       : uri;
