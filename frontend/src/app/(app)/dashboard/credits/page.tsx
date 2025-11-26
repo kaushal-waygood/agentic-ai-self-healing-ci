@@ -13,6 +13,10 @@ import {
   Clock,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { getCreditRequest } from '@/redux/reducers/creditReducer';
 
 const API_BASE = 'http://127.0.0.1:8080';
 
@@ -27,43 +31,31 @@ const ALLOWED_SOCIAL_ACTIONS = new Set([
 ]);
 
 export default function CreditsPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [data, setData] = useState(null);
   const [claiming, setClaiming] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [howToClaimOpen, setHowToClaimOpen] = useState(false);
   const [howToClaimData, setHowToClaimData] = useState(null);
+  const router = useRouter();
 
-  console.log(data);
-
-  const fetchSummary = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiInstance.get(`/students/credits`);
-      if (res.status !== 200) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to fetch credits',
-        });
-      }
-      const json = res.data.data;
-      setData(json);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const dispatch = useDispatch();
+  const { credit, loading, error } = useSelector(
+    (state: RootState) => state.credit,
+  );
 
   useEffect(() => {
-    fetchSummary();
-  }, [fetchSummary]);
+    dispatch(getCreditRequest());
+  }, [dispatch]);
 
-  const router = useRouter();
+  useEffect(() => {
+    if (credit?.data) {
+      setData(credit.data);
+    }
+  }, [credit]);
+
+  const fetchSummary = useCallback(async () => {
+    dispatch(getCreditRequest());
+  }, []);
 
   const handleClaim = async (action, meta = {}, fallbackUrl = null) => {
     router.push(action.url);
@@ -78,6 +70,7 @@ export default function CreditsPage() {
           `/students/credit/earn/${action.action}`,
           meta,
         );
+
         if (res.status !== 200) {
           toast({
             variant: 'destructive',
@@ -96,6 +89,8 @@ export default function CreditsPage() {
     }
   };
 
+  console.log('credit: ', credit);
+  console.log('data: ', data);
   if (loading) {
     return (
       <div className="flex items-center flex-col justify-center min-h-[80vh]">
@@ -285,8 +280,6 @@ export default function CreditsPage() {
                           )}
                         </button>
                         {actionKey.startsWith('FOLLOW_') && (
-                         
-
                           <button
                             onClick={(e) => {
                               e.preventDefault();
