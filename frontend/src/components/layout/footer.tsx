@@ -250,7 +250,7 @@ export function Footer() {
         </div>
 
         {/* States and Newsletter section parent div */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
+        <div className="grid grid-cols-2 lg:grid-cols-2 lg:max-w-4xl mx-auto gap-4 mt-5">
           {/* Stats Section */}
           {/* <div
             className="grid  items-center grid-cols-3 gap-6 p-3 bg-white/5 rounded-2xl border border-white/10 shadow-lg"
