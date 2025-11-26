@@ -88,13 +88,21 @@ export const startDashboardTour = ({
     {
       element: '#sidebar-link-0',
       popover: {
+        title: 'Dashboard',
+        description: 'Your personalized dashboard.',
+        position: 'right',
+      },
+    },
+    {
+      element: '#sidebar-link-1',
+      popover: {
         title: 'Job Search',
         description: 'Explore jobs tailored to your skills.',
         position: 'right',
       },
     },
     {
-      element: '#sidebar-link-1',
+      element: '#sidebar-link-2',
       popover: {
         title: 'AI CV Generator',
         description: 'Create professional AI-generated CVs.',
@@ -102,7 +110,7 @@ export const startDashboardTour = ({
       },
     },
     {
-      element: '#sidebar-link-2',
+      element: '#sidebar-link-3',
       popover: {
         title: 'AI Cover Letter',
         description: 'Generate personalized AI-powered cover letters.',
@@ -110,7 +118,7 @@ export const startDashboardTour = ({
       },
     },
     {
-      element: '#sidebar-link-3',
+      element: '#sidebar-link-4',
       popover: {
         title: 'AI Auto Docs',
         description: 'Automatically generate complete job application docs.',
@@ -118,7 +126,7 @@ export const startDashboardTour = ({
       },
     },
     {
-      element: '#sidebar-link-4',
+      element: '#sidebar-link-5',
       popover: {
         title: 'Application Wizard',
         description:
@@ -127,7 +135,7 @@ export const startDashboardTour = ({
       },
     },
     {
-      element: '#sidebar-link-5',
+      element: '#sidebar-link-6',
       popover: {
         title: 'My Applications',
         description: 'Track the jobs you’ve applied for.',
@@ -135,37 +143,37 @@ export const startDashboardTour = ({
       },
     },
     {
-      element: '#sidebar-link-6',
+      element: '#sidebar-link-7',
       popover: {
         title: 'My Docs',
         description: 'View, manage, and download your saved CVs & Letters.',
         position: 'right',
       },
     },
-    {
-      element: '#sidebar-link-7',
-      popover: {
-        title: 'ZobsAI Partnership',
-        description: 'Bring ZobsAI to your university or company.',
-        position: 'right',
-      },
-    },
-    {
-      element: '#sidebar-link-9',
-      popover: {
-        title: 'Refer & Earn',
-        description: 'Invite friends and earn rewards.',
-        position: 'right',
-      },
-    },
-    {
-      element: '#sidebar-link-10',
-      popover: {
-        title: 'Request New Feature',
-        description: 'Suggest a new feature for ZobsAI.',
-        position: 'right',
-      },
-    },
+    // {
+    //   element: '#sidebar-link-8',
+    //   popover: {
+    //     title: 'ZobsAI Partnership',
+    //     description: 'Bring ZobsAI to your university or company.',
+    //     position: 'right',
+    //   },
+    // },
+    // {
+    //   element: '#sidebar-link-10',
+    //   popover: {
+    //     title: 'Refer & Earn',
+    //     description: 'Invite friends and earn rewards.',
+    //     position: 'right',
+    //   },
+    // },
+    // {
+    //   element: '#sidebar-link-11',
+    //   popover: {
+    //     title: 'Request New Feature',
+    //     description: 'Suggest a new feature for ZobsAI.',
+    //     position: 'right',
+    //   },
+    // },
 
     {
       popover: {
