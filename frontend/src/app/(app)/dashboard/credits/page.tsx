@@ -75,7 +75,9 @@ export default function CreditsPage() {
   };
 
   const handleClaim = async (action, meta = {}, fallbackUrl = null) => {
+    console.log('Claiming', action);
     const targetUrl = action.url || fallbackUrl;
+    console.log('targetUrl', targetUrl);
     if (!targetUrl) return;
 
     // Social links open in new tab, not via router
@@ -85,7 +87,10 @@ export default function CreditsPage() {
       router.push(targetUrl);
     }
 
-    if (!ALLOWED_SOCIAL_ACTIONS.has(action.type)) return;
+    if (!ALLOWED_SOCIAL_ACTIONS.has(action.action)) {
+      console.log('Not a social action');
+      return;
+    }
 
     // do not pretend try/catch covers async inside setTimeout
     setTimeout(async () => {

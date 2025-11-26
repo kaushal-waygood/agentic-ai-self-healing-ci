@@ -87,7 +87,6 @@ export const extractStudentDataFromCV = async (req, res) => {
         throw new Error('Invalid JSON received from AI');
       }
 
-      // normalize parsedJson to your structure (same as previous code)
       extractedData = {
         personalInfo: {
           fullName: parsedJson.fullName || parsedJson.name || '',

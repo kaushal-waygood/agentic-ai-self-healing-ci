@@ -36,6 +36,7 @@ import { NotificationBell } from '../notifications/NotificationBell';
 import StreakDropdown from './StreakDropdown';
 import ReminderModal from './ReminderModal';
 import { Tooltip } from './tooltip';
+import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -179,51 +180,6 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
   );
 };
 
-// export const TotalCredit = () => {
-//   const [credits, setCredits] = useState({
-//     streak: 0,
-//     gold: 0,
-//   });
-
-//   useEffect(() => {
-//     const fetchCredits = async () => {
-//       try {
-//         const res = await apiInstance.get('/students/total-credits');
-//         setCredits(res.data);
-//       } catch (e) {
-//         console.error('Failed to load credits', e);
-//       }
-//     };
-//     fetchCredits();
-//   }, []);
-//   return (
-// <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
-//   {/* Fire */}
-//   <Link
-//     href="/dashboard/credits"
-//     className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
-//   >
-//     <Flame className="w-6 h-6 text-pink-500" />
-//     <span className="text-sm font-medium text-pink-500">
-//       {credits.streak || 0}
-//     </span>
-//   </Link>
-//   {/* Gold */}
-//   <Link
-//     href="/dashboard/credits"
-//     className="flex items-center gap-1 ml-2 hover:bg-gray-50 px-2 py-1  rounded-lg"
-//   >
-//     <Coins className="w-6 h-6 text-yellow-500" />
-//     <span className="text-sm font-medium text-gray-700">
-//       {credits.gold || 0}
-//     </span>
-//   </Link>
-// </div>
-//   );
-// };
-
-// Main AppHeader Component
-
 export const TotalCredit = () => {
   const [credits, setCredits] = useState<{
     streak: number;
@@ -237,6 +193,8 @@ export const TotalCredit = () => {
     days: [],
   });
   const [open, setOpen] = useState(false);
+
+  const { streak, loading, claiming, claim } = useDailyStreak();
 
   const dropdownRef = useRef(null);
 
@@ -295,9 +253,12 @@ export const TotalCredit = () => {
       {/* Dropdown */}
       {open && (
         <StreakDropdown
-          streak={credits.streak}
-          longest={credits.longest}
-          activeDays={credits.days || []} // backend array
+          streak={streak.current}
+          longest={streak.longest}
+          activeDays={streak.activeDays}
+          canClaimToday={streak.canClaimToday}
+          isClaiming={claiming}
+          onCheckIn={claim}
         />
       )}
     </div>

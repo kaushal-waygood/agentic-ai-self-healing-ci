@@ -18,6 +18,7 @@ import path from 'path';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import axios from 'axios';
 import qs from 'querystring';
+import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 
 const tm = new TemplateManager({
   baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
@@ -392,7 +393,7 @@ export const signUpUser = async (req, res) => {
     confirmPassword,
     jobRole,
     organizationName,
-    referralCode: providedReferralCode, // rename incoming code
+    referredBy: providedReferralCode, // this is actually referralCode from client
   } = req.body;
 
   try {
@@ -400,6 +401,7 @@ export const signUpUser = async (req, res) => {
     if (!accountType || !fullName || !email || !password) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
+
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
@@ -418,11 +420,18 @@ export const signUpUser = async (req, res) => {
     // Handle referral: only validate if client actually provided one
     let referrer = null;
     let referredBy = null;
+
+    console.log('providedReferralCode:', providedReferralCode);
+
     if (providedReferralCode) {
+      // Find referrer by their referralCode
       referrer = await User.findOne({ referralCode: providedReferralCode });
+
       if (!referrer) {
         return res.status(400).json({ message: 'Invalid referral code' });
       }
+
+      // store referrer _id on the new user
       referredBy = referrer._id;
     }
 
@@ -436,6 +445,7 @@ export const signUpUser = async (req, res) => {
       }
 
       organization = await Organization.findOne({ name: organizationName });
+
       if (!organization) {
         const apiKey = `org_${Math.random().toString(36).substring(2, 15)}`;
         organization = new Organization({
@@ -459,15 +469,30 @@ export const signUpUser = async (req, res) => {
       jobRole,
       role: accountType === 'institution' ? 'OrgAdmin' : 'student',
       organization:
-        accountType === 'institution' ? organization._id : undefined,
-      referralCode: userReferralCode,
-      referredBy: referredBy || null,
+        accountType === 'institution' && organization
+          ? organization._id
+          : undefined,
+      referralCode: userReferralCode, // their own code
+      referredBy: referredBy || null, // who referred them
       otp,
       otpExpires,
-      isEmailVerified: false, // matches your model name
+      isEmailVerified: false,
     });
 
     const savedUser = await user.save();
+
+    // If there was a valid referrer, update their stats & referredUsers list
+    if (referrer) {
+      await User.findByIdAndUpdate(referrer._id, {
+        $inc: { referralCount: 1 },
+        $addToSet: { referredUsers: savedUser._id }, // push new user id (no duplicates)
+      });
+      addCredits(
+        referrer._id,
+        CREDIT_EARN.SIGNUP_WITH_REFERRAL_REFERRED,
+        'Referral signup',
+      );
+    }
 
     // Send OTP email
     await sendTemplatedEmail({
@@ -487,13 +512,6 @@ export const signUpUser = async (req, res) => {
         'Welcome to ZobsAI – Your AI Job Application Assistant is Here!',
     });
 
-    // If there was a valid referrer, increment their referralCount atomically
-    if (referrer) {
-      await User.findByIdAndUpdate(referrer._id, {
-        $inc: { referralCount: 1 },
-      });
-    }
-
     // Response: do not return password or sensitive info
     const response = {
       _id: savedUser._id,
@@ -502,7 +520,10 @@ export const signUpUser = async (req, res) => {
       fullName: savedUser.fullName,
       message: 'Verification OTP sent to your email',
     };
-    if (accountType === 'institution') response.organization = organization;
+
+    if (accountType === 'institution') {
+      response.organization = organization;
+    }
 
     return res.status(201).json(response);
   } catch (error) {
