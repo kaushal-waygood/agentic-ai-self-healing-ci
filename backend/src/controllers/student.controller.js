@@ -2889,7 +2889,7 @@ export const getCreditsSummary = async (req, res) => {
           return '/dashboard/profile?tab=experience';
 
         case 'PROFILE_COMPLETE_PROJECT':
-          return '/dashboard/profile?tab=projects';
+          return '/dashboard/profile?tab=project';
 
         case 'PROFILE_COMPLETE_SKILL':
           return '/dashboard/profile?tab=skills';

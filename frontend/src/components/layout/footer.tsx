@@ -349,7 +349,8 @@ export function Footer() {
             {socialLinks.map((social, index) => (
               <a
                 key={index}
-                href="#"
+                href={social.url}
+                target="_blank"
                 className="group relative p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-110"
                 title={`Follow us on ${social.name} (${social.followers} followers)`}
               >

@@ -101,6 +101,7 @@ export default function CreditsPage() {
         );
 
         if (res.status !== 200) {
+          alert('done ');
           toast({
             variant: 'destructive',
             title: 'Error',
@@ -118,8 +119,6 @@ export default function CreditsPage() {
     }, 10000);
   };
 
-  console.log('credit: ', credit);
-  console.log('data: ', data);
   if (loading) {
     return (
       <div className="flex items-center flex-col justify-center min-h-[80vh]">
