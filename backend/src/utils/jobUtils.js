@@ -181,7 +181,6 @@ export const calculateMatchScore = (job, student) => {
     }
 
     const final = max > 0 ? Math.round((score / max) * 100) : 0;
-    console.log(`   Final Score: ${final}/100`);
     return final;
   } catch (err) {
     console.error('❌ Error in calculateMatchScore:', err);

@@ -9,6 +9,9 @@ import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
 import { processCVGeneration } from '../utils/cv.background.js';
 
+// <-- NEW: credits helper (adjust path if your project stores it elsewhere)
+import { earnCreditsForAction } from '../utils/credits.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_FREE_MONTHLY_CV_LIMIT = 3;
@@ -148,6 +151,7 @@ export const initiateCVGeneration = async (
       jobTitle || ''
     })`;
 
+    // --- create job metadata
     const jobId = new mongoose.Types.ObjectId();
     const newCVJob = {
       cvTitle,
@@ -166,10 +170,32 @@ export const initiateCVGeneration = async (
       },
     };
 
+    // determine whether this is the student's first CV (safe check)
+    const isFirstCV = !Array.isArray(student.cvs) || student.cvs.length === 0;
+
     // push job with metadata
     await Student.findByIdAndUpdate(_id, {
       $push: { cvs: { $each: [newCVJob], $position: 0 } },
     });
+
+    // attempt to reward first CV (do not block CV generation on failure)
+    if (isFirstCV) {
+      (async () => {
+        try {
+          // call earnCreditsForAction but do NOT throw if it fails
+          const earnResult = await earnCreditsForAction(user._id, 'FIRST_CV', {
+            jobId: jobId.toString(),
+          });
+          console.log(
+            `FIRST_CV credits awarded to ${user._id}:`,
+            earnResult?.tx ?? earnResult,
+          );
+        } catch (err) {
+          // log and move on — credits failures should not break CV generation
+          console.error('Failed to award FIRST_CV credits:', err);
+        }
+      })();
+    }
 
     const io = req.app.get('io');
     processCVGeneration(

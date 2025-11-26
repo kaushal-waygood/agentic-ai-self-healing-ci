@@ -175,10 +175,6 @@ export const getRecommendedJobs = async ({
   appliedJobIds = [],
   limit = 50,
 }) => {
-  console.log(
-    `🔍 [getRecommendedJobs] Fetching recommended jobs for student ${studentId}`,
-  );
-
   const student = studentProfile || (await Student.findById(studentId).lean());
   if (!student) throw new Error('Student not found');
 
@@ -241,11 +237,6 @@ export const getRecommendedJobs = async ({
   if (finalJobs.length < limit) {
     const apiQuery = buildApiQuery(agentConfig, student, searchString);
     if (apiQuery) {
-      console.log(
-        `Found ${finalJobs.length} local jobs. Querying API for ${
-          limit - finalJobs.length
-        } more with query: "${apiQuery}"`,
-      );
       try {
         const apiResponse = await axios.get(config.rapidJobApi, {
           params: { query: apiQuery, num_pages: 1 },

@@ -2796,7 +2796,7 @@ export const getCreditsSummary = async (req, res) => {
 
         case 'FIRST_AUTO_AGENT_SETUP':
         case 'FIRST_AUTO_APPLICATION_SENT':
-          return '/dashboard/auto-agents';
+          return '/dashboard/ai-auto-apply';
 
         default:
           return '/rewards';

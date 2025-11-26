@@ -65,19 +65,44 @@ export default function CreditsPage() {
 
   const router = useRouter();
 
-  const handleClaim = async (action, meta = {}, fallbackUrl = null) => {
-    router.push(action.url);
+  const SOCIAL_DOMAINS = [
+    'instagram.com',
+    'facebook.com',
+    'twitter.com',
+    'linkedin.com',
+    'tiktok.com',
+  ];
 
-    if (!ALLOWED_SOCIAL_ACTIONS.has(action.type)) {
-      return;
+  const isSocialUrl = (url) => {
+    try {
+      const host = new URL(url).hostname;
+      return SOCIAL_DOMAINS.some((d) => host.includes(d));
+    } catch {
+      return false;
+    }
+  };
+
+  const handleClaim = async (action, meta = {}, fallbackUrl = null) => {
+    const targetUrl = action.url || fallbackUrl;
+    if (!targetUrl) return;
+
+    // Social links open in new tab, not via router
+    if (isSocialUrl(targetUrl)) {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      router.push(targetUrl);
     }
 
-    try {
-      setTimeout(async () => {
+    if (!ALLOWED_SOCIAL_ACTIONS.has(action.type)) return;
+
+    // do not pretend try/catch covers async inside setTimeout
+    setTimeout(async () => {
+      try {
         const res = await apiInstance.get(
           `/students/credit/earn/${action.action}`,
           meta,
         );
+
         if (res.status !== 200) {
           toast({
             variant: 'destructive',
@@ -85,15 +110,15 @@ export default function CreditsPage() {
             description: 'Failed to claim credits',
           });
         }
-      }, 10000);
-    } catch (err) {
-      console.error(err);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to claim credits',
-      });
-    }
+      } catch (err) {
+        console.error(err);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to claim credits',
+        });
+      }
+    }, 10000);
   };
 
   if (loading) {
@@ -285,8 +310,6 @@ export default function CreditsPage() {
                           )}
                         </button>
                         {actionKey.startsWith('FOLLOW_') && (
-                         
-
                           <button
                             onClick={(e) => {
                               e.preventDefault();
