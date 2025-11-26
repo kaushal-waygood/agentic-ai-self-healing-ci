@@ -62,13 +62,12 @@ async function resolveUser(userOrId) {
 
 export async function addCredits(userOrId, amount, kind = 'adjust', meta = {}) {
   const user = await resolveUser(userOrId);
+
+  console.log(user);
   const current = Number(user.credits || 0);
+  console.log(current);
   const newBalance = current + Number(amount);
-  // if (newBalance < 0) {
-  //   const err = new Error('Insufficient credits');
-  //   err.status = 402;
-  //   throw err;
-  // }
+  console.log(newBalance);
 
   user.credits = newBalance;
   const tx = {
@@ -302,7 +301,7 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
 
       case 'FIRST_AUTO_AGENT_SETUP':
       case 'FIRST_AUTO_APPLICATION_SENT':
-        return '/dashboard/auto-agents';
+        return '/dashboard/ai-auto-apply';
 
       default:
         return '/rewards';
@@ -318,7 +317,6 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
     // leave meta as-is
   }
 
-  // Finally add credits and return tx
   const tx = await addCredits(user, amount, kind, finalMeta);
 
   console.log(

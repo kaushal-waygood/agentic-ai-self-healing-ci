@@ -69,10 +69,12 @@ export const extractStudentDataFromCV = async (req, res) => {
     try {
       const prompt = CVDataPrompt(pdfData.text);
 
-      const aiResponse = await retryOperation(
-        () => callGenAI(prompt, { timeoutMs: 25000 }),
-        { retries: 3, baseDelay: 800 },
-      );
+      const aiResponse = await retryOperation(() => callGenAI(prompt), {
+        retries: 3,
+        baseDelay: 800,
+      });
+
+      console.log('AI response:', aiResponse);
 
       // genAI probably returns a string; clean code fences and parse JSON
       const cleaned = String(aiResponse)
@@ -157,9 +159,6 @@ export const extractStudentDataFromCV = async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       userId,
       {
-        fullName: extractedData?.personalInfo?.fullName,
-        phone: extractedData?.personalInfo?.phone,
-        email: extractedData?.personalInfo?.email,
         skills: extractedData?.skills || [],
         education: extractedData?.education || [],
         experience: extractedData?.experience || [],

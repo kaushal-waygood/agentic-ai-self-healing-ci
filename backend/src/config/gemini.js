@@ -4,9 +4,7 @@ import { config } from './config.js';
 
 // NOTE: keep your key management secure. The example below follows the original structure.
 // Consider loading credentials from environment variables or a secrets manager.
-const genAIKey = new GoogleGenerativeAI(
-  'AIzaSyAy4pHPJEPWWDXHWw06MTGs4q4RYSTJM_M',
-);
+const genAIKey = new GoogleGenerativeAI(config.geminiAPI);
 
 // Retry configuration
 const RETRY_CONFIG = {
@@ -40,7 +38,6 @@ export async function generateContent(prompt, options = {}) {
     temperature: options.temperature ?? 0.4,
     topK: options.topK ?? 40,
     topP: options.topP ?? 0.95,
-    maxOutputTokens: options.maxOutputTokens ?? 2048, // smaller default to reduce token usage
     ...(options.generationConfig || {}),
   };
 
@@ -48,7 +45,7 @@ export async function generateContent(prompt, options = {}) {
   for (let attempt = 1; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
     try {
       const model = genAIKey.getGenerativeModel({
-        model: options.model || 'gemini-2.0-flash',
+        model: 'gemini-2.5-pro',
         generationConfig,
       });
 

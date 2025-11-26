@@ -97,3 +97,19 @@ Resume Text:
 ${pdfData}
 `;
 };
+
+export const CVDataPromptPilot = (pdfData) => {
+  return `
+Extract the following fields from the resume below. Return ONLY valid JSON (no markdown, no explanation, no surrounding text). Do NOT include triple backticks.
+
+Instructions:
+- For skills: Include "level" (BEGINNER/INTERMEDIATE/EXPERT) - default to BEGINNER if not specified
+- For education: Include "isCurrentlyStudying" (true/false) based on dates
+- For experience: Calculate "experienceYrs" from date ranges
+- For projects: Include "isWorkingActive" based on dates
+- Format dates as ISO strings (YYYY-MM-DD) when possible
+
+Resume Text:
+${pdfData}
+`;
+};

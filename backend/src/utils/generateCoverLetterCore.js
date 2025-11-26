@@ -15,6 +15,9 @@ import {
   deduceNameFromText,
 } from '../utils/coverletter.utils.js';
 
+// <-- NEW: credits helper (adjust path if your credits file lives elsewhere)
+import { earnCreditsForAction } from '../utils/credits.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -208,9 +211,36 @@ export const initiateCoverLetterGeneration = async (
       createdAt: new Date(),
     };
 
+    // load student doc (not lean) to inspect existing cls array safely
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+
+    // determine whether this is the student's first cover letter (safe check)
+    const isFirstCoverLetter =
+      !Array.isArray(student.cls) || student.cls.length === 0;
+
     await Student.findByIdAndUpdate(_id, {
       $push: { cls: { $each: [newCLJob], $position: 0 } },
     });
+
+    // attempt to reward first cover letter (do not block cover letter generation on failure)
+    if (isFirstCoverLetter) {
+      (async () => {
+        try {
+          const earnResult = await earnCreditsForAction(_id, 'FIRST_CL', {
+            jobId: jobId.toString(),
+          });
+          console.log(
+            `FIRST_CL credits awarded to ${_id}:`,
+            earnResult?.tx ?? earnResult,
+          );
+        } catch (err) {
+          console.error('Failed to award FIRST_CL credits:', err);
+        }
+      })();
+    }
 
     // Step 3: Trigger background processing (fire and forget)
     const io = req.app.get('io');
