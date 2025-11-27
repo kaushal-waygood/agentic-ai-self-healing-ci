@@ -1153,8 +1153,10 @@ export const getSavedApplications = async (req, res) => {
   }
 };
 
+// calculateJobMatchScore controller
 export const calculateJobMatchScore = async (req, res) => {
   const { jobDescription } = req.body;
+
   try {
     const student = await Student.findById(req.user._id);
     if (!student) {
@@ -1165,9 +1167,12 @@ export const calculateJobMatchScore = async (req, res) => {
       jobDescription,
       student,
     );
-    res.json({ matchScore, recommendation });
+
+    return res.json({ matchScore, recommendation });
   } catch (error) {
     console.error('Error in calculateJobMatchScore:', error);
-    res.status(500).json({ error: 'Failed to calculate job match score' });
+    return res
+      .status(500)
+      .json({ error: 'Failed to calculate job match score' });
   }
 };

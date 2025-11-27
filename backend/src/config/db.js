@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 // import { scheduleAutopilotTriggers } from './autopilotCron.js';
-import { config } from './config.js'; // Make sure this is the secure config we built
+import { config } from './config.js';
+import { removeExpiredUnverifiedUsers } from '../utils/cron.js';
 
 const connectDB = async () => {
   try {
@@ -8,6 +9,7 @@ const connectDB = async () => {
     console.log('✅ Database connected successfully.');
     // Start cron jobs
     // runAutopilotCron();
+    removeExpiredUnverifiedUsers();
   } catch (error) {
     console.error(`❌ Fatal Error: Database connection failed.`);
     console.error(error);

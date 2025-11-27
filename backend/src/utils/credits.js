@@ -20,7 +20,6 @@ export const CREDIT_EARN = {
   SIGNUP_WITH_REFERRAL_REFERRER: 50,
   DAILY_CHECKIN: 10,
   FIRST_JOB_SEARCH: 5,
-  VISITJOB_SITE: 5,
   FIRST_CV: 10,
   FIRST_CL: 10,
   PROFILE_COMPLETE_PERSONAL: 10,
@@ -63,11 +62,8 @@ async function resolveUser(userOrId) {
 export async function addCredits(userOrId, amount, kind = 'adjust', meta = {}) {
   const user = await resolveUser(userOrId);
 
-  console.log(user);
   const current = Number(user.credits || 0);
-  console.log(current);
   const newBalance = current + Number(amount);
-  console.log(newBalance);
 
   user.credits = newBalance;
   const tx = {
@@ -259,7 +255,6 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
     throw err;
   }
   const redirectForAction = (act, m) => {
-    console.log('redirectForAction', act, m);
     if (m && m.redirectUrl) return m.redirectUrl;
 
     switch (act) {
@@ -318,10 +313,6 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
   }
 
   const tx = await addCredits(user, amount, kind, finalMeta);
-
-  console.log(
-    `Earned ${amount} credits for ${action} by ${user._id} (${user.email})`,
-  );
 
   return { tx, balance: user.credits };
 }

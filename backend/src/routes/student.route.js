@@ -55,6 +55,10 @@ import puppeteer from 'puppeteer';
 import pkg from 'generic-pool';
 import { spawn } from 'child_process';
 import fs from 'fs';
+import {
+  claimDailyStreak,
+  getDailyStreak,
+} from '../controllers/credit.controller.js';
 
 const router = Router();
 
@@ -235,6 +239,9 @@ router.get(
   isStudent,
   earnCreditsViaSocialLinks,
 );
+
+router.get('/streaks', authMiddleware, isStudent, getDailyStreak);
+router.post('/streaks', authMiddleware, isStudent, claimDailyStreak);
 
 router.post(
   '/profile/onboarding',
