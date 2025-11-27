@@ -25,6 +25,8 @@ import {
   verifyUpdateEmail,
   linkedInCallback,
   resendVerificationEmail,
+  firebaseGoogleSignup,
+  firebaseGoogleLogin,
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 
@@ -45,6 +47,10 @@ router.get('/getme', authMiddleware, getMe);
 
 // Other routes remain the same
 router.post('/google/auth', firebaseAuth);
+
+router.post('/google/auth/signup', firebaseGoogleSignup);
+router.post('/google/auth/login', firebaseGoogleLogin);
+
 router.post('/signup', signUpUser);
 router.post('/verify', verifyEmail);
 router.post(

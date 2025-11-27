@@ -124,6 +124,31 @@ const oauth2Client = new google.auth.OAuth2(
   `${BACKEND_API_BASE_URL}/api/v1/user/oauth2callback`,
 );
 
+const handleFirebaseError = (error, res) => {
+  console.error('Firebase auth error:', error);
+
+  if (error.code === 'auth/id-token-expired') {
+    return res.status(401).json({
+      success: false,
+      message: 'Token expired. Please sign in again.',
+    });
+  }
+
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: error.errors,
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: 'Authentication failed',
+    error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+  });
+};
+
 /* Helper to send email using Gmail API (user must have refresh token stored) */
 const sendEmailViaGmailApi = async ({
   user,
@@ -268,6 +293,164 @@ export const firebaseAuth = async (req, res) => {
       message: 'Authentication failed',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
+  }
+};
+
+export const firebaseGoogleSignup = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'ID token is required' });
+    }
+
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email, name, picture } = decodedToken;
+    const emailLower = email.toLowerCase();
+
+    let user = await User.findOne({
+      $or: [{ firebaseUid: uid }, { email: emailLower }],
+    });
+
+    // Case 1: user exists WITHOUT firebaseUid but same email
+    if (user && !user.firebaseUid && user.email === emailLower) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Email already registered. Please sign in with your existing method or link accounts from your profile settings.',
+      });
+    }
+
+    // Case 2: user exists WITH firebaseUid matching this uid → already registered
+    if (user && user.firebaseUid && user.firebaseUid === uid) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Account already exists with Google. Please log in instead of signing up.',
+      });
+    }
+
+    // Case 3: user exists WITH firebaseUid but different uid → conflict
+    if (user && user.firebaseUid && user.firebaseUid !== uid) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Account exists with this email but linked to a different provider. Please sign in with your original method.',
+      });
+    }
+
+    // Case 4: no user → create new
+    if (!user) {
+      user = await User.create({
+        firebaseUid: uid,
+        authMethod: 'google',
+        email: emailLower,
+        fullName: name || 'Anonymous',
+        avatar: picture || '',
+        isEmailVerified: true,
+        role: 'student',
+        accountType: 'individual',
+        usageLimits: {
+          cvCreation: 1,
+          coverLetter: 1,
+          aiApplication: 1,
+          autoApply: 0,
+          aiAutoApply: 0,
+          aiAutoApplyDailyLimit: 0,
+          aiMannualApplication: -1,
+        },
+      });
+    }
+
+    const accessToken = user.generateAccessToken();
+    setAccessTokenCookie(res, accessToken);
+
+    return res.status(201).json({
+      success: true,
+      accessToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.fullName,
+        avatar: user.avatar,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    return handleFirebaseError(error, res);
+  }
+};
+
+export const firebaseGoogleLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'ID token is required' });
+    }
+
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email } = decodedToken;
+    const emailLower = email.toLowerCase();
+
+    let user = await User.findOne({
+      $or: [{ firebaseUid: uid }, { email: emailLower }],
+    });
+
+    // Case 1: no user at all
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message:
+          'No account found for this Google account. Please sign up first.',
+      });
+    }
+
+    // Case 2: user exists WITHOUT firebaseUid but same email
+    if (!user.firebaseUid && user.email === emailLower) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Email already registered with a different sign-in method. Please use your original method or link accounts from your profile settings.',
+      });
+    }
+
+    // Case 3: user has firebaseUid but different uid → conflict
+    if (user.firebaseUid && user.firebaseUid !== uid) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Account exists with this email but linked to a different provider. Please sign in with your original method.',
+      });
+    }
+
+    // Case 4: valid login: firebaseUid matches uid
+    if (user.firebaseUid && user.firebaseUid === uid) {
+      const accessToken = user.generateAccessToken();
+      setAccessTokenCookie(res, accessToken);
+
+      return res.status(200).json({
+        success: true,
+        accessToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.fullName,
+          avatar: user.avatar,
+          role: user.role,
+        },
+      });
+    }
+
+    // Fallback, should not really hit this if cases above are correct
+    return res.status(400).json({
+      success: false,
+      message: 'Unable to authenticate with Google using this account.',
+    });
+  } catch (error) {
+    return handleFirebaseError(error, res);
   }
 };
 
@@ -1300,6 +1483,7 @@ export const redirectToGoogle = async (req, res) => {
 
 export const handleGoogleCallback = async (req, res) => {
   const { code } = req.query;
+  console.log('calling', code);
   if (!code)
     return res
       .status(400)
@@ -1342,6 +1526,18 @@ export const handleGoogleCallback = async (req, res) => {
           unsubscribeUrl: 'https://zobsai.com/unsubscribe',
         },
       });
+
+      const token = jwt.sign(
+        { id: user._id, email: user.email },
+        config.accessTokenSecret,
+        { expiresIn: '7d' },
+      );
+
+      return res.redirect(
+        `${
+          FRONTEND_URL || 'http://127.0.0.1:3000'
+        }/auth/google/callback?token=${token}&new=true`,
+      );
     }
 
     const token = jwt.sign(
@@ -1350,16 +1546,10 @@ export const handleGoogleCallback = async (req, res) => {
       { expiresIn: '7d' },
     );
 
-    res.cookie('accessToken', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-    });
-
     return res.redirect(
       `${
         FRONTEND_URL || 'http://127.0.0.1:3000'
-      }/auth/google/callback?token=${token}`,
+      }/auth/google/callback?token=${token}&new=false`,
     );
   } catch (error) {
     console.error('Error handling Google callback:', error);

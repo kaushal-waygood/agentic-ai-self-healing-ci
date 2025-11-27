@@ -1,4 +1,3 @@
-// hooks/useDailyStreak.ts
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -7,6 +6,14 @@ import {
   claimDailyStreakApi,
   DailyStreakResponse,
 } from '@/services/api/streakApi';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import {
+  fetchDailyStreakRequest,
+  getCreditRequest,
+  getTotalCreditRequest,
+} from '@/redux/reducers/creditReducer';
 
 type StreakState = {
   current: number;
@@ -27,9 +34,25 @@ export function useDailyStreak() {
     freezeTokens: 0,
   });
 
+  const dispatch = useDispatch();
+  const {
+    claimCredits,
+    credit,
+    loading: creditLoading,
+    error: creditError,
+    streak: reduxStreak, // Fixed: renamed from 'any' to 'reduxStreak'
+  } = useSelector((state: RootState) => state.credit);
+
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchDailyStreakRequest());
+    dispatch(getCreditRequest());
+    dispatch(getTotalCreditRequest());
+    console.log('useDailyStreak', credit);
+  }, [dispatch]);
 
   const load = useCallback(async () => {
     try {
@@ -79,35 +102,45 @@ export function useDailyStreak() {
         freezeTokens: s.freezeTokens ?? prev.freezeTokens,
       }));
 
-      // optionally: show toast with res.message or res.credits.earned
-      // toast.success(res.message || 'Check-in successful');
+      // Refresh credit after claiming streak
+      dispatch(getCreditRequest());
     } catch (err: any) {
       console.error('Failed to claim streak:', err);
-      // you can inspect err.response.status for 409 etc
       setError('Failed to claim daily check-in');
     } finally {
       setClaiming(false);
     }
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  // Sync with Redux state if needed
+  useEffect(() => {
+    dispatch(getCreditRequest());
+    dispatch(fetchDailyStreakRequest());
+  }, [dispatch]);
+
   return {
     streak,
+    credit,
     loading,
     claiming,
     error,
     reload: load,
     claim,
+    claimCredits,
+    creditLoading,
+    creditError,
+    reduxStreak,
   };
 }
 
-// helper from above
+// Helper function to get UI day index from date
 function getUiDayIndexFromDate(date: Date): number {
   const jsDay = date.getDay(); // 0..6
-  const map = [6, 0, 1, 2, 3, 4, 5];
+  const map = [6, 0, 1, 2, 3, 4, 5]; // Sunday = 6, Monday = 0, etc.
   return map[jsDay];
 }
 
@@ -128,5 +161,5 @@ function computeActiveDays(
     if (!days.includes(idx)) days.push(idx);
   }
 
-  return days;
+  return days.sort((a, b) => a - b); // Sort for consistent order
 }

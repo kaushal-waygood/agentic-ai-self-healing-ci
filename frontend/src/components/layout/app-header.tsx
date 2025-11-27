@@ -181,33 +181,15 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 };
 
 export const TotalCredit = () => {
-  const [credits, setCredits] = useState<{
-    streak: number;
-    gold: number;
-    longest?: number;
-    days?: any[];
-  }>({
-    streak: 0,
-    gold: 0,
-    longest: 0,
-    days: [],
-  });
   const [open, setOpen] = useState(false);
 
-  const { streak, loading, claiming, claim } = useDailyStreak();
+  const { streak, loading, claiming, claim, claimCredits, credit } =
+    useDailyStreak();
 
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    const fetchCredits = async () => {
-      try {
-        const res = await apiInstance.get('/students/total-credits');
-        setCredits(res.data);
-      } catch (e) {
-        console.error('Failed to load credits', e);
-      }
-    };
-    fetchCredits();
+    console.log('credits', credit.credits);
   }, []);
 
   // Close on outside click
@@ -225,26 +207,26 @@ export const TotalCredit = () => {
     <div className="relative" ref={dropdownRef}>
       <div className="flex items-center  bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
         {/* Fire */}
-        <Tooltip label="Current streak">
+        <Tooltip>
           <button
             onClick={() => setOpen(!open)}
             className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
           >
             <Flame className="w-6 h-6 text-pink-500" />
             <span className="text-sm font-medium text-pink-500">
-              {credits.streak || 0}
+              {streak.current || 0}
             </span>
           </button>
         </Tooltip>
         {/* Gold */}
-        <Tooltip label="Total credits">
+        <Tooltip>
           <Link
             href="/dashboard/credits"
             className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
           >
             <Coins className="w-6 h-6 text-yellow-500" />
             <span className="text-sm font-medium text-gray-700">
-              {credits.gold || 0}
+              {credit.credits}
             </span>
           </Link>
         </Tooltip>
