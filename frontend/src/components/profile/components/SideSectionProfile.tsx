@@ -42,8 +42,15 @@ const SideSectionProfile = ({
   handlePersonalInfoEdit,
   handleCancelEdit,
 }: any) => {
-  const { fullName, email, phone, jobPreference, uploadedCV } =
-    personalInfoForm.control._formValues;
+  // ✅ Use public API, not internal `_formValues`
+  const formValues = personalInfoForm.getValues();
+  const {
+    fullName = '',
+    email = '',
+    phone = '',
+    jobPreference = '',
+    uploadedCV = '',
+  } = formValues;
 
   // ✅ Displayed profile info
   const [profileData, setProfileData] = useState({
@@ -75,31 +82,47 @@ const SideSectionProfile = ({
 
   // ✅ Open modal with current data
   const openEditModal = () => {
-    setTempFormData(profileData);
+    // sync from latest profileData
+    setTempFormData((prev) => ({
+      ...prev,
+      fullName: profileData.fullName ?? '',
+      email: profileData.email ?? '',
+      phone: profileData.phone ?? '',
+      jobPreference: profileData.jobPreference ?? '',
+    }));
     setPreview(profileData.image);
     setIsModalOpen(true);
   };
 
-  // ✅ Save only when clicked
   const handleSave = async () => {
     try {
-      // Update main profile data from temp data
-      setProfileData(tempFormData);
+      setProfileData((prev) => ({
+        ...prev,
+        fullName: tempFormData.fullName,
+        phone: tempFormData.phone,
+        jobPreference: tempFormData.jobPreference,
+      }));
 
-      // Update form values
+      // Sync to form
       personalInfoForm.setValue('fullName', tempFormData.fullName);
-      personalInfoForm.setValue('email', tempFormData.email);
       personalInfoForm.setValue('phone', tempFormData.phone);
       personalInfoForm.setValue('jobPreference', tempFormData.jobPreference);
 
-      // Trigger backend update
+      const jobRoleFromForm = personalInfoForm.getValues('jobPreference');
+      console.log('Updated job role (from form):', jobRoleFromForm);
+      console.log(
+        'Updated job role (from tempFormData):',
+        tempFormData.jobPreference,
+      );
+
+      // Order doesn't even matter now, value is explicit
       await handlePersonalInfoEdit('fullName');
-      await handlePersonalInfoEdit('email');
       await handlePersonalInfoEdit('phone');
-      await handlePersonalInfoEdit('jobPreference');
+      await handlePersonalInfoEdit('jobPreference', {
+        jobPreference: tempFormData.jobPreference,
+      });
 
       setIsModalOpen(false);
-      // console.log('Profile updated successfully', profileData);
     } catch (error) {
       console.error('Error updating profile:', error);
     }
@@ -153,7 +176,7 @@ const SideSectionProfile = ({
           </a>
         </div>
 
-        {/* Upload CV Section (unchanged) */}
+        {/* Upload CV Section */}
         <div className="bg-white rounded-lg p-6 border  ">
           <div className="text-center mb-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-2">

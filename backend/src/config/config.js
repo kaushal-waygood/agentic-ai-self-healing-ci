@@ -4,7 +4,7 @@ dotenv.config({ quiet: true, override: true, path: ['.env'] }); // No need for s
 // --- Function to get a required environment variable ---
 const getEnv = (key) => {
   const value = process.env[key];
-  console.log(`[CONFIG] ${key} = ${value}`);
+  // console.log(`[CONFIG] ${key} = ${value}`);
   if (!value) {
     console.error(`❌ Missing critical environment variable: ${key}`);
     process.exit(1); // Exit the process with an error code
@@ -26,7 +26,7 @@ export const config = {
   rapidJobApi: 'https://jsearch.p.rapidapi.com/search',
   rapidApiKey: getEnv('RAPID_API_KEY'),
   rapidApiHost: 'jsearch.p.rapidapi.com',
-  geminiAPI: getEnv('GEMINI_API_KEY'),
+  geminiAPI: getEnv('GOOGLE_GENERATIVE_AI_KEY'),
 
   // Redis
   redisHost: process.env.REDIS_HOST,

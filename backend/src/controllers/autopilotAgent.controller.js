@@ -6,6 +6,11 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/config.js';
 import { User } from '../models/User.model.js';
+import {
+  addCredits,
+  CREDIT_EARN,
+  earnCreditsForAction,
+} from '../utils/credits.js';
 
 // ----------------- helpers -----------------
 const toBool = (v) => {
@@ -67,8 +72,6 @@ export const createAutopilotAgent = async (req, res) => {
       'employmentTypes',
     ];
 
-    console.log(req.body);
-
     const missing = requiredFields.filter((f) => !req.body[f]);
     if (missing.length) {
       return res.status(400).json({
@@ -79,8 +82,10 @@ export const createAutopilotAgent = async (req, res) => {
     }
 
     // student exists?
-    const exists = await Student.exists({ _id: studentId });
-    if (!exists) {
+    const studentBefore = await Student.findById(studentId)
+      .select('cvs autopilotAgent')
+      .lean();
+    if (!studentBefore) {
       return res
         .status(404)
         .json({ success: false, message: 'Student not found' });
@@ -201,12 +206,24 @@ export const createAutopilotAgent = async (req, res) => {
       }
     }
 
-    // create agent on student
+    const isFirstCV =
+      !Array.isArray(studentBefore.autopilotAgent) ||
+      studentBefore.autopilotAgent.length === 0;
+
+    console.log('isFirstCV:', isFirstCV);
+
+    if (isFirstCV) {
+      addCredits(studentId, CREDIT_EARN.FIRST_AUTO_AGENT_SETUP);
+    }
+
+    // create agent on student (push)
     const updated = await Student.findByIdAndUpdate(
       studentId,
       { $push: { autopilotAgent: newAgent } },
       { new: true, runValidators: true },
-    ).select('autopilotAgent');
+    );
+
+    console.log(updated);
 
     if (!updated) {
       return res
@@ -214,14 +231,10 @@ export const createAutopilotAgent = async (req, res) => {
         .json({ success: false, message: 'Student not found after update' });
     }
 
-    await User.findByIdAndUpdate(
-      {
-        _id: studentId,
-      },
-      {
-        $inc: { 'usageCounters.aiAutoApply': 1 },
-      },
-    );
+    // increment usage counter (user and student are same actor here)
+    await User.findByIdAndUpdate(studentId, {
+      $inc: { 'usageCounters.aiAutoApply': 1 },
+    });
 
     const createdAgent = updated.autopilotAgent.find(
       (a) => a.agentId === agentId,
@@ -235,7 +248,11 @@ export const createAutopilotAgent = async (req, res) => {
   } catch (error) {
     // cleanup file if still present
     if (req.file?.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        console.error('Failed to remove uploaded file during error cleanup', e);
+      }
     }
     console.error('Agent creation error:', error);
     return res.status(500).json({

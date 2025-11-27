@@ -8,6 +8,9 @@ import {
   Linkedin,
   Twitter,
   Rocket,
+  Instagram,
+  Youtube,
+  Facebook,
 } from 'lucide-react';
 
 export const footerLinks = {
@@ -47,8 +50,41 @@ export const footerLinks = {
 };
 
 export const socialLinks = [
-  { name: 'Twitter', icon: Twitter, color: 'blue', followers: '12.5K' },
-  { name: 'LinkedIn', icon: Linkedin, color: 'blue', followers: '25.8K' },
-  { name: 'GitHub', icon: Github, color: 'gray', followers: '5.2K' },
-  { name: 'Discord', icon: MessageSquare, color: 'purple', followers: '8.9K' },
+  {
+    name: 'LinkedIn',
+    icon: Linkedin,
+    color: 'blue',
+    followers: '25.8K',
+    url: 'https://www.linkedin.com/company/zobsai-com/',
+  },
+  {
+    name: 'Instagram',
+    icon: Instagram,
+    color: 'purple',
+    followers: '8.9K',
+    url: 'https://www.instagram.com/zobsai.co/',
+  },
+  {
+    name: 'Youtube',
+    icon: Youtube,
+    color: 'red',
+    followers: '8.9K',
+    url: 'https://www.youtube.com/@ZobsAI/',
+  },
+  {
+    name: 'Facebook',
+    icon: Facebook,
+    color: 'blue',
+    followers: '8.9K',
+    url: 'https://www.facebook.com/zobsai.co/',
+  },
+  // { name: 'Twitter', icon: Twitter, color: 'blue', followers: '12.5K' },
+  // {
+  //   name: 'GitHub',
+  //   icon: Github,
+  //   color: 'gray',
+  //   followers: '5.2K',
+  //   url: 'https://github.com/ResumeAI',
+  // },
+  // { name: 'Discord', icon: MessageSquare, color: 'purple', followers: '8.9K' },
 ];

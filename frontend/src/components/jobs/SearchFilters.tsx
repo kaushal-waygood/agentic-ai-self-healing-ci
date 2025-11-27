@@ -131,12 +131,13 @@ export const SearchFilters = ({
             id="search-bar"
             type="text"
             // placeholder="Job title, keywords, or company..."
-            placeholder="eg. java developer in India"
+            placeholder="economist in New York, NY | system design in San Francisco, CA"
             value={localFilters.query}
             onChange={(e) => handleInputChange('query', e.target.value)}
             onKeyDown={handleKeyDown}
             className="input-search"
             aria-label="Search jobs"
+            
           />
         </div>
 {/* 

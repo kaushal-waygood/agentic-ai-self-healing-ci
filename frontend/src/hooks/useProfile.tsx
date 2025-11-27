@@ -314,11 +314,11 @@ export const useProfile = () => {
 
   const studentData = useMemo(() => getStudentData(), [getStudentData]);
 
-  /* ---------- forms (kept same as before) ---------- */
+  /* ---------- forms ---------- */
   const personalInfoForm = useForm<
     Pick<
       ProfileFormValues,
-      'fullName' | 'email' | 'phone' | 'avatar' | 'jobPreference | uploadedCV'
+      'fullName' | 'email' | 'phone' | 'avatar' | 'jobPreference' | 'uploadedCV'
     >
   >({
     resolver: zodResolver(
@@ -387,7 +387,7 @@ export const useProfile = () => {
     mode: 'onChange',
   });
 
-  /* ---------- reset forms when student data changes (same logic) ---------- */
+  /* ---------- reset forms when student data changes ---------- */
   useEffect(() => {
     const sd = studentData;
     if (!sd) return;
@@ -427,7 +427,7 @@ export const useProfile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentData]);
 
-  /* ---------- defaultValues memoization (keeps identity stable) ---------- */
+  /* ---------- defaultValues memoization ---------- */
   const defaultValues: any = useMemo(() => {
     const sd = studentData;
     return {
@@ -481,7 +481,7 @@ export const useProfile = () => {
     dispatch(getStudentDetailsRequest());
   }, [dispatch]);
 
-  /* ========== handlers (wrapped with useCallback) ========== */
+  /* ========== handlers ========== */
 
   const handleDeleteSkills = useCallback(
     (index: string) => {
@@ -620,36 +620,37 @@ export const useProfile = () => {
   );
 
   const handlePersonalInfoEdit = useCallback(
-    async (field: 'fullName' | 'email' | 'phone' | 'jobPreference') => {
+    async (
+      field: 'fullName' | 'email' | 'phone' | 'jobPreference',
+      payload?: { jobPreference?: string },
+    ) => {
       try {
+        console.log('Field:', field, personalInfoForm.getValues(field));
+
         if (field === 'fullName') {
           const fullName = personalInfoForm.getValues('fullName');
           await apiInstance.patch('/students/fullname/update', { fullName });
           nameToggle.off();
           dispatch(getStudentDetailsRequest());
-          toast({ title: 'Full Name Updated' });
-        } else if (field === 'email') {
-          const email = personalInfoForm.getValues('email');
-          await apiInstance.patch('/students/email/update', { email });
-          emailToggle.off();
-          dispatch(getStudentDetailsRequest());
-          toast({ title: 'Email Updated' });
         } else if (field === 'phone') {
           const phone = personalInfoForm.getValues('phone');
           await apiInstance.patch('/students/phone/update', { phone });
           phoneToggle.off();
           dispatch(getStudentDetailsRequest());
-          toast({ title: 'Phone Number Updated' });
         } else if (field === 'jobPreference') {
-          const jobPreference = personalInfoForm.getValues('jobPreference');
+          // ✅ Prefer explicit payload over form (form may be reset)
+          const jobPreference =
+            payload?.jobPreference ??
+            personalInfoForm.getValues('jobPreference');
+
+          console.log('JobPreference used in API:', jobPreference);
+
           await apiInstance.post('/students/job-role/update', {
             jobRole: jobPreference,
           });
-          jobPrefToggle.setVal(false);
-          dispatch(
-            updateStudentJobPreferenceRequest({ jobRole: jobPreference }),
-          );
-          toast({ title: 'Job Preference Updated' });
+
+          jobPrefToggle.off();
+          dispatch(getStudentDetailsRequest());
         }
       } catch (err) {
         console.error(`Failed to update ${field}:`, err);
@@ -667,7 +668,7 @@ export const useProfile = () => {
     ],
   );
 
-  /* ---------- public API object (preserve all names used externally) ---------- */
+  /* ---------- public API object ---------- */
   const publicApi = useMemo(
     () => ({
       isNameEditable: nameToggle.val,
@@ -753,9 +754,7 @@ export const useProfile = () => {
       handlePersonalInfoEdit,
       handleCancelEdit,
       defaultValues,
-      // expose modal setters (provide equivalent simple setters to maintain parity)
     }),
-    // dependency array intentionally includes only stable references / values used above
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       nameToggle.val,
@@ -781,14 +780,11 @@ export const useProfile = () => {
       narrativesForm,
       jobSearchForm,
       defaultValues,
-      // functions are stable because of useCallback; they can be listed but not necessary
     ],
   );
 
   /* -------------------------
-     Keep external setter functions named like before
-     to avoid changing call sites in the codebase.
-     These just wrap modalDispatch / local state setters.
+     setters wrapping modalDispatch
      ------------------------- */
   function setEditEdu(v: boolean) {
     modalDispatch({ type: 'set', key: 'editEdu', value: v });
@@ -855,11 +851,6 @@ export const useProfile = () => {
     setEditSkillIndex(v);
   }
 
-  // attach setter functions onto the returned API so existing call sites still work
-  // (these will override the earlier "setX" functions returned in the memo if needed)
-  // Note: we intentionally don't include every tiny internal helper in the dependency list above.
-
-  // final public API (merge with setter wrappers)
   const finalApi = {
     ...publicApi,
     setEditEdu,
@@ -884,15 +875,5 @@ export const useProfile = () => {
     setEditSkillIndex: setEditSkillIndexFn,
   };
 
-  /* debug output preserved (was in original) */
-  useEffect(() => {
-    console.log(
-      'useProfile: defaultValues identity changed, eduLen:',
-      defaultValues.education?.length ?? 0,
-      'expLen:',
-      defaultValues.experience?.length ?? 0,
-    );
-  }, [defaultValues]);
-
-  return finalApi as any; // kept `any` to preserve prior loose typing and avoid rippling changes
+  return finalApi as any;
 };

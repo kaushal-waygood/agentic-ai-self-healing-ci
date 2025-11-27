@@ -83,8 +83,6 @@ export function buildEffectiveStudentProfile(student, agent) {
     preferredCountries.push(agentCountry);
   }
 
-  console.log(student);
-
   return {
     ...student,
     jobRole: agent?.jobTitle || student?.jobRole,

@@ -17,6 +17,8 @@ const GoogleAuthCallback = () => {
 
   useEffect(() => {
     const token = searchParams.get('token');
+    const error = searchParams.get('error');
+    const isNew = searchParams.get('new');
 
     if (token) {
       try {
@@ -25,7 +27,11 @@ const GoogleAuthCallback = () => {
         dispatch(googleLoginSuccess(token));
         dispatch(getGetMeRequest());
 
-        navigate.push('/dashboard/onboarding-tour');
+        if (isNew === 'true') {
+          navigate.push('/dashboard/onboarding-tour');
+        } else {
+          navigate.push('/dashboard');
+        }
       } catch (error) {
         console.error('Invalid token:', error);
         navigate.push('/login?error=invalid_token');

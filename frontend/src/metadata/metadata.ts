@@ -197,7 +197,7 @@ export const privacyPolicyMetadata = {
 };
 
 export const profileMetadata = {
-  title: 'My Professional Profile | Zobsai',
+  title: 'My Profile | Zobsai',
   description:
     'Update your skills, experience, and preferences. A complete profile helps our AI find the perfect job matches and apply on your behalf.',
   keywords: [
@@ -308,7 +308,7 @@ export const termsOfServiceMetadata = {
 };
 
 export const dashboardMetadata = {
-  title: 'Candidate Dashboard | Zobsai',
+  title: 'Dashboard | Zobsai',
   description:
     'Your central hub for job success. View daily match stats, recent applications, and AI insights to optimize your job search strategy.',
   keywords: [
