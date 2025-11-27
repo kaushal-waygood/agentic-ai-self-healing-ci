@@ -20,7 +20,6 @@ export const CREDIT_EARN = {
   SIGNUP_WITH_REFERRAL_REFERRER: 50,
   DAILY_CHECKIN: 10,
   FIRST_JOB_SEARCH: 5,
-  VISITJOB_SITE: 5,
   FIRST_CV: 10,
   FIRST_CL: 10,
   PROFILE_COMPLETE_PERSONAL: 10,
@@ -62,13 +61,9 @@ async function resolveUser(userOrId) {
 
 export async function addCredits(userOrId, amount, kind = 'adjust', meta = {}) {
   const user = await resolveUser(userOrId);
+
   const current = Number(user.credits || 0);
   const newBalance = current + Number(amount);
-  if (newBalance < 0) {
-    const err = new Error('Insufficient credits');
-    err.status = 402;
-    throw err;
-  }
 
   user.credits = newBalance;
   const tx = {
@@ -260,7 +255,6 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
     throw err;
   }
   const redirectForAction = (act, m) => {
-    console.log('redirectForAction', act, m);
     if (m && m.redirectUrl) return m.redirectUrl;
 
     switch (act) {
@@ -270,7 +264,7 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
 
       case 'FIRST_CL':
       case 'COVER_LETTER':
-        return '/dashboard/cover-letter';
+        return '/dashboard/cover-letter-generator';
 
       case 'DAILY_CHECKIN':
         return '/rewards';
@@ -302,7 +296,7 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
 
       case 'FIRST_AUTO_AGENT_SETUP':
       case 'FIRST_AUTO_APPLICATION_SENT':
-        return '/dashboard/auto-agents';
+        return '/dashboard/ai-auto-apply';
 
       default:
         return '/rewards';
@@ -318,12 +312,7 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
     // leave meta as-is
   }
 
-  // Finally add credits and return tx
   const tx = await addCredits(user, amount, kind, finalMeta);
-
-  console.log(
-    `Earned ${amount} credits for ${action} by ${user._id} (${user.email})`,
-  );
 
   return { tx, balance: user.credits };
 }

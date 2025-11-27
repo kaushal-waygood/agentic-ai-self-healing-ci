@@ -5,6 +5,7 @@ import { jobsWatcher } from './sagas/jobSaga';
 import { studentWatcher } from './sagas/studentSaga';
 import { watchAI } from './sagas/aiSaga';
 import { autopilotWatcher } from './sagas/autopilotSaga';
+import { creditSaga } from './sagas/creditSaga';
 
 export function* rootSaga() {
   try {
@@ -15,6 +16,7 @@ export function* rootSaga() {
       studentWatcher(),
       watchAI(),
       autopilotWatcher(),
+      creditSaga(),
     ]);
   } catch (error) {
     console.error('Saga error:', error);

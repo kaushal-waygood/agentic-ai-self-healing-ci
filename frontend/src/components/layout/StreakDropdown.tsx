@@ -1,29 +1,46 @@
 'use client';
 
-import { Flame, Bell, ArrowBigRight } from 'lucide-react';
+import { Flame, ArrowBigRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type StreakDropdownProps = {
-  streak?: number;
-  longest?: number;
-  activeDays?: number[]; // Example: [1,3,5] meaning Tue, Thu, Sat
-  // onReminderClick?: () => void;
+  streak: number;
+  longest: number;
+  activeDays: number[]; // 0..6, Monday-first (0=Mon, 6=Sun)
+  canClaimToday: boolean;
+  isClaiming: boolean;
+  onCheckIn: () => void;
 };
+
+const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+// JS getDay: 0=Sun..6=Sat
+// Your UI: 0=Mon..6=Sun
+function getTodayIndex(): number {
+  const jsDay = new Date().getDay(); // 0..6 (Sun..Sat)
+  // map: Sun(0)->6, Mon(1)->0, Tue(2)->1, ... Sat(6)->5
+  const map = [6, 0, 1, 2, 3, 4, 5];
+  return map[jsDay];
+}
 
 export default function StreakDropdown({
   streak = 0,
   longest = 0,
   activeDays = [],
-}: // onReminderClick = () => {},
-StreakDropdownProps) {
-  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
+  canClaimToday,
+  isClaiming,
+  onCheckIn,
+}: StreakDropdownProps) {
   const [animate, setAnimate] = useState(false);
+
+  console.log('streak', streak);
 
   useEffect(() => {
     const t = setTimeout(() => setAnimate(true), 10);
     return () => clearTimeout(t);
   }, []);
+
+  const todayIdx = getTodayIndex();
 
   return (
     <div
@@ -49,7 +66,7 @@ StreakDropdownProps) {
       {/* Week dots */}
       <div className="flex justify-between items-center mt-4">
         {days.map((d, idx) => {
-          const isToday = idx === new Date().getDay() - 1;
+          const isToday = idx === todayIdx;
           const hasRead = activeDays.includes(idx);
 
           return (
@@ -75,22 +92,30 @@ StreakDropdownProps) {
       </div>
 
       <div className="mt-4 text-sm">
-        Total reading days:{' '}
+        Total active days:{' '}
         <span className="font-semibold">{activeDays.length}</span>
       </div>
 
-      {/* <div className="mt-1 text-xs text-blue-600 underline">Asia/Kolkata</div> */}
-
-      {/* Reminder CTA */}
+      {/* Reminder / Check-in CTA */}
       <div className="mt-4 p-3 bg-gray-100 rounded-lg flex items-center justify-between">
-        <span className="text-sm font-medium">Check In </span>
+        <span className="text-sm font-medium">
+          {canClaimToday ? 'Daily check-in available' : 'Come back tomorrow'}
+        </span>
 
         <button
-          // onClick={onReminderClick}
-          className="bg-pink-500 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1"
+          onClick={canClaimToday && !isClaiming ? onCheckIn : undefined}
+          disabled={!canClaimToday || isClaiming}
+          className={`
+            px-3 py-1 rounded-lg text-sm flex items-center gap-1
+            ${
+              canClaimToday && !isClaiming
+                ? 'bg-pink-500 text-white'
+                : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+            }
+          `}
         >
           <ArrowBigRight className="w-4 h-4" />
-          <span>Go</span>
+          <span>{isClaiming ? '...' : 'Go'}</span>
         </button>
       </div>
     </div>

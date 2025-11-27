@@ -23,7 +23,10 @@ import {
   notifyUserForAutopilot,
   isEmailSentForNotify,
   verifyUpdateEmail,
+  linkedInCallback,
   resendVerificationEmail,
+  firebaseGoogleSignup,
+  firebaseGoogleLogin,
 } from '../controllers/user.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 
@@ -36,12 +39,18 @@ router.post('/send-test-email', authMiddleware, testSendEmail);
 router.get('/oauth2callback', oAuth2Callback);
 router.post('/google/disconnect', authMiddleware, disconnectGoogle);
 
+router.get('/linkedin/callback', linkedInCallback);
+
 router.get('/google/auth/redirect', redirectToGoogle);
 router.get('/google/auth/redirect/callback', handleGoogleCallback);
 router.get('/getme', authMiddleware, getMe);
 
 // Other routes remain the same
 router.post('/google/auth', firebaseAuth);
+
+router.post('/google/auth/signup', firebaseGoogleSignup);
+router.post('/google/auth/login', firebaseGoogleLogin);
+
 router.post('/signup', signUpUser);
 router.post('/verify', verifyEmail);
 router.post(

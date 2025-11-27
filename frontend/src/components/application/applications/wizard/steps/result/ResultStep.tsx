@@ -214,7 +214,7 @@ const ResultStep = ({
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-4 font-sans">
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 mb-8 p-2 bg-slate-100 rounded-2xl shadow-inner">
+      <div className="flex flex-wrap gap-2 mb-4 p-2 bg-slate-100 rounded-lg shadow-inner">
         {sections.map((section, index) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -224,7 +224,7 @@ const ResultStep = ({
             <CustomButton
               key={section.id}
               onClick={() => setActiveSection(section.id)}
-              className={`flex items-center space-x-2 px-4 py-3 rounded-xl font-medium transition-all duration-300 transform ${
+              className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-300 transform ${
                 isActive
                   ? `bg-gradient-to-r ${section.color} text-white shadow-lg scale-105`
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white hover:shadow-sm'
@@ -247,8 +247,8 @@ const ResultStep = ({
       <div className="space-y-6">
         {/* Job Details Section */}
         {activeSection === 'job' && jobContext && (
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-2">
               <div className="flex items-center space-x-3 text-white">
                 <Briefcase className="w-6 h-6" />
                 <h2 className="text-2xl font-bold">Job Details</h2>
@@ -258,8 +258,8 @@ const ResultStep = ({
               </p>
             </div>
 
-            <div className="p-8">
-              <div className="mb-6">
+            <div className="p-4">
+              <div className="mb-4">
                 <h3 className="text-2xl font-bold text-slate-900 mb-2">
                   {jobContext.jobTitle}
                 </h3>
@@ -270,7 +270,7 @@ const ResultStep = ({
 
               <div className="w-full h-px bg-slate-200 my-4" />
 
-              <div className="h-64 overflow-y-auto p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+              <div className="h-64 overflow-y-auto p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
                 <div
                   className="prose max-w-none text-slate-700"
                   dangerouslySetInnerHTML={{
@@ -284,7 +284,7 @@ const ResultStep = ({
 
         {/* Tailored CV Section */}
         {activeSection === 'cv' && (
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 justify-center text-white">
@@ -310,8 +310,8 @@ const ResultStep = ({
 
         {/* Tailored Cover Letter Section */}
         {activeSection === 'cover' && (
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 p-6">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
+            <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 p-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 text-white">
                   <FileCheck2 className="w-6 h-6" />
@@ -354,8 +354,8 @@ const ResultStep = ({
 
         {/* Application Email Draft Section */}
         {activeSection === 'email' && (
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-purple-500 to-cyan-500 p-6">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
+            <div className="bg-gradient-to-r from-purple-500 to-cyan-500 p-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 text-white">
                   <Mail className="w-6 h-6" />
@@ -400,18 +400,18 @@ const ResultStep = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-6 bg-white rounded-2xl shadow-lg border border-slate-200">
-        <CustomButton
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white rounded-lg shadow-lg border border-slate-200">
+        {/* <CustomButton
           variant="ghost"
           onClick={() => setWizardStep('generate')}
-          className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-xl hover:bg-slate-100"
+          className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-lg hover:bg-slate-100"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="font-medium">Back to Generate</span>
-        </CustomButton>
+        </CustomButton> */}
 
         <div className="flex items-center flex-wrap justify-end gap-3">
-          {user?.googleAuth ? (
+          {/* {user?.googleAuth ? (
             <CustomButton
               onClick={handleStartNew}
               className="flex items-center space-x-2 px-4 py-2 bg-white text-black rounded-lg font-medium shadow-md hover:bg-slate-700 transition-all duration-300 hover:scale-105"
@@ -427,7 +427,7 @@ const ResultStep = ({
               <PlusCircle className="w-4 h-4" />
               <span>Connect Google</span>
             </CustomButton>
-          )}
+          )} */}
 
           <CustomButton
             onClick={() => router.push('/dashboard/apply')}

@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,12 +13,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { X } from 'lucide-react';
+import { Globe, MapPin, X } from 'lucide-react';
+import CountrySelector from '../common/CountrySelector';
+import StateSelector from '../common/StateSelector';
 
 interface FilterModalProps {
   isOpen: boolean;
   onClose: () => void;
+
   employmentTypes: string[];
+
   experienceLevels: string[];
   filters: any;
   onFilterChange: (newFilters: any) => void;
@@ -171,6 +175,7 @@ export const FilterModal = ({
       query: filters.query,
       country: filters.country,
       city: filters.city,
+      state: filters.state,
       datePosted: '',
       employmentType: [],
       experience: [],
@@ -180,6 +185,22 @@ export const FilterModal = ({
     onReset();
   };
 
+  const handleCountryChange = useCallback((countryCode: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      country: countryCode,
+      state: '', // reset state when country changes
+    }));
+  }, []);
+
+  const handleStateChange = useCallback((stateCode: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      state: stateCode,
+    }));
+  }, []);
+
+  console.log('localFilters', localFilters);
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl bg-white">
@@ -189,6 +210,28 @@ export const FilterModal = ({
             Refine your job search to find the perfect fit.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="space-y-4 ">
+          <div className="input-search-box-div">
+            <Globe className="input-search-icon" />
+            <CountrySelector
+              value={localFilters.country || ''}
+              onChange={handleCountryChange}
+              className="input-search"
+            />
+          </div>
+
+          <div className="input-search-box-div">
+            <MapPin className="input-search-icon" />
+            <StateSelector
+              countryCode={localFilters.country}
+              value={localFilters.state}
+              onChange={handleStateChange}
+              disabled={!localFilters.country}
+              className="input-search"
+            />
+          </div>
+        </div>
 
         <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">

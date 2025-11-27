@@ -6,15 +6,19 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/config.js';
 import crypto from 'crypto'; // Added for password reset token
 import { v4 as uuidv4 } from 'uuid'; // <-- use this
+import { link } from 'fs';
 
 const userSchema = new Schema(
   {
     firebaseUid: {
       type: String,
     },
+    linkedInUid: {
+      type: String,
+    },
     authMethod: {
       type: String,
-      enum: ['google', 'local', 'firebase'],
+      enum: ['google', 'local', 'firebase', 'linkedin'],
       default: 'local',
     },
     googleAuth: {
@@ -41,7 +45,7 @@ const userSchema = new Schema(
     },
     fullName: {
       type: String,
-      required: true,
+      // required: true,
     },
     email: {
       type: String,
@@ -64,14 +68,15 @@ const userSchema = new Schema(
       enum: ['student', 'OrgAdmin', 'super-admin', 'admin'],
       default: 'student',
     },
+    credits: { type: Number, default: 0 },
+
     referralCode: {
       type: String,
       unique: true,
-      sparse: true,
-    },
-    referredBy: {
-      type: String,
-    },
+      default: () => uuidv4().slice(0, 8),
+    }, // short code
+    referredBy: { type: Schema.Types.ObjectId, ref: 'Student', default: null },
+
     otp: {
       type: String,
     },
@@ -97,8 +102,19 @@ const userSchema = new Schema(
       type: String,
       unique: true,
       default: () => uuidv4().slice(0, 8),
-    }, // short code
-    referredBy: { type: Schema.Types.ObjectId, ref: 'Student', default: null },
+    },
+    referredBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+
+    referredUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
 
     // Credit transaction log
     creditTransactions: [
@@ -157,6 +173,16 @@ const userSchema = new Schema(
     freeCreditsGranted: {
       type: Boolean,
       default: false,
+    },
+
+    dailyStreak: {
+      current: { type: Number, default: 0 },
+      longest: { type: Number, default: 0 },
+      lastClaimedAt: { type: Date },
+
+      // recovery mechanics
+      freezeTokens: { type: Number, default: 0 }, // "protection" items
+      lastRecoveryAt: { type: Date }, // last time a recovery was used
     },
   },
 

@@ -27,6 +27,100 @@ import {
   spendCredits,
 } from '../utils/credits.js';
 
+// ---- Profile completion → credits helper ----
+
+// map sections to earn "kind" names you already use in CREDIT_EARN
+const PROFILE_SECTION_ACTIONS = {
+  PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
+  EDUCATION: 'PROFILE_COMPLETE_EDUCATION',
+  EXPERIENCE: 'PROFILE_COMPLETE_EXPERIENCE',
+  PROJECT: 'PROFILE_COMPLETE_PROJECT',
+  SKILL: 'PROFILE_COMPLETE_SKILL',
+};
+
+/**
+ * Decide which profile sections are "complete"
+ * Tune the conditions as per your business rules.
+ */
+function computeProfileCompletion(student) {
+  const hasPersonal = !!student.fullName && !!student.email && !!student.phone; // add profileImage/jobRole if you want stricter
+
+  const hasEducation =
+    Array.isArray(student.education) && student.education.length > 0;
+
+  const hasExperience =
+    Array.isArray(student.experience) && student.experience.length > 0;
+
+  const hasProjects =
+    Array.isArray(student.projects) && student.projects.length > 0;
+
+  const hasSkills = Array.isArray(student.skills) && student.skills.length > 0;
+
+  return {
+    PERSONAL: hasPersonal,
+    EDUCATION: hasEducation,
+    EXPERIENCE: hasExperience,
+    PROJECT: hasProjects,
+    SKILL: hasSkills,
+  };
+}
+
+/**
+ * Try to award profile completion credits for all completed sections.
+ * Idempotent: if a section's credits were already claimed, it will be skipped.
+ *
+ * @param {string|ObjectId} userId - SAME id used by your User model for credits
+ */
+export async function claimProfileCompletionCreditsForUser(userId) {
+  // use Student profile to measure completion
+  const student = await Student.findById(userId).lean();
+  if (!student) {
+    const err = new Error('Student not found for profile completion check');
+    err.status = 404;
+    throw err;
+  }
+
+  const completion = computeProfileCompletion(student);
+
+  const actionsToTry = [];
+  if (completion.PERSONAL) actionsToTry.push(PROFILE_SECTION_ACTIONS.PERSONAL);
+  if (completion.EDUCATION)
+    actionsToTry.push(PROFILE_SECTION_ACTIONS.EDUCATION);
+  if (completion.EXPERIENCE)
+    actionsToTry.push(PROFILE_SECTION_ACTIONS.EXPERIENCE);
+  if (completion.PROJECT) actionsToTry.push(PROFILE_SECTION_ACTIONS.PROJECT);
+  if (completion.SKILL) actionsToTry.push(PROFILE_SECTION_ACTIONS.SKILL);
+
+  const result = {
+    claimed: [], // { action, amount, balance }
+    skipped: [], // { action, reason }
+  };
+
+  for (const action of actionsToTry) {
+    try {
+      const { tx, balance } = await earnCreditsForAction(userId, action, {});
+      result.claimed.push({
+        action,
+        amount: tx.amount,
+        balance,
+      });
+    } catch (err) {
+      // 409 from earnCreditsForAction = already claimed / not allowed now
+      if (err && err.status === 409) {
+        result.skipped.push({ action, reason: 'already_claimed' });
+      } else {
+        console.error('Failed to award credits for', action, err);
+        result.skipped.push({ action, reason: 'error' });
+      }
+    }
+  }
+
+  return {
+    completion,
+    ...result,
+  };
+}
+
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = `student:${_id}:details`;
@@ -423,6 +517,15 @@ export const addStudentSkills = async (req, res) => {
 
     if (!result) {
       return res.status(404).json({ message: 'Student not found' });
+    }
+
+    try {
+      await claimProfileCompletionCreditsForUser(_id);
+    } catch (e) {
+      console.warn(
+        'Failed to auto-claim profile credits after education add:',
+        e?.message,
+      );
     }
 
     // Invalidate cache for skills/details
@@ -2365,11 +2468,11 @@ export const jobVisitedByStudent = async (req, res) => {
       console.error('Redis invalidate error:', e);
     }
 
-    await addCredits(
-      student._id,
-      CREDIT_EARN.VISITJOB_SITE,
-      'jobVisitedByStudent',
-    );
+    // await addCredits(
+    //   student._id,
+    //   CREDIT_EARN.VISITJOB_SITE,
+    //   'jobVisitedByStudent',
+    // );
 
     return res.status(200).json({
       success: true,
@@ -2754,7 +2857,7 @@ export const getCreditsSummary = async (req, res) => {
           return '/dashboard/cv-generator';
 
         case 'FIRST_CL':
-          return '/dashboard/cover-letter';
+          return '/dashboard/cover-letter-generator';
 
         case 'DAILY_CHECKIN':
           return '/rewards';
@@ -2786,7 +2889,7 @@ export const getCreditsSummary = async (req, res) => {
           return '/dashboard/profile?tab=experience';
 
         case 'PROFILE_COMPLETE_PROJECT':
-          return '/dashboard/profile?tab=projects';
+          return '/dashboard/profile?tab=project';
 
         case 'PROFILE_COMPLETE_SKILL':
           return '/dashboard/profile?tab=skills';
@@ -2796,7 +2899,7 @@ export const getCreditsSummary = async (req, res) => {
 
         case 'FIRST_AUTO_AGENT_SETUP':
         case 'FIRST_AUTO_APPLICATION_SENT':
-          return '/dashboard/auto-agents';
+          return '/dashboard/ai-auto-apply';
 
         default:
           return '/rewards';

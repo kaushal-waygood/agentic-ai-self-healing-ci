@@ -26,7 +26,6 @@ const genAIWithRetry = async (prompt, retries = 3, delay = 1000) => {
       return await genAI(prompt);
     } catch (error) {
       if (i === retries - 1) throw error;
-      console.log(`AI call failed, retrying in ${delay}ms...`);
       await new Promise((r) => setTimeout(r, delay));
     }
   }
@@ -53,7 +52,6 @@ export const processTailoredApplication = async (
   applicationData,
   io,
 ) => {
-  console.log(`[TAILORED] START user=${userId} app=${applicationId}`);
   try {
     const data = normalizeApplicationData(applicationData);
 
@@ -89,7 +87,6 @@ export const processTailoredApplication = async (
       },
     );
 
-    console.log('[TAILORED] updateOne result:', updateResult);
     if (updateResult.matchedCount === 0) {
       throw new Error(
         `No application found with ID: ${applicationId} for user: ${userId}`,
@@ -114,10 +111,6 @@ export const processTailoredApplication = async (
         notifyErr?.message || notifyErr,
       );
     }
-
-    console.log(
-      `[TAILORED] DONE user=${userId} app=${applicationId} status=completed`,
-    );
   } catch (error) {
     console.error(
       `[TAILORED] FAIL user=${userId} app=${applicationId}:`,
