@@ -1,3 +1,5 @@
+// JobsPage.tsx
+
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -5,7 +7,7 @@ import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
 import { useJobs } from '@/hooks/jobs/useJobs';
 import { useMediaQuery } from '@/hooks/jobs/useMediaQuery';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
@@ -15,7 +17,6 @@ import { toast } from '@/hooks/use-toast';
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<HTMLDivElement>(null);
-  // const [recommendedJobs, setRecommendedJobs] = useState([]);
 
   const {
     jobs,
@@ -23,17 +24,14 @@ export default function JobsPage() {
     error,
     filters,
     pagination,
-    setFilterModal,
-    employmentTypes,
-    experienceLevels,
     filterModal,
+    setFilterModal,
     handleFilterChange,
-    loadMoreJobs,
     notification,
+    loadMoreJobs,
   } = useJobs();
 
   const router = useRouter();
-  const searchParams = useSearchParams();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
@@ -90,8 +88,6 @@ export default function JobsPage() {
     });
   }
 
-  console.log('filer', filters);
-
   return (
     <div className=" bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       <div className="xl:container mx-auto px-1">
@@ -100,8 +96,9 @@ export default function JobsPage() {
           onSearchChange={handleFilterChange}
           onOpenFilterModal={() => setFilterModal(true)}
         />
+
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
-          <div className="">
+          <div>
             <div
               ref={jobListRef}
               className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 scrollbar-thin "
@@ -165,21 +162,6 @@ export default function JobsPage() {
         <FilterModal
           isOpen={filterModal}
           onClose={() => setFilterModal(false)}
-          employmentTypes={employmentTypes}
-          experienceLevels={experienceLevels}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onReset={() =>
-            handleFilterChange({
-              query: '',
-              country: '',
-              state: '',
-              city: '',
-              datePosted: '',
-              employmentType: [],
-              experience: [],
-            })
-          }
         />
       </div>
     </div>

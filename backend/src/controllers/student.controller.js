@@ -1992,8 +1992,25 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
     );
     const skip = (page - 1) * limit;
 
+    // 🔹 Cache key per student + page + limit
+    const cacheKey = `jobs:recommended:${studentId}:page:${page}:limit:${limit}`;
+
+    // 🔹 Try cache first
+    try {
+      const cached = await redisClient.get(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return res.status(200).json({
+          ...parsed,
+          cacheHit: true,
+        });
+      }
+    } catch (e) {
+      console.error('Recommended jobs cache read error:', e);
+    }
+
     const student = await Student.findById(studentId)
-      .select('fullName email jobRole skills experience jobPreferences')
+      .select('jobRole jobPreferences skills experience')
       .lean();
 
     if (!student) {
@@ -2004,18 +2021,42 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
 
     const prefs = student.jobPreferences || {};
 
-    const profileSkills = normalizeSet(student.skills || []);
+    // Build profile skills
+    const rawSkills = [
+      ...(Array.isArray(student.skills) ? student.skills : []).map((s) =>
+        typeof s === 'string' ? s : s?.skill || '',
+      ),
+      ...(Array.isArray(prefs.mustHaveSkills) ? prefs.mustHaveSkills : []).map(
+        (s) => s?.skill || '',
+      ),
+      ...(Array.isArray(prefs.niceToHaveSkills)
+        ? prefs.niceToHaveSkills
+        : []
+      ).map((s) => s?.skill || ''),
+    ].filter(Boolean);
+
+    const profileSkills = normalizeSet(rawSkills);
+
+    // Titles from experience, jobRole, and preferences
     const titlesFromExp = normalizeSet(
       (student.experience || []).map((e) => e?.title || ''),
     );
+
     const titles = normalizeSet([
       student.jobRole || '',
       ...titlesFromExp,
-      ...(prefs.preferredJobTitles || []),
+      ...(Array.isArray(prefs.preferredJobTitles)
+        ? prefs.preferredJobTitles
+        : []),
     ]);
 
     const totalYears = computeTotalExperienceYears(student.experience || []);
-    const minYearly = undefined; // implement convertSalaryToYearly if you want salary filtering
+
+    let minYearly = undefined;
+    let maxYearly = undefined;
+    if (prefs.preferredSalary && prefs.preferredSalary.min != null) {
+      // minYearly = convertSalaryToYearly(prefs.preferredSalary);
+    }
 
     const profileCtx = {
       skills: profileSkills,
@@ -2023,14 +2064,16 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       totalYears,
       isRemote: !!prefs.isRemote,
       minYearly,
+      maxYearly,
     };
 
     /**
-     * 1) INTERNAL / HOSTED JOBS (paginated via Mongo)
+     * 1) LOCAL DB JOBS (HOSTED + persisted EXTERNAL)
      */
-    const and = [{ isActive: true }, { origin: 'HOSTED' }];
+    const and = [{ isActive: true }];
     const or = [];
 
+    // Skill-based matching: qualifications / description / tags
     if (profileSkills.length) {
       const rx = profileSkills.slice(0, 20).map(safeRegex).filter(Boolean);
       if (rx.length) {
@@ -2044,6 +2087,7 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       }
     }
 
+    // Title-based matching
     if (titles.length) {
       const titleClauses = titles
         .map(safeRegex)
@@ -2054,9 +2098,8 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       }
     }
 
-    if (prefs.isRemote === true) {
-      // no isRemote in schema; skipping
-    } else {
+    // Location preference
+    if (prefs.isRemote !== true) {
       const countryRx = (prefs.preferredCountries || [])
         .map(safeRegex)
         .filter(Boolean);
@@ -2071,7 +2114,9 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
         and.push({ 'location.city': { $in: cityRx } });
       }
     }
+    // if isRemote=true we just don't restrict by location
 
+    // Job type preference
     if (
       Array.isArray(prefs.preferredJobTypes) &&
       prefs.preferredJobTypes.length
@@ -2079,6 +2124,7 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       and.push({ jobTypes: { $in: prefs.preferredJobTypes } });
     }
 
+    // Industry preference: use tags for now
     if (
       Array.isArray(prefs.preferredIndustries) &&
       prefs.preferredIndustries.length
@@ -2095,25 +2141,34 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       filter.$and.push({ $or: or });
     }
 
-    // INTERNAL QUERY WITH PAGINATION
-    const [internalJobs, internalTotal] = await Promise.all([
+    const [localJobs, localTotal] = await Promise.all([
       Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Job.countDocuments(filter),
     ]);
 
-    if (internalTotal > 0) {
-      const scoredInternal = internalJobs
+    const sendAndCache = async (body) => {
+      try {
+        await redisClient.set(cacheKey, JSON.stringify(body), 300); // 5 min
+      } catch (e) {
+        console.error('Recommended jobs cache write error:', e);
+      }
+      return res.status(200).json(body);
+    };
+
+    // ✅ If we found anything locally, use it and STOP. No RapidAPI.
+    if (localTotal > 0) {
+      const scoredLocal = localJobs
         .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
         .sort((a, b) => b.matchScore - a.matchScore);
 
-      return res.status(200).json({
+      const responseBody = {
         success: true,
-        jobs: scoredInternal,
+        jobs: scoredLocal,
         pagination: {
-          total: internalTotal,
+          total: localTotal,
           page,
           limit,
-          totalPages: Math.ceil(internalTotal / limit),
+          totalPages: Math.ceil(localTotal / limit),
         },
         profileSummary: {
           titles,
@@ -2121,19 +2176,35 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
           totalYears,
           minYearly,
         },
-        source: 'internal',
-      });
+        source: 'local-db',
+      };
+
+      return await sendAndCache(responseBody);
     }
 
     /**
-     * 2) EXTERNAL / RAPIDAPI FALLBACK
-     *    - Fetch from RapidAPI
-     *    - Upsert to DB
-     *    - Re-query from DB
-     *    - Paginate in memory (scored array)
+     * 2) EXTERNAL JOBS (RapidAPI) – only if DB gave us nothing
      */
-
     const queries = buildExternalQueries(titles, profileSkills);
+
+    // If we can’t even build a decent query, don’t bother calling RapidAPI
+    if (!queries.length) {
+      const responseBody = {
+        success: true,
+        jobs: [],
+        pagination: { total: 0, page, limit, totalPages: 0 },
+        profileSummary: {
+          titles,
+          skills: profileSkills,
+          totalYears,
+          minYearly,
+        },
+        source: 'none',
+        note: 'No suitable query built from profile; skipped external fetch.',
+      };
+      return await sendAndCache(responseBody);
+    }
+
     const locCountry =
       Array.isArray(prefs.preferredCountries) && prefs.preferredCountries[0]
         ? prefs.preferredCountries[0]
@@ -2143,7 +2214,13 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
         ? prefs.preferredCities[0]
         : undefined;
 
-    const PAGES_PER_QUERY = 2;
+    const preferredJobType =
+      Array.isArray(prefs.preferredJobTypes) && prefs.preferredJobTypes[0]
+        ? prefs.preferredJobTypes[0]
+        : undefined;
+
+    // Keep this small so it doesn’t hang forever
+    const PAGES_PER_QUERY = 1;
     const externalTransformed = [];
 
     for (const q of queries) {
@@ -2154,9 +2231,7 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
           undefined,
           locCity,
           undefined,
-          Array.isArray(prefs.preferredJobTypes) && prefs.preferredJobTypes[0]
-            ? prefs.preferredJobTypes[0]
-            : undefined,
+          preferredJobType,
           undefined,
           p,
         );
@@ -2170,7 +2245,7 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
     let externalJobs = externalTransformed;
 
     if (!externalJobs.length) {
-      return res.status(200).json({
+      const responseBody = {
         success: true,
         jobs: [],
         pagination: { total: 0, page, limit, totalPages: 0 },
@@ -2182,7 +2257,8 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
         },
         source: 'external',
         note: 'No matches from RapidAPI.',
-      });
+      };
+      return await sendAndCache(responseBody);
     }
 
     // Remove dupes by (title, company)
@@ -2191,7 +2267,6 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
     // Persist by jobId + origin
     await upsertExternalJobs(externalJobs);
 
-    // Now re-query the upserted ones so shape is consistent
     const ids = externalJobs.map((j) => j.jobId).filter(Boolean);
 
     const saved = await Job.find({
@@ -2206,11 +2281,9 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       .sort((a, b) => b.matchScore - a.matchScore);
 
     const total = scored.length;
-
-    // PAGINATION APPLIED HERE
     const paged = scored.slice(skip, skip + limit);
 
-    return res.status(200).json({
+    const responseBody = {
       success: true,
       jobs: paged,
       pagination: {
@@ -2226,7 +2299,9 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
         minYearly,
       },
       source: 'external-persisted',
-    });
+    };
+
+    return await sendAndCache(responseBody);
   } catch (error) {
     console.error(
       'Error fetching profile-based recommended jobs (persisted):',

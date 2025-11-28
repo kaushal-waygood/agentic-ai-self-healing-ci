@@ -16,17 +16,11 @@ import { Input } from '@/components/ui/input';
 import { Globe, MapPin, X } from 'lucide-react';
 import CountrySelector from '../common/CountrySelector';
 import StateSelector from '../common/StateSelector';
+import { useJobs } from '@/hooks/jobs/useJobs';
 
 interface FilterModalProps {
   isOpen: boolean;
   onClose: () => void;
-
-  employmentTypes: string[];
-
-  experienceLevels: string[];
-  filters: any;
-  onFilterChange: (newFilters: any) => void;
-  onReset: () => void;
 }
 
 const datePostedOptions = [
@@ -90,16 +84,16 @@ const EducationTag = ({
   </div>
 );
 
-export const FilterModal = ({
-  isOpen,
-  onClose,
-  employmentTypes,
-  experienceLevels,
-  filters,
-  onFilterChange,
-  onReset,
-}: FilterModalProps) => {
-  const [localFilters, setLocalFilters] = useState(filters);
+export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
+  const { employmentTypes, experienceLevels, filters, handleFilterChange } =
+    useJobs();
+
+  const [localFilters, setLocalFilters] = useState<any>({
+    ...filters,
+    education: filters.education || [],
+  });
+
+  console.log('localFilters', isOpen);
   const [educationInput, setEducationInput] = useState('');
 
   const groupedExperienceLevels = useMemo(() => {
@@ -122,7 +116,10 @@ export const FilterModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      setLocalFilters({ ...filters, education: filters.education || [] });
+      setLocalFilters({
+        ...filters,
+        education: filters.education || [],
+      });
     }
   }, [isOpen, filters]);
 
@@ -166,17 +163,15 @@ export const FilterModal = ({
   };
 
   const handleApply = () => {
-    console.log('localFilters', localFilters);
-
-    onFilterChange(localFilters);
+    handleFilterChange(localFilters);
     onClose();
   };
 
   const handleReset = () => {
     const resetState = {
-      query: filters.query,
-      country: '', // country NAME
-      countryCode: '', // ISO code
+      query: filters.query || '',
+      country: '',
+      countryCode: '',
       city: '',
       state: '',
       datePosted: '',
@@ -185,23 +180,8 @@ export const FilterModal = ({
       education: [],
     };
     setLocalFilters(resetState);
-    onReset();
+    handleFilterChange(resetState);
   };
-
-  const handleCountryChange = useCallback((countryCode: string) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      country: countryCode,
-      state: '', // reset state when country changes
-    }));
-  }, []);
-
-  const handleStateChange = useCallback((stateCode: string) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      state: stateCode,
-    }));
-  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -218,7 +198,13 @@ export const FilterModal = ({
             <Globe className="input-search-icon" />
             <CountrySelector
               value={localFilters.country || ''}
-              onChange={handleCountryChange}
+              onChange={(countryCode: string) =>
+                setLocalFilters((prev: any) => ({
+                  ...prev,
+                  country: countryCode,
+                  state: '',
+                }))
+              }
               className="input-search"
             />
           </div>
@@ -228,7 +214,12 @@ export const FilterModal = ({
             <StateSelector
               countryCode={localFilters.country}
               value={localFilters.state}
-              onChange={handleStateChange}
+              onChange={(stateCode: string) =>
+                setLocalFilters((prev: any) => ({
+                  ...prev,
+                  state: stateCode,
+                }))
+              }
               disabled={!localFilters.country}
               className="input-search"
             />
