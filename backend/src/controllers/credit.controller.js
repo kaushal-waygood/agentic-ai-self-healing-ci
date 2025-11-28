@@ -143,8 +143,6 @@ export const getDailyStreak = async (req, res) => {
   try {
     const user = await User.findById(_id).select('dailyStreak').lean();
 
-    console.log(user);
-
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -156,12 +154,9 @@ export const getDailyStreak = async (req, res) => {
     };
 
     const today = dayjs().startOf('day');
-    console.log(today);
     const last = streak.lastClaimedAt
       ? dayjs(streak.lastClaimedAt).startOf('day')
       : null;
-
-    console.log(last);
 
     const canClaimToday = !last || !last.isSame(today);
 

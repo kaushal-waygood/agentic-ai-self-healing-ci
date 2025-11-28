@@ -402,6 +402,7 @@ function* updateStudentJobPreferenceSaga(
 
 function* getStudentJobPreferenceSaga() {
   try {
+    console.log('recommendProfileJob');
     const response: AxiosResponse = yield call(recommendProfileJob);
     yield put(getStudentJobPreferenceSuccess(response.data));
     yield put(getStudentDetailsRequest());

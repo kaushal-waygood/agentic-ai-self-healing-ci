@@ -101,7 +101,6 @@ const authSlice = createSlice({
       state.token = null;
       state.error = null;
       localStorage.removeItem('accessToken');
-      // localStorage.removeItem('token');
     },
     logoutFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

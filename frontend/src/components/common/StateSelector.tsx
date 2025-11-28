@@ -45,7 +45,7 @@ const StateSelector = ({
           : 'Select country first'}
       </option>
       {stateOptions?.map((option) => (
-        <option key={option.value} value={option.value}>
+        <option key={option.value} value={option.label}>
           {option.label}
         </option>
       ))}

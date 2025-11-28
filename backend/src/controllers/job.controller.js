@@ -109,43 +109,153 @@ const slugify = (text) => {
     .replace(/^-+|-+$/g, ''); // trim hyphens
 };
 
-const transformRapidApiJob = (apiJob, searchQuery) => {
+const normalizeJobTypesForDb = (apiJob) => {
+  const list =
+    apiJob.job_employment_types && Array.isArray(apiJob.job_employment_types)
+      ? apiJob.job_employment_types
+      : apiJob.job_employment_type
+      ? [apiJob.job_employment_type]
+      : [];
+
+  return list
+    .map((v) => v && v.toString().trim())
+    .filter(Boolean)
+    .map(
+      (v) => v.toUpperCase().replace(/[\s-]+/g, ''), // "Full-time" → "FULLTIME"
+    );
+};
+
+const buildSlug = (title, jobId) => {
+  const slugBase = slugify(title || 'job', {
+    lower: true,
+    strict: true,
+    trim: true,
+  });
+  const slugId = slugify(jobId?.toString()?.slice(0, 6) || 'ext', {
+    lower: true,
+    strict: true,
+    trim: true,
+  });
+  return `${slugBase}-${slugId}`;
+};
+
+const normalizeEmploymentTypeForDbFilter = (employmentType) => {
+  if (!employmentType) return undefined;
+
+  return employmentType
+    .split(',')
+    .map((v) =>
+      v
+        .trim()
+        .toUpperCase()
+        .replace(/[\s-]+/g, ''),
+    )
+    .filter(Boolean);
+};
+
+export const transformRapidApiJob = (apiJob, searchQuery) => {
   const title = apiJob.job_title || 'job';
 
-  const slugBase = slugify(title);
-  const slugId = slugify(apiJob.job_id?.toString()?.slice(0, 6) || 'ext');
+  // Real posted date
+  let jobPostedAt = null;
+  if (apiJob.job_posted_at_datetime_utc) {
+    jobPostedAt = new Date(apiJob.job_posted_at_datetime_utc);
+  } else if (apiJob.job_posted_at_timestamp) {
+    jobPostedAt = new Date(apiJob.job_posted_at_timestamp * 1000);
+  }
+
+  // Location fallback
+  let city = apiJob.job_city || null;
+  let state = apiJob.job_state || null;
+  let country = apiJob.job_country || null;
+
+  if (!city && apiJob.job_location) {
+    const parts = apiJob.job_location.split(',').map((p) => p.trim());
+    if (!city && parts[0]) city = parts[0];
+    if (!state && parts[1]) state = parts[1];
+  }
+
+  const jobTypes = normalizeJobTypesForDb(apiJob);
 
   return {
     jobId: apiJob.job_id,
     origin: 'EXTERNAL',
-    title: title,
+
+    title,
     description: apiJob.job_description,
 
     qualifications: apiJob.job_highlights?.Qualifications || [],
     responsibilities: apiJob.job_highlights?.Responsibilities || [],
 
     company: apiJob.employer_name,
-    country: apiJob.job_country,
+    country,
     logo: apiJob.employer_logo,
 
     location: {
-      city: apiJob.job_city,
-      state: apiJob.job_state,
+      city,
+      state,
       lat: apiJob.job_latitude,
       lng: apiJob.job_longitude,
     },
 
-    slug: `${slugBase}-${slugId}`,
-    applyMethod: { method: 'URL', url: apiJob.job_apply_link },
+    slug: buildSlug(title, apiJob.job_id),
+
+    applyMethod: {
+      method: 'URL',
+      url: apiJob.job_apply_link,
+    },
+
     isActive: true,
+
+    // Pretty label from API, e.g. "11 days ago"
     jobPosted: apiJob.job_posted_at,
-    jobTypes: apiJob.job_employment_types || [],
+
+    // Real date used for sorting
+    jobPostedAt,
+
+    jobTypes,
     experience: [],
     queries: searchQuery ? [searchQuery] : [],
   };
 };
 
-const fetchExternalJobs = async (
+const sortJobsByPostedDateDesc = (jobs = []) => {
+  return [...jobs].sort((a, b) => {
+    const aDate = a.jobPostedAt || a.createdAt;
+    const bDate = b.jobPostedAt || b.createdAt;
+
+    if (!aDate && !bDate) return 0;
+    if (!aDate) return 1;
+    if (!bDate) return -1;
+
+    return new Date(bDate) - new Date(aDate);
+  });
+};
+
+const EMPLOYMENT_TYPE_MAP = {
+  'FULL-TIME': 'FULLTIME',
+  FULLTIME: 'FULLTIME',
+  'PART-TIME': 'PARTTIME',
+  PARTTIME: 'PARTTIME',
+  CONTRACTOR: 'CONTRACTOR',
+  TEMPORARY: 'TEMPORARY',
+  INTERN: 'INTERN',
+  INTERNSHIP: 'INTERNSHIP',
+  FREELANCE: 'CONTRACTOR', // adjust if your API has a specific value
+};
+
+const normalizeEmploymentTypeForApi = (employmentType) => {
+  if (!employmentType) return undefined;
+
+  return employmentType
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .map((v) => EMPLOYMENT_TYPE_MAP[v] || v) // fallback to original if unmapped
+    .join(',');
+};
+
+export const fetchExternalJobs = async (
   apiQuery,
   country,
   state,
@@ -156,9 +266,13 @@ const fetchExternalJobs = async (
 ) => {
   try {
     let query = apiQuery;
-    if (city && state) query = `${apiQuery} in ${city}, ${state}`;
-    else if (state) query = `${apiQuery} in ${state}`;
-    else if (city) query = `${apiQuery} in ${city}`;
+
+    if (city && state) query += ` in ${city}, ${state}`;
+    else if (state) query += ` in ${state}`;
+    else if (city) query += ` in ${city}`;
+
+    const normalizedEmploymentType =
+      normalizeEmploymentTypeForApi(employmentType);
 
     const params = {
       query,
@@ -167,10 +281,9 @@ const fetchExternalJobs = async (
     };
 
     if (country) params.country = country;
-    if (state) params.state = state;
-    if (city) params.city = city;
     if (datePosted) params.date_posted = datePosted;
-    if (employmentType) params.employment_type = employmentType;
+    if (normalizedEmploymentType)
+      params.employment_type = normalizedEmploymentType;
     if (experience) params.job_requirements = experience;
 
     const response = await axios.get(config.rapidJobApi, {
@@ -179,10 +292,8 @@ const fetchExternalJobs = async (
         'X-RapidAPI-Key': config.rapidApiKey,
         'X-RapidAPI-Host': config.rapidApiHost,
       },
-      timeout: 10000,
     });
 
-    console.log('RapidAPI Response Status:', response.status);
     return response.data?.data || [];
   } catch (apiError) {
     console.error(
@@ -571,8 +682,6 @@ export const streamAllJobs = async (req, res) => {
     const { query, country, city, datePosted, employmentType, experience } =
       req.query || {};
 
-    console.log('SSE connection established');
-
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -759,7 +868,6 @@ export const searchJobs = async (req, res) => {
   });
 
   try {
-    // 1) Try cache first so we can signal `fromCache`
     try {
       const cachedRaw = await redisClient.get(cacheKey);
       if (cachedRaw) {
@@ -778,37 +886,50 @@ export const searchJobs = async (req, res) => {
         });
       }
     } catch (cacheReadErr) {
-      // cache failure shouldn't fail the request
       console.warn(
         'searchJobs: cache read failed',
         cacheReadErr && cacheReadErr.message,
       );
     }
 
-    // 2) Acquire a short lock to avoid thundering-herd when refreshing cache
+    // 2) Acquire short lock to avoid thundering herd
     const lockKey = `${cacheKey}:lock`;
     const lockAcquired = await redisClient.setNxWithTtl(lockKey, '1', LOCK_TTL);
 
     // 3) Build DB search criteria
     const searchCriteria = {};
-    if (q)
+
+    if (q) {
+      const regex = new RegExp(escapeRegex(q), 'i');
       searchCriteria.$or = [
-        { title: new RegExp(escapeRegex(q), 'i') },
-        { description: new RegExp(escapeRegex(q), 'i') },
-        { queries: new RegExp(escapeRegex(q), 'i') },
+        { title: regex },
+        { description: regex },
+        { queries: regex },
       ];
+    }
+
     if (country) searchCriteria.country = country;
     if (state) searchCriteria['location.state'] = state;
     if (city) searchCriteria['location.city'] = city;
-    if (employmentType)
-      searchCriteria.jobTypes = { $in: employmentType.split(',') };
-    if (experience) searchCriteria.experience = { $in: experience.split(',') };
 
-    // 4) Query DB (canonical)
+    if (employmentType) {
+      const normalized = normalizeEmploymentTypeForDbFilter(employmentType);
+      if (normalized.length) {
+        searchCriteria.jobTypes = { $in: normalized };
+      }
+    }
+
+    if (experience) {
+      searchCriteria.experience = {
+        $in: experience.split(',').map((v) => v.trim()),
+      };
+    }
+
+    // 4) Query DB
     let [totalJobs, jobs] = await Promise.all([
       Job.countDocuments(searchCriteria),
       Job.find(searchCriteria)
-        .sort({ createdAt: -1 })
+        .sort({ jobPostedAt: -1, createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
         .lean(),
@@ -816,7 +937,7 @@ export const searchJobs = async (req, res) => {
 
     let notification = null;
 
-    // 5) If no DB results and it's the first page, try external fetch
+    // 5) If no DB jobs & q present on first page → fetch external
     if ((jobs.length === 0 || totalJobs === 0) && q && pageNum === 1) {
       let externalJobsRaw = [];
       try {
@@ -838,8 +959,6 @@ export const searchJobs = async (req, res) => {
           transformRapidApiJob(apiJob, q),
         );
 
-        // Try to upsert them into DB in background of this request.
-        // We will attempt DB save, but if it fails we still return the external jobs.
         try {
           const bulkOps = externalJobsFormatted.map((job) => ({
             updateOne: {
@@ -857,6 +976,7 @@ export const searchJobs = async (req, res) => {
                   logo: job.logo,
                   applyMethod: job.applyMethod,
                   jobPosted: job.jobPosted,
+                  jobPostedAt: job.jobPostedAt,
                   jobTypes: job.jobTypes,
                   isActive: job.isActive,
                   origin: job.origin,
@@ -874,20 +994,15 @@ export const searchJobs = async (req, res) => {
 
           await Job.bulkWrite(bulkOps);
 
-          // If DB writes succeed, invalidate broader job search caches (conservative)
-          // so future searches can pick up newly persisted external jobs.
+          // Invalidate relevant cache keys
           try {
-            // Invalidate keys that could be impacted. This is conservative.
             await redisClient.del([
-              // exact key we just computed
               cacheKey,
-              // also delete some likely list keys - adjust to your naming scheme
               `jobs:search|q:${q}|p:1|l:${limitNum}|c:${country || ''}|s:${
                 state || ''
               }|ci:${city || ''}|et:${employmentType || ''}|exp:${
                 experience || ''
               }|dp:${datePosted || ''}`,
-              // a broad pattern deletion if you need it (use SCAN in heavy deployments)
             ]);
           } catch (delErr) {
             console.warn(
@@ -896,17 +1011,14 @@ export const searchJobs = async (req, res) => {
             );
           }
 
-          // After successful DB save, serve the external jobs as results
           jobs = externalJobsFormatted;
           totalJobs = externalJobsFormatted.length;
         } catch (dbError) {
           console.error('Background DB save failed:', dbError);
-          // still return external results even if DB save fails
           jobs = externalJobsFormatted;
           totalJobs = externalJobsFormatted.length;
         }
       } else {
-        // no external jobs either
         const locationString = [city, state, country]
           .filter(Boolean)
           .join(', ');
@@ -917,13 +1029,15 @@ export const searchJobs = async (req, res) => {
     }
 
     // 6) Prepare final payload
+    jobs = sortJobsByPostedDateDesc(jobs);
+
     const resultPayload = {
       jobs,
       totalJobs,
       notification,
     };
 
-    // 7) Write to cache only if we hold the lock (avoid multiple writers)
+    // 7) Write to cache if we hold the lock
     try {
       if (lockAcquired) {
         await redisClient.set(
@@ -931,9 +1045,6 @@ export const searchJobs = async (req, res) => {
           JSON.stringify(resultPayload),
           SEARCH_TTL,
         );
-      } else {
-        // If lock not acquired, optionally try to set cache anyway but avoid stampede:
-        // Skip cache set to reduce collision — we'll let the owner of the lock populate it.
       }
     } catch (cacheWriteErr) {
       console.warn(
@@ -941,11 +1052,10 @@ export const searchJobs = async (req, res) => {
         cacheWriteErr && cacheWriteErr.message,
       );
     } finally {
-      // release lock if we own it
       try {
         if (lockAcquired) await redisClient.del(lockKey);
-      } catch (unlockErr) {
-        // not critical
+      } catch {
+        // ignore unlock errors
       }
     }
 
@@ -1107,7 +1217,6 @@ export const jobViewsCount = async (req, res) => {
     if (!job) return res.status(404).json({ message: 'Job not found' });
 
     job.views = (job.views || 0) + 1;
-    console.log(`Job ${jobId} views incremented to ${job.views}`);
     await job.save();
 
     // Invalidate cache for this job (best-effort)

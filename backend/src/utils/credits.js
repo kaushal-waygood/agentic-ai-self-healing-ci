@@ -36,6 +36,7 @@ export const CREDIT_EARN = {
   APPLY_ON_COMPANY_SITE: 1,
   LIKE_COMMENT_SHARE: 1,
   SHARE_SOCIAL_CONTENT: 1,
+  VISITJOB_SITE: 5,
 };
 
 // ---------- helpers ----------

@@ -173,13 +173,6 @@ router.post(
 
 router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);
 
-router.get(
-  '/jobs/recommended',
-  authMiddleware,
-  isStudent,
-  getProfileBasedRecommendedJobs,
-);
-
 router.post('/jobs/saved', authMiddleware, isStudent, toggleSavedJob);
 router.get('/jobs/saved', authMiddleware, isStudent, getSavedJobs);
 router.get('/jobs/issaved', authMiddleware, isStudent, isSavedOrNot);

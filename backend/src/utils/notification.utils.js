@@ -9,7 +9,7 @@ export const notificationTemplates = {
     message: `Your application for "${jobTitle}" has been submitted successfully.`,
     type: 'success',
     category: 'application',
-    actionUrl: '/applications',
+    actionUrl: '/dashboard/applications',
   }),
 
   JOB_APPLICATION_UPDATED: (jobTitle, status) => ({
@@ -17,7 +17,7 @@ export const notificationTemplates = {
     message: `Your application for "${jobTitle}" has been ${status}.`,
     type: 'info',
     category: 'application',
-    actionUrl: '/applications',
+    actionUrl: '/dashboard/applications',
   }),
 
   PAYMENT_SUCCESS: (amount, plan) => ({
@@ -25,7 +25,7 @@ export const notificationTemplates = {
     message: `Your payment of $${amount} for ${plan} plan has been processed successfully.`,
     type: 'success',
     category: 'payment',
-    actionUrl: '/billing',
+    actionUrl: '/dashboard/billing',
   }),
 
   SYSTEM_MAINTENANCE: (schedule) => ({
@@ -49,7 +49,7 @@ export const notificationTemplates = {
     message: `We found a new job "${jobTitle}" at ${company} that matches your profile.`,
     type: 'info',
     category: 'job',
-    actionUrl: '/jobs',
+    actionUrl: '/dashboard/search-jobs',
   }),
 
   PROFILE_COMPLETION_REMINDER: () => ({
@@ -58,7 +58,7 @@ export const notificationTemplates = {
       'Complete your profile to get better job recommendations and higher application success.',
     type: 'warning',
     category: 'system',
-    actionUrl: '/profile',
+    actionUrl: '/dashboard/profile',
   }),
 
   NEW_FEATURE_REQUEST: (featureName) => ({
@@ -66,7 +66,7 @@ export const notificationTemplates = {
     message: `A new feature request for "${featureName}" has been submitted.`,
     type: 'info',
     category: 'feature',
-    actionUrl: '/features',
+    actionUrl: '/dashboard/features',
   }),
 
   CV_GENERATED_SUCCESS: (jobTitle, cvId, atsScore) => ({
@@ -74,14 +74,14 @@ export const notificationTemplates = {
     message: `Your tailored CV for ${jobTitle} is complete with a ${atsScore} match score. Download it now and apply with confidence.`,
     type: 'success',
     category: 'cv',
-    actionUrl: `/cv/${cvId}`,
+    actionUrl: `/dashboard/cv/${cvId}`,
   }),
   CV_GENERATED_FAILED: (jobTitle) => ({
     title: 'CV Generation Failed',
     message: `Failed to generate. Please try again.`,
     type: 'error',
     category: 'cv',
-    actionUrl: `?tab=cvs`,
+    actionUrl: `/dashboard/my-docs?tab=cvs`,
   }),
   COVER_LETTER_GENERATED_SUCCESS: (message, clId) => ({
     title: 'Cover Letter Ready!',
@@ -89,7 +89,7 @@ export const notificationTemplates = {
     type: 'success',
     priority: 'medium',
     category: 'coverletter',
-    actionUrl: `/cl/${clId}`,
+    actionUrl: `/dashboard/cl/${clId}`,
   }),
 
   COVER_LETTER_GENERATED_FAILED: (message, error) => ({
@@ -98,7 +98,7 @@ export const notificationTemplates = {
     type: 'error',
     priority: 'medium',
     category: 'coverletter',
-    actionUrl: `?tab=cover-letters`,
+    actionUrl: `/dashboard/my-docs?tab=cover-letters`,
   }),
 
   TAILORED_APPLICATION_GENERATED_SUCCESS: (message, applicationId) => ({
@@ -108,7 +108,7 @@ export const notificationTemplates = {
     type: 'success',
     priority: 'medium',
     category: 'application',
-    actionUrl: `/application/${applicationId}`,
+    actionUrl: `/dashboard/my-docs/application//${applicationId}`,
   }),
 
   TAILORED_APPLICATION_GENERATED_FAILED: (message, error) => ({
@@ -117,7 +117,7 @@ export const notificationTemplates = {
     type: 'error',
     priority: 'medium',
     category: 'application',
-    actionUrl: '/application/:applicationId',
+    actionUrl: '/dashboard/my-docs?tab=applications',
   }),
 };
 

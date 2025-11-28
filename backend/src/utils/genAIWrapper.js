@@ -1,13 +1,11 @@
 // utils/genAIWrapper.js
 import { genAI } from '../config/gemini.js';
 
-export const callGenAI = async (prompt, { timeoutMs = 25000 } = {}) => {
+export const callGenAI = async (prompt) => {
   const AI = genAI(prompt);
-  const timeout = new Promise((_, rej) =>
-    setTimeout(() => rej(new Error('AI_TIMEOUT')), timeoutMs),
-  );
+
   try {
-    const raw = await Promise.race([AI, timeout]);
+    const raw = await Promise.race([AI]);
     return raw;
   } catch (err) {
     if (err?.status === 503 || /Service Unavailable/i.test(err.message)) {

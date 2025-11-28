@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react'; // 1. Import useRef
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
@@ -16,19 +16,43 @@ export const useJobs = () => {
   const searchParams = useSearchParams();
   const pathName = usePathname();
 
+  const isEmptyFilters = (filters: any) => {
+    const {
+      query,
+      country,
+      state,
+      city,
+      datePosted,
+      employmentType,
+      experience,
+      education,
+    } = filters;
+
+    return (
+      !query &&
+      !country &&
+      !state &&
+      !city &&
+      !datePosted &&
+      (!employmentType || employmentType.length === 0) &&
+      (!experience || experience.length === 0) &&
+      (!education || education.length === 0)
+    );
+  };
+
   const {
     jobs,
     loading,
     error,
     filters: reduxFilters,
     pagination,
+    notification, // assuming this exists in your jobs slice
   } = useSelector((state: RootState) => state.jobs);
 
   const [filterModal, setFilterModal] = useState(false);
   const [employmentTypes, setEmploymentTypes] = useState<string[]>([]);
   const [experienceLevels, setExperienceLevels] = useState<string[]>([]);
 
-  // Effect for the initial data load based on URL parameters
   useEffect(() => {
     const filtersFromUrl = {
       query: searchParams.get('query') || '',
@@ -36,16 +60,35 @@ export const useJobs = () => {
       state: searchParams.get('state') || '',
       city: searchParams.get('city') || '',
       datePosted: searchParams.get('datePosted') || '',
-      employmentType: searchParams.get('employmentType')?.split(',') || [],
-      experience: searchParams.get('experience')?.split(',') || [],
+      employmentType: searchParams.get('employmentType')
+        ? searchParams.get('employmentType')!.split(',')
+        : [],
+      experience: searchParams.get('experience')
+        ? searchParams.get('experience')!.split(',')
+        : [],
+      education: [], // URL not handling this yet, so keep empty for now
     };
-    if (pathName === '/dashboard/search-jobs') {
-      dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
-    } else if (pathName === '/search-jobs')
-      dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
-  }, [dispatch, searchParams]);
 
-  // Effect to fetch static metadata for filters (runs once)
+    const query = searchParams.get('q');
+    if (query) {
+      filtersFromUrl.query = query;
+    }
+
+    if (pathName === '/dashboard/search-jobs' || pathName === '/search-jobs') {
+      if (isEmptyFilters(filtersFromUrl)) {
+        // default: recommended jobs
+        dispatch(getRecommendJobsRequest());
+      } else {
+        dispatch(
+          searchJobRequest({ ...filtersFromUrl, page: 1, append: false }),
+        );
+      }
+    } else if (pathName === '/search-jobs') {
+      dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
+    }
+  }, [dispatch, searchParams, pathName]);
+
+  // Fetch metadata
   useEffect(() => {
     const fetchJobMetadata = async () => {
       try {
@@ -53,8 +96,8 @@ export const useJobs = () => {
           apiInstance.get('/jobs/employment-types'),
           apiInstance.get('/jobs/experience-levels'),
         ]);
-        setEmploymentTypes(typesResponse.data.jobTypes);
-        setExperienceLevels(levelsResponse.data.experiences);
+        setEmploymentTypes(typesResponse.data.jobTypes || []);
+        setExperienceLevels(levelsResponse.data.experiences || []);
       } catch (err) {
         console.error('Failed to fetch job metadata:', err);
       }
@@ -62,31 +105,29 @@ export const useJobs = () => {
     fetchJobMetadata();
   }, []);
 
-  // 2. Create a ref to hold the latest filters. This doesn't trigger re-renders.
+  // Keep latest filters in a ref for debounce
   const latestFiltersRef = useRef(reduxFilters);
-
-  // Keep the ref updated with the latest filters from Redux on every render.
   useEffect(() => {
     latestFiltersRef.current = reduxFilters;
-  });
+  }, [reduxFilters]);
 
-  // 3. Create the debounced function *outside* of useCallback, but wrapped in useCallback
-  //    with an empty dependency array [], so it is created only ONCE.
   const debouncedSearch = useCallback(
     debounce((newFilters: Partial<typeof reduxFilters>) => {
-      // Use the ref to get the most up-to-date filters when the debounce fires.
       const payload = { ...latestFiltersRef.current, ...newFilters };
-      dispatch(searchJobRequest({ ...payload, page: 1, append: false }));
+      dispatch(
+        searchJobRequest({
+          ...payload,
+          page: 1,
+          append: false,
+        }),
+      );
     }, 500),
-    [dispatch], // dispatch is stable and won't cause re-creation
+    [dispatch],
   );
 
-  // 4. Expose a stable handler that calls the debounced function.
   const handleFilterChange = (newFilters: Partial<typeof reduxFilters>) => {
     debouncedSearch(newFilters);
   };
-
-  // --- END OF FIX ---
 
   const loadMoreJobs = useCallback(() => {
     if (loading || !pagination.hasNextPage) return;
@@ -105,11 +146,12 @@ export const useJobs = () => {
     error,
     filters: reduxFilters,
     pagination,
+    notification,
     employmentTypes,
     experienceLevels,
     filterModal,
     setFilterModal,
-    handleFilterChange, // Expose the new stable handler
+    handleFilterChange,
     loadMoreJobs,
   };
 };
