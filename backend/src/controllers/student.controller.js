@@ -1617,7 +1617,7 @@ export const updateJobPreferences = async (req, res) => {
               .map((skill) => ({
                 skill: skill.trim().length > 0 ? skill.trim() : null,
               }))
-              .filter((item) => item && item.skill); // Filter out any empty items
+              .filter((item) => item && item.skill);
           } else {
             update[`jobPreferences.${key}`] = [];
           }
@@ -1637,12 +1637,18 @@ export const updateJobPreferences = async (req, res) => {
     const student = await Student.findByIdAndUpdate(
       studentId,
       { $set: update },
-      { new: true, runValidators: true }, // new: true returns the updated document
+      { new: true, runValidators: true },
     );
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
+
+    // 🔥 Invalidate all caches related to this student
+    // Fire-and-forget so API latency doesn’t depend on Redis.
+    redisClient
+      .invalidateStudentCache(studentId)
+      .catch((err) => console.error('Error invalidating student cache:', err));
 
     return res.status(200).json({
       message: 'Job preferences updated successfully',
@@ -1650,12 +1656,13 @@ export const updateJobPreferences = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating job preferences:', error);
-    // Check for Mongoose validation or cast errors
+
     if (error.name === 'CastError' || error.name === 'ValidationError') {
       return res
         .status(400)
         .json({ message: 'Invalid data provided.', error: error.message });
     }
+
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -1913,7 +1920,6 @@ async function fetchExternalJobs(
         'X-RapidAPI-Key': config.rapidApiKey,
         'X-RapidAPI-Host': config.rapidApiHost,
       },
-      timeout: 12000,
     });
     return response?.data?.data || [];
   } catch (e) {
@@ -1974,9 +1980,11 @@ async function upsertExternalJobs(externalJobs) {
 export const getProfileBasedRecommendedJobs = async (req, res) => {
   try {
     const studentId = req.user?._id;
-    if (!studentId)
+    if (!studentId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
 
+    // PAGINATION INPUT
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(
       50,
@@ -1987,12 +1995,15 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
     const student = await Student.findById(studentId)
       .select('fullName email jobRole skills experience jobPreferences')
       .lean();
-    if (!student)
+
+    if (!student) {
       return res
         .status(404)
         .json({ success: false, message: 'Student not found' });
+    }
 
     const prefs = student.jobPreferences || {};
+
     const profileSkills = normalizeSet(student.skills || []);
     const titlesFromExp = normalizeSet(
       (student.experience || []).map((e) => e?.title || ''),
@@ -2002,10 +2013,21 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       ...titlesFromExp,
       ...(prefs.preferredJobTitles || []),
     ]);
+
     const totalYears = computeTotalExperienceYears(student.experience || []);
     const minYearly = undefined; // implement convertSalaryToYearly if you want salary filtering
 
-    // Internal/hosted filter first
+    const profileCtx = {
+      skills: profileSkills,
+      titles,
+      totalYears,
+      isRemote: !!prefs.isRemote,
+      minYearly,
+    };
+
+    /**
+     * 1) INTERNAL / HOSTED JOBS (paginated via Mongo)
+     */
     const and = [{ isActive: true }, { origin: 'HOSTED' }];
     const or = [];
 
@@ -2027,21 +2049,27 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
         .map(safeRegex)
         .filter(Boolean)
         .map((rx) => ({ title: rx }));
-      if (titleClauses.length) or.push(...titleClauses);
+      if (titleClauses.length) {
+        or.push(...titleClauses);
+      }
     }
 
     if (prefs.isRemote === true) {
-      // no isRemote in your schema; skipping
+      // no isRemote in schema; skipping
     } else {
       const countryRx = (prefs.preferredCountries || [])
         .map(safeRegex)
         .filter(Boolean);
-      if (countryRx.length) and.push({ country: { $in: countryRx } });
+      if (countryRx.length) {
+        and.push({ country: { $in: countryRx } });
+      }
 
       const cityRx = (prefs.preferredCities || [])
         .map(safeRegex)
         .filter(Boolean);
-      if (cityRx.length) and.push({ 'location.city': { $in: cityRx } });
+      if (cityRx.length) {
+        and.push({ 'location.city': { $in: cityRx } });
+      }
     }
 
     if (
@@ -2056,7 +2084,9 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       prefs.preferredIndustries.length
     ) {
       const indRx = prefs.preferredIndustries.map(safeRegex).filter(Boolean);
-      if (indRx.length) and.push({ tags: { $in: indRx } });
+      if (indRx.length) {
+        and.push({ tags: { $in: indRx } });
+      }
     }
 
     const filter = and.length ? { $and: and } : {};
@@ -2065,27 +2095,20 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       filter.$and.push({ $or: or });
     }
 
-    // 1) Try internal/hosted first
+    // INTERNAL QUERY WITH PAGINATION
     const [internalJobs, internalTotal] = await Promise.all([
       Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Job.countDocuments(filter),
     ]);
 
     if (internalTotal > 0) {
-      const profileCtx = {
-        skills: profileSkills,
-        titles,
-        totalYears,
-        isRemote: !!prefs.isRemote,
-        minYearly,
-      };
-      const scored = internalJobs
+      const scoredInternal = internalJobs
         .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
         .sort((a, b) => b.matchScore - a.matchScore);
 
       return res.status(200).json({
         success: true,
-        jobs: scored,
+        jobs: scoredInternal,
         pagination: {
           total: internalTotal,
           page,
@@ -2102,7 +2125,14 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       });
     }
 
-    // 2) Fallback to RapidAPI, PERSIST, then return from DB
+    /**
+     * 2) EXTERNAL / RAPIDAPI FALLBACK
+     *    - Fetch from RapidAPI
+     *    - Upsert to DB
+     *    - Re-query from DB
+     *    - Paginate in memory (scored array)
+     */
+
     const queries = buildExternalQueries(titles, profileSkills);
     const locCountry =
       Array.isArray(prefs.preferredCountries) && prefs.preferredCountries[0]
@@ -2113,7 +2143,7 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
         ? prefs.preferredCities[0]
         : undefined;
 
-    const PAGES_PER_QUERY = 2; // tune to avoid throttling
+    const PAGES_PER_QUERY = 2;
     const externalTransformed = [];
 
     for (const q of queries) {
@@ -2130,12 +2160,15 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
           undefined,
           p,
         );
-        for (const raw of data)
+
+        for (const raw of data) {
           externalTransformed.push(transformRapidApiJob(raw, q));
+        }
       }
     }
 
     let externalJobs = externalTransformed;
+
     if (!externalJobs.length) {
       return res.status(200).json({
         success: true,
@@ -2152,36 +2185,46 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       });
     }
 
+    // Remove dupes by (title, company)
     externalJobs = dedupeByTitleCompany(externalJobs);
 
-    // Persist idempotently by jobId + origin
+    // Persist by jobId + origin
     await upsertExternalJobs(externalJobs);
 
-    // Re-query saved docs so the UI gets consistent shape + _id
+    // Now re-query the upserted ones so shape is consistent
     const ids = externalJobs.map((j) => j.jobId).filter(Boolean);
-    const saved = await Job.find({ origin: 'EXTERNAL', jobId: { $in: ids } })
+
+    const saved = await Job.find({
+      origin: 'EXTERNAL',
+      jobId: { $in: ids },
+    })
       .sort({ createdAt: -1 })
       .lean();
 
-    const profileCtx = {
-      skills: profileSkills,
-      titles,
-      totalYears,
-      isRemote: !!prefs.isRemote,
-      minYearly,
-    };
     const scored = saved
       .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
       .sort((a, b) => b.matchScore - a.matchScore);
 
     const total = scored.length;
+
+    // PAGINATION APPLIED HERE
     const paged = scored.slice(skip, skip + limit);
 
     return res.status(200).json({
       success: true,
       jobs: paged,
-      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
-      profileSummary: { titles, skills: profileSkills, totalYears, minYearly },
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+      profileSummary: {
+        titles,
+        skills: profileSkills,
+        totalYears,
+        minYearly,
+      },
       source: 'external-persisted',
     });
   } catch (error) {
@@ -2365,7 +2408,7 @@ export const jobViewedByStudent = async (req, res) => {
       console.error('Redis invalidate error:', e);
     }
 
-    spendCredits(req.user, 1);
+    addCredits(req.user, 1);
 
     return res.status(200).json({
       success: true,
@@ -2468,11 +2511,11 @@ export const jobVisitedByStudent = async (req, res) => {
       console.error('Redis invalidate error:', e);
     }
 
-    // await addCredits(
-    //   student._id,
-    //   CREDIT_EARN.VISITJOB_SITE,
-    //   'jobVisitedByStudent',
-    // );
+    await addCredits(
+      student._id,
+      CREDIT_EARN.VISITJOB_SITE,
+      'jobVisitedByStudent',
+    );
 
     return res.status(200).json({
       success: true,

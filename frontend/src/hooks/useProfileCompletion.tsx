@@ -30,7 +30,6 @@ const useProfileCompletion = () => {
   useEffect(() => {
     const fetchCompletionData = async () => {
       try {
-        // This should be your API endpoint to get profile status
         const response = await apiInstance.get('/students/profile/status');
         const result: ProfileCompletionData = response.data;
         setData(result);

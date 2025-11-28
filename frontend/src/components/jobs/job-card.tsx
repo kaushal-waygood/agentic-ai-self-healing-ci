@@ -25,7 +25,6 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
       // dispatch(viewedJobsRequest(job._id || job.slug));
 
       const response = await viewedJobs(job._id || job.slug);
-      console.log('response', response);
       onClick();
     } catch (error) {
       console.error('Failed to log job view on click:', error);

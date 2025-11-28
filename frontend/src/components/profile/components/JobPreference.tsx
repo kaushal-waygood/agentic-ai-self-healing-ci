@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  ChevronDown,
   MapPin,
   Briefcase,
   DollarSign,
@@ -11,7 +10,6 @@ import {
   Settings,
   Check,
   Star,
-  Globe,
   Code,
   Award,
 } from 'lucide-react';
@@ -24,103 +22,146 @@ import {
   FormLabel,
   FormMessage,
 } from '../../ui/form';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   getStudentDetailsRequest,
   getStudentJobPreferenceRequest,
-  updateJobPreferedByStudentRequest,
-  updateStudentJobPreferenceRequest,
 } from '@/redux/reducers/studentReducer';
 import apiInstance from '@/services/api';
-import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import LocationPreferences from './LocationPreferences';
 import { useToast } from '@/hooks/use-toast';
 
+// Types for form data
+interface PreferredSalary {
+  min: string;
+  max: string;
+  currency: string;
+  period: string;
+}
+
+interface JobPreferencesFormData {
+  preferredCountries: string[];
+  preferredCities: string[];
+  isRemote: boolean;
+  relocationWillingness: string;
+
+  preferredJobTitles: string; // comma-separated in UI
+  preferredJobTypes: string[];
+  preferredIndustries: string; // comma-separated in UI
+  preferredExperienceLevel: string;
+
+  preferredSalary: PreferredSalary;
+
+  mustHaveSkills: string; // comma-separated
+  niceToHaveSkills: string; // comma-separated
+  preferredCertifications: string; // comma-separated
+  preferredEducationLevel: string;
+
+  preferredCompanySizes: string[];
+  preferredCompanyCultures: string[];
+
+  visaSponsorshipRequired: boolean;
+  immediateAvailability: boolean;
+}
+
+const defaultFormData: JobPreferencesFormData = {
+  preferredCountries: [],
+  preferredCities: [],
+  isRemote: false,
+  relocationWillingness: '',
+
+  preferredJobTitles: '',
+  preferredJobTypes: [],
+  preferredIndustries: '',
+  preferredExperienceLevel: '',
+
+  preferredSalary: {
+    min: '',
+    max: '',
+    currency: 'USD',
+    period: 'YEAR',
+  },
+
+  mustHaveSkills: '',
+  niceToHaveSkills: '',
+  preferredCertifications: '',
+  preferredEducationLevel: '',
+
+  preferredCompanySizes: [],
+  preferredCompanyCultures: [],
+
+  visaSponsorshipRequired: false,
+  immediateAvailability: false,
+};
+
 const JobPreferencesForm = () => {
-  const [activeSection, setActiveSection] = useState('location');
-  const [tags, setTags] = useState([]);
+  const [activeSection, setActiveSection] = useState<
+    'location' | 'job' | 'compensation' | 'skills' | 'company' | 'additional'
+  >('location');
   const { toast } = useToast();
 
   const dispatch = useDispatch();
-  const { students } = useSelector((state: RootState) => state.student);
-  const [formData, setFormData] = useState({
-    // Location
-    preferredCountries: [],
-    preferredCities: [],
-    isRemote: false,
-    relocationWillingness: '',
-    // Job Details
-    preferredJobTitles: '',
-    preferredJobTypes: [],
-    preferredIndustries: '',
-    preferredExperienceLevel: '',
-    // Compensation
-    preferredSalary: { min: '', max: '', currency: 'USD', period: 'YEAR' },
-    // Skills
-    mustHaveSkills: '',
-    niceToHaveSkills: '',
-    preferredCertifications: '',
-    preferredEducationLevel: '',
-    // Company
-    preferredCompanySizes: [],
-    preferredCompanyCultures: [],
-    // Additional
-    visaSponsorshipRequired: false,
-    immediateAvailability: false,
-  });
+  const { jobPreference } = useSelector((state: RootState) => state.student);
 
-  // This useEffect will run when `students` data is fetched from Redux
   useEffect(() => {
-    if (students && students.jobPreferences) {
-      const { jobPreferences } = students;
+    dispatch(getStudentJobPreferenceRequest());
+  }, [dispatch]);
 
-      const skillsToString = (skillsArray) => {
-        if (!Array.isArray(skillsArray)) return '';
-        return skillsArray.map((item) => item.skill).join(', ');
-      };
+  const [formData, setFormData] =
+    useState<JobPreferencesFormData>(defaultFormData);
 
-      const arrayToString = (stringArray) => {
-        if (!Array.isArray(stringArray)) return '';
-        return stringArray.join(', ');
-      };
+  // hydrate from jobPreference when it loads/changes
+  useEffect(() => {
+    if (!jobPreference) return;
 
-      setFormData({
-        preferredCountries: jobPreferences.preferredCountries || [],
-        preferredCities: jobPreferences.preferredCities || [],
-        isRemote: jobPreferences.isRemote || false,
-        relocationWillingness: jobPreferences.relocationWillingness || '',
+    const { preferences: jp } = jobPreference as any;
 
-        preferredJobTitles: arrayToString(jobPreferences.preferredJobTitles),
-        preferredJobTypes: jobPreferences.preferredJobTypes || [],
-        preferredIndustries: arrayToString(jobPreferences.preferredIndustries),
-        preferredExperienceLevel: jobPreferences.preferredExperienceLevel || '',
+    console.log('jp', jp);
 
-        preferredSalary: {
-          min: jobPreferences.preferredSalary?.min || '',
-          max: jobPreferences.preferredSalary?.max || '',
-          currency: jobPreferences.preferredSalary?.currency || 'USD',
-          period: jobPreferences.preferredSalary?.period || 'YEAR',
-        },
+    const skillsToString = (skillsArray: any) =>
+      Array.isArray(skillsArray)
+        ? skillsArray
+            .map((item) => item.skill ?? '')
+            .filter(Boolean)
+            .join(', ')
+        : '';
 
-        // ✨ This is the key transformation for your skills
-        mustHaveSkills: skillsToString(jobPreferences.mustHaveSkills),
-        niceToHaveSkills: skillsToString(jobPreferences.niceToHaveSkills),
+    const arrayToString = (stringArray: any) =>
+      Array.isArray(stringArray) ? stringArray.join(', ') : '';
 
-        preferredCertifications: arrayToString(
-          jobPreferences.preferredCertifications,
-        ),
-        preferredEducationLevel: jobPreferences.preferredEducationLevel || '',
+    setFormData((prev) => ({
+      ...prev,
+      preferredCountries: jp.preferredCountries || [],
+      preferredCities: jp.preferredCities || [],
+      isRemote: jp.isRemote || false,
+      relocationWillingness: jp.relocationWillingness || '',
 
-        preferredCompanySizes: jobPreferences.preferredCompanySizes || [],
-        preferredCompanyCultures: jobPreferences.preferredCompanyCultures || [],
+      preferredJobTitles: arrayToString(jp.preferredJobTitles),
+      preferredJobTypes: jp.preferredJobTypes || [],
+      preferredIndustries: arrayToString(jp.preferredIndustries),
+      preferredExperienceLevel: jp.preferredExperienceLevel || '',
 
-        visaSponsorshipRequired:
-          jobPreferences.visaSponsorshipRequired || false,
-        immediateAvailability: jobPreferences.immediateAvailability || false,
-      });
-    }
-  }, [students]); // Dependency array ensures this runs when `students` changes
+      preferredSalary: {
+        min: jp.preferredSalary?.min || '',
+        max: jp.preferredSalary?.max || '',
+        currency: jp.preferredSalary?.currency || 'USD',
+        period: jp.preferredSalary?.period || 'YEAR',
+      },
+
+      mustHaveSkills: skillsToString(jp.mustHaveSkills),
+      niceToHaveSkills: skillsToString(jp.niceToHaveSkills),
+
+      preferredCertifications: arrayToString(jp.preferredCertifications),
+      preferredEducationLevel: jp.preferredEducationLevel || '',
+
+      preferredCompanySizes: jp.preferredCompanySizes || [],
+      preferredCompanyCultures: jp.preferredCompanyCultures || [],
+
+      visaSponsorshipRequired: jp.visaSponsorshipRequired || false,
+      immediateAvailability: jp.immediateAvailability || false,
+    }));
+  }, [jobPreference]);
 
   const experienceLevels = [
     { id: 'ENTRY_LEVEL', label: 'Entry Level', icon: '🌱' },
@@ -197,16 +238,19 @@ const JobPreferencesForm = () => {
     },
     { id: 'company', label: 'Company', icon: Building, color: 'yellow' },
     { id: 'additional', label: 'Additional', icon: Settings, color: 'red' },
-  ];
+  ] as const;
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (
+    field: keyof JobPreferencesFormData,
+    value: any,
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleSalaryChange = (field, value) => {
+  const handleSalaryChange = (field: keyof PreferredSalary, value: string) => {
     setFormData((prev) => ({
       ...prev,
       preferredSalary: {
@@ -230,45 +274,57 @@ const JobPreferencesForm = () => {
     }
   };
 
-  const handleSavePreferences = async (e) => {
+  const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const splitToArray = (value: string) =>
+      value
+        ? value
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean)
+        : [];
+
     const payload = {
       ...formData,
-      preferredCountries: formData.preferredCountries.join(','),
-      preferredCities: formData.preferredCities.join(','),
-      // Also join other fields that are now arrays in the form but need to be strings for the API
-      preferredJobTitles: Array.isArray(formData.preferredJobTitles)
-        ? formData.preferredJobTitles.join(',')
-        : formData.preferredJobTitles,
-      preferredIndustries: Array.isArray(formData.preferredIndustries)
-        ? formData.preferredIndustries.join(',')
-        : formData.preferredIndustries,
-      preferredCertifications: Array.isArray(formData.preferredCertifications)
-        ? formData.preferredCertifications.join(',')
-        : formData.preferredCertifications,
-    };
+      preferredCountries: Array.isArray(formData.preferredCountries)
+        ? formData.preferredCountries
+        : splitToArray(formData.preferredCountries as any),
+      preferredCities: Array.isArray(formData.preferredCities)
+        ? formData.preferredCities
+        : splitToArray(formData.preferredCities as any),
 
-    const response = await apiInstance.post('/students/prefered-job/add', {
-      formData: payload,
-    });
+      preferredJobTitles: splitToArray(formData.preferredJobTitles),
+      preferredIndustries: splitToArray(formData.preferredIndustries),
+      preferredCertifications: splitToArray(formData.preferredCertifications),
+
+      mustHaveSkills: splitToArray(formData.mustHaveSkills).map((skill) => ({
+        skill,
+      })),
+      niceToHaveSkills: splitToArray(formData.niceToHaveSkills).map(
+        (skill) => ({ skill }),
+      ),
+    };
 
     try {
       await apiInstance.post('/students/prefered-job/add', {
         formData: payload,
       });
+
       toast({
         variant: 'default',
         title: 'Success',
         description: 'Preferences saved successfully',
         duration: 4000,
       });
+
+      dispatch(getStudentJobPreferenceRequest());
     } catch (error) {
       console.error(error);
-
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not fetch the application list.',
+        description: 'Could not save job preferences.',
         duration: 4000,
       });
     }
@@ -278,13 +334,23 @@ const JobPreferencesForm = () => {
     dispatch(getStudentDetailsRequest());
   }, [dispatch]);
 
-  const toggleArrayValue = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: prev[field].includes(value)
-        ? prev[field].filter((item) => item !== value)
-        : [...prev[field], value],
-    }));
+  const toggleArrayValue = (
+    field:
+      | 'preferredJobTypes'
+      | 'preferredCompanySizes'
+      | 'preferredCompanyCultures',
+    value: string,
+  ) => {
+    setFormData((prev) => {
+      const current = (prev[field] || []) as string[];
+      const exists = current.includes(value);
+      return {
+        ...prev,
+        [field]: exists
+          ? current.filter((item) => item !== value)
+          : [...current, value],
+      };
+    });
   };
 
   const CustomCheckbox = ({
@@ -292,6 +358,11 @@ const JobPreferencesForm = () => {
     onChange,
     children,
     color = 'purple',
+  }: {
+    checked: boolean;
+    onChange: () => void;
+    children: React.ReactNode;
+    color?: string;
   }) => (
     <div
       className={`relative cursor-pointer group transition-all duration-300 transform hover:scale-105 ${
@@ -689,116 +760,9 @@ const JobPreferencesForm = () => {
     }
   };
 
-  // return (
-  //   <div className="  dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-  //     <div className="rounded-2xl p-2 max-h-[70vh] overflow-y-auto ">
-  //       {/* Header */}
-  //       <div className="text-center mb-6">
-  //         {/* <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full mb-6 shadow-lg shadow-purple-400/30">
-  //           <Briefcase className="w-10 h-10 text-white" />
-  //         </div> */}
-  //         <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-4">
-  //           Job Preferences
-  //         </h1>
-  //         <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-  //           Tell us about your dream job and we'll help you find the perfect
-  //           match. Complete each section to get personalized job
-  //           recommendations.
-  //         </p>
-  //       </div>
-
-  //       {/* Navigation */}
-  //       <SectionNavigation />
-
-  //       {/* Form Content */}
-  //       <div className="max-w-6xl mx-auto">
-  //         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3">
-  //           <div className="mb-2">
-  //             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">
-  //               {sections.find((s) => s.id === activeSection)?.label}
-  //             </h2>
-  //             <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-24"></div>
-  //           </div>
-
-  //           {renderActiveSection()}
-  //         </div>
-  //       </div>
-
-  //       {/* Action Buttons */}
-
-  //       <div className="flex justify-center gap-4 mt-8">
-  //         {/* <button className="px-8 py-4 bg-gradient-to-r from-slate-400 to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-slate-400/30 hover:shadow-xl hover:shadow-slate-400/40 transform hover:scale-105 transition-all duration-300">
-  //           Save Draft
-  //         </button> */}
-
-  //         {/* Back button */}
-  //         {sections.findIndex((s) => s.id === activeSection) > 0 && (
-  //           <button
-  //             onClick={handlePreviousSection}
-  //             className="px-8 py-4 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
-  //           >
-  //             Back
-  //           </button>
-  //         )}
-
-  //         {/* Next button */}
-  //         {sections.findIndex((s) => s.id === activeSection) <
-  //           sections.length - 1 && (
-  //           <button
-  //             onClick={handleNextSection}
-  //             className="px-8 py-4 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
-  //           >
-  //             Next
-  //           </button>
-  //         )}
-
-  //         {/* Save Preferences button only on the last section */}
-  //         {sections.findIndex((s) => s.id === activeSection) ===
-  //           sections.length - 1 && (
-  //           <button
-  //             onClick={handleSavePreferences}
-  //             className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
-  //           >
-  //             Save Preferences
-  //           </button>
-  //         )}
-  //         {/* <button
-  //           onClick={handleSavePreferences}
-  //           className="px-8 py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
-  //         >
-  //           Save Preferences
-  //         </button> */}
-  //       </div>
-
-  //       {/* Progress Indicator */}
-  //       <div className="max-w-md mx-auto mt-8">
-  //         <div className="flex justify-between items-center">
-  //           {sections.map((section, index) => (
-  //             <div key={section.id} className="flex items-center">
-  //               <div
-  //                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-  //                   activeSection === section.id
-  //                     ? `bg-gradient-to-r from-${section.color}-400 to-${section.color}-600 text-white shadow-lg`
-  //                     : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
-  //                 }`}
-  //               >
-  //                 {index + 1}
-  //               </div>
-  //               {index < sections.length - 1 && (
-  //                 <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-2"></div>
-  //               )}
-  //             </div>
-  //           ))}
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
-
   return (
-    <div className="  dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="rounded-xl p-4 sm:p-6 md:p-2 max-h-[80vh] overflow-y-auto">
-        {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-3 sm:mb-4">
             Job Preferences
@@ -810,12 +774,10 @@ const JobPreferencesForm = () => {
           </p>
         </div>
 
-        {/* Navigation */}
         <div className="mb-4 sm:mb-6">
           <SectionNavigation />
         </div>
 
-        {/* Form Content */}
         <div className="max-w-6xl mx-auto">
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3 sm:p-6 md:p-8">
             <div className="mb-4 sm:mb-6">
@@ -829,9 +791,7 @@ const JobPreferencesForm = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-8">
-          {/* Back Button */}
           {sections.findIndex((s) => s.id === activeSection) > 0 && (
             <button
               onClick={handlePreviousSection}
@@ -841,7 +801,6 @@ const JobPreferencesForm = () => {
             </button>
           )}
 
-          {/* Next Button */}
           {sections.findIndex((s) => s.id === activeSection) <
             sections.length - 1 && (
             <button
@@ -852,7 +811,6 @@ const JobPreferencesForm = () => {
             </button>
           )}
 
-          {/* Save Preferences (Only on Last Section) */}
           {sections.findIndex((s) => s.id === activeSection) ===
             sections.length - 1 && (
             <button
@@ -864,7 +822,6 @@ const JobPreferencesForm = () => {
           )}
         </div>
 
-        {/* Progress Indicator */}
         <div className="max-w-md mx-auto mt-8 ">
           <div className="flex justify-between items-center flex-wrap gap-1 sm:gap-0">
             {sections.map((section, index) => (
@@ -893,16 +850,16 @@ const JobPreferencesForm = () => {
 export default JobPreferencesForm;
 
 // Interface for props
-interface narrativProps {
+interface NarrativProps {
   narrativesForm: any;
   handleNarrativesSubmit: any;
 }
 
-// Corrected Narratives Component
+// Narratives Component (unchanged)
 export const Narratives = ({
   narrativesForm,
   handleNarrativesSubmit,
-}: narrativProps) => {
+}: NarrativProps) => {
   return (
     <Form {...narrativesForm}>
       <form onSubmit={narrativesForm.handleSubmit(handleNarrativesSubmit)}>

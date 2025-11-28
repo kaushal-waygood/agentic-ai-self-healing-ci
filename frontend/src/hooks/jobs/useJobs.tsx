@@ -39,8 +39,17 @@ export const useJobs = () => {
       employmentType: searchParams.get('employmentType')?.split(',') || [],
       experience: searchParams.get('experience')?.split(',') || [],
     };
+
+    const query = searchParams.get('q');
+    if (query) {
+      filtersFromUrl.query = query;
+    }
+
+    console.log('filtersFromUrl', filtersFromUrl);
+
     if (pathName === '/dashboard/search-jobs') {
-      dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
+      dispatch(getRecommendJobsRequest());
+      // dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
     } else if (pathName === '/search-jobs')
       dispatch(searchJobRequest({ ...filtersFromUrl, page: 1, append: false }));
   }, [dispatch, searchParams]);
@@ -64,6 +73,7 @@ export const useJobs = () => {
 
   // 2. Create a ref to hold the latest filters. This doesn't trigger re-renders.
   const latestFiltersRef = useRef(reduxFilters);
+  console.log('latestFiltersRef', latestFiltersRef);
 
   // Keep the ref updated with the latest filters from Redux on every render.
   useEffect(() => {
@@ -74,7 +84,6 @@ export const useJobs = () => {
   //    with an empty dependency array [], so it is created only ONCE.
   const debouncedSearch = useCallback(
     debounce((newFilters: Partial<typeof reduxFilters>) => {
-      // Use the ref to get the most up-to-date filters when the debounce fires.
       const payload = { ...latestFiltersRef.current, ...newFilters };
       dispatch(searchJobRequest({ ...payload, page: 1, append: false }));
     }, 500),
@@ -83,6 +92,9 @@ export const useJobs = () => {
 
   // 4. Expose a stable handler that calls the debounced function.
   const handleFilterChange = (newFilters: Partial<typeof reduxFilters>) => {
+    const payload = searchParams.get('q');
+
+    console.log('newFilters', newFilters);
     debouncedSearch(newFilters);
   };
 

@@ -141,7 +141,6 @@ function* preferedJobs() {
   }
 }
 
-// CORRECTED: This saga should look very similar to getAllJobsSaga
 function* searchJobsSaga(
   action: PayloadAction<{
     page: number;
@@ -153,6 +152,7 @@ function* searchJobsSaga(
     datePosted?: string;
     employmentType?: string[];
     experience?: string[];
+    education?: string[];
   }>,
 ) {
   try {
@@ -166,9 +166,9 @@ function* searchJobsSaga(
       datePosted,
       employmentType,
       experience,
+      education,
     } = action.payload;
 
-    // Call the updated searchJobs service function with all params
     const response: AxiosResponse = yield call(searchJobs, {
       page,
       query,
@@ -178,14 +178,14 @@ function* searchJobsSaga(
       datePosted,
       employmentType: employmentType?.join(','),
       experience: experience?.join(','),
+      education: education?.join(','), // ADD THIS
     });
 
-    // Dispatch the success action with the full payload
     yield put(
       searchJobSuccess({
         jobs: response.data.jobs,
         pagination: response.data.pagination,
-        append: append,
+        append,
       }),
     );
   } catch (error: unknown | Error) {
@@ -199,7 +199,6 @@ function* searchJobsSaga(
 function* getRecommendJobsSaga() {
   try {
     const response: AxiosResponse = yield call(getRecommendJobs);
-    console.log('response', response.data.jobs);
     yield put(getRecommendJobsSuccess(response.data.jobs));
   } catch (error: unknown | Error) {
     yield put(getRecommendJobsFailure((error as Error).message));

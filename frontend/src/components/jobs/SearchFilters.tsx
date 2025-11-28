@@ -1,16 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  Filter,
-  Search,
-  Globe,
-  MapPin,
-  SearchIcon,
-  Loader2,
-} from 'lucide-react';
-import CountrySelector from '../common/CountrySelector';
-import StateSelector from '../common/StateSelector';
+import { Filter, Search, SearchIcon, Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { State } from 'country-state-city';
 
 interface FilterState {
@@ -42,11 +34,56 @@ export const SearchFilters = ({
   onSearchChange,
   onOpenFilterModal,
 }: SearchFiltersProps) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [localFilters, setLocalFilters] = useState<FilterState>({
     ...defaultFilters,
     ...initialFilters,
   });
   const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (!searchParams) return;
+
+    const query = searchParams.get('q') || '';
+    const country = searchParams.get('country') || '';
+    const countryCode = searchParams.get('countryCode') || '';
+    const stateCode = searchParams.get('stateCode') || '';
+    const city = searchParams.get('city') || '';
+    const datePosted = searchParams.get('datePosted') || '';
+
+    const employmentTypeParam = searchParams.get('employmentType') || '';
+    const experienceParam = searchParams.get('experience') || '';
+    const educationParam = searchParams.get('education') || '';
+
+    const employmentType = employmentTypeParam
+      ? employmentTypeParam.split(',').filter(Boolean)
+      : [];
+
+    const experience = experienceParam
+      ? experienceParam.split(',').filter(Boolean)
+      : [];
+
+    const education = educationParam
+      ? educationParam.split(',').filter(Boolean)
+      : [];
+
+    setLocalFilters((prev) => ({
+      ...prev,
+      query: query || prev.query,
+      country: country || prev.country,
+      countryCode: countryCode || prev.countryCode,
+      state: stateCode || prev.state,
+      city: city || prev.city,
+      datePosted: datePosted || prev.datePosted,
+      employmentType: employmentType.length
+        ? employmentType
+        : prev.employmentType,
+      experience: experience.length ? experience : prev.experience,
+      education: education.length ? education : prev.education,
+    }));
+  }, [searchParams]);
 
   // Keep prop -> state sync predictable
   useEffect(() => {
@@ -68,13 +105,17 @@ export const SearchFilters = ({
     [],
   );
 
-  const handleCountryChange = useCallback((countryCode: string) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      country: countryCode,
-      state: '', // reset state when country changes
-    }));
-  }, []);
+  const handleCountryChange = useCallback(
+    (countryCode: string, countryName: string) => {
+      setLocalFilters((prev: any) => ({
+        ...prev,
+        country: countryName, // what you will "send" / show
+        countryCode, // what StateSelector needs
+        state: '', // reset state when country changes
+      }));
+    },
+    [],
+  );
 
   const handleStateChange = useCallback((stateCode: string) => {
     setLocalFilters((prev) => ({
@@ -89,21 +130,70 @@ export const SearchFilters = ({
     return st?.name || stateCode;
   };
 
+  const pushFiltersToUrl = (filters: FilterState) => {
+    console.log(filters);
+    const params = new URLSearchParams();
+
+    const stateName = getStateName(filters.countryCode, filters.state);
+
+    if (filters.query) params.set('q', filters.query);
+
+    if (filters.country) params.set('country', filters.country);
+    if (filters.countryCode) params.set('countryCode', filters.countryCode);
+
+    if (stateName) {
+      params.set('state', stateName); // readable in URL
+      params.set('stateCode', filters.state); // keeps code in URL too
+    }
+
+    if (filters.city) params.set('city', filters.city);
+    if (filters.datePosted) params.set('datePosted', filters.datePosted);
+
+    if (filters.employmentType.length > 0) {
+      params.set('employmentType', filters.employmentType.join(','));
+    }
+
+    if (filters.experience.length > 0) {
+      params.set('experience', filters.experience.join(','));
+    }
+
+    if (filters.education.length > 0) {
+      params.set('education', filters.education.join(','));
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `?${queryString}` : '?';
+
+    router.push(url, { scroll: false });
+  };
+
   const handleSearchClick = useCallback(async () => {
-    // Convert state code to full state name for API call
-    const stateName = getStateName(localFilters.country, localFilters.state);
+    const stateName = getStateName(
+      localFilters.countryCode,
+      localFilters.state,
+    );
 
     const searchFilters: Partial<FilterState> = {
       query: localFilters.query,
       country: localFilters.country,
-      state: stateName,
+      countryCode: localFilters.countryCode,
+      state: stateName, // backend gets name
       city: localFilters.city,
       datePosted: localFilters.datePosted,
       employmentType: [...localFilters.employmentType],
+      experience: [...localFilters.experience],
+      education: [...localFilters.education],
     };
 
     setIsSearching(true);
     try {
+      pushFiltersToUrl({
+        ...localFilters,
+        state: localFilters.state, // still code here
+        country: localFilters.country,
+        countryCode: localFilters.countryCode,
+      });
+
       await Promise.resolve(onSearchChange(searchFilters));
     } catch (error) {
       console.error('Search error:', error);
@@ -124,42 +214,20 @@ export const SearchFilters = ({
 
   return (
     <div className="p-2 md:p-1 mb-2">
-      <div className="grid grid-cols-1  md:grid-cols-4 gap-2 ">
-        <div className="input-search-box-div">
+      <div className="flex items-center justify-between gap-2 ">
+        <div className="input-search-box-div w-full">
           <Search className="input-search-icon  " />
           <input
             id="search-bar"
             type="text"
-            // placeholder="Job title, keywords, or company..."
             placeholder="economist in New York, NY | system design in San Francisco, CA"
             value={localFilters.query}
             onChange={(e) => handleInputChange('query', e.target.value)}
             onKeyDown={handleKeyDown}
-            className="input-search"
+            className="input-search w-full"
             aria-label="Search jobs"
-            
           />
         </div>
-{/* 
-        <div className="input-search-box-div">
-          <Globe className="input-search-icon" />
-          <CountrySelector
-            value={localFilters.country || ''}
-            onChange={handleCountryChange}
-            className="input-search"
-          />
-        </div>
-
-        <div className="input-search-box-div">
-          <MapPin className="input-search-icon" />
-          <StateSelector
-            countryCode={localFilters.country}
-            value={localFilters.state}
-            onChange={handleStateChange}
-            disabled={!localFilters.country}
-            className="input-search"
-          />
-        </div> */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <button

@@ -48,24 +48,10 @@ export default function JobsPage() {
     }
   }, []);
 
-  // Effect to scroll the job list to the top when filters change
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters]);
 
-  // Effect to handle initial job selection from URL or default to the first job
-  useEffect(() => {
-    const slug = searchParams.get('job');
-    if (slug) {
-      fetchJobDetails(slug);
-    } else if (jobs.length > 0) {
-      setSelectedJob(jobs[0]);
-    } else {
-      setSelectedJob(null); // Clear selection if there are no jobs
-    }
-  }, [jobs, searchParams, fetchJobDetails]);
-
-  // Effect for infinite scrolling
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -102,12 +88,12 @@ export default function JobsPage() {
       title: 'Error',
       description: error,
     });
-    // return <div className="text-red-500 p-4 text-center">Error: {error}</div>;
   }
+
+  console.log('filer', filters);
 
   return (
     <div className=" bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
-      {/* seach filter  */}
       <div className="xl:container mx-auto px-1">
         <SearchFilters
           initialFilters={filters}
@@ -115,13 +101,11 @@ export default function JobsPage() {
           onOpenFilterModal={() => setFilterModal(true)}
         />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
-          {/* Job List Column */}
           <div className="">
             <div
               ref={jobListRef}
               className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 scrollbar-thin "
             >
-              {/* Notification for No Results */}
               {notification && !loading && (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6 bg-white rounded-lg border">
                   <Frown className="w-12 h-12 text-gray-400 mb-4" />
@@ -129,14 +113,12 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {/* Initial Loading Skeletons */}
               {loading &&
                 jobs.length === 0 &&
                 Array.from({ length: 8 }).map((_, index) => (
                   <JobCardSkeleton key={index} />
                 ))}
 
-              {/* Job Cards */}
               {!notification &&
                 jobs.map((job: any) => (
                   <JobCard
@@ -147,17 +129,14 @@ export default function JobsPage() {
                   />
                 ))}
 
-              {/* Loading Skeleton for Infinite Scroll */}
               {loading && jobs.length > 0 && (
                 <JobCardSkeleton key="loading-skeleton" />
               )}
 
-              {/* Observer for Infinite Scroll */}
               <div ref={observerRef} style={{ height: '1px' }} />
             </div>
           </div>
 
-          {/* Job Detail Column (Desktop) */}
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {selectedJob ? (
@@ -183,7 +162,6 @@ export default function JobsPage() {
           </div>
         </div>
 
-        {/* Filter Modal */}
         <FilterModal
           isOpen={filterModal}
           onClose={() => setFilterModal(false)}

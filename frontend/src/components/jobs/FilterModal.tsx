@@ -166,6 +166,8 @@ export const FilterModal = ({
   };
 
   const handleApply = () => {
+    console.log('localFilters', localFilters);
+
     onFilterChange(localFilters);
     onClose();
   };
@@ -173,9 +175,10 @@ export const FilterModal = ({
   const handleReset = () => {
     const resetState = {
       query: filters.query,
-      country: filters.country,
-      city: filters.city,
-      state: filters.state,
+      country: '', // country NAME
+      countryCode: '', // ISO code
+      city: '',
+      state: '',
       datePosted: '',
       employmentType: [],
       experience: [],
@@ -200,7 +203,6 @@ export const FilterModal = ({
     }));
   }, []);
 
-  console.log('localFilters', localFilters);
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl bg-white">
