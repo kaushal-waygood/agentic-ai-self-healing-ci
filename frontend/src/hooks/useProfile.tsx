@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 
 /* ===========================
-   Validation Schemas (unchanged)
+   Validation Schemas
    =========================== */
 
 const employmentTypes = [
@@ -250,6 +250,7 @@ export const useProfile = () => {
   const dispatch = useDispatch();
   const { students } = useSelector((state: RootState) => state.student);
 
+  // modal state (implemented with useState, not React.useReducer)
   const [modalState, modalDispatch] = ((): [
     ModalState,
     (a: ModalAction) => void,
@@ -269,10 +270,6 @@ export const useProfile = () => {
       deleteSkill: false,
     };
 
-    const [state, _dispatch] = ((): any => {
-      return (useState as any)(undefined);
-    })();
-
     const [s, setS] = useState<ModalState>(initial);
     const localDispatch = (a: ModalAction) => {
       if (a.type === 'toggle') {
@@ -284,7 +281,7 @@ export const useProfile = () => {
     return [s, localDispatch];
   })();
 
-  /* ---------- grouped numeric indices (edit/delete indices) ---------- */
+  // indices
   const [editEduIndex, setEditEduIndex] = useState(0);
   const [editExpIndex, setEditExpIndex] = useState(0);
   const [editProjIndex, setEditProjIndex] = useState(0);
@@ -297,16 +294,16 @@ export const useProfile = () => {
 
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  /* ---------- toggles for in-place editable fields ---------- */
+  // toggles for editable fields
   const nameToggle = useToggle(false);
   const emailToggle = useToggle(false);
   const phoneToggle = useToggle(false);
   const jobPrefToggle = useToggle(false);
 
-  /* ---------- file uploader ---------- */
+  // file uploader
   const fileUploader = useFileUploader(dispatch, toast);
 
-  /* ---------- student data retrieval & memoization ---------- */
+  // student data
   const getStudentData = useCallback(() => {
     if (!Array.isArray(students) || students.length === 0) return null;
     return students[0]?.studentDetails || students[0] || null;
@@ -314,7 +311,7 @@ export const useProfile = () => {
 
   const studentData = useMemo(() => getStudentData(), [getStudentData]);
 
-  /* ---------- forms ---------- */
+  // forms
   const personalInfoForm = useForm<
     Pick<
       ProfileFormValues,
@@ -387,7 +384,7 @@ export const useProfile = () => {
     mode: 'onChange',
   });
 
-  /* ---------- reset forms when student data changes ---------- */
+  // reset forms when student data changes
   useEffect(() => {
     const sd = studentData;
     if (!sd) return;
@@ -427,7 +424,7 @@ export const useProfile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentData]);
 
-  /* ---------- defaultValues memoization ---------- */
+  // defaultValues
   const defaultValues: any = useMemo(() => {
     const sd = studentData;
     return {
@@ -476,13 +473,12 @@ export const useProfile = () => {
     };
   }, [studentData]);
 
-  /* ---------- dispatch initial load ---------- */
+  // initial load
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
   }, [dispatch]);
 
-  /* ========== handlers ========== */
-
+  // handlers
   const handleDeleteSkills = useCallback(
     (index: string) => {
       if (index) {
@@ -638,7 +634,6 @@ export const useProfile = () => {
           phoneToggle.off();
           dispatch(getStudentDetailsRequest());
         } else if (field === 'jobPreference') {
-          // ✅ Prefer explicit payload over form (form may be reset)
           const jobPreference =
             payload?.jobPreference ??
             personalInfoForm.getValues('jobPreference');
@@ -668,7 +663,7 @@ export const useProfile = () => {
     ],
   );
 
-  /* ---------- public API object ---------- */
+  // public API object
   const publicApi = useMemo(
     () => ({
       isNameEditable: nameToggle.val,
@@ -697,27 +692,6 @@ export const useProfile = () => {
       editEduIndex,
       editExpIndex,
       editSkillIndex,
-      setEditEdu,
-      setEditExp,
-      setEditProj,
-      setEditSkill,
-      setDeleteEdu,
-      setDeleteExp,
-      setDeleteProj,
-      setDeleteSkill,
-      setAddEdu,
-      setAddExp,
-      setAddProj,
-      setAddSkill,
-      setExpandedIndex,
-      setDeleteEduIndex,
-      setDeleteExpIndex,
-      setDeleteProjIndex,
-      setDeleteSkillIndex,
-      setEditEduIndex,
-      setEditExpIndex,
-      setEditProjIndex,
-      setEditSkillIndex,
       handleDeleteSkills,
       handleDeleteExp,
       handleDeleteProject,
@@ -783,9 +757,7 @@ export const useProfile = () => {
     ],
   );
 
-  /* -------------------------
-     setters wrapping modalDispatch
-     ------------------------- */
+  // wrappers to expose setters
   function setEditEdu(v: boolean) {
     modalDispatch({ type: 'set', key: 'editEdu', value: v });
   }
@@ -851,7 +823,7 @@ export const useProfile = () => {
     setEditSkillIndex(v);
   }
 
-  const finalApi = {
+  return {
     ...publicApi,
     setEditEdu,
     setEditExp,
@@ -873,7 +845,5 @@ export const useProfile = () => {
     setEditExpIndex: setEditExpIndexFn,
     setEditProjIndex: setEditProjIndexFn,
     setEditSkillIndex: setEditSkillIndexFn,
-  };
-
-  return finalApi as any;
+  } as any;
 };

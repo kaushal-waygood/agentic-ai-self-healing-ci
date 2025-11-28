@@ -110,11 +110,17 @@ function* getGetMeSaga(): SagaIterator {
 
 function* logoutSaga(): SagaIterator {
   try {
-    const response = yield call(logout);
+    yield call(logout);
+
+    // 🔥 Clear all client-side auth traces
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('persist:root');
+
     yield put(logoutSuccess());
-  } catch (error) {
-    yield put(logoutFailure(error));
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Logout failed';
+    yield put(logoutFailure(errorMessage));
   }
 }
 

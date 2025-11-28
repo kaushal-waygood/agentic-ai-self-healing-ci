@@ -12,10 +12,15 @@ const jobSchema = new Schema(
     title: { type: String, required: true },
     description: { type: String, required: true },
     responsibilities: [String],
-    qualifications: [String], // KEPT: This is the correct field for qualifications
+    qualifications: [String],
     experience: { type: [String], default: [] },
     jobTypes: [String],
+
+    // human-readable string from API ("11 days ago")
     jobPosted: { type: String },
+
+    // REAL date for sorting
+    jobPostedAt: { type: Date },
 
     // --- Company & Application ---
     company: { type: String },
@@ -44,6 +49,7 @@ const jobSchema = new Schema(
     country: { type: String },
     location: {
       city: { type: String },
+      state: { type: String }, // you query on this, so it MUST exist
       postalCode: { type: String },
       lat: { type: Number },
       lng: { type: Number },
@@ -51,11 +57,11 @@ const jobSchema = new Schema(
 
     // --- Metadata ---
     tags: [String],
-    queries: [{ type: String, index: true }], // Indexed for faster searching
+    queries: [{ type: String, index: true }],
     isActive: { type: Boolean, default: true },
     views: { type: Number, default: 0 },
   },
-  { timestamps: true, strict: true }, // Automatically adds createdAt and updatedAt
+  { timestamps: true, strict: true },
 );
 
 // --- Middleware for Slug Generation ---

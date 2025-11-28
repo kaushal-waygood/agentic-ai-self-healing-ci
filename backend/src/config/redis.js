@@ -28,7 +28,7 @@ class RedisClient {
     const patterns = [
       `job:${jobId}`,
       `job:${jobId}:*`,
-      `job:*:${jobId}`, 
+      `job:*:${jobId}`,
       `jobs:search*`, // conservative: search caches may include job lists
       `jobs:all:*`, // clear broad job lists if needed
       `jobs:manual:*`,
@@ -164,6 +164,8 @@ class RedisClient {
       'jobs:manual:*',
       'jobs:rapid:*',
       'jobs:filtered:*',
+      // add this:
+      'jobs:recommended:*',
     ];
 
     try {

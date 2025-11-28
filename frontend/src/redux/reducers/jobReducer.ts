@@ -11,6 +11,17 @@ interface Pagination {
   totalPages: number;
 }
 
+export interface JobFilters {
+  query: string;
+  country: string;
+  state: string;
+  city: string;
+  datePosted: string;
+  employmentType: string[];
+  experience: string[];
+  education: string[];
+}
+
 interface JobState {
   jobs: Job[];
   savedJobs: Job[];
@@ -21,14 +32,7 @@ interface JobState {
   loading: boolean;
   error: string | null;
   pagination: Pagination;
-  filters: {
-    query: string;
-    country: string;
-    city: string;
-    datePosted: string;
-    employmentType: string[];
-    experience: string[];
-  };
+  filters: JobFilters;
 }
 
 const initialState: JobState = {
@@ -46,10 +50,12 @@ const initialState: JobState = {
   filters: {
     query: '',
     country: '',
+    state: '',
     city: '',
     datePosted: '',
     employmentType: [],
     experience: [],
+    education: [],
   },
 };
 
@@ -65,10 +71,12 @@ const jobSlice = createSlice({
         append?: boolean;
         query?: string;
         country?: string;
+        state?: string;
         city?: string;
         datePosted?: string;
         employmentType?: string[];
         experience?: string[];
+        education?: string[];
       }>,
     ) => {
       state.loading = true;
@@ -77,14 +85,17 @@ const jobSlice = createSlice({
         state.filters = {
           query: action.payload.query ?? state.filters.query,
           country: action.payload.country ?? state.filters.country,
+          state: action.payload.state ?? state.filters.state,
           city: action.payload.city ?? state.filters.city,
           datePosted: action.payload.datePosted ?? state.filters.datePosted,
           employmentType:
             action.payload.employmentType ?? state.filters.employmentType,
           experience: action.payload.experience ?? state.filters.experience,
+          education: action.payload.education ?? state.filters.education,
         };
       }
     },
+
     getAllJobsSuccess: (
       state,
       action: PayloadAction<{
@@ -185,10 +196,12 @@ const jobSlice = createSlice({
         append?: boolean;
         query?: string;
         country?: string;
+        state?: string;
         city?: string;
         datePosted?: string;
         employmentType?: string[];
         experience?: string[];
+        education?: string[];
       }>,
     ) => {
       state.loading = true;
@@ -197,11 +210,13 @@ const jobSlice = createSlice({
         state.filters = {
           query: action.payload.query ?? state.filters.query,
           country: action.payload.country ?? state.filters.country,
+          state: action.payload.state ?? state.filters.state,
           city: action.payload.city ?? state.filters.city,
           datePosted: action.payload.datePosted ?? state.filters.datePosted,
           employmentType:
             action.payload.employmentType ?? state.filters.employmentType,
           experience: action.payload.experience ?? state.filters.experience,
+          education: action.payload.education ?? state.filters.education,
         };
       }
     },

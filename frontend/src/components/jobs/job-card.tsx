@@ -4,39 +4,18 @@ import Image from 'next/image';
 import { JobListing } from '@/lib/data/jobs';
 import { MapPin, Clock, Building, Eye, TrendingUp } from 'lucide-react';
 import { truncate } from '@/utils/formatTitle';
-import apiInstance from '@/services/api';
-import { useDispatch } from 'react-redux';
-import {
-  viewedJobsRequest,
-  visitedJobsRequest,
-} from '@/redux/reducers/jobReducer';
-import { viewedJobs } from '@/services/api/student';
 
 interface JobCardProps {
   job: JobListing;
   isActive?: boolean;
-  onClick: () => void;
+  onClick?: () => void;
 }
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
-  const dispatch = useDispatch();
-  const handleClick = async () => {
-    try {
-      // dispatch(viewedJobsRequest(job._id || job.slug));
-
-      const response = await viewedJobs(job._id || job.slug);
-      console.log('response', response);
-      onClick();
-    } catch (error) {
-      console.error('Failed to log job view on click:', error);
-      onClick();
-    }
-  };
-
   return (
     <div
-      onClick={handleClick}
-      className={`group relative  cursor-pointer transition-all duration-500 ease-out transform hover:-translate-y-1 ${
+      onClick={onClick}
+      className={`group relative cursor-pointer transition-all duration-500 ease-out transform hover:-translate-y-1 ${
         isActive
           ? 'bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 border-2 border-purple-400 shadow-2xl shadow-purple-200/50 scale-[1.02]'
           : 'bg-white hover:bg-gradient-to-br hover:from-purple-50/50 hover:via-blue-50/30 hover:to-white border border-gray-200 hover:border-purple-300 shadow-md hover:shadow-2xl hover:shadow-purple-100/40'
@@ -56,35 +35,24 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
         </>
       )}
 
-      {/* New job badge */}
-      {/* {job.views < 10 && (
-        <div className="absolute top-3 left-3 z-20">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg shadow-amber-500/30 animate-in slide-in-from-left duration-500">
-            <Zap className="w-3 h-3 fill-current" />
-            <span>NEW</span>
-          </div>
-        </div>
-      )} */}
-
       <div className="relative z-10">
         <div className="flex items-start gap-4">
-          {/* Enhanced Logo Container */}
+          {/* Logo */}
           <div className="relative flex-shrink-0">
             {job.logo ? (
-              <div className="w-14 h-14   overflow-hidden  ring-purple-100 group-hover:ring-purple-300 transition-all duration-300 shadow-md group-hover:shadow-lg group-hover:scale-110 transform">
+              <div className="w-14 h-14 overflow-hidden ring-purple-100 group-hover:ring-purple-300 transition-all duration-300 shadow-md group-hover:shadow-lg group-hover:scale-110 transform">
                 <Image
                   src={job.logo}
                   alt={job.company || 'Company Logo'}
-                  className="w-full h-full object-contain  p-1"
+                  className="w-full h-full object-contain p-1"
                   width={100}
                   height={100}
                 />
               </div>
             ) : (
-              <div className="w-14 h-14  flex items-center justify-center bg-gradient-to-br from-purple-100 via-blue-100 to-cyan-100  ring-purple-100 group-hover:ring-purple-300 transition-all duration-300 shadow-md group-hover:shadow-lg group-hover:scale-110 transform">
-                {/* <Building2 className="w-7 h-7 text-purple-600" /> */}
+              <div className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-purple-100 via-blue-100 to-cyan-100 ring-purple-100 group-hover:ring-purple-300 transition-all duration-300 shadow-md group-hover:shadow-lg group-hover:scale-110 transform">
                 <Image
-                  src={'/logo.png'}
+                  src="/logo.png"
                   alt={job.company || 'Company Logo'}
                   className="w-full h-full object-contain bg-white p-1"
                   width={100}
@@ -94,14 +62,14 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
             )}
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 min-w-0 ">
-            {/* Job Title with gradient on hover */}
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Title */}
             <h5 className="text-base font-bold text-gray-900 group-hover:bg-gradient-to-r group-hover:from-purple-700 group-hover:to-blue-700 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 line-clamp-2 leading-tight">
               {truncate(job.title, 40)}
             </h5>
 
-            {/* Company Name with enhanced styling */}
+            {/* Company */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-sm font-semibold text-purple-600 group-hover:text-purple-700 transition-colors">
                 <Building className="w-3.5 h-3.5 flex-shrink-0" />
@@ -109,12 +77,15 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               </div>
             </div>
 
-            {/* Location with icon */}
+            {/* Location */}
             <div className="flex items-center gap-1.5 text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
               <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-blue-500" />
-              <span className="truncate">{job.location.city || 'Unknown'}</span>
+              <span className="truncate">
+                {job.location?.city || 'Unknown'}
+              </span>
             </div>
 
+            {/* Meta */}
             <div className="flex items-center justify-between gap-3 pt-1">
               <div className="flex items-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-600 transition-colors">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0 text-purple-400" />
