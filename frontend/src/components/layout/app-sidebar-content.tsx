@@ -236,7 +236,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
         {siteConfig.sidebarNav.map((item, index) => {
-          if (item.adminOnly && user?.role !== 'OrgAdmin') return null;
+          if (item.adminOnly && user?.role !== 'hr') return null;
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||
