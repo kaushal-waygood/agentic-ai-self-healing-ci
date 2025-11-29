@@ -33,8 +33,6 @@ export default function StreakDropdown({
 }: StreakDropdownProps) {
   const [animate, setAnimate] = useState(false);
 
-  console.log('streak', streak);
-
   useEffect(() => {
     const t = setTimeout(() => setAnimate(true), 10);
     return () => clearTimeout(t);

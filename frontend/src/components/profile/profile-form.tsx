@@ -267,7 +267,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     return () => console.log('ProfileForm unmounted');
   }, []);
 
-  // upload handler — preserved behavior (same API path & progress handling)
   const uploadResume = useCallback(async () => {
     if (!file) return;
 

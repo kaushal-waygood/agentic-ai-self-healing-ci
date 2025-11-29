@@ -15,7 +15,6 @@ import { PayloadAction } from '@reduxjs/toolkit';
 function* getAutopilotSaga() {
   try {
     const response: AxiosResponse = yield call(getAllAutopilot);
-    console.log('response', response.data.data);
     yield put(getAutopilotSuccess(response.data.data));
   } catch (error: any) {
     yield put(getAutopilotFailure(error.message));

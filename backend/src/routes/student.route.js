@@ -56,94 +56,95 @@ import pkg from 'generic-pool';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import {
+  checkoutCredits,
   claimDailyStreak,
   getDailyStreak,
 } from '../controllers/credit.controller.js';
 
 const router = Router();
 
-router.get('/details', authMiddleware, isStudent, studentDetails);
-router.get('/job/applications', authMiddleware, isStudent, getAppliedJobs);
+router.get('/details', authMiddleware, studentDetails);
+router.get('/job/applications', authMiddleware, getAppliedJobs);
 
-router.post('/job/apply/:jobId', authMiddleware, isStudent, appliedJob);
-router.get('/job/isapplied', authMiddleware, isStudent, isAppliedOrNot);
+router.post('/job/apply/:jobId', authMiddleware, appliedJob);
+router.get('/job/isapplied', authMiddleware, isAppliedOrNot);
 
-router.patch('/fullname/update', authMiddleware, isStudent, updateFullName);
+router.patch('/fullname/update', authMiddleware, updateFullName);
 
-router.patch('/phone/update', authMiddleware, isStudent, updatePhone);
+router.patch('/phone/update', authMiddleware, updatePhone);
 
-router.post('/job-role/update', authMiddleware, isStudent, updateJobRole);
+router.post('/job-role/update', authMiddleware, updateJobRole);
 
 // Skills
-router.post('/skill/add', authMiddleware, isStudent, addStudentSkills);
+router.post('/skill/add', authMiddleware, addStudentSkills);
 router.delete(
   '/skill/remove/:skillId',
   authMiddleware,
-  isStudent,
+
   removeStudentSkills,
 );
 router.patch(
   '/skill/update/:skillId',
   authMiddleware,
-  isStudent,
+
   updateStudentSkills,
 );
 
 // Experience
-router.post('/experience/add', authMiddleware, isStudent, addExperience);
+router.post('/experience/add', authMiddleware, addExperience);
 router.delete(
   '/experience/remove/:expId',
   authMiddleware,
-  isStudent,
+
   removeExperience,
 );
 router.patch(
   '/experience/update/:expId',
   authMiddleware,
-  isStudent,
+
   updateExperience,
 );
 
-router.post('/education/add', authMiddleware, isStudent, addEducations);
+router.post('/education/add', authMiddleware, addEducations);
 router.delete(
   '/education/remove/:eduId',
   authMiddleware,
-  isStudent,
+
   removeEducation,
 );
 router.patch(
   '/education/update/:eduId',
   authMiddleware,
-  isStudent,
+
   updateEducation,
 );
-router.get('/education/:id', authMiddleware, isStudent, getEducationsById);
+router.get('/education/:id', authMiddleware, getEducationsById);
 
-router.get('/projects', authMiddleware, isStudent, getAllProjects);
-router.post('/project/add', authMiddleware, isStudent, addProjects);
+router.get('/projects', authMiddleware, getAllProjects);
+router.post('/project/add', authMiddleware, addProjects);
 router.delete(
   '/project/remove/:projectId',
   authMiddleware,
-  isStudent,
+
   removeProject,
 );
 router.patch(
   '/project/update/:projectId',
   authMiddleware,
-  isStudent,
+
   updateProjects,
 );
 router.delete(
   '/project/remove/:projectId',
   authMiddleware,
-  isStudent,
+
   removeEducation,
 );
 
 router.post(
   '/profile/add',
   authMiddleware,
-  isStudent,
+
   upload.single('profileImage'),
   addProfileImage,
 );
@@ -173,13 +174,6 @@ router.post(
 
 router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);
 
-router.get(
-  '/jobs/recommended',
-  authMiddleware,
-  isStudent,
-  getProfileBasedRecommendedJobs,
-);
-
 router.post('/jobs/saved', authMiddleware, isStudent, toggleSavedJob);
 router.get('/jobs/saved', authMiddleware, isStudent, getSavedJobs);
 router.get('/jobs/issaved', authMiddleware, isStudent, isSavedOrNot);
@@ -189,9 +183,9 @@ router.get(
   isStudent,
   getProfileBasedRecommendedJobs,
 );
-router.get('/profile/status', authMiddleware, isStudent, getProfileCompletion);
-router.get('/jobs/stats', authMiddleware, isStudent, StudentAnalytics);
-router.post('/autopilot/toggle', authMiddleware, isStudent, toggleAutopilot);
+router.get('/profile/status', authMiddleware, getProfileCompletion);
+router.get('/jobs/stats', authMiddleware, StudentAnalytics);
+router.post('/autopilot/toggle', authMiddleware, toggleAutopilot);
 router.patch(
   '/complete-onboarding',
   authMiddleware,
@@ -213,9 +207,9 @@ router.get(
   isJobVisitedByStudent,
 );
 
-router.get('/jobs/visited-all', authMiddleware, isStudent, getAllVisitedJobs);
-router.get('/jobs/viewed-all', authMiddleware, isStudent, getAllViewedJobs);
-router.get('/jobs/saved-all', authMiddleware, isStudent, getAllSavedJobs);
+router.get('/jobs/visited-all', authMiddleware, getAllVisitedJobs);
+router.get('/jobs/viewed-all', authMiddleware, getAllViewedJobs);
+router.get('/jobs/saved-all', authMiddleware, getAllSavedJobs);
 
 router.get('/job/stats', authMiddleware, isStudent, getAllStatCounts);
 
@@ -230,8 +224,8 @@ router.post(
 
 router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
 
-router.get('/credits', authMiddleware, isStudent, getCreditsSummary);
-router.get('/total-credits', authMiddleware, isStudent, getTotalCredits);
+router.get('/credits', authMiddleware, getCreditsSummary);
+router.get('/total-credits', authMiddleware, getTotalCredits);
 
 router.get(
   '/credit/earn/:action',
@@ -240,8 +234,9 @@ router.get(
   earnCreditsViaSocialLinks,
 );
 
-router.get('/streaks', authMiddleware, isStudent, getDailyStreak);
-router.post('/streaks', authMiddleware, isStudent, claimDailyStreak);
+router.get('/streaks', authMiddleware, getDailyStreak);
+router.post('/streaks', authMiddleware, claimDailyStreak);
+router.post('/credits/checkout', authMiddleware, checkoutCredits);
 
 router.post(
   '/profile/onboarding',
