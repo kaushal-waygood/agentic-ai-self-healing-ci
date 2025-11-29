@@ -27,7 +27,6 @@ export function StatsGrid({
 }: StatsGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      {/* Balance -> Pending Claims */}
       <div
         onClick={() => onChange('balance')}
         className={`${baseCard} bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:border-blue-300 ${
@@ -84,7 +83,6 @@ export function StatsGrid({
         </p>
       </div>
 
-      {/* Transactions -> All transactions */}
       <div
         onClick={() => onChange('transactions')}
         className={`${baseCard} bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:border-purple-300 ${

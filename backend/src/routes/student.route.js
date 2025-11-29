@@ -56,6 +56,7 @@ import pkg from 'generic-pool';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import {
+  checkoutCredits,
   claimDailyStreak,
   getDailyStreak,
 } from '../controllers/credit.controller.js';
@@ -235,6 +236,7 @@ router.get(
 
 router.get('/streaks', authMiddleware, isStudent, getDailyStreak);
 router.post('/streaks', authMiddleware, isStudent, claimDailyStreak);
+router.post('/credits/checkout', authMiddleware, isStudent, checkoutCredits);
 
 router.post(
   '/profile/onboarding',
