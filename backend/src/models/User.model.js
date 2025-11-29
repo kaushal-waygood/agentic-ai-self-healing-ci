@@ -37,7 +37,16 @@ const userSchema = new Schema(
     },
     accountType: {
       type: String,
-      enum: ['individual', 'institution'],
+      enum: [
+        'student',
+        'tpo',
+        'hr',
+        'university_staff',
+        'employer',
+        'OrgAdmin',
+        'admin',
+        'super-admin',
+      ],
       required: function () {
         return this.authMethod === 'local'; // Only required for local auth
       },
@@ -65,7 +74,17 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ['student', 'OrgAdmin', 'super-admin', 'admin'],
+      enum: [
+        'student',
+        'user',
+        'employer',
+        'hr',
+        'university_staff',
+        'uni-tpo',
+        'OrgAdmin', // uni-admin
+        'admin',
+        'super-admin',
+      ],
       default: 'student',
     },
     credits: { type: Number, default: 0 },

@@ -12,11 +12,15 @@ import {
 } from '@/redux/reducers/creditReducer';
 
 import { StatsGrid } from '@/components/credits/StatsGrid';
-// ❌ REMOVE this: import { CreditsTabs } from '@/components/credits/CreditsTabs';
 import { PendingClaimsSection } from '@/components/credits/PendingClaimsSection';
 import { TransactionsSection } from '@/components/credits/TransactionsSection';
 import { CreditsFooterActions } from '@/components/credits/CreditsFooterActions';
 import { HowToClaimModal } from '@/components/credits/HowToClaimModal';
+import {
+  SpendCreditsSection,
+  CartItem,
+} from '@/components/credits/SpendCreditsSection';
+import apiInstance from '@/services/api';
 
 // 4 main cards = 4 possible views
 export type TabKey = 'balance' | 'earned' | 'spent' | 'transactions';
@@ -75,8 +79,8 @@ export default function CreditsPage() {
     steps: string[];
   } | null>(null);
 
-  // default view -> balance (Pending Claims)
   const [activeTab, setActiveTab] = useState<TabKey>('balance');
+  const [spending, setSpending] = useState(false); // ✅ needed for SpendCreditsSection
 
   const router = useRouter();
   const dispatch = useDispatch();
@@ -111,6 +115,7 @@ export default function CreditsPage() {
 
   const fetchSummary = useCallback(() => {
     dispatch(getCreditRequest());
+    dispatch(getTotalCreditRequest());
   }, [dispatch]);
 
   const handleClaim = async (p: PendingClaim) => {
@@ -168,6 +173,45 @@ export default function CreditsPage() {
     });
   };
 
+  // ✅ Proper checkout implementation: receives items + totalCost from SpendCreditsSection
+  const handleCheckout = async (items: CartItem[], totalCost: number) => {
+    if (!items.length) return;
+
+    try {
+      setSpending(true);
+
+      const res = await apiInstance.post('/students/credits/checkout', {
+        items,
+      });
+
+      const { data: resData } = res || {};
+      const balance = resData?.data?.balance;
+      const usageLimits = resData?.data?.usageLimits;
+
+      // Optional: you can dispatch something to update Redux directly here.
+      // For now, reuse your existing flow and refetch summary.
+      fetchSummary();
+
+      toast({
+        title: 'Credits spent successfully',
+        description: `You spent ${totalCost} credits.`,
+      });
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      const message =
+        error?.response?.data?.message ||
+        'Failed to process checkout. Please try again.';
+
+      toast({
+        variant: 'destructive',
+        title: 'Checkout failed',
+        description: message,
+      });
+    } finally {
+      setSpending(false);
+    }
+  };
+
   if (loading && !data) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6">
@@ -223,7 +267,6 @@ export default function CreditsPage() {
           </p>
         </div>
 
-        {/* 4 main cards = clickable tabs */}
         <StatsGrid
           balance={balance}
           totalEarned={totalEarned}
@@ -234,7 +277,6 @@ export default function CreditsPage() {
           pendingClaims={pendingClaims.length}
         />
 
-        {/* Content controlled ONLY by which main card is active */}
         {activeTab === 'balance' && (
           <PendingClaimsSection
             pendingClaims={pendingClaims}
@@ -249,7 +291,14 @@ export default function CreditsPage() {
         )}
 
         {activeTab === 'spent' && (
-          <TransactionsSection transactions={spendTransactions} />
+          <>
+            <SpendCreditsSection
+              balance={balance}
+              loading={spending}
+              onCheckout={handleCheckout}
+            />
+            <TransactionsSection transactions={spendTransactions} />
+          </>
         )}
 
         {activeTab === 'transactions' && (
