@@ -7,9 +7,10 @@
     "watch": "nodemon worker.js",
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "node test",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
-    "test:debug": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --runInBand"
+    "test:debug": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --runInBand",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -53,6 +54,7 @@
     "helmet": "^8.1.0",
     "html-to-docx": "^1.8.0",
     "http-errors": "^2.0.0",
+    "husky": "^9.1.7",
     "i18n-iso-countries": "^7.14.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
