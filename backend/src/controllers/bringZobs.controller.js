@@ -1,238 +1,286 @@
-/** @format */
-
 import { BringZobs } from '../models/BringZobs.model.js';
+import { Organization } from '../models/Organization.model.js';
+import { Student } from '../models/student.model.js';
 import { User } from '../models/User.model.js';
+import { sendEmailWithRetry } from '../utils/transporter.js';
+import crypto from 'crypto';
 
-const ALLOWED_ROLES = [
-  'student',
-  'tpo',
-  'hr',
-  'university_staff',
-  'employer',
-  'OrgAdmin',
-  'admin',
-  'super-admin',
-];
+const normalize = (value = '') => String(value).trim();
 
-// STUDENT: TPO submission
-export const submitStudentBringRequest = async (req, res) => {
+export const getBringzobs = async (req, res) => {
   try {
-    const userId = req.user?._id || null;
-    const { university, name, email, phone } = req.body || {};
-
-    if (!university || !name || !email || !phone) {
-      return res.status(400).json({
-        success: false,
-        message: 'university, name, email and phone are required',
-      });
-    }
-
-    const doc = await BringZobs.create({
-      user: userId,
-      type: 'STUDENT',
-      university,
-      name,
-      email,
-      phone,
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: 'Student / TPO details submitted successfully',
-      data: doc,
-    });
+    const bringzobs = await BringZobs.find();
+    return res.status(200).json({ success: true, data: bringzobs });
   } catch (err) {
-    console.error('submitStudentBringRequest error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    console.error('getBringzobs error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// COMPANY: company registration + document
-export const submitCompanyBringRequest = async (req, res) => {
-  try {
-    const userId = req.user?._id || null;
-    const { role, company, name, email, phone, university } = req.body || {};
-
-    if (!role || !company || !name || !email || !phone) {
-      return res.status(400).json({
-        success: false,
-        message: 'role, company, name, email and phone are required',
-      });
-    }
-
-    // multer saved file under /public/form for field "attachment"
-    let documentUrl = null;
-    if (req.file) {
-      // you can later map this to full URL if you serve /public
-      documentUrl = `/form/${req.file.filename}`;
-    }
-
-    const doc = await BringZobs.create({
-      user: userId,
-      type: 'COMPANY',
-      role,
-      company,
-      name,
-      email,
-      phone,
-      university,
-      documentUrl,
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: 'Company request submitted successfully',
-      data: doc,
-    });
-  } catch (err) {
-    console.error('submitCompanyBringRequest error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
-  }
-};
-
-export const getMyBringRequests = async (req, res) => {
+export const initiateOnboarding = async (req, res) => {
   try {
     const userId = req.user?._id;
+    const { type } = req.body;
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized',
-      });
+    if (!type) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Missing basic details' });
     }
 
-    const { type } = req.query || {};
-
-    const filter = { user: userId };
-
-    if (type) {
-      // accept case-insensitive: student / STUDENT / company / COMPANY
-      const normalized = String(type).toUpperCase();
-      const allowedTypes = ['STUDENT', 'COMPANY', 'STAFF'];
-
-      if (!allowedTypes.includes(normalized)) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid type. Allowed: ${allowedTypes.join(', ')}`,
-        });
-      }
-
-      filter.type = normalized;
-    }
-
-    const requests = await BringZobs.find().sort({ createdAt: -1 }).lean();
-
-    return res.status(200).json({
-      success: true,
-      data: requests,
-    });
-  } catch (err) {
-    console.error('getMyBringRequests error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
-  }
-};
-
-// Map messy request roles to valid user.role values
-const ROLE_MAP = {
-  HR: 'hr',
-  hr: 'hr',
-  TPO: 'tpo',
-  tpo: 'tpo',
-  EMPLOYER: 'employer',
-  employer: 'employer',
-  STUDENT: 'student',
-  student: 'student',
-};
-
-export const updateUserRoleFromBringRequest = async (req, res) => {
-  try {
-    const { id } = req.params; // bring request id
-    const { role: overrideRole, status } = req.body || {};
-
-    const bringReq = await BringZobs.findById(id);
-    console.log('bringReq:', bringReq);
-
-    if (!bringReq) {
-      return res.status(404).json({
-        success: false,
-        message: 'Bring request not found',
-      });
-    }
-
-    if (!bringReq.user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bring request has no associated user',
-      });
-    }
-
-    const user = await User.findById(bringReq.user);
+    const user = await Student.findById(userId);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found for this bring request',
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
     }
 
-    // Determine target role:
-    // 1. If admin passes role in body, use that
-    // 2. Else infer from bringReq.role
-    let targetRole = overrideRole || bringReq.role;
+    const { fullName: name, email, phone } = user;
 
-    // Normalize via map
-    targetRole = ROLE_MAP[targetRole] || targetRole;
+    // 1. Create the record at Step 0
+    const doc = await BringZobs.create({
+      user: userId,
+      type: normalize(type).toUpperCase(),
+      name: normalize(name),
+      email: normalize(email).toLowerCase(),
+      phone: '1234567890',
+      onboardingStep: 0,
+    });
 
-    if (!ALLOWED_ROLES.includes(targetRole)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid role "${targetRole}". Allowed: ${ALLOWED_ROLES.join(
-          ', ',
-        )}`,
-      });
-    }
+    // 2. Send "Welcome / Start Onboarding" Email
+    const emailSubject = `Welcome to Zobs! Complete your ${type.toLowerCase()} profile`;
+    const emailHtml = `<p>Hi ${name},</p><p>Thanks for joining. Please click the link to complete your onboarding.</p> <p><a href="${`http://localhost:3000/dashboard`}/onboarding/${
+      doc.name
+    }">Complete Onboarding</a></p>`;
 
-    console.log('targetRole:', targetRole);
+    // Non-blocking email send
+    sendEmailWithRetry({
+      to: doc.email,
+      subject: emailSubject,
+      html: emailHtml,
+    }).catch(console.error);
 
-    user.role = targetRole;
-    user.accountType = targetRole;
-    console.log(user);
-    await user.save();
+    return res.status(201).json({
+      success: true,
+      message: 'Onboarding initiated',
+      bringId: doc._id,
+      nextStep: 1,
+    });
+  } catch (err) {
+    console.error('initiateOnboarding error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
 
-    // Update request status
-    if (status) {
-      bringReq.status = String(status).toUpperCase();
-    } else {
-      bringReq.status = 'APPROVED';
-    }
-    await bringReq.save();
+export const saveOrganizationDetails = async (req, res) => {
+  try {
+    const { bringId } = req.params;
+    const { companyName, size, industry, website, description } = req.body;
+
+    const doc = await BringZobs.findById(bringId);
+    if (!doc)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Record not found' });
+
+    doc.organizationDetails = {
+      name: normalize(companyName),
+      size: size,
+      industry: industry,
+      website: website,
+      description: description,
+    };
+
+    if (doc.onboardingStep < 1) doc.onboardingStep = 1;
+
+    await doc.save();
 
     return res.status(200).json({
       success: true,
-      message: 'User role updated from bring request',
-      data: {
-        bringRequest: bringReq,
-        user: {
-          _id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-        },
-      },
+      message: 'Organization details saved',
+      nextStep: 2,
     });
   } catch (err) {
-    console.error('updateUserRoleFromBringRequest error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    console.error('saveOrganizationDetails error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
   }
+};
+
+export const markFreeJobPosted = async (req, res) => {
+  try {
+    const { bringId, jobId } = req.body; // Passed from frontend after job API success
+
+    console.log('jobId:', jobId);
+
+    const doc = await BringZobs.findById(bringId);
+    if (!doc)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Record not found' });
+
+    doc.freeJobPosted = {
+      isPosted: true,
+      jobId: jobId,
+    };
+
+    // Move to Step 2 Completed (Ready for Step 3)
+    if (doc.onboardingStep < 2) doc.onboardingStep = 2;
+
+    await doc.save();
+
+    const emailSubject = `Welcome to Zobs! Complete your  profile`;
+    const emailHtml = `<p>Hi ,</p><p>Thanks for joining. Please click the link to complete your onboarding.</p> <p><a href="${`http://localhost:3000/dashboard`}/onboarding/">Complete Onboarding</a></p>`;
+
+    // Non-blocking email send
+    sendEmailWithRetry({
+      to: doc.email,
+      subject: emailSubject,
+      html: emailHtml,
+    }).catch(console.error);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Free job recorded',
+      nextStep: 3,
+    });
+  } catch (err) {
+    console.error('markFreeJobPosted error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const uploadVerificationDocs = async (req, res) => {
+  try {
+    const { bringId } = req.params;
+
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Document file is required' });
+    }
+
+    const doc = await BringZobs.findById(bringId);
+    if (!doc)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Record not found' });
+
+    const documentUrl = `/form/${req.file.filename}`;
+
+    doc.documentUrl = documentUrl;
+    doc.onboardingStep = 3; // Onboarding Flow Complete
+    doc.status = 'PENDING'; // Ready for Admin Review
+
+    await doc.save();
+
+    // 3. Send "Verification Received" Email
+    const emailSubject = `Verification Documents Received - ${doc.organizationDetails?.name}`;
+    const emailHtml = `<p>We have received your documents. Our team will verify them shortly.</p>`;
+
+    sendEmailWithRetry(doc.email, emailSubject, emailHtml).catch(console.error);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Documents uploaded. Verification pending.',
+      data: doc,
+    });
+  } catch (err) {
+    console.error('uploadVerificationDocs error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const acceptedBringZobs = async (req, res) => {
+  try {
+    const { bringId } = req.params;
+
+    // We just call the helper. It handles finding the doc, creating the org,
+    // updating the user, and updating the status to APPROVED.
+    const newOrg = await approveBringZobsRequest(bringId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Request approved and Organization created successfully',
+      organizationId: newOrg._id,
+    });
+  } catch (err) {
+    console.error('acceptedBringZobs error:', err);
+
+    // Handle specific "Request not found" error
+    if (err.message === 'Request not found') {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Record not found' });
+    }
+
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+const approveBringZobsRequest = async (bringZobsId) => {
+  const request = await BringZobs.findById(bringZobsId);
+  if (!request) throw new Error('Request not found');
+
+  // 2. Create the Organization
+  const newOrg = await Organization.create({
+    name: request.organizationDetails.name || request.name,
+    type: request.type,
+    user: request.user,
+    profile: {
+      industry: request.organizationDetails.industry,
+      size: request.organizationDetails.size,
+      website: request.organizationDetails.website,
+      description: request.organizationDetails.description,
+      address: request.organizationDetails.address,
+    },
+    contactInfo: {
+      name: request.name,
+      email: request.email,
+      phone: request.phone,
+    },
+    verificationDocuments: request.documentUrl ? [request.documentUrl] : [],
+    onboardingRequestId: request._id,
+    apiKey: generateApiKey(),
+    status: 'active',
+  });
+
+  const user = await User.findOneAndUpdate(
+    { _id: request.user },
+    {
+      organization: newOrg._id,
+      role:
+        request.type === 'UNIVERSITY'
+          ? 'uni-admin'
+          : request.type === 'COMPANY'
+          ? 'employer-admin'
+          : 'guest-org',
+      accountType:
+        request.type === 'UNIVERSITY'
+          ? 'uni-admin'
+          : request.type === 'COMPANY'
+          ? 'employer-admin'
+          : 'guest-org',
+    },
+    { new: true },
+  );
+
+  console.log('Updated User:', user);
+  request.status = 'APPROVED';
+  await request.save();
+
+  return newOrg;
+};
+
+const generateApiKey = () => {
+  return crypto.randomBytes(20).toString('hex');
 };

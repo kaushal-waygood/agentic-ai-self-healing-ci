@@ -55,6 +55,14 @@ const jobSchema = new Schema(
       lng: { type: Number },
     },
 
+    contractLength: {
+      value: { type: Number },
+      type: { type: String, enum: ['MONTHS', 'YEARS'] },
+    },
+    resumeRequired: { type: Boolean, default: true },
+    remote: { type: Boolean, default: false },
+    jobAddress: { type: String },
+
     // --- Metadata ---
     tags: [String],
     queries: [{ type: String, index: true }],

@@ -604,21 +604,14 @@ export const signUpUser = async (req, res) => {
     let referrer = null;
     let referredBy = null;
 
-    console.log('providedReferralCode:', providedReferralCode);
-
     if (providedReferralCode) {
-      // Find referrer by their referralCode
       referrer = await User.findOne({ referralCode: providedReferralCode });
-
       if (!referrer) {
         return res.status(400).json({ message: 'Invalid referral code' });
       }
-
-      // store referrer _id on the new user
       referredBy = referrer._id;
     }
 
-    // Organization creation for institutional accounts
     let organization = null;
     if (accountType === 'institution') {
       if (!organizationName) {
@@ -640,10 +633,8 @@ export const signUpUser = async (req, res) => {
       }
     }
 
-    // Generate a referral code FOR THE NEW USER (do not overwrite providedReferralCode)
     const userReferralCode = generateReferralCode(normalizedEmail);
 
-    // Create user
     const user = new User({
       accountType,
       fullName,
@@ -655,8 +646,8 @@ export const signUpUser = async (req, res) => {
         accountType === 'institution' && organization
           ? organization._id
           : undefined,
-      referralCode: userReferralCode, // their own code
-      referredBy: referredBy || null, // who referred them
+      referralCode: userReferralCode,
+      referredBy: referredBy || null,
       otp,
       otpExpires,
       isEmailVerified: false,

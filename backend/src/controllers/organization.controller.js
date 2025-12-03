@@ -1,42 +1,112 @@
-// controllers/organizationMembers.js
 import { OrganizationMember } from '../models/OrganizationMembers.model.js';
 import mongoose from 'mongoose';
 import { Job } from '../models/jobs.model.js';
+import TemplateManager from '../email-templates/lib/templateLoader.js';
+import { __dirname } from '../utils/fileUploadingManaging.js';
+import path from 'path';
+import { transporter } from '../utils/transporter.js';
+import { config } from '../config/config.js';
+import { User } from '../models/User.model.js';
+
+const tm = new TemplateManager({
+  baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
+});
+await tm.init();
+
+const sendTemplatedEmail = async ({
+  to,
+  templateName,
+  templateVars,
+  subjectOverride,
+}) => {
+  const { html, text } = await tm.compileWithTextFallback(
+    templateName,
+    templateVars,
+  );
+  await transporter.sendMail({
+    from: config.emailUser,
+    to,
+    subject: subjectOverride || templateVars.subject || 'ZobsAI Notification',
+    html,
+    text,
+  });
+};
 
 export const createOrganizationMember = async (req, res) => {
   try {
-    const { fullName, email, department, course, role = 'member' } = req.body;
-    const { _id } = req.user;
+    const { fullName, email, role } = req.body;
+    const { _id: organizationId } = req.user; // adjust if you store orgId somewhere else
 
+    if (!fullName || !email || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'fullName, email and role are required',
+      });
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+
+    // Check if member already exists in THIS organization
     const existingMember = await OrganizationMember.findOne({
-      email,
+      email: normalizedEmail,
+      organizationId,
     });
 
     if (!role) {
-      return res.status(400).json({ message: 'Role is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'Role is required' });
     }
 
     if (existingMember) {
-      return res
-        .status(400)
-        .json({ message: 'Member already exists in this organization' });
+      return res.status(400).json({
+        success: false,
+        message: 'Member already exists in this organization',
+      });
     }
 
-    // Create organization member
-    const member = new OrganizationMember({
-      organizationId: _id,
+    // Check if a user with this email already exists in Users collection
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    // Create organization member record (can link to existing user if found)
+    const member = await OrganizationMember.create({
+      organizationId,
       fullName,
-      email,
-      department,
-      course,
+      email: normalizedEmail,
       role,
+      userId: existingUser?._id || null, // if your schema supports this
     });
 
-    await member.save();
+    // Only send signup invite if user DOES NOT exist yet
+    if (!existingUser) {
+      await sendTemplatedEmail({
+        to: normalizedEmail,
+        templateName: 'member-invitation', // this template should explain signup + org access
+        templateVars: {
+          name: fullName,
+          dashboardUrl: process.env.DASHBOARD_URL,
+          supportEmail: 'support@zobsai.com',
+          brandName: 'ZobsAI',
+          companyUrl: 'https://zobsai.com',
+          companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+          unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+        },
+        subjectOverride:
+          'Welcome to ZobsAI - Complete your signup to access your workspace',
+      });
+    } else {
+      // Optional: send a different "you were added to org" email instead of signup
+      // or skip email entirely. Your call.
+    }
 
-    res.status(201).json(member);
+    return res.status(201).json({
+      success: true,
+      data: member,
+      userExists: !!existingUser,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('createOrganizationMember error:', error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 

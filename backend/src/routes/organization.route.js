@@ -9,51 +9,50 @@ import {
   getUniqueCourses,
   getJobsByOrgPosted,
 } from '../controllers/organization.controller.js';
-import { authMiddleware, isOrgAdmin } from '../middlewares/auth.middleware.js';
+import {
+  authMiddleware,
+  isAnyAdmin,
+  isHr,
+} from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
 router.post(
   '/members/create',
   authMiddleware,
-  isOrgAdmin,
+  isAnyAdmin,
   createOrganizationMember,
 );
-router.get('/members/all', authMiddleware, isOrgAdmin, getOrganizationMembers);
+router.get('/members/all', authMiddleware, isAnyAdmin, getOrganizationMembers);
 router.patch(
   '/members/:id/edit',
   authMiddleware,
-  isOrgAdmin,
+  isAnyAdmin,
   updateOrganizationMember,
 );
 router.delete(
   '/members/:id/remove',
   authMiddleware,
-  isOrgAdmin,
+  isAnyAdmin,
   deleteOrganizationMember,
 );
 
-router.get(
-  '/members/filter',
-  authMiddleware,
-  isOrgAdmin,
-  filterOrganizationMembers,
-);
+router.get('/members/filter', authMiddleware, isHr, filterOrganizationMembers);
 
 router.get(
   '/members/get-unique-departments',
   authMiddleware,
-  isOrgAdmin,
+  isAnyAdmin,
   getUniqueDepartments,
 );
 
 router.get(
   '/members/get-unique-courses',
   authMiddleware,
-  isOrgAdmin,
+  isAnyAdmin,
   getUniqueCourses,
 );
 
-router.get('/get-job', authMiddleware, isOrgAdmin, getJobsByOrgPosted);
+router.get('/get-job', authMiddleware, isAnyAdmin, getJobsByOrgPosted);
 
 export default router;

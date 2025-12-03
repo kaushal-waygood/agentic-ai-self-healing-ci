@@ -20,7 +20,8 @@ import {
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
-  isOrgAdmin,
+  isAnyAdmin,
+  isHr,
   isStudent,
 } from '../middlewares/auth.middleware.js';
 
@@ -29,7 +30,7 @@ const router = Router();
 router.get('/job/:jobId', getJobFromJobId);
 router.get('/job/views/:jobId', authMiddleware, isStudent, jobViewsCount);
 
-router.post('/mannual', authMiddleware, isOrgAdmin, postManualJob);
+router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
 router.post('/rapid', fetchAndSaveRapidJobs);
 router.get('/find', getJobDetailBySlug);
 router.get('/find/:jobId', getSingleJobDetail);
@@ -52,6 +53,6 @@ router.get('/employment-types', getAllEmploymentTypes);
 router.get('/experience-levels', getAllExperiences);
 
 router.get('/:jobId', getSingleJobDetail);
-router.patch('/status/:jobId', authMiddleware, isOrgAdmin, toggleJobStatus);
+router.patch('/status/:jobId', authMiddleware, isAnyAdmin, toggleJobStatus);
 
 export default router;

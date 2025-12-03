@@ -304,32 +304,204 @@ export const fetchExternalJobs = async (
   }
 };
 
-// --- Controllers ---
+const ALLOWED_JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'];
+const ALLOWED_SALARY_PERIODS = ['HOUR', 'DAY', 'MONTH', 'YEAR'];
+
 export const postManualJob = async (req, res) => {
-  const { _id } = req.user || {};
+  const { _id: organizationId } = req.user || {};
+
   try {
+    if (!organizationId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized: no organization found',
+      });
+    }
+
     const payload = req.body || {};
 
+    const {
+      title,
+      description,
+      company,
+      applyMethod,
+      jobTypes,
+      salary,
+      country,
+      location,
+      responsibilities,
+      qualifications,
+      experience,
+      tags,
+      remote,
+      jobAddress,
+      isActive,
+      contractLength,
+      // NEW FLAG:
+      isOnboarding,
+    } = payload;
+
+    // --- Validation ---
+    if (!title || typeof title !== 'string') {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Job title is required' });
+    }
+
+    if (!description || typeof description !== 'string') {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Job description is required' });
+    }
+
+    if (!company || typeof company !== 'string') {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Company name is required' });
+    }
+
+    // --- Normalization ---
+    const normalizedJobTypes = Array.isArray(jobTypes)
+      ? jobTypes.filter((t) => ALLOWED_JOB_TYPES.includes(t))
+      : [];
+
+    let normalizedApplyMethod = undefined;
+    if (applyMethod && typeof applyMethod === 'object') {
+      const method = applyMethod.method;
+      if (method === 'EMAIL') {
+        const email =
+          applyMethod.email ||
+          (Array.isArray(applyMethod.emails) && applyMethod.emails[0]) ||
+          null;
+
+        if (!email) {
+          return res.status(400).json({
+            success: false,
+            message: 'Application email is required for EMAIL method',
+          });
+        }
+        normalizedApplyMethod = { method: 'EMAIL', email, url: null };
+      } else if (method === 'URL') {
+        const url = applyMethod.url;
+        if (!url) {
+          return res.status(400).json({
+            success: false,
+            message: 'Application URL is required for URL method',
+          });
+        }
+        normalizedApplyMethod = { method: 'URL', email: null, url };
+      }
+    }
+
+    let normalizedSalary = undefined;
+    if (salary && typeof salary === 'object') {
+      const min = salary.min !== undefined ? Number(salary.min) : undefined;
+      const max = salary.max !== undefined ? Number(salary.max) : undefined;
+      const period = ALLOWED_SALARY_PERIODS.includes(salary.period)
+        ? salary.period
+        : undefined;
+
+      normalizedSalary = {
+        min: Number.isFinite(min) ? min : undefined,
+        max: Number.isFinite(max) ? max : undefined,
+        period,
+      };
+    }
+
+    let normalizedLocation = undefined;
+    if (!remote && location && typeof location === 'object') {
+      normalizedLocation = {
+        city: location.city || '',
+        state: location.state || '',
+        postalCode: location.postalCode || '',
+        lat:
+          typeof location.lat === 'number'
+            ? location.lat
+            : location.lat
+            ? Number(location.lat)
+            : undefined,
+        lng:
+          typeof location.lng === 'number'
+            ? location.lng
+            : location.lng
+            ? Number(location.lng)
+            : undefined,
+      };
+    }
+
+    const now = new Date();
+    const humanPosted = 'Just now';
+
+    const queries = [
+      title,
+      company,
+      country,
+      normalizedLocation?.city,
+      normalizedLocation?.state,
+      jobAddress,
+    ]
+      .filter(Boolean)
+      .map((q) => String(q).toLowerCase());
+
+    const normalizedTags = Array.isArray(tags)
+      ? tags.map((t) => String(t).trim()).filter(Boolean)
+      : [];
+
+    // --- LOGIC: Active Status Enforcement ---
+    // If coming from Onboarding, force isActive to FALSE.
+    // Otherwise use user input (defaulting to true if undefined)
+    let finalIsActive = isActive;
+
+    if (isOnboarding === true) {
+      finalIsActive = false;
+    }
+
+    // Build final document object
     const jobData = {
       jobId: uuidv4(),
       origin: 'HOSTED',
-      organizationId: _id,
-      ...payload,
+      organizationId,
+      title: title.trim(),
+      description,
+      company: company.trim(),
+      jobTypes: normalizedJobTypes,
+      applyMethod: normalizedApplyMethod,
+      salary: normalizedSalary,
+      country,
+      location: normalizedLocation,
+      responsibilities: Array.isArray(responsibilities) ? responsibilities : [],
+      qualifications: Array.isArray(qualifications) ? qualifications : [],
+      experience: Array.isArray(experience) ? experience : [],
+      tags: normalizedTags,
+      queries,
+      jobPosted: humanPosted,
+      jobPostedAt: now,
+      isActive: finalIsActive,
     };
 
     const newJob = await Job.create(jobData);
 
-    await Promise.all([
-      redisClient.invalidateAllJobsCache().catch(() => {}),
-      redisClient.del('jobs:employmentTypes').catch(() => {}),
-    ]);
+    // Cache invalidation
+    if (global.redisClient) {
+      // Check if redisClient is available
+      await Promise.all([
+        global.redisClient.invalidateAllJobsCache().catch(() => {}),
+        global.redisClient.del('jobs:employmentTypes').catch(() => {}),
+      ]);
+    }
 
-    res
-      .status(201)
-      .json({ success: true, message: 'Job posted successfully', job: newJob });
+    return res.status(201).json({
+      success: true,
+      message: isOnboarding
+        ? 'Job created and queued for verification.'
+        : 'Job posted successfully',
+      job: newJob,
+    });
   } catch (error) {
     console.error('Error posting job:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
   }
 };
 

@@ -20,34 +20,34 @@ export const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid token payload.' });
     }
 
+    // Fetch user details, excluding the password field
     const user = await User.findById(userId).select('-password');
 
     if (!user) {
       return res.status(401).json({ message: 'User not found.' });
     }
 
+    // Attach user document to the request object
     req.user = user;
     next();
   } catch (err) {
     console.error('authMiddleware error:', err);
+    // If token verification fails (expired, modified, etc.)
     return res.status(403).json({ message: 'Invalid or expired access token' });
   }
 };
 
-/**
- * Generic role guard:
- * requireRole('admin') → exact
- * requireRole('admin', 'super-admin') → any of them
- */
-export const requireRole = (...allowedRoles) => {
+export const requireAnyRole = (...allowedRoles) => {
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    if (!req.user || !req.user.role) {
+      return res
+        .status(401)
+        .json({ message: 'Unauthorized: User role not found.' });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
-        message: `Access denied. Required role: ${allowedRoles.join(
+        message: `Access denied. Required role(s): ${allowedRoles.join(
           ' or ',
         )}. Current role: ${req.user.role}`,
       });
@@ -57,27 +57,30 @@ export const requireRole = (...allowedRoles) => {
   };
 };
 
-/**
- * Some convenience middlewares
- * Usage: router.get('/student-only', authMiddleware, isStudent, handler)
- */
+export const isHr = requireAnyRole('hr');
+export const isStudent = requireAnyRole('user');
+export const isSuperAdmin = requireAnyRole('super-admin');
+export const isAdmin = requireAnyRole('admin');
+export const isGuestOrg = requireAnyRole('guest-org');
 
-export const isStudent = requireRole('student');
+export const isGeneralUser = requireAnyRole('user', 'student', 'uni-student');
 
-export const isTpo = requireRole('tpo');
+export const isEmployerStaff = requireAnyRole(
+  'employer-admin',
+  'hr',
+  'team-lead',
+  'team-management',
+  'team-member',
+);
 
-export const isHr = requireRole('hr');
+export const isUniversityStaff = requireAnyRole('uni-admin', 'uni-tpo');
 
-export const isUniversityStaff = requireRole('university_staff');
+export const isUserOrUniStudent = requireAnyRole('user', 'uni-student');
 
-export const isEmployer = requireRole('employer');
-
-// Keep the legacy 'OrgAdmin' string since you put it in enum like that
-export const isOrgAdmin = requireRole('OrgAdmin');
-
-export const isAdmin = requireRole('admin');
-
-export const isSuperAdmin = requireRole('super-admin');
-
-// Example: any admin-type role (OrgAdmin, admin, super-admin)
-export const isAnyAdmin = requireRole('OrgAdmin', 'admin', 'super-admin');
+export const isAnyAdmin = requireAnyRole(
+  'super-admin',
+  'admin',
+  'uni-admin',
+  'employer-admin',
+  'guest-org',
+);

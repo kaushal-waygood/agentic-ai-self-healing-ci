@@ -23,19 +23,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { editOrganizationMemberRequest } from '@/redux/reducers/organizationsReducer';
+import {
+  addOrganizationMemberRequest,
+  editOrganizationMemberRequest,
+} from '@/redux/reducers/organizationsReducer';
 import { useDispatch } from 'react-redux';
 
 type PropMemberType = {
   onClose: () => void;
-  member?: membersType; // ✅ optional for "add"
-  op: 'edit' | 'add'; // ✅ clearer intent
+  member?: membersType;
+  op: 'edit' | 'add';
 };
 
 const memberFormSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email.'),
-  role: z.enum(['admin', 'member']),
+  role: z.enum(['hr']),
   department: z.string().optional(),
   course: z.string().optional(),
   _id: z.string(),
@@ -125,34 +128,6 @@ const UpdateMemberForm = ({ onClose, member, op }: PropMemberType) => {
 
           <FormField
             control={memberForm.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department (Optional)</FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value ?? ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={memberForm.control}
-            name="course"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Course / Specialization (Optional)</FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value ?? ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={memberForm.control}
             name="role"
             render={({ field }) => (
               <FormItem>
@@ -167,8 +142,7 @@ const UpdateMemberForm = ({ onClose, member, op }: PropMemberType) => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="member">Student Member</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="hr">HR</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

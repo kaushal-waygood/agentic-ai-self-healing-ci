@@ -13,29 +13,25 @@ interface QuillJsProps {
 const QuillJs = ({ content = '', onContentChange }: QuillJsProps) => {
   const quillRef = useRef<Quill | null>(null);
 
+  // Only handle text changes, don't keep re-writing content to editor
   useEffect(() => {
-    if (quillRef.current) {
-      // Set up text change handler
-      const handler = () => {
-        const html = quillRef.current?.root.innerHTML || '';
-        onContentChange(html);
-      };
+    if (!quillRef.current) return;
 
-      quillRef.current.on('text-change', handler);
+    const handler = () => {
+      const html = quillRef.current?.root.innerHTML || '';
+      onContentChange(html);
+    };
 
-      // Set initial content
-      if (content) {
-        quillRef.current.root.innerHTML = content;
-      }
+    quillRef.current.on('text-change', handler);
 
-      return () => {
-        quillRef.current?.off('text-change', handler);
-      };
-    }
-  }, [onContentChange, content]);
+    return () => {
+      quillRef.current?.off('text-change', handler);
+    };
+  }, [onContentChange]);
 
   return (
     <div className="h-64">
+      {/* initialValue is used once inside Editor on mount */}
       <Editor ref={quillRef} initialValue={content} />
     </div>
   );

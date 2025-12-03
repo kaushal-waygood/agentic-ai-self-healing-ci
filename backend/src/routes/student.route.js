@@ -52,7 +52,6 @@ import {
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import puppeteer from 'puppeteer';
-import pkg from 'generic-pool';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import {
