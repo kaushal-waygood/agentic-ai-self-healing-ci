@@ -1,4 +1,3 @@
-/** @format */
 import { Schema, model } from 'mongoose';
 
 // A reusable sub-schema for currency-specific price values

@@ -8,7 +8,7 @@ export const addOrganizationMember = async (payload: {
   course: string;
 }) => {
   const response = await apiInstance.post(
-    '/organization/members/create',
+    '/organization/member/request',
     payload,
   );
   return response;

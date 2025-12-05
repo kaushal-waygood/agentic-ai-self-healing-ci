@@ -16,6 +16,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -638,7 +639,7 @@ export function OrganizationDetailClient({
                                   </FormControl>
                                   <SelectContent>
                                     <SelectItem value="OrgMember">
-                                      Student Member
+                                      HR
                                     </SelectItem>
                                     <SelectItem value="OrgAdmin">
                                       Admin
@@ -1009,10 +1010,8 @@ export function OrganizationDetailClient({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="OrgMember">
-                          Student Member
-                        </SelectItem>
-                        <SelectItem value="OrgAdmin">Admin</SelectItem>
+                        <SelectItem value="hr">HR </SelectItem>
+                        {/* <SelectItem value="OrgAdmin">Admin</SelectItem> */}
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -1,4 +1,27 @@
 'use client';
+export const CREDIT_EARN = {
+  SIGNUP_WITH_REFERRAL_REFERRED: 50,
+  SIGNUP_WITH_REFERRAL_REFERRER: 50,
+  DAILY_CHECKIN: 10,
+  FIRST_JOB_SEARCH: 5,
+  FIRST_CV: 10,
+  FIRST_CL: 10,
+  PROFILE_COMPLETE_PERSONAL: 10,
+  PROFILE_COMPLETE_EDUCATION: 10,
+  PROFILE_COMPLETE_EXPERIENCE: 10,
+  PROFILE_COMPLETE_PROJECT: 10,
+  PROFILE_COMPLETE_SKILL: 10,
+  JOB_SEARCH_DAILY: 5,
+  FOLLOW_SOCIAL: 5,
+  READ_BLOG: 5,
+  ALLOW_BROWSER_NOTIF: 20,
+  FIRST_AUTO_AGENT_SETUP: 10,
+  FIRST_AUTO_APPLICATION_SENT: 10,
+  APPLY_ON_COMPANY_SITE: 1,
+  LIKE_COMMENT_SHARE: 1,
+  SHARE_SOCIAL_CONTENT: 1,
+  VISITJOB_SITE: 5,
+};
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -95,7 +118,7 @@ const referralTiers = [
   { name: 'Diamond', threshold: 50, icon: Gem, color: 'text-purple-500' },
 ];
 
-const getReferralTier = (referralCount: number) => {
+const getReferralTier = (referralCount) => {
   let currentTier = referralTiers[0];
   let nextTier = referralTiers[1];
 
@@ -137,7 +160,7 @@ export default function ReferralsPage() {
   const [isShareSupported, setIsShareSupported] = useState(false);
 
   const dispatch = useDispatch();
-  const { user, loading } = useSelector((state: RootState) => state.auth);
+  const { user, loading } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(getProfileRequest());
@@ -200,12 +223,14 @@ export default function ReferralsPage() {
 
   const currentTier = getReferralTier(user.referralCount || 0);
   const RankIcon = currentTier.icon;
+  // Use the value from the config
+  const creditsPerReferral = CREDIT_EARN.SIGNUP_WITH_REFERRAL_REFERRER;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* --- Stats Overview --- */}
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
@@ -219,16 +244,6 @@ export default function ReferralsPage() {
               <div className="text-3xl font-bold">
                 {user?.referralCount || 0}
               </div>
-              {!currentTier.isMaxRank && (
-                <div className="mt-2">
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${currentTier.progressPercent}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -243,48 +258,11 @@ export default function ReferralsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {(user?.referralCount || 0) * 15}
+                {(user?.referralCount || 0) * creditsPerReferral}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                15 credits per referral
+                {creditsPerReferral} credits per referral
               </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            {/* <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
-                  <Award className="h-5 w-5 text-white" />
-                </div>
-                Referral Rank
-              </CardTitle>
-            </CardHeader> */}
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <RankIcon className={`h-6 w-6 ${currentTier.color}`} />
-                <div className={`text-2xl font-bold ${currentTier.color}`}>
-                  {currentTier.name}
-                </div>
-              </div>
-              {currentTier.isMaxRank ? (
-                <p className="text-sm text-purple-600 font-semibold mt-2">
-                  🎉 You've reached the highest rank!
-                </p>
-              ) : (
-                <>
-                  <div className="w-full bg-slate-200 rounded-full h-2 my-2">
-                    <div
-                      className="bg-gradient-to-r from-purple-400 to-purple-600 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${currentTier.progressPercent}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    <strong>{currentTier.neededForNext}</strong> more referrals
-                    to reach <strong>{currentTier.nextTierName}</strong>
-                  </p>
-                </>
-              )}
             </CardContent>
           </Card>
         </div>
@@ -388,7 +366,9 @@ export default function ReferralsPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-bold text-purple-600">15</p>
+                    <p className="text-xl font-bold text-purple-600">
+                      {creditsPerReferral}
+                    </p>
                     <p className="text-xs text-gray-500">credits</p>
                   </div>
                 </div>
@@ -470,7 +450,7 @@ export default function ReferralsPage() {
                   You Earn Credits
                 </h4>
                 <p className="text-sm text-gray-600">
-                  Receive 15 credits instantly, plus bonuses!
+                  Receive {creditsPerReferral} credits instantly, plus bonuses!
                 </p>
               </div>
             </div>

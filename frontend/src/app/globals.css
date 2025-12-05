@@ -2,131 +2,183 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Poppins', sans-serif;
+}
+
+/* 2. DEFINE VALUES 
+   Note: We wrap values in hsl(...) so they are valid CSS colors. 
+   This removes the need for a tailwind.config.ts file. */
+:root {
+  --background: hsl(210 29% 96%); /* #F0F4F8 */
+  --foreground: hsl(210 10% 23%);
+
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(210 10% 23%);
+
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(210 10% 23%);
+
+  --primary: hsl(207 88% 68%); /* #64B5F6 */
+  --primary-foreground: hsl(210 60% 98%);
+
+  --secondary: hsl(210 25% 90%);
+  --secondary-foreground: hsl(210 10% 30%);
+
+  --muted: hsl(210 25% 93%);
+  --muted-foreground: hsl(210 10% 45%);
+
+  --accent: hsl(174 43% 51%); /* #4DB6AC */
+  --accent-foreground: hsl(0 0% 98%);
+
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  --border: #ffffff;
+  --input: hsl(210 20% 92%);
+  --ring: hsl(207 88% 68%);
+
+  --radius: 0.5rem;
+
+  --chart-1: hsl(207 88% 68%);
+  --chart-2: hsl(174 43% 51%);
+  --chart-3: hsl(210 30% 50%);
+  --chart-4: hsl(25 80% 60%);
+  --chart-5: hsl(300 70% 65%);
+
+  --sidebar-background: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(210 10% 30%);
+  --sidebar-primary: hsl(207 88% 68%);
+  --sidebar-primary-foreground: hsl(210 60% 98%);
+  --sidebar-accent: hsl(210 29% 93%);
+  --sidebar-accent-foreground: hsl(210 10% 23%);
+  --sidebar-border: hsl(210 20% 88%);
+  --sidebar-ring: hsl(207 88% 68%);
+}
+
+.dark {
+  --background: hsl(210 10% 15%);
+  --foreground: hsl(210 20% 95%);
+
+  --card: hsl(210 10% 20%);
+  --card-foreground: hsl(210 20% 95%);
+
+  --popover: hsl(210 10% 20%);
+  --popover-foreground: hsl(210 20% 95%);
+
+  --primary: hsl(207 80% 65%);
+  --primary-foreground: hsl(210 10% 5%);
+
+  --secondary: hsl(210 10% 25%);
+  --secondary-foreground: hsl(210 20% 95%);
+
+  --muted: hsl(210 10% 25%);
+  --muted-foreground: hsl(210 15% 65%);
+
+  --accent: hsl(174 40% 48%);
+  --accent-foreground: hsl(210 10% 5%);
+
+  --destructive: hsl(0 70% 50%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  --border: white;
+  --input: hsl(210 10% 30%);
+  --ring: hsl(207 80% 65%);
+
+  --chart-1: hsl(207 80% 65%);
+  --chart-2: hsl(174 40% 48%);
+  --chart-3: hsl(210 25% 45%);
+  --chart-4: hsl(25 70% 55%);
+  --chart-5: hsl(300 60% 60%);
+
+  --sidebar-background: hsl(210 10% 12%);
+  --sidebar-foreground: hsl(210 20% 93%);
+  --sidebar-primary: hsl(207 80% 65%);
+  --sidebar-primary-foreground: hsl(210 10% 5%);
+  --sidebar-accent: hsl(210 10% 20%);
+  --sidebar-accent-foreground: hsl(210 20% 95%);
+  --sidebar-border: hsl(210 10% 25%);
+  --sidebar-ring: hsl(207 80% 65%);
+}
+
+/* 3. BASE STYLES & IMPORTS */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
 @import url('https://fonts.googleapis.com/css?family=Poppins:100,100italic,200,200italic,300,300italic,regular,italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic');
 
 html {
   scroll-behavior: smooth;
 }
+
 body {
   font-family: Arial, Helvetica, sans-serif;
   max-width: 100% !important;
   margin: 0 0 !important;
+  @apply bg-background text-foreground;
 }
 
-@layer base {
-  :root {
-    --background: 210 29% 96%; /* #F0F4F8 Light Gray */
-    --foreground: 210 10% 23%; /* Dark Gray-Blue Text */
-
-    --card: 0 0% 100%; /* White cards */
-    --card-foreground: 210 10% 23%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 10% 23%;
-
-    --primary: 207 88% 68%; /* #64B5F6 Soft Blue */
-    --primary-foreground: 210 60% 98%; /* White/Very Light Blue for text on primary */
-
-    --secondary: 210 25% 90%; /* Lighter gray for secondary elements */
-    --secondary-foreground: 210 10% 30%; /* Slightly lighter dark text */
-
-    --muted: 210 25% 93%; /* Muted background elements */
-    --muted-foreground: 210 10% 45%; /* Muted text */
-
-    --accent: 174 43% 51%; /* #4DB6AC Teal */
-    --accent-foreground: 0 0% 98%; /* White/Very Light for text on accent */
-
-    --destructive: 0 84.2% 60.2%; /* Default red */
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 210 20% 88%; /* Slightly darker border */
-    --input: 210 20% 92%; /* Input background, slightly off-white/light gray */
-    --ring: 207 88% 68%; /* Primary color for focus rings */
-    --radius: 0.5rem;
-
-    --chart-1: 207 88% 68%;
-    --chart-2: 174 43% 51%;
-    --chart-3: 210 30% 50%;
-    --chart-4: 25 80% 60%;
-    --chart-5: 300 70% 65%;
-
-    /* Sidebar specific theme variables */
-    --sidebar-background: 0 0% 100%; /* White sidebar */
-    --sidebar-foreground: 210 10% 30%; /* Dark text for sidebar */
-    --sidebar-primary: 207 88% 68%; /* Primary color for active/hover items */
-    --sidebar-primary-foreground: 210 60% 98%;
-    --sidebar-accent: 210 29% 93%; /* Accent for hover, slightly lighter than page bg */
-    --sidebar-accent-foreground: 210 10% 23%;
-    --sidebar-border: 210 20% 88%;
-    --sidebar-ring: 207 88% 68%;
-  }
-
-  .dark {
-    --background: 210 10% 15%;
-    --foreground: 210 20% 95%;
-
-    --card: 210 10% 20%;
-    --card-foreground: 210 20% 95%;
-
-    --popover: 210 10% 20%;
-    --popover-foreground: 210 20% 95%;
-
-    --primary: 207 80% 65%;
-    --primary-foreground: 210 10% 5%;
-
-    --secondary: 210 10% 25%;
-    --secondary-foreground: 210 20% 95%;
-
-    --muted: 210 10% 25%;
-    --muted-foreground: 210 15% 65%;
-
-    --accent: 174 40% 48%;
-    --accent-foreground: 210 10% 5%;
-
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 210 10% 30%;
-    --input: 210 10% 30%;
-    --ring: 207 80% 65%;
-
-    --chart-1: 207 80% 65%;
-    --chart-2: 174 40% 48%;
-    --chart-3: 210 25% 45%;
-    --chart-4: 25 70% 55%;
-    --chart-5: 300 60% 60%;
-
-    --sidebar-background: 210 10% 12%;
-    --sidebar-foreground: 210 20% 93%;
-    --sidebar-primary: 207 80% 65%;
-    --sidebar-primary-foreground: 210 10% 5%;
-    --sidebar-accent: 210 10% 20%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 210 10% 25%;
-    --sidebar-ring: 207 80% 65%;
-  }
+* {
+  @apply border-border;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-family: 'Poppins', sans-serif; /* Using 'Inter' from the import */
-    font-weight: 500; /* Adjust the weight as needed */
-  }
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
 }
 
+/* 4. CUSTOM UTILITIES & GRADIENTS */
 .bg-gradient-hero {
   background: linear-gradient(
     135deg,
@@ -136,31 +188,26 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-fill-color: transparent;
+  color: transparent; /* Updated from text-fill-color for standard compliance */
 }
 
-@layer utilities {
-  .printable-a4 {
-    /* width: 210mm; */
-    min-height: 297mm;
-    /* padding: 20mm; */
-    margin: 0 auto;
-    background: white !important;
-    color: black !important;
-  }
-  .printable-a4 h1,
-  .printable-a4 h2,
-  .printable-a4 h3,
-  .printable-a4 p,
-  .printable-a4 li,
-  .printable-a4 strong {
+@utility printable-a4 {
+  min-height: 297mm;
+  margin: 0 auto;
+  background: white !important;
+  color: black !important;
+
+  & h1,
+  & h2,
+  & h3,
+  & p,
+  & li,
+  & strong {
     color: black !important;
   }
 }
 
-/* tiptap-styles.css */
-
-/* Basic editor styles */
+/* Tiptap / Editor Styles */
 .ProseMirror {
   padding: 0.75rem 1rem;
   border: 1px solid #d1d5db;
@@ -170,18 +217,16 @@ body {
 }
 
 .ProseMirror:focus {
-  border-color: #4f46e5;
+  border-color: white;
   box-shadow: 0 0 0 1px #4f46e5;
 }
 
-/* When the editor is not editable, remove the border */
 .ProseMirror[contenteditable='false'] {
   border: none;
   padding: 0;
   box-shadow: none;
 }
 
-/* Placeholder text style */
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
@@ -190,15 +235,17 @@ body {
   height: 0;
 }
 
+/* Using @utility for custom component classes in v4 is optional, 
+   but standard CSS classes work perfectly fine too. */
+
 .input-search-icon {
   @apply text-gray-400 w-5 h-5 mr-2;
 }
 
 .input-search-box-div {
-  @apply flex col-span-2 justify-center items-center border border-gray-300 p-2 rounded-xl  min-w-[250px] relative;
+  @apply flex col-span-2 justify-center items-center border border-gray-300 p-2 rounded-xl min-w-[250px] relative;
 }
 
 .input-search {
-  @apply w-full outline-none  bg-gray-50;
+  @apply w-full outline-none bg-gray-50;
 }
-

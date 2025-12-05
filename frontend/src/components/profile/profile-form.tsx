@@ -261,12 +261,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handleDrop,
   } = fileState;
 
-  // small lifecycle log (kept from original)
-  useEffect(() => {
-    console.log('ProfileForm mounted');
-    return () => console.log('ProfileForm unmounted');
-  }, []);
-
   const uploadResume = useCallback(async () => {
     if (!file) return;
 
@@ -392,18 +386,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
     handleDeleteSkills(deleteSkillIndex);
     setDeleteSkill(false);
   }, [handleDeleteSkills, deleteSkillIndex, setDeleteSkill]);
-
-  // small debug identical to original to help track identity problems
-  useEffect(() => {
-    console.log(
-      'defaultValues identity:',
-      Boolean(defaultValues),
-      'eduLen',
-      defaultValues?.education?.length ?? 0,
-      'expLen',
-      defaultValues?.experience?.length ?? 0,
-    );
-  }, [defaultValues]);
 
   return (
     <div className="">

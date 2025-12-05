@@ -40,7 +40,7 @@ export const postJobMannalByOrgAdmin = async (data: any) => {
 };
 
 export const getAllJobsByOrgAdmin = async () => {
-  const response = await apiInstance.get(`organization/get-job`);
+  const response = await apiInstance.get(`/organization/get-job`);
   return response;
 };
 

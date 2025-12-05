@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
+import {
+  authMiddleware,
+  isStudent,
+  isUserOrUniStudent,
+} from '../middlewares/auth.middleware.js';
 import {
   studentDetails,
   appliedJob,
@@ -18,7 +22,7 @@ import {
   getJobPreferences,
   updateFullName,
   updatePhone,
-  // savedJobs,
+  updateLocation,
   getSavedJobs,
   isSavedOrNot,
   isAppliedOrNot,
@@ -48,11 +52,11 @@ import {
   getCreditsSummary,
   getTotalCredits,
   earnCreditsViaSocialLinks,
+  updateStudentProfile,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import puppeteer from 'puppeteer';
-import pkg from 'generic-pool';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import {
@@ -63,45 +67,86 @@ import {
 
 const router = Router();
 
-router.get('/details', authMiddleware, studentDetails);
-router.get('/job/applications', authMiddleware, getAppliedJobs);
+router.get('/details', authMiddleware, isUserOrUniStudent, studentDetails);
+router.get(
+  '/job/applications',
+  authMiddleware,
+  isUserOrUniStudent,
+  getAppliedJobs,
+);
 
-router.post('/job/apply/:jobId', authMiddleware, appliedJob);
-router.get('/job/isapplied', authMiddleware, isAppliedOrNot);
+router.post(
+  '/job/apply/:jobId',
+  authMiddleware,
+  isUserOrUniStudent,
+  appliedJob,
+);
+router.get(
+  '/job/isapplied',
+  authMiddleware,
+  isUserOrUniStudent,
+  isAppliedOrNot,
+);
 
-router.patch('/fullname/update', authMiddleware, updateFullName);
+router.patch(
+  '/profile/update',
+  authMiddleware,
+  isUserOrUniStudent,
+  updateStudentProfile,
+);
 
-router.patch('/phone/update', authMiddleware, updatePhone);
-
-router.post('/job-role/update', authMiddleware, updateJobRole);
+router.patch(
+  '/fullname/update',
+  authMiddleware,
+  isUserOrUniStudent,
+  updateFullName,
+);
+router.patch(
+  '/location/update',
+  authMiddleware,
+  isUserOrUniStudent,
+  updateLocation,
+);
+router.patch('/phone/update', authMiddleware, isUserOrUniStudent, updatePhone);
+router.post(
+  '/job-role/update',
+  authMiddleware,
+  isUserOrUniStudent,
+  updateJobRole,
+);
 
 // Skills
-router.post('/skill/add', authMiddleware, addStudentSkills);
+router.post('/skill/add', authMiddleware, isUserOrUniStudent, addStudentSkills);
 router.delete(
   '/skill/remove/:skillId',
   authMiddleware,
-
+  isUserOrUniStudent,
   removeStudentSkills,
 );
 router.patch(
   '/skill/update/:skillId',
   authMiddleware,
-
+  isUserOrUniStudent,
   updateStudentSkills,
 );
 
 // Experience
-router.post('/experience/add', authMiddleware, addExperience);
+router.post(
+  '/experience/add',
+  authMiddleware,
+  isUserOrUniStudent,
+  addExperience,
+);
 router.delete(
   '/experience/remove/:expId',
   authMiddleware,
-
+  isUserOrUniStudent,
   removeExperience,
 );
 router.patch(
   '/experience/update/:expId',
   authMiddleware,
-
+  isUserOrUniStudent,
   updateExperience,
 );
 
@@ -109,42 +154,48 @@ router.post('/education/add', authMiddleware, addEducations);
 router.delete(
   '/education/remove/:eduId',
   authMiddleware,
-
+  isUserOrUniStudent,
   removeEducation,
 );
 router.patch(
   '/education/update/:eduId',
   authMiddleware,
-
+  isUserOrUniStudent,
   updateEducation,
 );
-router.get('/education/:id', authMiddleware, getEducationsById);
+router.get(
+  '/education/:id',
+  authMiddleware,
+  isUserOrUniStudent,
+  getEducationsById,
+);
 
-router.get('/projects', authMiddleware, getAllProjects);
-router.post('/project/add', authMiddleware, addProjects);
+router.get('/projects', authMiddleware, isUserOrUniStudent, getAllProjects);
+router.post('/project/add', authMiddleware, isUserOrUniStudent, addProjects);
 router.delete(
   '/project/remove/:projectId',
   authMiddleware,
-
+  isUserOrUniStudent,
   removeProject,
 );
 router.patch(
   '/project/update/:projectId',
   authMiddleware,
+  isUserOrUniStudent,
 
   updateProjects,
 );
 router.delete(
   '/project/remove/:projectId',
   authMiddleware,
-
+  isUserOrUniStudent,
   removeEducation,
 );
 
 router.post(
   '/profile/add',
   authMiddleware,
-
+  isUserOrUniStudent,
   upload.single('profileImage'),
   addProfileImage,
 );
@@ -152,7 +203,7 @@ router.post(
 router.patch(
   '/profile/update',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   upload.single('profileImage'),
   updateProfileImage,
 );
@@ -160,7 +211,7 @@ router.patch(
 router.post(
   '/resume/add',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   upload.single('resume'),
   addResume,
 );
@@ -168,171 +219,235 @@ router.post(
 router.post(
   '/prefered-job/add',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   updateJobPreferences,
 );
 
-router.get('/prefered-job/get', authMiddleware, isStudent, getJobPreferences);
+router.get(
+  '/prefered-job/get',
+  authMiddleware,
+  isUserOrUniStudent,
+  getJobPreferences,
+);
 
-router.post('/jobs/saved', authMiddleware, isStudent, toggleSavedJob);
-router.get('/jobs/saved', authMiddleware, isStudent, getSavedJobs);
-router.get('/jobs/issaved', authMiddleware, isStudent, isSavedOrNot);
+router.post('/jobs/saved', authMiddleware, isUserOrUniStudent, toggleSavedJob);
+router.get('/jobs/saved', authMiddleware, isUserOrUniStudent, getSavedJobs);
+router.get('/jobs/issaved', authMiddleware, isUserOrUniStudent, isSavedOrNot);
 router.get(
   '/jobs/recommended',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   getProfileBasedRecommendedJobs,
 );
-router.get('/profile/status', authMiddleware, getProfileCompletion);
-router.get('/jobs/stats', authMiddleware, StudentAnalytics);
-router.post('/autopilot/toggle', authMiddleware, toggleAutopilot);
+router.get(
+  '/profile/status',
+  authMiddleware,
+  isUserOrUniStudent,
+  getProfileCompletion,
+);
+router.get('/jobs/stats', authMiddleware, isUserOrUniStudent, StudentAnalytics);
+router.post(
+  '/autopilot/toggle',
+  authMiddleware,
+  isUserOrUniStudent,
+  toggleAutopilot,
+);
 router.patch(
   '/complete-onboarding',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   completeOnboarding,
 );
 router.get(
   '/jobs/visited/:jobId',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   jobVisitedByStudent,
 );
-router.get('/education/:id', authMiddleware, isStudent, getEducationsById);
+router.get(
+  '/education/:id',
+  authMiddleware,
+  isUserOrUniStudent,
+  getEducationsById,
+);
 
 router.get(
   '/jobs/is-visited/:jobId',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   isJobVisitedByStudent,
 );
 
-router.get('/jobs/visited-all', authMiddleware, getAllVisitedJobs);
-router.get('/jobs/viewed-all', authMiddleware, getAllViewedJobs);
-router.get('/jobs/saved-all', authMiddleware, getAllSavedJobs);
+router.get(
+  '/jobs/visited-all',
+  authMiddleware,
+  isUserOrUniStudent,
+  getAllVisitedJobs,
+);
+router.get(
+  '/jobs/viewed-all',
+  authMiddleware,
+  isUserOrUniStudent,
+  getAllViewedJobs,
+);
+router.get(
+  '/jobs/saved-all',
+  authMiddleware,
+  isUserOrUniStudent,
+  getAllSavedJobs,
+);
 
-router.get('/job/stats', authMiddleware, isStudent, getAllStatCounts);
+router.get('/job/stats', authMiddleware, isUserOrUniStudent, getAllStatCounts);
 
-router.get('/job/viewed/:jobId', authMiddleware, isStudent, jobViewedByStudent);
+router.get(
+  '/job/viewed/:jobId',
+  authMiddleware,
+  isUserOrUniStudent,
+  jobViewedByStudent,
+);
 
 router.post(
   '/job/viewed/:jobId',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   jobViewedByStudent,
 );
 
-router.get('/job/viewed/:jobId', authMiddleware, isStudent, isStudentViewedJob);
+router.get(
+  '/job/viewed/:jobId',
+  authMiddleware,
+  isUserOrUniStudent,
+  isStudentViewedJob,
+);
 
-router.get('/credits', authMiddleware, getCreditsSummary);
-router.get('/total-credits', authMiddleware, getTotalCredits);
+router.get('/credits', authMiddleware, isUserOrUniStudent, getCreditsSummary);
+router.get(
+  '/total-credits',
+  authMiddleware,
+  isUserOrUniStudent,
+  getTotalCredits,
+);
 
 router.get(
   '/credit/earn/:action',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   earnCreditsViaSocialLinks,
 );
 
-router.get('/streaks', authMiddleware, getDailyStreak);
-router.post('/streaks', authMiddleware, claimDailyStreak);
-router.post('/credits/checkout', authMiddleware, checkoutCredits);
+router.get('/streaks', authMiddleware, isUserOrUniStudent, getDailyStreak);
+router.post('/streaks', authMiddleware, isUserOrUniStudent, claimDailyStreak);
+router.post(
+  '/credits/checkout',
+  authMiddleware,
+  isUserOrUniStudent,
+  checkoutCredits,
+);
 
 router.post(
   '/profile/onboarding',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   onboardingProfile,
 );
 
-router.post('/pdf/generate-pdf', async (req, res) => {
-  const { html, title } = req.body;
+router.post(
+  '/pdf/generate-pdf',
+  authMiddleware,
+  isUserOrUniStudent,
+  async (req, res) => {
+    const { html, title } = req.body;
 
-  if (!html) {
-    return res.status(400).json({ message: 'HTML content is required.' });
-  }
-
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-      protocolTimeout: 120000,
-    });
-
-    const page = await browser.newPage();
-    page.setDefaultTimeout(60000);
-
-    // Use 'load' instead of 'networkidle0' for better reliability
-    await page.setContent(html, {
-      waitUntil: 'load',
-      timeout: 30000,
-    });
-
-    // Removed the waitForTimeout call - 'load' should be sufficient
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '10mm',
-        right: '15mm',
-        bottom: '15mm',
-        left: '15mm',
-      },
-      timeout: 30000,
-    });
-
-    await browser.close();
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.pdf"`,
-    );
-
-    res.send(pdfBuffer);
-  } catch (error) {
-    console.error('PDF Generation Error:', error);
-
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (closeError) {
-        console.error('Error closing browser:', closeError);
-      }
+    if (!html) {
+      return res.status(400).json({ message: 'HTML content is required.' });
     }
 
-    res.status(500).json({
-      message: 'Failed to generate PDF.',
-      error: error.message,
-    });
-  }
-});
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
+        protocolTimeout: 120000,
+      });
 
-router.post('/docx/generate-docx', async (req, res) => {
-  const { html, title } = req.body;
+      const page = await browser.newPage();
+      page.setDefaultTimeout(60000);
 
-  if (!html) {
-    return res.status(400).json({ message: 'HTML content is required.' });
-  }
+      // Use 'load' instead of 'networkidle0' for better reliability
+      await page.setContent(html, {
+        waitUntil: 'load',
+        timeout: 30000,
+      });
 
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+      // Removed the waitForTimeout call - 'load' should be sufficient
 
-    const page = await browser.newPage();
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '10mm',
+          right: '15mm',
+          bottom: '15mm',
+          left: '15mm',
+        },
+        timeout: 30000,
+      });
 
-    // Simplified HTML structure for Pandoc
-    const docxOptimizedHtml = `
+      await browser.close();
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.pdf"`,
+      );
+
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.error('Error closing browser:', closeError);
+        }
+      }
+
+      res.status(500).json({
+        message: 'Failed to generate PDF.',
+        error: error.message,
+      });
+    }
+  },
+);
+
+router.post(
+  '/docx/generate-docx',
+  authMiddleware,
+  isUserOrUniStudent,
+  async (req, res) => {
+    const { html, title } = req.body;
+
+    if (!html) {
+      return res.status(400).json({ message: 'HTML content is required.' });
+    }
+
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+
+      const page = await browser.newPage();
+
+      // Simplified HTML structure for Pandoc
+      const docxOptimizedHtml = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -441,85 +556,87 @@ router.post('/docx/generate-docx', async (req, res) => {
       </html>
     `;
 
-    await page.setContent(docxOptimizedHtml, {
-      waitUntil: 'load',
-      timeout: 30000,
-    });
-
-    // Get cleaned HTML
-    const cleanedHtml = await page.evaluate(() => {
-      // Remove title tags and other problematic elements
-      const titleElements = document.querySelectorAll('title');
-      titleElements.forEach((el) => el.remove());
-
-      // Remove scripts and styles that cause issues
-      const elementsToRemove = document.querySelectorAll('script, link, meta');
-      elementsToRemove.forEach((el) => el.remove());
-
-      // Convert flex to simple layouts
-      const flexElements = document.querySelectorAll('[style*="flex"]');
-      flexElements.forEach((el) => {
-        el.style.display = 'block';
+      await page.setContent(docxOptimizedHtml, {
+        waitUntil: 'load',
+        timeout: 30000,
       });
 
-      return document.documentElement.outerHTML;
-    });
+      // Get cleaned HTML
+      const cleanedHtml = await page.evaluate(() => {
+        // Remove title tags and other problematic elements
+        const titleElements = document.querySelectorAll('title');
+        titleElements.forEach((el) => el.remove());
 
-    await browser.close();
+        // Remove scripts and styles that cause issues
+        const elementsToRemove =
+          document.querySelectorAll('script, link, meta');
+        elementsToRemove.forEach((el) => el.remove());
 
-    // Use Pandoc WITHOUT the template reference
-    const outputPath = `./CareerPilot_${title.replace(/ /g, '_')}.docx`;
-
-    const pandoc = spawn('pandoc', [
-      '-f',
-      'html',
-      '-t',
-      'docx',
-      '-o',
-      outputPath,
-    ]);
-
-    pandoc.stdin.write(cleanedHtml);
-    pandoc.stdin.end();
-
-    const errorChunks = [];
-
-    pandoc.stderr.on('data', (chunk) => {
-      errorChunks.push(chunk);
-    });
-
-    pandoc.on('close', (code) => {
-      if (code !== 0) {
-        const errorMessage = Buffer.concat(errorChunks).toString();
-        console.error('Pandoc conversion failed:', errorMessage);
-        return res.status(500).json({
-          message: 'Failed to generate DOCX file.',
-          error: errorMessage,
+        // Convert flex to simple layouts
+        const flexElements = document.querySelectorAll('[style*="flex"]');
+        flexElements.forEach((el) => {
+          el.style.display = 'block';
         });
-      }
 
-      console.log('DOCX generated successfully');
-      res.download(outputPath, (err) => {
-        if (err) {
-          console.error('Error sending DOCX:', err);
-          res.status(500).json({ message: 'Error sending DOCX file.' });
-        }
-        // Clean up
-        try {
-          fs.unlinkSync(outputPath);
-        } catch (cleanupError) {
-          console.error('Error cleaning up file:', cleanupError);
-        }
+        return document.documentElement.outerHTML;
       });
-    });
-  } catch (error) {
-    console.error('DOCX Generation Error:', error);
-    if (browser) await browser.close();
-    res.status(500).json({
-      message: 'Failed to generate DOCX.',
-      error: error.message,
-    });
-  }
-});
+
+      await browser.close();
+
+      // Use Pandoc WITHOUT the template reference
+      const outputPath = `./CareerPilot_${title.replace(/ /g, '_')}.docx`;
+
+      const pandoc = spawn('pandoc', [
+        '-f',
+        'html',
+        '-t',
+        'docx',
+        '-o',
+        outputPath,
+      ]);
+
+      pandoc.stdin.write(cleanedHtml);
+      pandoc.stdin.end();
+
+      const errorChunks = [];
+
+      pandoc.stderr.on('data', (chunk) => {
+        errorChunks.push(chunk);
+      });
+
+      pandoc.on('close', (code) => {
+        if (code !== 0) {
+          const errorMessage = Buffer.concat(errorChunks).toString();
+          console.error('Pandoc conversion failed:', errorMessage);
+          return res.status(500).json({
+            message: 'Failed to generate DOCX file.',
+            error: errorMessage,
+          });
+        }
+
+        console.log('DOCX generated successfully');
+        res.download(outputPath, (err) => {
+          if (err) {
+            console.error('Error sending DOCX:', err);
+            res.status(500).json({ message: 'Error sending DOCX file.' });
+          }
+          // Clean up
+          try {
+            fs.unlinkSync(outputPath);
+          } catch (cleanupError) {
+            console.error('Error cleaning up file:', cleanupError);
+          }
+        });
+      });
+    } catch (error) {
+      console.error('DOCX Generation Error:', error);
+      if (browser) await browser.close();
+      res.status(500).json({
+        message: 'Failed to generate DOCX.',
+        error: error.message,
+      });
+    }
+  },
+);
 
 export default router;

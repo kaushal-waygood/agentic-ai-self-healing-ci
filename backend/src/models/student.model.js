@@ -1,5 +1,5 @@
+// src/models/student.model.js
 import { Schema, model } from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
 
 // Sub-schemas
 const jobPreferenceSchema = new Schema({
@@ -115,7 +115,6 @@ const autopilotAgentSchema = new Schema({
   isOnsite: { type: Boolean, default: false },
   employmentType: {
     type: String,
-    // enum: ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'TEMPORARY'],
   },
   cvOption: {
     type: String,
@@ -160,8 +159,6 @@ const applicationSchema = new Schema(
       type: String,
       required: true,
     },
-
-    // --- Other fields remain the same ---
     status: {
       type: String,
       enum: ['Draft', 'Applied', 'Interviewing', 'Offered', 'Rejected'],
@@ -208,7 +205,6 @@ const tailoredApplicationSchema = new Schema({
   completedAt: { type: Date },
 });
 
-// Main schema
 const studentSchema = new Schema(
   {
     fullName: { type: String, required: true, trim: true },
@@ -248,7 +244,7 @@ const studentSchema = new Schema(
     ],
     savedJobs: [
       {
-        _id: false, // Prevents creating a separate _id for this sub-document
+        _id: false,
         job: {
           type: Schema.Types.ObjectId,
           ref: 'Job',
@@ -260,7 +256,6 @@ const studentSchema = new Schema(
         },
       },
     ],
-
     viewedJobs: [
       {
         _id: false,
@@ -274,7 +269,6 @@ const studentSchema = new Schema(
         },
       },
     ],
-
     visitedJobs: [
       {
         _id: false,
@@ -289,10 +283,9 @@ const studentSchema = new Schema(
         },
       },
     ],
-
     cls: [
       {
-        jobId: { type: Schema.Types.ObjectId, required: true }, // ✅ Add this
+        jobId: { type: Schema.Types.ObjectId, required: true },
         status: {
           type: String,
           enum: ['pending', 'completed', 'failed'],
@@ -310,7 +303,7 @@ const studentSchema = new Schema(
     ],
     cvs: [
       {
-        jobId: { type: Schema.Types.ObjectId, required: true }, // ✅ Add this
+        jobId: { type: Schema.Types.ObjectId, required: true },
         status: {
           type: String,
           enum: ['pending', 'completed', 'failed'],
@@ -341,6 +334,11 @@ const studentSchema = new Schema(
       ),
       default: {},
       select: true,
+    },
+
+    location: {
+      type: String,
+      trim: true,
     },
 
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
