@@ -46,9 +46,8 @@ export function computeDiscountedPriceForPriceObj(priceObj, coupon) {
   };
 }
 
-/**
- * Admin: create coupon
- */
+// --------- Controllers ---------
+
 export const createCoupon = async (req, res) => {
   try {
     const payload = req.body;
@@ -103,9 +102,6 @@ export const createCoupon = async (req, res) => {
   }
 };
 
-/**
- * Admin: update coupon
- */
 export const updateCoupon = async (req, res) => {
   try {
     const { id } = req.params;
@@ -140,9 +136,6 @@ export const updateCoupon = async (req, res) => {
   }
 };
 
-/**
- * Admin: list coupons
- */
 export const listCoupons = async (req, res) => {
   try {
     const { page = 1, limit = 20, active } = req.query;
@@ -163,9 +156,6 @@ export const listCoupons = async (req, res) => {
   }
 };
 
-/**
- * Admin: get coupon
- */
 export const getCoupon = async (req, res) => {
   try {
     const { id } = req.params;
@@ -187,9 +177,6 @@ export const getCoupon = async (req, res) => {
   }
 };
 
-/**
- * Admin: deactivate (soft delete)
- */
 export const deleteCoupon = async (req, res) => {
   try {
     const { id } = req.params;
@@ -217,9 +204,6 @@ export const deleteCoupon = async (req, res) => {
   }
 };
 
-/**
- * Admin: toggle active
- */
 export const toggleCouponActive = async (req, res) => {
   try {
     const { id } = req.params;
@@ -245,11 +229,6 @@ export const toggleCouponActive = async (req, res) => {
   }
 };
 
-/**
- * Public: validate coupon for a given plan & billing period
- * Query: code, planId, period
- * Returns computed pricing (original + discounted)
- */
 export const validateCoupon = async (req, res) => {
   try {
     const { code, planId, period } = req.query;
@@ -361,11 +340,6 @@ export const validateCoupon = async (req, res) => {
   }
 };
 
-/**
- * Redeem coupon (atomic) - call during checkout
- * Body: { code, planId, period }
- * Auth required (req.user._id)
- */
 export const redeemCoupon = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();

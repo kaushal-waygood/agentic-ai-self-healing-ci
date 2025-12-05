@@ -7,11 +7,17 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProfileRequest } from '@/redux/reducers/authReducer';
 import type { Organization } from '@/lib/data/user';
+import { RootState } from '@/redux/rootReducer';
+import Image from 'next/image';
 
 export default function OrganizationPage() {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const dispatch = useDispatch();
-  const { user, loading, error } = useSelector((state) => state.auth);
+  const { user, loading, error } = useSelector(
+    (state: RootState) => state.auth,
+  );
+
+  console.log('User:', user);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -26,30 +32,46 @@ export default function OrganizationPage() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (user?.organization) {
+    if (user) {
+      // Check if the user has a nested organization object OR if the user is the HR account itself
+      // Based on your JSON, the user object contains the profile data directly.
+
       const orgData: Organization = {
-        id: user.organization.name,
-        name: user.organization.name || 'Your Organization', // Add fallback
-        planId: user.organization.planId || 'basic', // Add fallback
-        allowStudentUpgrades: user.organization.allowStudentUpgrades || false,
-        seats: user.organization.seats || 10,
-        status: user.organization.status || 'active',
-        betaFeaturesEnabled: user.organization.betaFeaturesEnabled || false,
-        apiKey: user.organization.apiKey,
+        // Use the user's ID and Name since the JSON structure is flat
+        id: user.organization?.id || user.id || user._id,
+        name: user.organization?.name || user.fullName || 'Your Organization',
+
+        // Default values since these are missing from the provided JSON
+        planId: user.organization?.planId || 'basic',
+        allowStudentUpgrades: user.organization?.allowStudentUpgrades || false,
+        seats: user.organization?.seats || 10,
+        status: user.organization?.status || 'active',
+        betaFeaturesEnabled: user.organization?.betaFeaturesEnabled || false,
+        apiKey: user.organization?.apiKey || '',
       };
+
       setOrganization(orgData);
     }
   }, [user]);
 
   if (loading) {
     return (
-      <PageHeader
-        title="Loading Organization..."
-        description="Please wait while we fetch your organization's details."
-        icon={Users}
-      />
+      <div className="flex items-center flex-col justify-center min-h-screen">
+        <div>
+          <Image
+            src="/logo.png"
+            alt="zobsai logo"
+            width={100}
+            height={100}
+            className="w-10 h-10 animate-bounce"
+          />
+        </div>
+        <div className="text-lg">LOADING...</div>
+      </div>
     );
   }
+
+  console.log('Organization:', organization);
 
   if (!organization) {
     return (
@@ -63,11 +85,6 @@ export default function OrganizationPage() {
 
   return (
     <>
-      <PageHeader
-        title={organization.name}
-        description="Manage your organization's members, job postings, and settings."
-        icon={Users}
-      />
       <OrganizationClient
         organization={organization}
         initialMembers={user?.members || []} // Adjust according to your API response

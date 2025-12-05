@@ -17,7 +17,6 @@ import {
   removeStudentExperienceRequest,
   removeStudentProjectRequest,
   removeStudentSkillRequest,
-  updateStudentJobPreferenceRequest,
   updateStudentSkillRequest,
 } from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
@@ -80,6 +79,7 @@ const projectEntrySchema = z
     path: ['endDate'],
   });
 
+// ✅ Added location to schema
 const profileFormSchema = z.object({
   fullName: z
     .string()
@@ -87,6 +87,7 @@ const profileFormSchema = z.object({
   avatar: z.string().url({ message: 'Please enter a valid URL.' }),
   email: z.string().email(),
   phone: z.string().optional(),
+  location: z.string().optional(), // <--- ADDED
   jobPreference: z
     .string()
     .min(2, { message: 'Job preference must be at least 2 characters.' }),
@@ -312,10 +313,17 @@ export const useProfile = () => {
   const studentData = useMemo(() => getStudentData(), [getStudentData]);
 
   // forms
+  // ✅ Added location to Pick
   const personalInfoForm = useForm<
     Pick<
       ProfileFormValues,
-      'fullName' | 'email' | 'phone' | 'avatar' | 'jobPreference' | 'uploadedCV'
+      | 'fullName'
+      | 'email'
+      | 'phone'
+      | 'avatar'
+      | 'jobPreference'
+      | 'uploadedCV'
+      | 'location'
     >
   >({
     resolver: zodResolver(
@@ -326,6 +334,7 @@ export const useProfile = () => {
         avatar: true,
         jobPreference: true,
         uploadedCV: true,
+        location: true,
       }),
     ),
     mode: 'onChange',
@@ -396,6 +405,7 @@ export const useProfile = () => {
       avatar: sd.avatar || '',
       jobPreference: sd.jobRole || '',
       uploadedCV: sd.uploadedCV || '',
+      location: sd.location || '', // ✅ Reset location
     });
 
     careerDetailsForm.reset({
@@ -432,6 +442,7 @@ export const useProfile = () => {
       email: sd?.email || '',
       phone: sd?.phone || '',
       jobPreference: sd?.jobRole || '',
+      location: sd?.location || '', // ✅ Added location default
       uploadedCV: sd?.uploadedCV || '',
       education: (sd?.education || []).map((edu: any) => ({
         institution: edu.institute || '',
@@ -615,36 +626,31 @@ export const useProfile = () => {
     [personalInfoForm, nameToggle, emailToggle, phoneToggle],
   );
 
+  // ✅ Updated to include location handling
   const handlePersonalInfoEdit = useCallback(
     async (
-      field: 'fullName' | 'email' | 'phone' | 'jobPreference',
-      payload?: { jobPreference?: string },
+      field: 'fullName' | 'email' | 'phone' | 'jobPreference' | 'location',
+      payload?: { jobPreference?: string; location?: string },
     ) => {
       try {
         console.log('Field:', field, personalInfoForm.getValues(field));
 
-        if (field === 'fullName') {
-          const fullName = personalInfoForm.getValues('fullName');
-          await apiInstance.patch('/students/fullname/update', { fullName });
-          nameToggle.off();
-          dispatch(getStudentDetailsRequest());
-        } else if (field === 'phone') {
-          const phone = personalInfoForm.getValues('phone');
-          await apiInstance.patch('/students/phone/update', { phone });
-          phoneToggle.off();
-          dispatch(getStudentDetailsRequest());
-        } else if (field === 'jobPreference') {
-          const jobPreference =
-            payload?.jobPreference ??
-            personalInfoForm.getValues('jobPreference');
+        const fullName = personalInfoForm.getValues('fullName');
+        const phone = personalInfoForm.getValues('phone');
+        const jobPreference =
+          payload?.jobPreference ?? personalInfoForm.getValues('jobPreference');
+        const location =
+          payload?.location ?? personalInfoForm.getValues('location');
 
-          console.log('JobPreference used in API:', jobPreference);
+        const repsonse = await apiInstance.patch('/students/profile/update', {
+          fullName,
+          phone,
+          jobPreference,
+          location,
+        });
 
-          await apiInstance.post('/students/job-role/update', {
-            jobRole: jobPreference,
-          });
-
-          jobPrefToggle.off();
+        if (repsonse.status === 200) {
+          toast({ title: 'Personal Information Updated', variant: 'default' });
           dispatch(getStudentDetailsRequest());
         }
       } catch (err) {
@@ -757,7 +763,8 @@ export const useProfile = () => {
     ],
   );
 
-  // wrappers to expose setters
+  // wrappers to expose setters...
+  // (Rest of the file remains unchanged from original logic)
   function setEditEdu(v: boolean) {
     modalDispatch({ type: 'set', key: 'editEdu', value: v });
   }

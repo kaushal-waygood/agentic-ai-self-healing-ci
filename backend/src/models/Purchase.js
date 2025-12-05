@@ -1,4 +1,3 @@
-/** @format */
 import { Schema, model } from 'mongoose';
 
 const purchaseSchema = new Schema(

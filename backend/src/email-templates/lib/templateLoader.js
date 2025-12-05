@@ -8,7 +8,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 class TemplateManager {
   constructor(opts = {}) {
-    // base dir where templates/ and partials/ live
     this.baseDir = opts.baseDir || path.join(__dirname, '..', 'templates');
     this.layoutFile = opts.layoutFile || 'layout.html'; // layout contains {{{body}}}
     this.cache = new Map();

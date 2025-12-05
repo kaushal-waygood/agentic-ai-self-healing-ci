@@ -1,5 +1,3 @@
-/** @format */
-
 import { Router } from 'express';
 import {
   getUserProfile,
@@ -30,14 +28,17 @@ import {
 } from '../controllers/user.controller.js';
 import {
   authMiddleware,
+  isGuestOrg,
   isStudent,
   isSuperAdmin,
+  isUserOrUniStudent,
 } from '../middlewares/auth.middleware.js';
 import {
-  submitStudentBringRequest,
-  submitCompanyBringRequest,
-  getMyBringRequests,
-  updateUserRoleFromBringRequest,
+  acceptedBringZobs,
+  getBringzobs,
+  initiateOnboarding,
+  markFreeJobPosted,
+  saveOrganizationDetails,
 } from '../controllers/bringZobs.controller.js';
 import { upload } from '../middlewares/multer.js';
 
@@ -82,25 +83,41 @@ router.post(
   isEmailSentForNotify,
 );
 
+// router.post(
+//   '/onboard/initiate',
+//   authMiddleware,
+//   isStudent,
+//   submitStudentBringRequest,
+// );
+
 router.post(
-  '/bring-zobs/student',
+  '/onboard/initiate',
   authMiddleware,
-  isStudent,
-  submitStudentBringRequest,
+  isUserOrUniStudent,
+  upload.single('attachment'),
+  initiateOnboarding,
 );
 
 router.post(
-  '/bring-zobs/company',
+  '/onboard/org-info/:bringId/organization',
   authMiddleware,
-  isStudent,
-  upload.single('attachment'),
-  submitCompanyBringRequest,
+  isGuestOrg,
+  saveOrganizationDetails,
 );
-router.get('/bring-zobs', authMiddleware, isSuperAdmin, getMyBringRequests);
+
 router.post(
-  '/bring-zobs/accepted/:id',
+  '/bring-zobs/onboarding/mark-free-job',
+  authMiddleware,
+  isGuestOrg,
+  markFreeJobPosted,
+);
+router.post(
+  '/bring-zobs/accepted/:bringId',
   authMiddleware,
   isSuperAdmin,
-  updateUserRoleFromBringRequest,
+  acceptedBringZobs,
 );
+
+router.get('/bring-zobs', authMiddleware, isSuperAdmin, getBringzobs);
+
 export default router;

@@ -6,11 +6,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/config.js';
 import { User } from '../models/User.model.js';
-import {
-  addCredits,
-  CREDIT_EARN,
-  earnCreditsForAction,
-} from '../utils/credits.js';
+import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 
 // ----------------- helpers -----------------
 const toBool = (v) => {

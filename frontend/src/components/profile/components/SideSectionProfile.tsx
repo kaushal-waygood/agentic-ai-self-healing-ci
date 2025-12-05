@@ -8,6 +8,7 @@ import {
   Camera,
   Check,
   FileText,
+  MapPin,
 } from 'lucide-react';
 import {
   Dialog,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 
 // Dummy avatar for fallback
 const dummyUser = {
@@ -49,15 +51,17 @@ const SideSectionProfile = ({
     email = '',
     phone = '',
     jobPreference = '',
+    location = '', // ✅ Destructured location
     uploadedCV = '',
   } = formValues;
 
-  // ✅ Displayed profile info
+  // ✅ Displayed profile info (added location)
   const [profileData, setProfileData] = useState({
     fullName,
     email,
     phone,
     jobPreference,
+    location,
     image: dummyUser.avatar,
   });
 
@@ -89,6 +93,7 @@ const SideSectionProfile = ({
       email: profileData.email ?? '',
       phone: profileData.phone ?? '',
       jobPreference: profileData.jobPreference ?? '',
+      location: profileData.location ?? '', // ✅ Sync location
     }));
     setPreview(profileData.image);
     setIsModalOpen(true);
@@ -101,25 +106,24 @@ const SideSectionProfile = ({
         fullName: tempFormData.fullName,
         phone: tempFormData.phone,
         jobPreference: tempFormData.jobPreference,
+        location: tempFormData.location, // ✅ Update profile data
       }));
 
       // Sync to form
       personalInfoForm.setValue('fullName', tempFormData.fullName);
       personalInfoForm.setValue('phone', tempFormData.phone);
       personalInfoForm.setValue('jobPreference', tempFormData.jobPreference);
-
-      const jobRoleFromForm = personalInfoForm.getValues('jobPreference');
-      console.log('Updated job role (from form):', jobRoleFromForm);
-      console.log(
-        'Updated job role (from tempFormData):',
-        tempFormData.jobPreference,
-      );
+      personalInfoForm.setValue('location', tempFormData.location); // ✅ Set form value
 
       // Order doesn't even matter now, value is explicit
       await handlePersonalInfoEdit('fullName');
       await handlePersonalInfoEdit('phone');
       await handlePersonalInfoEdit('jobPreference', {
         jobPreference: tempFormData.jobPreference,
+      });
+      // ✅ Trigger location update
+      await handlePersonalInfoEdit('location', {
+        location: tempFormData.location,
       });
 
       setIsModalOpen(false);
@@ -138,7 +142,7 @@ const SideSectionProfile = ({
               <img
                 src={preview || dummyUser.avatar}
                 alt="Avatar"
-                className="w-24 h-24 rounded-full border-4 border-white  object-cover"
+                className="w-24 h-24 rounded-full border-4 border-white object-cover"
               />
             </div>
 
@@ -147,13 +151,20 @@ const SideSectionProfile = ({
             </h2>
             <p className="text-sm text-gray-600">{profileData.email}</p>
             <p className="text-sm text-gray-600 ">{profileData.phone}</p>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-gray-600 mb-1">
               {profileData.jobPreference}
             </p>
+            {/* Display Location if available */}
+            {profileData.location && (
+              <p className="text-sm text-gray-500 flex items-center justify-center gap-1 mb-3">
+                <MapPin className="w-3 h-3" />
+                {profileData.location}
+              </p>
+            )}
 
             <Button
               onClick={openEditModal}
-              className="mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-indigo-500 hover:to-blue-600 text-white px-5 py-2 rounded-lg  transition-all duration-300 flex items-center gap-2"
+              className="mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-indigo-500 hover:to-blue-600 text-white px-5 py-2 rounded-lg transition-all duration-300 flex items-center gap-2"
             >
               <Edit size={16} /> Edit Profile
             </Button>
@@ -287,7 +298,7 @@ const SideSectionProfile = ({
 
       {/* Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white">
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
           </DialogHeader>
@@ -295,9 +306,11 @@ const SideSectionProfile = ({
           {/* Profile Image Upload */}
           <div className="flex flex-col items-center mb-4">
             <div className="relative">
-              <img
+              <Image
                 src={preview || dummyUser.avatar}
                 alt="Profile"
+                width={100}
+                height={100}
                 className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 "
               />
               <label
@@ -365,6 +378,19 @@ const SideSectionProfile = ({
                 value={tempFormData.jobPreference}
                 onChange={handleChange}
                 placeholder="Enter your job preference"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Your Current Location
+              </label>
+              {/* ✅ Corrected Input Name and Value */}
+              <Input
+                name="location"
+                value={tempFormData.location}
+                onChange={handleChange}
+                placeholder="e.g. New York, USA"
               />
             </div>
           </div>

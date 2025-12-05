@@ -27,7 +27,7 @@ export const termsData = {
       content: [
         {
           type: 'paragraph',
-          text: 'These Terms of Use constitute a legally binding agreement made between you, whether personally or on behalf of an entity (“you”) and Zobs AI Inc. (“we”, “us”, or “our”), concerning your access to and use of the zobsai.com website, chrome extensions, applications, AI-powered tools, and any other media form, media channel, mobile website, or mobile application related, linked, or otherwise connected thereto (collectively, the “Site”). You agree that by accessing the Site, you have read, understood, and agreed to be bound by all of these Terms of Use. <b>IF YOU DO NOT AGREE WITH ALL OF THESE TERMS OF USE, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SITE AND YOU MUST DISCONTINUE USE IMMEDIATELY</b>.',
+          text: 'These Terms of Use constitute a legally binding agreement made between you, whether personally or on behalf of an entity (“you”) and ZobsAI. (brand owned by Waygood Edtech Private Limited) (“we”, “us”, or “our”), concerning your access to and use of the <a href="https://zobsai.com" style="color: blue; text-decoration: underline">zobsai.com</a> website, chrome extensions, applications, AI-powered tools, and any other media form, media channel, mobile website, or mobile application related, linked, or otherwise connected thereto (collectively, the “Site”). You agree that by accessing the Site, you have read, understood, and agreed to be bound by all of these Terms of Use. IF YOU DO NOT AGREE WITH ALL OF THESE TERMS OF USE, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SITE AND YOU MUST DISCONTINUE USE IMMEDIATELY.',
         },
         {
           type: 'paragraph',

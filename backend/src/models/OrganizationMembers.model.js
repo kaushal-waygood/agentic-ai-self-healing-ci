@@ -8,32 +8,42 @@ const OrganizationMembersSchema = new Schema(
       ref: 'Organization',
       required: true,
     },
-
-    fullName: {
-      type: String,
-      required: true,
+    userId: {
+      type: Schema.Types.ObjectId, // Linked only after they register/accept
+      ref: 'User',
+      default: null,
     },
     email: {
       type: String,
       required: true,
       lowercase: true,
     },
-    department: {
-      type: String,
-    },
-    course: {
-      type: String,
-    },
     role: {
       type: String,
-      enum: ['member', 'admin'],
+      enum: ['hr', 'member', 'admin'],
       default: 'member',
     },
+    fullName: { type: String, required: true },
+
+    // --- NEW FIELDS FOR INVITATION FLOW ---
+    status: {
+      type: String,
+      enum: ['pending', 'active', 'declined'],
+      default: 'pending', // <--- Default is now PENDING
+    },
+    invitationToken: { type: String }, // The secret code sent in email
+    invitationExpires: { type: Date }, // Security expiry (e.g. 7 days)
   },
   {
     timestamps: true,
     versionKey: false,
   },
+);
+
+// Compound index to prevent duplicate invites
+OrganizationMembersSchema.index(
+  { organizationId: 1, email: 1 },
+  { unique: true },
 );
 
 export const OrganizationMember = model(

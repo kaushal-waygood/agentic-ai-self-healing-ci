@@ -24,9 +24,6 @@ const createTransporter = () => {
     tls: {
       rejectUnauthorized: process.env.NODE_ENV === 'production',
     },
-    // connectionTimeout: 10000, // 10 seconds
-    // greetingTimeout: 5000, // 5 seconds
-    // socketTimeout: 10000, // 10 seconds
   });
 };
 
@@ -58,8 +55,7 @@ const verifyTransporter = async (maxAttempts = 3) => {
 };
 
 verifyTransporter().catch((err) => {
-  console.error('Critical SMTP initialization error:', err);
-  process.exit(1); // Exit if email service is critical for your app
+  process.exit(1);
 });
 
 export const sendEmailWithRetry = async (mailOptions, maxRetries = 3) => {

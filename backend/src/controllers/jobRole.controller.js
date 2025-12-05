@@ -1,5 +1,3 @@
-/** @format */
-
 import { JobRole } from '../models/JobRole.model.js';
 
 export const createJobRole = async (req, res) => {

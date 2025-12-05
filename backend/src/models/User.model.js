@@ -1,5 +1,3 @@
-/** @format */
-
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -37,24 +35,29 @@ const userSchema = new Schema(
     },
     accountType: {
       type: String,
+      // Note: Kept existing enum for consistency, but will be set by middleware.
       enum: [
+        'user',
+        'guest-org',
+        'employer-admin',
         'student',
         'tpo',
         'hr',
-        'university_staff',
+        'university_staff', // Assuming this might be needed, though 'OrgAdmin' is used below
         'employer',
         'OrgAdmin',
         'admin',
         'super-admin',
+        'individual', // Assuming this is the new default generic typeguest-org
       ],
       required: function () {
-        return this.authMethod === 'local'; // Only required for local auth
+        return this.authMethod === 'local';
       },
-      default: 'individual',
+      // CHANGED DEFAULT: Use a generic default
+      default: 'user',
     },
     fullName: {
       type: String,
-      // required: true,
     },
     email: {
       type: String,
@@ -75,26 +78,32 @@ const userSchema = new Schema(
     role: {
       type: String,
       enum: [
-        'student',
-        'user',
-        'employer',
-        'hr',
-        'university_staff',
-        'uni-tpo',
-        'OrgAdmin', // uni-admin
-        'admin',
         'super-admin',
+        'admin',
+        'guest-org',
+        'employer-admin',
+        'uni-admin',
+        'hr',
+        'uni-tpo',
+        'uni-student',
+        'team-member',
+        'team-lead',
+        'team-management',
+        'user',
       ],
-      default: 'student',
+      default: 'user',
     },
-    credits: { type: Number, default: 0 },
-
+    credits: { type: Number, default: 0 }, // current balance
     referralCode: {
       type: String,
       unique: true,
       default: () => uuidv4().slice(0, 8),
-    }, // short code
-    referredBy: { type: Schema.Types.ObjectId, ref: 'Student', default: null },
+    },
+    referredBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
 
     otp: {
       type: String,
@@ -203,6 +212,20 @@ const userSchema = new Schema(
       freezeTokens: { type: Number, default: 0 }, // "protection" items
       lastRecoveryAt: { type: Date }, // last time a recovery was used
     },
+
+    roleHistory: [
+      {
+        oldRole: { type: String },
+        newRole: { type: String },
+        changedBy: { type: Schema.Types.ObjectId, ref: 'User' }, // Who changed it
+        reason: { type: String }, // optional: UI prompt
+        changedAt: { type: Date, default: Date.now },
+        organizationContext: {
+          type: Schema.Types.ObjectId,
+          ref: 'Organization',
+        },
+      },
+    ],
   },
 
   {

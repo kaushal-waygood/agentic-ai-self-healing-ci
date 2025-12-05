@@ -196,6 +196,62 @@ const sendEmailViaGmailApi = async ({
   });
 };
 
+/* redirectToGoogle & handleGoogleCallback kept as-is but cleaned */
+const redirectURI = '/api/v1/user/google/auth/redirect/callback';
+const oauth2ClientRedirect = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID_REDIRECT ||
+    '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
+  process.env.GOOGLE_CLIENT_SECRET_REDIRECT ||
+    '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',
+  `${BACKEND_API_BASE_URL}${redirectURI}`,
+);
+
+const getAccessToken = async (code) => {
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code: code,
+    client_id: process.env.LINKEDIN_CLIENT_ID,
+    client_secret: process.env.LINKEDIN_CLIENT_SECRET,
+    redirect_uri: `${BACKEND_API_BASE_URL}/api/v1/user/linkedin/callback`,
+  });
+
+  console.log(body);
+
+  const response = await fetch(
+    'https://www.linkedin.com/oauth/v2/accessToken',
+    {
+      method: 'post',
+      headers: {
+        'Content-type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(response.statusText);
+  }
+
+  const accessToken = await response.json();
+  return accessToken;
+};
+
+const getUserData = async (accessToken) => {
+  const response = await fetch('https://api.linkedin.com/v2/userinfo', {
+    method: 'get',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(response.statusText);
+  }
+
+  const userData = await response.json();
+  return userData;
+};
+
 /* -------------------------
    Controllers (refactored)
    ------------------------- */
@@ -454,52 +510,6 @@ export const firebaseGoogleLogin = async (req, res) => {
   }
 };
 
-const getAccessToken = async (code) => {
-  const body = new URLSearchParams({
-    grant_type: 'authorization_code',
-    code: code,
-    client_id: process.env.LINKEDIN_CLIENT_ID,
-    client_secret: process.env.LINKEDIN_CLIENT_SECRET,
-    redirect_uri: `${BACKEND_API_BASE_URL}/api/v1/user/linkedin/callback`,
-  });
-
-  console.log(body);
-
-  const response = await fetch(
-    'https://www.linkedin.com/oauth/v2/accessToken',
-    {
-      method: 'post',
-      headers: {
-        'Content-type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString(),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(response.statusText);
-  }
-
-  const accessToken = await response.json();
-  return accessToken;
-};
-
-const getUserData = async (accessToken) => {
-  const response = await fetch('https://api.linkedin.com/v2/userinfo', {
-    method: 'get',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(response.statusText);
-  }
-
-  const userData = await response.json();
-  return userData;
-};
-
 export const linkedInCallback = async (req, res) => {
   try {
     const { code } = req.query;
@@ -569,19 +579,17 @@ export const linkedInCallback = async (req, res) => {
 
 export const signUpUser = async (req, res) => {
   const {
-    accountType,
     fullName,
     email,
     password,
     confirmPassword,
     jobRole,
-    organizationName,
     referredBy: providedReferralCode, // this is actually referralCode from client
   } = req.body;
 
   try {
     // Basic validation
-    if (!accountType || !fullName || !email || !password) {
+    if (!fullName || !email || !password) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -604,59 +612,26 @@ export const signUpUser = async (req, res) => {
     let referrer = null;
     let referredBy = null;
 
-    console.log('providedReferralCode:', providedReferralCode);
-
     if (providedReferralCode) {
-      // Find referrer by their referralCode
       referrer = await User.findOne({ referralCode: providedReferralCode });
-
       if (!referrer) {
         return res.status(400).json({ message: 'Invalid referral code' });
       }
-
-      // store referrer _id on the new user
       referredBy = referrer._id;
     }
 
-    // Organization creation for institutional accounts
-    let organization = null;
-    if (accountType === 'institution') {
-      if (!organizationName) {
-        return res.status(400).json({
-          message: 'Organization name is required for institutional accounts',
-        });
-      }
-
-      organization = await Organization.findOne({ name: organizationName });
-
-      if (!organization) {
-        const apiKey = `org_${Math.random().toString(36).substring(2, 15)}`;
-        organization = new Organization({
-          name: organizationName,
-          apiKey,
-          status: 'pending_verification',
-        });
-        await organization.save();
-      }
-    }
-
-    // Generate a referral code FOR THE NEW USER (do not overwrite providedReferralCode)
+    // Generate code for new user
     const userReferralCode = generateReferralCode(normalizedEmail);
 
-    // Create user
     const user = new User({
-      accountType,
+      accountType: 'user',
       fullName,
       email: normalizedEmail,
       password,
       jobRole,
-      role: accountType === 'institution' ? 'OrgAdmin' : 'student',
-      organization:
-        accountType === 'institution' && organization
-          ? organization._id
-          : undefined,
-      referralCode: userReferralCode, // their own code
-      referredBy: referredBy || null, // who referred them
+      role: 'user',
+      referralCode: userReferralCode,
+      referredBy: referredBy || null,
       otp,
       otpExpires,
       isEmailVerified: false,
@@ -670,6 +645,7 @@ export const signUpUser = async (req, res) => {
         $inc: { referralCount: 1 },
         $addToSet: { referredUsers: savedUser._id }, // push new user id (no duplicates)
       });
+      // Assuming addCredits is imported helper function
       addCredits(
         referrer._id,
         CREDIT_EARN.SIGNUP_WITH_REFERRAL_REFERRED,
@@ -703,10 +679,6 @@ export const signUpUser = async (req, res) => {
       fullName: savedUser.fullName,
       message: 'Verification OTP sent to your email',
     };
-
-    if (accountType === 'institution') {
-      response.organization = organization;
-    }
 
     return res.status(201).json(response);
   } catch (error) {
@@ -1447,16 +1419,6 @@ export const testSendEmail = async (req, res) => {
     });
   }
 };
-
-/* redirectToGoogle & handleGoogleCallback kept as-is but cleaned */
-const redirectURI = '/api/v1/user/google/auth/redirect/callback';
-const oauth2ClientRedirect = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID_REDIRECT ||
-    '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
-  process.env.GOOGLE_CLIENT_SECRET_REDIRECT ||
-    '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',
-  `${BACKEND_API_BASE_URL}${redirectURI}`,
-);
 
 export const redirectToGoogle = async (req, res) => {
   try {
