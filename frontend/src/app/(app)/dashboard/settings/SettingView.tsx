@@ -1,17 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
-import { useDispatch, useSelector } from 'react-redux';
-import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-import { RootState } from '@/redux/rootReducer';
-import { changePasswordRequest } from '@/redux/reducers/authReducer';
-
-import { sendEmailPermit } from '@/services/api/auth';
-
-import { Bell, Palette, Trash2, UserCircle, Shield } from 'lucide-react';
+import { UserCircle, Shield, Bell, Palette, Trash2 } from 'lucide-react';
 import { AccountSetting } from './components/AccountSettings';
 import {
   AppearanceSettings,
@@ -21,191 +12,37 @@ import {
 } from './components/AccountSetting';
 
 export default function SettingsView() {
-  // Hooks
-  const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
-  const dispatch = useDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Redux State
-  const { user, message, error } = useSelector(
-    (state: RootState) => state.auth,
-  );
-
-  // Component State
-  const [mounted, setMounted] = useState(false);
   const activeSection = searchParams.get('tab') || 'account';
 
-  // Security State
-  const [showPassword, setShowPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [passwordStrength, setPasswordStrength] = useState(0);
-
-  // Notifications State
-  const [notifications, setNotifications] = useState({
-    jobAlerts: true,
-    applicationUpdates: true,
-    promotionalEmails: false,
-    pushNotifications: true, // from generated code
-    emailDigest: false, // from generated code
-    smsAlerts: false, // from generated code
-  });
-
-  // Effects
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Effect to handle password change feedback
-  useEffect(() => {
-    if (message) {
-      toast({
-        title: 'Success',
-        description: message,
-      });
-    }
-    if (error) {
-      toast({
-        title: 'Error',
-        description: error,
-        variant: 'destructive',
-      });
-    }
-  }, [message, error, toast]);
-
-  // Effect to calculate password strength
-  useEffect(() => {
-    const calculateStrength = (password: string) => {
-      let strength = 0;
-      if (password.length >= 8) strength += 25;
-      if (/[A-Z]/.test(password)) strength += 25;
-      if (/[0-9]/.test(password)) strength += 25;
-      if (/[^A-Za-z0-9]/.test(password)) strength += 25;
-      return strength;
-    };
-    setPasswordStrength(calculateStrength(newPassword));
-  }, [newPassword]);
-
-  // Handlers
   const handleSectionChange = (section: string) => {
     router.push(`/dashboard/settings?tab=${section}`);
   };
 
-  const handleNotificationChange = (id: keyof typeof notifications) => {
-    setNotifications((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleChangePassword = () => {
-    if (newPassword !== confirmNewPassword) {
-      toast({
-        title: 'Error',
-        description: 'New passwords do not match.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    dispatch(
-      changePasswordRequest({
-        currentPassword,
-        newPassword,
-        confirmNewPassword,
-      }),
-    );
-  };
-
-  const handleSendEmail = async () => {
-    if (!user?.email) {
-      toast({
-        title: 'Error',
-        description: 'User email not found.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    try {
-      await sendEmailPermit({
-        email: user.email,
-        recieverEmail: 'thesiddiqui7@gmail.com', // Example receiver
-      });
-      toast({
-        title: 'Email Sent',
-        description: 'A permission email has been sent successfully.',
-      });
-    } catch (e) {
-      toast({
-        title: 'Email Failed',
-        description: 'Could not send the email.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleDeleteAccount = () => {
-    toast({
-      title: 'Feature In Development',
-      description: 'Account deletion is not yet implemented.',
-    });
-  };
-
-  // UI Sub-components
   const sections = [
     { id: 'account', label: 'Account', icon: UserCircle },
     { id: 'security', label: 'Security', icon: Shield },
-    // { id: 'notifications', label: 'Notifications', icon: Bell },
-    // { id: 'appearance', label: 'Appearance', icon: Palette },
-    // { id: 'danger', label: 'Danger Zone', icon: Trash2 },
+    //   { id: 'notifications', label: 'Notifications', icon: Bell },
+    //   { id: 'appearance', label: 'Appearance', icon: Palette },
+    //   { id: 'danger', label: 'Danger Zone', icon: Trash2 },
   ];
-
-  // Render Functions for Sections
-  const renderAccountSection = () => (
-    <AccountSetting user={user} handleSendEmail={handleSendEmail} />
-  );
-
-  const renderSecuritySection = () => (
-    <SecuritySetting
-      showPassword={showPassword}
-      setCurrentPassword={setCurrentPassword}
-      setShowPassword={setShowPassword}
-      newPassword={newPassword}
-      setNewPassword={setNewPassword}
-      passwordStrength={passwordStrength}
-      setConfirmNewPassword={setConfirmNewPassword}
-      handleChangePassword={handleChangePassword}
-    />
-  );
-
-  const renderNotificationsSection = () => (
-    <NotificationSettings
-      notifications={notifications}
-      handleNotificationChange={handleNotificationChange}
-    />
-  );
-
-  const renderAppearanceSection = () => (
-    <AppearanceSettings mounted={mounted} theme={theme} setTheme={setTheme} />
-  );
-
-  const renderDangerSection = () => (
-    <DangerSettings handleDeleteAccount={handleDeleteAccount} />
-  );
 
   const renderSectionContent = () => {
     switch (activeSection) {
       case 'account':
-        return renderAccountSection();
+        return <AccountSetting />;
       case 'security':
-        return renderSecuritySection();
+        return <SecuritySetting />;
       case 'notifications':
-        return renderNotificationsSection();
+        return <NotificationSettings />;
       case 'appearance':
-        return renderAppearanceSection();
+        return <AppearanceSettings />;
       case 'danger':
-        return renderDangerSection();
+        return <DangerSettings />;
       default:
-        return renderAccountSection();
+        return <AccountSetting />;
     }
   };
 

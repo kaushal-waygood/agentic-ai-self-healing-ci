@@ -76,7 +76,6 @@ export const useJobs = () => {
 
     if (pathName === '/dashboard/search-jobs' || pathName === '/search-jobs') {
       if (isEmptyFilters(filtersFromUrl)) {
-        // default: recommended jobs
         dispatch(getRecommendJobsRequest());
       } else {
         dispatch(
@@ -92,12 +91,36 @@ export const useJobs = () => {
   useEffect(() => {
     const fetchJobMetadata = async () => {
       try {
-        const [typesResponse, levelsResponse] = await Promise.all([
-          apiInstance.get('/jobs/employment-types'),
-          apiInstance.get('/jobs/experience-levels'),
-        ]);
-        setEmploymentTypes(typesResponse.data.jobTypes || []);
-        setExperienceLevels(levelsResponse.data.experiences || []);
+        // const [typesResponse, levelsResponse] = await Promise.all([
+        //   apiInstance.get('/jobs/employment-types'),
+        //   apiInstance.get('/jobs/experience-levels'),
+        // ]);
+
+        const emply = [
+          'Full-time',
+          'Part-time',
+          'Contract',
+          'Internship',
+          'Freelance',
+          'Temporary',
+          'Seasonal',
+          'Hourly',
+          'Commission',
+          'Piecework',
+          'Other',
+        ];
+        const exp = [
+          'Entry level',
+          'Mid level',
+          'Senior level',
+          'Executive level',
+          'Managerial level',
+          'Professional level',
+          'Technical level',
+          'Other',
+        ];
+        setEmploymentTypes(emply);
+        setExperienceLevels(exp);
       } catch (err) {
         console.error('Failed to fetch job metadata:', err);
       }

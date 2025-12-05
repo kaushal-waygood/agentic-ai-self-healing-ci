@@ -3,23 +3,10 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  GraduationCap,
-  Building2,
-  Users,
-  Upload,
-  Copy,
-  Check,
-  Send,
-} from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { GraduationCap, Building2, Users, Check, Send } from 'lucide-react';
+
 import apiInstance from '@/services/api';
+import { toast } from '@/hooks/use-toast';
 
 type ActiveCard = 'student' | 'staff' | 'company';
 
@@ -40,24 +27,12 @@ interface CompanyData {
   company: string;
 }
 
-const COMPANY_ROLES = [
-  'HR',
-  'Talent Acquisition',
-  'Director',
-  'CEO',
-  'Founder',
-  'CTO',
-  'Hiring Manager',
-  'Recruiter',
-  'Department Head',
-];
-
 const CARDS = [
   {
     id: 'student' as ActiveCard,
-    title: 'I am a Student',
+    title: 'I am User',
     description:
-      'Submit your TPO (Training & Placement Officer) or Admin contact and get 1 month Pro plan for FREE once your university is onboarded.',
+      'I want to request a free job posting for my university/company for other users.',
     icon: GraduationCap,
     gradient: 'from-blue-600 to-cyan-500',
     bgGradient: 'from-blue-50 to-cyan-50',
@@ -81,9 +56,6 @@ const CARDS = [
     bgGradient: 'from-violet-50 to-purple-50',
   },
 ];
-
-const WHATSAPP_MESSAGE =
-  'Hello! I would like to bring ZobsAI to our university to improve placements. Please share details about the onboarding process.';
 
 export default function BringZobsAI() {
   const [activeCard, setActiveCard] = useState<ActiveCard>('student');
@@ -189,8 +161,6 @@ export default function BringZobsAI() {
   );
 }
 
-/* ---------------- STUDENT FORM ---------------- */
-
 interface StudentFormProps {
   tpoData: TpoData;
   setTpoData: React.Dispatch<React.SetStateAction<TpoData>>;
@@ -207,7 +177,6 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
     try {
       const payload = {
         university: tpoData.university,
-        name: tpoData.name,
         email: tpoData.email,
         phone: tpoData.phone,
       };
@@ -222,26 +191,19 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
       console.error('Student submit error:', err?.response?.data || err);
     }
   };
+
+  const ROLES = ['employer-admin', 'uni-admin'];
   return (
     <div className="space-y-6">
       {/* ROW 1 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <div>
-          <Label>University</Label>
+          <Label>University/Company Name</Label>
           <Input
             name="university"
             value={tpoData.university}
             onChange={handleChange}
-            placeholder="Enter your university name"
-          />
-        </div>
-        <div>
-          <Label>TPO Name</Label>
-          <Input
-            name="name"
-            value={tpoData.name}
-            onChange={handleChange}
-            placeholder="Enter your full name"
+            placeholder="Enter university/company name"
           />
         </div>
       </div>
@@ -254,17 +216,16 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
             name="phone"
             value={tpoData.phone}
             onChange={handleChange}
-            placeholder="Enter your phone number"
+            placeholder="Enter phone number"
           />
         </div>
-
         <div>
           <Label>TPO Email</Label>
           <Input
             name="email"
             value={tpoData.email}
             onChange={handleChange}
-            placeholder="Enter your email address"
+            placeholder="Enter email address"
           />
         </div>
       </div>
@@ -289,54 +250,44 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
   );
 }
 
-/* ---------------- STAFF SECTION ---------------- */
-
 function StaffSection() {
-  const [copied, setCopied] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(WHATSAPP_MESSAGE);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const handleSubmit = async () => {
+    try {
+      const res = await apiInstance.post('/user/onboard/initiate', {
+        type: 'university',
+      });
 
-  const handleWhatsApp = () => {
-    window.open(
-      `https://wa.me/919661531033?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`,
-      '_blank',
-    );
+      setSubmitted(true);
+
+      if (res.status === 200) {
+        toast({
+          title: 'Registration Link Sent',
+          description: 'Please check your email for the registration link.',
+        });
+      }
+    } catch (err: any) {
+      console.error('Company submit error:', err?.response?.data || err);
+    }
   };
 
   return (
     <div className="space-y-4">
-      <textarea
-        className="w-full bg-gray-50 border p-4 rounded-lg h-28 text-sm"
-        readOnly
-        value={WHATSAPP_MESSAGE}
-      />
-
       <button
         type="button"
-        onClick={handleCopy}
-        className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg flex items-center justify-center gap-2"
+        className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
+        onClick={handleSubmit}
       >
-        {copied ? (
+        {submitted ? (
           <>
-            <Check /> Copied!
+            <Check /> Registered!
           </>
         ) : (
           <>
-            <Copy /> Copy
+            <Send /> I Want to Register as Organisation for posting jobs
           </>
         )}
-      </button>
-
-      <button
-        type="button"
-        onClick={handleWhatsApp}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-      >
-        <Send /> WhatsApp
       </button>
     </div>
   );
@@ -350,162 +301,28 @@ interface CompanyFormProps {
 function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
   const [submitted, setSubmitted] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCompanyData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setCompanyData((prev) => ({ ...prev, document: file }));
-  };
-
   const handleSubmit = async () => {
     try {
-      const formData = new FormData();
-
-      formData.append('role', companyData.role || '');
-      formData.append('company', companyData.company || '');
-      formData.append('name', companyData.name || '');
-      formData.append('email', companyData.email || '');
-      formData.append('phone', companyData.phone || '');
-      formData.append('university', companyData.university || '');
-
-      if (companyData.document) {
-        // IMPORTANT: must match fieldname expected by multer: "attachment"
-        formData.append('attachment', companyData.document);
-      }
-
-      const res = await apiInstance.post('/user/bring-zobs/company', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const res = await apiInstance.post('/user/onboard/initiate', {
+        type: 'company',
       });
 
-      console.log('Company bring response:', res.data);
-
       setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 1500);
+
+      if (res.status === 200) {
+        toast({
+          title: 'Registered!',
+          description: 'Your company has been registered successfully.',
+          variant: 'success',
+        });
+      }
     } catch (err: any) {
       console.error('Company submit error:', err?.response?.data || err);
     }
   };
 
-  const isPresetRole = companyData.role
-    ? COMPANY_ROLES.includes(companyData.role)
-    : false;
-
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label>Your Role</Label>
-          <Select
-            value={
-              !companyData.role ? '' : isPresetRole ? companyData.role : 'OTHER'
-            }
-            onValueChange={(value) => {
-              if (value === 'OTHER') {
-                setCompanyData((prev) => ({
-                  ...prev,
-                  role: '',
-                }));
-              } else {
-                setCompanyData((prev) => ({
-                  ...prev,
-                  role: value,
-                }));
-              }
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select your role" />
-            </SelectTrigger>
-            <SelectContent className="z-[999] bg-white">
-              {COMPANY_ROLES.map((role) => (
-                <SelectItem key={role} value={role} className="z-[999]">
-                  {role}
-                </SelectItem>
-              ))}
-              <SelectItem value="OTHER">Other</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {(!companyData.role || !isPresetRole) && (
-            <div className="mt-2">
-              <Input
-                name="role"
-                value={companyData.role || ''}
-                onChange={handleChange}
-                placeholder="Enter your role"
-              />
-            </div>
-          )}
-        </div>
-
-        <div>
-          <Label>Company Name</Label>
-          <Input
-            name="company"
-            value={companyData.company}
-            onChange={handleChange}
-            placeholder="Enter your company name"
-          />
-        </div>
-      </div>
-
-      {/* CONTACT PERSON DETAILS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label>Your Name</Label>
-          <Input
-            name="name"
-            value={companyData.name}
-            onChange={handleChange}
-            placeholder="Enter your full name"
-          />
-        </div>
-        <div>
-          <Label>Work Email</Label>
-          <Input
-            name="email"
-            value={companyData.email}
-            onChange={handleChange}
-            placeholder="Enter your work email"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label>Work Phone</Label>
-          <Input
-            name="phone"
-            value={companyData.phone}
-            onChange={handleChange}
-            placeholder="Enter your phone number"
-          />
-        </div>
-      </div>
-
-      {/* DOC UPLOAD */}
-      <div>
-        <Label>Upload Registration/GST/MSME Document</Label>
-        <div className="border-2 border-dashed p-6 rounded-lg text-center">
-          <Upload className="mx-auto text-violet-600" />
-          <input
-            type="file"
-            className="hidden"
-            id="doc-file"
-            onChange={handleDocUpload}
-          />
-          <label htmlFor="doc-file" className="cursor-pointer block mt-2">
-            {companyData.document
-              ? companyData.document.name
-              : 'Upload document'}
-          </label>
-        </div>
-      </div>
-
       <button
         type="button"
         className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
@@ -517,7 +334,7 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
           </>
         ) : (
           <>
-            <Send /> Register
+            <Send /> I Want to Register as Organisation for posting jobs
           </>
         )}
       </button>

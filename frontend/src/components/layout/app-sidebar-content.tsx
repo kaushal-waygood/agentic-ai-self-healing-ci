@@ -29,18 +29,30 @@ import { useSidebar } from '@/app/(app)/layout-client';
 import apiInstance from '@/services/api';
 import Image from 'next/image';
 
-export const AppSidebarContent = ({ isCollapsed }) => {
+export const AppSidebarContent = ({
+  isCollapsed,
+}: {
+  isCollapsed: boolean;
+}) => {
   const { isPinned, setPinned } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
-  const [hoveredItem, setHoveredItem] = useState(null);
-  const [planType, setPlanType] = useState('Free'); // Default plan
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [planType, setPlanType] = useState('Free');
 
-  // --- DATA FETCHING ---
-  // MODIFIED: This effect now depends on `authUser`.
-  // It will only run AFTER the user is successfully loaded into the Redux store,
-  // which prevents the 401 error caused by the race condition.
+  // --- 1. ROLE DEFINITIONS ---
+  const ROLES = {
+    HR: 'hr',
+    STUDENT: 'user', // Default role for job seekers
+    employerAdmin: 'employer-admin',
+    guestOrg: 'guest-org',
+  };
+
+  // Safe fallback to 'user' if role is missing
+  const currentRole = authUser?.role || ROLES.STUDENT;
+
+  // --- 2. DATA FETCHING ---
   useEffect(() => {
     const fetchUserPlanType = async () => {
       try {
@@ -50,86 +62,115 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         }
       } catch (error) {
         console.error('Failed to fetch user plan:', error);
-        // This can happen if the token is expired. You might want to
-        // add logic here to log the user out.
       }
     };
 
-    // Guard clause: Only fetch the data if we have an authenticated user.
     if (authUser) {
       fetchUserPlanType();
     }
-  }, [authUser]); // The dependency array is key to solving the issue.
+  }, [authUser]);
 
-  // This user object can stay as it is
   const user = {
-    role: authUser?.role || 'User',
+    role: currentRole,
     fullName: authUser?.fullName || 'Guest User',
     plan: planType,
   };
 
+  // --- 3. SITE CONFIGURATION WITH PERMISSIONS ---
   const siteConfig = {
     name: 'ZobsAI',
     sidebarNav: [
+      // === COMMON ITEMS (Visible to Everyone) ===
       {
         title: 'Dashboard',
         href: '/dashboard',
         icon: Rocket,
       },
+
+      // === STUDENT / JOB SEEKER TOOLS ===
       {
         title: 'Job Search',
         href: '/dashboard/search-jobs',
         icon: Search,
+        allowedRoles: [ROLES.STUDENT],
       },
       {
         title: 'AI CV Generator',
         href: '/dashboard/cv-generator',
         icon: FileText,
+        allowedRoles: [ROLES.STUDENT],
       },
       {
         title: 'AI Cover Letter',
         href: '/dashboard/cover-letter-generator',
         icon: Newspaper,
+        allowedRoles: [ROLES.STUDENT],
       },
       {
-        title: 'AI Auto Docs ',
+        title: 'AI Auto Docs',
         href: '/dashboard/ai-auto-apply',
         icon: Bot,
+        allowedRoles: [ROLES.STUDENT],
       },
-      { title: 'Application Wizard', href: '/dashboard/apply', icon: Wand2 },
+      {
+        title: 'Application Wizard',
+        href: '/dashboard/apply',
+        icon: Wand2,
+        allowedRoles: [ROLES.STUDENT],
+      },
       {
         title: 'My Applications',
         href: '/dashboard/applications',
         icon: FileCheck2,
+        allowedRoles: [ROLES.STUDENT],
       },
       {
         title: 'My Docs',
         href: '/dashboard/my-docs',
         icon: Activity,
+        allowedRoles: [ROLES.STUDENT],
       },
 
+      // === HR / ORGANIZATION TOOLS ===
+      {
+        title: 'Post a Job',
+        href: '/dashboard/posted-jobs',
+        icon: Users, // Or Briefcase
+        allowedRoles: [ROLES.HR, ROLES.employerAdmin, ROLES.guestOrg],
+      },
+      {
+        title: 'Team Management',
+        href: '/dashboard/team-management',
+        icon: Building2,
+        allowedRoles: [ROLES.HR, ROLES.employerAdmin],
+      },
+      {
+        title: 'Candidates',
+        href: '/dashboard/candidates',
+        icon: Users,
+        allowedRoles: [ROLES.HR, ROLES.employerAdmin],
+      },
+
+      // === EXTRAS (Visible to Everyone) ===
       {
         title: 'ZobsAI Partnership',
         href: '/dashboard/partnership',
         icon: ZapIcon,
       },
       {
-        title: 'Organization',
-        href: '/dashboard/organization',
-        icon: Users,
-        adminOnly: true,
+        title: 'Refer & Earn',
+        href: '/dashboard/referrals',
+        icon: Gift,
       },
-      { title: 'Refer & Earn', href: '/dashboard/referrals', icon: Gift },
-
       {
         title: 'Request New Feature',
-        href: '/dashboard/request-new-feature', // Replace with your actual form link
+        href: '/dashboard/request-new-feature',
         icon: Layers,
       },
     ],
   };
 
-  const getPlanIcon = (plan) => {
+  const getPlanIcon = (plan: string) => {
     switch (plan) {
       case 'Free':
         return Zap;
@@ -142,7 +183,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
     }
   };
 
-  const getPlanColor = (plan) => {
+  const getPlanColor = (plan: string) => {
     switch (plan) {
       case 'Free':
         return 'from-blue-400 to-blue-600';
@@ -161,6 +202,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
 
   return (
     <div className="h-screen overflow-y-auto w-full flex flex-col relative bg-gradient-to-br from-slate-50 to-white border-r border-slate-200">
+      {/* Ambient Background Glow */}
       <div className="absolute inset-0 overflow-hidden -z-10">
         <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-purple-200/30 to-blue-200/30 rounded-full blur-2xl animate-pulse"></div>
         <div
@@ -169,27 +211,20 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         ></div>
       </div>
 
+      {/* Sidebar Header */}
       <div className="relative p-2 border-b border-slate-200/50">
         <div className="flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center space-x-3 group">
             <div className="relative p-3">
-              {/* <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                <Rocket className="w-6 h-6 text-white animate-pulse" />
-              </div> */}
-              <div className=" rounded-lg flex flex-col items-center justify-center ">
+              <div className="rounded-lg flex flex-col items-center justify-center">
                 <Image
                   width={100}
                   height={100}
                   src="/logo.png"
                   className="w-10 h-auto"
-                  alt="abc"
+                  alt="ZobsAI Logo"
                 />
-                {/* <h2 className="text-xs">zobsai</h2> */}
               </div>
-              {/* <div
-                className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full animate-bounce"
-                style={{ animationDelay: '0.5s' }}
-              ></div> */}
             </div>
             {!isCollapsed && (
               <div className="overflow-hidden">
@@ -234,9 +269,15 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         </div>
       </div>
 
+      {/* Navigation Links */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
         {siteConfig.sidebarNav.map((item, index) => {
-          if (item.adminOnly && user?.role !== 'hr') return null;
+          // --- FILTERING LOGIC ---
+          // If allowedRoles exists and currentRole is NOT in it, skip rendering
+          if (item.allowedRoles && !item.allowedRoles.includes(currentRole)) {
+            return null;
+          }
+
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||
@@ -290,6 +331,8 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                   <ChevronRight className="w-4 h-4 text-slate-400 animate-pulse" />
                 )}
               </Link>
+
+              {/* Tooltip for Collapsed State */}
               {isCollapsed && isHovered && (
                 <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-2 bg-slate-900 text-white text-sm rounded-lg shadow-xl z-50 whitespace-nowrap animate-fadeIn">
                   {item.title}
@@ -301,6 +344,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
         })}
       </nav>
 
+      {/* Sidebar Footer */}
       <div className="relative p-2 border-t border-slate-200/50 mt-auto">
         {!isCollapsed ? (
           <div className="space-y-3">
@@ -312,6 +356,7 @@ export const AppSidebarContent = ({ isCollapsed }) => {
                 <p className="text-xs text-slate-500">Welcome back!</p>
               </div>
             </div>
+            {/* Show upgrade banner only if not Pro/Admin */}
             {user.plan !== 'Pro' &&
               user.plan !== 'OrgAdmin' &&
               user.plan !== 'Monthly' && (

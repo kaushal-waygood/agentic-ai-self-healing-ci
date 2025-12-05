@@ -1,8 +1,5 @@
-// imports
-import express from 'express';
 import { Student } from '../models/student.model.js';
 
-// server/tourConfig.js (example)
 export const TOUR_CONFIG = {
   dashboard: [
     {

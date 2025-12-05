@@ -22,44 +22,6 @@ const USAGE_LIMIT_INCREMENTS = {
   CV_ATS_OPTIMISER: null,
 };
 
-export const claimCredits = async (req, res) => {
-  const { _id } = req.user || {};
-  const { action, meta } = req.body || {};
-
-  if (!_id) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
-  }
-
-  if (!action) {
-    return res
-      .status(400)
-      .json({ success: false, message: 'Action is required' });
-  }
-
-  try {
-    const { tx, balance } = await earnCreditsForAction(_id, action, meta || {});
-
-    return res.status(200).json({
-      success: true,
-      message: 'Credits claimed successfully',
-      data: {
-        balance,
-        transaction: tx,
-      },
-    });
-  } catch (err) {
-    console.error('claimCredits error:', err);
-
-    return res.status(err.status || 500).json({
-      success: false,
-      message:
-        err.status === 409
-          ? 'Action already claimed or not allowed now'
-          : err.message || 'Failed to claim credits',
-    });
-  }
-};
-
 function computeDailyStreakUpdate(user, { allowRecovery = true } = {}) {
   const today = dayjs().startOf('day');
 
@@ -112,6 +74,46 @@ function computeDailyStreakUpdate(user, { allowRecovery = true } = {}) {
     usedRecovery,
   };
 }
+
+// --------- Controllers ---------
+
+export const claimCredits = async (req, res) => {
+  const { _id } = req.user || {};
+  const { action, meta } = req.body || {};
+
+  if (!_id) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  if (!action) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Action is required' });
+  }
+
+  try {
+    const { tx, balance } = await earnCreditsForAction(_id, action, meta || {});
+
+    return res.status(200).json({
+      success: true,
+      message: 'Credits claimed successfully',
+      data: {
+        balance,
+        transaction: tx,
+      },
+    });
+  } catch (err) {
+    console.error('claimCredits error:', err);
+
+    return res.status(err.status || 500).json({
+      success: false,
+      message:
+        err.status === 409
+          ? 'Action already claimed or not allowed now'
+          : err.message || 'Failed to claim credits',
+    });
+  }
+};
 
 export const claimDailyStreak = async (req, res) => {
   const { _id } = req.user;
