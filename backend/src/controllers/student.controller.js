@@ -420,6 +420,83 @@ export const completeOnboarding = async (req, res) => {
   }
 };
 
+export const updateStudentProfile = async (req, res) => {
+  const { _id } = req.user;
+  // Destructure all possible fields that are allowed to be updated
+  const { fullName, phone, email, location, jobRole } = req.body;
+
+  try {
+    const update = {};
+    if (fullName !== undefined) update.fullName = fullName;
+    if (phone !== undefined) update.phone = phone;
+    if (email !== undefined) update.email = email;
+    if (location !== undefined) update.location = location;
+    if (jobRole !== undefined) update.jobRole = jobRole;
+
+    console.log(update);
+
+    if (Object.keys(update).length === 0) {
+      return res
+        .status(400)
+        .json({ message: 'No valid fields provided to update' });
+    }
+
+    update.updatedAt = new Date();
+
+    const result = await Student.findByIdAndUpdate(
+      _id,
+      { $set: update },
+      { new: true, runValidators: true },
+    );
+
+    console.log(result);
+
+    if (!result) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    try {
+      const cacheKey = `student:${_id}:details`;
+      await redisClient.del(cacheKey); // Remove stale data
+      await redisClient.set(cacheKey, JSON.stringify(result.toObject()), 300);
+    } catch (cacheErr) {
+      console.warn(
+        'Failed to update student cache in updateStudentProfile:',
+        cacheErr && cacheErr.message,
+      );
+    }
+
+    // 5. Return success response
+    return res.status(200).json({
+      message: 'Profile updated successfully',
+      updatedStudent: {
+        fullName: result.fullName,
+        email: result.email,
+        phone: result.phone,
+        location: result.location,
+        jobRole: result.jobRole,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+
+    // Handle Mongoose CastError (invalid ID)
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid student ID format' });
+    }
+
+    // Handle specific validation errors (e.g., duplicate email)
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
 export const updateFullName = async (req, res) => {
   const { fullName, phone, email } = req.body;
   const { _id } = req.user;
@@ -463,6 +540,45 @@ export const updateFullName = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating full name:', error);
+    if (error.name === 'CastError')
+      return res.status(400).json({ message: 'Invalid student ID format' });
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const updateLocation = async (req, res) => {
+  const { location } = req.body;
+  const { _id } = req.user;
+  try {
+    const result = await Student.findByIdAndUpdate(
+      _id,
+      { $set: { location, updatedAt: new Date() } },
+      { new: true },
+    );
+    if (!result) return res.status(404).json({ message: 'Student not found' });
+
+    try {
+      const cacheKey = `student:${_id}:details`;
+      await redisClient.del(cacheKey);
+      await redisClient.set(cacheKey, JSON.stringify(result.toObject()), 300);
+    } catch (cacheErr) {
+      console.warn(
+        'Failed to update student cache in updateLocation:',
+        cacheErr && cacheErr.message,
+      );
+    }
+
+    return res.status(200).json({
+      message: 'Location updated successfully',
+      updatedStudent: {
+        location: result.location,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating location:', error);
     if (error.name === 'CastError')
       return res.status(400).json({ message: 'Invalid student ID format' });
     return res.status(500).json({

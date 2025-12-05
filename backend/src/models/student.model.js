@@ -336,6 +336,11 @@ const studentSchema = new Schema(
       select: true,
     },
 
+    location: {
+      type: String,
+      trim: true,
+    },
+
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
     settings: {
       autopilotEnabled: { type: Boolean, default: false },

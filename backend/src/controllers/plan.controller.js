@@ -94,8 +94,6 @@ const safeGetVariant = (plan, period) =>
     plan.billingVariants.find((v) => v.period === period)) ||
   null;
 
-export const getSinglePlan = getPlan;
-
 // ---------- Controllers ----------
 
 export const createPlan = async (req, res) => {
@@ -306,6 +304,9 @@ export const deletePlan = async (req, res) => {
     });
   }
 };
+
+// alias kept for compatibility
+export const getSinglePlan = getPlan;
 
 // ---------- Payments & Purchases ----------
 

@@ -21,27 +21,10 @@ import {
   CartItem,
 } from '@/components/credits/SpendCreditsSection';
 import apiInstance from '@/services/api';
+import { CreditTransaction, PendingClaim } from '@/types/credits';
 
-// 4 main cards = 4 possible views
-export type TabKey = 'balance' | 'earned' | 'spent' | 'transactions';
-
-export interface PendingClaim {
-  action: string;
-  reason: string;
-  credits: number;
-  lastClaimedAt?: string;
-  url?: string;
-  meta?: any;
-  eligible?: boolean;
-}
-
-export interface CreditTransaction {
-  kind: string;
-  createdAt: string;
-  type: 'EARN' | 'SPEND';
-  amount: number;
-  balanceAfter: number;
-}
+// SIMPLIFIED TABS: Just two main views
+type TabKey = 'overview' | 'history';
 
 const ALLOWED_SOCIAL_ACTIONS = new Set([
   'FOLLOW_LINKEDIN',
@@ -79,8 +62,9 @@ export default function CreditsPage() {
     steps: string[];
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('balance');
-  const [spending, setSpending] = useState(false); // ✅ needed for SpendCreditsSection
+  // Default to overview
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [spending, setSpending] = useState(false);
 
   const router = useRouter();
   const dispatch = useDispatch();
@@ -173,23 +157,13 @@ export default function CreditsPage() {
     });
   };
 
-  // ✅ Proper checkout implementation: receives items + totalCost from SpendCreditsSection
   const handleCheckout = async (items: CartItem[], totalCost: number) => {
     if (!items.length) return;
 
     try {
       setSpending(true);
+      await apiInstance.post('/students/credits/checkout', { items });
 
-      const res = await apiInstance.post('/students/credits/checkout', {
-        items,
-      });
-
-      const { data: resData } = res || {};
-      const balance = resData?.data?.balance;
-      const usageLimits = resData?.data?.usageLimits;
-
-      // Optional: you can dispatch something to update Redux directly here.
-      // For now, reuse your existing flow and refetch summary.
       fetchSummary();
 
       toast({
@@ -214,59 +188,60 @@ export default function CreditsPage() {
 
   if (loading && !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
-            <p className="text-gray-600">Loading your credits...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6 flex items-center justify-center">
+        <div className="text-gray-500 flex items-center gap-2">
+          <span className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full"></span>
+          Loading wallet...
         </div>
       </div>
     );
   }
 
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
-            <p className="text-gray-600">No data available</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Graceful fallback if data is missing
+  const safeData = data || {
+    balance: 0,
+    totalEarned: 0,
+    totalSpent: 0,
+    transactionsCount: 0,
+    transactions: [],
+    pendingClaims: [],
+  };
 
   const {
-    balance = 0,
-    totalEarned = 0,
-    totalSpent = 0,
-    transactionsCount = 0,
-    transactions = [],
-    pendingClaims = [],
-  }: {
-    balance: number;
-    totalEarned: number;
-    totalSpent: number;
-    transactionsCount: number;
-    transactions: CreditTransaction[];
-    pendingClaims: PendingClaim[];
-  } = data;
+    balance,
+    totalEarned,
+    totalSpent,
+    transactionsCount,
+    transactions,
+    pendingClaims,
+  } = safeData;
 
-  const earnTransactions = transactions.filter((t) => t.type === 'EARN');
-  const spendTransactions = transactions.filter((t) => t.type === 'SPEND');
+  console.log('safeData', activeTab);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-            Credits Wallet
-          </h1>
-          <p className="text-gray-600">
-            Manage your earnings and claim rewards
-          </p>
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+              Credits Wallet
+            </h1>
+            <p className="text-gray-600">
+              Track your balance, earn rewards, and purchase services.
+            </p>
+          </div>
+          <CreditsFooterActions
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchSummary();
+            }}
+            onShare={handleShare}
+          />
         </div>
 
+        {/* Stats Grid (Navigation) */}
         <StatsGrid
           balance={balance}
           totalEarned={totalEarned}
@@ -277,42 +252,40 @@ export default function CreditsPage() {
           pendingClaims={pendingClaims.length}
         />
 
-        {activeTab === 'balance' && (
-          <PendingClaimsSection
-            pendingClaims={pendingClaims}
-            claiming={claiming}
-            onClaim={handleClaim}
-            onOpenHowToClaim={handleOpenHowToClaim}
-          />
-        )}
+        {/* MAIN CONTENT AREA */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* TAB: OVERVIEW */}
+          {activeTab === 'balance' && (
+            <div className="">
+              {/* Left Col: Pending Claims (Earn) */}
+              <div>
+                <PendingClaimsSection
+                  pendingClaims={pendingClaims}
+                  claiming={claiming}
+                  onClaim={handleClaim}
+                  onOpenHowToClaim={handleOpenHowToClaim}
+                />
+              </div>
+            </div>
+          )}
 
-        {activeTab === 'earned' && (
-          <TransactionsSection transactions={earnTransactions} />
-        )}
+          {activeTab === 'spent' && (
+            <div>
+              <SpendCreditsSection
+                balance={balance}
+                loading={spending}
+                onCheckout={handleCheckout}
+              />
+            </div>
+          )}
 
-        {activeTab === 'spent' && (
-          <>
-            <SpendCreditsSection
-              balance={balance}
-              loading={spending}
-              onCheckout={handleCheckout}
-            />
-            <TransactionsSection transactions={spendTransactions} />
-          </>
-        )}
-
-        {activeTab === 'transactions' && (
-          <TransactionsSection transactions={transactions} />
-        )}
-
-        <CreditsFooterActions
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            fetchSummary();
-          }}
-          onShare={handleShare}
-        />
+          {/* TAB: HISTORY */}
+          {activeTab === 'transactions' && (
+            <div className="max-w-4xl mx-auto">
+              <TransactionsSection transactions={transactions} />
+            </div>
+          )}
+        </div>
       </div>
 
       <HowToClaimModal

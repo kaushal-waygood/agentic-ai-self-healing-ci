@@ -344,7 +344,6 @@ export const useApplicationWizard = () => {
     async (mode: JobContext['mode'], value: File | string) => {
       setIsLoading(true);
       setLoadingMessage('Processing job details...');
-      // console.log('value', value);
       try {
         let context: JobContext;
         if (mode === 'select' && typeof value === 'string') {
@@ -398,7 +397,6 @@ export const useApplicationWizard = () => {
 
   const handleCvContextSubmit = useCallback(
     async (mode: CvContext['mode'], value?: string | File) => {
-      console.log('handleCvContextSubmit called with:', { mode, value });
       if (mode === 'profile') {
         setCvContext({ mode, value: 'profile', name: 'Your Profile' });
       }
@@ -483,7 +481,6 @@ export const useApplicationWizard = () => {
 
   const handleClContextSubmit = useCallback(async () => {
     const { clSource, pastedCl, savedClId } = clForm.getValues();
-    console.log('handleClContextSubmit called with:', savedClId);
     let context: ClContext = { mode: 'skip' };
     if (clSource === 'paste' && pastedCl) {
       context = { mode: 'paste', value: pastedCl, name: 'Pasted Content' };
@@ -494,7 +491,6 @@ export const useApplicationWizard = () => {
         name: 'selected cover letter',
       };
     }
-    console.log('CL Context:', context);
 
     setClContext(context);
     navigateToStep('generate');
