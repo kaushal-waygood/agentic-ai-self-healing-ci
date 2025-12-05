@@ -1,3 +1,5 @@
+// src/models/jobs.model.js
+
 import { Schema, model } from 'mongoose';
 import slugify from 'slugify';
 
@@ -49,7 +51,7 @@ const jobSchema = new Schema(
     country: { type: String },
     location: {
       city: { type: String },
-      state: { type: String }, // you query on this, so it MUST exist
+      state: { type: String },
       postalCode: { type: String },
       lat: { type: Number },
       lng: { type: Number },
@@ -72,19 +74,43 @@ const jobSchema = new Schema(
   { timestamps: true, strict: true },
 );
 
+// --- Indexes for faster recommended/search queries ---
+jobSchema.index({
+  origin: 1,
+  isActive: 1,
+  country: 1,
+  'location.state': 1,
+  'location.city': 1,
+});
+
+jobSchema.index({
+  origin: 1,
+  isActive: 1,
+  jobTypes: 1,
+});
+
+jobSchema.index({
+  origin: 1,
+  isActive: 1,
+  tags: 1,
+});
+
+jobSchema.index({
+  origin: 1,
+  isActive: 1,
+  jobPostedAt: -1,
+});
+
 // --- Middleware for Slug Generation ---
-// IMPORTANT: This hook only runs for individual document creation/updates
-// using .save() or .create(). It WILL NOT run for batch operations like
-// .bulkWrite(), .insertMany(), or .updateMany().
 jobSchema.pre('save', function (next) {
   if (this.isModified('title') || !this.slug) {
-    const baseSlug = slugify(this.title, {
+    const baseSlug = slugify(this.title || 'job', {
       lower: true,
       strict: true,
       trim: true,
     });
-    // Appends a short random string to ensure the slug is unique
-    this.slug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
+    const randomPart = Math.random().toString(36).slice(2, 8);
+    this.slug = `${baseSlug}-${randomPart}`;
   }
   next();
 });

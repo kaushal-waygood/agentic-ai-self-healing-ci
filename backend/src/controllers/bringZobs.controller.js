@@ -37,6 +37,14 @@ export const initiateOnboarding = async (req, res) => {
 
     const { fullName: name, email, phone } = user;
 
+    const authUser = await User.findById(userId).select('accountType role');
+
+    authUser.role = 'guest-org';
+    authUser.accountType = 'guest-org';
+    await authUser.save();
+
+    console.log('🚀 Onboarding started for:', authUser);
+
     // 1. Create the record at Step 0
     const doc = await BringZobs.create({
       user: userId,
@@ -49,9 +57,7 @@ export const initiateOnboarding = async (req, res) => {
 
     // 2. Send "Welcome / Start Onboarding" Email
     const emailSubject = `Welcome to Zobs! Complete your ${type.toLowerCase()} profile`;
-    const emailHtml = `<p>Hi ${name},</p><p>Thanks for joining. Please click the link to complete your onboarding.</p> <p><a href="${`http://localhost:3000/dashboard`}/onboarding/${
-      doc.name
-    }">Complete Onboarding</a></p>`;
+    const emailHtml = `<p>Hi ${name},</p><p>Thanks for joining. Please click the link to complete your onboarding.</p> <p><a href="http://127.0.0.1:3000/dashboard/org-onboarding?bringId=${doc._id}">Complete Onboarding</a></p>`;
 
     // Non-blocking email send
     sendEmailWithRetry({

@@ -203,7 +203,7 @@ const OnboardingPage = () => {
               />
             </div>
             <div className="flex justify-end">
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} className="bg-blue-500 ">
                 {loading ? 'Saving...' : 'Save & Continue'}
               </Button>
             </div>

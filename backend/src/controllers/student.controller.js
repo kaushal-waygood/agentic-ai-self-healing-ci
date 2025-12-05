@@ -9,27 +9,22 @@ import { safeUnlink, __dirname } from '../utils/fileUploadingManaging.js';
 import calculateExperience from '../utils/calculateExperience.js';
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import pkg from 'base64url';
 import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 import redisClient from '../config/redis.js';
-
 import {
-  calculateMatchScore,
-  getFallbackJobsFromRapidAPI,
-  convertSalaryToYearly,
-} from '../utils/jobUtils.js';
-import axios from 'axios';
-import { config } from '../config/config.js';
+  normalizeSet,
+  buildExternalQueries,
+  fetchExternalJobsCached,
+  transformRapidApiJob,
+  upsertExternalJobs,
+  scoreJob,
+} from '../utils/jobHelpers.js';
 import {
   addCredits,
   CREDIT_EARN,
   earnCreditsForAction,
-  spendCredits,
 } from '../utils/credits.js';
 
-// ---- Profile completion → credits helper ----
-
-// map sections to earn "kind" names you already use in CREDIT_EARN
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
   EDUCATION: 'PROFILE_COMPLETE_EDUCATION',
@@ -38,10 +33,43 @@ const PROFILE_SECTION_ACTIONS = {
   SKILL: 'PROFILE_COMPLETE_SKILL',
 };
 
-/**
- * Decide which profile sections are "complete"
- * Tune the conditions as per your business rules.
- */
+// ------Contants ------
+
+const STUDENT_TTL = 300;
+const SKILLS_CACHE_KEY = (userId) => `student:${userId}:skills`;
+
+const EXPERIENCE_TTL = 300; // seconds (5 minutes)
+const EXPERIENCE_CACHE_KEY = (userId) => `student:${userId}:experience`;
+
+const EDUCATION_TTL = 300; // seconds (5 minutes)
+const EDUCATION_CACHE_KEY = (userId) => `student:${userId}:education`;
+
+const PROJECTS_TTL = 300; // 5 minutes
+const PROJECTS_CACHE_KEY = (userId) => `student:${userId}:projects`;
+
+const ALLOWED_SOCIAL_ACTIONS = new Set([
+  'FOLLOW_LINKEDIN',
+  'FOLLOW_INSTAGRAM',
+  'FOLLOW_FACEBOOK',
+  'FOLLOW_YOUTUBE',
+  'FOLLOW_TIKTOK',
+  'SHARE_SOCIAL_CONTENT',
+  'LIKE_COMMENT_SHARE',
+]);
+
+// ------Helper funtion------
+const createAttachment = (filename, mimeType, base64Data) => {
+  return [
+    `--boundary123`,
+    `Content-Type: ${mimeType}; name="${filename}"`,
+    `Content-Disposition: attachment; filename="${filename}"`,
+    `Content-Transfer-Encoding: base64`,
+    ``,
+    base64Data,
+    ``,
+  ];
+};
+
 function computeProfileCompletion(student) {
   const hasPersonal = !!student.fullName && !!student.email && !!student.phone; // add profileImage/jobRole if you want stricter
 
@@ -65,12 +93,6 @@ function computeProfileCompletion(student) {
   };
 }
 
-/**
- * Try to award profile completion credits for all completed sections.
- * Idempotent: if a section's credits were already claimed, it will be skipped.
- *
- * @param {string|ObjectId} userId - SAME id used by your User model for credits
- */
 export async function claimProfileCompletionCreditsForUser(userId) {
   // use Student profile to measure completion
   const student = await Student.findById(userId).lean();
@@ -121,6 +143,59 @@ export async function claimProfileCompletionCreditsForUser(userId) {
   };
 }
 
+async function buildUserProfileFromStudent(userId) {
+  const student = await Student.findById(userId).lean();
+
+  if (!student) {
+    return {
+      skills: [],
+      titles: [],
+      isRemote: false,
+      minYearly: 0,
+      location: null,
+    };
+  }
+
+  const skillsRaw =
+    student.skills || student.skillSet || student.profileSkills || [];
+
+  const titlesRaw =
+    student.preferredTitles || student.targetTitles || student.headline || [];
+
+  const skills = normalizeSet(skillsRaw);
+  const titles = normalizeSet(
+    Array.isArray(titlesRaw) ? titlesRaw : [titlesRaw],
+  );
+
+  const location =
+    student.preferredLocation ||
+    student.location ||
+    student.currentLocation ||
+    null;
+
+  const isRemote =
+    !!student.isRemote ||
+    !!student.prefersRemote ||
+    (location && location.remote) ||
+    false;
+
+  const minYearly =
+    student.minSalaryYearly ||
+    student.expectedCTCYearly ||
+    student.expectedSalaryYearly ||
+    0;
+
+  return {
+    skills,
+    titles,
+    isRemote,
+    minYearly,
+    location,
+  };
+}
+
+// --------Controllers--------
+
 export const studentDetails = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = `student:${_id}:details`;
@@ -148,7 +223,7 @@ export const studentDetails = async (req, res) => {
 
         const user = await User.findById(_id).lean();
         if (!user) throw { status: 404, message: 'User not found' };
-        if (user.role !== 'student') {
+        if (user.role !== 'user') {
           throw {
             status: 403,
             message: 'Only students can create student profile',
@@ -456,13 +531,6 @@ export const updateJobRole = async (req, res) => {
   }
 };
 
-// TTLs
-const STUDENT_TTL = 300;
-const SKILLS_CACHE_KEY = (userId) => `student:${userId}:skills`;
-
-/**
- * GET cached student skills
- */
 export const getStudentSkills = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = SKILLS_CACHE_KEY(_id);
@@ -494,9 +562,6 @@ export const getStudentSkills = async (req, res) => {
   }
 };
 
-/**
- * Add a skill
- */
 export const addStudentSkills = async (req, res) => {
   const { skill, level } = req.body;
   const { _id } = req.user;
@@ -544,9 +609,6 @@ export const addStudentSkills = async (req, res) => {
   }
 };
 
-/**
- * Remove a skill
- */
 export const removeStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { _id } = req.user;
@@ -593,9 +655,6 @@ export const removeStudentSkills = async (req, res) => {
   }
 };
 
-/**
- * Update a skill level
- */
 export const updateStudentSkills = async (req, res) => {
   const { skillId } = req.params;
   const { level } = req.body;
@@ -639,12 +698,6 @@ export const updateStudentSkills = async (req, res) => {
   }
 };
 
-const EXPERIENCE_TTL = 300; // seconds (5 minutes)
-const EXPERIENCE_CACHE_KEY = (userId) => `student:${userId}:experience`;
-
-/**
- * GET cached experience list
- */
 export const getExperience = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = EXPERIENCE_CACHE_KEY(_id);
@@ -671,9 +724,6 @@ export const getExperience = async (req, res) => {
   }
 };
 
-/**
- * Add experience
- */
 export const addExperience = async (req, res) => {
   const {
     company,
@@ -736,10 +786,6 @@ export const addExperience = async (req, res) => {
   }
 };
 
-/**
- * Remove experience
- * Accepts either slug `experienceId` or Mongo _id in params (param name: expId)
- */
 export const removeExperience = async (req, res) => {
   const { expId } = req.params;
   const { _id } = req.user;
@@ -780,10 +826,6 @@ export const removeExperience = async (req, res) => {
   }
 };
 
-/**
- * Update experience
- * Accepts either slug `experienceId` or Mongo _id in params (param name: expId)
- */
 export const updateExperience = async (req, res) => {
   const { expId } = req.params;
   const {
@@ -851,12 +893,6 @@ export const updateExperience = async (req, res) => {
   }
 };
 
-const EDUCATION_TTL = 300; // seconds (5 minutes)
-const EDUCATION_CACHE_KEY = (userId) => `student:${userId}:education`;
-
-/**
- * GET cached educations for the authenticated student
- */
 export const getEducationsById = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = EDUCATION_CACHE_KEY(_id);
@@ -883,9 +919,6 @@ export const getEducationsById = async (req, res) => {
   }
 };
 
-/**
- * Add an education entry
- */
 export const addEducations = async (req, res) => {
   const {
     degree,
@@ -943,9 +976,6 @@ export const addEducations = async (req, res) => {
   }
 };
 
-/**
- * Remove education - accepts either Mongo _id or your slug educationId in :eduId
- */
 export const removeEducation = async (req, res) => {
   try {
     const { eduId } = req.params;
@@ -998,9 +1028,6 @@ export const removeEducation = async (req, res) => {
   }
 };
 
-/**
- * Update education - accepts either Mongo _id or your slug educationId in :eduId
- */
 export const updateEducation = async (req, res) => {
   const { eduId: educationId } = req.params;
   const {
@@ -1058,12 +1085,6 @@ export const updateEducation = async (req, res) => {
   }
 };
 
-const PROJECTS_TTL = 300; // 5 minutes
-const PROJECTS_CACHE_KEY = (userId) => `student:${userId}:projects`;
-
-/**
- * GET cached projects
- */
 export const getAllProjects = async (req, res) => {
   const { _id } = req.user;
   const cacheKey = PROJECTS_CACHE_KEY(_id);
@@ -1094,9 +1115,6 @@ export const getAllProjects = async (req, res) => {
   }
 };
 
-/**
- * Add project
- */
 export const addProjects = async (req, res) => {
   const {
     projectName,
@@ -1142,9 +1160,6 @@ export const addProjects = async (req, res) => {
   }
 };
 
-/**
- * Update project (updates only provided fields)
- */
 export const updateProjects = async (req, res) => {
   const { projectId } = req.params;
   const {
@@ -1210,9 +1225,6 @@ export const updateProjects = async (req, res) => {
   }
 };
 
-/**
- * Remove project
- */
 export const removeProject = async (req, res) => {
   const { projectId } = req.params;
   const { _id } = req.user;
@@ -1745,572 +1757,109 @@ export const getProfileCompletion = async (req, res) => {
   }
 };
 
-const rand = () => Math.random().toString(36).slice(2, 8);
-const makeSlug = (title) =>
-  `${slugify(title || 'job', {
-    lower: true,
-    strict: true,
-    trim: true,
-  })}-${rand()}`;
-
-function safeRegex(value) {
-  if (typeof value !== 'string' || !value.trim()) return undefined;
-  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(escaped, 'i');
-}
-
-function parseMaybeDate(s) {
-  if (!s) return null;
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function computeTotalExperienceYears(exps = []) {
-  let ms = 0;
-  const now = new Date();
-  for (const e of exps) {
-    const start = parseMaybeDate(e?.startDate);
-    let end = parseMaybeDate(e?.endDate);
-    if (!end && e?.currentlyWorking) end = now;
-    if (start && end && end > start) ms += end.getTime() - start.getTime();
-  }
-  const years = ms / (1000 * 60 * 60 * 24 * 365.25);
-  return Math.max(0, Math.round(years * 10) / 10);
-}
-
-function normalizeSet(arr = []) {
-  return Array.from(
-    new Set(
-      arr
-        .map((s) =>
-          (typeof s === 'string' ? s.trim() : s?.skill || '').toLowerCase(),
-        )
-        .filter(Boolean),
-    ),
-  );
-}
-
-function scoreJob(job, profile) {
-  let score = 0;
-  const jobText = [
-    job.title || '',
-    job.description || '',
-    Array.isArray(job.qualifications) ? job.qualifications.join(' ') : '',
-    ...(Array.isArray(job.tags) ? job.tags : []),
-  ]
-    .join(' ')
-    .toLowerCase();
-
-  let skillHits = 0;
-  for (const s of profile.skills) {
-    if (jobText.includes(s)) skillHits++;
-  }
-  score += Math.min(skillHits * 5, 40);
-
-  if (profile.titles.some((t) => new RegExp(t, 'i').test(job.title || '')))
-    score += 20;
-
-  // your schema uses experience: [String], so skip numeric comparison here
-
-  if (profile.isRemote && job.isRemote) score += 10;
-
-  if (
-    profile.minYearly &&
-    job?.salary?.min &&
-    job.salary.min >= profile.minYearly
-  )
-    score += 10;
-
-  return score;
-}
-
-function buildExternalQueries(titles, skills) {
-  const titleQueries = titles.slice(0, 3);
-  const topSkills = skills.slice(0, 3);
-  const combos = [];
-
-  for (const t of titleQueries) {
-    if (topSkills.length) combos.push(`${t} ${topSkills[0]}`);
-    combos.push(t);
-  }
-  if (!combos.length && topSkills.length) combos.push(topSkills.join(' '));
-
-  const seen = new Set();
-  return combos.filter((q) => {
-    const key = q.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function dedupeByTitleCompany(jobs) {
-  const seen = new Set();
-  const out = [];
-  for (const j of jobs) {
-    const key = `${(j.title || '').toLowerCase()}|${(
-      j.company || ''
-    ).toLowerCase()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(j);
-  }
-  return out;
-}
-
-function transformRapidApiJob(apiJob, searchQuery) {
-  const qualifications = apiJob?.job_highlights?.Qualifications || [];
-  const responsibilities = apiJob?.job_highlights?.Responsibilities || [];
-
-  return {
-    jobId: apiJob.job_id, // REQUIRED + UNIQUE in your schema
-    origin: 'EXTERNAL',
-    title: apiJob.job_title || '',
-    description: apiJob.job_description || '',
-    responsibilities,
-    qualifications,
-    company: apiJob.employer_name || '',
-    country: apiJob.job_country || '',
-    logo: apiJob.employer_logo || '',
-    location: {
-      city: apiJob.job_city || '',
-      postalCode: '',
-      lat: Number(apiJob.job_latitude) || undefined,
-      lng: Number(apiJob.job_longitude) || undefined,
-    },
-    slug: makeSlug(apiJob.job_title || 'job'), // pre('save') won’t run in bulkWrite
-    applyMethod: { method: 'URL', url: apiJob.job_apply_link || '' },
-    isActive: true,
-    jobTypes: Array.isArray(apiJob.job_employment_types)
-      ? apiJob.job_employment_types
-      : [],
-    experience: [],
-    tags: [],
-    queries: searchQuery ? [searchQuery] : [],
-  };
-}
-
-async function fetchExternalJobs(
-  apiQuery,
-  country,
-  state,
-  city,
-  datePosted,
-  employmentType,
-  experience,
-  page = 1,
-) {
-  try {
-    let query = apiQuery;
-    if (city && state) query = `${apiQuery} in ${city}, ${state}`;
-    else if (state) query = `${apiQuery} in ${state}`;
-    else if (city) query = `${apiQuery} in ${city}`;
-
-    const params = { query, page: String(page), num_pages: '1' };
-    if (country) params.country = country;
-    if (state) params.state = state;
-    if (city) params.city = city;
-    if (datePosted) params.date_posted = datePosted;
-    if (employmentType) params.employment_type = employmentType;
-    if (experience) params.job_requirements = experience;
-
-    const response = await axios.get(config.rapidJobApi, {
-      params,
-      headers: {
-        'X-RapidAPI-Key': config.rapidApiKey,
-        'X-RapidAPI-Host': config.rapidApiHost,
-      },
-    });
-    return response?.data?.data || [];
-  } catch (e) {
-    console.error(
-      `RapidAPI fetch failed for "${apiQuery}" p${page}:`,
-      e?.response?.data || e?.message,
-    );
-    return [];
-  }
-}
-
-async function upsertExternalJobs(externalJobs) {
-  if (!externalJobs.length) return;
-
-  const ops = externalJobs
-    .filter((j) => j.jobId)
-    .map((j) => ({
-      updateOne: {
-        filter: { jobId: j.jobId, origin: 'EXTERNAL' },
-        update: {
-          $set: {
-            title: j.title,
-            description: j.description,
-            responsibilities: j.responsibilities,
-            qualifications: j.qualifications,
-            company: j.company,
-            country: j.country,
-            logo: j.logo,
-            location: j.location,
-            applyMethod: j.applyMethod,
-            isActive: true,
-            jobTypes: j.jobTypes,
-            experience: j.experience,
-          },
-          $addToSet: {
-            tags: { $each: Array.isArray(j.tags) ? j.tags : [] },
-            queries: { $each: Array.isArray(j.queries) ? j.queries : [] },
-          },
-          $setOnInsert: { slug: j.slug || makeSlug(j.title) },
-        },
-        upsert: true,
-      },
-    }));
-
-  if (!ops.length) return;
-
-  try {
-    await Job.bulkWrite(ops, { ordered: false });
-  } catch (e) {
-    const dupesOnly =
-      e?.writeErrors &&
-      Array.isArray(e.writeErrors) &&
-      e.writeErrors.every((w) => w?.code === 11000);
-    if (!dupesOnly) throw e;
-  }
-}
-
 export const getProfileBasedRecommendedJobs = async (req, res) => {
+  const start = Date.now();
   try {
-    const studentId = req.user?._id;
-    if (!studentId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
+    const userId = req.user;
 
-    // PAGINATION INPUT
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(
-      50,
-      Math.max(1, parseInt(req.query.limit, 10) || 10),
-    );
-    const skip = (page - 1) * limit;
+    console.time('profile');
+    const profile = await buildUserProfileFromStudent(userId);
+    console.timeEnd('profile');
 
-    // 🔹 Cache key per student + page + limit
-    const cacheKey = `jobs:recommended:${studentId}:page:${page}:limit:${limit}`;
+    console.time('external_fetch_total');
+    const externalQueries = buildExternalQueries(
+      profile.titles,
+      profile.skills,
+    ).slice(0, 3);
 
-    // 🔹 Try cache first
-    try {
-      const cached = await redisClient.get(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        return res.status(200).json({
-          ...parsed,
-          cacheHit: true,
-        });
-      }
-    } catch (e) {
-      console.error('Recommended jobs cache read error:', e);
-    }
+    let externalJobsRaw = [];
 
-    const student = await Student.findById(studentId)
-      .select('jobRole jobPreferences skills experience')
-      .lean();
+    if (externalQueries.length) {
+      const externalResults = await Promise.all(
+        externalQueries.map((q) =>
+          (async () => {
+            console.time(`external_fetch:${q}`);
+            const apiJobs = await fetchExternalJobsCached(
+              q,
+              profile.location?.country,
+              profile.location?.state,
+              profile.location?.city,
+              null,
+              null,
+              null,
+              1,
+            );
+            console.timeEnd(`external_fetch:${q}`);
+            return { q, apiJobs };
+          })(),
+        ),
+      );
 
-    if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
-    }
-
-    const prefs = student.jobPreferences || {};
-
-    // Build profile skills
-    const rawSkills = [
-      ...(Array.isArray(student.skills) ? student.skills : []).map((s) =>
-        typeof s === 'string' ? s : s?.skill || '',
-      ),
-      ...(Array.isArray(prefs.mustHaveSkills) ? prefs.mustHaveSkills : []).map(
-        (s) => s?.skill || '',
-      ),
-      ...(Array.isArray(prefs.niceToHaveSkills)
-        ? prefs.niceToHaveSkills
-        : []
-      ).map((s) => s?.skill || ''),
-    ].filter(Boolean);
-
-    const profileSkills = normalizeSet(rawSkills);
-
-    // Titles from experience, jobRole, and preferences
-    const titlesFromExp = normalizeSet(
-      (student.experience || []).map((e) => e?.title || ''),
-    );
-
-    const titles = normalizeSet([
-      student.jobRole || '',
-      ...titlesFromExp,
-      ...(Array.isArray(prefs.preferredJobTitles)
-        ? prefs.preferredJobTitles
-        : []),
-    ]);
-
-    const totalYears = computeTotalExperienceYears(student.experience || []);
-
-    let minYearly = undefined;
-    let maxYearly = undefined;
-    if (prefs.preferredSalary && prefs.preferredSalary.min != null) {
-      // minYearly = convertSalaryToYearly(prefs.preferredSalary);
-    }
-
-    const profileCtx = {
-      skills: profileSkills,
-      titles,
-      totalYears,
-      isRemote: !!prefs.isRemote,
-      minYearly,
-      maxYearly,
-    };
-
-    /**
-     * 1) LOCAL DB JOBS (HOSTED + persisted EXTERNAL)
-     */
-    const and = [{ isActive: true }];
-    const or = [];
-
-    // Skill-based matching: qualifications / description / tags
-    if (profileSkills.length) {
-      const rx = profileSkills.slice(0, 20).map(safeRegex).filter(Boolean);
-      if (rx.length) {
-        and.push({
-          $or: [
-            { qualifications: { $in: rx } },
-            { description: { $in: rx } },
-            { tags: { $in: rx } },
-          ],
-        });
-      }
-    }
-
-    // Title-based matching
-    if (titles.length) {
-      const titleClauses = titles
-        .map(safeRegex)
-        .filter(Boolean)
-        .map((rx) => ({ title: rx }));
-      if (titleClauses.length) {
-        or.push(...titleClauses);
-      }
-    }
-
-    // Location preference
-    if (prefs.isRemote !== true) {
-      const countryRx = (prefs.preferredCountries || [])
-        .map(safeRegex)
-        .filter(Boolean);
-      if (countryRx.length) {
-        and.push({ country: { $in: countryRx } });
-      }
-
-      const cityRx = (prefs.preferredCities || [])
-        .map(safeRegex)
-        .filter(Boolean);
-      if (cityRx.length) {
-        and.push({ 'location.city': { $in: cityRx } });
-      }
-    }
-    // if isRemote=true we just don't restrict by location
-
-    // Job type preference
-    if (
-      Array.isArray(prefs.preferredJobTypes) &&
-      prefs.preferredJobTypes.length
-    ) {
-      and.push({ jobTypes: { $in: prefs.preferredJobTypes } });
-    }
-
-    // Industry preference: use tags for now
-    if (
-      Array.isArray(prefs.preferredIndustries) &&
-      prefs.preferredIndustries.length
-    ) {
-      const indRx = prefs.preferredIndustries.map(safeRegex).filter(Boolean);
-      if (indRx.length) {
-        and.push({ tags: { $in: indRx } });
-      }
-    }
-
-    const filter = and.length ? { $and: and } : {};
-    if (or.length) {
-      if (!filter.$and) filter.$and = [];
-      filter.$and.push({ $or: or });
-    }
-
-    const [localJobs, localTotal] = await Promise.all([
-      Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      Job.countDocuments(filter),
-    ]);
-
-    const sendAndCache = async (body) => {
-      try {
-        await redisClient.set(cacheKey, JSON.stringify(body), 300); // 5 min
-      } catch (e) {
-        console.error('Recommended jobs cache write error:', e);
-      }
-      return res.status(200).json(body);
-    };
-
-    // ✅ If we found anything locally, use it and STOP. No RapidAPI.
-    if (localTotal > 0) {
-      const scoredLocal = localJobs
-        .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
-        .sort((a, b) => b.matchScore - a.matchScore);
-
-      const responseBody = {
-        success: true,
-        jobs: scoredLocal,
-        pagination: {
-          total: localTotal,
-          page,
-          limit,
-          totalPages: Math.ceil(localTotal / limit),
-        },
-        profileSummary: {
-          titles,
-          skills: profileSkills,
-          totalYears,
-          minYearly,
-        },
-        source: 'local-db',
-      };
-
-      return await sendAndCache(responseBody);
-    }
-
-    /**
-     * 2) EXTERNAL JOBS (RapidAPI) – only if DB gave us nothing
-     */
-    const queries = buildExternalQueries(titles, profileSkills);
-
-    // If we can’t even build a decent query, don’t bother calling RapidAPI
-    if (!queries.length) {
-      const responseBody = {
-        success: true,
-        jobs: [],
-        pagination: { total: 0, page, limit, totalPages: 0 },
-        profileSummary: {
-          titles,
-          skills: profileSkills,
-          totalYears,
-          minYearly,
-        },
-        source: 'none',
-        note: 'No suitable query built from profile; skipped external fetch.',
-      };
-      return await sendAndCache(responseBody);
-    }
-
-    const locCountry =
-      Array.isArray(prefs.preferredCountries) && prefs.preferredCountries[0]
-        ? prefs.preferredCountries[0]
-        : undefined;
-    const locCity =
-      Array.isArray(prefs.preferredCities) && prefs.preferredCities[0]
-        ? prefs.preferredCities[0]
-        : undefined;
-
-    const preferredJobType =
-      Array.isArray(prefs.preferredJobTypes) && prefs.preferredJobTypes[0]
-        ? prefs.preferredJobTypes[0]
-        : undefined;
-
-    // Keep this small so it doesn’t hang forever
-    const PAGES_PER_QUERY = 1;
-    const externalTransformed = [];
-
-    for (const q of queries) {
-      for (let p = 1; p <= PAGES_PER_QUERY; p++) {
-        const data = await fetchExternalJobs(
-          q,
-          locCountry,
-          undefined,
-          locCity,
-          undefined,
-          preferredJobType,
-          undefined,
-          p,
-        );
-
-        for (const raw of data) {
-          externalTransformed.push(transformRapidApiJob(raw, q));
+      for (const { q, apiJobs } of externalResults) {
+        for (const aj of apiJobs) {
+          externalJobsRaw.push(transformRapidApiJob(aj, q));
         }
       }
     }
 
-    let externalJobs = externalTransformed;
-
-    if (!externalJobs.length) {
-      const responseBody = {
-        success: true,
-        jobs: [],
-        pagination: { total: 0, page, limit, totalPages: 0 },
-        profileSummary: {
-          titles,
-          skills: profileSkills,
-          totalYears,
-          minYearly,
-        },
-        source: 'external',
-        note: 'No matches from RapidAPI.',
-      };
-      return await sendAndCache(responseBody);
+    if (externalJobsRaw.length > 100) {
+      externalJobsRaw = externalJobsRaw.slice(0, 100);
     }
 
-    // Remove dupes by (title, company)
-    externalJobs = dedupeByTitleCompany(externalJobs);
+    console.timeEnd('external_fetch_total');
 
-    // Persist by jobId + origin
-    await upsertExternalJobs(externalJobs);
+    console.time('upsert_external');
+    if (externalJobsRaw.length) {
+      await upsertExternalJobs(externalJobsRaw);
+    }
+    console.timeEnd('upsert_external');
 
-    const ids = externalJobs.map((j) => j.jobId).filter(Boolean);
-
-    const saved = await Job.find({
-      origin: 'EXTERNAL',
-      jobId: { $in: ids },
-    })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const scored = saved
-      .map((j) => ({ ...j, matchScore: scoreJob(j, profileCtx) }))
-      .sort((a, b) => b.matchScore - a.matchScore);
-
-    const total = scored.length;
-    const paged = scored.slice(skip, skip + limit);
-
-    const responseBody = {
-      success: true,
-      jobs: paged,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-      profileSummary: {
-        titles,
-        skills: profileSkills,
-        totalYears,
-        minYearly,
-      },
-      source: 'external-persisted',
+    console.time('db_find_candidates');
+    const baseQuery = {
+      isActive: true,
+      origin: { $in: ['HOSTED', 'EXTERNAL'] },
     };
 
-    return await sendAndCache(responseBody);
-  } catch (error) {
-    console.error(
-      'Error fetching profile-based recommended jobs (persisted):',
-      error,
-    );
+    if (profile.location?.country) {
+      baseQuery.country = profile.location.country;
+    }
+    if (profile.location?.state) {
+      baseQuery['location.state'] = profile.location.state;
+    }
+    if (profile.location?.city) {
+      baseQuery['location.city'] = profile.location.city;
+    }
+
+    const candidates = await Job.find(baseQuery)
+      .sort({ jobPostedAt: -1, createdAt: -1 })
+      .limit(400)
+      .lean()
+      .exec();
+    console.timeEnd('db_find_candidates');
+
+    console.time('scoring');
+    const scored = candidates
+      .map((job) => ({
+        job,
+        score: scoreJob(job, profile),
+      }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 100)
+      .map((x) => x.job);
+    console.timeEnd('scoring');
+
+    console.log('TOTAL getRecommendedJobs ms:', Date.now() - start);
+
+    return res.status(200).json({
+      success: true,
+      jobs: scored,
+    });
+  } catch (err) {
+    console.error('Error in getProfileBasedRecommendedJobs:', err);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error?.message || String(error),
+      message: 'Failed to fetch recommended jobs',
     });
   }
 };
@@ -2382,18 +1931,6 @@ export const sendJobApplicationViaEmail = async (req, res) => {
     console.error('❌ Error sending email:', error);
     res.status(500).send(`<pre>${error.message}</pre>`);
   }
-};
-
-const createAttachment = (filename, mimeType, base64Data) => {
-  return [
-    `--boundary123`,
-    `Content-Type: ${mimeType}; name="${filename}"`,
-    `Content-Disposition: attachment; filename="${filename}"`,
-    `Content-Transfer-Encoding: base64`,
-    ``,
-    base64Data,
-    ``,
-  ];
 };
 
 export const toggleAutopilot = async (req, res, next) => {
@@ -3285,16 +2822,6 @@ export const getCreditsSummary = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-const ALLOWED_SOCIAL_ACTIONS = new Set([
-  'FOLLOW_LINKEDIN',
-  'FOLLOW_INSTAGRAM',
-  'FOLLOW_FACEBOOK',
-  'FOLLOW_YOUTUBE',
-  'FOLLOW_TIKTOK',
-  'SHARE_SOCIAL_CONTENT',
-  'LIKE_COMMENT_SHARE',
-]);
 
 export const earnCreditsViaSocialLinks = async (req, res) => {
   try {

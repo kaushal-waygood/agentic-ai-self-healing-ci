@@ -1,4 +1,3 @@
-// routes/notification.route.js
 import express from 'express';
 import * as notificationController from '../controllers/notification.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';

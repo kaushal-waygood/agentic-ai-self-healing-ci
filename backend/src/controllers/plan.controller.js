@@ -94,6 +94,8 @@ const safeGetVariant = (plan, period) =>
     plan.billingVariants.find((v) => v.period === period)) ||
   null;
 
+export const getSinglePlan = getPlan;
+
 // ---------- Controllers ----------
 
 export const createPlan = async (req, res) => {
@@ -304,9 +306,6 @@ export const deletePlan = async (req, res) => {
     });
   }
 };
-
-// alias kept for compatibility
-export const getSinglePlan = getPlan;
 
 // ---------- Payments & Purchases ----------
 
@@ -519,10 +518,6 @@ export const createPaymentIntent = async (req, res) => {
   }
 };
 
-/**
- * Important: Stripe webhook requires raw body. Make sure you configured your express route like:
- * app.post('/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook)
- */
 export const handleStripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;

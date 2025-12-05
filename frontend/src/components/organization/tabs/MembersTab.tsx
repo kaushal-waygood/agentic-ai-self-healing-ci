@@ -19,13 +19,6 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -40,12 +33,10 @@ import {
   Trash2,
   MoreHorizontal,
   Edit,
-  Check,
-  AlertTriangle,
   Users,
-  Sparkles,
   ShieldCheck,
   Crown,
+  AlertTriangle,
 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import UpdateMemberForm from '../UpdateMemberForm';
@@ -86,7 +77,6 @@ export default function MembersTab({
 
   const seatLimitReached = seatsAvailable <= 0;
 
-  // Theme Constants
   const THEME = {
     glassCard:
       'bg-white/90 backdrop-blur-xl border-0 shadow-2xl shadow-purple-500/10',
@@ -104,7 +94,6 @@ export default function MembersTab({
     <>
       <Card className={`${THEME.glassCard} overflow-hidden`}>
         <CardHeader className="space-y-4 pb-6">
-          {/* Header row */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -122,7 +111,6 @@ export default function MembersTab({
               </CardDescription>
             </div>
 
-            {/* Stats Pills */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-gray-100 shadow-sm">
                 <Users className="h-4 w-4 text-blue-500" />
@@ -136,7 +124,6 @@ export default function MembersTab({
             </div>
           </div>
 
-          {/* Filters Toolbar */}
           <div className="mt-4 w-full gap-3 rounded-xl border border-gray-100 bg-white/50 p-4 sm:grid-cols-2 lg:grid-cols-4 shadow-sm">
             <Input
               placeholder="Search by name..."
@@ -146,7 +133,6 @@ export default function MembersTab({
             />
           </div>
 
-          {/* Actions Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
             <div className="flex flex-wrap gap-3">
               <Button
@@ -191,7 +177,6 @@ export default function MembersTab({
             )}
           </div>
 
-          {/* Seat Limit Warning */}
           {seatLimitReached && !isPendingVerification && (
             <Alert
               variant="destructive"
@@ -234,9 +219,6 @@ export default function MembersTab({
                     Name
                   </TableHead>
                   <TableHead className="font-semibold text-gray-600">
-                    Department
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-600">
                     Role
                   </TableHead>
                   <TableHead className="font-semibold text-gray-600">
@@ -272,13 +254,13 @@ export default function MembersTab({
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-xs font-bold text-purple-700">
-                          {member.name
-                            ? member.name.charAt(0).toUpperCase()
-                            : '?'}{' '}
+                          {member.fullName
+                            ? member.fullName.charAt(0).toUpperCase()
+                            : '?'}
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900">
-                            {member.name}
+                            {member.fullName}
                           </div>
                           <div className="text-xs text-gray-500">
                             {member.email}
@@ -286,14 +268,7 @@ export default function MembersTab({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="text-sm font-medium text-gray-700">
-                        {member.department}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {member.course}
-                      </div>
-                    </TableCell>
+
                     <TableCell>
                       {member.role === 'admin' ? (
                         <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 border-0 text-white shadow-purple-200">
@@ -304,7 +279,7 @@ export default function MembersTab({
                           variant="secondary"
                           className="bg-gray-100 text-gray-600 hover:bg-gray-200"
                         >
-                          Member
+                          {member.role === 'hr' ? 'HR' : 'Member'}
                         </Badge>
                       )}
                     </TableCell>
@@ -382,7 +357,7 @@ export default function MembersTab({
         </CardContent>
       </Card>
 
-      {/* Modals */}
+      {/* Add Modal */}
       {isAddOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-xl bg-white p-1 shadow-2xl animate-in fade-in zoom-in duration-300">
@@ -392,6 +367,8 @@ export default function MembersTab({
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
       {editingMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-xl bg-white p-1 shadow-2xl animate-in fade-in zoom-in duration-300">

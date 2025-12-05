@@ -29,7 +29,6 @@ export async function getUserNotifications(req, res, next) {
   }
 }
 
-// Mark notification as read
 export async function markAsRead(req, res, next) {
   try {
     const { notificationId } = req.params;

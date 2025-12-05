@@ -1,9 +1,6 @@
-/** @format */
-
 import { Router } from 'express';
 import {
   postManualJob,
-  fetchAndSaveRapidJobs,
   getAllJobs,
   getMannualyJobs,
   getRapidJobs,
@@ -13,7 +10,6 @@ import {
   getJobDetailBySlug,
   toggleJobStatus,
   getJobFromJobId,
-  streamAllJobs,
   searchJobs,
   jobViewsCount,
   getAllJobsForStudent,
@@ -31,7 +27,6 @@ router.get('/job/:jobId', getJobFromJobId);
 router.get('/job/views/:jobId', authMiddleware, isStudent, jobViewsCount);
 
 router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
-router.post('/rapid', fetchAndSaveRapidJobs);
 router.get('/find', getJobDetailBySlug);
 router.get('/find/:jobId', getSingleJobDetail);
 
@@ -41,8 +36,6 @@ router.get(
   isStudent,
   getAllJobsForStudent,
 );
-
-router.get('/stream', streamAllJobs);
 
 router.get('/search', searchJobs);
 

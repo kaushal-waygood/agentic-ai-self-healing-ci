@@ -28,6 +28,7 @@ import {
   editOrganizationMemberRequest,
 } from '@/redux/reducers/organizationsReducer';
 import { useDispatch } from 'react-redux';
+import { X } from 'lucide-react';
 
 type PropMemberType = {
   onClose: () => void;
@@ -36,11 +37,8 @@ type PropMemberType = {
 };
 
 const memberFormSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email.'),
   role: z.enum(['hr']),
-  department: z.string().optional(),
-  course: z.string().optional(),
   _id: z.string(),
 });
 
@@ -52,11 +50,8 @@ const UpdateMemberForm = ({ onClose, member, op }: PropMemberType) => {
   const memberForm = useForm<MemberFormValues>({
     resolver: zodResolver(memberFormSchema),
     defaultValues: {
-      fullName: member?.fullName || '',
       email: member?.email || '',
       role: member?.role || 'member',
-      department: member?.department || '',
-      course: member?.course || '',
       _id: member?._id || '',
     },
   });
@@ -96,20 +91,6 @@ const UpdateMemberForm = ({ onClose, member, op }: PropMemberType) => {
           className="space-y-4"
           onSubmit={memberForm.handleSubmit(onSubmit)}
         >
-          <FormField
-            control={memberForm.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           {op === 'add' && (
             <FormField
               control={memberForm.control}
@@ -118,7 +99,11 @@ const UpdateMemberForm = ({ onClose, member, op }: PropMemberType) => {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" {...field} />
+                    <Input
+                      type="email"
+                      {...field}
+                      placeholder="Enter Your Emails"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,7 +136,13 @@ const UpdateMemberForm = ({ onClose, member, op }: PropMemberType) => {
           />
 
           <DialogFooter>
-            <Button type="submit">Save Changes</Button>
+            <Button
+              type="submit"
+              disabled={!memberForm.formState.isValid}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Save Changes
+            </Button>
           </DialogFooter>
         </form>
       </Form>
@@ -165,7 +156,7 @@ export const UpdateJobStatus = ({ onClose }: { onClose: () => boolean }) => {
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Update Job Status</h2>
         <button onClick={onClose} className="text-sm text-blue-600 underline">
-          Close
+          <X className="w-4 h-4" />
         </button>
       </div>
 

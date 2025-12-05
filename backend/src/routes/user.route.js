@@ -1,5 +1,3 @@
-/** @format */
-
 import { Router } from 'express';
 import {
   getUserProfile,
@@ -33,14 +31,11 @@ import {
   isGuestOrg,
   isStudent,
   isSuperAdmin,
+  isUserOrUniStudent,
 } from '../middlewares/auth.middleware.js';
 import {
   acceptedBringZobs,
   getBringzobs,
-  // submitStudentBringRequest,
-  // submitCompanyBringRequest,
-  // getMyBringRequests,
-  // updateUserRoleFromBringRequest,
   initiateOnboarding,
   markFreeJobPosted,
   saveOrganizationDetails,
@@ -98,7 +93,7 @@ router.post(
 router.post(
   '/onboard/initiate',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   upload.single('attachment'),
   initiateOnboarding,
 );

@@ -1,5 +1,3 @@
-/** @format */
-
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -40,6 +38,7 @@ const userSchema = new Schema(
       // Note: Kept existing enum for consistency, but will be set by middleware.
       enum: [
         'user',
+        'guest-org',
         'employer-admin',
         'student',
         'tpo',
@@ -49,7 +48,7 @@ const userSchema = new Schema(
         'OrgAdmin',
         'admin',
         'super-admin',
-        'individual', // Assuming this is the new default generic type
+        'individual', // Assuming this is the new default generic typeguest-org
       ],
       required: function () {
         return this.authMethod === 'local';

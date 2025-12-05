@@ -7,6 +7,7 @@ import path from 'path';
 import { transporter } from '../utils/transporter.js';
 import { config } from '../config/config.js';
 import { User } from '../models/User.model.js';
+import crypto from 'crypto';
 
 const tm = new TemplateManager({
   baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
@@ -32,58 +33,85 @@ const sendTemplatedEmail = async ({
   });
 };
 
+const ROLE_HIERARCHY = {
+  'super-admin': 100,
+  admin: 90,
+  'employer-admin': 80,
+  'uni-admin': 80,
+  'team-management': 70,
+  'team-lead': 60,
+  hr: 50,
+  'uni-tpo': 50,
+  'team-member': 40,
+  'guest-org': 30,
+  'uni-student': 20,
+  user: 10,
+};
+
 export const createOrganizationMember = async (req, res) => {
   try {
-    const { fullName, email, role } = req.body;
-    const { _id: organizationId } = req.user; // adjust if you store orgId somewhere else
+    const { email, role } = req.body;
+    const { _id: organizationId } = req.user;
 
-    if (!fullName || !email || !role) {
+    console.log('req.body', req.body, {
+      email,
+      role,
+    });
+
+    // Basic Validation
+    if (!email || !role) {
       return res.status(400).json({
         success: false,
-        message: 'fullName, email and role are required',
+        message: 'Email and role are required',
       });
     }
 
     const normalizedEmail = String(email).toLowerCase().trim();
 
-    // Check if member already exists in THIS organization
-    const existingMember = await OrganizationMember.findOne({
-      email: normalizedEmail,
-      organizationId,
-    });
+    const existingUser = await User.findOne({ email: normalizedEmail }).select(
+      'role accountType fullName email organization',
+    );
 
-    if (!role) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Role is required' });
-    }
-
-    if (existingMember) {
-      return res.status(400).json({
-        success: false,
-        message: 'Member already exists in this organization',
+    if (existingUser) {
+      const isAlreadyMember = await OrganizationMember.findOne({
+        organizationId,
+        email: normalizedEmail,
       });
+
+      if (isAlreadyMember) {
+        return res.status(400).json({
+          success: false,
+          message: 'Member already exists in this organization',
+        });
+      }
+
+      const currentRoleWeight = ROLE_HIERARCHY[existingUser.role] || 0;
+      const newRoleWeight = ROLE_HIERARCHY[role] || 0;
+
+      if (currentRoleWeight > newRoleWeight) {
+        return res.status(403).json({
+          success: false,
+          message: `User already holds a higher role (${existingUser.role}). Cannot assign lower role (${role}).`,
+        });
+      }
     }
 
-    // Check if a user with this email already exists in Users collection
-    const existingUser = await User.findOne({ email: normalizedEmail });
-
-    // Create organization member record (can link to existing user if found)
     const member = await OrganizationMember.create({
       organizationId,
-      fullName,
       email: normalizedEmail,
       role,
-      userId: existingUser?._id || null, // if your schema supports this
+      fullName: existingUser?.fullName,
+      userId: existingUser?._id || null,
     });
 
-    // Only send signup invite if user DOES NOT exist yet
+    console.log(member);
+
     if (!existingUser) {
       await sendTemplatedEmail({
         to: normalizedEmail,
-        templateName: 'member-invitation', // this template should explain signup + org access
+        templateName: 'member-invitation',
         templateVars: {
-          name: fullName,
+          name: req.body.fullName || 'User',
           dashboardUrl: process.env.DASHBOARD_URL,
           supportEmail: 'support@zobsai.com',
           brandName: 'ZobsAI',
@@ -94,9 +122,6 @@ export const createOrganizationMember = async (req, res) => {
         subjectOverride:
           'Welcome to ZobsAI - Complete your signup to access your workspace',
       });
-    } else {
-      // Optional: send a different "you were added to org" email instead of signup
-      // or skip email entirely. Your call.
     }
 
     return res.status(201).json({
@@ -106,6 +131,138 @@ export const createOrganizationMember = async (req, res) => {
     });
   } catch (error) {
     console.error('createOrganizationMember error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const sendOrganizationInvite = async (req, res) => {
+  try {
+    const { email, role, fullName } = req.body;
+    const { _id: organizationId } = req.user;
+
+    if (!email || !role) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Email and role required' });
+    }
+    const normalizedEmail = String(email).toLowerCase().trim();
+
+    const existingMember = await OrganizationMember.findOne({
+      organizationId,
+      email: normalizedEmail,
+    });
+
+    if (existingMember) {
+      if (existingMember.status === 'active') {
+        return res.status(400).json({
+          success: false,
+          message: 'User is already an active member.',
+        });
+      }
+      if (existingMember.status === 'pending') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invitation already sent. Please check spam or resend.',
+        });
+      }
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    const inviteToken = crypto.randomBytes(32).toString('hex');
+    const inviteExpires = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 Days
+
+    const newMember = await OrganizationMember.create({
+      organizationId,
+      email: normalizedEmail,
+      role,
+      fullName: fullName || existingUser?.fullName || 'Invited User',
+      userId: existingUser?._id || null,
+      status: 'pending', // <--- Important
+      invitationToken: inviteToken,
+      invitationExpires: inviteExpires,
+    });
+
+    const baseUrl = process.env.FRONTEND_URL || 'http://127.0.0.1:3000';
+
+    const actionUrl = existingUser
+      ? `${baseUrl}/accept-invite?token=${inviteToken}`
+      : `${baseUrl}/register?token=${inviteToken}&email=${normalizedEmail}`;
+
+    console.log(actionUrl);
+
+    await sendTemplatedEmail({
+      to: normalizedEmail,
+      templateName: existingUser ? 'org-invite-existing' : 'org-invite-new',
+      templateVars: {
+        name: newMember.fullName,
+        actionUrl: actionUrl,
+        brandName: 'ZobsAI',
+        invitedBy: req.user.fullName, // Name of the admin who invited them
+      },
+      subjectOverride: existingUser
+        ? 'You have been invited to join an Organization on ZobsAI'
+        : 'Invitation to join ZobsAI',
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Invitation sent successfully',
+      data: { email: newMember.email, status: newMember.status },
+    });
+  } catch (error) {
+    console.error('Invite Error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const acceptInvite = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const currentUser = req.user;
+
+    if (!token) {
+      console.log('Token is Required');
+      return res
+        .status(400)
+        .json({ success: false, message: 'Token is required' });
+    }
+
+    // 1. Find the pending invitation
+    const invitation = await OrganizationMember.findOne({
+      invitationToken: token,
+      status: 'pending',
+      invitationExpires: { $gt: Date.now() }, // Ensure not expired
+    });
+
+    if (!invitation) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid or expired invitation' });
+    }
+
+    if (currentUser.email !== invitation.email) {
+      return res.status(403).json({
+        success: false,
+        message: 'This invitation belongs to a different email address.',
+      });
+    }
+
+    // 3. Activate the Member
+    invitation.status = 'active';
+    invitation.invitationToken = undefined; // Clear token so it can't be used again
+    invitation.invitationExpires = undefined;
+    invitation.userId = currentUser._id; // Link the actual user ID
+
+    await invitation.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'You have successfully joined the organization',
+      data: invitation,
+    });
+  } catch (error) {
+    console.error('Accept Invite Error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -123,7 +280,6 @@ export const getOrganizationMembers = async (req, res) => {
   }
 };
 
-// Update organization member
 export const updateOrganizationMember = async (req, res) => {
   const { id } = req.params;
   const { fullName, department, course, role } = req.body;
@@ -156,7 +312,6 @@ export const updateOrganizationMember = async (req, res) => {
   }
 };
 
-// Delete organization member
 export const deleteOrganizationMember = async (req, res) => {
   try {
     const { id } = req.params;
@@ -244,7 +399,6 @@ export const getUniqueDepartments = async (req, res) => {
       organizationId: new mongoose.Types.ObjectId(organizationId),
     });
 
-    console.log('Unique departments:', departments);
     if (!departments || departments.length === 0) {
       return res.status(404).json({ message: 'No unique departments found' });
     }

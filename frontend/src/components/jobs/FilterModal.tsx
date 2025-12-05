@@ -249,23 +249,18 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
             <div className="space-y-3">
               <h4 className="font-semibold text-gray-800">Experience Level</h4>
               <div className="flex flex-wrap gap-2">
-                {Array.from(groupedExperienceLevels.keys()).map(
-                  (simplifiedLabel) => {
-                    const isSelected =
-                      localFilters.experience?.includes(simplifiedLabel);
-
-                    return (
-                      <FilterTag
-                        key={simplifiedLabel}
-                        label={simplifiedLabel}
-                        isSelected={isSelected}
-                        onClick={() =>
-                          handleSelectionChange('experience', simplifiedLabel)
-                        }
-                      />
-                    );
-                  },
-                )}
+                {experienceLevels
+                  .filter((type) => typeof type === 'string')
+                  .map((type) => (
+                    <FilterTag
+                      key={type}
+                      label={type.toLowerCase().replace(/_/g, ' ')}
+                      isSelected={localFilters.employmentType?.includes(type)}
+                      onClick={() =>
+                        handleSelectionChange('employmentType', type)
+                      }
+                    />
+                  ))}
               </div>
             </div>
 

@@ -1,12 +1,9 @@
-import fs from 'fs';
-import path from 'path';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import pdfParse from 'pdf-parse';
 import { genAI } from '../config/gemini.js';
 import { convertToHTMLPrompt } from '../prompt/convertToHTML.js';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/student.model.js';
-import { extractDataFromCV } from '../utils/extractedCv.js';
 import { initiateCVGeneration } from '../utils/generateCVCore.js';
 import { initiateCoverLetterGeneration } from '../utils/generateCoverLetterCore.js';
 import { calculateJobMatch } from '../utils/calculateJobMatch.js';
@@ -18,9 +15,131 @@ import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
 import mongoose from 'mongoose';
 import { processTailoredApplication } from '../utils/tailoredApply.background.js';
-import { uploadBufferToCloudinary } from '../middlewares/multer.js';
-import axios from 'axios';
-import os from 'os';
+
+// --------Helper Functions---------
+
+const getModelForType = (type) => {
+  switch (type) {
+    case 'cv':
+      return 'cvs';
+    case 'cl': // for Cover Letter
+      return 'cls';
+    case 'tailored': // for Tailored CV
+      return 'tailoredApplications';
+    default:
+      return null; // Invalid type
+  }
+};
+
+const extractTextFromBuffer = async (file) => {
+  const { buffer, mimetype } = file;
+  let extractedText = '';
+
+  if (mimetype === 'application/pdf') {
+    const parsedPDF = await pdfParse(buffer);
+    extractedText = parsedPDF.text;
+  } else if (
+    mimetype ===
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    mimetype === 'application/msword'
+  ) {
+    const result = await mammoth.extractRawText({ buffer });
+    extractedText = result.value;
+  } else if (mimetype.startsWith('image/')) {
+    const {
+      data: { text },
+    } = await Tesseract.recognize(buffer, 'eng');
+    extractedText = text;
+  } else {
+    throw new Error(
+      'Unsupported file type for CV. Please use PDF, DOCX, or an image.',
+    );
+  }
+  return extractedText;
+};
+
+function stripHtmlToText(html = '') {
+  if (typeof html !== 'string') return '';
+  // remove scripts/styles
+  const withoutScripts = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '');
+  // replace breaks/paragraphs with newlines
+  const withNewlines = withoutScripts
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n');
+  // remove remaining tags
+  const noTags = withNewlines.replace(/<[^>]+>/g, '');
+  // collapse whitespace
+  return noTags.replace(/\r?\n\s*\r?\n/g, '\n\n').trim();
+}
+
+function extractCvTextFromCvData(cvData) {
+  if (!cvData) return '';
+  if (typeof cvData === 'string') return cvData.trim();
+  // common fields people store
+  if (typeof cvData.rawText === 'string' && cvData.rawText.trim())
+    return cvData.rawText.trim();
+  if (typeof cvData.text === 'string' && cvData.text.trim())
+    return cvData.text.trim();
+  if (Array.isArray(cvData.sections)) {
+    try {
+      return cvData.sections
+        .map((s) => {
+          if (!s) return '';
+          if (typeof s === 'string') return s;
+          if (typeof s.title === 'string' || typeof s.content === 'string') {
+            return [s.title || '', s.content || ''].filter(Boolean).join('\n');
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+    } catch {
+      // fall through
+    }
+  }
+  // last resort: stringify
+  try {
+    return JSON.stringify(cvData);
+  } catch {
+    return '';
+  }
+}
+
+async function getCvContentBySavedId(studentId, savedCVId) {
+  if (!savedCVId) return null;
+
+  // Load only what we need
+  const student = await Student.findById(studentId).select('cvs htmlCV').lean();
+  if (!student) throw new Error('Student not found');
+
+  // Try Student.cvs subdoc
+  let cvText = null;
+  if (Array.isArray(student.cvs) && student.cvs.length) {
+    const found = student.cvs.find((d) => String(d._id) === String(savedCVId));
+    if (found) {
+      cvText = extractCvTextFromCvData(found.cvData);
+      if (cvText && cvText.trim()) return cvText.trim();
+    }
+  }
+
+  // Try Student.htmlCV subdoc
+  if (Array.isArray(student.htmlCV) && student.htmlCV.length) {
+    const foundHtml = student.htmlCV.find(
+      (d) => String(d._id) === String(savedCVId),
+    );
+    if (foundHtml && typeof foundHtml.html === 'string') {
+      cvText = stripHtmlToText(foundHtml.html);
+      if (cvText && cvText.trim()) return cvText.trim();
+    }
+  }
+
+  return null;
+}
+
+// -------Controllers -----------
 
 export const convertDataIntoHTML = async (req, res) => {
   const { _id } = req.user;
@@ -450,19 +569,6 @@ export const generateCVByJobId = async (req, res) => {
   await initiateCVGeneration(req, res, job.description, jobTitle);
 };
 
-const getModelForType = (type) => {
-  switch (type) {
-    case 'cv':
-      return 'cvs';
-    case 'cl': // for Cover Letter
-      return 'cls';
-    case 'tailored': // for Tailored CV
-      return 'tailoredApplications';
-    default:
-      return null; // Invalid type
-  }
-};
-
 export const refreshStatus = async (req, res) => {
   const { type, id } = req.params;
   const { _id: userId } = req.user;
@@ -500,6 +606,7 @@ export const refreshStatus = async (req, res) => {
     res.status(500).json({ error: `Failed to retrieve ${type}` });
   }
 };
+
 export const regenerateCV = async (req, res) => {
   try {
     const { _id } = req.user;
@@ -812,114 +919,6 @@ export const getSingleStudentHTMLLetter = async (req, res) => {
     return res.status(500).json({ error: 'Failed to get HTML Letter' });
   }
 };
-
-const extractTextFromBuffer = async (file) => {
-  const { buffer, mimetype } = file;
-  let extractedText = '';
-
-  if (mimetype === 'application/pdf') {
-    const parsedPDF = await pdfParse(buffer);
-    extractedText = parsedPDF.text;
-  } else if (
-    mimetype ===
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-    mimetype === 'application/msword'
-  ) {
-    const result = await mammoth.extractRawText({ buffer });
-    extractedText = result.value;
-  } else if (mimetype.startsWith('image/')) {
-    const {
-      data: { text },
-    } = await Tesseract.recognize(buffer, 'eng');
-    extractedText = text;
-  } else {
-    throw new Error(
-      'Unsupported file type for CV. Please use PDF, DOCX, or an image.',
-    );
-  }
-  return extractedText;
-};
-
-function stripHtmlToText(html = '') {
-  if (typeof html !== 'string') return '';
-  // remove scripts/styles
-  const withoutScripts = html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '');
-  // replace breaks/paragraphs with newlines
-  const withNewlines = withoutScripts
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n');
-  // remove remaining tags
-  const noTags = withNewlines.replace(/<[^>]+>/g, '');
-  // collapse whitespace
-  return noTags.replace(/\r?\n\s*\r?\n/g, '\n\n').trim();
-}
-
-function extractCvTextFromCvData(cvData) {
-  if (!cvData) return '';
-  if (typeof cvData === 'string') return cvData.trim();
-  // common fields people store
-  if (typeof cvData.rawText === 'string' && cvData.rawText.trim())
-    return cvData.rawText.trim();
-  if (typeof cvData.text === 'string' && cvData.text.trim())
-    return cvData.text.trim();
-  if (Array.isArray(cvData.sections)) {
-    try {
-      return cvData.sections
-        .map((s) => {
-          if (!s) return '';
-          if (typeof s === 'string') return s;
-          if (typeof s.title === 'string' || typeof s.content === 'string') {
-            return [s.title || '', s.content || ''].filter(Boolean).join('\n');
-          }
-          return '';
-        })
-        .filter(Boolean)
-        .join('\n\n')
-        .trim();
-    } catch {
-      // fall through
-    }
-  }
-  // last resort: stringify
-  try {
-    return JSON.stringify(cvData);
-  } catch {
-    return '';
-  }
-}
-
-async function getCvContentBySavedId(studentId, savedCVId) {
-  if (!savedCVId) return null;
-
-  // Load only what we need
-  const student = await Student.findById(studentId).select('cvs htmlCV').lean();
-  if (!student) throw new Error('Student not found');
-
-  // Try Student.cvs subdoc
-  let cvText = null;
-  if (Array.isArray(student.cvs) && student.cvs.length) {
-    const found = student.cvs.find((d) => String(d._id) === String(savedCVId));
-    if (found) {
-      cvText = extractCvTextFromCvData(found.cvData);
-      if (cvText && cvText.trim()) return cvText.trim();
-    }
-  }
-
-  // Try Student.htmlCV subdoc
-  if (Array.isArray(student.htmlCV) && student.htmlCV.length) {
-    const foundHtml = student.htmlCV.find(
-      (d) => String(d._id) === String(savedCVId),
-    );
-    if (foundHtml && typeof foundHtml.html === 'string') {
-      cvText = stripHtmlToText(foundHtml.html);
-      if (cvText && cvText.trim()) return cvText.trim();
-    }
-  }
-
-  return null;
-}
 
 export const createTailoredApply = async (req, res) => {
   const { _id } = req.user;
