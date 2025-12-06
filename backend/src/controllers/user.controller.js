@@ -267,14 +267,10 @@ export const firebaseAuth = async (req, res) => {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
 
-    // Find by firebaseUid OR email
     let user = await User.findOne({
       $or: [{ firebaseUid: uid }, { email: email.toLowerCase() }],
     });
 
-    // If an existing user is found by email but does not have firebaseUid,
-    // do NOT automatically attach firebaseUid or change authMethod.
-    // Instead, return an error telling the client the email is already registered.
     if (user && !user.firebaseUid && user.email === email.toLowerCase()) {
       return res.status(400).json({
         success: false,
@@ -283,7 +279,6 @@ export const firebaseAuth = async (req, res) => {
       });
     }
 
-    // If no user found, create as before
     if (!user) {
       user = await User.create({
         firebaseUid: uid,
@@ -781,7 +776,6 @@ export const verifyEmail = async (req, res) => {
 };
 
 export const resendVerificationEmail = async (req, res) => {
-  // Keeps old behavior: expects logged-in user and uses req.user._id
   const { email } = req.body;
   const { _id } = req.user;
 
@@ -830,11 +824,9 @@ export const verifyUpdateEmail = async (req, res) => {
   const { email, otp } = req.body;
 
   try {
-    // Update email first then validate otp on saved data
     const user = await User.findById(_id).select('+otp +otpExpires');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // if the flow expects the email to be already set during OTP generation, check email param matches (optional)
     if (user.otp !== otp)
       return res.status(400).json({ message: 'Invalid OTP' });
     if (user.otpExpires < new Date())

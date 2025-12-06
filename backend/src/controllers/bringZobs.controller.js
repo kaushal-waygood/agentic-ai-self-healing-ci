@@ -208,8 +208,6 @@ export const acceptedBringZobs = async (req, res) => {
   try {
     const { bringId } = req.params;
 
-    // We just call the helper. It handles finding the doc, creating the org,
-    // updating the user, and updating the status to APPROVED.
     const newOrg = await approveBringZobsRequest(bringId);
 
     return res.status(200).json({
@@ -220,7 +218,6 @@ export const acceptedBringZobs = async (req, res) => {
   } catch (err) {
     console.error('acceptedBringZobs error:', err);
 
-    // Handle specific "Request not found" error
     if (err.message === 'Request not found') {
       return res
         .status(404)

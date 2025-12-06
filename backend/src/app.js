@@ -20,6 +20,7 @@ import formRoutes from './routes/form.route.js';
 import autofillRoutes from './routes/autofill.route.js';
 import couponRoutes from './routes/coupon.route.js';
 import socialRouter from './routes/social.js';
+import bringZobsRoutes from './routes/bringzobs.route.js';
 import notificationRoutes from './routes/notification.route.js';
 import sitemapRoutes from './routes/sitemap.js';
 import { handleStripeWebhook } from './controllers/plan.controller.js';
@@ -31,17 +32,10 @@ import { authMiddleware } from './middlewares/auth.middleware.js';
 const app = express();
 app.set('trust proxy', 1);
 
-// 0) Morgan FIRST so it sees everything (even stuff that gets short-circuited)
 app.use(morgan('dev'));
-
-// If you also want completion logs, add a second one (optional):
-// app.use(morgan('dev'));
-
-// 1) Security & infra middleware
 app.use(helmet());
 app.use(compression());
 
-// 2) Rate limit (note: can terminate early; morgan already ran)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5000,
@@ -51,7 +45,6 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// 3) CORS before parsers (CORS may fully handle OPTIONS)
 app.use(
   cors({
     origin: [
@@ -84,15 +77,12 @@ app.post(
   handleStripeWebhook,
 );
 
-// 5) Parsers
 app.use(express.json({ limit: '1000mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// 6) Health & simple routes
 app.get('/api', (req, res) => res.send('Hello from the server!'));
 
-// Pro tip: you misspelled this before. Use a normal path.
 app.get('/health-check', (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -101,8 +91,8 @@ app.get('/health-check', (req, res) => {
   });
 });
 
-// 7) API routes
 app.use('/api/v1/user', userRoutes);
+app.use('/api/v1/bring-zobs', bringZobsRoutes);
 app.use('/api/v1/job-role', jobRoleRoutes);
 app.use('/api/v1/organization', organizationRoutes);
 app.use('/api/v1/jobs', jobRoutes);
@@ -117,12 +107,10 @@ app.use('/api/v1/new-feature', newFeatureRoutes);
 app.use('/api/v1/autofill', autofillRoutes);
 app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/v1', sitemapRoutes);
-app.use('/api/v1/social', socialRouter); // make sure auth is applied
+app.use('/api/v1/social', socialRouter);
 
-// 8) 404
 app.use((req, res, next) => next(createHttpError(404, 'Endpoint not found')));
 
-// 9) Error handler
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({
