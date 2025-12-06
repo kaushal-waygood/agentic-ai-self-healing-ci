@@ -11,7 +11,13 @@ export const authMiddleware = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(accessToken, config.accessTokenSecret);
+    console.log(
+      'Access Token:',
+      config.accessTokenSecret === process.env.ACCESS_TOKEN_SECRET,
+    );
+    console.log('accessToken:', accessToken);
+
+    const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
 
     const userId = decoded._id || decoded.id;
     if (!userId) {
