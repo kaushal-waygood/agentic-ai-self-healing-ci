@@ -11,12 +11,6 @@ export const authMiddleware = async (req, res, next) => {
   }
 
   try {
-    console.log(
-      'Access Token:',
-      config.accessTokenSecret === process.env.ACCESS_TOKEN_SECRET,
-    );
-    console.log('accessToken:', accessToken);
-
     const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
 
     const userId = decoded._id || decoded.id;
@@ -24,7 +18,6 @@ export const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid token payload.' });
     }
 
-    // Fetch user details, excluding the password field
     const user = await User.findById(userId).select('-password');
 
     if (!user) {
@@ -36,7 +29,6 @@ export const authMiddleware = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('authMiddleware error:', err);
-    // If token verification fails (expired, modified, etc.)
     return res.status(403).json({ message: 'Invalid or expired access token' });
   }
 };
