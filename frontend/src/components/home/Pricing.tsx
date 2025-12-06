@@ -222,12 +222,12 @@ export function Pricing() {
                 <div className="text-center mt-12">
                   <p className="text-gray-600">
                     Have questions? Check our{' '}
-                    <a
-                      href="#faq"
+                    <Link
+                      href="/faq"
                       className="text-purple-600 font-semibold hover:text-purple-700 underline decoration-purple-300 underline-offset-2"
                     >
                       FAQ section
-                    </a>{' '}
+                    </Link>{' '}
                     or{' '}
                     <a
                       href="#contact"

@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/student.model.js';
@@ -56,7 +55,6 @@ export const searchJobs = async (req, res) => {
     limit = 10,
     country,
     state,
-    city,
     employmentType,
     experience,
     datePosted,
