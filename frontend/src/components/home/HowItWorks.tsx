@@ -70,7 +70,8 @@ const steps = [
     lightGradient: 'from-cyan-100 to-blue-100',
     color: 'cyan',
     successRate: 92,
-    button: 'Launch Auto-Apply', // Changed
+    // button: 'Launch Auto-Apply',
+    button: 'Coming Soon',
   },
 ];
 
@@ -208,11 +209,27 @@ export function HowItWorks() {
             {/* Bottom section for hover button OR active indicator */}
             <div className="mt-auto pt-6 min-h-[68px]">
               <div className="hidden group-hover:block animate-fade-in-up">
-                <button
+                {/* <button
                   onClick={() => router.push('/signup')}
                   className={`w-full py-3 bg-gradient-to-r ${step.gradient} text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300 flex items-center justify-center gap-2 group/btn`}
                 >
                   {step.button}
+                  <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                </button> */}
+                <button
+                  onClick={
+                    step.button === 'Coming Soon'
+                      ? () => {}
+                      : () => router.push('/signup')
+                  }
+                  className={`
+    w-full py-3 bg-gradient-to-r ${step.gradient} text-white font-bold rounded-xl shadow-lg 
+    hover:shadow-xl hover:scale-105 transform transition-all duration-300 
+    flex items-center justify-center gap-2 group/btn
+  `}
+                >
+                  {step.button === 'Coming Soon' ? 'Coming Soon!' : step.button}
+
                   <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
                 </button>
               </div>
