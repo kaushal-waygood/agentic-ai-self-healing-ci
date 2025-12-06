@@ -268,7 +268,7 @@ userSchema.methods.generateAccessToken = function () {
       role: this.role,
       accountType: this.accountType,
     },
-    config.accessTokenSecret,
+    process.env.ACCESS_TOKEN_SECRET,
     {
       expiresIn: config.accessTokenExpiry || '7d',
     },

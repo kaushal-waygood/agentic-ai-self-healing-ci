@@ -107,7 +107,7 @@ export function Platforms() {
             </span>
           </div>
           <h2 className="text-5xl sm:text-6xl lg:text-6xl font-black mb-6 leading-tight tracking-tighter">
-            Apply Everywhere from{' '}
+            Jobs Everywhere on{' '}
             <span className="text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text">
               One Platform
             </span>
