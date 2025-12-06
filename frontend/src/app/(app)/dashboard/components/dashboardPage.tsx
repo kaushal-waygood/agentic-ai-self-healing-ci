@@ -97,6 +97,7 @@ export function ToolkitButton({
   description,
   href,
   color = 'purple',
+  comingSoon = false, // ⬅️ NEW
 }: any) {
   const colorClasses = {
     purple: 'hover:bg-purple-50 border-purple-200 text-purple-700',
@@ -110,14 +111,24 @@ export function ToolkitButton({
     cyan: 'from-cyan-100 to-cyan-200',
     green: 'from-green-100 to-green-200',
   };
+
   return (
     <Link href={href} passHref>
       <button
         className={cn(
-          'w-full p-4 rounded-lg border-2 border-dashed transition-all duration-200 hover:border-solid hover: group',
+          'relative w-full p-4 rounded-lg border-2 border-dashed transition-all duration-200 hover:border-solid group',
           colorClasses[color],
+          comingSoon && 'opacity-60 cursor-not-allowed',
         )}
+        disabled={comingSoon}
       >
+        {/* 🔥 Coming Soon Badge */}
+        {comingSoon && (
+          <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow">
+            Coming Soon
+          </span>
+        )}
+
         <div className="flex items-start space-x-3">
           <div
             className={cn(
@@ -127,12 +138,14 @@ export function ToolkitButton({
           >
             <Icon className="w-5 h-5" />
           </div>
+
           <div className="flex-1 text-left">
             <h4 className="font-semibold text-gray-900 group-hover:text-purple-700">
               {title}
             </h4>
             <p className="text-sm text-gray-600 mt-1">{description}</p>
           </div>
+
           <Play className="w-4 h-4 text-gray-400 group-hover:text-purple-600" />
         </div>
       </button>
@@ -652,11 +665,10 @@ export default function DashboardPage() {
       try {
         const res = await apiInstance.get('/students/details');
         const hasCompleted = res.data.studentDetails.hasCompletedOnboarding;
-        console.log('Fetched:', hasCompleted);
 
         if (hasCompleted) {
           // Auto-start tour if onboarding already completed
-          handleStartTour();
+          // handleStartTour();
         }
       } catch (e) {
         console.error('Error fetching:', e);
@@ -876,6 +888,7 @@ export default function DashboardPage() {
                   title="AI Auto-Apply Agents"
                   description="Automate your job search."
                   color="green"
+                  comingSoon={true}
                 />
               </div>
             </div>
