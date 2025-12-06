@@ -46,7 +46,6 @@ const router = Router();
 
 // Start the OAuth flow
 router.get('/auth/google/:id', authGoogle);
-router.post('/send-email', authMiddleware, sendEmails);
 router.post('/send-test-email', authMiddleware, testSendEmail);
 router.get('/oauth2callback', oAuth2Callback);
 router.post('/google/disconnect', authMiddleware, disconnectGoogle);
@@ -68,8 +67,9 @@ router.post('/verify', verifyEmail);
 router.post('/change-email', authMiddleware, resendVerificationEmail);
 router.patch('/verify-email-otp', authMiddleware, isStudent, verifyUpdateEmail);
 router.post('/signin', signInUser);
+router.post('/send-email', authMiddleware, sendEmails);
 router.get('/signout', authMiddleware, signout);
-router.get('/me', authMiddleware, getUserProfile);
+router.get('/me', authMiddleware, isUserOrUniStudent, getUserProfile);
 router.patch('/me/password/change', authMiddleware, changePassword);
 router.post('/resend-otp', resendOtp);
 router.post('/forgot-password', forgotPassword);
@@ -83,13 +83,6 @@ router.post(
   isEmailSentForNotify,
 );
 
-// router.post(
-//   '/onboard/initiate',
-//   authMiddleware,
-//   isStudent,
-//   submitStudentBringRequest,
-// );
-
 router.post(
   '/onboard/initiate',
   authMiddleware,
@@ -97,27 +90,5 @@ router.post(
   upload.single('attachment'),
   initiateOnboarding,
 );
-
-router.post(
-  '/onboard/org-info/:bringId/organization',
-  authMiddleware,
-  isGuestOrg,
-  saveOrganizationDetails,
-);
-
-router.post(
-  '/bring-zobs/onboarding/mark-free-job',
-  authMiddleware,
-  isGuestOrg,
-  markFreeJobPosted,
-);
-router.post(
-  '/bring-zobs/accepted/:bringId',
-  authMiddleware,
-  isSuperAdmin,
-  acceptedBringZobs,
-);
-
-router.get('/bring-zobs', authMiddleware, isSuperAdmin, getBringzobs);
 
 export default router;

@@ -5,7 +5,11 @@ import { removeExpiredUnverifiedUsers } from '../utils/cron.js';
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(config.mongoUrl);
+    const db =
+      config.nodeEnv === 'production' ? config.mongoUrl : config.devMongoUrl;
+
+    console.log('Mongo URL:', db);
+    await mongoose.connect(db);
     console.log('✅ Database connected successfully.');
     // Start cron jobs
     // runAutopilotCron();
