@@ -15,7 +15,7 @@ data:
   EMAIL_USER: 'infozobsai@gmail.com'
   EMAIL_PASSWORD: 'wssq kdwx phtg uxzd'
 
-  MONGO_URL: 'mongodb+srv://infozobsai_db_user:f177VEZfPaV22lT1@zobsai.zcgoqpg.mongodb.net/zobsai?appName=zobsai'
+  MONGO_URL: 'mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot'
   RAPID_API_KEY: 'e181f48f77msh3138245c94a6f01p197d40jsn0ae1e0afe85c'
 
   GOOGLE_GENERATIVE_AI_KEY: 'AIzaSyAy4pHPJEPWWDXHWw06MTGs4q4RYSTJM_M'
