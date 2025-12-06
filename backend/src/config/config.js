@@ -17,7 +17,6 @@ export const config = {
   // General
   port: process.env.PORT || 8080,
   mongoUrl: getEnv('MONGO_URL'),
-  devMongoUrl: getEnv('DEV_MONGO_URL'),
   nodeEnv: process.env.NODE_ENV,
   accessTokenSecret: getEnv('ACCESS_TOKEN_SECRET'), // ✅ Longer-lived access token
   accessTokenExpiry: '7d',
