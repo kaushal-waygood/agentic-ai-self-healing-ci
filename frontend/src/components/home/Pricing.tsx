@@ -12,6 +12,7 @@ import {
   Zap,
   TrendingUp,
 } from 'lucide-react';
+import Link from 'next/link';
 
 interface Plan {
   _id: string;
