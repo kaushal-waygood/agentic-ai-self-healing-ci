@@ -7,10 +7,12 @@
     "watch": "nodemon worker.js",
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "node test",
+    "test": "jest --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:debug": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --runInBand",
-    "prepare": "husky"
+    "prepare": "husky",
+    "k6": "k6 run --iterations 1000 --vus 10 tests/k6/register_users.js",
+    "k6:search": "k6 run --iterations 1 --vus 1 tests/k6/job_search.js"
   },
   "keywords": [],
   "author": "",
@@ -91,7 +93,7 @@
       "/node_modules/(?!your-esm-module)/"
     ],
     "setupFilesAfterEnv": [
-      "./jest.setup.js"
+      "./tests/jest.setup.js"
     ]
   }
 }

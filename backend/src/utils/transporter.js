@@ -29,34 +29,34 @@ const createTransporter = () => {
 
 const transporter = createTransporter();
 
-const verifyTransporter = async (maxAttempts = 3) => {
-  let attempts = 0;
+// const verifyTransporter = async (maxAttempts = 3) => {
+//   let attempts = 0;
 
-  while (attempts < maxAttempts) {
-    try {
-      await transporter.verify();
-      return true;
-    } catch (error) {
-      attempts++;
-      console.error(
-        `SMTP verification failed (attempt ${attempts}):`,
-        error.message,
-      );
+//   while (attempts < maxAttempts) {
+//     try {
+//       await transporter.verify();
+//       return true;
+//     } catch (error) {
+//       attempts++;
+//       console.error(
+//         `SMTP verification failed (attempt ${attempts}):`,
+//         error.message,
+//       );
 
-      if (attempts >= maxAttempts) {
-        throw new Error(
-          `Failed to verify SMTP connection after ${maxAttempts} attempts`,
-        );
-      }
+//       if (attempts >= maxAttempts) {
+//         throw new Error(
+//           `Failed to verify SMTP connection after ${maxAttempts} attempts`,
+//         );
+//       }
 
-      await new Promise((resolve) => setTimeout(resolve, 2000 * attempts));
-    }
-  }
-};
+//       await new Promise((resolve) => setTimeout(resolve, 2000 * attempts));
+//     }
+//   }
+// };
 
-verifyTransporter().catch((err) => {
-  process.exit(1);
-});
+// verifyTransporter().catch((err) => {
+//   process.exit(1);
+// });
 
 export const sendEmailWithRetry = async (mailOptions, maxRetries = 3) => {
   if (!isValidEmail(mailOptions.to)) {
