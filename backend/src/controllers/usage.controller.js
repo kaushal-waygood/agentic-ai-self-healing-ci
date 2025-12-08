@@ -1,7 +1,6 @@
 // controllers/planFeatures.controller.js
 import { Plan } from '../models/Plans.model.js'; // adjust path if needed
 import { Usage } from '../models/Usage.model.js'; // adjust path if needed
-
 import { User } from '../models/User.model.js';
 
 const parseFeatureValue = (raw) => {
@@ -32,42 +31,13 @@ const FEATURE_MAP = {
   'auto-apply': 'autoApply',
 };
 
-const checkUsageLimit = async (userId, feature, creditsUsed) => {
-  const user = await User.findById(userId).lean();
-  if (!user) return false;
-
-  const schemaFeature = FEATURE_MAP[feature];
-  if (!schemaFeature) {
-    console.error('Unknown feature:', feature);
-    return false;
-  }
-
-  const limitRaw = user.usageLimits && user.usageLimits[schemaFeature];
-  const counterRaw = user.usageCounters && user.usageCounters[schemaFeature];
-
-  // interpret -1 / "-1" / null
-  if (limitRaw === -1 || limitRaw === '-1') return true;
-  const limit = typeof limitRaw === 'string' ? Number(limitRaw) : limitRaw;
-  const counter =
-    typeof counterRaw === 'string' ? Number(counterRaw) : counterRaw;
-
-  if (limit === undefined || limit === null || Number.isNaN(limit)) {
-    console.error('Invalid limit for user:', userId, schemaFeature, limitRaw);
-    return false;
-  }
-
-  return (counter || 0) + (creditsUsed || 0) <= limit;
-};
-
 const updateUsageCounter = async (userId, feature, creditsUsed) => {
   const schemaFeature = FEATURE_MAP[feature];
-  if (!schemaFeature) {
-    console.error('Unknown feature:', feature);
-    return;
-  }
+  if (!schemaFeature) return;
+
   await User.findByIdAndUpdate(userId, {
     $inc: { [`usageCounters.${schemaFeature}`]: creditsUsed },
-  }).lean();
+  });
 };
 
 export const resetUsageCounters = async () => {
@@ -86,41 +56,6 @@ export const resetUsageCounters = async () => {
     );
   } catch (error) {
     console.error('Error resetting usage counters:', error);
-  }
-};
-
-export const getAllFeatures = async (req, res) => {
-  try {
-    // fetch MINIMAL fields to avoid large payloads
-    const plans = await Plan.find({}, 'planType billingVariants').lean();
-
-    // map: featureName => array of { planType, period, value, unlimited }
-    const featuresMap = {};
-
-    plans.forEach((plan) => {
-      const planType = plan.planType;
-      (plan.billingVariants || []).forEach((bv) => {
-        const period = bv.period;
-        (bv.features || []).forEach((f) => {
-          const entry = buildFeatureEntry(planType, period, f);
-          if (!featuresMap[f.name]) featuresMap[f.name] = [];
-          featuresMap[f.name].push(entry);
-        });
-      });
-    });
-
-    // Convert to array of { name, availability: [...] }
-    const result = Object.entries(featuresMap).map(([name, availability]) => ({
-      name,
-      availability,
-    }));
-
-    return res.status(200).json({ success: true, data: result });
-  } catch (err) {
-    console.error('getAllFeatures error', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -209,53 +144,9 @@ export const getPlanBillingPeriodFeatures = async (req, res) => {
   }
 };
 
-export const trackUsage = async (req, res) => {
-  try {
-    const { feature, action, details, creditsUsed = 1 } = req.body;
-    const userId = req.user && req.user._id;
-    if (!userId)
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-
-    const canProceed = await checkUsageLimit(userId, feature, creditsUsed);
-    if (!canProceed) {
-      return res.status(429).json({
-        success: false,
-        message: 'Usage limit exceeded for this feature',
-      });
-    }
-
-    const usage = new Usage({
-      user: userId,
-      feature,
-      action,
-      details,
-      creditsUsed,
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
-
-    await usage.save();
-    await updateUsageCounter(userId, feature, creditsUsed);
-
-    return res.status(201).json({
-      success: true,
-      message: 'Usage tracked successfully',
-      data: usage,
-    });
-  } catch (error) {
-    console.error('Error tracking usage:', error);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Internal server error' });
-  }
-};
-
 export const getUserUsage = async (req, res) => {
   try {
-    const userId = req.user && req.user._id;
-    if (!userId)
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-
+    const userId = req.user?._id;
     const { feature, startDate, endDate } = req.query;
     const filter = { user: userId };
 
@@ -272,7 +163,6 @@ export const getUserUsage = async (req, res) => {
       .lean();
     return res.status(200).json({ success: true, data: usage });
   } catch (error) {
-    console.error('Error fetching usage:', error);
     return res
       .status(500)
       .json({ success: false, message: 'Internal server error' });
@@ -281,10 +171,7 @@ export const getUserUsage = async (req, res) => {
 
 export const getUserUsageLimits = async (req, res) => {
   try {
-    const userId = req.user && req.user._id;
-    if (!userId)
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-
+    const userId = req.user?._id;
     const user = await User.findById(userId)
       .select('usageLimits usageCounters')
       .lean();
@@ -301,9 +188,101 @@ export const getUserUsageLimits = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching usage limits:', error);
     return res
       .status(500)
       .json({ success: false, message: 'Internal server error' });
   }
+};
+
+export const trackUsage = async (req, res) => {
+  try {
+    const { feature, action, details, creditsUsed = 1 } = req.body;
+    const userId = req.user?._id;
+    if (!userId)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const canProceed = await checkUsageLimit(userId, feature, creditsUsed);
+    if (!canProceed) {
+      return res
+        .status(429)
+        .json({ success: false, message: 'Usage limit exceeded' });
+    }
+
+    // Run in parallel
+    const [usage] = await Promise.all([
+      Usage.create({
+        user: userId,
+        feature,
+        action,
+        details,
+        creditsUsed,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+      }),
+      updateUsageCounter(userId, feature, creditsUsed),
+    ]);
+
+    return res
+      .status(201)
+      .json({ success: true, message: 'Usage tracked', data: usage });
+  } catch (error) {
+    console.error('Error tracking usage:', error);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const getAllFeatures = async (req, res) => {
+  try {
+    const plans = await Plan.find({}, 'planType billingVariants').lean();
+    const featuresMap = {};
+
+    plans.forEach((plan) => {
+      plan.billingVariants?.forEach((bv) => {
+        bv.features?.forEach((f) => {
+          const val = parseFeatureLimitValue(f.value);
+          const entry = {
+            planType: plan.planType,
+            period: bv.period,
+            name: f.name,
+            rawValue: f.value,
+            unlimited: val === -1,
+            value: val === -1 ? null : val,
+          };
+          if (!featuresMap[f.name]) featuresMap[f.name] = [];
+          featuresMap[f.name].push(entry);
+        });
+      });
+    });
+
+    const result = Object.entries(featuresMap).map(([name, availability]) => ({
+      name,
+      availability,
+    }));
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+const checkUsageLimit = async (userId, feature, creditsUsed) => {
+  const schemaFeature = FEATURE_MAP[feature];
+  if (!schemaFeature) return false;
+
+  const user = await User.findById(userId)
+    .select('usageLimits usageCounters')
+    .lean();
+  if (!user) return false;
+
+  const limit = user.usageLimits?.[schemaFeature];
+  const counter = user.usageCounters?.[schemaFeature] || 0;
+
+  // -1 means unlimited
+  if (limit === -1 || limit === '-1') return true;
+  if (typeof limit !== 'number') return false;
+
+  return counter + (creditsUsed || 0) <= limit;
 };
