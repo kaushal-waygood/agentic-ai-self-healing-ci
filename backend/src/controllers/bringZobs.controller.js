@@ -5,6 +5,7 @@ import { User } from '../models/User.model.js';
 import { sendEmailWithRetry } from '../utils/transporter.js';
 import crypto from 'crypto';
 
+
 const normalize = (value = '') => String(value).trim();
 
 export const getBringzobs = async (req, res) => {

@@ -268,7 +268,7 @@ export default function DocumentsPage() {
 
   const deleteApplication = async (appId: string) => {
     try {
-      await apiInstance.delete(`/students/tailored-applications/${appId}`);
+      await apiInstance.delete(`/students/tailored-application/${appId}`);
       toast({ title: 'Success', description: 'Application deleted' });
       fetchApplications();
     } catch {

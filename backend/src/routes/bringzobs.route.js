@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import {
+  initiateOnboarding,
   acceptedBringZobs,
   getBringzobs,
   markFreeJobPosted,
   saveOrganizationDetails,
+  uploadVerificationDocs,
 } from '../controllers/bringZobs.controller.js';
 
 import {
@@ -11,6 +13,8 @@ import {
   isGuestOrg,
   isSuperAdmin,
 } from '../middlewares/auth.middleware.js';
+
+import { upload } from '../middlewares/multer.js';
 
 const router = Router();
 
@@ -35,5 +39,31 @@ router.post(
 );
 
 router.get('/', authMiddleware, isSuperAdmin, getBringzobs);
+router.post(
+  '/onboard/initiate',
+  authMiddleware,
+  isGuestOrg,
+  initiateOnboarding,
+);
+
+router.put(
+  '/onboard/:bringId/details',
+  authMiddleware,
+  isGuestOrg,
+  saveOrganizationDetails,
+);
+router.post(
+  '/onboard/job-callback',
+  authMiddleware,
+  isGuestOrg,
+  markFreeJobPosted,
+);
+router.post(
+  '/onboard/:bringId/verify',
+  authMiddleware,
+  isGuestOrg,
+  upload.single('attachment'),
+  uploadVerificationDocs,
+);
 
 export default router;
