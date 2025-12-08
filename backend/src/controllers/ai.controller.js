@@ -588,9 +588,6 @@ export const refreshStatus = async (req, res) => {
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Check if the item was found
-    // student[modelName] will be an array.
-    // If a match was found, it will have 1 item. If not, it will be empty.
     if (!student[modelName] || student[modelName].length === 0) {
       return res
         .status(404)
