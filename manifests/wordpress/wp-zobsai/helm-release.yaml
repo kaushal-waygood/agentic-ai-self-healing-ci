@@ -1,0 +1,106 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wp-zobsai
+  namespace: monitoring
+spec:
+  project: default
+
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: wordpress
+    targetRevision: 27.1.8
+    helm:
+      releaseName: wp-zobsai
+      values: |
+        image:
+          registry: docker.io
+          repository: bitnami/wordpress
+          tag: "latest"
+          pullPolicy: IfNotPresent
+
+        wordpressUsername: admin
+        wordpressPassword: "admin1234!"
+        wordpressEmail: admin@zobsai.com
+        wordpressBlogName: "Zobsai Blog"
+
+        ## ❤️ Make WordPress believe it runs inside /resources
+        wordpressExtraConfigContent: |
+          define( 'WP_HOME', 'https://zobsai.com/resources' );
+          define( 'WP_SITEURL', 'https://zobsai.com/resources' );
+
+        service:
+          type: ClusterIP
+
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          hostname: zobsai.com
+          path: /resources
+          pathType: Prefix
+          annotations:
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+            traefik.ingress.kubernetes.io/router.middlewares: wordpress-resources-rewrite@kubernetescrd
+          tls: true
+          certManager:
+            enabled: true
+            issuer:
+              name: letsencrypt-prod
+              kind: ClusterIssuer
+
+        persistence:
+          enabled: true
+          storageClass: "local-path"
+          accessMode: ReadWriteOnce
+          size: 10Gi
+
+        mariadb:
+          enabled: true
+          auth:
+            rootPassword: "admin1234!"
+            database: bitnami_wordpress
+            username: bn_wordpress
+            password: "admin1234!"
+          primary:
+            persistence:
+              enabled: true
+              storageClass: "local-path"
+              size: 10Gi
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wordpress
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: wp-zobsai-mariadb
+      namespace: wordpress
+      jsonPointers:
+        - /spec/template/metadata/annotations
+        - /spec/template/spec/containers/0/env
+        - /spec/template/spec/containers/0/image
+        - /spec/volumeClaimTemplates
+        - /spec/revisionHistoryLimit
+---
+# -------------------------------
+# Traefik Middleware for path rewrite
+# -------------------------------
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: wordpress-resources-rewrite
+  namespace: wordpress
+spec:
+  redirectRegex:
+    regex: ^/resources/(.*)
+    replacement: /$1
+    permanent: true
