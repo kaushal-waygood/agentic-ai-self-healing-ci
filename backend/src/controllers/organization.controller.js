@@ -100,28 +100,33 @@ export const createOrganizationMember = async (req, res) => {
       organizationId,
       email: normalizedEmail,
       role,
-      fullName: existingUser?.fullName,
+      fullName: existingUser?.fullName || req.body.fullName,
       userId: existingUser?._id || null,
     });
 
     console.log(member);
 
     if (!existingUser) {
-      await sendTemplatedEmail({
-        to: normalizedEmail,
-        templateName: 'member-invitation',
-        templateVars: {
-          name: req.body.fullName || 'User',
-          dashboardUrl: process.env.DASHBOARD_URL,
-          supportEmail: 'support@zobsai.com',
-          brandName: 'ZobsAI',
-          companyUrl: 'https://zobsai.com',
-          companyAddress: 'ZobsAI Pvt Ltd, City, Country',
-          unsubscribeUrl: 'https://zobsai.com/unsubscribe',
-        },
-        subjectOverride:
-          'Welcome to ZobsAI - Complete your signup to access your workspace',
-      });
+      try {
+        await sendTemplatedEmail({
+          to: normalizedEmail,
+          templateName: 'member-invitation',
+          templateVars: {
+            name: req.body.fullName || 'User',
+            dashboardUrl: process.env.DASHBOARD_URL,
+            supportEmail: 'support@zobsai.com',
+            brandName: 'ZobsAI',
+            companyUrl: 'https://zobsai.com',
+            companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+            unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+          },
+          subjectOverride:
+            'Welcome to ZobsAI - Complete your signup to access your workspace',
+        });
+      } catch (emailError) {
+        console.error('Failed to send invitation email:', emailError.message);
+        // Continue execution, do not fail the request
+      }
     }
 
     return res.status(201).json({
