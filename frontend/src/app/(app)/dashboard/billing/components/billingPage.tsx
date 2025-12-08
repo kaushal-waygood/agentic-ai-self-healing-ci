@@ -80,8 +80,10 @@ export default function BillingPage() {
 
   useEffect(() => {
     const fetchBillingData = async () => {
+      console.log('fetchBillingData');
       try {
         const res = await apiInstance.get<BillingData>('/plan/perchased');
+        console.log(res.data.data);
         if (res.data.success) {
           setBillingData(res.data.data);
         }
