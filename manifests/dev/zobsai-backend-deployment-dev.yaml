@@ -23,7 +23,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend
-          image: ghcr.io/zobsai-com/zobsai-backend:c4ce8c4d7a2df6813c8d2984dce18e87ba0eb1d1
+          image: ghcr.io/zobsai-com/zobsai-backend:9903522498a5dba1801db3227359423123cbe88d
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
