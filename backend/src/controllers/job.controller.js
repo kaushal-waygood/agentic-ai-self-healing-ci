@@ -72,7 +72,7 @@ export const searchJobs = async (req, res) => {
     limitNum,
     country,
     state,
-    city,
+    city: city || '',
     employmentType,
     experience,
     datePosted,
