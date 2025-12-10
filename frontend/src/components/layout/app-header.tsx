@@ -301,6 +301,10 @@ const AppHeader = ({ setIsSearchOpen }) => {
     [usageLimits],
   );
 
+  const planRef = useRef<HTMLDivElement | null>(null);
+  const notificationRef = useRef<HTMLDivElement | null>(null);
+  const userRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     setMounted(true);
     dispatch(getStudentDetailsRequest());
@@ -348,6 +352,29 @@ const AppHeader = ({ setIsSearchOpen }) => {
     );
     setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const target = e.target;
+
+      // If click is inside any of these, do nothing
+      if (
+        (planRef.current && planRef.current.contains(target)) ||
+        (notificationRef.current && notificationRef.current.contains(target)) ||
+        (userRef.current && userRef.current.contains(target))
+      ) {
+        return;
+      }
+
+      // Otherwise close all menus
+      closeAllMenus();
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []); // we can safely leave deps empty because we just call setters
 
   const handleLogout = async () => {
     try {
@@ -399,7 +426,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
 
           <div className="flex items-center space-x-4">
             <TotalCredit />
-            <div id="current-plan-driver">
+            <div id="current-plan-driver" ref={planRef}>
               <PlanDropdown
                 planType={planType}
                 isOpen={isPlanOpen}
@@ -409,7 +436,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
               />
             </div>
 
-            <div id="bell-driver" className="relative ">
+            <div id="bell-driver" className="relative " ref={notificationRef}>
               {/* Notification Bell icon */}
               <button
                 onClick={() => handleMenuToggle('notification')}
@@ -450,7 +477,7 @@ const AppHeader = ({ setIsSearchOpen }) => {
                 </div>
               )}
             </div>
-            <div id="user-driver" className="relative">
+            <div id="user-driver" className="relative" ref={userRef}>
               <button
                 onClick={() => handleMenuToggle('user')}
                 className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"

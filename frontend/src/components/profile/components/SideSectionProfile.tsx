@@ -134,11 +134,11 @@ const SideSectionProfile = ({
 
   return (
     <div>
-      <aside className="w-full lg:w-80 space-y-5">
+      <aside className="w-full lg:w-80 space-y-2 max-h-[80vh] overflow-y-auto p-2">
         {/* Profile Card */}
-        <div className="relative bg-white p-8 border border-gray-200 rounded-lg ">
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="relative mb-4">
+        <div className=" bg-white p-2 border border-gray-200 rounded-lg ">
+          <div className="flex flex-col items-center text-center ">
+            <div className=" mb-2">
               <img
                 src={preview || dummyUser.avatar}
                 alt="Avatar"
@@ -171,7 +171,7 @@ const SideSectionProfile = ({
           </div>
         </div>
 
-        <div className="w-full bg-white rounded-lg p-6 border flex items-center justify-center">
+        <div className="w-full bg-white rounded-lg p-4 border flex items-center justify-center">
           <a href={uploadedCV} target="_blank" rel="noopener noreferrer">
             {uploadedCV ? (
               <div className="flex items-center gap-2">
@@ -188,8 +188,8 @@ const SideSectionProfile = ({
         </div>
 
         {/* Upload CV Section */}
-        <div className="bg-white rounded-lg p-6 border  ">
-          <div className="text-center mb-6">
+        <div className="bg-white rounded-lg p-4 border  ">
+          <div className="text-center ">
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               Upload Your CV
             </h3>

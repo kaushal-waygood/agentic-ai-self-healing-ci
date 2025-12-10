@@ -390,21 +390,21 @@ const JobPreferencesForm = () => {
   );
 
   const SectionNavigation = () => (
-    <div className="flex flex-wrap gap-2 mb-4">
+    <div className=" flex flex-wrap gap-1 mb-4">
       {sections.map((section) => {
         const Icon = section.icon;
         return (
           <button
             key={section.id}
             onClick={() => setActiveSection(section.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 ${
               activeSection === section.id
-                ? `bg-gradient-to-r from-${section.color}-400 to-${section.color}-600 text-white shadow-lg shadow-${section.color}-400/30`
+                ? `bg-gradient-to-r from-${section.color}-400 to-${section.color}-600 text-white  shadow-${section.color}-400/30`
                 : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
             }`}
           >
             <Icon className="w-4 h-4" />
-            <span className="font-medium">{section.label}</span>
+            <span className="text-sm">{section.label}</span>
           </button>
         );
       })}
@@ -579,8 +579,8 @@ const JobPreferencesForm = () => {
         );
       case 'skills':
         return (
-          <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
               <div className="group">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   <Code className="inline w-4 h-4 mr-2" />
@@ -762,8 +762,8 @@ const JobPreferencesForm = () => {
 
   return (
     <div className="dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="rounded-xl p-4 sm:p-6 md:p-2 max-h-[80vh] overflow-y-auto">
-        <div className="text-center mb-6">
+      <div className="rounded-lg p-2 sm:p-6 md:p-2 max-h-[80vh] overflow-y-auto">
+        {/* <div className="text-center mb-6">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-3 sm:mb-4">
             Job Preferences
           </h1>
@@ -772,16 +772,16 @@ const JobPreferencesForm = () => {
             match. Complete each section to get personalized job
             recommendations.
           </p>
-        </div>
+        </div> */}
 
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-2 sm:mb-4">
           <SectionNavigation />
         </div>
 
         <div className="max-w-6xl mx-auto">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3 sm:p-6 md:p-8">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3 sm:p-6 md:p-2">
             <div className="mb-4 sm:mb-6">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+              <h2 className="text-md sm:text-md md:text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">
                 {sections.find((s) => s.id === activeSection)?.label}
               </h2>
               <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-20 sm:w-24"></div>
@@ -795,7 +795,7 @@ const JobPreferencesForm = () => {
           {sections.findIndex((s) => s.id === activeSection) > 0 && (
             <button
               onClick={handlePreviousSection}
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
             >
               Back
             </button>
