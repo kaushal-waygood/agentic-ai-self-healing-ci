@@ -55,6 +55,8 @@ export const searchJobs = async (req, res) => {
     limit = 10,
     country,
     state,
+    // job search issue solved by adding city
+    city = '',
     employmentType,
     experience,
     datePosted,
@@ -70,7 +72,7 @@ export const searchJobs = async (req, res) => {
     limitNum,
     country,
     state,
-    city,
+    city: city || '',
     employmentType,
     experience,
     datePosted,
