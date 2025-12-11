@@ -63,7 +63,7 @@ export const generateCoverLetterPrompts = (
     const day = d.getDate();
     const month = d.toLocaleString('en-US', { month: 'short' });
     const year = d.getFullYear();
-    return `${day} ${month}., ${year}`;
+    return `${day} ${month} ${year}`;
   };
 
   return `You are an expert career coach tasked with creating a powerful, general-purpose cover letter template. The final output must be a clean, unstyled, and semantically structured HTML string.

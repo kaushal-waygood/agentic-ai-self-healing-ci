@@ -115,7 +115,7 @@ export const searchJobs = async (req, res) => {
       const regex = new RegExp(escapeRegex(q), 'i');
       searchCriteria.$or = [
         { title: regex },
-        { description: regex },
+        // { description: regex },
         { queries: regex },
       ];
     }
