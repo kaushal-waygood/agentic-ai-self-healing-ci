@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import {
   Save,
   Award,
@@ -11,22 +11,22 @@ import {
   Download,
   Loader2,
   X,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import EditableMaterial from "../application/editable-material";
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import EditableMaterial from '../application/editable-material';
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-} from "@radix-ui/react-alert-dialog";
+} from '@radix-ui/react-alert-dialog';
 import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../ui/alert-dialog";
-import { Input } from "../ui/input";
+} from '../ui/alert-dialog';
+import { Input } from '../ui/input';
 
 // Mock data for initial rendering
 const mockData = {
@@ -54,7 +54,7 @@ const GeneratedCV = ({
   confirmSaveNamedCv,
 }: any) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editableContent, setEditableContent] = useState("");
+  const [editableContent, setEditableContent] = useState('');
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
 
@@ -75,13 +75,13 @@ const GeneratedCV = ({
 
   const handleDownload = async (format) => {
     const setLoading =
-      format === "pdf" ? setIsDownloadingPdf : setIsDownloadingDocx;
+      format === 'pdf' ? setIsDownloadingPdf : setIsDownloadingDocx;
     setLoading(true);
 
     try {
-      const API_BASE_URL = "http://localhost:8080/api/v1/students";
+      const API_BASE_URL = 'http://localhost:8080/api/v1/students';
       const endpoint =
-        format === "pdf"
+        format === 'pdf'
           ? `${API_BASE_URL}/pdf/generate-pdf`
           : `${API_BASE_URL}/docx/generate-docx`;
 
@@ -89,18 +89,18 @@ const GeneratedCV = ({
         endpoint,
         {
           html: editableContent,
-          title: "Generated_CV",
+          title: 'Generated_CV',
         },
         {
-          responseType: "blob",
-        }
+          responseType: 'blob',
+        },
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
 
-      const contentDisposition = response.headers["content-disposition"];
+      const contentDisposition = response.headers['content-disposition'];
       let filename = `CareerPilot_Generated_CV.${format}`;
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
@@ -109,7 +109,7 @@ const GeneratedCV = ({
         }
       }
 
-      link.setAttribute("download", filename);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -117,7 +117,7 @@ const GeneratedCV = ({
     } catch (error) {
       console.error(`Error downloading ${format}:`, error);
       alert(
-        `Failed to download ${format.toUpperCase()}. Please check the console for details.`
+        `Failed to download ${format.toUpperCase()}. Please check the console for details.`,
       );
     } finally {
       setLoading(false);
@@ -148,7 +148,7 @@ const GeneratedCV = ({
 
             <div className="flex-1">
               <h2 className="text-xl text-white bg-transparent font-bold">
-                {cvData ? "CV Generated Successfully!" : "Loading CV..."}
+                {cvData ? 'CV Generated Successfully!' : 'Loading CV...'}
               </h2>
             </div>
             <div className="text-center  p-2 rounded-lg">
@@ -169,9 +169,8 @@ const GeneratedCV = ({
                   <FileText className="h-5 w-5 text-white" />
                 </div>
                 <h3 className="text-lg text-white md:text-xl font-bold ">
-                  {cvData ? "Your AI Generated CV" : "Loading CV..."}
+                  {cvData ? 'Your AI Generated CV' : 'Loading CV...'}
                 </h3>
-               
               </div>
               {/* {cvData && (
                 <button
@@ -190,7 +189,7 @@ const GeneratedCV = ({
               <EditableMaterial
                 isEditing={isEditing}
                 content={
-                  typeof cvContent.cv === "object" ? cvContent.cv : cvContent
+                  typeof cvContent.cv === 'object' ? cvContent.cv : cvContent
                 }
                 isHtml={true}
                 setContent={setEditableContent}
@@ -209,7 +208,7 @@ const GeneratedCV = ({
         </div>
 
         {/* Action Footer */}
-        {cvData && (
+        {/* {cvData && (
           <div className="mt-6 md:mt-8 bg-white/60 backdrop-blur-xl border border-gray-200 rounded-lg p-2 md:p-3">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6">
               <div className="flex items-center gap-3 flex-1">
@@ -237,7 +236,7 @@ const GeneratedCV = ({
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
 
       {isNamingDialogDisplayed && (
