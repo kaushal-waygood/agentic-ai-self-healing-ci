@@ -44,6 +44,32 @@ export default function DashboardLayoutClient({
   const [isOpen, setIsOpen] = useState(true);
   const [isPinned, setPinned] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsDesktop(window.innerWidth >= 1024);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setIsOpen(false);
+    }
+  }, [pathname]);
+  useEffect(() => {
+    if (window.innerWidth < 1024 && isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   // --- START: MODIFIED LOGIC ---
   // This will be true for any path starting with /dashboard
@@ -95,18 +121,54 @@ export default function DashboardLayoutClient({
 
   const toggle = () => setIsOpen(!isOpen);
 
+  // const handleMouseEnter = () => {
+  //   if (!isPinned) setIsOpen(true);
+  // };
+
+  // const handleMouseLeave = () => {
+  //   if (!isPinned) setIsOpen(false);
+  // };
+
+  // const handleMouseEnter = () => {
+  //   if (!isPinned && window.innerWidth >= 1024) {
+  //     setIsOpen(true);
+  //   }
+  // };
+
+  // const handleMouseLeave = () => {
+  //   if (!isPinned && window.innerWidth >= 1024) {
+  //     setIsOpen(false);
+  //   }
+  // };
+  // const handleMouseEnter = () => {
+  //   if (window.innerWidth >= 1024 && !isPinned) {
+  //     setIsHovered(true);
+  //   }
+  // };
+
+  // const handleMouseLeave = () => {
+  //   if (window.innerWidth >= 1024 && !isPinned) {
+  //     setIsHovered(false);
+  //   }
+  // };
+
   const handleMouseEnter = () => {
-    if (!isPinned) setIsOpen(true);
+    if (isDesktop && !isPinned) {
+      setIsHovered(true);
+    }
   };
 
   const handleMouseLeave = () => {
-    if (!isPinned) setIsOpen(false);
+    if (isDesktop && !isPinned) {
+      setIsHovered(false);
+    }
   };
 
   const handleSetPinned = (pinned: boolean) => {
     setPinned(pinned);
     setIsOpen(true);
   };
+  const sidebarVisible = isDesktop ? isPinned || isHovered : isOpen;
 
   const contextValue = useMemo(
     () => ({
@@ -128,8 +190,7 @@ export default function DashboardLayoutClient({
     <ProtectedRoute>
       <SidebarContext.Provider value={contextValue}>
         {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
-        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
-          {/* MODIFIED: Use the new constant to conditionally render the sidebar */}
+        {/* <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
           {showDashboardUI && (
             <aside
               onMouseEnter={handleMouseEnter}
@@ -143,7 +204,6 @@ export default function DashboardLayoutClient({
           )}
 
           <div className="flex flex-1 flex-col w-full">
-            {/* MODIFIED: Use the new constant to conditionally render the header */}
             {showDashboardUI && (
               <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
                 <AppHeader setIsSearchOpen={setIsSearchOpen} />
@@ -155,7 +215,75 @@ export default function DashboardLayoutClient({
               {!isDashboardPage && <Footer />}
             </ScrollArea>
 
-            {/* MODIFIED: Use the new constant to conditionally render the dashboard footer */}
+            {showDashboardUI && <DashboardFooter />}
+          </div>
+        </div> */}
+
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
+          {/* SIDEBAR */}
+          {/* {showDashboardUI && (
+            <aside
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              className={`transition-all duration-300 ease-in-out shrink-0 border-r bg-white dark:bg-gray-900 
+        ${isOpen ? 'w-64' : 'w-20'}
+      `}
+            >
+              <AppSidebarContent isCollapsed={!isOpen} />
+            </aside>
+          )} */}
+          {showDashboardUI && (
+            <>
+              {/* MOBILE OVERLAY */}
+              {!isDesktop && (
+                <div
+                  className={`fixed inset-0 z-40 bg-black/40 transition-opacity
+          ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+        `}
+                  onClick={() => setIsOpen(false)}
+                />
+              )}
+
+              {/* SIDEBAR */}
+              <div
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                className={`
+        fixed inset-y-0 left-0 z-50
+        bg-white dark:bg-gray-900 border-r
+        transition-all duration-300 ease-in-out
+        ${sidebarVisible ? 'w-64' : 'w-20'}
+        ${!isDesktop && (isOpen ? 'translate-x-0' : '-translate-x-full')}
+        lg:relative lg:translate-x-0
+        shrink-0
+      `}
+              >
+                <AppSidebarContent isCollapsed={!sidebarVisible} />
+              </div>
+            </>
+          )}
+
+          {/* MAIN CONTENT AREA */}
+          <div className="flex flex-1 flex-col w-full min-w-0">
+            {/* HEADER */}
+            {showDashboardUI && (
+              <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                <AppHeader
+                  setIsSearchOpen={setIsSearchOpen}
+                  onMenuClick={toggle}
+                  isSidebarOpen={isOpen}
+                />
+              </header>
+            )}
+
+            {/* SCROLL WRAPPER */}
+            <ScrollArea className="flex-1 min-w-0 overflow-x-hidden">
+              <main className="min-w-0 overflow-x-hidden">{children}</main>
+
+              {!isDashboardPage && <Footer />}
+            </ScrollArea>
+
+            {/* FOOTER */}
             {showDashboardUI && <DashboardFooter />}
           </div>
         </div>

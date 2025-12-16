@@ -67,7 +67,10 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
     >
       <div className="flex items-start gap-4 relative z-10">
         {/* Company Logo with enhanced animation */}
-        <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white">
+        <div
+          className="hidden
+    sm:flex flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white"
+        >
           {job.logo ? (
             <img
               src={job.logo}
@@ -86,9 +89,9 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
           <p className="text-sm font-medium text-gray-500 truncate mb-1">
             {job.company}
           </p>
-          <h3 className="text-xl font-bold text-gray-900 truncate mb-3 group-hover:text-purple-600 transition-colors duration-300">
-            {job.title}
-          </h3>
+          <p className="font-semibold text-gray-900">
+            {job.title.length > 45 ? job.title.slice(0, 35) + '…' : job.title}
+          </p>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             {job.location?.city && (
@@ -188,7 +191,7 @@ export function JobStep({
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
             <div className="absolute inset-0 "></div>
-            <h1 className="text-4xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent relative z-10 mb-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent relative z-10 mb-3">
               Application Wizard
             </h1>
           </div>
@@ -210,7 +213,7 @@ export function JobStep({
                   <Briefcase className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold">
+                  <CardTitle className="text-xl font-semibold">
                     Step 1: Provide Job Context
                   </CardTitle>
                   <p className="text-white/80 text-sm mt-1">

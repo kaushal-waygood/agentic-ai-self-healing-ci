@@ -30,6 +30,11 @@ out/
 tmp/
 temp/
 
+.env
+.env.local
+.env.example
+
+
 # TypeScript
 *.tsbuildinfo
 

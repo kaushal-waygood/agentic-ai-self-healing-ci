@@ -10,7 +10,6 @@ import { Coupon } from '../models/coupon.model.js';
 const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
 
-// Centralized map to translate human feature names to user schema keys
 const USAGE_LIMIT_MAP = {
   'CV Creation': 'cvCreation',
   'Cover Letter': 'coverLetter',
@@ -18,6 +17,13 @@ const USAGE_LIMIT_MAP = {
   'AI Auto-Apply Agent': 'aiAutoApply', // schema key
   'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit', // schema key
   'Manual Application': 'aiMannualApplication', // schema key (typo kept)
+};
+
+const PLAN_RANK = {
+  Free: 0,
+  Weekly: 1,
+  Pro: 2,
+  Enterprise: 3,
 };
 
 const BACKEND_API_BASE_URL =
@@ -36,12 +42,10 @@ const FRONTEND_URL =
 
 // ---------- Helpers ----------
 const parseFeatureLimitValue = (raw) => {
-  // Accept: "-1", "-1" string, "unlimited", "Unlimited", numeric strings, numbers
   if (raw === undefined || raw === null) return null;
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
   const s = String(raw).trim().toLowerCase();
   if (s === '-1' || s === 'unlimited') return -1;
-  // parse integer, fallback to NaN if bad
   const n = Number.parseInt(s, 10);
   if (Number.isNaN(n)) return null;
   return n;
@@ -337,28 +341,54 @@ export const createPaymentIntent = async (req, res) => {
 
     // Check if user already has active plan (same behavior as before)
     const userWithPurchase = await User.findById(userId)
-      .populate('currentPurchase')
+      .populate({
+        path: 'currentPurchase',
+        populate: { path: 'plan' },
+      })
       .lean();
+
     if (
-      userWithPurchase &&
-      userWithPurchase.currentPurchase &&
-      userWithPurchase.currentPurchase.endDate &&
+      userWithPurchase?.currentPurchase &&
+      userWithPurchase.currentPurchase.isActive &&
       new Date(userWithPurchase.currentPurchase.endDate) > new Date()
     ) {
-      return res.status(403).json({
-        success: false,
-        message:
-          'You already have an active plan. You can purchase a new one once it expires.',
-        data: {
-          currentPlanEnds: userWithPurchase.currentPurchase.endDate,
-        },
-      });
+      const activePlan = userWithPurchase.currentPurchase.plan;
+      const plan = await Plan.findById(planId).lean();
+
+      console.log(activePlan.planType === plan.planType);
+
+      if (activePlan.planType === plan.planType) {
+        return res.status(403).json({
+          success: false,
+          message: 'You already have this plan active.',
+          data: {
+            currentPlanEnds: userWithPurchase.currentPurchase.endDate,
+          },
+        });
+      }
+
+      const currentRank = PLAN_RANK[activePlan.planType] ?? 0;
+      const newRank = PLAN_RANK[plan.planType] ?? 0;
+
+      console.log(newRank > currentRank);
+
+      // Block downgrade
+      if (newRank > currentRank) {
+        console.log('Downgrading plans before expiry is not allowed.');
+        return res.status(403).json({
+          success: false,
+          message: 'Downgrading plans before expiry is not allowed.',
+        });
+      }
     }
 
     // Load plan and billing variant
     const plan = await Plan.findById(planId).lean();
     if (!plan) {
-      return res.status(404).json({ success: false, error: 'Plan not found.' });
+      return res.status(404).json({
+        success: false,
+        error: 'Plan not found.',
+      });
     }
 
     const variant = safeGetVariant(plan, period);
@@ -522,146 +552,125 @@ export const createPaymentIntent = async (req, res) => {
 export const handleStripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
+
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, stripeWebhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed.', err.message);
+    console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  if (event.type === 'payment_intent.succeeded') {
-    const paymentIntent = event.data.object;
-    const { userId, planId, billingPeriod } = paymentIntent.metadata || {};
-    const currency = paymentIntent.currency;
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      if (!userId || !planId || !billingPeriod) {
-        throw new Error(
-          'Webhook metadata missing required fields (userId, planId, billingPeriod).',
-        );
-      }
-
-      const plan = await Plan.findById(planId).session(session).lean();
-      if (!plan) throw new Error(`Plan not found for planId: ${planId}`);
-
-      const variant = safeGetVariant(plan, billingPeriod);
-      if (!variant)
-        throw new Error(`Billing variant '${billingPeriod}' not found.`);
-
-      // Deactivate previous purchases
-      await Purchase.updateMany(
-        { user: userId, isActive: true },
-        { $set: { isActive: false } },
-        { session },
-      );
-
-      // Create new purchase
-      const newPurchase = new Purchase({
-        user: userId,
-        plan: planId,
-        billingVariant: {
-          period: billingPeriod,
-          price: {
-            usd: variant.price.effective.usd,
-            inr: variant.price.effective.inr,
-          },
-        },
-        amountPaid: (paymentIntent.amount || 0) / 100,
-        currency,
-        paymentStatus: 'completed',
-        paymentGateway: 'stripe',
-        paymentId: paymentIntent.id,
-        startDate: new Date(),
-        endDate: calculateEndDate(billingPeriod),
-        isActive: true,
-      });
-      await newPurchase.save({ session });
-
-      // Update user
-      const user = await User.findById(userId).session(session);
-      if (!user) throw new Error(`User not found for userId: ${userId}`);
-
-      const newUsageLimits = buildUsageLimitsFromFeatures(
-        variant.features || [],
-      );
-
-      console.log('newUsageLimits', newUsageLimits);
-
-      user.currentPlan = planId;
-      user.currentPurchase = newPurchase._id;
-      user.usageLimits = newUsageLimits;
-      user.usageCounters = {
-        cvCreation: 0,
-        coverLetter: 0,
-        aiApplication: 0,
-        autoApply: 0,
-        autoApplyDailyLimit: 0,
-        manualApplication: 0,
-        lastReset: new Date(),
-      };
-
-      await user.save({ session });
-      await session.commitTransaction();
-
-      // Send notification email if template manager and transporter are available.
-      // We avoid throwing if mailing fails: subscription should succeed regardless of email.
-      try {
-        const planName = plan.planType || 'Your Plan';
-        if (typeof tm !== 'undefined' && typeof transporter !== 'undefined') {
-          const { html, text } = await tm.compileWithTextFallback(
-            'plan_upgrade',
-            {
-              subject: `Congrats! You've Upgraded to ${planName}`,
-              name: user.fullName,
-              planName,
-              billingUrl: `${FRONTEND_URL}/account/billing`,
-              managePlanUrl: `${FRONTEND_URL}/account/manage-plan`,
-              companyUrl: FRONTEND_URL,
-              companyAddress: COMPANY_ADDRESS || '',
-              unsubscribeUrl: `${FRONTEND_URL}/unsubscribe`,
-              supportEmail: process.env.SUPPORT_EMAIL || 'support@zobsai.com',
-            },
-          );
-          await transporter.sendMail({
-            from: config.emailUser,
-            to: user.email,
-            subject: `Congrats! You've Upgraded to ${planName} on ZobsAI`,
-            html,
-            text,
-          });
-        } else {
-          // If no mailing configured, just log it.
-          console.log(
-            `Mailing skipped: tm or transporter not configured. Would have sent upgrade mail to ${user.email}`,
-          );
-        }
-      } catch (mailErr) {
-        console.error(
-          'Failed to send plan upgrade email (non-fatal):',
-          mailErr,
-        );
-      }
-    } catch (error) {
-      await session.abortTransaction();
-      console.error(
-        `Transaction aborted. Failed to process payment intent ${paymentIntent.id}:`,
-        error,
-      );
-      // Return 200 to Stripe to avoid retries if we handled (but we failed). However here, it's safer to return 500
-      // so you can inspect the webhook. Many systems reattempt on 5xx.
-      session.endSession();
-      return res
-        .status(500)
-        .json({ error: 'Failed to update user entitlements.' });
-    } finally {
-      session.endSession();
-    }
+  // We only care about successful payments
+  if (event.type !== 'payment_intent.succeeded') {
+    return res.status(200).json({ received: true });
   }
 
-  return res.status(200).json({ received: true });
+  const paymentIntent = event.data.object;
+  const { userId, planId, billingPeriod } = paymentIntent.metadata || {};
+  const currency = paymentIntent.currency;
+
+  if (!userId || !planId || !billingPeriod) {
+    console.error('Missing webhook metadata:', paymentIntent.metadata);
+    return res.status(400).json({ error: 'Invalid webhook metadata' });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // ---------------- IDEMPOTENCY CHECK ----------------
+    // If we already processed this paymentIntent, exit safely
+    const alreadyProcessed = await Purchase.findOne({
+      paymentId: paymentIntent.id,
+    }).session(session);
+
+    if (alreadyProcessed) {
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).json({ received: true });
+    }
+
+    // ---------------- LOAD PLAN ----------------
+    const plan = await Plan.findById(planId).session(session).lean();
+    if (!plan) {
+      throw new Error(`Plan not found: ${planId}`);
+    }
+
+    const variant = safeGetVariant(plan, billingPeriod);
+    if (!variant) {
+      throw new Error(`Billing variant '${billingPeriod}' not found`);
+    }
+
+    // ---------------- DEACTIVATE OLD PLANS ----------------
+    // Upgrade replaces old plan immediately (remaining days lost – v1 rule)
+    await Purchase.updateMany(
+      { user: userId, isActive: true },
+      { $set: { isActive: false } },
+      { session },
+    );
+
+    // ---------------- CREATE NEW PURCHASE ----------------
+    const newPurchase = new Purchase({
+      user: userId,
+      plan: planId,
+      billingVariant: {
+        period: billingPeriod,
+        price: {
+          usd: variant.price.effective.usd,
+          inr: variant.price.effective.inr,
+        },
+      },
+      amountPaid: (paymentIntent.amount || 0) / 100,
+      currency,
+      paymentStatus: 'completed',
+      paymentGateway: 'stripe',
+      paymentId: paymentIntent.id,
+      startDate: new Date(),
+      endDate: calculateEndDate(billingPeriod),
+      isActive: true,
+    });
+
+    await newPurchase.save({ session });
+
+    // ---------------- UPDATE USER ----------------
+    const user = await User.findById(userId).session(session);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
+    user.currentPlan = planId;
+    user.currentPurchase = newPurchase._id;
+    user.usageLimits = buildUsageLimitsFromFeatures(variant.features || []);
+    user.usageCounters = {
+      cvCreation: 0,
+      coverLetter: 0,
+      aiApplication: 0,
+      autoApply: 0,
+      autoApplyDailyLimit: 0,
+      manualApplication: 0,
+      lastReset: new Date(),
+    };
+
+    await user.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ received: true });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error(
+      `Webhook failed for paymentIntent ${paymentIntent.id}:`,
+      error,
+    );
+
+    // Stripe MUST retry on failure
+    return res.status(500).json({
+      error: 'Failed to process payment webhook',
+    });
+  }
 };
 
 export const getPaymentStatus = async (req, res) => {

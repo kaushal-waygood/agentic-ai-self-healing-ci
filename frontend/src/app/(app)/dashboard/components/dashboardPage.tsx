@@ -726,7 +726,7 @@ export default function DashboardPage() {
             ZobsAI Dashboard
             <button
               id="start-tour-btn"
-              className=" mx-5 border  rounded-lg px-2 text-white bg-purple-600 hover:bg-blue-800"
+              className=" mx-5 border hidden md:block rounded-lg px-2 text-white bg-purple-600 hover:bg-blue-800"
             >
               <p className="text-2xl ">Start Tour</p>
             </button>
