@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
-import { Search, Frown } from 'lucide-react';
+import { Search, Frown, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function JobsPage() {
@@ -34,15 +34,32 @@ export default function JobsPage() {
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [isJobLoading, setIsJobLoading] = useState(false);
+
+  // const fetchJobDetails = useCallback(async (slug: string) => {
+  //   try {
+  //     const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
+  //     if (response.data && response.data.singleJob) {
+  //       setSelectedJob(response.data.singleJob);
+  //     }
+  //   } catch (err) {
+  //     console.error('Failed to fetch job details:', err);
+  //   }
+  // }, []);
 
   const fetchJobDetails = useCallback(async (slug: string) => {
     try {
+      setIsJobLoading(true);
+      setSelectedJob(null);
+
       const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
       if (response.data && response.data.singleJob) {
         setSelectedJob(response.data.singleJob);
       }
     } catch (err) {
       console.error('Failed to fetch job details:', err);
+    } finally {
+      setIsJobLoading(false);
     }
   }, []);
 
@@ -136,7 +153,20 @@ export default function JobsPage() {
 
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
-              {selectedJob ? (
+              {isJobLoading ? (
+                <div className="h-full flex items-center justify-center rounded-xl bg-white border border-gray-200">
+                  <div className="flex flex-col items-center gap-2 py-16">
+                    <div>
+                      <img
+                        src="/logo.png"
+                        alt=""
+                        className="w-10 h-10 animate-bounce"
+                      />
+                    </div>
+                    <p>Loading Job Detail</p>
+                  </div>
+                </div>
+              ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-white rounded-2xl border border-gray-200">

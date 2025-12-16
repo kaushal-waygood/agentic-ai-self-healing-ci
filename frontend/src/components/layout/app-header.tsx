@@ -19,9 +19,12 @@ import {
   ChevronRight,
   Loader2,
   Zap,
+  X,
+  Menu,
   Coins,
   Flame,
 } from 'lucide-react';
+
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
@@ -207,7 +210,7 @@ export const TotalCredit = () => {
     <div className="relative" ref={dropdownRef}>
       <div className="flex items-center  bg-gradient-to-r from-yellow-100 to-purple-100 rounded-lg border border-gray-200">
         {/* Fire */}
-        <Tooltip>
+        <Tooltip label={'Streak'}>
           <button
             onClick={() => setOpen(!open)}
             className="flex items-center gap-1 hover:bg-gray-50 px-2 py-1 rounded-lg  "
@@ -219,7 +222,7 @@ export const TotalCredit = () => {
           </button>
         </Tooltip>
         {/* Gold */}
-        <Tooltip>
+        <Tooltip label={'Credits'}>
           <Link
             href="/dashboard/credits"
             className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
@@ -246,8 +249,17 @@ export const TotalCredit = () => {
     </div>
   );
 };
+interface AppHeaderProps {
+  setIsSearchOpen: (open: boolean) => void;
+  onMenuClick: () => void;
+  isSidebarOpen: boolean;
+}
 
-const AppHeader = ({ setIsSearchOpen }) => {
+const AppHeader = ({
+  setIsSearchOpen,
+  onMenuClick,
+  isSidebarOpen,
+}: AppHeaderProps) => {
   const {
     notifications,
     unreadCount,
@@ -421,9 +433,47 @@ const AppHeader = ({ setIsSearchOpen }) => {
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">
-        <div className="flex items-center justify-between px-6 py-2 ">
+        {/* <div className="flex items-center justify-between px-6 py-2 ">
           <div className="flex items-center space-x-3"></div>
 
+          <div className="flex items-center space-x-4"> */}
+        <div className="flex items-center justify-between px-4 lg:px-6 py-2">
+          {/* LEFT SIDE */}
+          <div className="flex items-center space-x-3">
+            {/* HAMBURGER — MOBILE ONLY */}
+            {/* <button
+              onClick={onMenuClick}
+              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6 text-slate-700" />
+            </button> */}
+
+            <button
+              onClick={onMenuClick}
+              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
+              aria-label="Toggle menu"
+            >
+              <span className="relative block w-6 h-6">
+                <Menu
+                  className={`absolute inset-0 transition-all duration-200 ${
+                    isSidebarOpen
+                      ? 'opacity-0 rotate-90 scale-75'
+                      : 'opacity-100'
+                  }`}
+                />
+                <X
+                  className={`absolute inset-0 transition-all duration-200 ${
+                    isSidebarOpen
+                      ? 'opacity-100'
+                      : 'opacity-0 rotate-90 scale-75'
+                  }`}
+                />
+              </span>
+            </button>
+          </div>
+
+          {/* RIGHT SIDE (UNCHANGED) */}
           <div className="flex items-center space-x-4">
             <TotalCredit />
             <div id="current-plan-driver" ref={planRef}>
