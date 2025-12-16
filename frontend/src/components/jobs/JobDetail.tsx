@@ -222,7 +222,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         <div className="relative p-2 md:p-4 text-white">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex-1 space-y-4">
-              <h1 className="text-xl md:text-2xl font-bold mb-3 leading-tight">
+              <h1 className="text-xl md:text-2xl font-semibold mb-3 leading-tight">
                 {job.title}
               </h1>
               <div className="flex flex-wrap items-center gap-4 text-xs text-blue-50">

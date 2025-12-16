@@ -76,7 +76,10 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
     >
       <div className="flex items-start gap-4 relative z-10">
         {/* Company Logo with enhanced animation */}
-        <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white">
+        <div
+          className="hidden
+    sm:flex flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white"
+        >
           {job.logo ? (
             <img
               src={job.logo}
@@ -95,10 +98,12 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
           <p className="text-sm font-medium text-gray-500 truncate mb-1">
             {job.company}
           </p>
-          <h3 className="text-xl font-semibold text-gray-900 truncate mb-3 group-hover:text-blue-600 transition-colors duration-300">
+          {/* <h3 className="text-xl font-semibold text-gray-900 truncate mb-3 group-hover:text-blue-600 transition-colors duration-300">
             {job.title}
-          </h3>
-
+          </h3> */}
+          <p className="font-semibold text-gray-900">
+            {job.title.length > 45 ? job.title.slice(0, 35) + '…' : job.title}
+          </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             {job.location?.city && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm group-hover:shadow-md transition-shadow duration-300 border border-gray-100">
@@ -126,17 +131,6 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
                 </span>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Animated checkmark on hover */}
-        <div
-          className={`absolute top-4 right-4 transition-all duration-300 ${
-            isHovered ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-          }`}
-        >
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
-            <CheckCircle2 className="w-5 h-5 text-white" />
           </div>
         </div>
       </div>
@@ -207,7 +201,7 @@ const JobWizard = ({
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
             <div className="absolute inset-0 2xl "></div>
-            <h1 className="text-4xl  bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent relative z-10 mb-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent relative z-10">
               AI-Powered CV Generator
             </h1>
           </div>
@@ -230,7 +224,7 @@ const JobWizard = ({
                   <Target className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold">
+                  <CardTitle className="text-xl font-semibold">
                     Step 1: Provide Job Context
                   </CardTitle>
                   <p className="text-white/80 text-sm mt-1">
@@ -390,13 +384,13 @@ const JobWizard = ({
                         </>
                       ) : (
                         <>
-                          <Sparkles className="mr-3 h-6 w-6 animate-pulse" />
+                          <Sparkles className="h-6 w-6 animate-pulse" />
                           Generate My Optimized CV
-                          <ChevronsRight className="ml-3 h-6 w-6" />
+                          <ChevronsRight className="h-6 w-6" />
                         </>
                       )}
                     </Button>
-
+                    {/* 
                     <div className="flex items-start gap-3  p-2 rounded-lg border-2 border-blue-100 shadow-sm">
                       <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-lg flex-shrink-0">
                         <Zap className="h-5 w-5 text-white" />
@@ -411,7 +405,7 @@ const JobWizard = ({
                           description, the better your CV will be optimized!
                         </p>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </TabsContent>
@@ -433,10 +427,7 @@ const JobWizard = ({
                 <div>
                   {' '}
                   {/* Enhanced Select Tab */}
-                  <TabsContent
-                    value="select"
-                    className="space-y-6 animate-in fade-in duration-500"
-                  >
+                  <TabsContent value="select" className="">
                     {savedJobs.length > 0 ? (
                       <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
                         {savedJobs.map((job: any) => (
@@ -478,48 +469,52 @@ const JobWizard = ({
                 className="space-y-6 animate-in fade-in duration-500"
               >
                 <div className="space-y-4">
-                  <div className="relative group">
-                    <Input
-                      placeholder="e.g., Senior Software Engineer, Product Manager..."
-                      className="h-16 border-2 border-gray-300 rounded-lg px-6 pr-16 text-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-500 group-hover:border-gray-400 bg-gradient-to-br from-gray-50 to-white shadow-inner"
-                      value={enteredJobTitle}
-                      onChange={(e) => setEnteredJobTitle(e.target.value)}
-                    />
-                    <div className="absolute top-1/2 right-5 transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110">
-                      <div className="p-2 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg">
-                        <User
-                          className={`h-6 w-6 ${
-                            enteredJobTitle ? 'text-green-600' : 'text-gray-400'
-                          }`}
-                        />
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
+                    <div className="relative">
+                      <Input
+                        placeholder="e.g., Senior Software Engineer, Product Manager..."
+                        className=" h-16 border-2 border-gray-300 rounded-lg px-6 pr-16 text-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-500 group-hover:border-gray-400 bg-gradient-to-br from-gray-50 to-white shadow-inner"
+                        value={enteredJobTitle}
+                        onChange={(e) => setEnteredJobTitle(e.target.value)}
+                      />
+                      <div className="absolute top-1/2 right-5 transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110">
+                        <div className="p-2 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg">
+                          <User
+                            className={`h-6 w-6 ${
+                              enteredJobTitle
+                                ? 'text-green-600'
+                                : 'text-gray-400'
+                            }`}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <Button
-                    className={`w-full h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
-                      enteredJobTitle && !isLoading
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-2xl hover:shadow-green-500/50 text-white'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                    onClick={() => handleSetJobContext('title')}
-                    disabled={!enteredJobTitle || isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="animate-spin mr-3 h-6 w-6" />
-                        <span className="animate-pulse">
-                          Preparing Optimization...
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-3 h-6 w-6 animate-pulse" />
-                        Start CV Optimization
-                        <ChevronsRight className="ml-3 h-6 w-6" />
-                      </>
-                    )}
-                  </Button>
+                    <Button
+                      className={`w-full h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
+                        enteredJobTitle && !isLoading
+                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-2xl hover:shadow-green-500/50 text-white'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      onClick={() => handleSetJobContext('title')}
+                      disabled={!enteredJobTitle || isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="animate-spin mr-3 h-6 w-6" />
+                          <span className="animate-pulse">
+                            Preparing Optimization...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-6 w-6 animate-pulse" />
+                          Start CV Optimization
+                          <ChevronsRight className="h-6 w-6" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
                   <div className="flex items-start gap-3 bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-100 shadow-sm">
                     <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg flex-shrink-0">
