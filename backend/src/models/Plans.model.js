@@ -1,6 +1,5 @@
 import { Schema, model } from 'mongoose';
 
-// A reusable sub-schema for currency-specific price values
 const priceValueSchema = new Schema(
   {
     usd: { type: Number, required: true },
@@ -9,7 +8,6 @@ const priceValueSchema = new Schema(
   { _id: false },
 );
 
-// NEW: An updated price schema to hold both actual and effective (discounted) prices
 const priceSchema = new Schema(
   {
     effective: {
@@ -42,7 +40,6 @@ const billingVariantSchema = new Schema(
       required: true,
       enum: ['Weekly', 'Monthly', 'Quarterly', 'HalfYearly', 'Annual'],
     },
-    // UPDATED: This now uses the new, more detailed price schema
     price: {
       type: priceSchema,
       required: true,

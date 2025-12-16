@@ -24,8 +24,11 @@ import {
   getUserUsageLimits,
   trackUsage,
 } from '../controllers/usage.controller.js';
+import { ensurePlanValidity } from '../middlewares/ensurePlanValidity.js';
 
 const router = Router();
+
+router.use(ensurePlanValidity);
 
 router.post('/create', authMiddleware, isSuperAdmin, createPlan);
 router.post('/clean', authMiddleware, isSuperAdmin, cleanupIndexes);

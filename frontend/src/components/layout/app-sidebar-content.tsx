@@ -295,45 +295,6 @@ export const AppSidebarContent = ({
                 opacity: 0,
               }}
             >
-              {/* <Link
-                href={item.href}
-                onMouseEnter={() => setHoveredItem(item.href)}
-                onMouseLeave={() => setHoveredItem(null)}
-                className={`group relative w-full text-sm flex items-center space-x-3 p-1 rounded-xl transition-all duration-300 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-purple-100 via-blue-100 to-cyan-100 text-purple-700 shadow-lg scale-105'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:scale-105'
-                }`}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-purple-500 to-cyan-500 rounded-r-full animate-pulse"></div>
-                )}
-                <div
-                  className={`relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                    isActive
-                      ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-md'
-                      : isHovered
-                      ? 'bg-gradient-to-br from-purple-100 to-blue-100 text-purple-600'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                </div>
-                {!isCollapsed && (
-                  <span
-                    className={`flex-1 text-left ${
-                      isActive ? 'font-extralight' : ''
-                    }`}
-                  >
-                    {item.title}
-                  </span>
-                )}
-                {!isCollapsed && isHovered && !isActive && (
-                  <ChevronRight className="w-4 h-4 text-slate-400 animate-pulse" />
-                )}
-              </Link> */}
-
-              {/* New code added for coming soon */}
               <div
                 onClick={
                   item.comingSoon
@@ -407,14 +368,17 @@ export const AppSidebarContent = ({
       <div className="relative p-2 border-t border-slate-200/50 mt-auto">
         {!isCollapsed ? (
           <div className="space-y-3">
-            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl">
+            <Link
+              href="/dashboard/profile"
+              className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl"
+            >
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-900 truncate text-sm capitalize">
                   {user.fullName}
                 </p>
                 <p className="text-xs text-slate-500">Welcome back!</p>
               </div>
-            </div>
+            </Link>
             {/* Show upgrade banner only if not Pro/Admin */}
             {user.plan !== 'Pro' &&
               user.plan !== 'OrgAdmin' &&
