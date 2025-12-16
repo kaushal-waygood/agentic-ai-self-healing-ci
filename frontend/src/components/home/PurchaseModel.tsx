@@ -22,8 +22,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
-// --- Type Definitions ---
 interface Price {
   usd: number;
   inr: number;
@@ -120,7 +120,7 @@ function computeLocalPricing(
 }
 
 const stripePromise = loadStripe(
-  'pk_live_51P9LpzRk1I3BflpJZwwqZtdVW5cJmdivnzPqu6vtSosnfTO44dZhve6DOdtNfupRR247b18tSTU3Ziszq8Yr2Duo00XmtGeZzC', // fallback - replace in env for prod
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '', // fallback - replace in env for prod
 );
 
 export default function CheckoutPage() {
@@ -153,7 +153,7 @@ export default function CheckoutPage() {
       process.env.NEXT_PUBLIC_NODE_ENV === 'development' ||
       process.env.NEXT_PUBLIC_NODE_ENV === 'local'
     ) {
-      return '/plan/payment/create-intent-test';
+      return '/plan/payment/create-intent';
     }
     return null;
   }, []);
@@ -209,8 +209,9 @@ export default function CheckoutPage() {
         setClientSecret(intentResponse.data.clientSecret || null);
         setAppliedPricing(intentResponse.data.pricing || null);
       } catch (err: any) {
+        console.log('fetchDetailsAndCreateIntent error', err.response.data);
         if (!mounted) return;
-        setError(err.message || 'An unexpected error occurred.');
+        setError(err.response.data.message || 'An unexpected error occurred.');
       } finally {
         if (!mounted) return;
         if (showLoader) setIsLoading(false);
@@ -300,21 +301,23 @@ export default function CheckoutPage() {
   // --- Render Logic ---
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full blur-xl opacity-20 animate-pulse"></div>
-          <div className="relative bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
-            <Loader className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 font-medium">
-              Preparing your secure checkout...
-            </p>
-          </div>
+      <div className="flex items-center flex-col justify-center min-h-screen">
+        <div>
+          <Image
+            src="/logo.png"
+            alt="zobsai logo"
+            width={100}
+            height={100}
+            className="w-10 h-10 animate-bounce"
+          />
         </div>
+        <div className="text-lg"> Preparing your secure checkout...</div>
       </div>
     );
   }
 
   if (error) {
+    console.log('error', error);
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl border border-red-100 max-w-md mx-auto text-center">

@@ -27,7 +27,7 @@ import { handleStripeWebhook } from './controllers/plan.controller.js';
 
 import newFeatureRoutes from './routes/newFeature.route.js';
 import { config } from './config/config.js';
-import { authMiddleware } from './middlewares/auth.middleware.js';
+import { ensurePlanValidity } from './middlewares/ensurePlanValidity.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -80,6 +80,7 @@ app.post(
 app.use(express.json({ limit: '1000mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+app.use(ensurePlanValidity);
 
 app.get('/api', (req, res) => res.send('Hello from the server!'));
 
