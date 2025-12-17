@@ -268,7 +268,7 @@ export default function DocumentsPage() {
 
   const deleteApplication = async (appId: string) => {
     try {
-      await apiInstance.delete(`/students/tailored-application/${appId}`);
+      await apiInstance.delete(`/students/tailored-applications/${appId}`);
       toast({ title: 'Success', description: 'Application deleted' });
       fetchApplications();
     } catch {
@@ -389,7 +389,7 @@ export default function DocumentsPage() {
         </div>
 
         {/* ✅ Stat Tabs (interactive with params) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <StatCard
             label="CVs"
             value={stats.cvsCount}
@@ -562,7 +562,7 @@ const StatCard = ({
   onClick: () => void;
 }) => (
   <div
-    className={`p-6 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+    className={`p-4 md:p-6 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
       isActive
         ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-lg scale-105'
         : 'border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 hover:scale-102'
@@ -578,7 +578,9 @@ const StatCard = ({
           {value}
         </p>
       </div>
-      <div className={`p-3 rounded-lg bg-gradient-to-r ${color}`}>
+      <div
+        className={`hidden md:block p-3 rounded-lg bg-gradient-to-r ${color}`}
+      >
         <Icon className="h-6 w-6 text-white" />
       </div>
     </div>
@@ -666,8 +668,8 @@ const DocumentSection = ({
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white ">
+      <div className="flex items-center flex-wrap justify-between mb-6">
+        <h2 className="text-lg md:text-2xl font-semibold text-gray-900 dark:text-white ">
           {title}
         </h2>
 

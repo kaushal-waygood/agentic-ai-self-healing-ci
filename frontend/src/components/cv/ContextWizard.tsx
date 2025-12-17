@@ -136,7 +136,7 @@ const ContextWizard = ({
               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                 <Check className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-green-600">
+              <span className="hidden sm:inline text-sm font-medium text-green-600">
                 Job Context
               </span>
             </div>
@@ -145,7 +145,7 @@ const ContextWizard = ({
               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                 <Check className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-green-600">
+              <span className="hidden sm:inline text-sm font-medium text-green-600">
                 Your CV
               </span>
             </div>
@@ -154,7 +154,7 @@ const ContextWizard = ({
               <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center animate-pulse">
                 <span className="text-white font-bold text-sm">3</span>
               </div>
-              <span className="text-sm font-medium text-indigo-600">
+              <span className="hidden sm:inline text-sm font-medium text-indigo-600">
                 Final Touches
               </span>
             </div>
@@ -300,7 +300,7 @@ Examples:
           </CardContent>
 
           <CardFooter className="bg-gray-50/80 backdrop-blur-xl border-t border-gray-100 p-6">
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center flex-wrap justify-between w-full">
               <Button
                 variant="ghost"
                 onClick={() => setWizardStep('cv')}

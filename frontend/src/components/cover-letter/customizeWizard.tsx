@@ -79,7 +79,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
   };
 
   return (
-    <div className="flex items-center justify-center  p-2 sm:p-6">
+    <div className="flex items-center justify-center p-2 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-4">
@@ -88,7 +88,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                 <Check className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-green-600">
+              <span className="hidden sm:inline text-sm font-medium text-green-600">
                 Job Context
               </span>
             </div>
@@ -97,7 +97,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                 <Check className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-green-600">
+              <span className="hidden sm:inline text-sm font-medium text-green-600">
                 Your CV
               </span>
             </div>
@@ -106,7 +106,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
               <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center animate-pulse">
                 <span className="text-white font-bold text-sm">3</span>
               </div>
-              <span className="text-sm font-medium text-indigo-600">
+              <span className="hidden sm:inline text-sm font-medium text-indigo-600">
                 Final Touches
               </span>
             </div>
@@ -261,7 +261,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
 
           {/* Footer */}
           <CardFooter className="bg-gray-50/80 backdrop-blur-xl border-t border-gray-100 p-6">
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center flex-wrap justify-between w-full">
               <Button
                 variant="ghost"
                 onClick={() => setWizardStep('cv')}
@@ -297,14 +297,6 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
             </div>
           </CardFooter>
         </Card>
-
-        {/* Footer Message */}
-        <div className="text-center mt-8">
-          <div className="inline-flex items-center gap-2 text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-lg">
-            <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" />
-            Your tailored cover letter will be ready in seconds
-          </div>
-        </div>
       </div>
     </div>
   );
