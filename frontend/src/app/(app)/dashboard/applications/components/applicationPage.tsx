@@ -159,7 +159,7 @@ export default function ApplicationsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       <div className="relative z-10 p-4 sm:p-6 max-w-7xl mx-auto">
-        <div className="mb-8 text-center">
+        <div className="mb-2 text-center">
           <h1 className="text-4xl font-bold text-gray-800 dark:text-white">
             My Applications
           </h1>
@@ -168,7 +168,7 @@ export default function ApplicationsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 cursor-pointer p-2">
+        <div className="grid grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6 mb-6 cursor-pointer md:p-2">
           <StatCard
             label="Applied Jobs"
             value={jobStats.appliedJobsCount}

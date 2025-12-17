@@ -271,11 +271,11 @@ const ProfileInfo = ({
           }
         `}</style>
 
-        <main className="flex flex-col  md:flex-row gap-5  max-w-7xl mx-auto p-1 sticky top-7  ">
-          <div className="w-full md:w-1/3 lg:w-2/1 md:sticky md:top-7 md:self-start">
+        <main className="flex flex-col md:flex-row max-w-7xl gap-4 mx-auto p-1 sticky top-7">
+          <div className="w-full md:w-1/4 md:sticky md:top-7 md:self-start">
             <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
-          <div className="flex-1  ">
+          <div className="flex-1">
             <div className=" mb-4 sticky top-7 z-10">
               <div className="relative bg-white p-3 sm:p-4 md:p-2 rounded-lg shadow-sm ">
                 <nav className="flex flex-wrap justify-center sm:justify-start gap-3">
@@ -283,7 +283,7 @@ const ProfileInfo = ({
                     <button
                       key={item.id}
                       onClick={() => handleTabChange(item.id)}
-                      className={`group/btn flex items-center justify-between gap-3 w-full sm:w-auto px-4 py-2 text-left rounded-lg transition-all duration-300 ${
+                      className={`group/btn flex  items-center justify-between gap-3 w-full sm:w-auto px-4 py-2 text-left rounded-lg transition-all duration-300 ${
                         activeTab === item.id
                           ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg scale-105`
                           : 'text-gray-600 hover:bg-gray-100'
@@ -312,7 +312,7 @@ const ProfileInfo = ({
               </div>
             </div>
 
-            <div className="flex flex-col gap-6 ">{renderContent()}</div>
+            <div className="flex flex-col ">{renderContent()}</div>
           </div>
         </main>
       </div>
