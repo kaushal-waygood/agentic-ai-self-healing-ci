@@ -43,6 +43,7 @@ import {
   getCVGenerationStatus,
 } from '../controllers/sse.controller.js';
 import { extractStudentDataFromCV } from '../controllers/rough.js';
+import { checkCredits } from '../middlewares/checkCredits.js';
 
 const router = Router();
 
@@ -92,6 +93,7 @@ router.post(
   '/resume/generate/jd',
   authMiddleware,
   isUserOrUniStudent,
+  checkCredits('CV_GENERATION'),
   upload.single('cv'),
   generateCVByJD,
 );
@@ -100,6 +102,7 @@ router.post(
   '/resume/generate/jobid',
   authMiddleware,
   isUserOrUniStudent,
+  checkCredits('CV_GENERATION'),
   upload.single('cv'),
   generateCVByJobId,
 );
@@ -108,6 +111,7 @@ router.post(
   '/resume/generate/jobtitle',
   authMiddleware,
   isUserOrUniStudent,
+  checkCredits('CV_GENERATION'),
   upload.single('cv'),
   generateCVByTitle,
 );
@@ -123,6 +127,7 @@ router.post(
   '/coverletter/generate/jd',
   authMiddleware,
   isUserOrUniStudent,
+  checkCredits('COVER_LETTER_GENERATION'),
   upload.single('cv'),
   generateCoverLetterByJD,
 );
@@ -152,6 +157,7 @@ router.post(
   '/coverletter/generate/jobid',
   authMiddleware,
   isUserOrUniStudent,
+  checkCredits('COVER_LETTER_GENERATION'),
   upload.single('cv'),
   generateCoverLetterByJobId,
 );
@@ -160,6 +166,7 @@ router.post(
   '/coverletter/generate/jobtitle',
   authMiddleware,
   isUserOrUniStudent,
+  checkCredits('COVER_LETTER_GENERATION'),
   upload.single('cv'),
   generateCoverLetterByTitle,
 );

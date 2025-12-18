@@ -21,10 +21,10 @@ import {
   CartItem,
 } from '@/components/credits/SpendCreditsSection';
 import apiInstance from '@/services/api';
-import { CreditTransaction, PendingClaim } from '@/types/credits';
+import { PendingClaim } from '@/types/credits';
 
 // SIMPLIFIED TABS: Just two main views
-type TabKey = 'overview' | 'history';
+type TabKey = 'balance' | 'spent' | 'transactions';
 
 const ALLOWED_SOCIAL_ACTIONS = new Set([
   'FOLLOW_LINKEDIN',
@@ -63,7 +63,7 @@ export default function CreditsPage() {
   } | null>(null);
 
   // Default to overview
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeTab, setActiveTab] = useState<TabKey>('balance');
   const [spending, setSpending] = useState(false);
 
   const router = useRouter();

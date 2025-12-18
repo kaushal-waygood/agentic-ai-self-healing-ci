@@ -433,8 +433,6 @@ export const updateStudentProfile = async (req, res) => {
     if (location !== undefined) update.location = location;
     if (jobRole !== undefined) update.jobRole = jobRole;
 
-    console.log(update);
-
     if (Object.keys(update).length === 0) {
       return res
         .status(400)
@@ -448,8 +446,6 @@ export const updateStudentProfile = async (req, res) => {
       { $set: update },
       { new: true, runValidators: true },
     );
-
-    console.log(result);
 
     if (!result) {
       return res.status(404).json({ message: 'Student not found' });
@@ -1772,13 +1768,9 @@ export const updateJobPreferences = async (req, res) => {
     // 🔥 FIX: Explicitly delete the exact key used in getProfileCompletion
     const profileCacheKey = `student:${studentId}:profileCompletion`;
 
-    // Depending on your redisClient wrapper, use .del() or .delete()
-    // If redisClient is a direct Redis connection, use await redisClient.del(profileCacheKey);
-    // If it's your custom wrapper, ensure it has a delete method:
     try {
       if (redisClient.del) {
         await redisClient.del(profileCacheKey);
-        console.log(`Cache cleared for: ${profileCacheKey}`);
       } else if (redisClient.invalidate) {
         await redisClient.invalidate(profileCacheKey);
       }
@@ -1835,8 +1827,6 @@ export const getProfileCompletion = async (req, res) => {
   const studentId = req.user._id;
   const cacheKey = `student:${studentId}:profileCompletion`;
 
-  console.log('cacheKey', cacheKey);
-
   try {
     const completionData = await redisClient.withCache(
       cacheKey,
@@ -1846,8 +1836,6 @@ export const getProfileCompletion = async (req, res) => {
         const student = await Student.findById(studentId).select(
           'fullName phone email jobRole profileImage jobRole education experience skills projects jobPreferences',
         );
-
-        console.log(student);
 
         if (!student) throw new Error('Student not found');
 
@@ -1881,8 +1869,6 @@ export const getProfileCompletion = async (req, res) => {
         };
       },
     );
-
-    console.log(completionData);
 
     return res.status(200).json(completionData);
   } catch (error) {
@@ -1983,8 +1969,6 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       .slice(0, 100)
       .map((x) => x.job);
     console.timeEnd('scoring');
-
-    console.log('TOTAL getRecommendedJobs ms:', Date.now() - start);
 
     return res.status(200).json({
       success: true,

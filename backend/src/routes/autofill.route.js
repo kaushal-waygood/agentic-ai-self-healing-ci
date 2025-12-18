@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 import { Student } from '../models/student.model.js';
 import mongoose from 'mongoose';
-import genAI from '../config/gemini.js'; // ensure correct relative path
+import { genAIRequest as genAI } from '../config/gemini.js';
 
 const router = Router();
 
