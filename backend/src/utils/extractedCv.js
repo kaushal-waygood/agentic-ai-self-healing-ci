@@ -4,7 +4,7 @@ import path from 'path';
 import pdfParse from 'pdf-parse';
 import { v4 as uuidv4 } from 'uuid';
 import { CVDataPromptPilot as CVDataPrompt } from '../prompt/studentCVData.js';
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 
 /**
  * Attempt to safely parse JSON, returning object or throwing descriptive Error.
@@ -118,7 +118,10 @@ export const extractDataFromCV = async (filePath) => {
     // Process text with AI (replace with your actual AI processing)
     // Slight reinforcement in prompt: ask for ONLY valid JSON (no markdown/explanations)
     const prompt = CVDataPrompt(pdfData.text);
-    const rawText = await genAI(prompt);
+    const rawText = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
 
     if (!rawText || typeof rawText !== 'string') {
       throw new Error('AI returned empty or non-string response');

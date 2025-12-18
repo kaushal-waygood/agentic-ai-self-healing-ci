@@ -25,6 +25,7 @@ import {
   trackUsage,
 } from '../controllers/usage.controller.js';
 import { ensurePlanValidity } from '../middlewares/ensurePlanValidity.js';
+import { checkCredits } from '../middlewares/checkCredits.js';
 
 const router = Router();
 

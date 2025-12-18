@@ -1,7 +1,6 @@
 // src/utils/cv.background.js
 
-import mongoose from 'mongoose';
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
 import { Student } from '../models/student.model.js';
 import {
@@ -48,6 +47,7 @@ export const processCVGeneration = async (
   jobContextString,
   finalTouch,
   io,
+  endpoint,
 ) => {
   let cvId = null;
   let jobTitle = 'your recent job';
@@ -77,7 +77,10 @@ export const processCVGeneration = async (
     while (attempt < MAX_RETRIES) {
       attempt += 1;
       try {
-        const rawJsonResponse = await genAI(prompt);
+        const rawJsonResponse = await genAI(prompt, {
+          userId: userId,
+          endpoint,
+        });
         const cleanedJsonString = rawJsonResponse
           .replace(/```json|```/g, '')
           .trim();

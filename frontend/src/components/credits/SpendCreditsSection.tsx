@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Check, Minus, Plus, Sparkles } from 'lucide-react';
+import { Check, Minus, Plus, Sparkles, Crown, Zap } from 'lucide-react'; // Added Crown/Zap
 import { useRouter } from 'next/navigation';
 
 export interface SpendItem {
@@ -9,7 +9,7 @@ export interface SpendItem {
   name: string;
   description: string;
   cost: number;
-  benefit?: string; // <-- show user what they get
+  benefit?: string;
   badge?: string;
 }
 
@@ -62,7 +62,9 @@ export function SpendCreditsSection({
   onCheckout,
 }: SpendCreditsSectionProps) {
   const [cart, setCart] = useState<Record<string, number>>({});
-  const rouer = useRouter();
+
+  // FIXED: Typo 'rouer' changed to 'router'
+  const router = useRouter();
 
   const totalCost = useMemo(
     () =>
@@ -143,7 +145,6 @@ export function SpendCreditsSection({
 
                 <p className="text-xs text-gray-600 mb-2">{item.description}</p>
 
-                {/* Benefit display */}
                 <p className="text-xs text-green-700 font-medium mb-3">
                   🛠 {item.benefit}
                 </p>
@@ -195,9 +196,10 @@ export function SpendCreditsSection({
         })}
       </div>
 
-      {/* Summary */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="text-sm text-gray-700">
+      {/* Summary / Action Footer */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        {/* Left: Totals */}
+        <div className="text-sm text-gray-700 flex-shrink-0">
           Selected:{' '}
           <span className="font-semibold">
             {hasItems ? `${totalCost} credits` : '0 credits'}
@@ -213,33 +215,41 @@ export function SpendCreditsSection({
             </span>
           </div>
           {exceedsBalance && (
-            <div className="text-[11px] text-red-500 mt-1">
+            <div className="text-[11px] text-red-500 mt-1 font-medium">
               Not enough credits.
             </div>
           )}
         </div>
 
-        <div className="flex justify-center gap-2">
+        {/* Right: Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          {/* Standard Redeem Button */}
           <button
             onClick={handleCheckoutClick}
             disabled={!hasItems || exceedsBalance || loading}
-            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition ${
+            className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition flex-1 sm:flex-initial ${
               !hasItems || exceedsBalance || loading
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
             }`}
           >
             <Check className="w-4 h-4 mr-2" />
             {loading ? 'Processing...' : 'Redeem Credits'}
           </button>
 
+          {/* Premium / Unlimited Button - Highlighted */}
           <button
             onClick={handleGetUnlimitedClick}
-            // disabled={!hasItems || exceedsBalance || loading}
-            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition bg-blue-600 text-white hover:bg-blue-700"
+            className="group relative overflow-hidden px-5 py-2.5 rounded-lg text-sm font-bold text-white shadow-md transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg flex items-center justify-center flex-1 sm:flex-initial
+            bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600"
           >
-            <Check className="w-4 h-4 mr-2" />
-            Get Unlimited Generation
+            {/* Crown Icon */}
+            <Crown className="w-4 h-4 mr-2 text-yellow-100 fill-yellow-100/50 animate-pulse" />
+
+            <span className="relative z-10">Get Unlimited Generation</span>
+
+            {/* Subtle Shine Effect Overlay */}
+            <div className="absolute inset-0 bg-white/20 translate-y-full rotate-45 group-hover:translate-y-[-100%] transition-transform duration-700 ease-in-out" />
           </button>
         </div>
       </div>

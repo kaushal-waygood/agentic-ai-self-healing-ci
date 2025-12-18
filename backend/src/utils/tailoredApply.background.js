@@ -1,5 +1,5 @@
 // src/utils/tailoredApply.background.js
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import {
   generateCVPrompts,
   generateCoverLetterPrompts,

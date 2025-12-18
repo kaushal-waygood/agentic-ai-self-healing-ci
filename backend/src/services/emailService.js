@@ -1,4 +1,4 @@
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import puppeteer from 'puppeteer';
 import { User } from '../models/User.model.js';
 import { google } from 'googleapis';

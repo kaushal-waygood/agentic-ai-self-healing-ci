@@ -1,8 +1,9 @@
-// src/config/gemini.js
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { config } from './config.js';
+import { GeminiUsage } from '../models/GeminiUsage.js';
 
-const genAIKey = new GoogleGenerativeAI(config.geminiAPI);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const MODEL_NAME = 'gemini-2.5-flash';
 
 const RETRY_CONFIG = {
   maxRetries: 3,
@@ -10,87 +11,146 @@ const RETRY_CONFIG = {
   maxDelay: 10000,
 };
 
-export async function generateContent(prompt, options = {}) {
-  const promptLen = String(prompt || '').length || 0;
-  console.log(`Gemini request prompt length=${promptLen}`);
+function estimateTokens(text, mode = 'text') {
+  if (!text) return 0;
+  const charsPerToken = mode === 'code' ? 3 : 4;
+  return Math.ceil(text.length / charsPerToken);
+}
 
-  const PROMPT_HARD_LIMIT = 200000;
-  if (promptLen > PROMPT_HARD_LIMIT) {
-    const err = new Error(
-      `Prompt too large (${promptLen} chars). Please sanitize before sending.`,
-    );
+const breaker = {
+  state: 'CLOSED', // CLOSED | OPEN | HALF_OPEN
+  failures: 0,
+  lastFailureAt: 0,
+};
+
+const FAILURE_THRESHOLD = 5;
+const COOLDOWN_MS = 30_000;
+
+function canCallGemini() {
+  if (breaker.state === 'OPEN') {
+    if (Date.now() - breaker.lastFailureAt > COOLDOWN_MS) {
+      breaker.state = 'HALF_OPEN';
+      return true;
+    }
+    return false;
+  }
+  return true;
+}
+
+function onGeminiSuccess() {
+  breaker.state = 'CLOSED';
+  breaker.failures = 0;
+}
+
+function onGeminiFailure() {
+  breaker.failures += 1;
+  breaker.lastFailureAt = Date.now();
+  if (breaker.failures >= FAILURE_THRESHOLD) {
+    breaker.state = 'OPEN';
+  }
+}
+
+export async function generateContent(
+  prompt,
+  {
+    userId,
+    endpoint,
+    temperature = 0.4,
+    topK = 40,
+    topP = 0.95,
+    mode = 'text',
+  } = {},
+) {
+  if (!canCallGemini()) {
+    throw new Error('Gemini temporarily disabled (circuit breaker open)');
+  }
+
+  const promptChars = String(prompt || '').length;
+
+  if (promptChars > 500_000) {
+    const err = new Error(`Prompt too large (${promptChars} chars)`);
     err.status = 400;
     throw err;
   }
 
-  const generationConfig = {
-    temperature: options.temperature ?? 0.4,
-    topK: options.topK ?? 40,
-    topP: options.topP ?? 0.95,
-    ...(options.generationConfig || {}),
-  };
+  const estimatedTokens = estimateTokens(prompt, mode);
+  if (estimatedTokens > 120_000) {
+    throw new Error(
+      `Estimated prompt tokens too high (~${estimatedTokens}). Chunk it.`,
+    );
+  }
+
+  const model = genAI.getGenerativeModel({
+    model: MODEL_NAME,
+    generationConfig: { temperature, topK, topP },
+  });
 
   let lastError;
 
   for (let attempt = 1; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    const start = Date.now();
+
     try {
-      const model = genAIKey.getGenerativeModel({
-        model: 'gemini-2.5-flash',
-      });
-
-      console.log(
-        `Gemini API attempt ${attempt} for prompt length: ${promptLen}`,
-      );
-
       const result = await model.generateContent(prompt);
-
-      console.log('Tokens Use', result);
+      const latencyMs = Date.now() - start;
 
       const response = result.response;
-
       const text = response.text();
+      const usage = response.usageMetadata;
 
-      if (result.usageMetadata) {
-        console.log('Token usage:', result.usageMetadata);
-      } else {
-        console.log('Token usage: none in response');
+      if (!usage) {
+        throw new Error('Missing Gemini usage metadata');
       }
 
-      console.log(`Gemini API success on attempt ${attempt}`);
-      return text; // ← THIS IS CRITICAL
-    } catch (error) {
-      lastError = error;
-      const status = error?.status;
-      console.warn(`Gemini API attempt ${attempt} failed:`, {
+      const usageDoc = {
+        model: MODEL_NAME,
+        promptChars,
+        promptTokens: usage.promptTokenCount,
+        outputTokens: usage.candidatesTokenCount,
+        totalTokens: usage.totalTokenCount,
+        latencyMs,
+        userId,
+        endpoint,
+      };
+
+      // Non-blocking DB write
+      GeminiUsage.create(usageDoc).catch((err) => {
+        console.error('Failed to store Gemini usage', err);
+      });
+
+      onGeminiSuccess();
+      return text;
+    } catch (err) {
+      lastError = err;
+      onGeminiFailure();
+
+      const status = err?.status;
+
+      console.warn(`Gemini attempt ${attempt} failed`, {
         status,
-        message: error?.message,
+        message: err?.message,
       });
 
       if ([400, 401, 403].includes(status)) {
-        throw error;
+        throw err;
       }
 
       if (attempt === RETRY_CONFIG.maxRetries) {
-        throw error;
+        throw err;
       }
 
-      const base =
-        status === 429 ? RETRY_CONFIG.baseDelay * 2 : RETRY_CONFIG.baseDelay;
       const delay = Math.min(
-        base * Math.pow(2, attempt - 1) + Math.random() * 1000,
+        (status === 429 ? 2000 : RETRY_CONFIG.baseDelay) * 2 ** (attempt - 1),
         RETRY_CONFIG.maxDelay,
       );
 
-      console.log(`Retrying in ${Math.round(delay)}ms...`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
 
   throw lastError;
 }
 
-export async function genAI(prompt, options = {}) {
+export async function genAIRequest(prompt, options = {}) {
   return generateContent(prompt, options);
 }
-
-export { genAI as default };
