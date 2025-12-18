@@ -7,10 +7,9 @@ describe("Auth Tests", () => {
     jest.setTimeout(30000); // Increase timeout to 30s
     const testUser = {
         email: `test${Date.now()}@test.com`,
-        password: "password123",
-        confirmPassword: "password123",
+        password: "Help@123",
+        confirmPassword: "Help@123",
         fullName: "Test User",
-        // Additional fields required by signUpUser logic if any
     };
 
     beforeAll(async () => {

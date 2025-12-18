@@ -16,26 +16,16 @@ export const options = {
 const BASE_URL = 'http://localhost:8080/api/v1';
 
 export default function () {
-    // Query parameters as requested
-    const params = {
-        // country: 'india',
-        // state: 'delhi',
-        // employmentType: 'contractor',
-        // experience: '1',
-        // datePosted: 'day',
-        limit: '1000',
-        page: '1',
-        q: 'software engineer in uk'
+
+    const data = {
+        jobDescription: 'Junior Web Developer\n\nPayrate: $40 W2 or $45 C2C\nHybrid – 2 days onsite in New York, NY\n\nQualifications:\n- 3+ years’ experience in C# development\n- 3+ years’ experience in UI development\n- Strong organizational and communication skills\n- Ability to work under pressure and meet tight deadlines\n- Ability to manage multiple projects simultaneously\n- Attention to detail and strong commitment to quality\n- Ability to work independently and in a team-oriented, collaborative environment\n\nTechnical Skills:\n- Microsoft SQL Server\n- C#\n- .NET Core\n- Web API development\n- Windows service development\n- Angular\n- Kendo UI controls\n- GIT\n\nBenefits:\n- Payrate: $40 W2 or $45 C2C',
+        useProfile: 'false',
+        cv: 'software engineer in uk'
     };
 
-    // Construct query string
-    const queryString = Object.keys(params)
-        .map(key => `${key}=${encodeURIComponent(params[key])}`)
-        .join('&');
+    const url = `${BASE_URL}/students/resume/generate/jd`;
 
-    const url = `${BASE_URL}/jobs/search?${queryString}`;
-
-    const res = http.get(url);
+    const res = http.post(url, data);
 
     check(res, {
         'is status 200': (r) => r.status === 200,

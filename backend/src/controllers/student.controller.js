@@ -1845,10 +1845,10 @@ export const getProfileCompletion = async (req, res) => {
           projects: Boolean(student.projects?.length > 0),
           jobPreferences: Boolean(
             student.jobPreferences?.preferedJobTitles?.length > 0 &&
-              student.jobPreferences?.preferedSalary?.min > 0 &&
-              (student.jobPreferences?.preferedCountries?.length > 0 ||
-                student.jobPreferences?.preferedCities?.length > 0 ||
-                student.jobPreferences?.isRemote === true),
+            student.jobPreferences?.preferedSalary?.min > 0 &&
+            (student.jobPreferences?.preferedCountries?.length > 0 ||
+              student.jobPreferences?.preferedCities?.length > 0 ||
+              student.jobPreferences?.isRemote === true),
           ),
         };
 
@@ -2064,9 +2064,8 @@ export const toggleAutopilot = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: `Autopilot has been ${
-        student.settings.autopilotEnabled ? 'enabled' : 'disabled'
-      }.`,
+      message: `Autopilot has been ${student.settings.autopilotEnabled ? 'enabled' : 'disabled'
+        }.`,
       autopilotStatus: student.settings.autopilotEnabled,
     });
   } catch (error) {
@@ -2897,10 +2896,10 @@ export const getCreditsSummary = async (req, res) => {
       reason: dailyEligible
         ? 'You can claim daily check-in now.'
         : `Already claimed. Next eligible after ${new Date(
-            Date.now() +
-              24 * 60 * 60 * 1000 -
-              (Date.now() - new Date(lastDailyAt).getTime()),
-          ).toISOString()}`,
+          Date.now() +
+          24 * 60 * 60 * 1000 -
+          (Date.now() - new Date(lastDailyAt).getTime()),
+        ).toISOString()}`,
       eligible: dailyEligible,
       lastClaimedAt: lastDailyAt || null,
       url: redirectForAction('DAILY_CHECKIN'),
@@ -2971,5 +2970,24 @@ export const earnCreditsViaSocialLinks = async (req, res) => {
     return res
       .status(status)
       .json({ success: false, message: err.message || 'Server error' });
+  }
+};
+export const getVerifiedUsers = async (req, res) => {
+  try {
+    const { limit } = req.query;
+
+    let size = 10;
+    if (limit) {
+      size = parseInt(limit);
+    }
+
+    const user = await User.find({
+      isEmailVerified: true,
+      authMethod: 'local',
+    }).select('email').limit(size);
+
+    return res.status(200).json(user);
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
