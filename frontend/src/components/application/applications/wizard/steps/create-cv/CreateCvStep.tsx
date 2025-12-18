@@ -2,14 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
   UploadCloud,
-  PlusCircle,
   ArrowLeft,
   CheckCircle2,
   FileText,
   Clock,
-  Loader2,
+  ChevronDown,
+  Briefcase,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
+import { useSearchParams } from 'next/navigation';
 
 const SleekCvStep = ({
   mockUserProfile,
@@ -27,6 +28,30 @@ const SleekCvStep = ({
   const [stats, setStats] = useState({ cvsCount: 0 });
   const [loading, setLoading] = useState(true);
 
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get('slug');
+
+  const [jobDetail, setJobDetail] = useState<any>(null);
+  const [jobLoading, setJobLoading] = useState(false);
+
+  useEffect(() => {
+    if (!jobId) return;
+
+    const fetchJobDetail = async () => {
+      try {
+        setJobLoading(true);
+        const response = await apiInstance.get(`/jobs/job-desc/${jobId}`);
+        setJobDetail(response.data.singleJob);
+      } catch (error) {
+        console.error('Failed to fetch job detail:', error);
+      } finally {
+        setJobLoading(false);
+      }
+    };
+
+    fetchJobDetail();
+  }, [jobId]);
+  console.log('job details by id ', jobDetail);
   useEffect(() => {
     const fetchCvs = async () => {
       try {
@@ -78,6 +103,53 @@ const SleekCvStep = ({
           <div className="p-4 space-y-6">
             {/* Saved CVs Section */}
             <div className="card-entrance staggered-1">
+              {/* Job Info Dropdown */}
+
+              {/* Job You Are Applying For */}
+              <div className="card-entrance staggered-1 mb-4">
+                <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                  <Briefcase className="w-5 h-5 text-blue-500" />
+                  <span className="text-slate-700">
+                    Job You Are Applying For
+                  </span>
+                </div>
+
+                <div className="border border-slate-200 rounded-lg bg-slate-50/50">
+                  {jobLoading ? (
+                    <div className="flex items-center justify-center py-6 text-slate-500">
+                      Loading job details...
+                    </div>
+                  ) : jobDetail ? (
+                    <details className="group">
+                      {/* Header */}
+                      <summary className="flex items-center justify-between cursor-pointer list-none px-4 py-3 rounded-lg hover:bg-slate-100 transition">
+                        <div className="flex items-center gap-3">
+                          {/* <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white">
+                            <Briefcase className="w-4 h-4" />
+                          </div> */}
+                          <div className="font-semibold text-slate-800">
+                            {jobDetail?.title || 'Job description'}
+                          </div>
+                        </div>
+
+                        <ChevronDown className="w-5 h-5 text-slate-500 transition-transform group-open:rotate-180" />
+                      </summary>
+
+                      {/* Scrollable Description */}
+                      <div className="px-1 pb-4">
+                        <div className="max-h-[280px] overflow-y-auto text-sm text-slate-600 whitespace-pre-line pr-2 border-l-2 border-blue-500 pl-3">
+                          {jobDetail.description}
+                        </div>
+                      </div>
+                    </details>
+                  ) : (
+                    <p className="text-sm text-red-500 p-4">
+                      No job data found
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="flex flex-row flex-wrap justify-between text-sm  font-medium mb-2">
                 <label className="flex items-center">
                   <FileText className="w-5 h-5 mr-2 text-blue-500" />

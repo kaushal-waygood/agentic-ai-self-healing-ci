@@ -27,6 +27,7 @@ import {
   Briefcase,
   Globe,
   Eye,
+  ArrowUpRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -146,7 +147,7 @@ export function ToolkitButton({
             <p className="text-sm text-gray-600 mt-1">{description}</p>
           </div>
 
-          <Play className="w-4 h-4 text-gray-400 group-hover:text-purple-600" />
+          <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600" />
         </div>
       </button>
     </Link>

@@ -13,6 +13,7 @@ import {
   searchJobs,
   jobViewsCount,
   getAllJobsForStudent,
+  getJobDescByJobId,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -25,6 +26,7 @@ const router = Router();
 
 router.get('/job/:jobId', getJobFromJobId);
 router.get('/job/views/:jobId', authMiddleware, isStudent, jobViewsCount);
+router.get('/job-desc/:jobId', getJobDescByJobId);
 
 router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
 router.get('/find', getJobDetailBySlug);
