@@ -1,4 +1,4 @@
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

@@ -182,7 +182,6 @@ router.patch(
   '/project/update/:projectId',
   authMiddleware,
   isUserOrUniStudent,
-
   updateProjects,
 );
 router.delete(
@@ -190,30 +189,6 @@ router.delete(
   authMiddleware,
   isUserOrUniStudent,
   removeEducation,
-);
-
-router.post(
-  '/profile/add',
-  authMiddleware,
-  isUserOrUniStudent,
-  upload.single('profileImage'),
-  addProfileImage,
-);
-
-router.patch(
-  '/profile/update',
-  authMiddleware,
-  isUserOrUniStudent,
-  upload.single('profileImage'),
-  updateProfileImage,
-);
-
-router.post(
-  '/resume/add',
-  authMiddleware,
-  isUserOrUniStudent,
-  upload.single('resume'),
-  addResume,
 );
 
 router.post(
@@ -230,9 +205,6 @@ router.get(
   getJobPreferences,
 );
 
-router.post('/jobs/saved', authMiddleware, isUserOrUniStudent, toggleSavedJob);
-router.get('/jobs/saved', authMiddleware, isUserOrUniStudent, getSavedJobs);
-router.get('/jobs/issaved', authMiddleware, isUserOrUniStudent, isSavedOrNot);
 router.get(
   '/jobs/recommended',
   authMiddleware,
@@ -259,46 +231,39 @@ router.patch(
   completeOnboarding,
 );
 router.get(
-  '/jobs/visited/:jobId',
-  authMiddleware,
-  isUserOrUniStudent,
-  jobVisitedByStudent,
-);
-router.get(
   '/education/:id',
   authMiddleware,
   isUserOrUniStudent,
   getEducationsById,
 );
 
+// visited
+router.get(
+  '/jobs/visited/:jobId',
+  authMiddleware,
+  isUserOrUniStudent,
+  jobVisitedByStudent,
+);
 router.get(
   '/jobs/is-visited/:jobId',
   authMiddleware,
   isUserOrUniStudent,
   isJobVisitedByStudent,
 );
-
 router.get(
   '/jobs/visited-all',
   authMiddleware,
   isUserOrUniStudent,
   getAllVisitedJobs,
 );
+
+//viewed
 router.get(
   '/jobs/viewed-all',
   authMiddleware,
   isUserOrUniStudent,
   getAllViewedJobs,
 );
-router.get(
-  '/jobs/saved-all',
-  authMiddleware,
-  isUserOrUniStudent,
-  getAllSavedJobs,
-);
-
-router.get('/job/stats', authMiddleware, isUserOrUniStudent, getAllStatCounts);
-
 router.get(
   '/job/viewed/:jobId',
   authMiddleware,
@@ -320,6 +285,20 @@ router.get(
   isStudentViewedJob,
 );
 
+// saved
+router.post('/jobs/saved', authMiddleware, isUserOrUniStudent, toggleSavedJob);
+router.get(
+  '/jobs/saved-all',
+  authMiddleware,
+  isUserOrUniStudent,
+  getAllSavedJobs,
+);
+router.get('/jobs/saved', authMiddleware, isUserOrUniStudent, getSavedJobs);
+router.get('/jobs/issaved', authMiddleware, isUserOrUniStudent, isSavedOrNot);
+
+router.get('/job/stats', authMiddleware, isUserOrUniStudent, getAllStatCounts);
+
+// credits
 router.get('/credits', authMiddleware, isUserOrUniStudent, getCreditsSummary);
 router.get(
   '/total-credits',

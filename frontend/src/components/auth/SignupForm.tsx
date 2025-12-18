@@ -80,6 +80,7 @@ const SignupForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [focusedField, setFocusedField] = useState('');
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
@@ -174,8 +175,10 @@ const SignupForm = () => {
   };
 
   return (
-    // <div className=" w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center py-16 md:py-24 px-4 sm:px-6 md:px-8 relative overflow-hidden">
-    <div className="min-h-screen w-full mt-2 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center px-4 sm:px-6 md:px-8 relative overflow-hidden">
+    <div
+      className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 
+flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relative"
+    >
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full filter blur-3xl opacity-40 animate-pulse hidden sm:block"></div>
         <div
@@ -183,9 +186,10 @@ const SignupForm = () => {
           style={{ animationDelay: '2s' }}
         ></div>
       </div>
-      <div className="relative z-10 w-full max-w-lg ">
+      {/* <div className="relative z-10 w-full max-w-lg "> */}
+      <div className="relative z-10 w-full max-w-sm sm:max-w-md">
         {signupSuccess ? (
-          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-8 sm:p-12 ">
+          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-5 sm:p-6">
             <div className="text-center mb-10">
               <div className="relative inline-block mb-6">
                 <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center ">
@@ -252,32 +256,30 @@ const SignupForm = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-4 sm:p-6 ">
+          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl sm:p-4 ">
             <div className="text-center mb-5">
-              <div className="relative inline-block mb-3">
-                <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
+              <div className="relative inline-block mb-1 sm:mb-2">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center">
                   <Image
                     src="logo.png"
-                    alt="zobsai logo"
+                    alt="Zobsai logo"
                     width={100}
                     height={100}
                   />
                 </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-yellow-800" />
-                </div>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Create an Account
               </h1>
-              <p className="text-gray-500 text-base">
+              <p className="text-gray-500 text-xs sm:text-sm leading-relaxed">
                 Join us and let's get started.
               </p>
             </div>
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-1"
+                className="space-y-0.5"
               >
                 {/* <FormField
                   control={form.control}
@@ -347,7 +349,7 @@ const SignupForm = () => {
                               <Building className="h-5 w-5" />
                             </div>
                             <Input
-                              className="pl-12 w-full h-12 text-sm bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                              className="pl-12 w-full h-10 text-sm bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
                               placeholder="e.g., State University"
                               {...field}
                             />
@@ -359,7 +361,7 @@ const SignupForm = () => {
                   />
                 )}
 
-                <div className="grid grid-cols-2 gap-4  pt-1">
+                <div className="grid grid-cols-1 gap-3 mb-2">
                   <FormField
                     control={form.control}
                     name="fullName"
@@ -370,13 +372,22 @@ const SignupForm = () => {
                         </FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                            <div
+                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                focusedField === 'fullName'
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400'
+                              }`}
+                            >
                               <User className="h-5 w-5" />
                             </div>
-                            <Input
-                              className="pl-12 w-full h-12 text-sm bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                            <input
+                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                          text-gray-900 placeholder-gray-400 transition-all "
                               placeholder="John Doe"
                               {...field}
+                              onFocus={() => setFocusedField('fullName')}
+                              onBlur={() => setFocusedField('')}
                               disabled={form.formState.isSubmitting}
                             />
                           </div>
@@ -396,13 +407,26 @@ const SignupForm = () => {
                         </FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                            {/* <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                              <Mail className="h-5 w-5" />
+                            </div> */}
+
+                            <div
+                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                focusedField === 'email'
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400'
+                              }`}
+                            >
                               <Mail className="h-5 w-5" />
                             </div>
-                            <Input
-                              className="pl-12 w-full h-12 text-sm bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                            <input
+                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                          text-gray-900 placeholder-gray-400 transition-all"
                               placeholder="name@example.com"
                               {...field}
+                              onFocus={() => setFocusedField('email')}
+                              onBlur={() => setFocusedField('')}
                               disabled={form.formState.isSubmitting}
                             />
                           </div>
@@ -422,14 +446,23 @@ const SignupForm = () => {
                         </FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                            <div
+                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                focusedField === 'password'
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400'
+                              }`}
+                            >
                               <Lock className="h-5 w-5" />
                             </div>
-                            <Input
-                              className="pl-12 pr-12 w-full h-12 text-sm bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                            <input
+                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                          text-gray-900 placeholder-gray-400 transition-all"
                               type={showPassword ? 'text' : 'password'}
                               placeholder="••••••••"
                               {...field}
+                              onFocus={() => setFocusedField('password')}
+                              onBlur={() => setFocusedField('')}
                               disabled={form.formState.isSubmitting}
                             />
                             <button
@@ -460,14 +493,23 @@ const SignupForm = () => {
                         </FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                            <div
+                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                focusedField === 'confirmPassword'
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400'
+                              }`}
+                            >
                               <Lock className="h-5 w-5" />
                             </div>
-                            <Input
-                              className="pl-12 pr-12 w-full h-12 text-sm bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                            <input
+                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                          text-gray-900 placeholder-gray-400 transition-all"
                               type={showConfirmPassword ? 'text' : 'password'}
                               placeholder="••••••••"
                               {...field}
+                              onFocus={() => setFocusedField('confirmPassword')}
+                              onBlur={() => setFocusedField('')}
                               disabled={form.formState.isSubmitting}
                             />
                             <button
@@ -500,13 +542,22 @@ const SignupForm = () => {
                         </FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                            <div
+                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                focusedField === 'referredBy'
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400'
+                              }`}
+                            >
                               <FileText className="h-5 w-5" />
                             </div>
-                            <Input
-                              className="pl-12 w-full h-12 text-sm bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                            <input
+                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                          text-gray-900 placeholder-gray-400 transition-all"
                               placeholder="Enter code here"
                               {...field}
+                              onFocus={() => setFocusedField('referredBy')}
+                              onBlur={() => setFocusedField('')}
                               disabled={
                                 form.formState.isSubmitting || isRefCodeFromUrl
                               }
@@ -521,7 +572,7 @@ const SignupForm = () => {
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
-                  className="w-full mt-5 group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-6 px-6 text-lg rounded-xl transition-all duration-300 "
+                  className="w-full mt-3 group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-xl transition-all duration-300 "
                 >
                   {form.formState.isSubmitting ? (
                     'Creating Account...'

@@ -56,7 +56,7 @@ const GeneratedCoverLetter = ({
             </div>
             <div className="flex-1">
               <h2 className="text-xl font-bold mb-1">
-                Cover Letter Generated! 
+                Cover Letter Generated!
               </h2>
               {/* <p className="text-green-100">
                 Your AI-tailored letter is ready for review and customization.
@@ -116,7 +116,7 @@ const GeneratedCoverLetter = ({
         </div>
 
         {/* Bottom Action Bar */}
-        <div className="mt-8 bg-white/60 backdrop-blur-xl border border-gray-200 rounded-lg p-6">
+        {/* <div className="mt-8 bg-white/60 backdrop-blur-xl border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
@@ -148,7 +148,7 @@ const GeneratedCoverLetter = ({
               </Link>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
       {isNamingDialogDisplayed && (
         <AlertDialog

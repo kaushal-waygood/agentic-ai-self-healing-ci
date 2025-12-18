@@ -9,7 +9,7 @@ const connectDB = async () => {
     console.log('✅ Database connected successfully.');
     // Start cron jobs
     // runAutopilotCron();
-    removeExpiredUnverifiedUsers();
+    // removeExpiredUnverifiedUsers();
   } catch (error) {
     console.error(`❌ Fatal Error: Database connection failed.`);
     console.error(error);

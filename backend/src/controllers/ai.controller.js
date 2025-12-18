@@ -1,6 +1,6 @@
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import pdfParse from 'pdf-parse';
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import { convertToHTMLPrompt } from '../prompt/convertToHTML.js';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/student.model.js';
@@ -151,7 +151,10 @@ export const convertDataIntoHTML = async (req, res) => {
     }
 
     const prompt = convertToHTMLPrompt(student);
-    const rawText = await genAI(prompt);
+    const rawText = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
     const htmlContent = rawText.replace(/```html|```/g, '');
 
     res.setHeader('Content-Type', 'text/html');
@@ -588,9 +591,6 @@ export const refreshStatus = async (req, res) => {
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Check if the item was found
-    // student[modelName] will be an array.
-    // If a match was found, it will have 1 item. If not, it will be empty.
     if (!student[modelName] || student[modelName].length === 0) {
       return res
         .status(404)
@@ -629,7 +629,10 @@ export const regenerateCV = async (req, res) => {
     );
 
     // --- Step 2: Generate, Clean, Parse, and Respond ---
-    const rawJsonResponse = await genAI(prompt);
+    const rawJsonResponse = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
     const cleanedJsonString = rawJsonResponse
       .replace(/```json|```/g, '')
       .trim();
@@ -669,7 +672,10 @@ export const regenerateCL = async (req, res) => {
       previousCLJson,
     );
 
-    const rawJsonResponse = await genAI(prompt);
+    const rawJsonResponse = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
     const cleanedJsonString = rawJsonResponse
       .replace(/```json|```/g, '')
       .trim();
@@ -1165,6 +1171,8 @@ export const calculateJobMatchScore = async (req, res) => {
     const { matchScore, recommendation } = await calculateJobMatch(
       jobDescription,
       student,
+      req.user._id,
+      req.endpoint,
     );
 
     return res.json({ matchScore, recommendation });

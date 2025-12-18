@@ -185,8 +185,9 @@ export const DocumentCard = ({
           ? 'cursor-pointer hover:shadow-md'
           : 'cursor-not-allowed opacity-70'
       } ${isProcessing ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''}`}
+      onClick={openContent}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center flex-wrap justify-between mb-3">
         <div className="flex items-center space-x-3">
           {isProcessing || isRefreshing ? (
             <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
@@ -247,8 +248,7 @@ export const DocumentCard = ({
             </button>
           )}
 
-          {/* Copy Button */}
-          <button
+          {/* <button
             onClick={(e) => {
               e.stopPropagation();
               onCopy(getContent(), item._id);
@@ -266,9 +266,8 @@ export const DocumentCard = ({
             ) : (
               <Copy className="h-4 w-4" />
             )}
-          </button>
+          </button> */}
 
-          {/* Download Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -285,7 +284,6 @@ export const DocumentCard = ({
             <Download className="h-4 w-4" />
           </button>
 
-          {/* Delete Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -308,61 +306,68 @@ export const DocumentCard = ({
         </div>
       </div>
 
-      <h3
-        className={`flex items-center justify-between font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1 ${
-          isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
-        }`}
-        // onClick={openContent}
-      >
-        <span className="truncate">
-          <span className="text-sm font-semibold text-gray-500  ">
-            {index}
-            {'. '}
+      <div className="flex flex-col gap-2 flex-wrap">
+        <h3
+          className={`flex items-center justify-between font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1 ${
+            isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+          }`}
+          // onClick={openContent}
+        >
+          <span className="">
+            <span className="text-xs md:text-sm  text-gray-500  ">
+              {index}
+              {'. '}
+            </span>
+            {(item.cvTitle || getTitle()).slice(0, 30) +
+              ((item.cvTitle || getTitle()).length > 40 ? '...' : '')}
           </span>
-          {(item.cvTitle || getTitle()).slice(0, 40) +
-            ((item.cvTitle || getTitle()).length > 40 ? '...' : '')}
-        </span>
 
-        <div className="flex items-end flex-col">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              openContent();
-            }}
-            className={`ml-3 px-3 py-1 border border-blue-600 text-blue-600 text-xs rounded hover:bg-blue-600 hover:text-white transition flex items-center gap-1 ${
-              isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-            } `}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            View Doc
-          </button>{' '}
-          {item.flag && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 mt-1">
-              from: {item.flag}
-            </p>
+          <div className="hidden md:flex  items-end flex-col">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openContent();
+              }}
+              className={`ml-3 px-3 py-1 border border-blue-600 text-blue-600 text-xs rounded hover:bg-blue-600 hover:text-white transition flex items-center gap-1 ${
+                isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+              } `}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              View Doc
+            </button>{' '}
+            {item.flag && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 mt-1">
+                from: {item.flag}
+              </p>
+            )}
+          </div>
+
+          {!isClickable && status === 'failed' && (
+            <span className="text-xs text-gray-400 ml-2">
+              (Failed to generate)
+            </span>
           )}
-        </div>
+        </h3>
 
-        {!isClickable && status === 'failed' && (
-          <span className="text-xs text-gray-400 ml-2">
-            (Failed to generate)
-          </span>
+        {item.finalTouch && (
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <strong>Customization:</strong> {item.finalTouch}
+          </p>
         )}
-      </h3>
 
-      {item.finalTouch && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-          <strong>Customization:</strong> {item.finalTouch}
-        </p>
-      )}
+        {item.error && status === 'failed' && (
+          <p
+            className="text-sm text-red-600 dark:text-red-400 mb-2
+    break-words break-all
+    whitespace-normal
+    max-w-full"
+          >
+            <strong>Error:</strong> {item.error}
+          </p>
+        )}
+      </div>
 
-      {item.error && status === 'failed' && (
-        <p className="text-sm text-red-600 dark:text-red-400 mb-2">
-          <strong>Error:</strong> {item.error}
-        </p>
-      )}
-
-      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-3">
+      <div className="flex items-center flex-wrap justify-between text-xs text-gray-500 dark:text-gray-400 mt-3">
         <span>Created: {formatDate(item.createdAt)}</span>
         {item.completedAt && status !== 'pending' && (
           <span>Completed: {formatDate(item.completedAt)}</span>

@@ -433,8 +433,6 @@ export const updateStudentProfile = async (req, res) => {
     if (location !== undefined) update.location = location;
     if (jobRole !== undefined) update.jobRole = jobRole;
 
-    console.log(update);
-
     if (Object.keys(update).length === 0) {
       return res
         .status(400)
@@ -448,8 +446,6 @@ export const updateStudentProfile = async (req, res) => {
       { $set: update },
       { new: true, runValidators: true },
     );
-
-    console.log(result);
 
     if (!result) {
       return res.status(404).json({ message: 'Student not found' });
@@ -1720,7 +1716,6 @@ export const StudentAnalytics = async (req, res) => {
 export const updateJobPreferences = async (req, res) => {
   try {
     const studentId = req.user._id;
-
     const formData = req.body.formData || req.body;
 
     if (!formData || Object.keys(formData).length === 0) {
@@ -1738,7 +1733,6 @@ export const updateJobPreferences = async (req, res) => {
           typeof formData[key] === 'string'
         ) {
           const skillsString = formData[key];
-
           if (skillsString.trim().length > 0) {
             update[`jobPreferences.${key}`] = skillsString
               .split(',')
@@ -1755,7 +1749,6 @@ export const updateJobPreferences = async (req, res) => {
       }
     }
 
-    // Check if there is anything to update after processing
     if (Object.keys(update).length === 0) {
       return res
         .status(400)
@@ -1772,11 +1765,25 @@ export const updateJobPreferences = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // 🔥 Invalidate all caches related to this student
-    // Fire-and-forget so API latency doesn’t depend on Redis.
-    redisClient
-      .invalidateStudentCache(studentId)
-      .catch((err) => console.error('Error invalidating student cache:', err));
+    // 🔥 FIX: Explicitly delete the exact key used in getProfileCompletion
+    const profileCacheKey = `student:${studentId}:profileCompletion`;
+
+    try {
+      if (redisClient.del) {
+        await redisClient.del(profileCacheKey);
+      } else if (redisClient.invalidate) {
+        await redisClient.invalidate(profileCacheKey);
+      }
+
+      // Keep your existing generic invalidation too
+      redisClient
+        .invalidateStudentCache(studentId)
+        .catch((err) =>
+          console.error('Error invalidating generic student cache:', err),
+        );
+    } catch (cacheErr) {
+      console.error('Manual cache clear failed:', cacheErr);
+    }
 
     return res.status(200).json({
       message: 'Job preferences updated successfully',
@@ -1784,13 +1791,11 @@ export const updateJobPreferences = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating job preferences:', error);
-
     if (error.name === 'CastError' || error.name === 'ValidationError') {
       return res
         .status(400)
         .json({ message: 'Invalid data provided.', error: error.message });
     }
-
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -1844,11 +1849,11 @@ export const getProfileCompletion = async (req, res) => {
           skills: Boolean(student.skills?.length >= 10),
           projects: Boolean(student.projects?.length > 0),
           jobPreferences: Boolean(
-            student.jobPreferences?.preferedJobTitles?.length > 0 &&
-            student.jobPreferences?.preferedSalary?.min > 0 &&
-            (student.jobPreferences?.preferedCountries?.length > 0 ||
-              student.jobPreferences?.preferedCities?.length > 0 ||
-              student.jobPreferences?.isRemote === true),
+            student.jobPreferences?.preferredJobTitles?.length > 0 &&
+              student.jobPreferences?.preferredSalary?.min > 0 &&
+              (student.jobPreferences?.preferredCountries?.length > 0 ||
+                student.jobPreferences?.preferredCities?.length > 0 ||
+                student.jobPreferences?.isRemote === true),
           ),
         };
 
@@ -1964,8 +1969,6 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       .slice(0, 100)
       .map((x) => x.job);
     console.timeEnd('scoring');
-
-    console.log('TOTAL getRecommendedJobs ms:', Date.now() - start);
 
     return res.status(200).json({
       success: true,

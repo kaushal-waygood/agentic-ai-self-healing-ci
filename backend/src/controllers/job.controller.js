@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/student.model.js';
@@ -56,7 +55,8 @@ export const searchJobs = async (req, res) => {
     limit = 10,
     country,
     state,
-    city,
+    // job search issue solved by adding city
+    city = '',
     employmentType,
     experience,
     datePosted,
@@ -72,7 +72,7 @@ export const searchJobs = async (req, res) => {
     limitNum,
     country,
     state,
-    city,
+    city: city || '',
     employmentType,
     experience,
     datePosted,
@@ -115,7 +115,7 @@ export const searchJobs = async (req, res) => {
       const regex = new RegExp(escapeRegex(q), 'i');
       searchCriteria.$or = [
         { title: regex },
-        { description: regex },
+        // { description: regex },
         { queries: regex },
       ];
     }

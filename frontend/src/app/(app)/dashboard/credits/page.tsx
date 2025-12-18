@@ -21,10 +21,10 @@ import {
   CartItem,
 } from '@/components/credits/SpendCreditsSection';
 import apiInstance from '@/services/api';
-import { CreditTransaction, PendingClaim } from '@/types/credits';
+import { PendingClaim } from '@/types/credits';
 
 // SIMPLIFIED TABS: Just two main views
-type TabKey = 'overview' | 'history';
+type TabKey = 'balance' | 'spent' | 'transactions';
 
 const ALLOWED_SOCIAL_ACTIONS = new Set([
   'FOLLOW_LINKEDIN',
@@ -63,7 +63,7 @@ export default function CreditsPage() {
   } | null>(null);
 
   // Default to overview
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeTab, setActiveTab] = useState<TabKey>('balance');
   const [spending, setSpending] = useState(false);
 
   const router = useRouter();
@@ -191,7 +191,7 @@ export default function CreditsPage() {
       <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6 flex items-center justify-center">
         <div className="text-gray-500 flex items-center gap-2">
           <span className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full"></span>
-          Loading wallet...
+          Loading Credits...
         </div>
       </div>
     );

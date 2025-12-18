@@ -222,7 +222,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         <div className="relative p-2 md:p-4 text-white">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex-1 space-y-4">
-              <h1 className="text-xl md:text-2xl font-bold mb-3 leading-tight">
+              <h1 className="text-xl md:text-2xl font-semibold mb-3 leading-tight">
                 {job.title}
               </h1>
               <div className="flex flex-wrap items-center gap-4 text-xs text-blue-50">
@@ -268,7 +268,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
       {/* Actions */}
       <div className="rounded-xl border border-white/20 p-1">
-        <div className="flex flex-col md:flex-row items-stretch gap-4 px-6">
+        {/* <div className="flex flex-col md:flex-row items-stretch gap-4 px-6"> */}
+        <div className="flex flex-col lg:flex-row items-center gap-4 px-4 sm:px-6">
           {/* Logo */}
           <div className="flex items-center justify-center md:justify-start">
             {job.logo ? (
@@ -295,7 +296,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           </div>
 
           {token ? (
-            <div className="flex flex-col justify-end md:flex-row gap-2 items-center flex-1 md:gap-4">
+            // <div className="flex flex-col flex-wrap justify-end md:flex-row gap-2 items-center flex-1 md:gap-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-end items-stretch gap-2 flex-1">
               {/* Tailor & Apply */}
               {job.applyMethod?.url === 'email' ? (
                 <Button
@@ -317,7 +319,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               ) : (
                 <Button
                   asChild
-                  className="group relative overflow-hidden px-3 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
@@ -338,7 +340,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <Button
                   onClick={handleApplyOnSite}
                   asChild
-                  className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
                   <Link
                     href={job.applyMethod.url}
@@ -358,7 +360,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {!matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
-                  className="group relative overflow-hidden px-6 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
+                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
                 >
                   <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                   <div className="relative flex items-center justify-center gap-2">

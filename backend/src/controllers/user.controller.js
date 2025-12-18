@@ -108,15 +108,15 @@ const BACKEND_API_BASE_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NODE_ENV === 'development'
-      ? 'https://api.dev.zobsai.com'
-      : 'http://127.0.0.1:8080';
+    ? 'https://api.dev.zobsai.com'
+    : 'http://127.0.0.1:8080';
 
 const FRONTEND_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NODE_ENV === 'development'
-      ? 'https://dev.zobsai.com'
-      : 'http://127.0.0.1:3000';
+    ? 'https://dev.zobsai.com'
+    : 'http://127.0.0.1:3000';
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
@@ -200,9 +200,9 @@ const sendEmailViaGmailApi = async ({
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
 const oauth2ClientRedirect = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID_REDIRECT ||
-  '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
+    '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
   process.env.GOOGLE_CLIENT_SECRET_REDIRECT ||
-  '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',
+    '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',
   `${BACKEND_API_BASE_URL}${redirectURI}`,
 );
 
@@ -267,14 +267,10 @@ export const firebaseAuth = async (req, res) => {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
 
-    // Find by firebaseUid OR email
     let user = await User.findOne({
       $or: [{ firebaseUid: uid }, { email: email.toLowerCase() }],
     });
 
-    // If an existing user is found by email but does not have firebaseUid,
-    // do NOT automatically attach firebaseUid or change authMethod.
-    // Instead, return an error telling the client the email is already registered.
     if (user && !user.firebaseUid && user.email === email.toLowerCase()) {
       return res.status(400).json({
         success: false,
@@ -283,7 +279,6 @@ export const firebaseAuth = async (req, res) => {
       });
     }
 
-    // If no user found, create as before
     if (!user) {
       user = await User.create({
         firebaseUid: uid,
@@ -781,7 +776,6 @@ export const verifyEmail = async (req, res) => {
 };
 
 export const resendVerificationEmail = async (req, res) => {
-  // Keeps old behavior: expects logged-in user and uses req.user._id
   const { email } = req.body;
   const { _id } = req.user;
 
@@ -830,11 +824,9 @@ export const verifyUpdateEmail = async (req, res) => {
   const { email, otp } = req.body;
 
   try {
-    // Update email first then validate otp on saved data
     const user = await User.findById(_id).select('+otp +otpExpires');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // if the flow expects the email to be already set during OTP generation, check email param matches (optional)
     if (user.otp !== otp)
       return res.status(400).json({ message: 'Invalid OTP' });
     if (user.otpExpires < new Date())
@@ -990,8 +982,9 @@ export const forgotPassword = async (req, res) => {
     user.passwordResetExpires = passwordResetExpires;
     await user.save();
 
-    const resetUrl = `${FRONTEND_URL || 'http://127.0.0.1:3000'
-      }/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+    const resetUrl = `${
+      FRONTEND_URL || 'http://127.0.0.1:3000'
+    }/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
     const mailHtml = `
       <h2>Password Reset Request</h2>
@@ -1251,14 +1244,16 @@ export const oAuth2Callback = async (req, res) => {
   if (!code) {
     console.error('No authorization code received from Google.');
     return res.redirect(
-      `${FRONTEND_URL || 'http://127.0.0.1:3000'
+      `${
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_no_code`,
     );
   }
   if (!userId) {
     console.error('No state (userId) received from Google.');
     return res.redirect(
-      `${FRONTEND_URL || 'http://127.0.0.1:3000'
+      `${
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_no_state`,
     );
   }
@@ -1283,7 +1278,8 @@ export const oAuth2Callback = async (req, res) => {
     const user = await User.findById(userId);
     if (!user)
       return res.redirect(
-        `${FRONTEND_URL || 'http://127.0.0.1:3000'
+        `${
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/dashboard/settings?error=user_not_found`,
       );
 
@@ -1295,7 +1291,8 @@ export const oAuth2Callback = async (req, res) => {
     await user.save();
 
     return res.redirect(
-      `${FRONTEND_URL || 'http://127.0.0.1:3000'
+      `${
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?success=google_connected`,
     );
   } catch (err) {
@@ -1305,7 +1302,8 @@ export const oAuth2Callback = async (req, res) => {
       err.stack,
     );
     return res.redirect(
-      `${FRONTEND_URL || 'http://127.0.0.1:3000'
+      `${
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/dashboard/settings?error=auth_failed_internal`,
     );
   }
@@ -1430,7 +1428,8 @@ export const redirectToGoogle = async (req, res) => {
     return res
       .status(500)
       .redirect(
-        `${FRONTEND_URL || 'http://127.0.0.1:3000'
+        `${
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/login?error=google_redirect_failed`,
       );
   }
@@ -1443,7 +1442,8 @@ export const handleGoogleCallback = async (req, res) => {
     return res
       .status(400)
       .redirect(
-        `${FRONTEND_URL || 'http://127.0.0.1:3000'
+        `${
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/login?error=missing_auth_code`,
       );
 
@@ -1488,7 +1488,8 @@ export const handleGoogleCallback = async (req, res) => {
       );
 
       return res.redirect(
-        `${FRONTEND_URL || 'http://127.0.0.1:3000'
+        `${
+          FRONTEND_URL || 'http://127.0.0.1:3000'
         }/auth/google/callback?token=${token}&new=true`,
       );
     }
@@ -1500,7 +1501,8 @@ export const handleGoogleCallback = async (req, res) => {
     );
 
     return res.redirect(
-      `${FRONTEND_URL || 'http://127.0.0.1:3000'
+      `${
+        FRONTEND_URL || 'http://127.0.0.1:3000'
       }/auth/google/callback?token=${token}&new=false`,
     );
   } catch (error) {
@@ -1562,5 +1564,20 @@ export const isEmailSentForNotify = async (req, res, next) => {
       .json({ sent: true, message: 'Email has been sent successfully' });
   } catch (error) {
     return next(error);
+  }
+};
+
+export const getVerifiedUser = async (req, res) => {
+  try {
+    const user = await User.find({
+      isEmailVerified: true,
+      authMethod: 'local',
+    }).select('email');
+
+    console.log('user', user);
+
+    return res.status(200).json(user);
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

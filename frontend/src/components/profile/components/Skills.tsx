@@ -63,7 +63,7 @@ const Skills = ({
                   <div className="flex justify-between items-start ">
                     {/* Skill Name and Level Badge */}
                     <div className="pr-2">
-                      <h4 className="text-base font-bold text-gray-800 break-words ">
+                      <h4 className="text-base font-bold text-gray-800 break-all">
                         {skill.skill}
                       </h4>
                       <span

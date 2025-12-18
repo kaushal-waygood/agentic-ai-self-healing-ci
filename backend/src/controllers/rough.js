@@ -4,7 +4,7 @@ import os from 'os';
 import pdfParse from 'pdf-parse';
 import { v4 as uuidv4 } from 'uuid';
 import { CVDataPrompt } from '../prompt/studentCVData.js';
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import { retryOperation } from '../utils/retry.js';
 import { callGenAI } from '../utils/genAIWrapper.js';
 import { parseBasicFromText } from '../utils/basicParser.js';
@@ -69,10 +69,17 @@ export const extractStudentDataFromCV = async (req, res) => {
     try {
       const prompt = CVDataPrompt(pdfData.text);
 
-      const aiResponse = await retryOperation(() => callGenAI(prompt), {
-        retries: 3,
-        baseDelay: 800,
-      });
+      const aiResponse = await retryOperation(
+        () =>
+          callGenAI(prompt, {
+            userId: req.user?._id,
+            endpoint: req.endpoint,
+          }),
+        {
+          retries: 3,
+          baseDelay: 800,
+        },
+      );
 
       console.log('AI response:', aiResponse);
 

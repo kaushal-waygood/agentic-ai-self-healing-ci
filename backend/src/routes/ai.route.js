@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
+import {
+  authMiddleware,
+  isUserOrUniStudent,
+} from '../middlewares/auth.middleware.js';
 import { memoryUpload, upload } from '../middlewares/multer.js';
 import {
   convertDataIntoHTML,
@@ -40,50 +43,57 @@ import {
   getCVGenerationStatus,
 } from '../controllers/sse.controller.js';
 import { extractStudentDataFromCV } from '../controllers/rough.js';
+import { checkCredits } from '../middlewares/checkCredits.js';
 
 const router = Router();
 
 router.post(
   '/resume/extract',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   memoryUpload.single('cv'),
   extractStudentDataFromCV,
 );
 
-router.get('/resume/convert', authMiddleware, isStudent, convertDataIntoHTML);
+router.get(
+  '/resume/convert',
+  authMiddleware,
+  isUserOrUniStudent,
+  convertDataIntoHTML,
+);
 
-router.get('/cvs', authMiddleware, isStudent, getAllCVs);
-router.get('/cls', authMiddleware, isStudent, getAllCLs);
+router.get('/cvs', authMiddleware, isUserOrUniStudent, getAllCVs);
+router.get('/cls', authMiddleware, isUserOrUniStudent, getAllCLs);
 router.get(
   '/tailored-applications',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   getAllTailoredApplications,
 );
 
-router.get('/cv/:cvId', authMiddleware, isStudent, getSingleCV);
-router.get('/cl/:clId', authMiddleware, isStudent, getSingleCL);
+router.get('/cv/:cvId', authMiddleware, isUserOrUniStudent, getSingleCV);
+router.get('/cl/:clId', authMiddleware, isUserOrUniStudent, getSingleCL);
 router.get(
   '/tailored-application/:applicationId',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   getSingleTailoredApplication,
 );
 
-router.delete('/cv/:cvId', authMiddleware, isStudent, deleteSingleCV);
-router.delete('/cl/:clId', authMiddleware, isStudent, deleteSingleCL);
+router.delete('/cv/:cvId', authMiddleware, isUserOrUniStudent, deleteSingleCV);
+router.delete('/cl/:clId', authMiddleware, isUserOrUniStudent, deleteSingleCL);
 router.delete(
   '/tailored-applications/:appId',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   deleteSingleTailoredApplication,
 );
 
 router.post(
   '/resume/generate/jd',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
+  checkCredits('CV_GENERATION'),
   upload.single('cv'),
   generateCVByJD,
 );
@@ -91,7 +101,8 @@ router.post(
 router.post(
   '/resume/generate/jobid',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
+  checkCredits('CV_GENERATION'),
   upload.single('cv'),
   generateCVByJobId,
 );
@@ -99,30 +110,54 @@ router.post(
 router.post(
   '/resume/generate/jobtitle',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
+  checkCredits('CV_GENERATION'),
   upload.single('cv'),
   generateCVByTitle,
 );
 
-router.post('/resume/regenerate', authMiddleware, isStudent, regenerateCV);
+router.post(
+  '/resume/regenerate',
+  authMiddleware,
+  isUserOrUniStudent,
+  regenerateCV,
+);
 
 router.post(
   '/coverletter/generate/jd',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
+  checkCredits('COVER_LETTER_GENERATION'),
   upload.single('cv'),
   generateCoverLetterByJD,
 );
 
-router.patch('/cv/:id/rename', authMiddleware, isStudent, renameHtmlCV);
-router.patch('/cl/:id/rename', authMiddleware, isStudent, renameCoverLetter);
-router.get('/status/:type/:id', authMiddleware, isStudent, refreshStatus);
-router.get('/sse/:jobId', authMiddleware, isStudent, cvGenerationSSE);
+router.patch(
+  '/cv/:id/rename',
+  authMiddleware,
+  isUserOrUniStudent,
+  renameHtmlCV,
+);
+router.patch(
+  '/cl/:id/rename',
+  authMiddleware,
+  isUserOrUniStudent,
+  renameCoverLetter,
+);
+
+router.get(
+  '/status/:type/:id',
+  authMiddleware,
+  isUserOrUniStudent,
+  refreshStatus,
+);
+router.get('/sse/:jobId', authMiddleware, isUserOrUniStudent, cvGenerationSSE);
 router.get('/status/:jobId', getCVGenerationStatus);
 router.post(
   '/coverletter/generate/jobid',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
+  checkCredits('COVER_LETTER_GENERATION'),
   upload.single('cv'),
   generateCoverLetterByJobId,
 );
@@ -130,34 +165,55 @@ router.post(
 router.post(
   '/coverletter/generate/jobtitle',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
+  checkCredits('COVER_LETTER_GENERATION'),
   upload.single('cv'),
   generateCoverLetterByTitle,
 );
 
-router.post('/coverletter/regenerate', authMiddleware, isStudent, regenerateCL);
+router.post(
+  '/coverletter/regenerate',
+  authMiddleware,
+  isUserOrUniStudent,
+  regenerateCL,
+);
 
-router.post('/resume/save/html', authMiddleware, isStudent, saveStudentHTMLCV);
-router.get('/resume/saved', authMiddleware, isStudent, getStudentHTMLCV);
+router.post(
+  '/resume/save/html',
+  authMiddleware,
+  isUserOrUniStudent,
+  saveStudentHTMLCV,
+);
+router.get(
+  '/resume/saved',
+  authMiddleware,
+  isUserOrUniStudent,
+  getStudentHTMLCV,
+);
 router.get(
   '/resume/saved/:cvId',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   getSingleStudentHTMLCV,
 );
 
 router.post(
   '/letter/save/html',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   savedStudentHTMLLetter,
 );
-router.get('/letter/saved', authMiddleware, isStudent, getStudentHTMLLetter);
+router.get(
+  '/letter/saved',
+  authMiddleware,
+  isUserOrUniStudent,
+  getStudentHTMLLetter,
+);
 
 router.get(
   '/letter/saved/:letterId',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   getSingleStudentHTMLLetter,
 );
 
@@ -169,7 +225,7 @@ const uploadToMemory = multer({
 router.post(
   '/applications/tailor',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   uploadToMemory.single('cv'),
   createTailoredApply,
 );
@@ -177,21 +233,21 @@ router.post(
 router.post(
   '/applications/save',
   authMiddleware,
-  isStudent,
-  saveTailoredApplication, // Use the new controller
+  isUserOrUniStudent,
+  saveTailoredApplication,
 );
 
 router.get(
   '/applications',
   authMiddleware,
-  isStudent,
-  getSavedApplications, // Use the new controller
+  isUserOrUniStudent,
+  getSavedApplications,
 );
 
 router.post(
   '/calculate-match',
   authMiddleware,
-  isStudent,
+  isUserOrUniStudent,
   calculateJobMatchScore,
 );
 
