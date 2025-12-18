@@ -41,6 +41,8 @@ import useProfileCompletion from '@/hooks/useProfileCompletion';
 import { usePathname, useRouter } from 'next/navigation';
 import CompletionModal from './CompletionModel';
 import { startDashboardTour } from './dashboardDriver';
+import { SpendCreditsSection } from '@/components/credits/SpendCreditsSection';
+import { useCredits } from '@/hooks/useCredits';
 
 export function StatCard({
   title,
@@ -159,7 +161,7 @@ export function ProfileReadinessCard() {
 
   if (isLoading || !data) {
     return (
-      <div className="bg-white rounded-lg  p-6">
+      <div className="bg-white rounded-lg p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 border-2 border-dashed rounded-lg">
           <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
           <p className="font-medium">Loading profile data...</p>
@@ -170,7 +172,7 @@ export function ProfileReadinessCard() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg  p-6">
+      <div className="bg-white rounded-lg p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-red-500 border-2 border-dashed border-red-200 rounded-lg">
           <p className="font-medium">Error loading data</p>
         </div>
@@ -189,6 +191,40 @@ export function ProfileReadinessCard() {
 
   const score = data.percentage;
   const checks = data.categories;
+
+  /* =========================
+     ✅ PROFILE COMPLETE STATE
+     ========================= */
+  if (score === 100) {
+    return (
+      <div className="bg-white border rounded-lg p-4 transition-shadow duration-300">
+        <div className="flex justify-between items-center text-center">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <h3 className="text-xl font-semibold text-gray-900">
+              Profile Complete 🎉
+            </h3>
+          </div>
+
+          <div>
+            <Button
+              asChild
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Link href="/dashboard/profile">
+                View Profile
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================
+     🔁 EXISTING ANALYTICS UI
+     ========================= */
 
   const getScoreColor = (scoreValue) => {
     if (scoreValue >= 80) return 'text-green-600';
@@ -212,7 +248,7 @@ export function ProfileReadinessCard() {
   };
 
   return (
-    <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
+    <div className="bg-white border rounded-lg p-6 transition-shadow duration-300">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -229,6 +265,7 @@ export function ProfileReadinessCard() {
           <p className="text-sm text-gray-500">Complete</p>
         </div>
       </div>
+
       <div className="relative w-full h-3 bg-gray-200 rounded-full mb-6 overflow-hidden">
         <div
           className={`h-full bg-gradient-to-r ${getProgressColor(
@@ -249,12 +286,12 @@ export function ProfileReadinessCard() {
             }}
           >
             <CheckCircle2
-              className={`w-5 h-5 transition-colors duration-300 ${
+              className={`w-5 h-5 ${
                 checks?.[key] ? 'text-green-600' : 'text-gray-300'
               }`}
             />
             <span
-              className={`text-sm transition-colors duration-300 ${
+              className={`text-sm ${
                 checks?.[key] ? 'text-gray-900 font-medium' : 'text-gray-500'
               }`}
             >
@@ -264,24 +301,21 @@ export function ProfileReadinessCard() {
         ))}
       </div>
 
-      {/* --- NEW SECTION: SUGGESTION TO COMPLETE PROFILE --- */}
-      {score < 100 && (
-        <div className="mt-6 text-center border-t border-gray-200 pt-5">
-          <p className="text-sm text-gray-600 mb-4">
-            A complete profile gets <strong>5x more views</strong>. Fill out the
-            remaining sections to boost your visibility!
-          </p>
-          <Button
-            asChild
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            <Link href="/dashboard/profile">
-              Go to Profile
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
-          </Button>
-        </div>
-      )}
+      <div className="mt-6 text-center border-t border-gray-200 pt-5">
+        <p className="text-sm text-gray-600 mb-4">
+          A complete profile gets <strong>5x more views</strong>. Fill out the
+          remaining sections to boost your visibility!
+        </p>
+        <Button
+          asChild
+          className="bg-purple-600 hover:bg-purple-700 text-white"
+        >
+          <Link href="/dashboard/profile">
+            Go to Profile
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -467,6 +501,7 @@ export function SubscriptionStatusCard({ plan }: any) {
 }
 
 export default function DashboardPage() {
+  const { balance, spending, checkout } = useCredits();
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [stats, setStats] = useState({
     applicationsSent: 0,
@@ -477,7 +512,6 @@ export default function DashboardPage() {
     tailoredApplications: 0,
     jobsViewed: 0,
     appliedJobsCount: 0,
-
     jobsVisited: 0,
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
@@ -564,7 +598,6 @@ export default function DashboardPage() {
     }
   }, [dispatch, authUser]);
 
-  // Effect 2: Fetch dashboard stats, but ONLY after `authUser` is available.
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -655,8 +688,6 @@ export default function DashboardPage() {
     fetchSavedJobs();
   }, []);
 
-  // Instruction Driver tour logic
-
   const [showCompletionModal, setShowCompletionModal] =
     useState<boolean>(false);
 
@@ -688,6 +719,7 @@ export default function DashboardPage() {
       btn.removeEventListener('click', handleStartTour);
     };
   }, []);
+
   const fireConfetti = () => {
     const end = Date.now() + 1000;
 
@@ -744,6 +776,7 @@ export default function DashboardPage() {
             <div id="profile-readiness">
               <ProfileReadinessCard />
             </div>
+
             {/* 🚀 APPLICATIONS SECTION */}
             <div id="my-docsx">
               <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
@@ -779,12 +812,21 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+
+            <div>
+              <SpendCreditsSection
+                balance={balance}
+                loading={spending}
+                onCheckout={checkout}
+              />
+            </div>
+
             {/* 🧩 JOBS SECTION */}
             <div id="my-applications">
               <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
                 My Applications
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <StatCard
                   title="Saved Jobs"
                   value={stats.savedJobsCount}

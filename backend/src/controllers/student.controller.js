@@ -24,6 +24,7 @@ import {
   CREDIT_EARN,
   earnCreditsForAction,
 } from '../utils/credits.js';
+import { generateEmbedding } from '../config/embedding.js';
 
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
@@ -423,7 +424,9 @@ export const completeOnboarding = async (req, res) => {
 export const updateStudentProfile = async (req, res) => {
   const { _id } = req.user;
   // Destructure all possible fields that are allowed to be updated
-  const { fullName, phone, email, location, jobRole } = req.body;
+  const { fullName, phone, email, location, jobPreference: jobRole } = req.body;
+
+  console.log(req.body);
 
   try {
     const update = {};
@@ -1879,103 +1882,140 @@ export const getProfileCompletion = async (req, res) => {
 };
 
 export const getProfileBasedRecommendedJobs = async (req, res) => {
-  const start = Date.now();
   try {
-    const userId = req.user;
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
 
-    console.time('profile');
+    // 1. Build user profile
     const profile = await buildUserProfileFromStudent(userId);
-    console.timeEnd('profile');
 
-    console.time('external_fetch_total');
+    // 2. Fetch & hydrate external jobs (unchanged behavior)
     const externalQueries = buildExternalQueries(
       profile.titles,
       profile.skills,
     ).slice(0, 3);
 
-    let externalJobsRaw = [];
-
     if (externalQueries.length) {
-      const externalResults = await Promise.all(
-        externalQueries.map((q) =>
-          (async () => {
-            console.time(`external_fetch:${q}`);
-            const apiJobs = await fetchExternalJobsCached(
-              q,
-              profile.location?.country,
-              profile.location?.state,
-              profile.location?.city,
-              null,
-              null,
-              null,
-              1,
-            );
-            console.timeEnd(`external_fetch:${q}`);
-            return { q, apiJobs };
-          })(),
-        ),
+      const results = await Promise.all(
+        externalQueries.map(async (q) => {
+          const apiJobs = await fetchExternalJobsCached(
+            q,
+            profile.location?.country,
+            profile.location?.state,
+            profile.location?.city,
+          );
+          return { q, apiJobs };
+        }),
       );
 
-      for (const { q, apiJobs } of externalResults) {
-        for (const aj of apiJobs) {
-          externalJobsRaw.push(transformRapidApiJob(aj, q));
+      const externalJobsRaw = [];
+      for (const { q, apiJobs } of results) {
+        if (Array.isArray(apiJobs)) {
+          apiJobs.forEach((aj) =>
+            externalJobsRaw.push(transformRapidApiJob(aj, q)),
+          );
         }
+      }
+
+      if (externalJobsRaw.length) {
+        await upsertExternalJobs(externalJobsRaw.slice(0, 50));
       }
     }
 
-    if (externalJobsRaw.length > 100) {
-      externalJobsRaw = externalJobsRaw.slice(0, 100);
+    // 3. Build structured intent (cleaner embedding input)
+    const userIntent = `
+Titles: ${profile.titles?.join(', ') || ''}
+Skills: ${profile.skills?.join(', ') || ''}
+Location: ${profile.location?.city || ''}, ${profile.location?.country || ''}
+`.trim();
+
+    const userVector = await generateEmbedding(userIntent);
+    if (!userVector) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to generate profile vector',
+      });
     }
 
-    console.timeEnd('external_fetch_total');
+    // 4. Exclude already applied jobs
+    const appliedJobIds =
+      profile.appliedJobs?.map((j) => j.job).filter(Boolean) || [];
 
-    console.time('upsert_external');
-    if (externalJobsRaw.length) {
-      await upsertExternalJobs(externalJobsRaw);
-    }
-    console.timeEnd('upsert_external');
+    const prefs = profile.jobPreferences || {};
 
-    console.time('db_find_candidates');
-    const baseQuery = {
-      isActive: true,
-      origin: { $in: ['HOSTED', 'EXTERNAL'] },
-    };
+    // 5. Vector search pipeline (filters only, no logic removal)
+    const pipeline = [
+      {
+        $vectorSearch: {
+          index: 'vector_index',
+          path: 'job_embedding',
+          queryVector: userVector,
+          numCandidates: 150,
+          limit: 50,
+          filter: {
+            $and: [
+              { isActive: true },
+              { job_embedding: { $exists: true } },
+              ...(appliedJobIds.length
+                ? [{ _id: { $nin: appliedJobIds } }]
+                : []),
+              ...(profile.location?.country
+                ? [{ country: profile.location.country }]
+                : []),
+              ...(prefs.preferredJobTypes?.length
+                ? [{ jobTypes: { $in: prefs.preferredJobTypes } }]
+                : []),
+              ...(prefs.isRemote ? [{ remote: true }] : []),
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          score: { $meta: 'vectorSearchScore' },
+        },
+      },
+      {
+        $addFields: {
+          recencyBoost: {
+            $cond: [
+              {
+                $gte: [
+                  '$jobPostedAt',
+                  new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                ],
+              },
+              0.1,
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          finalScore: { $add: ['$score', '$recencyBoost'] },
+        },
+      },
+      { $sort: { finalScore: -1 } },
+      {
+        $project: {
+          job_embedding: 0,
+          __v: 0,
+        },
+      },
+    ];
 
-    if (profile.location?.country) {
-      baseQuery.country = profile.location.country;
-    }
-    if (profile.location?.state) {
-      baseQuery['location.state'] = profile.location.state;
-    }
-    if (profile.location?.city) {
-      baseQuery['location.city'] = profile.location.city;
-    }
-
-    const candidates = await Job.find(baseQuery)
-      .sort({ jobPostedAt: -1, createdAt: -1 })
-      .limit(400)
-      .lean()
-      .exec();
-    console.timeEnd('db_find_candidates');
-
-    console.time('scoring');
-    const scored = candidates
-      .map((job) => ({
-        job,
-        score: scoreJob(job, profile),
-      }))
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 100)
-      .map((x) => x.job);
-    console.timeEnd('scoring');
+    const jobs = await Job.aggregate(pipeline);
 
     return res.status(200).json({
       success: true,
-      jobs: scored,
+      count: jobs.length,
+      jobs,
     });
   } catch (err) {
-    console.error('Error in getProfileBasedRecommendedJobs:', err);
+    console.error('Error in vector recommendation:', err);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch recommended jobs',
@@ -2067,8 +2107,9 @@ export const toggleAutopilot = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: `Autopilot has been ${student.settings.autopilotEnabled ? 'enabled' : 'disabled'
-        }.`,
+      message: `Autopilot has been ${
+        student.settings.autopilotEnabled ? 'enabled' : 'disabled'
+      }.`,
       autopilotStatus: student.settings.autopilotEnabled,
     });
   } catch (error) {
@@ -2899,10 +2940,10 @@ export const getCreditsSummary = async (req, res) => {
       reason: dailyEligible
         ? 'You can claim daily check-in now.'
         : `Already claimed. Next eligible after ${new Date(
-          Date.now() +
-          24 * 60 * 60 * 1000 -
-          (Date.now() - new Date(lastDailyAt).getTime()),
-        ).toISOString()}`,
+            Date.now() +
+              24 * 60 * 60 * 1000 -
+              (Date.now() - new Date(lastDailyAt).getTime()),
+          ).toISOString()}`,
       eligible: dailyEligible,
       lastClaimedAt: lastDailyAt || null,
       url: redirectForAction('DAILY_CHECKIN'),
@@ -2975,6 +3016,7 @@ export const earnCreditsViaSocialLinks = async (req, res) => {
       .json({ success: false, message: err.message || 'Server error' });
   }
 };
+
 export const getVerifiedUsers = async (req, res) => {
   try {
     const { limit } = req.query;
@@ -2987,7 +3029,9 @@ export const getVerifiedUsers = async (req, res) => {
     const user = await User.find({
       isEmailVerified: true,
       authMethod: 'local',
-    }).select('email').limit(size);
+    })
+      .select('email')
+      .limit(size);
 
     return res.status(200).json(user);
   } catch (error) {

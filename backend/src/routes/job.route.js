@@ -13,15 +13,20 @@ import {
   searchJobs,
   jobViewsCount,
   getAllJobsForStudent,
+  getAllJobsQueries,
+  trackJobClick,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
   isAnyAdmin,
+  isGeneralUser,
   isHr,
   isStudent,
 } from '../middlewares/auth.middleware.js';
 
 const router = Router();
+
+router.get('/job-queries', getAllJobsQueries);
 
 router.get('/job/:jobId', getJobFromJobId);
 router.get('/job/views/:jobId', authMiddleware, isStudent, jobViewsCount);
@@ -38,6 +43,8 @@ router.get(
 );
 
 router.get('/search', searchJobs);
+
+router.post('/:id/click', authMiddleware, isGeneralUser, trackJobClick);
 
 router.get('/', getAllJobs);
 router.get('/hosted', getMannualyJobs);
