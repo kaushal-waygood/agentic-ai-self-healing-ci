@@ -30,6 +30,7 @@ router.get('/job-queries', getAllJobsQueries);
 
 router.get('/job/:jobId', getJobFromJobId);
 router.get('/job/views/:jobId', authMiddleware, isStudent, jobViewsCount);
+router.get('/job-desc/:jobId', getJobDescByJobId);
 
 router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
 router.get('/find', getJobDetailBySlug);
