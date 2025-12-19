@@ -70,6 +70,14 @@ const jobSchema = new Schema(
     queries: [{ type: String, index: true }],
     isActive: { type: Boolean, default: true },
     views: { type: Number, default: 0 },
+    job_embedding: {
+      type: [Number],
+      index: true,
+    },
+    embeddingHash: {
+      type: String,
+      index: true,
+    },
   },
   { timestamps: true, strict: true },
 );

@@ -44,6 +44,7 @@ import {
 } from '../controllers/sse.controller.js';
 import { extractStudentDataFromCV } from '../controllers/rough.js';
 import { checkCredits } from '../middlewares/checkCredits.js';
+import { requireCompleteProfile } from '../middlewares/profileComplete.js';
 
 const router = Router();
 
@@ -94,6 +95,7 @@ router.post(
   authMiddleware,
   isUserOrUniStudent,
   checkCredits('CV_GENERATION'),
+  requireCompleteProfile,
   upload.single('cv'),
   generateCVByJD,
 );
@@ -103,6 +105,7 @@ router.post(
   authMiddleware,
   isUserOrUniStudent,
   checkCredits('CV_GENERATION'),
+  requireCompleteProfile,
   upload.single('cv'),
   generateCVByJobId,
 );
@@ -112,6 +115,7 @@ router.post(
   authMiddleware,
   isUserOrUniStudent,
   checkCredits('CV_GENERATION'),
+  requireCompleteProfile,
   upload.single('cv'),
   generateCVByTitle,
 );
@@ -121,15 +125,6 @@ router.post(
   authMiddleware,
   isUserOrUniStudent,
   regenerateCV,
-);
-
-router.post(
-  '/coverletter/generate/jd',
-  authMiddleware,
-  isUserOrUniStudent,
-  checkCredits('COVER_LETTER_GENERATION'),
-  upload.single('cv'),
-  generateCoverLetterByJD,
 );
 
 router.patch(
@@ -151,22 +146,34 @@ router.get(
   isUserOrUniStudent,
   refreshStatus,
 );
+
 router.get('/sse/:jobId', authMiddleware, isUserOrUniStudent, cvGenerationSSE);
 router.get('/status/:jobId', getCVGenerationStatus);
+
+router.post(
+  '/coverletter/generate/jd',
+  authMiddleware,
+  isUserOrUniStudent,
+  checkCredits('COVER_LETTER_GENERATION'),
+  requireCompleteProfile,
+  upload.single('cv'),
+  generateCoverLetterByJD,
+);
 router.post(
   '/coverletter/generate/jobid',
   authMiddleware,
   isUserOrUniStudent,
   checkCredits('COVER_LETTER_GENERATION'),
+  requireCompleteProfile,
   upload.single('cv'),
   generateCoverLetterByJobId,
 );
-
 router.post(
   '/coverletter/generate/jobtitle',
   authMiddleware,
   isUserOrUniStudent,
   checkCredits('COVER_LETTER_GENERATION'),
+  requireCompleteProfile,
   upload.single('cv'),
   generateCoverLetterByTitle,
 );
@@ -175,6 +182,7 @@ router.post(
   '/coverletter/regenerate',
   authMiddleware,
   isUserOrUniStudent,
+  requireCompleteProfile,
   regenerateCL,
 );
 
@@ -226,6 +234,8 @@ router.post(
   '/applications/tailor',
   authMiddleware,
   isUserOrUniStudent,
+  checkCredits('TAILOR_APPLICATION'),
+  requireCompleteProfile,
   uploadToMemory.single('cv'),
   createTailoredApply,
 );

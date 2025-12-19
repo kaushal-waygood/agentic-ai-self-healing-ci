@@ -3,6 +3,11 @@ import axios from 'axios';
 import slugify from 'slugify';
 import { Job } from '../models/jobs.model.js';
 import { config } from '../config/config.js';
+import { generateEmbedding } from '../config/embedding.js';
+import crypto from 'crypto';
+import { JobInteraction } from '../models/jobInteraction.model.js';
+
+const hashText = (t) => crypto.createHash('sha256').update(t).digest('hex');
 
 // --------------------
 // Slug helpers
@@ -360,33 +365,62 @@ export async function fetchExternalJobsCached(
 // --------------------
 // Bulk upsert for external jobs
 // --------------------
+// src/utils/jobHelpers.js
+
 export async function upsertExternalJobs(externalJobs) {
   if (!externalJobs.length) return;
 
-  const ops = externalJobs
-    .filter((j) => j.jobId)
-    .map((j) => ({
+  const ops = [];
+
+  for (const j of externalJobs) {
+    if (!j.jobId) continue;
+
+    const textToEmbed = `
+Title: ${j.title}
+Description: ${j.description}
+Skills: ${j.qualifications?.join(', ')}
+Company: ${j.company}
+`.trim();
+
+    const embeddingHash = hashText(textToEmbed);
+
+    const existing = await Job.findOne(
+      { jobId: j.jobId, origin: 'EXTERNAL' },
+      { embeddingHash: 1 },
+    ).lean();
+
+    let vector;
+    if (!existing || existing.embeddingHash !== embeddingHash) {
+      vector = await generateEmbedding(textToEmbed);
+    }
+
+    const updateDoc = {
+      title: j.title,
+      description: j.description,
+      responsibilities: j.responsibilities,
+      qualifications: j.qualifications,
+      company: j.company,
+      country: j.country,
+      logo: j.logo,
+      location: j.location,
+      applyMethod: j.applyMethod,
+      isActive: true,
+      jobTypes: j.jobTypes,
+      experience: j.experience,
+      salary: j.salary,
+      remote: j.remote,
+      jobPosted: j.jobPosted,
+      jobPostedAt: j.jobPostedAt,
+      embeddingHash,
+    };
+
+    if (vector) updateDoc.job_embedding = vector;
+
+    ops.push({
       updateOne: {
         filter: { jobId: j.jobId, origin: 'EXTERNAL' },
         update: {
-          $set: {
-            title: j.title,
-            description: j.description,
-            responsibilities: j.responsibilities,
-            qualifications: j.qualifications,
-            company: j.company,
-            country: j.country,
-            logo: j.logo,
-            location: j.location,
-            applyMethod: j.applyMethod,
-            isActive: true,
-            jobTypes: j.jobTypes,
-            experience: j.experience,
-            salary: j.salary,
-            remote: j.remote,
-            jobPosted: j.jobPosted,
-            jobPostedAt: j.jobPostedAt,
-          },
+          $set: updateDoc,
           $addToSet: {
             tags: { $each: Array.isArray(j.tags) ? j.tags : [] },
             queries: { $each: Array.isArray(j.queries) ? j.queries : [] },
@@ -395,17 +429,15 @@ export async function upsertExternalJobs(externalJobs) {
         },
         upsert: true,
       },
-    }));
+    });
+  }
 
   if (!ops.length) return;
 
   try {
     await Job.bulkWrite(ops, { ordered: false });
   } catch (e) {
-    const dupesOnly =
-      e?.writeErrors &&
-      Array.isArray(e.writeErrors) &&
-      e.writeErrors.every((w) => w?.code === 11000);
+    const dupesOnly = e?.writeErrors?.every((w) => w?.code === 11000);
     if (!dupesOnly) throw e;
   }
 }
@@ -539,3 +571,29 @@ export const makeSearchCacheKey = (params) => {
   ].join('|');
 };
 
+export async function getCTRMap(jobIds) {
+  const stats = await JobInteraction.aggregate([
+    { $match: { jobId: { $in: jobIds } } },
+    {
+      $group: {
+        _id: '$jobId',
+        impressions: {
+          $sum: { $cond: [{ $eq: ['$action', 'impression'] }, 1, 0] },
+        },
+        clicks: {
+          $sum: { $cond: [{ $eq: ['$action', 'click'] }, 1, 0] },
+        },
+        applies: {
+          $sum: { $cond: [{ $eq: ['$action', 'apply'] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  const map = {};
+  for (const s of stats) {
+    const ctr = s.impressions > 0 ? s.clicks / s.impressions : 0;
+    map[s._id.toString()] = Math.log(1 + ctr + s.applies * 3);
+  }
+  return map;
+}
