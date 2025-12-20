@@ -233,7 +233,7 @@ export const SecuritySetting = () => {
 
             <Button
               onClick={handleChangePassword}
-              className="w-full mt-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-md shadow-emerald-500/20"
+              className="w-full mt-2 hover:from-emerald-600 hover:to-teal-700 shadow-md shadow-emerald-500/20"
             >
               Update Password
             </Button>

@@ -46,7 +46,7 @@ const Education = ({
               e.stopPropagation();
               setAddEdu(true);
             }}
-            className="w-full  flex items-center justify-center py-2 px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg  transition-all duration-300"
+            className="w-full  flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700  text-white rounded-lg  transition-all duration-300"
           >
             <PlusCircle className="mr-2 h-5 w-5" />
             Add Education
