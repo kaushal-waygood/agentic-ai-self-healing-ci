@@ -288,9 +288,9 @@ const JobWizard = ({
                   <div className="relative group">
                     <Textarea
                       placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
-                      className={`min-h-[280px] border-2 rounded-lg p-6 pr-16 focus:ring-4 resize-none transition-all duration-500 bg-gradient-to-br from-gray-50 to-white shadow-inner ${
+                      className={`min-h-[280px] border-2 rounded-lg p-6 pr-16 focus:ring-4 resize-none transition-all duration-500 ${
                         isFocused
-                          ? 'border-blue-500 ring-blue-100 shadow-lg'
+                          ? '  shadow-lg'
                           : charCount < 200
                           ? 'border-gray-300 hover:border-gray-400'
                           : 'border-green-300 hover:border-green-400 ring-green-50'
@@ -364,7 +364,7 @@ const JobWizard = ({
                     <Button
                       className={`h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                         charCount >= 200 && !isLoading
-                          ? 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:shadow-2xl hover:shadow-purple-500/50 text-white'
+                          ? 'bg-buttonPrimary  text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                       onClick={() => handleSetJobContext('paste')}
@@ -468,7 +468,7 @@ const JobWizard = ({
                     <div className="relative">
                       <Input
                         placeholder="e.g., Senior Software Engineer, Product Manager..."
-                        className=" h-16 border-2 border-gray-300 rounded-lg px-6 pr-16 text-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-500 group-hover:border-gray-400 bg-gradient-to-br from-gray-50 to-white shadow-inner"
+                        className=" h-16 border-2 border-gray-300 rounded-lg px-6 pr-16 text-lg transition-all duration-500 "
                         value={enteredJobTitle}
                         onChange={(e) => setEnteredJobTitle(e.target.value)}
                       />
@@ -511,7 +511,7 @@ const JobWizard = ({
                     </Button>
                   </div>
 
-                  <div className="flex items-start gap-3 bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-100 shadow-sm">
+                  <div className="flex items-start gap-3 p-4 rounded-lg border-2 border-green-100 shadow-sm">
                     <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg flex-shrink-0">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
