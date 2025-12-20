@@ -85,7 +85,7 @@ export function StatCard({
           {actionLink && (
             <Link
               href={actionLink}
-              className="text-sm font-semibold text-purple-600 hover:text-purple-800 flex items-center group-hover:underline"
+              className="text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center group-hover:underline"
             >
               {actionText}
               <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
@@ -199,28 +199,76 @@ export function ProfileReadinessCard() {
   /* =========================
      ✅ PROFILE COMPLETE STATE
      ========================= */
+  // if (score === 100) {
+  //   return (
+  //     <div className="bg-white border rounded-lg p-4 transition-shadow duration-300">
+  //       <div className="flex justify-between items-center text-center">
+  //         <div className="flex items-center gap-2">
+  //           <CheckCircle2 className="w-6 h-6 text-green-600" />
+  //           <h3 className="text-xl font-semibold text-gray-900">
+  //             Profile Complete 🎉
+  //           </h3>
+  //         </div>
+
+  //         <div>
+  //           <Button
+  //             asChild
+  //             className="bg-buttonPrimary hover:bg-blue-700 text-white"
+  //           >
+  //             <Link href="/dashboard/profile">
+  //               View Profile
+  //               <ArrowRight className="w-4 h-4" />
+  //             </Link>
+  //           </Button>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
   if (score === 100) {
     return (
-      <div className="bg-white border rounded-lg p-4 transition-shadow duration-300">
-        <div className="flex justify-between items-center text-center">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-6 h-6 text-green-600" />
-            <h3 className="text-xl font-semibold text-gray-900">
-              Profile Complete 🎉
-            </h3>
+      <div className="bg-white relative overflow-hidden rounded-lg border border-gray-200 p-4 ">
+        <div
+          className="relative z-10 flex flex-col sm:flex-row 
+                      items-start sm:items-center 
+                      justify-between gap-4"
+        >
+          {/* Left */}
+          <div className="flex items-center gap-4">
+            <div className="relative flex items-center justify-center">
+              <div
+                className="relative flex h-12 w-12 items-center 
+                            justify-center rounded-full bg-green-100"
+              >
+                <CheckCircle2 className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Profile Complete
+              </h3>
+              <p className="text-sm text-gray-600">
+                Your profile is 100% ready to go 🎉
+              </p>
+            </div>
           </div>
 
-          <div>
-            <Button
-              asChild
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Link href="/dashboard/profile">
-                View Profile
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </Button>
-          </div>
+          {/* Right */}
+          <Button
+            asChild
+            className="group bg-buttonPrimary hover:bg-blue-700 
+                     text-white flex items-center gap-2"
+          >
+            <Link href="/dashboard/profile">
+              View Profile
+              <ArrowRight
+                className="h-4 w-4 transition-transform 
+                                  group-hover:translate-x-1"
+              />
+            </Link>
+          </Button>
         </div>
       </div>
     );
@@ -314,7 +362,7 @@ export function ProfileReadinessCard() {
           </p>
           <Button
             asChild
-            className="bg-buttonPrimary hover:bg-purple-700 text-white"
+            className="bg-buttonPrimary hover:bg-blue-700 text-white"
           >
             <Link href="/dashboard/profile">
               Go to Profile
@@ -473,7 +521,7 @@ export function SubscriptionStatusCard({ plan }: any) {
         <p className="text-gray-600 text-sm mb-4">
           You do not have an active subscription.
         </p>
-        <Button asChild className="w-full bg-buttonPrimary hover:bg-purple-700">
+        <Button asChild className="w-full bg-buttonPrimary hover:bg-blue-700">
           <Link href="/dashboard/subscriptions">View Plans</Link>
         </Button>
       </div>
@@ -837,7 +885,7 @@ export default function DashboardPage() {
               <ProfileReadinessCard />
             </div>
 
-            <div className="flex gap-2 border border-purple-300 rounded-lg p-2 bg-white focus-within:ring-2 focus-within:ring-purple-400 transition">
+            <div className="flex gap-2 border border-slate-300 rounded-lg p-2 bg-white focus-within:ring-2 focus-within:ring-blue-400 transition">
               <Input
                 placeholder="Search applications"
                 value={searchQuery}
@@ -853,7 +901,7 @@ export default function DashboardPage() {
 
               <Button
                 onClick={handleSearch}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4"
+                className="bg-buttonPrimary hover:bg-blue-700 text-white px-4"
               >
                 <MoveRight className="w-5 h-5" />
               </Button>
@@ -869,72 +917,111 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* AI CV Generator */}
-                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-purple-300">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
-                      <FileText className="w-5 h-5" />
+                <div
+                  className="group bg-white border rounded-lg p-5 
+                  flex flex-col h-full
+                  transition-all hover:shadow-md hover:border-blue-300"
+                >
+                  {/* Content */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="p-2 rounded-lg bg-purple-100 text-purple-600 
+                        group-hover:bg-purple-600 group-hover:text-white transition"
+                      >
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 group-hover:text-purple-700 transition">
+                        AI CV Generator
+                      </h4>
                     </div>
-                    <h4 className="font-semibold text-gray-900 group-hover:text-purple-700 transition">
-                      AI CV Generator
-                    </h4>
+
+                    <p className="text-sm text-gray-600 mb-5">
+                      Generate an ATS-friendly CV tailored to your skills,
+                      experience, and job role.
+                    </p>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-5">
-                    Generate an ATS-friendly CV tailored to your skills,
-                    experience, and job role.
-                  </p>
-
-                  <Link href="/dashboard/cv-generator">
-                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                      Generate CV
-                    </Button>
-                  </Link>
+                  {/* Button pinned bottom */}
+                  <div className="mt-auto">
+                    <Link href="/dashboard/cv-generator">
+                      <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
+                        Generate CV
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
 
                 {/* AI Cover Letter Generator */}
-                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-blue-300">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition">
-                      <Send className="w-5 h-5" />
+                <div
+                  className="group bg-white border rounded-lg p-5 
+                  flex flex-col h-full
+                  transition-all hover:shadow-md hover:border-blue-300"
+                >
+                  {/* Content */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="p-2 rounded-lg bg-blue-100 text-blue-600 
+                        group-hover:bg-blue-600 group-hover:text-white transition"
+                      >
+                        <Send className="w-5 h-5" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 group-hover:text-blue-700 transition">
+                        AI Cover Letter Generator
+                      </h4>
                     </div>
-                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-700 transition">
-                      AI Cover Letter Generator
-                    </h4>
+
+                    <p className="text-sm text-gray-600 mb-5">
+                      Create job-specific cover letters in seconds using
+                      AI-powered insights.
+                    </p>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-5">
-                    Create job-specific cover letters in seconds using
-                    AI-powered insights.
-                  </p>
-
-                  <Link href="/dashboard/cover-letter-generator">
-                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                      Generate Cover Letter
-                    </Button>
-                  </Link>
+                  {/* Button pinned bottom */}
+                  <div className="mt-auto">
+                    <Link href="/dashboard/cover-letter-generator">
+                      <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
+                        Generate Cover Letter
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Application Wizard */}
-                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-cyan-300">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-cyan-100 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition">
-                      <Wand2 className="w-5 h-5" />
+                <div
+                  className="group bg-white border rounded-lg p-5 
+                  flex flex-col h-full
+                  transition-all hover:shadow-md hover:border-blue-300"
+                >
+                  {/* Content */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="p-2 rounded-lg bg-cyan-100 text-cyan-600 
+                        group-hover:bg-cyan-600 group-hover:text-white transition"
+                      >
+                        <Wand2 className="w-5 h-5" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 group-hover:text-cyan-700 transition">
+                        Application Wizard
+                      </h4>
                     </div>
-                    <h4 className="font-semibold text-gray-900 group-hover:text-cyan-700 transition">
-                      Application Wizard
-                    </h4>
+
+                    <p className="text-sm text-gray-600 mb-5">
+                      Auto-optimize your CV and cover letter for a specific job
+                      in one click.
+                    </p>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-5">
-                    Auto-optimize your CV and cover letter for a specific job in
-                    one click.
-                  </p>
-
-                  <Link href="/dashboard/apply">
-                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                      Start Application
-                    </Button>
-                  </Link>
+                  {/* Button pinned bottom */}
+                  <div className="mt-auto">
+                    <Link href="/dashboard/apply">
+                      <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
+                        Start Application
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

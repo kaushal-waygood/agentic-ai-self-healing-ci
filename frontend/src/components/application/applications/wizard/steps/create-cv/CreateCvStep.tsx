@@ -8,6 +8,7 @@ import {
   Clock,
   ChevronDown,
   Briefcase,
+  PlusCircle,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import { useSearchParams } from 'next/navigation';
@@ -231,7 +232,7 @@ const SleekCvStep = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 card-entrance staggered-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 card-entrance staggered-3">
               <button
                 className="btn-outline h-32 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700"
                 onClick={() => handleCvContextSubmit('profile')}
@@ -245,7 +246,7 @@ const SleekCvStep = ({
               </button>
 
               <button
-                className="btn-outline h-32 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700 relative"
+                className=" btn-outline h-32 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700 relative"
                 onClick={() => cvFileInputRef.current?.click()}
                 disabled={isLoading}
               >

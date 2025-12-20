@@ -356,7 +356,7 @@ export default function ReferralsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                <div className="flex justify-between items-center p-3  rounded-lg border border-purple-200">
                   <div>
                     <p className="font-semibold text-purple-700">
                       Each Referral
@@ -372,7 +372,7 @@ export default function ReferralsPage() {
                     <p className="text-xs text-gray-500">credits</p>
                   </div>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-cyan-50 rounded-lg border border-green-200">
+                <div className="flex justify-between items-center p-3 rounded-lg border border-green-200">
                   <div>
                     <p className="font-semibold text-green-700">
                       Milestone Bonus
@@ -386,7 +386,7 @@ export default function ReferralsPage() {
                     <p className="text-xs text-gray-500">bonus credits</p>
                   </div>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+                <div className="flex justify-between items-center p-3 rounded-lg border border-yellow-200">
                   <div>
                     <p className="font-semibold text-orange-700">
                       Premium Upgrade
@@ -406,10 +406,7 @@ export default function ReferralsPage() {
         </div>
 
         {/* --- How It Works Section --- */}
-        <Card
-          hover={false}
-          className="bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 border-purple-200"
-        >
+        <Card hover={false} className=" border-purple-200">
           <CardHeader>
             <CardTitle className="text-xl">How It Works</CardTitle>
           </CardHeader>

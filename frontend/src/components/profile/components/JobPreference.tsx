@@ -222,22 +222,32 @@ const JobPreferencesForm = () => {
   ];
 
   const sections = [
-    { id: 'location', label: 'Location', icon: MapPin, color: 'purple' },
-    { id: 'job', label: 'Job Details', icon: Briefcase, color: 'blue' },
+    { id: 'location', label: 'Location', icon: MapPin, color: 'tabPrimary' },
+    {
+      id: 'job',
+      label: 'Job Details',
+      icon: Briefcase,
+      color: 'tabPrimary',
+    },
     {
       id: 'compensation',
       label: 'Compensation',
       icon: DollarSign,
-      color: 'cyan',
+      color: 'tabPrimary',
     },
     {
       id: 'skills',
       label: 'Skills & Education',
       icon: GraduationCap,
-      color: 'green',
+      color: 'tabPrimary',
     },
-    { id: 'company', label: 'Company', icon: Building, color: 'yellow' },
-    { id: 'additional', label: 'Additional', icon: Settings, color: 'red' },
+    { id: 'company', label: 'Company', icon: Building, color: 'tabPrimary' },
+    {
+      id: 'additional',
+      label: 'Additional',
+      icon: Settings,
+      color: 'tabPrimary',
+    },
   ] as const;
 
   const handleInputChange = (
@@ -357,7 +367,7 @@ const JobPreferencesForm = () => {
     checked,
     onChange,
     children,
-    color = 'purple',
+    color = 'blue',
   }: {
     checked: boolean;
     onChange: () => void;
@@ -367,7 +377,7 @@ const JobPreferencesForm = () => {
     <div
       className={`relative cursor-pointer group transition-all duration-300 transform hover:scale-105 ${
         checked
-          ? `bg-gradient-to-r from-${color}-400 to-${color}-600 text-white shadow-lg shadow-${color}-400/30`
+          ? ``
           : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
       } rounded-xl p-4 border-2 ${
         checked
@@ -380,10 +390,10 @@ const JobPreferencesForm = () => {
         {children}
         <div
           className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-            checked ? 'border-white bg-white/20' : `border-${color}-300`
+            checked ? 'border-blue-400 bg-white/20' : `border-${color}-300`
           }`}
         >
-          {checked && <Check className="w-4 h-4 text-white" />}
+          {checked && <Check className="w-4 h-4 text-blue-400" />}
         </div>
       </div>
     </div>
@@ -399,7 +409,7 @@ const JobPreferencesForm = () => {
             onClick={() => setActiveSection(section.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 ${
               activeSection === section.id
-                ? `bg-gradient-to-r from-${section.color}-400 to-${section.color}-600 text-white  shadow-${section.color}-400/30`
+                ? `bg-${section.color} text-white  shadow-${section.color}-400/30`
                 : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
             }`}
           >
@@ -431,7 +441,7 @@ const JobPreferencesForm = () => {
                   Preferred Job Titles
                 </label>
                 <textarea
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300 resize-none"
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white focus:border-blue-400 dark:bg-slate-800 outline-blue-400  transition-all duration-300 resize-none"
                   rows={3}
                   placeholder="Software Engineer, Product Manager..."
                   value={formData.preferredJobTitles}
@@ -446,7 +456,7 @@ const JobPreferencesForm = () => {
                   Preferred Industries
                 </label>
                 <textarea
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300 resize-none"
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800  outline-blue-400 transition-all duration-300 resize-none"
                   rows={3}
                   placeholder="Technology, Healthcare, Finance..."
                   value={formData.preferredIndustries}
@@ -505,7 +515,7 @@ const JobPreferencesForm = () => {
       case 'compensation':
         return (
           <div className="space-y-6">
-            <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-6">
+            <div className="dark:to-slate-700 rounded-lg p-6">
               <h4 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">
                 <DollarSign className="inline w-5 h-5 mr-2" />
                 Expected Salary Range
@@ -518,7 +528,7 @@ const JobPreferencesForm = () => {
                   </label>
                   <input
                     type="number"
-                    className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+                    className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800  outline-blue-400 transition-all duration-300 resize-none"
                     placeholder="50,000"
                     value={formData.preferredSalary.min}
                     onChange={(e) => handleSalaryChange('min', e.target.value)}
@@ -531,7 +541,7 @@ const JobPreferencesForm = () => {
                   </label>
                   <input
                     type="number"
-                    className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+                    className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800  outline-blue-400 transition-all duration-300 resize-none"
                     placeholder="80,000"
                     value={formData.preferredSalary.max}
                     onChange={(e) => handleSalaryChange('max', e.target.value)}
@@ -545,7 +555,7 @@ const JobPreferencesForm = () => {
                     Currency
                   </label>
                   <select
-                    className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+                    className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800  outline-blue-400 transition-all duration-300 resize-none"
                     value={formData.preferredSalary.currency}
                     onChange={(e) =>
                       handleSalaryChange('currency', e.target.value)
@@ -562,7 +572,7 @@ const JobPreferencesForm = () => {
                     Period
                   </label>
                   <select
-                    className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all duration-300"
+                    className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800  outline-blue-400 transition-all duration-300 resize-none"
                     value={formData.preferredSalary.period}
                     onChange={(e) =>
                       handleSalaryChange('period', e.target.value)
@@ -587,7 +597,7 @@ const JobPreferencesForm = () => {
                   Must-have Skills
                 </label>
                 <textarea
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+                  className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800  outline-blue-400 transition-all duration-300 resize-none"
                   rows={4}
                   placeholder="JavaScript, Python, React..."
                   value={formData.mustHaveSkills}
@@ -603,7 +613,7 @@ const JobPreferencesForm = () => {
                   Nice-to-have Skills
                 </label>
                 <textarea
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+                  className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800  outline-blue-400 transition-all duration-300 resize-none"
                   rows={4}
                   placeholder="Docker, AWS, GraphQL..."
                   value={formData.niceToHaveSkills}
@@ -621,7 +631,7 @@ const JobPreferencesForm = () => {
                   Certifications
                 </label>
                 <textarea
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all duration-300 resize-none"
+                  className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800  outline-blue-400 transition-all duration-300 resize-none"
                   rows={3}
                   placeholder="AWS Certified, PMP, Scrum Master..."
                   value={formData.preferredCertifications}
@@ -631,7 +641,7 @@ const JobPreferencesForm = () => {
                 />
               </div>
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
                   <GraduationCap className="inline w-4 h-4 mr-2" />
                   Education Level
@@ -644,13 +654,42 @@ const JobPreferencesForm = () => {
                       onChange={() =>
                         handleInputChange('preferredEducationLevel', level.id)
                       }
-                      color="green"
+                      color="blue"
                     >
                       <div className="font-medium">
                         {level.icon} {level.label}
                       </div>
                     </CustomCheckbox>
                   ))}
+                </div>
+              </div> */}
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
+                  <GraduationCap className="inline w-4 h-4 mr-2" />
+                  Education Level
+                </label>
+
+                <div className="relative">
+                  <select
+                    value={formData.preferredEducationLevel || ''}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'preferredEducationLevel',
+                        e.target.value,
+                      )
+                    }
+                    className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 outline-blue-400 transition-all duration-300 resize-none"
+                  >
+                    <option value="" disabled>
+                      Select education level
+                    </option>
+
+                    {educationLevels.map((level) => (
+                      <option key={level.id} value={level.id}>
+                        {level.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -663,7 +702,7 @@ const JobPreferencesForm = () => {
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
                 Company Sizes
               </label>
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid  md:grid-cols-3 gap-4">
                 {companySizes.map((size) => (
                   <CustomCheckbox
                     key={size.id}
@@ -671,7 +710,7 @@ const JobPreferencesForm = () => {
                     onChange={() =>
                       toggleArrayValue('preferredCompanySizes', size.id)
                     }
-                    color="yellow"
+                    color="blue"
                   >
                     <div>
                       <div className="font-semibold">
@@ -698,7 +737,7 @@ const JobPreferencesForm = () => {
                     onChange={() =>
                       toggleArrayValue('preferredCompanyCultures', culture.id)
                     }
-                    color="yellow"
+                    color="blue"
                   >
                     <div>
                       <div className="font-semibold">
@@ -723,7 +762,7 @@ const JobPreferencesForm = () => {
                     !formData.visaSponsorshipRequired,
                   )
                 }
-                color="red"
+                color="blue"
               >
                 <div>
                   <div className="font-semibold">
@@ -743,7 +782,7 @@ const JobPreferencesForm = () => {
                     !formData.immediateAvailability,
                   )
                 }
-                color="red"
+                color="blue"
               >
                 <div>
                   <div className="font-semibold">⚡ Immediate Availability</div>
@@ -780,22 +819,77 @@ const JobPreferencesForm = () => {
 
         <div className="max-w-6xl mx-auto">
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3 sm:p-6 md:p-2">
-            <div className="mb-4 sm:mb-6">
-              <h2 className="text-md sm:text-md md:text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">
-                {sections.find((s) => s.id === activeSection)?.label}
-              </h2>
-              <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-20 sm:w-24"></div>
+            <div className="mb-2 sm:mb-4">
+              <div className="flex items-center flex-wrap gap-4 justify-between">
+                <div>
+                  <h2 className="text-md sm:text-md md:text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
+                    {sections.find((s) => s.id === activeSection)?.label}
+                  </h2>
+                </div>
+
+                <div className="hidden lg:flex justify-between items-center flex-wrap gap-1 sm:gap-0">
+                  {sections.map((section, index) => (
+                    <div key={section.id} className="flex items-center">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                          activeSection === section.id
+                            ? `bg-${section.color}  text-white shadow-lg`
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
+                      {index < sections.length - 1 && (
+                        <div className="w-6 sm:w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-2"></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {sections.findIndex((s) => s.id === activeSection) > 0 && (
+                    <button
+                      onClick={handlePreviousSection}
+                      className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                    >
+                      Back
+                    </button>
+                  )}
+
+                  {sections.findIndex((s) => s.id === activeSection) <
+                    sections.length - 1 && (
+                    <button
+                      onClick={handleNextSection}
+                      className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
+                    >
+                      Next
+                    </button>
+                  )}
+
+                  {sections.findIndex((s) => s.id === activeSection) ===
+                    sections.length - 1 && (
+                    <button
+                      onClick={handleSavePreferences}
+                      className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
+                    >
+                      Save
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-20 sm:w-24"></div> */}
             </div>
 
             {renderActiveSection()}
           </div>
         </div>
-
+        {/* 
         <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-8">
           {sections.findIndex((s) => s.id === activeSection) > 0 && (
             <button
               onClick={handlePreviousSection}
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+              className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
             >
               Back
             </button>
@@ -805,7 +899,7 @@ const JobPreferencesForm = () => {
             sections.length - 1 && (
             <button
               onClick={handleNextSection}
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
+              className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
             >
               Next
             </button>
@@ -815,21 +909,21 @@ const JobPreferencesForm = () => {
             sections.length - 1 && (
             <button
               onClick={handleSavePreferences}
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-400 to-cyan-400 text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
+              className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
             >
               Save Preferences
             </button>
           )}
-        </div>
+        </div> */}
 
-        <div className="max-w-md mx-auto mt-8 ">
+        {/* <div className="max-w-md mx-auto mt-8 ">
           <div className="flex justify-between items-center flex-wrap gap-1 sm:gap-0">
             {sections.map((section, index) => (
               <div key={section.id} className="flex items-center">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                     activeSection === section.id
-                      ? `bg-gradient-to-r from-${section.color}-400 to-${section.color}-600 text-white shadow-lg`
+                      ? `bg-${section.color}  text-white shadow-lg`
                       : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
                   }`}
                 >
@@ -841,7 +935,7 @@ const JobPreferencesForm = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

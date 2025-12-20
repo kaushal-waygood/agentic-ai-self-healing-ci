@@ -119,13 +119,15 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
+    <div className="min-h-screen ">
       {/* Header Section */}
       <div className="relative overflow-hidden py-4">
         <div className="absolute inset-0"></div>
         <div className="relative max-w-7xl mx-auto ">
           <div className="text-center ">
-            <h1 className="text-5xl font-bold mb-4 ">Support Center</h1>
+            <h1 className="text-5xl text-headingTextPrimary font-bold mb-2 ">
+              Support Center
+            </h1>
             <p className="text-xl  max-w-2xl mx-auto leading-relaxed">
               Find answers to common questions and get personalized help with
               zobsai
@@ -159,7 +161,7 @@ export default function SupportPage() {
                     onClick={() => setSelectedCategory(category)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                       selectedCategory === category
-                        ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg scale-105'
+                        ? 'bg-tabPrimary text-white shadow-lg scale-105'
                         : 'bg-white text-gray-600 hover:bg-purple-50 hover:text-purple-600 border border-gray-200'
                     }`}
                   >
@@ -171,7 +173,7 @@ export default function SupportPage() {
 
             {/* FAQ Accordion */}
             <Card className="shadow-xl border-0 overflow-hidden bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-b border-purple-100">
+              <CardHeader className=" border-b border-purple-100">
                 <CardTitle className="flex items-center gap-3 text-2xl font-bold text-gray-800">
                   <BookOpen className="h-6 w-6 text-purple-500" />
                   Frequently Asked Questions
@@ -190,11 +192,11 @@ export default function SupportPage() {
                     return (
                       <div
                         key={item.id}
-                        className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/50 transition-all duration-300"
+                        className="group transition-all duration-300"
                       >
                         <button
                           onClick={() => toggleFaq(item.id)}
-                          className="w-full p-6 text-left focus:outline-none focus:ring-4 focus:ring-purple-100 transition-all duration-300"
+                          className="w-full p-6 text-left transition-all duration-300"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4 flex-1">
@@ -208,7 +210,7 @@ export default function SupportPage() {
                                 <IconComponent className="h-5 w-5" />
                               </div>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-800 group-hover:text-purple-700 transition-colors duration-300 text-lg">
+                                <h3 className="font-semibold text-gray-800 group-hover:text-blue-700 transition-colors duration-300 text-lg">
                                   {item.question}
                                 </h3>
                                 <span className="inline-block px-2 py-1 text-xs bg-cyan-100 text-cyan-700 rounded-full mt-2">
@@ -234,7 +236,7 @@ export default function SupportPage() {
                           }`}
                         >
                           <div className="px-6 pb-6 ml-16">
-                            <div className="bg-gradient-to-r from-gray-50 to-purple-50/30 p-4 rounded-xl border-l-4 border-purple-400">
+                            <div className="bg-gradient-to-r from-gray-50 to-purple-50/30 p-4 rounded-xl border-l-4 border-blue-400">
                               <p className="text-gray-700 leading-relaxed">
                                 {item.answer}
                               </p>
@@ -266,7 +268,7 @@ export default function SupportPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* AI Assistant Card */}
-            <Card className="shadow-xl border-0 overflow-hidden bg-gradient-to-br from-purple-500 to-blue-600 text-white transform hover:scale-105 transition-all duration-300">
+            <Card className="shadow-xl border-0 overflow-hidden bg-header-gradient-primary text-white transform hover:scale-105 transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -333,7 +335,7 @@ export default function SupportPage() {
             </Card>
 
             {/* Quick Stats Card */}
-            <Card className="shadow-xl border-0 overflow-hidden bg-gradient-to-br from-cyan-500 to-blue-600 text-white">
+            <Card className="shadow-xl border-0 overflow-hidden bg-header-gradient-primary text-white">
               <CardHeader>
                 <CardTitle className="text-white font-bold flex items-center gap-2">
                   <LifeBuoy className="h-5 w-5" />

@@ -7,7 +7,7 @@ const CustomCheckbox = ({ checked, onChange, children, color = 'purple' }) => (
   <div
     className={`relative cursor-pointer group transition-all duration-300 transform hover:scale-105 ${
       checked
-        ? `bg-gradient-to-r from-${color}-400 to-${color}-600 text-white shadow-lg shadow-${color}-400/30`
+        ? ``
         : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
     } rounded-xl p-4 border-2 ${
       checked ? `border-${color}-400` : 'border-slate-200 dark:border-slate-600'
@@ -18,10 +18,10 @@ const CustomCheckbox = ({ checked, onChange, children, color = 'purple' }) => (
       {children}
       <div
         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-          checked ? 'border-white bg-white/20' : `border-${color}-300`
+          checked ? 'border-blue-400' : `border-${color}-300`
         }`}
       >
-        {checked && <Check className="w-4 h-4 text-white" />}
+        {checked && <Check className="w-4 h-4 text-blue-400 " />}
       </div>
     </div>
   </div>
@@ -55,7 +55,7 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
         <CustomCheckbox
           checked={formData.isRemote}
           onChange={() => handleInputChange('isRemote', !formData.isRemote)}
-          color="purple"
+          color="blue"
         >
           <div>
             <div className="font-semibold">🌍 Remote Work Only</div>
@@ -70,17 +70,17 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
             Willingness to Relocate
           </label>
           <select
-            className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 transition-all duration-300"
+            className="w-full p-4 rounded-xl border-2  dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-blue-400 transition-all duration-300"
             value={formData.relocationWillingness}
             onChange={(e) =>
               handleInputChange('relocationWillingness', e.target.value)
             }
           >
             <option value="">Select willingness</option>
-            <option value="not-willing">❌ Not willing to relocate</option>
-            <option value="open">🤔 Open to relocation</option>
-            <option value="very-willing">✅ Very willing to relocate</option>
-            <option value="seeking">🎯 Actively seeking relocation</option>
+            <option value="not-willing"> Not willing to relocate</option>
+            <option value="open">Open to relocation</option>
+            <option value="very-willing"> Very willing to relocate</option>
+            <option value="seeking"> Actively seeking relocation</option>
           </select>
         </div>
       </div>

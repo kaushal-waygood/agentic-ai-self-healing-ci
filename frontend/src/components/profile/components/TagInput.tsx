@@ -26,17 +26,17 @@ const TagInput = ({ label, icon: Icon, tags, setTags, placeholder }) => {
         <Icon className="inline w-4 h-4 mr-2" />
         {label}
       </label>
-      <div className="w-full p-2 flex flex-wrap items-center gap-2 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-400/20 transition-all duration-300">
+      <div className="w-full p-2 flex flex-wrap items-center gap-2 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus-within:border-blue-400 transition-all duration-300">
         {tags.map((tag, index) => (
           <div
             key={index}
-            className="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-md px-3 py-1 text-sm font-medium"
+            className="flex items-center gap-2 bg-blue-100 dark:bg-purple-900/50 text-blue-700 dark:text-purple-300 rounded-md px-3 py-1 text-sm font-medium"
           >
             {tag}
             <button
               type="button"
               onClick={() => removeTag(index)}
-              className="text-purple-500 hover:text-purple-700 dark:hover:text-purple-200"
+              className="text-blue-500 hover:text-purple-700 dark:hover:text-purple-200"
             >
               <X size={14} />
             </button>
