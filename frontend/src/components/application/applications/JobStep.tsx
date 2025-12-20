@@ -253,7 +253,7 @@ export function JobStep({
                   <div className="relative group">
                     <textarea
                       placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
-                      className={`w-full min-h-[280px] p-6 pr-16 border-2 rounded-lg resize-none focus:ring-4 transition-all duration-500 bg-gradient-to-br from-gray-50 to-white shadow-inner ${
+                      className={`w-full min-h-[280px] p-6 pr-16 border-2 rounded-lg resize-none focus:ring-4 transition-all duration-500  ${
                         charCount < 200
                           ? 'border-gray-300 hover:border-gray-400'
                           : 'border-green-300 hover:border-green-400 ring-green-50'
