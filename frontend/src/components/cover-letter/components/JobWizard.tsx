@@ -568,7 +568,7 @@ const JobWizard = ({
                     >
                       {isLoading ? (
                         <>
-                          <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                          <Loader2 className="animate-spin h-5 w-5" />
                           Preparing...
                         </>
                       ) : (
@@ -581,7 +581,7 @@ const JobWizard = ({
                   </div>
 
                   {/* Info Box */}
-                  <div className="flex items-start gap-3 bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-100 shadow-sm">
+                  <div className="flex items-start gap-3  p-4 rounded-lg border-2 border-green-100">
                     <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg flex-shrink-0">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>

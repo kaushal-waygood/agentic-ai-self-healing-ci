@@ -649,22 +649,22 @@ export const signUpUser = async (req, res) => {
     }
 
     // Send OTP email
-    // await sendTemplatedEmail({
-    //   to: normalizedEmail,
-    //   templateName: 'verify',
-    //   templateVars: {
-    //     name: savedUser.fullName,
-    //     dashboardUrl: process.env.DASHBOARD_URL,
-    //     supportEmail: 'support@zobsai.com',
-    //     brandName: 'ZobsAI',
-    //     companyUrl: 'https://zobsai.com',
-    //     companyAddress: 'ZobsAI Pvt Ltd, City, Country',
-    //     unsubscribeUrl: 'https://zobsai.com/unsubscribe',
-    //     otp,
-    //   },
-    //   subjectOverride:
-    //     'Welcome to ZobsAI – Your AI Job Application Assistant is Here!',
-    // });
+    await sendTemplatedEmail({
+      to: normalizedEmail,
+      templateName: 'verify',
+      templateVars: {
+        name: savedUser.fullName,
+        dashboardUrl: process.env.DASHBOARD_URL,
+        supportEmail: 'support@zobsai.com',
+        brandName: 'ZobsAI',
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd, City, Country',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+        otp,
+      },
+      subjectOverride:
+        'Welcome to ZobsAI  Your AI Job Application Assistant is Here!',
+    });
 
     // Response: do not return password or sensitive info
     const response = {
