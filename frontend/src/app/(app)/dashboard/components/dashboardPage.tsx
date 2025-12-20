@@ -28,6 +28,8 @@ import {
   Globe,
   Eye,
   ArrowUpRight,
+  ArrowRightSquare,
+  MoveRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -44,6 +46,7 @@ import CompletionModal from './CompletionModel';
 import { startDashboardTour } from './dashboardDriver';
 import { SpendCreditsSection } from '@/components/credits/SpendCreditsSection';
 import { useCredits } from '@/hooks/useCredits';
+import { Input } from '@/components/ui/input';
 
 export function StatCard({
   title,
@@ -433,6 +436,30 @@ function UsageMeter({ label, used, limit }: any) {
   );
 }
 
+function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition"
+    >
+      <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+        <Icon className="w-5 h-5" />
+      </div>
+
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <p className="text-xs text-gray-500">{subtitle}</p>
+      </div>
+
+      <div className="text-xs text-gray-400 whitespace-nowrap">
+        {new Date(time).toLocaleDateString()}
+      </div>
+
+      <ArrowRight className="w-4 h-4 text-gray-400" />
+    </Link>
+  );
+}
+
 export function SubscriptionStatusCard({ plan }: any) {
   const pathname = usePathname();
   // Fallback UI if there's no active plan
@@ -502,6 +529,7 @@ export function SubscriptionStatusCard({ plan }: any) {
 }
 
 export default function DashboardPage() {
+  const [recentAI, setRecentAI] = useState<any>(null);
   const { balance, spending, checkout } = useCredits();
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [stats, setStats] = useState({
@@ -516,6 +544,9 @@ export default function DashboardPage() {
     jobsVisited: 0,
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
+
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [savedJobs, setSavedJobs] = useState([]);
 
@@ -750,6 +781,31 @@ export default function DashboardPage() {
     });
   };
 
+  const handleSearch = () => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+
+    const encodedQuery = encodeURIComponent(trimmed.replace(/\s+/g, '+'));
+    router.push(`/dashboard/search-jobs?q=${encodedQuery}`);
+  };
+
+  useEffect(() => {
+    const fetchRecentAI = async () => {
+      try {
+        const res = await apiInstance.get('/students/ai-activity');
+        if (res.data.success) {
+          setRecentAI(res.data.data);
+        }
+      } catch (e) {
+        console.error('Failed to load recent AI activity', e);
+      }
+    };
+
+    if (authUser) {
+      fetchRecentAI();
+    }
+  }, [authUser]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
       <div id="dashboard-scroll" className="max-w-7xl mx-auto space-y-8">
@@ -776,6 +832,108 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 space-y-8">
             <div id="profile-readiness">
               <ProfileReadinessCard />
+            </div>
+
+            <div className="flex gap-2 border border-purple-300 rounded-lg p-2 bg-white focus-within:ring-2 focus-within:ring-purple-400 transition">
+              <Input
+                placeholder="Search applications"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+                className="w-full border-none focus-visible:ring-0 text-gray-800 placeholder:text-gray-400"
+              />
+
+              <Button
+                onClick={handleSearch}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4"
+              >
+                <MoveRight className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                AI Tools
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Smart tools powered by AI to speed up your job search.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* AI CV Generator */}
+                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-purple-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-purple-700 transition">
+                      AI CV Generator
+                    </h4>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-5">
+                    Generate an ATS-friendly CV tailored to your skills,
+                    experience, and job role.
+                  </p>
+
+                  <Link href="/dashboard/cv-generator">
+                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                      Generate CV
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* AI Cover Letter Generator */}
+                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-blue-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition">
+                      <Send className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-700 transition">
+                      AI Cover Letter Generator
+                    </h4>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-5">
+                    Create job-specific cover letters in seconds using
+                    AI-powered insights.
+                  </p>
+
+                  <Link href="/dashboard/cover-letter-generator">
+                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                      Generate Cover Letter
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* Application Wizard */}
+                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-cyan-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-cyan-100 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition">
+                      <Wand2 className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-cyan-700 transition">
+                      Application Wizard
+                    </h4>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-5">
+                    Auto-optimize your CV and cover letter for a specific job in
+                    one click.
+                  </p>
+
+                  <Link href="/dashboard/apply">
+                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                      Start Application
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* 🚀 APPLICATIONS SECTION */}
@@ -890,6 +1048,54 @@ export default function DashboardPage() {
             <div id="plan-driver">
               <SubscriptionStatusCard plan={planDetails} />
             </div>
+
+            {recentAI && (
+              <div className="mt-8 bg-white border rounded-lg p-5">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Recent AI Activity
+                </h3>
+
+                <div className="space-y-2">
+                  {recentAI.cv && (
+                    <RecentActivityRow
+                      icon={FileText}
+                      title="CV Generated"
+                      subtitle={recentAI.cv.title}
+                      time={recentAI.cv.completedAt}
+                      href="/dashboard/my-docs?tab=cvs"
+                    />
+                  )}
+
+                  {recentAI.coverLetter && (
+                    <RecentActivityRow
+                      icon={Send}
+                      title="Cover Letter Generated"
+                      subtitle={recentAI.coverLetter.title}
+                      time={recentAI.coverLetter.completedAt}
+                      href="/dashboard/my-docs?tab=cover-letters"
+                    />
+                  )}
+
+                  {recentAI.tailoredApplication && (
+                    <RecentActivityRow
+                      icon={Wand2}
+                      title="Tailored Application Ready"
+                      subtitle={`${recentAI.tailoredApplication.jobTitle} · ${recentAI.tailoredApplication.companyName}`}
+                      time={recentAI.tailoredApplication.completedAt}
+                      href="/dashboard/my-docs?tab=applications"
+                    />
+                  )}
+
+                  {!recentAI.cv &&
+                    !recentAI.coverLetter &&
+                    !recentAI.tailoredApplication && (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        No completed AI activity yet.
+                      </p>
+                    )}
+                </div>
+              </div>
+            )}
 
             <div
               id="coreToolkit-driver"

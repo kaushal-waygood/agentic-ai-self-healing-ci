@@ -41,7 +41,36 @@ export const initiateCVGeneration = async (
       if (!student) {
         return res.status(404).json({ error: 'Student profile not found' });
       }
-      studentData = JSON.stringify(student);
+      const {
+        fullName,
+        location,
+        country,
+        city,
+        state,
+        phone,
+        email,
+        linkedin,
+        projects,
+        education,
+        experience,
+        skills,
+        jobRole,
+      } = student;
+      studentData = JSON.stringify({
+        fullName,
+        location,
+        country,
+        city,
+        state,
+        phone,
+        email,
+        linkedin,
+        projects,
+        education,
+        experience,
+        skills,
+        jobRole,
+      });
     } else if (savedCVId) {
       if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
         return res.status(400).json({ error: 'Invalid savedCVId' });

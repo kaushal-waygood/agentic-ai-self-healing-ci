@@ -1,5 +1,3 @@
-// src/utils/coverletter.background.js
-
 import { generateContent } from '../config/gemini.js';
 import { generateCoverLetterPrompts } from '../prompt/generateCoverletter.js';
 import { Student } from '../models/student.model.js';
@@ -9,6 +7,7 @@ import {
 } from './notification.utils.js';
 import { convertToStyledHtml } from './coverletter.htmlify.js';
 import { User } from '../models/User.model.js';
+import { wrapCoverLetterHtml } from './coverletterTemplate.js';
 
 export const processCoverLetterGeneration = async (
   userId,
@@ -113,11 +112,11 @@ export const processCoverLetterGeneration = async (
       }
     })();
 
-    const htmlContent = convertToStyledHtml(cleaned, profileForHtml, {
-      themeColor: '#0f172a',
-      accent: '#2563eb',
-      fontFamily: 'Inter, Roboto, Arial, sans-serif',
-    });
+    if (/<(style|html|head|body|script|link)|style\s*=/i.test(cleaned)) {
+      throw new Error('Invalid Cover Letter HTML: forbidden tags detected');
+    }
+
+    const htmlContent = wrapCoverLetterHtml(cleaned, 'Cover Letter');
 
     const updateResult = await Student.updateOne(
       { 'cls._id': clId },

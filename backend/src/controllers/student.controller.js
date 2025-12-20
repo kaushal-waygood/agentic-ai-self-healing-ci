@@ -3038,3 +3038,66 @@ export const getVerifiedUsers = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+export const getRecentAIActivity = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const student = await Student.findById(studentId)
+      .select('cvs cls tailoredApplications')
+      .lean();
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    const getLatestCompleted = (items = []) =>
+      items
+        .filter((item) => item.status === 'completed')
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] ||
+      null;
+
+    const latestCV = getLatestCompleted(student.cvs);
+    const latestCoverLetter = getLatestCompleted(student.cls);
+    const latestTailoredApplication = getLatestCompleted(
+      student.tailoredApplications,
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        cv: latestCV && {
+          id: latestCV._id,
+          title: latestCV.cvTitle,
+          status: latestCV.status,
+          createdAt: latestCV.createdAt,
+          completedAt: latestCV.completedAt,
+        },
+        coverLetter: latestCoverLetter && {
+          id: latestCoverLetter._id,
+          title: latestCoverLetter.clTitle,
+          status: latestCoverLetter.status,
+          createdAt: latestCoverLetter.createdAt,
+          completedAt: latestCoverLetter.completedAt,
+        },
+        tailoredApplication: latestTailoredApplication && {
+          id: latestTailoredApplication._id,
+          jobTitle: latestTailoredApplication.jobTitle,
+          companyName: latestTailoredApplication.companyName,
+          status: latestTailoredApplication.status,
+          createdAt: latestTailoredApplication.createdAt,
+          completedAt: latestTailoredApplication.completedAt,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Recent AI Activity Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent AI activity',
+    });
+  }
+};
