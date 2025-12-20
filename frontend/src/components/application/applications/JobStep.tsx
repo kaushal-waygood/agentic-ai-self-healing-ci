@@ -122,17 +122,6 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
             )}
           </div>
         </div>
-
-        {/* Animated checkmark on hover */}
-        <div
-          className={`absolute top-4 right-4 transition-all duration-300 ${
-            isHovered ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-          }`}
-        >
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-            <CheckCircle2 className="w-5 h-5 text-white" />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -255,7 +244,7 @@ export function JobStep({
                       placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
                       className={`w-full min-h-[280px] p-6 pr-16 border-2 rounded-lg resize-none focus:ring-4 transition-all duration-500  ${
                         charCount < 200
-                          ? 'border-gray-300 hover:border-gray-400'
+                          ? ''
                           : 'border-green-300 hover:border-green-400 ring-green-50'
                       }`}
                       value={pastedJobDesc}
@@ -284,9 +273,7 @@ export function JobStep({
                     <div className="flex items-center gap-3">
                       <div
                         className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
-                          charCount < 200
-                            ? 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border-2 border-red-200'
-                            : 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-2 border-green-200'
+                          charCount < 200 ? 'text-red-700' : ' text-green-700 '
                         }`}
                       >
                         {charCount} / 200 characters
@@ -313,7 +300,7 @@ export function JobStep({
                     <Button
                       className={`h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                         charCount >= 200 && !isLoading
-                          ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:shadow-2xl hover:shadow-pink-500/50 text-white'
+                          ? 'text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                       onClick={() =>

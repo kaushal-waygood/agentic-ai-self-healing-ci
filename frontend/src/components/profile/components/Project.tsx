@@ -21,7 +21,7 @@ const Project = ({
     <div>
       <div className="flex w-full items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+          <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <Package className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl font-bold text-gray-800">
@@ -35,7 +35,7 @@ const Project = ({
               e.stopPropagation();
               setAddProj(true);
             }}
-            className="w-full  flex items-center justify-center py-2 px-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-cyan-600 hover:to-purple-700 text-white rounded-lg  transition-all duration-300"
+            className="w-full  flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg  transition-all duration-300"
           >
             <PlusCircle className="mr-2 h-5 w-5" />
             Add Project

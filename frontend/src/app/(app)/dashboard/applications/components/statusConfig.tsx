@@ -55,7 +55,7 @@ export const applicationStatuses = Object.keys(statusConfig);
 export const StatCard = ({ label, value, icon: Icon, onClick }) => (
   <div
     onClick={onClick}
-    className={` group relative overflow-hidden rounded-lg border border-blue-200 dark:border-gray-700 p-2 md:p-4 transition-all duration-300 hover:shadow-xl hover:bg-tabPrimary cursor-pointer active:scale-[0.98]`}
+    className={` group relative overflow-hidden rounded-lg border-2 border-blue-400 dark:border-gray-700 p-2 md:p-4 transition-all duration-300 hover:shadow-xl hover:scale-105 hover:border-blue-300 cursor-pointer active:scale-[0.98]`}
   >
     <div className="relative z-10">
       {/* Optional icon */}

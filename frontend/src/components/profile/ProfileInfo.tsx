@@ -22,31 +22,31 @@ const navItems = [
     id: 'education',
     label: 'Education',
     icon: GraduationCap,
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'tabPrimary',
   },
   {
     id: 'project',
     label: 'Project',
     icon: Package,
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'tabPrimary',
   },
   {
     id: 'experience',
     label: 'Experience',
     icon: Briefcase,
-    gradient: 'from-red-500 to-orange-500',
+    gradient: 'tabPrimary',
   },
   {
     id: 'skills',
     label: 'Skills',
     icon: Code,
-    gradient: 'from-green-500 to-teal-500',
+    gradient: 'tabPrimary',
   },
   {
     id: 'jobPreferences',
     label: 'Job Preferences',
     icon: MapPin,
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'tabPrimary',
   },
 ];
 const ProfileInfo = ({
@@ -285,7 +285,7 @@ const ProfileInfo = ({
                       onClick={() => handleTabChange(item.id)}
                       className={`group/btn flex  items-center justify-between gap-3 w-full sm:w-auto px-4 py-2 text-left rounded-lg transition-all duration-300 ${
                         activeTab === item.id
-                          ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg scale-105`
+                          ? `bg-${item.gradient} text-white shadow-lg scale-105`
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >

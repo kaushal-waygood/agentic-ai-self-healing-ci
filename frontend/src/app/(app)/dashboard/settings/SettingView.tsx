@@ -50,7 +50,7 @@ export default function SettingsView() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-headingTextPrimary dark:text-white">
             Settings
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -70,7 +70,7 @@ export default function SettingsView() {
                     onClick={() => handleSectionChange(section.id)}
                     className={`w-full flex items-center space-x-3 p-3 rounded-xl transition-all duration-300 group ${
                       isActive
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                        ? 'bg-tabPrimary text-white shadow-lg'
                         : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                     }`}
                   >

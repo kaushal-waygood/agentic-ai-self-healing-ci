@@ -159,27 +159,9 @@ export const GenerateStep = ({
             /* Default State */
             <>
               {/* Generate Button connected to your `handleGenerate` prop */}
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <button
-                  onClick={handleGenerate}
-                  disabled={isLoading}
-                  className="group relative w-full p-5 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 overflow-hidden"
-                >
-                  <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
-                  <div className="relative flex items-center justify-center space-x-3">
-                    <Zap className="w-6 h-6" />
-
-                    <span>Tailor My Application</span>
-                    <Sparkles className="w-6 h-6" />
-                  </div>
-                </button>
-              </motion.div>
 
               {/* Back Button connected to your `setWizardStep` prop */}
-              <div className="flex justify-center mt-6">
+              <div className="flex flex-wrap  justify-between">
                 <button
                   type="button"
                   onClick={() => setWizardStep('cl')}
@@ -188,6 +170,23 @@ export const GenerateStep = ({
                   <ArrowLeft className="w-4 h-4" />
                   <span className="font-medium">Back</span>
                 </button>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isLoading}
+                    className="group relative flex items-center justify-center p-4 bg-buttonPrimary text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 overflow-hidden"
+                  >
+                    <div className="relative flex items-center justify-center space-x-3">
+                      <Zap className="w-6 h-6" />
+
+                      <span>Tailor My Application</span>
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                  </button>
+                </motion.div>
               </div>
             </>
           )}

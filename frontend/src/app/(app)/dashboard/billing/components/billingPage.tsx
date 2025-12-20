@@ -150,7 +150,7 @@ export default function BillingPage() {
         <div className="flex justify-between flex-wrap items-center  border-b border-gray-200">
           <div className="">
             <div className="flex items-center gap-3 ">
-              <h1 className=" py-1 text-4xl font-bold bg-gradient-to-r from-blue-700 via-cyan-700 to-blue-500 bg-clip-text text-transparent">
+              <h1 className=" py-1 text-4xl font-bold bg-headingTextPrimary bg-clip-text text-transparent">
                 Billing & Subscriptions
               </h1>
             </div>

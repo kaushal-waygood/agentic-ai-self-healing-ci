@@ -58,21 +58,21 @@ const SleekClStep = ({
       icon: Sparkles,
       title: 'Skip this step - Generate from scratch ',
       description: 'Let AI create a personalized cover letter for you',
-      gradient: 'from-purple-500/20 to-blue-500/20',
+      gradient: 'blue-500/20',
     },
     {
       value: 'paste',
       icon: Edit3,
       title: 'Paste content from an old cover letter',
       description: 'Use your existing content as a starting point',
-      gradient: 'from-blue-500/20 to-cyan-500/20',
+      gradient: 'blue-500/20',
     },
     {
       value: 'saved',
       icon: Save,
       title: 'Use a saved cover letter',
       description: 'Choose from your previously saved templates',
-      gradient: 'from-cyan-500/20 to-purple-500/20',
+      gradient: 'blue-500/20',
     },
   ];
 
@@ -122,8 +122,8 @@ const SleekClStep = ({
                           key={option.value}
                           className={`group relative overflow-hidden rounded-lg border-2 transition-all duration-300 cursor-pointer ${
                             isSelected
-                              ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-blue-50 shadow-lg scale-[1.02]'
-                              : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-gradient-to-br hover:from-purple-50/30 hover:to-blue-50/30 hover:shadow-md'
+                              ? 'border-blue-500 bg-blue-500/10  shadow-lg scale-[1.02]'
+                              : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-md'
                           }`}
                           // Set the form value on click
                           onClick={() => field.onChange(option.value)}
@@ -135,7 +135,7 @@ const SleekClStep = ({
                           }}
                         >
                           <div
-                            className={`absolute inset-0 bg-gradient-to-br ${option.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                            className={`absolute inset-0 bg-${option.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
                           ></div>
                           <div className="relative p-4 sm:p-6">
                             <div className="flex items-center space-x-2">
@@ -144,7 +144,7 @@ const SleekClStep = ({
                                 className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                                   isSelected
                                     ? 'border-purple-500 bg-purple-500'
-                                    : 'border-slate-300 group-hover:border-purple-400'
+                                    : 'border-slate-300 group-hover:border-blue-400'
                                 }`}
                               >
                                 {isSelected && (
@@ -324,7 +324,7 @@ const SleekClStep = ({
                 >
                   <button
                     type="submit"
-                    className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium shadow-lg transition-all duration-300 hover:shadow-xl hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-purple-300"
+                    className="flex items-center space-x-2 px-8 py-3 bg-buttonPrimary text-white rounded-lg font-medium shadow-lg transition-all duration-300 hover:shadow-xl hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-purple-300"
                   >
                     <span>Next Step</span>
                     <ArrowRight className="w-4 h-4" />

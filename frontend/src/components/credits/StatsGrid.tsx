@@ -29,7 +29,7 @@ export function StatsGrid({
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <div
         onClick={() => onChange('balance')}
-        className={`${baseCard} bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:border-blue-300 ${
+        className={`${baseCard} hover:border-blue-300 ${
           activeTab === 'balance' ? activeCard : ''
         }`}
       >
@@ -50,7 +50,7 @@ export function StatsGrid({
       {/* Earned -> Earn transactions */}
       <div
         onClick={() => onChange('earned')}
-        className={`${baseCard} bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:border-green-300 ${
+        className={`${baseCard} hover:border-green-300 ${
           activeTab === 'earned' ? activeCard : ''
         }`}
       >
@@ -68,7 +68,7 @@ export function StatsGrid({
       {/* Spent -> Spend transactions */}
       <div
         onClick={() => onChange('spent')}
-        className={`${baseCard} bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:border-red-300 ${
+        className={`${baseCard} hover:border-red-300 ${
           activeTab === 'spent' ? activeCard : ''
         }`}
       >
@@ -85,7 +85,7 @@ export function StatsGrid({
 
       <div
         onClick={() => onChange('transactions')}
-        className={`${baseCard} bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:border-purple-300 ${
+        className={`${baseCard}  hover:border-purple-300 ${
           activeTab === 'transactions' ? activeCard : ''
         }`}
       >

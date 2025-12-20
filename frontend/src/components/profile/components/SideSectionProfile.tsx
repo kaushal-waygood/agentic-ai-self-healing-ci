@@ -22,8 +22,12 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
 // Dummy avatar for fallback
+// const dummyUser = {
+//   avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Alex+Rider',
+// };
 const dummyUser = {
-  avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Alex+Rider',
+  avatar:
+    'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png',
 };
 
 const SideSectionProfile = ({
@@ -136,13 +140,13 @@ const SideSectionProfile = ({
     <div>
       <aside className="w-full lg:w-80 space-y-2 max-h-[80vh] overflow-y-auto p-2">
         {/* Profile Card */}
-        <div className=" bg-white p-2 border border-gray-200 rounded-lg ">
+        <div className="p-2 border border-gray-200 rounded-lg ">
           <div className="flex flex-col items-center text-center ">
             <div className=" mb-2">
               <img
                 src={preview || dummyUser.avatar}
                 alt="Avatar"
-                className="w-24 h-24 rounded-full border-4 border-white object-cover"
+                className="w-24 h-24 rounded-full  object-cover"
               />
             </div>
 
@@ -164,7 +168,7 @@ const SideSectionProfile = ({
 
             <Button
               onClick={openEditModal}
-              className="mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-indigo-500 hover:to-blue-600 text-white px-5 py-2 rounded-lg transition-all duration-300 flex items-center gap-2"
+              className="mt-2 bg-buttonPrimary hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition-all duration-300 flex items-center gap-2"
             >
               <Edit size={16} /> Edit Profile
             </Button>
@@ -190,10 +194,10 @@ const SideSectionProfile = ({
         {/* Upload CV Section */}
         <div className="bg-white rounded-lg p-4 border  ">
           <div className="text-center ">
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+            {/* <h3 className="text-xl font-semibold text-gray-800 mb-2">
               Upload Your CV
-            </h3>
-            <p className="text-gray-600">
+            </h3> */}
+            <p className="font-semibold text-gray-600">
               Let AI analyze and populate your profile details.
             </p>
           </div>
@@ -209,8 +213,8 @@ const SideSectionProfile = ({
           <div
             className={`relative w-full h-48 p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-all duration-300 ${
               isDragging
-                ? 'border-cyan-500 bg-cyan-100  scale-105'
-                : 'border-gray-300 hover:border-cyan-400 hover:bg-cyan-50 '
+                ? 'border-cyan-500 bg-cyan-100 scale-105'
+                : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50 '
             }`}
             onClick={handleButtonClick}
             onDragEnter={handleDragEnter}
@@ -222,17 +226,15 @@ const SideSectionProfile = ({
               <div
                 className={`p-4 rounded-full transition-colors duration-300 ${
                   isDragging
-                    ? 'bg-cyan-500 text-white'
-                    : 'bg-cyan-100 text-cyan-600'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-blue-100 text-cyan-600'
                 }`}
               >
-                <UploadCloud className="w-8 h-8" />
+                <UploadCloud className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-lg font-medium text-gray-700 mb-1">
-                  {isDragging
-                    ? 'Drop your file here'
-                    : 'Drag & drop your CV here'}
+                <p className="text-sm font-medium text-gray-700 mb-1">
+                  {isDragging ? 'Drop your file here' : 'Drag & drop your CV'}
                 </p>
                 <p className="text-sm text-gray-500">or click to browse</p>
                 <p className="text-xs text-gray-400 mt-2">
@@ -399,10 +401,7 @@ const SideSectionProfile = ({
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              className="bg-gradient-to-r from-cyan-500 to-blue-600"
-              onClick={handleSave}
-            >
+            <Button className="hover:bg-blue-700" onClick={handleSave}>
               <Check size={16} className="mr-2" /> Save Changes
             </Button>
           </DialogFooter>

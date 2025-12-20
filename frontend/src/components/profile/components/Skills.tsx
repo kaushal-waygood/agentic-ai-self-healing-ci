@@ -24,28 +24,29 @@ const Skills = ({
   return (
     <div>
       {/* Header */}
+
       <div className="flex w-full items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-r from-green-500 to-teal-600 rounded-lg">
+          <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <Code className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-2xl font-extrabold text-gray-800">
             Skills ({defaultValues.skills.length})
           </h3>
         </div>
-
-        {/* Add Skill Button - Responsive */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setAddSkill(true);
-          }}
-          className="flex items-center justify-center py-2 px-4 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white rounded-lg  gap-2 transition-all duration-300 text-sm font-semibold"
-        >
-          <PlusCircle className="ml-2 sm:ml-0 h-5 w-5 sm:w-4" />
-          <span className="hidden sm:inline">Add Skill</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAddSkill(true);
+            }}
+            className="w-full  flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg  transition-all duration-300"
+          >
+            <PlusCircle className="mr-2 h-5 w-5" />
+            Add Skills
+          </button>
+        </div>
       </div>
       {/* --- */}
 

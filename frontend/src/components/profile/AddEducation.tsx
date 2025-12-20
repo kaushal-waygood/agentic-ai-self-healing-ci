@@ -71,7 +71,6 @@ type ModalShellProps = {
   icon?: React.ComponentType<{ className?: string }>;
   onClose: () => void;
   children: ReactNode;
-  headerGradient?: string;
 };
 
 const ModalShell: React.FC<ModalShellProps> = ({
@@ -80,14 +79,11 @@ const ModalShell: React.FC<ModalShellProps> = ({
   icon: Icon,
   onClose,
   children,
-  headerGradient = 'from-purple-500 to-cyan-500',
 }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div
-          className={`bg-gradient-to-r ${headerGradient} p-5 text-white relative`}
-        >
+        <div className={`bg-header-gradient-primary p-5 text-white relative`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
@@ -126,8 +122,7 @@ type StepDef = {
 const Stepper: React.FC<{
   steps: StepDef[];
   current: number;
-  activeColor?: string;
-}> = ({ steps, current, activeColor = 'purple' }) => {
+}> = ({ steps, current }) => {
   return (
     <div className="px-6 py-4 bg-gray-50">
       <div className="flex items-center">
@@ -136,7 +131,7 @@ const Stepper: React.FC<{
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                 idx <= current
-                  ? `bg-${activeColor}-500 text-white`
+                  ? `bg-blue-500 text-white`
                   : 'bg-gray-200 text-gray-500'
               }`}
             >
@@ -149,7 +144,7 @@ const Stepper: React.FC<{
             {idx < steps.length - 1 && (
               <div
                 className={`flex-1 h-1 mx-2 rounded-full transition-all duration-500 ${
-                  idx < current ? `bg-${activeColor}-500` : 'bg-gray-200'
+                  idx < current ? `bg-blue-500` : 'bg-gray-200'
                 }`}
               />
             )}
@@ -188,11 +183,7 @@ const FormFooter: React.FC<{
         <ChevronLeft className="w-4 h-4 mr-2" /> Previous
       </Button>
       {!isLast ? (
-        <Button
-          type="button"
-          onClick={onNext}
-          className="bg-purple-600 hover:bg-purple-700"
-        >
+        <Button type="button" onClick={onNext} className="hover:bg-blue-700">
           Next <ChevronRight className="w-4 h-4 ml-2" />
         </Button>
       ) : (
@@ -202,7 +193,7 @@ const FormFooter: React.FC<{
               Cancel
             </Button>
           )}
-          <Button type="submit" className="bg-green-600 hover:bg-green-700">
+          <Button type="submit" className="hover:bg-blue-700">
             <Check className="w-4 h-4 mr-2" /> {onSubmitLabel || 'Save'}
           </Button>
         </div>
@@ -269,12 +260,11 @@ const DegreeSelector: React.FC<{ field: DegreeField }> = ({ field }) => {
             onClick={() => field.onChange(degree.value)}
             className={`cursor-pointer p-4 rounded-xl border-2 text-center transition-all duration-300 transform hover:scale-105 ${
               selected
-                ? `text-white shadow-lg ${colorMap[degree.color]}`
+                ? `border-blue-400`
                 : 'bg-white border-gray-200 hover:bg-gray-50'
             }`}
           >
             <div className="font-semibold">{degree.label}</div>
-            {selected && <Check className="w-5 h-5 mx-auto mt-1 text-white" />}
           </div>
         );
       })}
