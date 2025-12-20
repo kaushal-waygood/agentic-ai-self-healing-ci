@@ -374,8 +374,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     <div className="min-h-screen space-y-2">
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border border-white/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 opacity-90" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-20" />
+        <div className="absolute inset-0 bg-header-gradient-primary opacity-90" />
+        <div className="absolute inset-0  opacity-20" />
         <div className="relative p-2 md:p-4 text-white">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex-1 space-y-4">
@@ -476,7 +476,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               ) : (
                 <Button
                   asChild
-                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
@@ -497,7 +497,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <Button
                   onClick={handleApplyOnSite}
                   asChild
-                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
                   <Link
                     href={job.applyMethod.url}

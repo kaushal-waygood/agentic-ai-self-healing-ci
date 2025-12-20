@@ -160,7 +160,7 @@ export default function ApplicationsPage() {
       <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       <div className="relative z-10 p-4 sm:p-6 max-w-7xl mx-auto">
         <div className="mb-2 text-center">
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white">
+          <h1 className="text-4xl font-semibold text-headingTextPrimary dark:text-white">
             My Applications
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
@@ -173,28 +173,28 @@ export default function ApplicationsPage() {
             label="Applied Jobs"
             value={jobStats.appliedJobsCount}
             icon={Send}
-            color="from-yellow-500 to-orange-500"
+            // color="tabPrimary"
             onClick={() => setStatusFilter('Applied')}
           />
           <StatCard
             label="Saved Jobs"
             value={jobStats.savedJobsCount}
             icon={Bookmark}
-            color="from-purple-500 to-pink-500"
+            // color="tabPrimary"
             onClick={() => setStatusFilter('Saved')}
           />
           <StatCard
             label="Viewed Jobs"
             value={jobStats.viewedJobsCount}
             icon={Eye}
-            color="from-blue-500 to-blue-600"
+            // color="tabPrimary"
             onClick={() => setStatusFilter('Viewed')}
           />
           <StatCard
             label="Visited Links"
             value={jobStats.visitedJobsCount}
             icon={Link}
-            color="from-green-500 to-emerald-500"
+            // color="tabPrimary"
             onClick={() => setStatusFilter('Visited')}
           />
         </div>

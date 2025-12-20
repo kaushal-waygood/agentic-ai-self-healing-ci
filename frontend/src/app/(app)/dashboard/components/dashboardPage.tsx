@@ -305,21 +305,24 @@ export function ProfileReadinessCard() {
         ))}
       </div>
 
-      <div className="mt-6 text-center border-t border-gray-200 pt-5">
-        <p className="text-sm text-gray-600 mb-4">
-          A complete profile gets <strong>5x more views</strong>. Fill out the
-          remaining sections to boost your visibility!
-        </p>
-        <Button
-          asChild
-          className="bg-purple-600 hover:bg-purple-700 text-white"
-        >
-          <Link href="/dashboard/profile">
-            Go to Profile
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Link>
-        </Button>
-      </div>
+      {/* --- NEW SECTION: SUGGESTION TO COMPLETE PROFILE --- */}
+      {score < 100 && (
+        <div className="mt-6 text-center border-t border-gray-200 pt-5">
+          <p className="text-sm text-gray-600 mb-4">
+            A complete profile gets <strong>5x more views</strong>. Fill out the
+            remaining sections to boost your visibility!
+          </p>
+          <Button
+            asChild
+            className="bg-buttonPrimary hover:bg-purple-700 text-white"
+          >
+            <Link href="/dashboard/profile">
+              Go to Profile
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -470,7 +473,7 @@ export function SubscriptionStatusCard({ plan }: any) {
         <p className="text-gray-600 text-sm mb-4">
           You do not have an active subscription.
         </p>
-        <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
+        <Button asChild className="w-full bg-buttonPrimary hover:bg-purple-700">
           <Link href="/dashboard/subscriptions">View Plans</Link>
         </Button>
       </div>
@@ -811,11 +814,11 @@ export default function DashboardPage() {
       <div id="dashboard-scroll" className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <LayoutDashboard className="w-8 h-8 mr-3 text-purple-600" />
+            <LayoutDashboard className="w-8 h-8 mr-3 text-headingTextPrimary" />
             ZobsAI Dashboard
             <button
               id="start-tour-btn"
-              className=" mx-5 border hidden md:block rounded-lg px-2 text-white bg-purple-600 hover:bg-blue-800"
+              className=" mx-5 border hidden md:block rounded-lg px-2 text-white bg-buttonPrimary hover:bg-blue-800"
             >
               <p className="text-2xl ">Start Tour</p>
             </button>
