@@ -157,21 +157,21 @@ const JobWizard = ({
       icon: FileSignature,
       label: 'Paste JD',
       // description: 'Full job description',
-      gradient: 'from-blue-500 to-cyan-400',
+      gradient: 'tabPrimary',
     },
     {
       value: 'select',
       icon: Briefcase,
       label: 'Saved Job',
       // description: 'Choose from saved',
-      gradient: 'from-purple-500 to-pink-400',
+      gradient: 'tabPrimary',
     },
     {
       value: 'title',
       icon: User,
       label: 'Job Title',
       // description: 'Quick setup',
-      gradient: 'from-green-500 to-emerald-400',
+      gradient: 'tabPrimary',
     },
   ];
 
@@ -201,23 +201,19 @@ const JobWizard = ({
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
             <div className="absolute inset-0 "></div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent relative z-10">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary text-foreground bg-clip-text text-transparent relative z-10">
               AI Cover Letter Generator
             </h1>
           </div>
           <p className="text-gray-600 text-sm max-w-2xl mx-auto leading-relaxed">
             Transform your Cover Letter with AI-powered insights tailored to
-            your dream job
+            your dream jobddsfs
           </p>
         </div>
 
         <Card className="bg-white/90 backdrop-blur-xl border-0 shadow-2xl shadow-pink-500/10 rounded-lg overflow-hidden">
           {/* Enhanced Animated Header */}
-          <CardHeader className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white relative overflow-hidden p-2">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30"></div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 animate-pulse"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -ml-24 -mb-24 animate-pulse delay-75"></div>
-
+          <CardHeader className="bg-header-gradient-primary text-white relative overflow-hidden p-2">
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-lg border border-white/30">
@@ -252,7 +248,7 @@ const JobWizard = ({
                       value={tab.value}
                       className={`flex flex-row items-center gap-2 p-4 rounded-lg transition-all duration-500 ${
                         isActive
-                          ? `bg-gradient-to-r ${tab.gradient} text-white shadow-xl scale-105 transform`
+                          ? `bg-${tab.gradient} text-white shadow-xl scale-105 transform`
                           : 'hover:bg-white/80 hover:scale-102 transform'
                       }`}
                     >
@@ -565,7 +561,7 @@ const JobWizard = ({
                     <Button
                       className={`h-14 md:h-16 px-6 md:px-8 text-base md:text-lg font-semibold rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-95  whitespace-nowrap ${
                         enteredJobTitle && !isLoading
-                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-2xl hover:shadow-green-500/50 text-white'
+                          ? 'bg-buttonPrimary over:shadow-2xl hover:shadow-green-500/50 text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }
       `}

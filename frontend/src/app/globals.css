@@ -54,11 +54,8 @@
   --font-heading: 'Poppins', sans-serif;
 }
 
-/* 2. DEFINE VALUES 
-   Note: We wrap values in hsl(...) so they are valid CSS colors. 
-   This removes the need for a tailwind.config.ts file. */
-:root {
-  --background: hsl(210 29% 96%); /* #F0F4F8 */
+/* :root {
+  --background: hsl(210 29% 96%); 
   --foreground: hsl(210 10% 23%);
 
   --card: hsl(0 0% 100%);
@@ -67,7 +64,7 @@
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(210 10% 23%);
 
-  --primary: hsl(207 88% 68%); /* #64B5F6 */
+  --primary: hsl(207 88% 68%); 
   --primary-foreground: hsl(210 60% 98%);
 
   --secondary: hsl(210 25% 90%);
@@ -76,7 +73,7 @@
   --muted: hsl(210 25% 93%);
   --muted-foreground: hsl(210 10% 45%);
 
-  --accent: hsl(174 43% 51%); /* #4DB6AC */
+  --accent: hsl(174 43% 51%); 
   --accent-foreground: hsl(0 0% 98%);
 
   --destructive: hsl(0 84.2% 60.2%);
@@ -102,9 +99,9 @@
   --sidebar-accent-foreground: hsl(210 10% 23%);
   --sidebar-border: hsl(210 20% 88%);
   --sidebar-ring: hsl(207 88% 68%);
-}
+} */
 
-.dark {
+/* .dark {
   --background: hsl(210 10% 15%);
   --foreground: hsl(210 20% 95%);
 
@@ -147,6 +144,76 @@
   --sidebar-accent-foreground: hsl(210 20% 95%);
   --sidebar-border: hsl(210 10% 25%);
   --sidebar-ring: hsl(207 80% 65%);
+} */
+
+/* new update */
+:root {
+  /* Gradient → NO hsl */
+  --header-gradient-primary: linear-gradient(
+    to right,
+    #7c3aed,
+    #2563eb,
+    #4f46e5
+  );
+
+  --button-primary: hsl(224 82% 58%);
+  --heading-text-primary: hsl(224 82% 58%);
+  --tab-primary: hsl(224 82% 58%);
+
+  /* Base colors */
+  --background: hsl(210 30% 98%);
+  --foreground: hsl(222 47% 11%);
+
+  /* Primary */
+  --primary: hsl(224 82% 58%);
+  --primary-foreground: hsl(210 40% 98%);
+
+  /* Secondary */
+  --secondary: hsl(210 40% 96%);
+  --secondary-foreground: hsl(222 47% 11%);
+
+  /* Muted */
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215 16% 47%);
+
+  /* Accent */
+  --accent: hsl(187 72% 46%);
+  --accent-foreground: hsl(210 40% 98%);
+
+  /* Borders & rings */
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  --ring: hsl(224 82% 58%);
+}
+
+.dark {
+  --header-gradient-primary: linear-gradient(
+    to right,
+    hsl(0, 0%, 0%),
+    hsl(0, 0%, 0%),
+    hsl(0, 0%, 0%)
+  );
+  --background: hsl(222 47% 7%);
+  --foreground: hsl(210 40% 98%);
+
+  --card: hsl(222 47% 11%);
+  --card-foreground: hsl(210 40% 98%);
+
+  --primary: hsl(224 82% 65%);
+  --primary-foreground: hsl(222 47% 11%);
+
+  --secondary: hsl(217 33% 17%);
+  --secondary-foreground: hsl(210 40% 98%);
+
+  --muted: hsl(217 33% 17%);
+  --muted-foreground: hsl(215 20% 65%);
+
+  --accent: hsl(187 72% 52%);
+  --accent-foreground: hsl(222 47% 11%);
+
+  --border: hsl(217 33% 17%);
+  --input: hsl(217 33% 17%);
+  --ring: hsl(224 82% 65%);
 }
 
 /* 3. BASE STYLES & IMPORTS */
@@ -163,10 +230,10 @@ body {
   margin: 0 0 !important;
   @apply bg-background text-foreground;
 }
-
+/* 
 * {
   @apply border-border;
-}
+} */
 
 h1,
 h2,

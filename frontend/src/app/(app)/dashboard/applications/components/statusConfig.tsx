@@ -52,18 +52,18 @@ export const statusConfig = {
 export const applicationStatuses = Object.keys(statusConfig);
 
 // --- StatCard Component (Unchanged) ---
-export const StatCard = ({ label, value, icon: Icon, color, onClick }) => (
+export const StatCard = ({ label, value, icon: Icon, onClick }) => (
   <div
     onClick={onClick}
-    className={`group relative overflow-hidden rounded-lg bg-gradient-to-br ${color} p-2 md:p-4 transition-all duration-300 hover:shadow-xl cursor-pointer active:scale-[0.98]`}
+    className={` group relative overflow-hidden rounded-lg border border-blue-200 dark:border-gray-700 p-2 md:p-4 transition-all duration-300 hover:shadow-xl hover:bg-tabPrimary cursor-pointer active:scale-[0.98]`}
   >
     <div className="relative z-10">
       {/* Optional icon */}
       {/* <div className="p-3 rounded-lg bg-white/20 mb-4 inline-block">
         <Icon className="h-6 w-6 text-white" />
       </div> */}
-      <div className="text-3xl font-bold text-white mb-1">{value}</div>
-      <div className="text-white/80 text-sm font-medium">{label}</div>
+      <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
+      <div className="text-gray-600 text-sm font-medium">{label}</div>
     </div>
   </div>
 );

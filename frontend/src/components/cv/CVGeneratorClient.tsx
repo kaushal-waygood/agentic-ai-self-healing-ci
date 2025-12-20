@@ -115,7 +115,7 @@ const CVGeneratorClient = ({
         {/* Main Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-xl border border-white/20 overflow-hidden">
           {/* Header */}
-          <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 px-8  text-white">
+          <div className="p-2 bg-gradient-primary px-8  text-white">
             <h2 className="text-xl">CV Context Selection</h2>
             <p className="text-blue-100">
               Choose the background source for your tailored CV.

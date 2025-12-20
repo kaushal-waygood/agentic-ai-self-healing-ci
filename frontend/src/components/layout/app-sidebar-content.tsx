@@ -397,7 +397,7 @@ export const AppSidebarContent = ({
                     }
                     className={`group w-full flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition-all ${
                       isActive
-                        ? 'bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700'
+                        ? 'bg-tabPrimary  text-gray-100 hover:bg-tabPrimary'
                         : 'text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -405,8 +405,12 @@ export const AppSidebarContent = ({
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center">
                       <Icon className="w-4 h-4" />
                     </div>
-
                     {!isCollapsed && <span>{item.title}</span>}
+                    {!isCollapsed && item.comingSoon && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-400 text-white font-semibold">
+                        Soon
+                      </span>
+                    )}
                   </Link>
                 </div>
               </div>

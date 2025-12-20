@@ -380,7 +380,7 @@ export default function DocumentsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white">
+          <h1 className=" text-4xl font-semibold text-headingTextPrimary dark:text-white">
             My Documents
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
