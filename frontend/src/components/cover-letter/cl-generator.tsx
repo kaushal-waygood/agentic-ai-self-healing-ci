@@ -88,7 +88,7 @@ const ClGenerator = ({
         {/* Main Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-xl border border-white/20 overflow-hidden">
           {/* Header */}
-          <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 px-8 text-white">
+          <div className="p-2 bg-header-gradient-primary px-8 text-white">
             <h2 className="text-xl ">CV Context Selection</h2>
             <p className="text-blue-100">
               Choose the CV the AI should reference for generating your cover
@@ -258,7 +258,7 @@ const ClGenerator = ({
 
               {selectedSavedCvId && (
                 <button
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
+                  className="w-full bg-buttonPrimary text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
                   onClick={() => {
                     const foundCv = cvs.find(
                       (c: any) => c._id === selectedSavedCvId,

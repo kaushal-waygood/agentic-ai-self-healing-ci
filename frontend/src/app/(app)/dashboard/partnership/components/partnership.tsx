@@ -44,7 +44,7 @@ const CARDS = [
       'Get a ready message to send us on WhatsApp for university onboarding.',
     icon: Users,
     gradient: 'from-emerald-600 to-teal-500',
-    bgGradient: 'from-emerald-50 to-teal-50',
+    bgGradient: 'from-blue-50 to-cyan-50',
   },
   {
     id: 'company' as ActiveCard,
@@ -53,7 +53,7 @@ const CARDS = [
       'Register your company, upload docs & get free job posting for 1 year.',
     icon: Building2,
     gradient: 'from-violet-600 to-purple-500',
-    bgGradient: 'from-violet-50 to-purple-50',
+    bgGradient: 'from-blue-50 to-cyan-50',
   },
 ];
 
@@ -196,9 +196,9 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
   return (
     <div className="space-y-6">
       {/* ROW 1 */}
-      <div className="grid grid-cols-1 gap-6">
-        <div>
-          <Label>University/Company Name</Label>
+      <div className="grid grid-cols-2 gap-6">
+        <div className="">
+          <Label className="">University/Company Name</Label>
           <Input
             name="university"
             value={tpoData.university}
@@ -206,10 +206,6 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
             placeholder="Enter university/company name"
           />
         </div>
-      </div>
-
-      {/* ROW 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <Label>TPO Phone</Label>
           <Input
@@ -219,6 +215,10 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
             placeholder="Enter phone number"
           />
         </div>
+      </div>
+
+      {/* ROW 2 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <Label>TPO Email</Label>
           <Input
@@ -228,24 +228,24 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
             placeholder="Enter email address"
           />
         </div>
+        {/* SUBMIT BUTTON */}
+        <button
+          type="button"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
+          onClick={handleSubmit}
+        >
+          {submitted ? (
+            <>
+              <Check /> Submitted!
+            </>
+          ) : (
+            <>
+              <Send /> Submit
+            </>
+          )}
+        </button>
+        <div></div>
       </div>
-
-      {/* SUBMIT BUTTON */}
-      <button
-        type="button"
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-        onClick={handleSubmit}
-      >
-        {submitted ? (
-          <>
-            <Check /> Submitted!
-          </>
-        ) : (
-          <>
-            <Send /> Submit
-          </>
-        )}
-      </button>
     </div>
   );
 }

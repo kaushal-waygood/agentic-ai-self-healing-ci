@@ -261,15 +261,15 @@ export const AppSidebarContent = ({
               onClick={() => setPinned(!isPinned)}
               className={`p-2 rounded-lg transition-all duration-200 ${
                 isPinned
-                  ? 'text-purple-600 bg-purple-100 hover:bg-purple-200'
+                  ? 'text-purple-600 hover:bg-purpl e-200'
                   : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
               }`}
               title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
             >
               {isPinned ? (
-                <PinOff className="w-4 h-4" />
+                <PinOff className="hidden sm:block w-4 h-4" />
               ) : (
-                <Pin className="w-4 h-4" />
+                <Pin className=" hidden sm:block w-4 h-4" />
               )}
             </button>
           )}
@@ -438,7 +438,7 @@ export const AppSidebarContent = ({
             {user.plan !== 'Pro' &&
               user.plan !== 'OrgAdmin' &&
               user.plan !== 'Monthly' && (
-                <div className="p-2 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white">
+                <div className="p-2 bg-header-gradient-primary rounded-xl text-white">
                   <div className="flex items-center space-x-2 mb-2">
                     <Zap className="w-4 h-4" />
                     <span className="font-semibold text-sm">

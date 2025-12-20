@@ -115,10 +115,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
 
         <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl shadow-indigo-500/10 rounded-lg overflow-hidden">
           {/* Header */}
-          <CardHeader className="p-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 animate-pulse"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
+          <CardHeader className="p-2 bg-header-gradient-primary text-white relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex items-center gap-3 ">
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
@@ -279,7 +276,7 @@ const CustomizeWizard = ({ handleGenerate, isLoading, setWizardStep }: any) => {
                 className={`h-14 px-8 text-lg font-semibold rounded-lg transition-all duration-300 transform hover:scale-[1.02] ${
                   isLoading
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 '
+                    : 'hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 '
                 } text-white`}
               >
                 {isLoading ? (
