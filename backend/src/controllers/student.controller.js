@@ -13,11 +13,13 @@ import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 import redisClient from '../config/redis.js';
 import {
   normalizeSet,
-  buildExternalQueries,
   fetchExternalJobsCached,
   transformRapidApiJob,
   upsertExternalJobs,
-  scoreJob,
+  getCTRMap,
+  getLocalRecommendedJobs,
+  fetchAndUpsertMoreExternalJobs,
+  getTop4DashboardJobs,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
@@ -25,6 +27,7 @@ import {
   earnCreditsForAction,
 } from '../utils/credits.js';
 import { generateEmbedding } from '../config/embedding.js';
+import { getCachedReco, makeRecoKey } from '../utils/recoCache.js';
 
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
@@ -151,47 +154,59 @@ async function buildUserProfileFromStudent(userId) {
     return {
       skills: [],
       titles: [],
+      jobPreferences: {},
       isRemote: false,
       minYearly: 0,
       location: null,
+      appliedJobs: [],
     };
   }
 
-  const skillsRaw =
-    student.skills || student.skillSet || student.profileSkills || [];
-
-  const titlesRaw =
-    student.preferredTitles || student.targetTitles || student.headline || [];
+  // Skills
+  const skillsRaw = [
+    ...(student.skills || []).map((s) => s.skill),
+    ...(student.jobPreferences?.mustHaveSkills || []).map((s) => s.skill),
+    ...(student.jobPreferences?.niceToHaveSkills || []).map((s) => s.skill),
+  ];
 
   const skills = normalizeSet(skillsRaw);
-  const titles = normalizeSet(
-    Array.isArray(titlesRaw) ? titlesRaw : [titlesRaw],
-  );
 
-  const location =
-    student.preferredLocation ||
-    student.location ||
-    student.currentLocation ||
-    null;
+  // Titles
+  const titlesRaw = [
+    student.jobRole,
+    ...(student.jobPreferences?.preferredJobTitles || []),
+  ].filter(Boolean);
+
+  const titles = normalizeSet(titlesRaw);
+
+  // Location normalization
+  let location = null;
+  if (typeof student.location === 'string') {
+    location = { city: student.location.toUpperCase() };
+  } else if (student.location && typeof student.location === 'object') {
+    location = student.location;
+  }
+
+  const jobPreferences = student.jobPreferences || {};
 
   const isRemote =
-    !!student.isRemote ||
-    !!student.prefersRemote ||
-    (location && location.remote) ||
-    false;
+    jobPreferences.isRemote === true || student.isRemote === true || false;
 
   const minYearly =
-    student.minSalaryYearly ||
-    student.expectedCTCYearly ||
-    student.expectedSalaryYearly ||
-    0;
+    jobPreferences?.preferredSalary?.min || student.expectedSalaryYearly || 0;
+
+  const appliedJobs = Array.isArray(student.appliedJobs)
+    ? student.appliedJobs
+    : [];
 
   return {
     skills,
     titles,
+    jobPreferences,
     isRemote,
     minYearly,
     location,
+    appliedJobs,
   };
 }
 
@@ -1884,141 +1899,53 @@ export const getProfileCompletion = async (req, res) => {
 export const getProfileBasedRecommendedJobs = async (req, res) => {
   try {
     const userId = req.user?._id;
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
+    if (!userId) return res.sendStatus(401);
 
-    // 1. Build user profile
     const profile = await buildUserProfileFromStudent(userId);
 
-    // 2. Fetch & hydrate external jobs (unchanged behavior)
-    const externalQueries = buildExternalQueries(
-      profile.titles,
-      profile.skills,
-    ).slice(0, 3);
+    let jobs = await getLocalRecommendedJobs(profile);
 
-    if (externalQueries.length) {
-      const results = await Promise.all(
-        externalQueries.map(async (q) => {
-          const apiJobs = await fetchExternalJobsCached(
-            q,
-            profile.location?.country,
-            profile.location?.state,
-            profile.location?.city,
-          );
-          return { q, apiJobs };
-        }),
-      );
+    const MIN_RESULTS = 20;
 
-      const externalJobsRaw = [];
-      for (const { q, apiJobs } of results) {
-        if (Array.isArray(apiJobs)) {
-          apiJobs.forEach((aj) =>
-            externalJobsRaw.push(transformRapidApiJob(aj, q)),
-          );
-        }
-      }
-
-      if (externalJobsRaw.length) {
-        await upsertExternalJobs(externalJobsRaw.slice(0, 50));
-      }
+    if (jobs.length < MIN_RESULTS) {
+      await fetchAndUpsertMoreExternalJobs(profile);
+      jobs = await getLocalRecommendedJobs(profile);
     }
 
-    // 3. Build structured intent (cleaner embedding input)
-    const userIntent = `
-Titles: ${profile.titles?.join(', ') || ''}
-Skills: ${profile.skills?.join(', ') || ''}
-Location: ${profile.location?.city || ''}, ${profile.location?.country || ''}
-`.trim();
-
-    const userVector = await generateEmbedding(userIntent);
-    if (!userVector) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to generate profile vector',
-      });
-    }
-
-    // 4. Exclude already applied jobs
-    const appliedJobIds =
-      profile.appliedJobs?.map((j) => j.job).filter(Boolean) || [];
-
-    const prefs = profile.jobPreferences || {};
-
-    // 5. Vector search pipeline (filters only, no logic removal)
-    const pipeline = [
-      {
-        $vectorSearch: {
-          index: 'vector_index',
-          path: 'job_embedding',
-          queryVector: userVector,
-          numCandidates: 150,
-          limit: 50,
-          filter: {
-            $and: [
-              { isActive: true },
-              { job_embedding: { $exists: true } },
-              ...(appliedJobIds.length
-                ? [{ _id: { $nin: appliedJobIds } }]
-                : []),
-              ...(profile.location?.country
-                ? [{ country: profile.location.country }]
-                : []),
-              ...(prefs.preferredJobTypes?.length
-                ? [{ jobTypes: { $in: prefs.preferredJobTypes } }]
-                : []),
-              ...(prefs.isRemote ? [{ remote: true }] : []),
-            ],
-          },
-        },
-      },
-      {
-        $addFields: {
-          score: { $meta: 'vectorSearchScore' },
-        },
-      },
-      {
-        $addFields: {
-          recencyBoost: {
-            $cond: [
-              {
-                $gte: [
-                  '$jobPostedAt',
-                  new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-                ],
-              },
-              0.1,
-              0,
-            ],
-          },
-        },
-      },
-      {
-        $addFields: {
-          finalScore: { $add: ['$score', '$recencyBoost'] },
-        },
-      },
-      { $sort: { finalScore: -1 } },
-      {
-        $project: {
-          job_embedding: 0,
-          __v: 0,
-        },
-      },
-    ];
-
-    const jobs = await Job.aggregate(pipeline);
-
-    return res.status(200).json({
+    return res.json({
       success: true,
       count: jobs.length,
       jobs,
     });
   } catch (err) {
-    console.error('Error in vector recommendation:', err);
+    console.error(err);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch recommended jobs',
+    });
+  }
+};
+
+export const getDashboardTopJobs = async (req, res) => {
+  const userId = req.user?._id;
+  if (!userId) return res.sendStatus(401);
+
+  try {
+    const profile = await buildUserProfileFromStudent(userId);
+    profile.userId = userId;
+
+    const jobs = await getTop4DashboardJobs(profile);
+
+    return res.json({
+      success: true,
+      count: jobs.length,
+      jobs,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load dashboard jobs',
     });
   }
 };

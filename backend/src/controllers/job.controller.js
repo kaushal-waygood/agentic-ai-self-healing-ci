@@ -887,19 +887,65 @@ export const getAllJobsQueries = async (req, res) => {
   }
 };
 
-// POST /jobs/:id/click
 export const trackJobClick = async (req, res) => {
-  const { id } = req.params;
-  const { query } = req.body;
+  try {
+    const { id } = req.params;
+    const { query } = req.body;
 
-  await JobInteraction.create({
-    jobId: id,
-    userId: req.user?._id || null,
-    query,
-    action: 'click',
-  });
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Job ID is required' });
+    }
 
-  res.json({ success: true });
+    await JobInteraction.create({
+      jobId: id,
+      userId: req.user?._id || null,
+      query: query?.trim() || null,
+      action: 'click',
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('trackJobClick error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const trackJobImpressions = async (req, res) => {
+  try {
+    const { jobIds, query } = req.body;
+
+    if (!Array.isArray(jobIds) || jobIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'jobIds must be a non-empty array',
+      });
+    }
+
+    const userId = req.user?._id || null;
+
+    // Deduplicate jobIds
+    const uniqueJobIds = [...new Set(jobIds)];
+
+    const interactions = uniqueJobIds.map((jobId) => ({
+      jobId,
+      userId,
+      query: query?.trim() || null,
+      action: 'impression',
+    }));
+
+    await JobInteraction.insertMany(interactions, { ordered: false });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('trackJobImpressions error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
 };
 
 export const getJobDescByJobId = async (req, res) => {

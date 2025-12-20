@@ -234,7 +234,7 @@ router.post(
   '/applications/tailor',
   authMiddleware,
   isUserOrUniStudent,
-  checkCredits('TAILOR_APPLICATION'),
+  checkCredits('TAILORED_APPLY'),
   requireCompleteProfile,
   uploadToMemory.single('cv'),
   createTailoredApply,

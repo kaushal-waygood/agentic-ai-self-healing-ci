@@ -335,13 +335,13 @@ export async function getFallbackJobsFromRapidAPI(req, res, preferencesRaw) {
       'Error fetching fallback jobs from RapidAPI:',
       error?.message || error,
     );
-    return res.status(200).json({
+    return {
       success: true,
       jobs: [],
       pagination: { total: 0, page, limit, totalPages: 0 },
       source: 'none',
       message:
         'No matching jobs found. Try adjusting your preferences or check back later.',
-    });
+    };
   }
 }
