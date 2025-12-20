@@ -1,4 +1,4 @@
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 
 // Limit long strings
 const trimText = (str, maxLen = 500) => {
@@ -96,7 +96,12 @@ const buildJobSummary = (jobDescription) => {
   };
 };
 
-export const calculateJobMatch = async (jobDescription, student) => {
+export const calculateJobMatch = async (
+  jobDescription,
+  student,
+  userId,
+  endpoint,
+) => {
   let rawResponse = '';
 
   const studentSummary = buildStudentSummary(student);
@@ -137,7 +142,10 @@ ${JSON.stringify(studentSummary, null, 2)}
 `;
 
   try {
-    rawResponse = await genAI(prompt);
+    rawResponse = await genAI(prompt, {
+      userId: userId,
+      endpoint: endpoint,
+    });
 
     const parsedResponse = safeParseJsonFromLLM(
       typeof rawResponse === 'string' ? rawResponse : rawResponse?.text ?? '',

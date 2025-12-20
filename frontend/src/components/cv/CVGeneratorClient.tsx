@@ -81,13 +81,13 @@ const CVGeneratorClient = ({
     <div className="p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Progress indicator */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
                 <Check className="w-4 h-4" />
               </div>
-              <span className="ml-2 text-sm font-medium text-green-600">
+              <span className="hidden sm:inline ml-2 text-sm font-medium text-green-600">
                 Job Details
               </span>
             </div>
@@ -96,7 +96,7 @@ const CVGeneratorClient = ({
               <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
                 2
               </div>
-              <span className="ml-2 text-sm font-medium text-blue-600">
+              <span className="hidden sm:inline ml-2 text-sm font-medium text-blue-600">
                 CV Context
               </span>
             </div>
@@ -105,7 +105,7 @@ const CVGeneratorClient = ({
               <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">
                 3
               </div>
-              <span className="ml-2 text-sm font-medium text-gray-500">
+              <span className="hidden sm:inline ml-2 text-sm font-medium text-gray-500">
                 Generate
               </span>
             </div>
@@ -115,15 +115,15 @@ const CVGeneratorClient = ({
         {/* Main Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-xl border border-white/20 overflow-hidden">
           {/* Header */}
-          <div className=" p-2 bg-gradient-to-r from-blue-600 to-indigo-600 px-8  text-white">
-            <h2 className="text-xl  ">CV Context Selection</h2>
+          <div className="p-2 bg-gradient-primary px-8  text-white">
+            <h2 className="text-xl">CV Context Selection</h2>
             <p className="text-blue-100">
               Choose the background source for your tailored CV.
             </p>
           </div>
 
           {/* Content */}
-          <div className="p-8 space-y-4">
+          <div className="sm:p-8 p-4 space-y-4">
             {/* Saved CVs Section */}
             <div className="flex flex-row flex-wrap justify-between text-sm  font-medium mb-2">
               <label className="flex items-center">
@@ -183,7 +183,7 @@ const CVGeneratorClient = ({
                                 </div>
 
                                 <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-800 text-lg">
+                                  <h4 className="font-semibold text-gray-800 text-sm sm:text-lg">
                                     {cv.htmlCVTitle || 'Untitled CV'}
                                   </h4>
                                   <div className="flex items-center mt-1">

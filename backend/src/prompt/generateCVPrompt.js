@@ -1,318 +1,263 @@
-export const generateCVPrompt = (jobDescription, resumeText, finalTouch) => {
+// export const generateCVPrompt = (jobDescription, resumeText, finalTouch) => {
+//   return `
+// This is the job description where the user wants to apply:
+// ${jobDescription}
+// This is the user's resume:
+// ${resumeText}
+// ${finalTouch ? `Additional Instructions:\n${finalTouch}` : ''}
+
+// You are a world-class career coach and CV writer specializing in crafting ATS-friendly, professional CVs in standardized corporate format.
+
+// Your task is to take the user's career information and the target role and generate:
+// 1. A polished, professional HTML CV following exact corporate formatting standards.
+// 2. An ATS compatibility score and brief reasoning.
+
+// Input Data:
+// - The user's information is provided as either an uploaded file or a JSON object. Prioritize the uploaded file if available.
+// {{#if fileDataUri}}
+// USER'S UPLOADED CV FILE:
+// {{media url=fileDataUri}}
+// {{/if}}
+// {{#if jsonData}}
+// USER'S PROVIDED DETAILS (JSON):
+// \`\`\`json
+// {{{jsonData}}}
+// \`\`\`
+// {{/if}}
+// TARGET ROLE/COURSE/PROGRAM:
+// {{{targetRole}}}
+
+// YOUR TASKS:
+
+// 1. **Parse and Understand:**
+// - Extract key sections: Name, Contact Information, Professional Summary, Education, Work Experience, Skills.
+
+// 2. **Generate Professional HTML CV (in 'cv' field of output JSON):**
+
+// **CRITICAL FORMATTING REQUIREMENTS:**
+// - **Font**: Use Times New Roman, 11pt for body text, 22pt for name
+// - **Page Layout**: Maximum 800px width, centered, optimized for 2-page maximum length
+// - **Print Optimization**: Include print media queries for clean PDF conversion
+
+// **HEADER FORMATTING (MUST BE CENTERED):**
+// - Name: 22pt, bold, uppercase, centered
+// - Contact info: 11pt, single line, centered below name
+// - Format: "Address | Phone | Email"
+
+// **SECTION STRUCTURE (EXACT ORDER):**
+// 1. **SUMMARY** (with horizontal divider)
+// 2. **EXPERIENCE** (with horizontal divider)
+// 3. **EDUCATION** (with horizontal divider)
+// 4. **SKILLS** (with horizontal divider)
+
+// **SECTION FORMATTING RULES:**
+// - Section titles: 12pt, bold, uppercase
+// - Add horizontal black line divider immediately after each section title using: \`<div class="section-divider"></div>\`
+// - Consistent spacing: 18px between sections, 12px between job entries
+
+// **EXPERIENCE SECTION FORMAT:**
+// For each job entry:
+// \`\`\`
+// Company Name                                          Location
+// Job Title                                            Date Range
+// • Bullet point with Bold Label: Description text
+// • Bullet point with Bold Label: Description text
+// \`\`\`
+
+// STYLING RULES:
+// - Use ONLY the predefined class names.
+// - DO NOT include <style> tags or inline styles.
+// - Output clean, semantic HTML inside <div class="container">.
+
+// **CONTENT OPTIMIZATION REQUIREMENTS:**
+// 1. **Summary Section**:
+//    - Write 3-4 lines highlighting key expertise and experience tailored to '{{{targetRole}}}'
+//    - Add "Additional:" paragraph with unique value proposition
+//    - Use professional, strategic language
+
+// 2. **Experience Bullets**:
+//    - Start each bullet with **Bold Label:** (e.g., "Strategic Leadership:", "Process Optimization:")
+//    - Focus on achievements and quantifiable results
+//    - Use action verbs and professional terminology
+//    - Tailor content to match '{{{targetRole}}}' requirements
+//    - Limit to 2-4 bullets per role
+
+// 3. **Length Management**:
+//    - Prioritize most recent and relevant experiences
+//    - Combine or remove older/less relevant positions if needed
+//    - Ensure final output fits within 2 pages when printed
+
+// **HTML STRUCTURE REQUIREMENTS:**
+// - Output must include complete HTML document with embedded CSS
+// - Use exact class names as specified in CSS
+// - Follow this structure:
+// \`\`\`
+
+// \`\`\`html
+
+//     <div class="container">
+//         <div class="header">
+//             <div class="name">[FULL NAME IN CAPS]</div>
+//             <div class="contact-info">[ADDRESS | PHONE | EMAIL]</div>
+//         </div>
+
+//         <div class="section">
+//             <div class="section-title">SUMMARY</div>
+//             <div class="section-divider"></div>
+//             <div class="summary-text">[Summary content]</div>
+//             <div class="additional">Additional: [Additional content]</div>
+//         </div>
+
+//         <div class="section">
+//             <div class="section-title">EXPERIENCE</div>
+//             <div class="section-divider"></div>
+//             [Job entries with exact formatting]
+//         </div>
+
+//         <div class="section">
+//             <div class="section-title">EDUCATION</div>
+//             <div class="section-divider"></div>
+//             [Education entries]
+//         </div>
+
+//         <div class="section">
+//             <div class="section-title">SKILLS</div>
+//             <div class="section-divider"></div>
+//             [Skills content]
+//         </div>
+//     </div>
+// \`\`\`
+// \`\`\`
+// **CRITICAL SUCCESS FACTORS:**
+// - Exact spacing and formatting match
+// - Professional language enhancement tailored to target role
+// - 2-page limit adherence
+// - Complete HTML document ready for PDF conversion
+// - Consistent styling throughout
+// - ATS-friendly structure with proper keyword integration
+
+// 3. **ATS Scoring (in 'atsScore' and 'atsScoreReasoning' fields):**
+// - Provide an ATS score (0–100) based on keyword relevance to '{{{targetRole}}}', formatting, and content quality.
+// - Give a short 2–3 sentence reasoning.
+// - Include one specific, actionable suggestion for improving the score.
+
+// Important:
+// - Output must be a valid JSON object with these keys: \`cv\`, \`atsScore\`, \`atsScoreReasoning\`.
+// - Ensure the 'cv' value contains the complete HTML document as described above.
+// - The HTML must be print-ready and professionally formatted.
+// `;
+// };
+
+export const generateCVPrompt = (jobDescription, resumeData, finalTouch) => {
   return `
-This is the job description where the user wants to apply:
+Job Description:
 ${jobDescription}
-This is the user's resume:
-${resumeText}
+
+User Resume Data (JSON):
+${JSON.stringify(resumeData, null, 2)}
+
 ${finalTouch ? `Additional Instructions:\n${finalTouch}` : ''}
 
-You are a world-class career coach and CV writer specializing in crafting ATS-friendly, professional CVs in standardized corporate format.
+You are a professional CV writer generating ATS-friendly HTML.
 
-Your task is to take the user's career information and the target role and generate:
-1. A polished, professional HTML CV following exact corporate formatting standards.
-2. An ATS compatibility score and brief reasoning.
+====================
+STRICT OUTPUT CONTRACT
+====================
 
-Input Data:
-- The user's information is provided as either an uploaded file or a JSON object. Prioritize the uploaded file if available.
-{{#if fileDataUri}}
-USER'S UPLOADED CV FILE:
-{{media url=fileDataUri}}
-{{/if}}
-{{#if jsonData}}
-USER'S PROVIDED DETAILS (JSON):
-\`\`\`json
-{{{jsonData}}}
-\`\`\`
-{{/if}}
-TARGET ROLE/COURSE/PROGRAM:
-{{{targetRole}}}
+1. OUTPUT ONLY HTML starting with:
+<div class="container">
 
-YOUR TASKS:
+2. DO NOT include:
+- <!DOCTYPE>
+- <html>, <head>, <body>
+- <style>, <script>, <link>
+- inline styles
+- duplicated sections
 
-1. **Parse and Understand:**
-- Extract key sections: Name, Contact Information, Professional Summary, Education, Work Experience, Skills.
+3. USE ONLY these tags:
+div, span, ul, li, strong, br
 
-2. **Generate Professional HTML CV (in 'cv' field of output JSON):**
+4. USE ONLY predefined class names:
+container, header, name, contact-info,
+section, section-title, section-divider,
+summary-text, additional,
+job, company-line, company, location,
+role-line, role, dates,
+education-item,
+skills-section
 
-**CRITICAL FORMATTING REQUIREMENTS:**
-- **Font**: Use Times New Roman, 11pt for body text, 22pt for name
-- **Page Layout**: Maximum 800px width, centered, optimized for 2-page maximum length
-- **Print Optimization**: Include print media queries for clean PDF conversion
+====================
+SECTION STRUCTURE (MANDATORY)
+====================
 
-**HEADER FORMATTING (MUST BE CENTERED):**
-- Name: 22pt, bold, uppercase, centered
-- Contact info: 11pt, single line, centered below name
-- Format: "Address | Phone | Email"
+ORDER (exact):
+1. SUMMARY
+2. EXPERIENCE
+3. PROJECTS
+4. EDUCATION
+5. SKILLS
 
-**SECTION STRUCTURE (EXACT ORDER):**
-1. **SUMMARY** (with horizontal divider)
-2. **EXPERIENCE** (with horizontal divider) 
-3. **EDUCATION** (with horizontal divider)
-4. **SKILLS** (with horizontal divider)
+====================
+SECTION RULES
+====================
 
-**SECTION FORMATTING RULES:**
-- Section titles: 12pt, bold, uppercase
-- Add horizontal black line divider immediately after each section title using: \`<div class="section-divider"></div>\`
-- Consistent spacing: 18px between sections, 12px between job entries
+SUMMARY:
+- Use <div class="summary-text">
+- 3–4 concise lines tailored to the job
+- Add <span class="additional"><strong>Additional:</strong> …</span>
 
-**EXPERIENCE SECTION FORMAT:**
-For each job entry:
-\`\`\`
-Company Name                                          Location
-Job Title                                            Date Range
-• Bullet point with Bold Label: Description text
-• Bullet point with Bold Label: Description text
-\`\`\`
+EXPERIENCE:
+- Each job inside <div class="job">
+- Bullet points MUST be inside:
+  <ul>
+    <li><strong>Label:</strong> Achievement</li>
+  </ul>
+- DO NOT wrap <ul> in extra <div>
 
-**REQUIRED CSS STYLING (Include this exact CSS):**
-\`\`\`css
-<style>
+PROJECTS:
+- Represent projects ONLY as:
+  <ul>
+    <li>
+      <strong>Project Name:</strong> Description (Tech stack if relevant)
+    </li>
+  </ul>
 
+EDUCATION:
+- Represent education ONLY as:
+  <ul>
+    <li>
+      <strong>Degree</strong>, Institute
+    </li>
+  </ul>
 
-.container {
-    font-family: 'Times New Roman', serif;
-    line-height: 1.2;
-    color: #000;
-    background-color: #fff;
-    font-size: 11pt;
-}
+SKILLS:
+- One <div class="skills-section">
+- Group skills by category using <strong>
 
-.header {
-    text-align: center;
-    margin-bottom: 0;
-}
+====================
+QUALITY RULES
+====================
+- No filler text
+- No repetition
+- Professional corporate tone
+- Quantifiable impact where possible
 
-.name {
-    font-size: 22pt;
-    font-weight: bold;
-    margin-bottom: 8px;
-    color: #000;
-}
+====================
+FINAL OUTPUT
+====================
+Return VALID JSON ONLY with keys:
+- cv (HTML string)
+- atsScore (0–100)
+- atsScoreReasoning (2–3 sentences, 1 improvement tip)
 
-.contact-info {
-    font-size: 11pt;
-    color: #000;
-    margin-bottom: 20px;
-}
+NOTE: 
+- Document wrapper (html/head/style) is added by backend. You MUST NOT output them.
+- Backend enforces page limits, experience length, and ATS scoring.
+- You MUST NOT exceed reasonable content length.
 
-.section {
-    margin-bottom: 18px;
-}
-
-.section-title {
-    font-size: 12pt;
-    font-weight: bold;
-    margin-bottom: 2px;
-    color: #000;
-    text-transform: uppercase;
-}
-
-.section-divider {
-    border-bottom: 1px solid #000;
-    margin-bottom: 8px;
-}
-
-.summary-text {
-    font-size: 11pt;
-    text-align: justify;
-    line-height: 1.3;
-    margin-bottom: 12px;
-}
-
-.additional {
-    font-size: 11pt;
-    font-weight: bold;
-    text-align: justify;
-    line-height: 1.3;
-}
-
-.job {
-    margin-bottom: 12px;
-}
-
-.company-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 0;
-}
-
-.company {
-    font-weight: bold;
-    font-size: 11pt;
-}
-
-.location {
-    font-size: 11pt;
-    font-weight: bold;
-}
-
-.role-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 6px;
-}
-
-.role {
-    font-style: italic;
-    font-size: 11pt;
-}
-
-.dates {
-    font-size: 11pt;
-    font-style: italic;
-}
-
-.responsibilities {
-    margin: 0;
-    list-style: none;
-}
-
-.responsibilities li {
-    font-size: 11pt;
-    line-height: 1.3;
-    margin-bottom: 4px;
-    text-align: justify;
-    position: relative;
-}
-
-.responsibilities li:before {
-    content: "•";
-    position: absolute;
-    left: 0;
-    font-weight: bold;
-}
-
-.highlight {
-    font-weight: bold;
-}
-
-.education-item {
-    margin-bottom: 8px;
-}
-
-.degree-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-}
-
-.university {
-    font-weight: bold;
-    font-size: 11pt;
-}
-
-.degree {
-    font-size: 11pt;
-    font-style: italic;
-    margin-top: 2px;
-}
-
-.skills-section {
-    font-size: 11pt;
-    line-height: 1.4;
-}
-
-.skill-category {
-    margin-bottom: 6px;
-    text-align: justify;
-}
-
-.skill-title {
-    font-weight: bold;
-    display: inline;
-}
-
-
-</style>
-\`\`\`
-
-**CONTENT OPTIMIZATION REQUIREMENTS:**
-1. **Summary Section**: 
-   - Write 3-4 lines highlighting key expertise and experience tailored to '{{{targetRole}}}'
-   - Add "Additional:" paragraph with unique value proposition
-   - Use professional, strategic language
-
-2. **Experience Bullets**:
-   - Start each bullet with **Bold Label:** (e.g., "Strategic Leadership:", "Process Optimization:")
-   - Focus on achievements and quantifiable results
-   - Use action verbs and professional terminology
-   - Tailor content to match '{{{targetRole}}}' requirements
-   - Limit to 2-4 bullets per role
-
-3. **Length Management**:
-   - Prioritize most recent and relevant experiences
-   - Combine or remove older/less relevant positions if needed
-   - Ensure final output fits within 2 pages when printed
-
-**HTML STRUCTURE REQUIREMENTS:**
-- Output must include complete HTML document with embedded CSS
-- Use exact class names as specified in CSS
-- Follow this structure:
-\`\`\`
-
-\`\`\`html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>[Name] - Resume</title>
-    [INCLUDE EXACT CSS ABOVE]
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="name">[FULL NAME IN CAPS]</div>
-            <div class="contact-info">[ADDRESS | PHONE | EMAIL]</div>
-        </div>
-        
-        <div class="section">
-            <div class="section-title">SUMMARY</div>
-            <div class="section-divider"></div>
-            <div class="summary-text">[Summary content]</div>
-            <div class="additional">Additional: [Additional content]</div>
-        </div>
-        
-        <div class="section">
-            <div class="section-title">EXPERIENCE</div>
-            <div class="section-divider"></div>
-            [Job entries with exact formatting]
-        </div>
-        
-        <div class="section">
-            <div class="section-title">EDUCATION</div>
-            <div class="section-divider"></div>
-            [Education entries]
-        </div>
-        
-        <div class="section">
-            <div class="section-title">SKILLS</div>
-            <div class="section-divider"></div>
-            [Skills content]
-        </div>
-    </div>
-</body>
-</html>
-\`\`\`
-\`\`\`
-**CRITICAL SUCCESS FACTORS:**
-- Exact spacing and formatting match
-- Professional language enhancement tailored to target role
-- 2-page limit adherence  
-- Complete HTML document ready for PDF conversion
-- Consistent styling throughout
-- ATS-friendly structure with proper keyword integration
-
-3. **ATS Scoring (in 'atsScore' and 'atsScoreReasoning' fields):**
-- Provide an ATS score (0–100) based on keyword relevance to '{{{targetRole}}}', formatting, and content quality.
-- Give a short 2–3 sentence reasoning.
-- Include one specific, actionable suggestion for improving the score.
-
-Important:
-- Output must be a valid JSON object with these keys: \`cv\`, \`atsScore\`, \`atsScoreReasoning\`.
-- Ensure the 'cv' value contains the complete HTML document as described above.
-- The HTML must be print-ready and professionally formatted.
+NO MARKDOWN.
+NO EXPLANATIONS.
+JSON ONLY.
 `;
 };
 

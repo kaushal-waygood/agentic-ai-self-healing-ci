@@ -56,7 +56,7 @@ const SleekClStep = ({
     {
       value: 'skip',
       icon: Sparkles,
-      title: 'Skip this step - Generate from scratch',
+      title: 'Skip this step - Generate from scratch ',
       description: 'Let AI create a personalized cover letter for you',
       gradient: 'from-purple-500/20 to-blue-500/20',
     },
@@ -83,7 +83,7 @@ const SleekClStep = ({
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 font-sans">
       {/* Header Section */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-4">
         <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
           Cover Letter Context
         </h2>
@@ -137,8 +137,8 @@ const SleekClStep = ({
                           <div
                             className={`absolute inset-0 bg-gradient-to-br ${option.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
                           ></div>
-                          <div className="relative p-6">
-                            <div className="flex items-start space-x-4">
+                          <div className="relative p-4 sm:p-6">
+                            <div className="flex items-center space-x-2">
                               {/* Custom Radio Button Visual */}
                               <div
                                 className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
@@ -152,13 +152,9 @@ const SleekClStep = ({
                                 )}
                               </div>
                               <div
-                                className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                                  isSelected
-                                    ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-lg'
-                                    : 'bg-slate-100 text-slate-600 group-hover:bg-gradient-to-br group-hover:from-purple-100 group-hover:to-blue-100'
-                                }`}
+                                className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 `}
                               >
-                                <Icon className="w-6 h-6" />
+                                <Icon className=" w-6 h-6" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h3

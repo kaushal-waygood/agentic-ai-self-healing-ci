@@ -4,7 +4,7 @@ metadata:
   name: zobsai-backend-config
   namespace: zobsai
 data:
-  NODE_ENV: 'production'
+  NODE_ENV: 'development'
   SAMPLE_KEY: 'dev-value'
   REDIS_HOST: 'zobsai-redis.dev-zobsai.svc.cluster.local'
   REDIS_PORT: '6379'
@@ -12,37 +12,7 @@ data:
   EMAIL_HOST: 'smtp.gmail.com'
   EMAIL_PORT: '2525'
   EMAIL_SECURE: 'false'
-  EMAIL_USER: 'infozobsai@gmail.com'
-  EMAIL_PASSWORD: 'wssq kdwx phtg uxzd'
-
-  MONGO_URL: 'mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot'
-  RAPID_API_KEY: 'e181f48f77msh3138245c94a6f01p197d40jsn0ae1e0afe85c'
-
-  GOOGLE_GENERATIVE_AI_KEY: 'AIzaSyAy4pHPJEPWWDXHWw06MTGs4q4RYSTJM_M'
-  GEMINI_API_KEY: AIzaSyAy4pHPJEPWWDXHWw06MTGs4q4RYSTJM_M
-
-  GOOGLE_CLIENT_ID: '433624775795-6b9tn13tt5ak25lbe8f8i80ckb87so6t.apps.googleusercontent.com'
-  GOOGLE_CLIENT_SECRET: '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'
-
-  GOOGLE_AUTH_CLIENT_ID: '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com'
-  GOOGLE_AUTH_CLIENT_SECRET: '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'
 
   BACKEND_URL: 'https://api.zobsai.com'
-  FRONTEND_URL: 'https://www.zobsai.com'
-
-  ACCESS_TOKEN_EXPIRY: '7d'
-  ACCESS_TOKEN_SECRET: 'a11d913c91c854d9122d42c2855f20f4cea45d465ec0bc155a7f952d8f32bb7815d202b7a070b0387548db0b6f2da50c6253'
-
-  CLOUDINARY_CLOUD_NAME: 'ddx9jfhzt'
-  CLOUDINARY_API_KEY: '167453355555211'
-  CLOUDINARY_API_SECRET: '4_IBUE_4qngNnsHx4xnhDR9tLGQ'
-
-  GOOGLE_SERVICE_ACCOUNT_EMAIL: 'zobsai@zobsai-471610.iam.gserviceaccount.com'
-  GOOGLE_SHEET_ID: '186eR_5n9Y-vrj48a1OjTWPJbD6G6_t33d0tj0gn2y9I'
-
-  STRIPE_SECRET_KEY: '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'
-  STRIPE_WEBHOOK_SECRET: 'whsec_qTBlzItif4ppB2MqKpNQEAt0WjcdhT0S'
-
-  LINKEDIN_CLIENT_SECRET: 'WPL_AP1.xlVrZqBWsbnqXzkL.1Zaheg=='
-  LINKEDIN_CLIENT_ID: '78cxzsxixqb18l'
-  SITEMAP_API_KEY: 'secret'
+  FRONTEND_URL: 'https://zobsai.com'
+  LLM_PROVIDER: 'deepseek'

@@ -24,6 +24,7 @@ import {
   linkedInCallback,
   resendVerificationEmail,
   firebaseGoogleSignup,
+  getVerifiedUser,
   firebaseGoogleLogin,
 } from '../controllers/user.controller.js';
 import {
@@ -41,6 +42,7 @@ import {
   saveOrganizationDetails,
 } from '../controllers/bringZobs.controller.js';
 import { upload } from '../middlewares/multer.js';
+import { getVerifiedUsers } from '../controllers/student.controller.js';
 
 const router = Router();
 
@@ -74,6 +76,7 @@ router.patch('/me/password/change', authMiddleware, changePassword);
 router.post('/resend-otp', resendOtp);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.get('/get-verified-user', getVerifiedUser);
 
 router.post('/notify-autopilot', authMiddleware, notifyUserForAutopilot);
 router.post(

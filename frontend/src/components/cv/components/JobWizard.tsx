@@ -76,7 +76,10 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
     >
       <div className="flex items-start gap-4 relative z-10">
         {/* Company Logo with enhanced animation */}
-        <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white">
+        <div
+          className="hidden
+    sm:flex flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white"
+        >
           {job.logo ? (
             <img
               src={job.logo}
@@ -95,10 +98,12 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
           <p className="text-sm font-medium text-gray-500 truncate mb-1">
             {job.company}
           </p>
-          <h3 className="text-xl font-semibold text-gray-900 truncate mb-3 group-hover:text-blue-600 transition-colors duration-300">
+          {/* <h3 className="text-xl font-semibold text-gray-900 truncate mb-3 group-hover:text-blue-600 transition-colors duration-300">
             {job.title}
-          </h3>
-
+          </h3> */}
+          <p className="font-semibold text-gray-900">
+            {job.title.length > 45 ? job.title.slice(0, 35) + '…' : job.title}
+          </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             {job.location?.city && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm group-hover:shadow-md transition-shadow duration-300 border border-gray-100">
@@ -128,17 +133,6 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
             )}
           </div>
         </div>
-
-        {/* Animated checkmark on hover */}
-        <div
-          className={`absolute top-4 right-4 transition-all duration-300 ${
-            isHovered ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-          }`}
-        >
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
-            <CheckCircle2 className="w-5 h-5 text-white" />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -163,21 +157,21 @@ const JobWizard = ({
       icon: FileSignature,
       label: 'Paste JD',
       // description: 'Full job description',
-      gradient: 'from-blue-500 to-cyan-400',
+      gradient: 'tabPrimary',
     },
     {
       value: 'select',
       icon: Briefcase,
       label: 'Saved Job',
       // description: 'Choose from saved',
-      gradient: 'from-purple-500 to-pink-400',
+      gradient: 'tabPrimary',
     },
     {
       value: 'title',
       icon: User,
       label: 'Job Title',
       // description: 'Quick setup',
-      gradient: 'from-green-500 to-emerald-400',
+      gradient: 'tabPrimary',
     },
   ];
 
@@ -207,7 +201,7 @@ const JobWizard = ({
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
             <div className="absolute inset-0 2xl "></div>
-            <h1 className="text-4xl  bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent relative z-10 mb-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative z-10">
               AI-Powered CV Generator
             </h1>
           </div>
@@ -219,18 +213,14 @@ const JobWizard = ({
 
         <Card className="bg-white/90 backdrop-blur-xl border-0 shadow-2xl shadow-purple-500/10 rounded-lg overflow-hidden">
           {/* Enhanced Animated Header */}
-          <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white relative overflow-hidden p-2">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30"></div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 animate-pulse"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -ml-24 -mb-24 animate-pulse delay-75"></div>
-
+          <CardHeader className="bg-header-gradient-primary text-white relative overflow-hidden p-2">
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-lg border border-white/30">
                   <Target className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold">
+                  <CardTitle className="text-xl font-semibold">
                     Step 1: Provide Job Context
                   </CardTitle>
                   <p className="text-white/80 text-sm mt-1">
@@ -252,13 +242,14 @@ const JobWizard = ({
                 {tabData.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.value;
+                  console.log('isActive:', tab.gradient, isActive);
                   return (
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
                       className={`flex flex-row items-center gap-2 p-4 rounded-lg transition-all duration-500 ${
                         isActive
-                          ? `bg-gradient-to-r ${tab.gradient} text-white shadow-xl scale-105 transform`
+                          ? `bg-${tab.gradient} hover:bg-tabPrimary text-white shadow-xl scale-105 transform`
                           : 'hover:bg-white/80 hover:scale-102 transform'
                       }`}
                     >
@@ -297,9 +288,9 @@ const JobWizard = ({
                   <div className="relative group">
                     <Textarea
                       placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
-                      className={`min-h-[280px] border-2 rounded-lg p-6 pr-16 focus:ring-4 resize-none transition-all duration-500 bg-gradient-to-br from-gray-50 to-white shadow-inner ${
+                      className={`min-h-[280px] border-2 rounded-lg p-6 pr-16 focus:ring-4 resize-none transition-all duration-500 ${
                         isFocused
-                          ? 'border-blue-500 ring-blue-100 shadow-lg'
+                          ? '  shadow-lg'
                           : charCount < 200
                           ? 'border-gray-300 hover:border-gray-400'
                           : 'border-green-300 hover:border-green-400 ring-green-50'
@@ -347,9 +338,7 @@ const JobWizard = ({
                     <div className="flex items-center gap-3">
                       <div
                         className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
-                          charCount < 200
-                            ? 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border-2 border-red-200'
-                            : 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-2 border-green-200'
+                          charCount < 200 ? 'text-red-700 ' : 'text-green-700 '
                         }`}
                       >
                         {charCount} / 200 characters
@@ -375,7 +364,7 @@ const JobWizard = ({
                     <Button
                       className={`h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                         charCount >= 200 && !isLoading
-                          ? 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:shadow-2xl hover:shadow-purple-500/50 text-white'
+                          ? 'bg-buttonPrimary  text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                       onClick={() => handleSetJobContext('paste')}
@@ -390,13 +379,13 @@ const JobWizard = ({
                         </>
                       ) : (
                         <>
-                          <Sparkles className="mr-3 h-6 w-6 animate-pulse" />
+                          <Sparkles className="h-6 w-6 animate-pulse" />
                           Generate My Optimized CV
-                          <ChevronsRight className="ml-3 h-6 w-6" />
+                          <ChevronsRight className="h-6 w-6" />
                         </>
                       )}
                     </Button>
-
+                    {/* 
                     <div className="flex items-start gap-3  p-2 rounded-lg border-2 border-blue-100 shadow-sm">
                       <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-lg flex-shrink-0">
                         <Zap className="h-5 w-5 text-white" />
@@ -411,7 +400,7 @@ const JobWizard = ({
                           description, the better your CV will be optimized!
                         </p>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </TabsContent>
@@ -433,10 +422,7 @@ const JobWizard = ({
                 <div>
                   {' '}
                   {/* Enhanced Select Tab */}
-                  <TabsContent
-                    value="select"
-                    className="space-y-6 animate-in fade-in duration-500"
-                  >
+                  <TabsContent value="select" className="">
                     {savedJobs.length > 0 ? (
                       <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
                         {savedJobs.map((job: any) => (
@@ -478,50 +464,54 @@ const JobWizard = ({
                 className="space-y-6 animate-in fade-in duration-500"
               >
                 <div className="space-y-4">
-                  <div className="relative group">
-                    <Input
-                      placeholder="e.g., Senior Software Engineer, Product Manager..."
-                      className="h-16 border-2 border-gray-300 rounded-lg px-6 pr-16 text-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-500 group-hover:border-gray-400 bg-gradient-to-br from-gray-50 to-white shadow-inner"
-                      value={enteredJobTitle}
-                      onChange={(e) => setEnteredJobTitle(e.target.value)}
-                    />
-                    <div className="absolute top-1/2 right-5 transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110">
-                      <div className="p-2 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg">
-                        <User
-                          className={`h-6 w-6 ${
-                            enteredJobTitle ? 'text-green-600' : 'text-gray-400'
-                          }`}
-                        />
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
+                    <div className="relative">
+                      <Input
+                        placeholder="e.g., Senior Software Engineer, Product Manager..."
+                        className=" h-16 border-2 border-gray-300 rounded-lg px-6 pr-16 text-lg transition-all duration-500 "
+                        value={enteredJobTitle}
+                        onChange={(e) => setEnteredJobTitle(e.target.value)}
+                      />
+                      <div className="absolute top-1/2 right-5 transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110">
+                        <div className="p-2 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg">
+                          <User
+                            className={`h-6 w-6 ${
+                              enteredJobTitle
+                                ? 'text-green-600'
+                                : 'text-gray-400'
+                            }`}
+                          />
+                        </div>
                       </div>
                     </div>
+
+                    <Button
+                      className={`w-full h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
+                        enteredJobTitle && !isLoading
+                          ? 'bg-tabPrimary  hover:shadow-2xl hover:shadow-green-500/50 text-white'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      onClick={() => handleSetJobContext('title')}
+                      disabled={!enteredJobTitle || isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="animate-spin mr-3 h-6 w-6" />
+                          <span className="animate-pulse">
+                            Preparing Optimization...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-6 w-6 animate-pulse" />
+                          Start CV Optimization
+                          <ChevronsRight className="h-6 w-6" />
+                        </>
+                      )}
+                    </Button>
                   </div>
 
-                  <Button
-                    className={`w-full h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
-                      enteredJobTitle && !isLoading
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-2xl hover:shadow-green-500/50 text-white'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                    onClick={() => handleSetJobContext('title')}
-                    disabled={!enteredJobTitle || isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="animate-spin mr-3 h-6 w-6" />
-                        <span className="animate-pulse">
-                          Preparing Optimization...
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-3 h-6 w-6 animate-pulse" />
-                        Start CV Optimization
-                        <ChevronsRight className="ml-3 h-6 w-6" />
-                      </>
-                    )}
-                  </Button>
-
-                  <div className="flex items-start gap-3 bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-100 shadow-sm">
+                  <div className="flex items-start gap-3 p-4 rounded-lg border-2 border-green-100 shadow-sm">
                     <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg flex-shrink-0">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>

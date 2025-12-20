@@ -1,7 +1,6 @@
 // src/utils/cv.background.js
 
-import mongoose from 'mongoose';
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
 import { Student } from '../models/student.model.js';
 import {
@@ -9,13 +8,15 @@ import {
   sendRealTimeUserNotification,
 } from './notification.utils.js';
 import { User } from '../models/User.model.js';
+import { wrapCVHtml } from '../utils/cvTemplate.js';
+import { condenseExperience } from '../utils/cvCondense.js';
+import { calculateATSScore } from '../utils/atsScore.js';
 
 const MAX_RETRIES = 5;
 const INITIAL_BACKOFF_MS = 1000; // 1s
 const MAX_BACKOFF_MS = 60 * 1000; // 60s
 
 function parseRetryDelayFromError(err) {
-  // Google error sometimes includes RetryInfo in errorDetails with retryDelay "25s"
   try {
     if (err && Array.isArray(err.errorDetails)) {
       for (const d of err.errorDetails) {
@@ -48,6 +49,7 @@ export const processCVGeneration = async (
   jobContextString,
   finalTouch,
   io,
+  endpoint,
 ) => {
   let cvId = null;
   let jobTitle = 'your recent job';
@@ -77,12 +79,36 @@ export const processCVGeneration = async (
     while (attempt < MAX_RETRIES) {
       attempt += 1;
       try {
-        const rawJsonResponse = await genAI(prompt);
+        const rawJsonResponse = await genAI(prompt, {
+          userId: userId,
+          endpoint,
+        });
         const cleanedJsonString = rawJsonResponse
           .replace(/```json|```/g, '')
           .trim();
         parsedJson = JSON.parse(cleanedJsonString);
-        break; // success
+
+        // forbid dangerous tags
+        if (
+          /<(style|html|head|body|script|link)|style\s*=/i.test(parsedJson.cv)
+        ) {
+          throw new Error('Invalid CV HTML: forbidden tags detected');
+        }
+
+        // auto-condense experience (SAFE)
+        parsedJson.cv = condenseExperience(parsedJson.cv);
+
+        // wrap HTML
+        parsedJson.cv = wrapCVHtml(parsedJson.cv, jobTitle);
+
+        // ATS score normalization (OVERRIDE model score safely)
+        const atsScore = calculateATSScore(parsedJson.cv, jobContextString);
+        parsedJson.atsScore = atsScore;
+        parsedJson.atsScoreReasoning =
+          parsedJson.atsScoreReasoning ||
+          'Score calculated based on keyword overlap between job description and CV content.';
+
+        break;
       } catch (err) {
         lastErr = err;
         const retryDelayFromService = parseRetryDelayFromError(err);

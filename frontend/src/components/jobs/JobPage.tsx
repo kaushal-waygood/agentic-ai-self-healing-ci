@@ -1,5 +1,3 @@
-// JobsPage.tsx
-
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -34,22 +32,69 @@ export default function JobsPage() {
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [isJobLoading, setIsJobLoading] = useState(false);
 
+  /* ===================== JOB DETAILS (NO ANALYTICS HERE) ===================== */
   const fetchJobDetails = useCallback(async (slug: string) => {
     try {
+      setIsJobLoading(true);
+      setSelectedJob(null);
+
       const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
-      if (response.data && response.data.singleJob) {
+      if (response.data?.singleJob) {
         setSelectedJob(response.data.singleJob);
       }
     } catch (err) {
       console.error('Failed to fetch job details:', err);
+    } finally {
+      setIsJobLoading(false);
     }
   }, []);
 
+  /* ===================== CLICK TRACKING (SINGLE SOURCE) ===================== */
+  async function trackJobClick(jobId: string, query?: string) {
+    try {
+      const payload: any = {};
+      if (query) payload.query = query;
+
+      await apiInstance.post(`/jobs/${jobId}/click`, payload);
+    } catch {
+      // analytics must never break UX
+    }
+  }
+
+  const handleCardClick = (job: any) => {
+    // 1️⃣ Track click immediately
+    trackJobClick(job._id, filters?.q);
+
+    // 2️⃣ Navigate or load details
+    if (isMobile) {
+      router.push(`/jobs/${job.slug}`);
+    } else {
+      fetchJobDetails(job.slug);
+    }
+  };
+
+  /* ===================== IMPRESSION TRACKING (SAFE) ===================== */
+  useEffect(() => {
+    if (!jobs?.length) return;
+
+    const jobIds = jobs.map((j: any) => j._id);
+
+    apiInstance
+      .post('/jobs/impression', {
+        jobIds,
+        query: filters?.q || null,
+      })
+      .catch(() => {});
+  }, [jobs, filters?.q]);
+
+  /* ===================== SCROLL RESET ===================== */
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters]);
 
+  /* ===================== INFINITE SCROLL ===================== */
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -60,25 +105,13 @@ export default function JobsPage() {
       { threshold: 1.0 },
     );
 
-    const currentObserverRef = observerRef.current;
-    if (currentObserverRef) {
-      observer.observe(currentObserverRef);
-    }
+    const el = observerRef.current;
+    if (el) observer.observe(el);
 
     return () => {
-      if (currentObserverRef) {
-        observer.unobserve(currentObserverRef);
-      }
+      if (el) observer.unobserve(el);
     };
   }, [loading, pagination.hasNextPage, loadMoreJobs]);
-
-  const handleCardClick = (slug: string) => {
-    if (isMobile) {
-      router.push(`/jobs/${slug}`);
-    } else {
-      fetchJobDetails(slug);
-    }
-  };
 
   if (error) {
     toast({
@@ -89,7 +122,7 @@ export default function JobsPage() {
   }
 
   return (
-    <div className=" bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
+    <div className="bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       <div className="xl:container mx-auto px-1">
         <SearchFilters
           initialFilters={filters}
@@ -101,10 +134,10 @@ export default function JobsPage() {
           <div>
             <div
               ref={jobListRef}
-              className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 scrollbar-thin "
+              className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 scrollbar-thin"
             >
               {notification && !loading && (
-                <div className="flex flex-col items-center justify-center h-full text-center p-6 bg-white rounded-lg border">
+                <div className="flex flex-col items-center justify-center h-full p-6 bg-white rounded-lg border">
                   <Frown className="w-12 h-12 text-gray-400 mb-4" />
                   <p className="text-gray-600 font-semibold">{notification}</p>
                 </div>
@@ -112,8 +145,8 @@ export default function JobsPage() {
 
               {loading &&
                 jobs.length === 0 &&
-                Array.from({ length: 8 }).map((_, index) => (
-                  <JobCardSkeleton key={index} />
+                Array.from({ length: 8 }).map((_, i) => (
+                  <JobCardSkeleton key={i} />
                 ))}
 
               {!notification &&
@@ -122,13 +155,11 @@ export default function JobsPage() {
                     key={job._id || job.jobId}
                     job={job}
                     isActive={selectedJob?._id === job._id}
-                    onClick={() => handleCardClick(job.slug)}
+                    onClick={() => handleCardClick(job)}
                   />
                 ))}
 
-              {loading && jobs.length > 0 && (
-                <JobCardSkeleton key="loading-skeleton" />
-              )}
+              {loading && jobs.length > 0 && <JobCardSkeleton />}
 
               <div ref={observerRef} style={{ height: '1px' }} />
             </div>
@@ -136,22 +167,19 @@ export default function JobsPage() {
 
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
-              {selectedJob ? (
+              {isJobLoading ? (
+                <div className="h-full flex items-center justify-center bg-white border rounded-xl">
+                  <p>Loading Job Detail</p>
+                </div>
+              ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-white rounded-2xl border border-gray-200">
-                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mb-6">
-                    <Search className="w-12 h-12 text-purple-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-700 mb-2">
-                    {jobs.length > 0
+                <div className="flex flex-col items-center justify-center h-full p-12 bg-white border rounded-2xl text-center">
+                  <Search className="w-12 h-12 text-purple-400 mb-4" />
+                  <p className="text-gray-500">
+                    {jobs.length
                       ? 'Select a job to view details'
-                      : 'Your next opportunity awaits'}
-                  </h3>
-                  <p className="text-gray-500 max-w-sm">
-                    {jobs.length > 0
-                      ? 'Click on any position to see the details.'
-                      : 'Use the search filters above to find jobs.'}
+                      : 'Use the search filters above'}
                   </p>
                 </div>
               )}

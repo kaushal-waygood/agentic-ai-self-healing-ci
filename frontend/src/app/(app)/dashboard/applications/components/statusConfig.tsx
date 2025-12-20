@@ -52,18 +52,18 @@ export const statusConfig = {
 export const applicationStatuses = Object.keys(statusConfig);
 
 // --- StatCard Component (Unchanged) ---
-export const StatCard = ({ label, value, icon: Icon, color, onClick }) => (
+export const StatCard = ({ label, value, icon: Icon, onClick }) => (
   <div
     onClick={onClick}
-    className={`group relative overflow-hidden rounded-lg bg-gradient-to-br ${color} p-6 transition-all duration-300 hover:shadow-xl cursor-pointer active:scale-[0.98]`}
+    className={` group relative overflow-hidden rounded-lg border border-blue-200 dark:border-gray-700 p-2 md:p-4 transition-all duration-300 hover:shadow-xl hover:bg-tabPrimary cursor-pointer active:scale-[0.98]`}
   >
     <div className="relative z-10">
       {/* Optional icon */}
       {/* <div className="p-3 rounded-lg bg-white/20 mb-4 inline-block">
         <Icon className="h-6 w-6 text-white" />
       </div> */}
-      <div className="text-3xl font-bold text-white mb-1">{value}</div>
-      <div className="text-white/80 text-sm font-medium">{label}</div>
+      <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
+      <div className="text-gray-600 text-sm font-medium">{label}</div>
     </div>
   </div>
 );
@@ -75,7 +75,7 @@ export const ApplicationRow = ({ app, isSelected, onSelect, index }) => {
 
   return (
     <div
-      className={`relative flex items-center gap-4 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 ${
+      className={`relative flex items-center gap-4  md:p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 ${
         isSelected
           ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400'
           : 'bg-white dark:bg-gray-900 border-transparent dark:border-gray-800'
@@ -87,7 +87,7 @@ export const ApplicationRow = ({ app, isSelected, onSelect, index }) => {
     >
       {/* Job Title & Company */}
       <div className="flex-grow">
-        <h3 className="font-bold text-gray-900 dark:text-white truncate">
+        <h3 className="font-semibold text-gray-900 dark:text-white">
           {app.job.title}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">

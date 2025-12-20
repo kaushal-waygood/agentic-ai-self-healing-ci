@@ -1,8 +1,11 @@
 // utils/genAIWrapper.js
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 
 export const callGenAI = async (prompt) => {
-  const AI = genAI(prompt);
+  const AI = genAI(prompt, {
+    userId: req.user?._id,
+    endpoint: req.endpoint,
+  });
 
   try {
     const raw = await Promise.race([AI]);

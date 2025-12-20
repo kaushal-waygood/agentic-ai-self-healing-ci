@@ -13,17 +13,21 @@ import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 import redisClient from '../config/redis.js';
 import {
   normalizeSet,
-  buildExternalQueries,
   fetchExternalJobsCached,
   transformRapidApiJob,
   upsertExternalJobs,
-  scoreJob,
+  getCTRMap,
+  getLocalRecommendedJobs,
+  fetchAndUpsertMoreExternalJobs,
+  getTop4DashboardJobs,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
   CREDIT_EARN,
   earnCreditsForAction,
 } from '../utils/credits.js';
+import { generateEmbedding } from '../config/embedding.js';
+import { getCachedReco, makeRecoKey } from '../utils/recoCache.js';
 
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
@@ -150,47 +154,59 @@ async function buildUserProfileFromStudent(userId) {
     return {
       skills: [],
       titles: [],
+      jobPreferences: {},
       isRemote: false,
       minYearly: 0,
       location: null,
+      appliedJobs: [],
     };
   }
 
-  const skillsRaw =
-    student.skills || student.skillSet || student.profileSkills || [];
-
-  const titlesRaw =
-    student.preferredTitles || student.targetTitles || student.headline || [];
+  // Skills
+  const skillsRaw = [
+    ...(student.skills || []).map((s) => s.skill),
+    ...(student.jobPreferences?.mustHaveSkills || []).map((s) => s.skill),
+    ...(student.jobPreferences?.niceToHaveSkills || []).map((s) => s.skill),
+  ];
 
   const skills = normalizeSet(skillsRaw);
-  const titles = normalizeSet(
-    Array.isArray(titlesRaw) ? titlesRaw : [titlesRaw],
-  );
 
-  const location =
-    student.preferredLocation ||
-    student.location ||
-    student.currentLocation ||
-    null;
+  // Titles
+  const titlesRaw = [
+    student.jobRole,
+    ...(student.jobPreferences?.preferredJobTitles || []),
+  ].filter(Boolean);
+
+  const titles = normalizeSet(titlesRaw);
+
+  // Location normalization
+  let location = null;
+  if (typeof student.location === 'string') {
+    location = { city: student.location.toUpperCase() };
+  } else if (student.location && typeof student.location === 'object') {
+    location = student.location;
+  }
+
+  const jobPreferences = student.jobPreferences || {};
 
   const isRemote =
-    !!student.isRemote ||
-    !!student.prefersRemote ||
-    (location && location.remote) ||
-    false;
+    jobPreferences.isRemote === true || student.isRemote === true || false;
 
   const minYearly =
-    student.minSalaryYearly ||
-    student.expectedCTCYearly ||
-    student.expectedSalaryYearly ||
-    0;
+    jobPreferences?.preferredSalary?.min || student.expectedSalaryYearly || 0;
+
+  const appliedJobs = Array.isArray(student.appliedJobs)
+    ? student.appliedJobs
+    : [];
 
   return {
     skills,
     titles,
+    jobPreferences,
     isRemote,
     minYearly,
     location,
+    appliedJobs,
   };
 }
 
@@ -423,7 +439,9 @@ export const completeOnboarding = async (req, res) => {
 export const updateStudentProfile = async (req, res) => {
   const { _id } = req.user;
   // Destructure all possible fields that are allowed to be updated
-  const { fullName, phone, email, location, jobRole } = req.body;
+  const { fullName, phone, email, location, jobPreference: jobRole } = req.body;
+
+  console.log(req.body);
 
   try {
     const update = {};
@@ -432,8 +450,6 @@ export const updateStudentProfile = async (req, res) => {
     if (email !== undefined) update.email = email;
     if (location !== undefined) update.location = location;
     if (jobRole !== undefined) update.jobRole = jobRole;
-
-    console.log(update);
 
     if (Object.keys(update).length === 0) {
       return res
@@ -448,8 +464,6 @@ export const updateStudentProfile = async (req, res) => {
       { $set: update },
       { new: true, runValidators: true },
     );
-
-    console.log(result);
 
     if (!result) {
       return res.status(404).json({ message: 'Student not found' });
@@ -1772,13 +1786,9 @@ export const updateJobPreferences = async (req, res) => {
     // 🔥 FIX: Explicitly delete the exact key used in getProfileCompletion
     const profileCacheKey = `student:${studentId}:profileCompletion`;
 
-    // Depending on your redisClient wrapper, use .del() or .delete()
-    // If redisClient is a direct Redis connection, use await redisClient.del(profileCacheKey);
-    // If it's your custom wrapper, ensure it has a delete method:
     try {
       if (redisClient.del) {
         await redisClient.del(profileCacheKey);
-        console.log(`Cache cleared for: ${profileCacheKey}`);
       } else if (redisClient.invalidate) {
         await redisClient.invalidate(profileCacheKey);
       }
@@ -1835,8 +1845,6 @@ export const getProfileCompletion = async (req, res) => {
   const studentId = req.user._id;
   const cacheKey = `student:${studentId}:profileCompletion`;
 
-  console.log('cacheKey', cacheKey);
-
   try {
     const completionData = await redisClient.withCache(
       cacheKey,
@@ -1846,8 +1854,6 @@ export const getProfileCompletion = async (req, res) => {
         const student = await Student.findById(studentId).select(
           'fullName phone email jobRole profileImage jobRole education experience skills projects jobPreferences',
         );
-
-        console.log(student);
 
         if (!student) throw new Error('Student not found');
 
@@ -1882,8 +1888,6 @@ export const getProfileCompletion = async (req, res) => {
       },
     );
 
-    console.log(completionData);
-
     return res.status(200).json(completionData);
   } catch (error) {
     console.error('Error calculating profile completion:', error);
@@ -1893,108 +1897,55 @@ export const getProfileCompletion = async (req, res) => {
 };
 
 export const getProfileBasedRecommendedJobs = async (req, res) => {
-  const start = Date.now();
   try {
-    const userId = req.user;
+    const userId = req.user?._id;
+    if (!userId) return res.sendStatus(401);
 
-    console.time('profile');
     const profile = await buildUserProfileFromStudent(userId);
-    console.timeEnd('profile');
 
-    console.time('external_fetch_total');
-    const externalQueries = buildExternalQueries(
-      profile.titles,
-      profile.skills,
-    ).slice(0, 3);
+    let jobs = await getLocalRecommendedJobs(profile);
 
-    let externalJobsRaw = [];
+    const MIN_RESULTS = 20;
 
-    if (externalQueries.length) {
-      const externalResults = await Promise.all(
-        externalQueries.map((q) =>
-          (async () => {
-            console.time(`external_fetch:${q}`);
-            const apiJobs = await fetchExternalJobsCached(
-              q,
-              profile.location?.country,
-              profile.location?.state,
-              profile.location?.city,
-              null,
-              null,
-              null,
-              1,
-            );
-            console.timeEnd(`external_fetch:${q}`);
-            return { q, apiJobs };
-          })(),
-        ),
-      );
-
-      for (const { q, apiJobs } of externalResults) {
-        for (const aj of apiJobs) {
-          externalJobsRaw.push(transformRapidApiJob(aj, q));
-        }
-      }
+    if (jobs.length < MIN_RESULTS) {
+      await fetchAndUpsertMoreExternalJobs(profile);
+      jobs = await getLocalRecommendedJobs(profile);
     }
 
-    if (externalJobsRaw.length > 100) {
-      externalJobsRaw = externalJobsRaw.slice(0, 100);
-    }
-
-    console.timeEnd('external_fetch_total');
-
-    console.time('upsert_external');
-    if (externalJobsRaw.length) {
-      await upsertExternalJobs(externalJobsRaw);
-    }
-    console.timeEnd('upsert_external');
-
-    console.time('db_find_candidates');
-    const baseQuery = {
-      isActive: true,
-      origin: { $in: ['HOSTED', 'EXTERNAL'] },
-    };
-
-    if (profile.location?.country) {
-      baseQuery.country = profile.location.country;
-    }
-    if (profile.location?.state) {
-      baseQuery['location.state'] = profile.location.state;
-    }
-    if (profile.location?.city) {
-      baseQuery['location.city'] = profile.location.city;
-    }
-
-    const candidates = await Job.find(baseQuery)
-      .sort({ jobPostedAt: -1, createdAt: -1 })
-      .limit(400)
-      .lean()
-      .exec();
-    console.timeEnd('db_find_candidates');
-
-    console.time('scoring');
-    const scored = candidates
-      .map((job) => ({
-        job,
-        score: scoreJob(job, profile),
-      }))
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 100)
-      .map((x) => x.job);
-    console.timeEnd('scoring');
-
-    console.log('TOTAL getRecommendedJobs ms:', Date.now() - start);
-
-    return res.status(200).json({
+    return res.json({
       success: true,
-      jobs: scored,
+      count: jobs.length,
+      jobs,
     });
   } catch (err) {
-    console.error('Error in getProfileBasedRecommendedJobs:', err);
+    console.error(err);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch recommended jobs',
+    });
+  }
+};
+
+export const getDashboardTopJobs = async (req, res) => {
+  const userId = req.user?._id;
+  if (!userId) return res.sendStatus(401);
+
+  try {
+    const profile = await buildUserProfileFromStudent(userId);
+    profile.userId = userId;
+
+    const jobs = await getTop4DashboardJobs(profile);
+
+    return res.json({
+      success: true,
+      count: jobs.length,
+      jobs,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load dashboard jobs',
     });
   }
 };
@@ -2990,5 +2941,90 @@ export const earnCreditsViaSocialLinks = async (req, res) => {
     return res
       .status(status)
       .json({ success: false, message: err.message || 'Server error' });
+  }
+};
+
+export const getVerifiedUsers = async (req, res) => {
+  try {
+    const { limit } = req.query;
+
+    let size = 10;
+    if (limit) {
+      size = parseInt(limit);
+    }
+
+    const user = await User.find({
+      isEmailVerified: true,
+      authMethod: 'local',
+    })
+      .select('email')
+      .limit(size);
+
+    return res.status(200).json(user);
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getRecentAIActivity = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const student = await Student.findById(studentId)
+      .select('cvs cls tailoredApplications')
+      .lean();
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    const getLatestCompleted = (items = []) =>
+      items
+        .filter((item) => item.status === 'completed')
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] ||
+      null;
+
+    const latestCV = getLatestCompleted(student.cvs);
+    const latestCoverLetter = getLatestCompleted(student.cls);
+    const latestTailoredApplication = getLatestCompleted(
+      student.tailoredApplications,
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        cv: latestCV && {
+          id: latestCV._id,
+          title: latestCV.cvTitle,
+          status: latestCV.status,
+          createdAt: latestCV.createdAt,
+          completedAt: latestCV.completedAt,
+        },
+        coverLetter: latestCoverLetter && {
+          id: latestCoverLetter._id,
+          title: latestCoverLetter.clTitle,
+          status: latestCoverLetter.status,
+          createdAt: latestCoverLetter.createdAt,
+          completedAt: latestCoverLetter.completedAt,
+        },
+        tailoredApplication: latestTailoredApplication && {
+          id: latestTailoredApplication._id,
+          jobTitle: latestTailoredApplication.jobTitle,
+          companyName: latestTailoredApplication.companyName,
+          status: latestTailoredApplication.status,
+          createdAt: latestTailoredApplication.createdAt,
+          completedAt: latestTailoredApplication.completedAt,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Recent AI Activity Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent AI activity',
+    });
   }
 };

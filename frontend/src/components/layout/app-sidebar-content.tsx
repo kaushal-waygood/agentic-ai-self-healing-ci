@@ -75,6 +75,12 @@ export const AppSidebarContent = ({
     fullName: authUser?.fullName || 'Guest User',
     plan: planType,
   };
+  const SIDEBAR_SECTIONS = [
+    // { label: 'Core', start: 0 },
+    { label: 'AI Tools', start: 2 },
+    { label: 'My Workspace', start: 6 },
+    { label: 'More', start: 8 },
+  ];
 
   // --- 3. SITE CONFIGURATION WITH PERMISSIONS ---
   const siteConfig = {
@@ -271,10 +277,8 @@ export const AppSidebarContent = ({
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
+      {/* <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
         {siteConfig.sidebarNav.map((item, index) => {
-          // --- FILTERING LOGIC ---
-          // If allowedRoles exists and currentRole is NOT in it, skip rendering
           if (item.allowedRoles && !item.allowedRoles.includes(currentRole)) {
             return null;
           }
@@ -295,64 +299,22 @@ export const AppSidebarContent = ({
                 opacity: 0,
               }}
             >
-              {/* <Link
-                href={item.href}
-                onMouseEnter={() => setHoveredItem(item.href)}
-                onMouseLeave={() => setHoveredItem(null)}
-                className={`group relative w-full text-sm flex items-center space-x-3 p-1 rounded-xl transition-all duration-300 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-purple-100 via-blue-100 to-cyan-100 text-purple-700 shadow-lg scale-105'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:scale-105'
-                }`}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-purple-500 to-cyan-500 rounded-r-full animate-pulse"></div>
-                )}
-                <div
-                  className={`relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                    isActive
-                      ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-md'
-                      : isHovered
-                      ? 'bg-gradient-to-br from-purple-100 to-blue-100 text-purple-600'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                </div>
-                {!isCollapsed && (
-                  <span
-                    className={`flex-1 text-left ${
-                      isActive ? 'font-extralight' : ''
-                    }`}
-                  >
-                    {item.title}
-                  </span>
-                )}
-                {!isCollapsed && isHovered && !isActive && (
-                  <ChevronRight className="w-4 h-4 text-slate-400 animate-pulse" />
-                )}
-              </Link> */}
-
-              {/* New code added for coming soon */}
               <div
                 onClick={
-                  item.comingSoon
-                    ? (e) => e.preventDefault() // 👉 block navigation
-                    : undefined
+                  item.comingSoon ? (e) => e.preventDefault() : undefined
                 }
                 className="group relative"
               >
                 <Link
-                  href={item.comingSoon ? '#' : item.href} // 👉 prevent route change
+                  href={item.comingSoon ? '#' : item.href}
                   onMouseEnter={() => setHoveredItem(item.href)}
                   onMouseLeave={() => setHoveredItem(null)}
-                  className={`group relative w-full text-sm flex items-center space-x-3 p-1 rounded-xl transition-all duration-300 ${
+                  className={`group relative w-full text-xs md:text-sm flex items-center justify-center p-2 md:p-1 rounded-lg transition-all duration-300 ${
                     isActive
-                      ? 'bg-gradient-to-r from-purple-100 via-blue-100 to-cyan-100 text-purple-700 shadow-lg scale-105'
+                      ? ' text-purple-700 scale-105'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:scale-105'
                   }`}
                 >
-                  {/* Icon */}
                   <div
                     className={`relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
                       isActive
@@ -365,18 +327,18 @@ export const AppSidebarContent = ({
                     <Icon className="w-5 h-5" />
                   </div>
 
-                  {/* Title */}
                   {!isCollapsed && (
                     <span
-                      className={`flex-1 text-left ${
-                        isActive ? 'font-extralight' : ''
+                      className={`flex-1 text-left pl-2 ${
+                        isActive
+                          ? 'font-extralight bg-gradient-to-r from-purple-100 via-blue-100 to-cyan-100 py-2 rounded-lg'
+                          : ''
                       }`}
                     >
                       {item.title}
                     </span>
                   )}
 
-                  {/* 🚀 Coming Soon Badge */}
                   {!isCollapsed && item.comingSoon && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-400 text-white font-semibold">
                       Coming Soon
@@ -391,7 +353,6 @@ export const AppSidebarContent = ({
                     )}
                 </Link>
               </div>
-              {/* Tooltip for Collapsed State */}
               {isCollapsed && isHovered && (
                 <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-2 bg-slate-900 text-white text-sm rounded-lg shadow-xl z-50 whitespace-nowrap animate-fadeIn">
                   {item.title}
@@ -401,20 +362,78 @@ export const AppSidebarContent = ({
             </div>
           );
         })}
+      </nav> */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
+        {siteConfig.sidebarNav.map((item, index) => {
+          // 🔹 permissions stay intact
+          if (item.allowedRoles && !item.allowedRoles.includes(currentRole)) {
+            return null;
+          }
+
+          // 🔹 check if a section starts here
+          const section = SIDEBAR_SECTIONS.find((s) => s.start === index);
+
+          const Icon = item.icon;
+          const isActive =
+            pathname === item.href ||
+            (item.href !== '/dashboard' && pathname.startsWith(item.href));
+
+          return (
+            <React.Fragment key={item.href}>
+              {/* Section header (does NOT get an id) */}
+              {section && !isCollapsed && (
+                <p className="px-3 mt-4 mb-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  {section.label}
+                </p>
+              )}
+
+              {/* 👇 THIS is where the id goes */}
+              <div id={`sidebar-link-${index}`} className="relative">
+                <div className="group relative">
+                  <Link
+                    href={item.comingSoon ? '#' : item.href}
+                    onClick={
+                      item.comingSoon ? (e) => e.preventDefault() : undefined
+                    }
+                    className={`group w-full flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition-all ${
+                      isActive
+                        ? 'bg-tabPrimary  text-gray-100 hover:bg-tabPrimary'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {/* icon */}
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    {!isCollapsed && <span>{item.title}</span>}
+                    {!isCollapsed && item.comingSoon && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-400 text-white font-semibold">
+                        Soon
+                      </span>
+                    )}
+                  </Link>
+                </div>
+              </div>
+            </React.Fragment>
+          );
+        })}
       </nav>
 
       {/* Sidebar Footer */}
       <div className="relative p-2 border-t border-slate-200/50 mt-auto">
         {!isCollapsed ? (
           <div className="space-y-3">
-            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl">
+            <Link
+              href="/dashboard/profile"
+              className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl"
+            >
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-900 truncate text-sm capitalize">
                   {user.fullName}
                 </p>
                 <p className="text-xs text-slate-500">Welcome back!</p>
               </div>
-            </div>
+            </Link>
             {/* Show upgrade banner only if not Pro/Admin */}
             {user.plan !== 'Pro' &&
               user.plan !== 'OrgAdmin' &&

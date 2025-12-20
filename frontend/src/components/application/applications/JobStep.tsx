@@ -67,7 +67,10 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
     >
       <div className="flex items-start gap-4 relative z-10">
         {/* Company Logo with enhanced animation */}
-        <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white">
+        <div
+          className="hidden
+    sm:flex flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white"
+        >
           {job.logo ? (
             <img
               src={job.logo}
@@ -86,9 +89,9 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
           <p className="text-sm font-medium text-gray-500 truncate mb-1">
             {job.company}
           </p>
-          <h3 className="text-xl font-bold text-gray-900 truncate mb-3 group-hover:text-purple-600 transition-colors duration-300">
-            {job.title}
-          </h3>
+          <p className="font-semibold text-gray-900">
+            {job.title.length > 45 ? job.title.slice(0, 35) + '…' : job.title}
+          </p>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             {job.location?.city && (
@@ -188,7 +191,7 @@ export function JobStep({
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
             <div className="absolute inset-0 "></div>
-            <h1 className="text-4xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent relative z-10 mb-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative z-10 mb-3">
               Application Wizard
             </h1>
           </div>
@@ -199,18 +202,14 @@ export function JobStep({
         </div>
 
         <Card className="bg-white/90 backdrop-blur-xl border-0 shadow-2xl shadow-pink-500/10 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white relative overflow-hidden p-2">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30"></div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 animate-pulse"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -ml-24 -mb-24 animate-pulse delay-75"></div>
-
+          <CardHeader className="bg-header-gradient-primary text-white relative overflow-hidden p-2">
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-lg border border-white/30">
                   <Briefcase className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold">
+                  <CardTitle className="text-xl font-semibold">
                     Step 1: Provide Job Context
                   </CardTitle>
                   <p className="text-white/80 text-sm mt-1">
@@ -236,7 +235,7 @@ export function JobStep({
                   }
                   className={`flex items-center justify-center gap-2 p-4 rounded-lg transition-all duration-500 ${
                     activeTab === tab.key
-                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md scale-[1.02]'
+                      ? 'bg-tabPrimary text-white shadow-md scale-[1.02]'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
@@ -254,7 +253,7 @@ export function JobStep({
                   <div className="relative group">
                     <textarea
                       placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
-                      className={`w-full min-h-[280px] p-6 pr-16 border-2 rounded-lg resize-none focus:ring-4 transition-all duration-500 bg-gradient-to-br from-gray-50 to-white shadow-inner ${
+                      className={`w-full min-h-[280px] p-6 pr-16 border-2 rounded-lg resize-none focus:ring-4 transition-all duration-500  ${
                         charCount < 200
                           ? 'border-gray-300 hover:border-gray-400'
                           : 'border-green-300 hover:border-green-400 ring-green-50'

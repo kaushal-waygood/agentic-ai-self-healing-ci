@@ -15,6 +15,8 @@ import {
   isObjectId,
   makeSearchCacheKey,
 } from '../utils/jobHelpers.js';
+import { generateEmbedding } from '../config/embedding.js';
+import { JobInteraction } from '../models/jobInteraction.model.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -46,6 +48,57 @@ export async function fetchJobsPage({
     .exec();
 }
 
+async function vectorJobSearch({
+  query,
+  limit,
+  country,
+  state,
+  city,
+  employmentType,
+}) {
+  const queryVector = await generateEmbedding(query);
+  if (!queryVector) return [];
+
+  const filters = [{ isActive: true }];
+
+  if (country) filters.push({ country });
+  if (state) filters.push({ 'location.state': state });
+  if (city) filters.push({ 'location.city': city });
+
+  if (employmentType) {
+    const normalized = normalizeEmploymentTypeForDbFilter(employmentType);
+    if (normalized?.length) {
+      filters.push({ jobTypes: { $in: normalized } });
+    }
+  }
+
+  const pipeline = [
+    {
+      $vectorSearch: {
+        index: 'vector_index',
+        path: 'job_embedding',
+        queryVector,
+        numCandidates: 150,
+        limit,
+        filter: { $and: filters },
+      },
+    },
+    {
+      $addFields: {
+        score: { $meta: 'vectorSearchScore' },
+      },
+    },
+    {
+      $project: {
+        job_embedding: 0,
+        __v: 0,
+      },
+    },
+  ];
+
+  return Job.aggregate(pipeline);
+}
+
 // -------Controllers-------
 
 export const searchJobs = async (req, res) => {
@@ -55,7 +108,6 @@ export const searchJobs = async (req, res) => {
     limit = 10,
     country,
     state,
-    // job search issue solved by adding city
     city = '',
     employmentType,
     experience,
@@ -72,18 +124,28 @@ export const searchJobs = async (req, res) => {
     limitNum,
     country,
     state,
-    city: city || '',
+    city,
     employmentType,
     experience,
     datePosted,
   });
 
   try {
-    // 1) Try cache
+    /* ===================== 1) CACHE READ ===================== */
     try {
       const cachedRaw = await redisClient.get(cacheKey);
       if (cachedRaw) {
         const cached = JSON.parse(cachedRaw);
+
+        await JobInteraction.insertMany(
+          jobs.map((job) => ({
+            jobId: job._id,
+            userId: req.user?._id || null,
+            query: q || null,
+            action: 'impression',
+          })),
+          { ordered: false },
+        );
         return res.status(200).json({
           jobs: cached.jobs,
           pagination: {
@@ -97,27 +159,20 @@ export const searchJobs = async (req, res) => {
           fromCache: true,
         });
       }
-    } catch (cacheReadErr) {
-      console.warn(
-        'searchJobs: cache read failed',
-        cacheReadErr && cacheReadErr.message,
-      );
+    } catch (e) {
+      console.warn('searchJobs: cache read failed', e?.message);
     }
 
-    // 2) Acquire short lock to avoid thundering herd
+    /* ===================== 2) LOCK ===================== */
     const lockKey = `${cacheKey}:lock`;
     const lockAcquired = await redisClient.setNxWithTtl(lockKey, '1', LOCK_TTL);
 
-    // 3) Build DB search criteria
+    /* ===================== 3) KEYWORD SEARCH ===================== */
     const searchCriteria = {};
 
     if (q) {
       const regex = new RegExp(escapeRegex(q), 'i');
-      searchCriteria.$or = [
-        { title: regex },
-        // { description: regex },
-        { queries: regex },
-      ];
+      searchCriteria.$or = [{ title: regex }, { queries: regex }];
     }
 
     if (country) searchCriteria.country = country;
@@ -126,7 +181,7 @@ export const searchJobs = async (req, res) => {
 
     if (employmentType) {
       const normalized = normalizeEmploymentTypeForDbFilter(employmentType);
-      if (normalized && normalized.length) {
+      if (normalized?.length) {
         searchCriteria.jobTypes = { $in: normalized };
       }
     }
@@ -137,7 +192,6 @@ export const searchJobs = async (req, res) => {
       };
     }
 
-    // 4) Query DB
     let [totalJobs, jobs] = await Promise.all([
       Job.countDocuments(searchCriteria),
       Job.find(searchCriteria)
@@ -149,9 +203,65 @@ export const searchJobs = async (req, res) => {
 
     let notification = null;
 
-    // 5) If no DB jobs & q present on first page → fetch external
+    /* ===================== 4) VECTOR SEARCH BOOST ===================== */
+    if (q && jobs.length < limitNum) {
+      try {
+        const queryVector = await generateEmbedding(q);
+
+        if (queryVector) {
+          const filters = [{ isActive: true }];
+
+          if (country) filters.push({ country });
+          if (state) filters.push({ 'location.state': state });
+          if (city) filters.push({ 'location.city': city });
+
+          if (employmentType) {
+            const normalized =
+              normalizeEmploymentTypeForDbFilter(employmentType);
+            if (normalized?.length) {
+              filters.push({ jobTypes: { $in: normalized } });
+            }
+          }
+
+          const vectorResults = await Job.aggregate([
+            {
+              $vectorSearch: {
+                index: 'vector_index',
+                path: 'job_embedding',
+                queryVector,
+                numCandidates: 150,
+                limit: limitNum,
+                filter: { $and: filters },
+              },
+            },
+            {
+              $project: {
+                job_embedding: 0,
+                __v: 0,
+              },
+            },
+          ]);
+
+          if (vectorResults?.length) {
+            const seen = new Set(jobs.map((j) => String(j._id)));
+            for (const v of vectorResults) {
+              if (!seen.has(String(v._id)) && jobs.length < limitNum) {
+                jobs.push(v);
+                seen.add(String(v._id));
+              }
+            }
+            totalJobs = Math.max(totalJobs, jobs.length);
+          }
+        }
+      } catch (e) {
+        console.warn('Vector search failed:', e?.message);
+      }
+    }
+
+    /* ===================== 5) EXTERNAL API FALLBACK ===================== */
     if ((jobs.length === 0 || totalJobs === 0) && q && pageNum === 1) {
       let externalJobsRaw = [];
+
       try {
         const normalizedEmploymentType =
           normalizeEmploymentTypeForApi(employmentType);
@@ -165,116 +275,75 @@ export const searchJobs = async (req, res) => {
           normalizedEmploymentType,
           experience,
         );
-      } catch (apiErr) {
-        console.warn('fetchExternalJobs failed:', apiErr && apiErr.message);
+      } catch (e) {
+        console.warn('External fetch failed:', e?.message);
       }
 
-      if (externalJobsRaw && externalJobsRaw.length > 0) {
+      if (externalJobsRaw?.length) {
         const externalJobsFormatted = externalJobsRaw.map((apiJob) =>
           transformRapidApiJob(apiJob, q),
         );
 
         try {
-          const bulkOps = externalJobsFormatted.map((job) => ({
-            updateOne: {
-              filter: { jobId: job.jobId },
-              update: {
-                $set: {
-                  title: job.title,
-                  description: job.description,
-                  company: job.company,
-                  country: job.country,
-                  'location.city': job.location.city,
-                  'location.state': job.location.state,
-                  'location.lat': job.location.lat,
-                  'location.lng': job.location.lng,
-                  logo: job.logo,
-                  applyMethod: job.applyMethod,
-                  jobPosted: job.jobPosted,
-                  jobPostedAt: job.jobPostedAt,
-                  jobTypes: job.jobTypes,
-                  isActive: job.isActive,
-                  origin: job.origin,
-                  qualifications: job.qualifications,
-                  responsibilities: job.responsibilities,
-                  slug: job.slug,
-                  experience: job.experience,
+          await Job.bulkWrite(
+            externalJobsFormatted.map((job) => ({
+              updateOne: {
+                filter: { jobId: job.jobId },
+                update: {
+                  $set: job,
+                  $addToSet: { queries: q },
                 },
-                $setOnInsert: { createdAt: new Date() },
-                $addToSet: { queries: q },
+                upsert: true,
               },
-              upsert: true,
-            },
-          }));
-
-          await Job.bulkWrite(bulkOps);
-
-          // Invalidate relevant cache keys
-          try {
-            await redisClient.del([
-              cacheKey,
-              `jobs:search|q:${q}|p:1|l:${limitNum}|c:${country || ''}|s:${
-                state || ''
-              }|ci:${city || ''}|et:${employmentType || ''}|exp:${
-                experience || ''
-              }|dp:${datePosted || ''}`,
-            ]);
-          } catch (delErr) {
-            console.warn(
-              'searchJobs: cache invalidation failed after DB save',
-              delErr && delErr.message,
-            );
-          }
-
-          jobs = externalJobsFormatted;
-          totalJobs = externalJobsFormatted.length;
-        } catch (dbError) {
-          console.error('Background DB save failed:', dbError);
-          jobs = externalJobsFormatted;
-          totalJobs = externalJobsFormatted.length;
+            })),
+          );
+        } catch (e) {
+          console.warn('Background DB save failed:', e?.message);
         }
+
+        jobs = externalJobsFormatted.slice(0, limitNum);
+        totalJobs = externalJobsFormatted.length;
       } else {
         const locationString = [city, state, country]
           .filter(Boolean)
           .join(', ');
         notification = locationString
-          ? `We couldn't find any jobs for "${q}" in ${locationString}. Try broadening your search.`
-          : `We couldn't find any jobs matching your search for "${q}".`;
+          ? `We couldn't find any jobs for "${q}" in ${locationString}.`
+          : `We couldn't find any jobs matching "${q}".`;
       }
     }
 
-    // 6) Prepare final payload
+    /* ===================== 6) FINAL SORT ===================== */
     jobs = sortJobsByPostedDateDesc(jobs);
 
-    const resultPayload = {
+    const payload = {
       jobs,
       totalJobs,
       notification,
     };
 
-    // 7) Write to cache if we hold the lock
+    /* ===================== 7) CACHE WRITE ===================== */
     try {
       if (lockAcquired) {
-        await redisClient.set(
-          cacheKey,
-          JSON.stringify(resultPayload),
-          SEARCH_TTL,
-        );
+        await redisClient.set(cacheKey, JSON.stringify(payload), SEARCH_TTL);
       }
-    } catch (cacheWriteErr) {
-      console.warn(
-        'searchJobs: cache write failed',
-        cacheWriteErr && cacheWriteErr.message,
-      );
+    } catch (e) {
+      console.warn('searchJobs: cache write failed', e?.message);
     } finally {
-      try {
-        if (lockAcquired) await redisClient.del(lockKey);
-      } catch {
-        // ignore unlock errors
-      }
+      if (lockAcquired) await redisClient.del(lockKey);
     }
 
-    // 8) Return the computed result
+    await JobInteraction.insertMany(
+      jobs.map((job) => ({
+        jobId: job._id,
+        userId: req.user?._id || null,
+        query: q || null,
+        action: 'impression',
+      })),
+      { ordered: false },
+    );
+
+    /* ===================== 8) RESPONSE ===================== */
     const totalPages = Math.ceil((totalJobs || 0) / limitNum);
     return res.status(200).json({
       jobs,
@@ -288,10 +357,11 @@ export const searchJobs = async (req, res) => {
       fromCache: false,
     });
   } catch (error) {
-    console.error('Error in searchJobs controller:', error);
-    return res
-      .status(500)
-      .json({ message: 'Server Error', error: error.message });
+    console.error('Error in searchJobs:', error);
+    return res.status(500).json({
+      message: 'Server Error',
+      error: error.message,
+    });
   }
 };
 
@@ -797,6 +867,99 @@ export const jobViewsCount = async (req, res) => {
     console.error('Error updating job views count:', error);
     res.status(500).json({
       message: 'Internal server error',
+      error: config.nodeEnv === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const getAllJobsQueries = async (req, res) => {
+  try {
+    const queries = await Job.distinct('queries');
+
+    res.status(200).json({ success: true, queries });
+  } catch (error) {
+    console.error('Error fetching job queries:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: config.nodeEnv === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const trackJobClick = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { query } = req.body;
+
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Job ID is required' });
+    }
+
+    await JobInteraction.create({
+      jobId: id,
+      userId: req.user?._id || null,
+      query: query?.trim() || null,
+      action: 'click',
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('trackJobClick error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const trackJobImpressions = async (req, res) => {
+  try {
+    const { jobIds, query } = req.body;
+
+    if (!Array.isArray(jobIds) || jobIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'jobIds must be a non-empty array',
+      });
+    }
+
+    const userId = req.user?._id || null;
+
+    // Deduplicate jobIds
+    const uniqueJobIds = [...new Set(jobIds)];
+
+    const interactions = uniqueJobIds.map((jobId) => ({
+      jobId,
+      userId,
+      query: query?.trim() || null,
+      action: 'impression',
+    }));
+
+    await JobInteraction.insertMany(interactions, { ordered: false });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('trackJobImpressions error:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const getJobDescByJobId = async (req, res) => {
+  const { jobId } = req.params;
+  try {
+    const singleJob = await Job.findById(jobId).select(
+      'description title jobType',
+    );
+    if (!singleJob) return res.status(404).json({ message: 'Job not found' });
+    res.status(200).json({ singleJob });
+  } catch (error) {
+    console.error('Error fetching job by slug:', error);
+    res.status(500).json({
+      message: 'Server Error',
       error: config.nodeEnv === 'development' ? error.message : undefined,
     });
   }

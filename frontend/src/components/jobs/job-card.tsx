@@ -65,7 +65,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Title */}
-            <h5 className="text-base font-bold text-gray-900 group-hover:bg-gradient-to-r group-hover:from-purple-700 group-hover:to-blue-700 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 line-clamp-2 leading-tight">
+            <h5 className="text-base font-semibold text-gray-900 group-hover:bg-gradient-to-r group-hover:from-purple-700 group-hover:to-blue-700 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 line-clamp-2 leading-tight">
               {truncate(job.title, 40)}
             </h5>
 

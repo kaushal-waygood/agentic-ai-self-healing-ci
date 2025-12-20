@@ -1,6 +1,6 @@
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import pdfParse from 'pdf-parse';
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import { convertToHTMLPrompt } from '../prompt/convertToHTML.js';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/student.model.js';
@@ -151,7 +151,10 @@ export const convertDataIntoHTML = async (req, res) => {
     }
 
     const prompt = convertToHTMLPrompt(student);
-    const rawText = await genAI(prompt);
+    const rawText = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
     const htmlContent = rawText.replace(/```html|```/g, '');
 
     res.setHeader('Content-Type', 'text/html');
@@ -626,7 +629,10 @@ export const regenerateCV = async (req, res) => {
     );
 
     // --- Step 2: Generate, Clean, Parse, and Respond ---
-    const rawJsonResponse = await genAI(prompt);
+    const rawJsonResponse = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
     const cleanedJsonString = rawJsonResponse
       .replace(/```json|```/g, '')
       .trim();
@@ -666,7 +672,10 @@ export const regenerateCL = async (req, res) => {
       previousCLJson,
     );
 
-    const rawJsonResponse = await genAI(prompt);
+    const rawJsonResponse = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
     const cleanedJsonString = rawJsonResponse
       .replace(/```json|```/g, '')
       .trim();
@@ -926,7 +935,7 @@ export const createTailoredApply = async (req, res) => {
     jobDescription,
     useProfile,
     savedCVId,
-    savedCoverLetterId, // kept for future use
+    savedCoverLetterId,
     coverLetterText,
     finalTouch,
     flag,
@@ -1028,9 +1037,8 @@ export const createTailoredApply = async (req, res) => {
         company: jobDetails.company,
         description: jobDetails.description,
       },
-      candidate: studentData
-        ? JSON.stringify(studentData)
-        : JSON.stringify({ cv: cvContent }),
+      candidate: studentData ?? { cv: cvContent },
+
       coverLetter: coverLetterText || '',
       preferences: finalTouch || '',
     };
@@ -1162,6 +1170,8 @@ export const calculateJobMatchScore = async (req, res) => {
     const { matchScore, recommendation } = await calculateJobMatch(
       jobDescription,
       student,
+      req.user._id,
+      req.endpoint,
     );
 
     return res.json({ matchScore, recommendation });

@@ -45,7 +45,7 @@ ${candidate}
 
 **Example of expected raw HTML output:**
 <style>
-  .cv-container { font-family: 'Times New Roman', Times, serif; max-width: 800px; margin: auto; padding: 0; }
+  .cv-container { font-family: 'Arial, Helvetica, sans-serif'; max-width: 800px; margin: auto; padding: 0; }
   .cv-container h1 { text-align: center; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 2px; font-weight: normal; }
   .cv-container .contact-info { text-align: center; margin-top: 0; font-size: 0.9em; }
   .cv-container hr { border: 0; border-top: 1px solid #ccc; margin: 15px 0; }
@@ -172,6 +172,9 @@ export const processCoverLetterResponse = (response) => {
   return response.replace(/```html|```/g, '').trim();
 };
 
-export const processEmailResponse = (response) => {
-  return response.replace(/```html|```/g, '').trim();
-};
+export const processEmailResponse = (response) =>
+  response
+    .replace(/```/g, '')
+    .trim()
+    .replace(/\n{2,}/g, '<br><br>')
+    .replace(/\n/g, '<br>');

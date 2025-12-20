@@ -214,7 +214,8 @@ export const SearchFilters = ({
 
   return (
     <div className="p-2 md:p-1 mb-2">
-      <div className="flex items-center justify-between gap-2 ">
+      {/* <div className="flex items-center justify-between gap-2 "> */}
+      <div className="flex flex-col lg:flex-row gap-2">
         <div className="input-search-box-div w-full">
           <Search className="input-search-icon  " />
           <input
@@ -229,7 +230,7 @@ export const SearchFilters = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-2">
           <button
             onClick={handleSearchClick}
             disabled={isSearching}
@@ -237,7 +238,7 @@ export const SearchFilters = ({
             className={`flex items-center justify-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform ${
               isSearching
                 ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white hover:scale-105 shadow-lg hover:shadow-purple-200/50'
+                : 'bg-buttonPrimary hover:to-blue-600 text-white hover:scale-105 shadow-lg hover:shadow-purple-200/50'
             }`}
           >
             {isSearching ? (
@@ -254,7 +255,7 @@ export const SearchFilters = ({
 
           <button
             onClick={onOpenFilterModal}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
+            className="flex items-center justify-center gap-2 bg-buttonPrimary hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
           >
             <Filter className="w-4 h-4" />
             Filters

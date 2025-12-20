@@ -16,24 +16,7 @@ export const options = {
 const BASE_URL = 'http://localhost:8080/api/v1';
 
 export default function () {
-  // Query parameters as requested
-  const params = {
-    // country: 'india',
-    // state: 'delhi',
-    // employmentType: 'contractor',
-    // experience: '1',
-    // datePosted: 'day',
-    limit: '1000',
-    page: '1',
-    q: 'software engineer in uk',
-  };
-
-  // Construct query string
-  const queryString = Object.keys(params)
-    .map((key) => `${key}=${encodeURIComponent(params[key])}`)
-    .join('&');
-
-  const url = `${BASE_URL}/jobs/search?${queryString}`;
+  const url = `${BASE_URL}/jobs/search?page=1&limit=10&q=teaching+in+delhi`;
 
   const res = http.get(url);
 

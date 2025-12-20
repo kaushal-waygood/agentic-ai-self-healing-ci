@@ -6,7 +6,7 @@ const DashboardFooter = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-white/80 backdrop-blur-md border-t border-gray-100 py-3 px-6">
+    <footer className="bg-white/80 backdrop-blur-md border-t border-gray-100 items-center  md:py-2 px-6">
       <div className="container mx-auto flex items-center justify-between">
         <div className="text-xs text-gray-500 font-medium">
           © {currentYear} ZobsAI
@@ -27,7 +27,7 @@ const DashboardFooter = () => {
           ))}
         </div>
 
-        <nav className="flex items-center gap-4">
+        <nav className="hidden md:flex items-center gap-4">
           <Link
             href="/dashboard/terms-of-service"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
