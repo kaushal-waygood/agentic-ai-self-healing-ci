@@ -51,7 +51,6 @@ export function useDailyStreak() {
     dispatch(fetchDailyStreakRequest());
     dispatch(getCreditRequest());
     dispatch(getTotalCreditRequest());
-    console.log('useDailyStreak', credit);
   }, [dispatch]);
 
   const load = useCallback(async () => {

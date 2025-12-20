@@ -1,7 +1,4 @@
-// src/prompt/generateEmail.js
-
-export const generateEmailPrompt = (data) => {
-  return `
+export const generateEmailPrompt = (data) => `
 You are writing a professional job application email.
 
 STRICT OUTPUT RULES:
@@ -10,22 +7,35 @@ STRICT OUTPUT RULES:
 - Do NOT use markdown
 - Do NOT include code blocks
 
+FORMAT EXACTLY AS:
+SUBJECT:
+<subject line>
+
+BODY:
+<paragraph 1>
+
+<paragraph 2>
+
+<paragraph 3>
+
+SIGNATURE:
+<full name>
+
 Job Details:
 Position: ${data.job.title}
 Company: ${data.job.company}
 
 Candidate Profile:
-${data.candidate}
+${JSON.stringify(data.candidate, null, 2)}
 
-EMAIL REQUIREMENTS:
-- Include a clear subject line
-- 3 short paragraphs max
+EMAIL RULES:
+- Max 3 short paragraphs
 - Mention attached CV and cover letter
-- Professional closing with name
+- Professional tone
+- No placeholders like [Your Name]
 
-Return ONLY the final email text.
+Return ONLY the formatted content.
 `;
-};
 
 export const processEmailResponse = (response) =>
   response.replace(/```/g, '').trim();

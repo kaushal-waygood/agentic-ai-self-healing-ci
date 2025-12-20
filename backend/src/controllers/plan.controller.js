@@ -66,7 +66,7 @@ const buildUsageLimitsFromFeatures = (features = []) => {
   return limits;
 };
 
-const calculateEndDate = (period) => {
+export const calculateEndDate = (period) => {
   const date = new Date();
   switch (period) {
     case 'Weekly':
