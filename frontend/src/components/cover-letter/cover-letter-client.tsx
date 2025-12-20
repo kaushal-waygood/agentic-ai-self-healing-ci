@@ -105,6 +105,9 @@ export function CoverLetterGeneratorClient() {
   /* limit ui */
   const [rateLimited, setRateLimited] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
+    null,
+  );
 
   const { students: student } = useSelector(
     (state: RootState) => state.student,
@@ -285,6 +288,18 @@ export function CoverLetterGeneratorClient() {
         description: 'Your draft is ready.',
       });
     } catch (error: any) {
+      if (
+        error?.response?.status === 403 &&
+        error?.response?.data?.message === 'Profile incomplete'
+      ) {
+        setIncompleteProfile(
+          error?.response?.data?.reasons?.join(', ') ||
+            'Please complete your profile to continue.',
+        );
+        setWizardStep('result');
+        return;
+      }
+
       if (isUsageLimitError(error)) {
         setRateLimited(true);
         setRateLimitMessage(
@@ -394,6 +409,7 @@ export function CoverLetterGeneratorClient() {
       case 'result':
         return (
           <FinalResultView
+            incompleteProfile={incompleteProfile}
             rateLimited={rateLimited}
             rateLimitMessage={rateLimitMessage}
             planPath="/dashboard/subscriptions"

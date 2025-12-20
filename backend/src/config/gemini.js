@@ -1,15 +1,42 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GeminiUsage } from '../models/GeminiUsage.js';
+import { getLLMProvider } from '../llm/providerFactory.js';
+import fs from 'fs';
+import path from 'path';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const MODEL_NAME = 'gemini-2.5-flash';
+const provider = getLLMProvider();
 
 const RETRY_CONFIG = {
   maxRetries: 3,
   baseDelay: 1000,
   maxDelay: 10000,
 };
+
+// ===== PROMPT LOGGING SETUP =====
+const PROMPT_LOG_DIR = path.resolve(process.cwd(), 'logs');
+const PROMPT_LOG_FILE = path.join(PROMPT_LOG_DIR, 'prompt.txt');
+
+function logPromptToFile(prompt, meta = {}) {
+  try {
+    if (!fs.existsSync(PROMPT_LOG_DIR)) {
+      fs.mkdirSync(PROMPT_LOG_DIR, { recursive: true });
+    }
+
+    const entry = `
+==============================
+TIMESTAMP: ${new Date().toISOString()}
+USER_ID: ${meta.userId || 'N/A'}
+ENDPOINT: ${meta.endpoint || 'N/A'}
+==============================
+${prompt}
+
+`;
+
+    fs.appendFile(PROMPT_LOG_FILE, entry, () => {});
+  } catch {
+    // Silent failure. Logging must never break generation.
+  }
+}
+// ===============================
 
 function estimateTokens(text, mode = 'text') {
   if (!text) return 0;
@@ -18,7 +45,7 @@ function estimateTokens(text, mode = 'text') {
 }
 
 const breaker = {
-  state: 'CLOSED', // CLOSED | OPEN | HALF_OPEN
+  state: 'CLOSED',
   failures: 0,
   lastFailureAt: 0,
 };
@@ -26,7 +53,7 @@ const breaker = {
 const FAILURE_THRESHOLD = 5;
 const COOLDOWN_MS = 30_000;
 
-function canCallGemini() {
+function canCallLLM() {
   if (breaker.state === 'OPEN') {
     if (Date.now() - breaker.lastFailureAt > COOLDOWN_MS) {
       breaker.state = 'HALF_OPEN';
@@ -37,12 +64,12 @@ function canCallGemini() {
   return true;
 }
 
-function onGeminiSuccess() {
+function onSuccess() {
   breaker.state = 'CLOSED';
   breaker.failures = 0;
 }
 
-function onGeminiFailure() {
+function onFailure() {
   breaker.failures += 1;
   breaker.lastFailureAt = Date.now();
   if (breaker.failures >= FAILURE_THRESHOLD) {
@@ -61,9 +88,12 @@ export async function generateContent(
     mode = 'text',
   } = {},
 ) {
-  if (!canCallGemini()) {
-    throw new Error('Gemini temporarily disabled (circuit breaker open)');
+  if (!canCallLLM()) {
+    throw new Error('LLM temporarily disabled (circuit breaker open)');
   }
+
+  // 🔥 LOG PROMPT HERE
+  logPromptToFile(prompt, { userId, endpoint });
 
   const promptChars = String(prompt || '').length;
 
@@ -80,56 +110,39 @@ export async function generateContent(
     );
   }
 
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: { temperature, topK, topP },
-  });
-
   let lastError;
 
   for (let attempt = 1; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
     const start = Date.now();
 
     try {
-      const result = await model.generateContent(prompt);
+      const { text, usage } = await provider.generate(prompt, {
+        temperature,
+        topK,
+        topP,
+      });
+
       const latencyMs = Date.now() - start;
 
-      const response = result.response;
-      const text = response.text();
-      const usage = response.usageMetadata;
-
-      if (!usage) {
-        throw new Error('Missing Gemini usage metadata');
-      }
-
-      const usageDoc = {
-        model: MODEL_NAME,
+      GeminiUsage.create({
+        llm: provider.constructor.name,
+        model: provider.model,
         promptChars,
-        promptTokens: usage.promptTokenCount,
-        outputTokens: usage.candidatesTokenCount,
-        totalTokens: usage.totalTokenCount,
+        promptTokens: usage.promptTokens,
+        outputTokens: usage.outputTokens,
+        totalTokens: usage.totalTokens,
         latencyMs,
         userId,
         endpoint,
-      };
+      }).catch(() => {});
 
-      // Non-blocking DB write
-      GeminiUsage.create(usageDoc).catch((err) => {
-        console.error('Failed to store Gemini usage', err);
-      });
-
-      onGeminiSuccess();
+      onSuccess();
       return text;
     } catch (err) {
       lastError = err;
-      onGeminiFailure();
+      onFailure();
 
       const status = err?.status;
-
-      console.warn(`Gemini attempt ${attempt} failed`, {
-        status,
-        message: err?.message,
-      });
 
       if ([400, 401, 403].includes(status)) {
         throw err;

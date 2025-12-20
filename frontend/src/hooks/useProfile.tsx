@@ -649,6 +649,8 @@ export const useProfile = () => {
           location,
         });
 
+        console.log('Response:', repsonse.data);
+
         if (repsonse.status === 200) {
           toast({ title: 'Personal Information Updated', variant: 'default' });
           dispatch(getStudentDetailsRequest());

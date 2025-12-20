@@ -51,7 +51,7 @@ const SideSectionProfile = ({
     email = '',
     phone = '',
     jobPreference = '',
-    location = '', // ✅ Destructured location
+    location = '',
     uploadedCV = '',
   } = formValues;
 
