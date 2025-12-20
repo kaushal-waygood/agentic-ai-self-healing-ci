@@ -117,6 +117,7 @@ interface ResultStepProps {
 
 // --- MAIN ResultStep COMPONENT ---
 const ResultStep = ({
+  defaultTab,
   jobContext,
   refinedCv,
   setRefinedCv,
@@ -134,6 +135,10 @@ const ResultStep = ({
   const [savedSections, setSavedSections] = useState(new Set());
   const { user } = useSelector((state: RootState) => state.auth);
   const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState<'cv' | 'cl' | 'email' | 'job'>(
+    defaultTab || 'job',
+  );
 
   const CustomButton = ({
     variant,

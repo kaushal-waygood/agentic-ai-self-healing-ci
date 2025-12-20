@@ -172,6 +172,9 @@ export const processCoverLetterResponse = (response) => {
   return response.replace(/```html|```/g, '').trim();
 };
 
-export const processEmailResponse = (response) => {
-  return response.replace(/```html|```/g, '').trim();
-};
+export const processEmailResponse = (response) =>
+  response
+    .replace(/```/g, '')
+    .trim()
+    .replace(/\n{2,}/g, '<br><br>')
+    .replace(/\n/g, '<br>');

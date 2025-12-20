@@ -935,7 +935,7 @@ export const createTailoredApply = async (req, res) => {
     jobDescription,
     useProfile,
     savedCVId,
-    savedCoverLetterId, // kept for future use
+    savedCoverLetterId,
     coverLetterText,
     finalTouch,
     flag,
@@ -1037,9 +1037,8 @@ export const createTailoredApply = async (req, res) => {
         company: jobDetails.company,
         description: jobDetails.description,
       },
-      candidate: studentData
-        ? JSON.stringify(studentData)
-        : JSON.stringify({ cv: cvContent }),
+      candidate: studentData ?? { cv: cvContent },
+
       coverLetter: coverLetterText || '',
       preferences: finalTouch || '',
     };
