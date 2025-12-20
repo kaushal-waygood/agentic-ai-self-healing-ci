@@ -42,6 +42,7 @@ import {
   saveOrganizationDetails,
 } from '../controllers/bringZobs.controller.js';
 import { upload } from '../middlewares/multer.js';
+import { getVerifiedUsers } from '../controllers/student.controller.js';
 
 const router = Router();
 

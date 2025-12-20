@@ -1,10 +1,9 @@
-// src/controllers/coverletter.controller.js
-
 import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Student } from '../models/student.model.js';
+import { User } from '../models/User.model.js';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
@@ -14,8 +13,6 @@ import {
   extractPhone,
   deduceNameFromText,
 } from '../utils/coverletter.utils.js';
-
-// <-- NEW: credits helper (adjust path if your credits file lives elsewhere)
 import { earnCreditsForAction } from '../utils/credits.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,44 +32,56 @@ export const initiateCoverLetterGeneration = async (
       outputFormat = 'plain',
       flag,
     } = req.body;
-    let normalized = {
+
+    // 🔒 Validate user existence (matches CV flow)
+    const user = await User.findById(_id).select('_id fullName email');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const normalized = {
       resumeText: '',
-      profile: {},
+      profile: {
+        fullName: '',
+        email: '',
+        phone: '',
+        education: [],
+        experience: [],
+        skills: [],
+        projects: [],
+      },
     };
 
-    // Helper assigner to make code readable
-    const setProfileFromStudent = (student) => {
-      normalized.profile = {
-        fullName: student.fullName || '',
-        email: student.email || '',
-        phone: student.phone || '',
-        education: student.education || [],
-        experience: student.experience || [],
-        skills: student.skills || [],
-        projects: student.projects || [],
-      };
-      // If student stores a resume text or html, prefer that for resumeText
-      if (student.resumeText && typeof student.resumeText === 'string') {
+    const hydrateFromStudent = (student) => {
+      normalized.profile.fullName = student.fullName || '';
+      normalized.profile.email = student.email || '';
+      normalized.profile.phone = student.phone || '';
+      normalized.profile.education = student.education || [];
+      normalized.profile.experience = student.experience || [];
+      normalized.profile.skills = student.skills || [];
+      normalized.profile.projects = student.projects || [];
+
+      if (typeof student.resumeText === 'string') {
         normalized.resumeText = student.resumeText;
-      } else if (
-        student.htmlCV &&
-        Array.isArray(student.htmlCV) &&
-        student.htmlCV.length
-      ) {
-        // pick the most recent html CV if present
+      } else if (Array.isArray(student.htmlCV) && student.htmlCV.length) {
         normalized.resumeText =
           student.htmlCV[0].html || student.htmlCV[0].content || '';
       }
     };
 
-    // Branch 1: use profile stored in DB
+    /* ----------------------------
+       SOURCE RESOLUTION
+    ----------------------------- */
+
+    // 1️⃣ Use full profile
     if (useProfile === 'true' || useProfile === true) {
       const student = await Student.findById(_id).lean();
       if (!student) {
         return res.status(404).json({ error: 'Student profile not found' });
       }
-      setProfileFromStudent(student);
-      // If profile has no email/phone/name, try to fill some from resumeText if present
+
+      hydrateFromStudent(student);
+
       if (!normalized.profile.email && normalized.resumeText) {
         normalized.profile.email = extractEmail(normalized.resumeText) || '';
       }
@@ -80,29 +89,22 @@ export const initiateCoverLetterGeneration = async (
         normalized.profile.phone = extractPhone(normalized.resumeText) || '';
       }
     }
-    // Branch 2: use saved CV id (html or saved cv object)
+
+    // 2️⃣ Use saved CV
     else if (savedCVId) {
       if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
         return res.status(400).json({ error: 'Invalid savedCVId' });
       }
 
-      const studentWithCVs = await Student.findById(_id)
+      const student = await Student.findById(_id)
         .select('htmlCV fullName email phone')
         .lean();
-      if (!studentWithCVs) {
-        return res.status(404).json({ error: 'Student profile not found' });
+
+      if (!student || !Array.isArray(student.htmlCV)) {
+        return res.status(404).json({ error: 'Saved CV not found' });
       }
 
-      if (
-        !Array.isArray(studentWithCVs.htmlCV) ||
-        studentWithCVs.htmlCV.length === 0
-      ) {
-        return res
-          .status(404)
-          .json({ error: 'No saved CVs found for this student' });
-      }
-
-      const saved = studentWithCVs.htmlCV.find(
+      const saved = student.htmlCV.find(
         (cv) => String(cv._id) === String(savedCVId),
       );
 
@@ -111,35 +113,27 @@ export const initiateCoverLetterGeneration = async (
       }
 
       const html =
-        saved.html ?? saved.content ?? saved.htmlCV ?? saved.body ?? null;
+        saved.html ?? saved.content ?? saved.htmlCV ?? saved.body ?? '';
 
-      if (!html || typeof html !== 'string' || !html.trim()) {
+      if (!html.trim()) {
         return res
           .status(422)
-          .json({ error: 'Saved CV has no usable HTML content' });
+          .json({ error: 'Saved CV has no usable content' });
       }
 
       normalized.resumeText = html;
-      normalized.profile = {
-        fullName: studentWithCVs.fullName || '',
-        email: studentWithCVs.email || '',
-        phone: studentWithCVs.phone || '',
-      };
-
-      // fill from html content if profile fields empty
-      if (!normalized.profile.email)
-        normalized.profile.email = extractEmail(html) || '';
-      if (!normalized.profile.phone)
-        normalized.profile.phone = extractPhone(html) || '';
-      if (!normalized.profile.fullName)
-        normalized.profile.fullName = deduceNameFromText(html) || '';
+      normalized.profile.fullName =
+        student.fullName || deduceNameFromText(html) || '';
+      normalized.profile.email = student.email || extractEmail(html) || '';
+      normalized.profile.phone = student.phone || extractPhone(html) || '';
     }
-    // Branch 3: user uploaded a file (pdf, docx, image)
+
+    // 3️⃣ Uploaded file
     else {
       if (!req.file) {
-        return res
-          .status(400)
-          .json({ error: 'CV file (PDF, DOCX, or Image) is required' });
+        return res.status(400).json({
+          error: 'CV file (PDF, DOCX, or Image) is required',
+        });
       }
 
       const filePath = path.join(
@@ -153,114 +147,88 @@ export const initiateCoverLetterGeneration = async (
 
       try {
         let extractedText = '';
-        const fileMimeType = req.file.mimetype;
+        const type = req.file.mimetype;
 
-        if (fileMimeType === 'application/pdf') {
-          const dataBuffer = fs.readFileSync(filePath);
-          const parsedPDF = await pdfParse(dataBuffer);
-          extractedText = parsedPDF.text || '';
+        if (type === 'application/pdf') {
+          const buf = fs.readFileSync(filePath);
+          extractedText = (await pdfParse(buf)).text || '';
         } else if (
-          fileMimeType ===
+          type ===
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-          fileMimeType === 'application/msword'
+          type === 'application/msword'
         ) {
-          const result = await mammoth.extractRawText({ path: filePath });
-          extractedText = result.value || '';
-        } else if (fileMimeType.startsWith('image/')) {
-          const {
-            data: { text },
-          } = await Tesseract.recognize(filePath, 'eng');
-          extractedText = text || '';
+          extractedText =
+            (await mammoth.extractRawText({ path: filePath })).value || '';
+        } else if (type.startsWith('image/')) {
+          extractedText =
+            (await Tesseract.recognize(filePath, 'eng')).data.text || '';
         } else {
-          return res.status(400).json({
-            error:
-              'Unsupported file type. Please upload a PDF, DOCX, or an image.',
-          });
+          return res.status(400).json({ error: 'Unsupported file type' });
         }
 
         normalized.resumeText = extractedText;
-
-        // Try to extract contact info heuristically
         normalized.profile.email = extractEmail(extractedText) || '';
         normalized.profile.phone = extractPhone(extractedText) || '';
         normalized.profile.fullName = deduceNameFromText(extractedText) || '';
       } finally {
-        // remove uploaded file no matter what
-        if (fs.existsSync(filePath)) {
-          try {
-            fs.unlinkSync(filePath);
-          } catch (e) {
-            /* ignore unlink errors */
-          }
-        }
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       }
     }
 
-    // At this point normalized contains { resumeText, profile } (strings/arrays)
-    const studentData = JSON.stringify(normalized);
+    /* ----------------------------
+       JOB CREATION
+    ----------------------------- */
 
-    // Step 2: Create a new cover letter job entry
-    const jobId = new mongoose.Types.ObjectId();
-    const newCLJob = {
-      jobId,
-      status: 'pending',
-      jobContextString,
-      finalTouch,
-      flag,
-      outputFormat, // track requested format
-      createdAt: new Date(),
-    };
-
-    // load student doc (not lean) to inspect existing cls array safely
     const student = await Student.findById(_id);
     if (!student) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    // determine whether this is the student's first cover letter (safe check)
-    const isFirstCoverLetter =
-      !Array.isArray(student.cls) || student.cls.length === 0;
+    const jobId = new mongoose.Types.ObjectId();
+    const isFirstCL = !Array.isArray(student.cls) || student.cls.length === 0;
 
     await Student.findByIdAndUpdate(_id, {
-      $push: { cls: { $each: [newCLJob], $position: 0 } },
+      $push: {
+        cls: {
+          $each: [
+            {
+              jobId,
+              status: 'pending',
+              jobContextString,
+              finalTouch,
+              outputFormat,
+              flag,
+              createdAt: new Date(),
+            },
+          ],
+          $position: 0,
+        },
+      },
     });
 
-    // attempt to reward first cover letter (do not block cover letter generation on failure)
-    if (isFirstCoverLetter) {
-      (async () => {
-        try {
-          const earnResult = await earnCreditsForAction(_id, 'FIRST_CL', {
-            jobId: jobId.toString(),
-          });
-          console.log(
-            `FIRST_CL credits awarded to ${_id}:`,
-            earnResult?.tx ?? earnResult,
-          );
-        } catch (err) {
-          console.error('Failed to award FIRST_CL credits:', err);
-        }
-      })();
+    if (isFirstCL) {
+      earnCreditsForAction(_id, 'FIRST_CL', { jobId: jobId.toString() }).catch(
+        (err) => console.error('FIRST_CL credit failed:', err),
+      );
     }
 
-    // Step 3: Trigger background processing (fire and forget)
+    /* ----------------------------
+       BACKGROUND FIRE
+    ----------------------------- */
+
     const io = req.app.get('io');
     processCoverLetterGeneration(
       _id,
       jobId,
-      studentData,
+      JSON.stringify(normalized),
       jobContextString,
       finalTouch,
       io,
       outputFormat,
     ).catch((err) => {
-      // The background function already handles errors and updates DB, but just in case:
-      console.error(
-        'Background cover letter job failed to start cleanly:',
-        err,
-      );
+      console.error('Cover letter background job failed to start:', err);
     });
 
-    // Step 4: Immediately respond to the user
     return res.status(202).json({
       message:
         'Cover letter generation has started. You will be notified when it is complete.',

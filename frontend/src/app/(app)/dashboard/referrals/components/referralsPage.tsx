@@ -320,7 +320,7 @@ export default function ReferralsPage() {
                   )}
                 </div>
               </div>
-              <div className="space-y-3 md:hidden ">
+              <div className="space-y-3 ">
                 <p className="text-sm font-medium text-gray-700">
                   Quick Share:
                 </p>

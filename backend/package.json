@@ -10,9 +10,12 @@
     "test": "jest --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:debug": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --runInBand",
+    "test:report": "jest --coverage && node tests/reports/jest-report.cjs",
+    "test:open": "node tests/reports/open-jest-report.cjs",
     "prepare": "husky",
-    "k6": "k6 run --iterations 1000 --vus 10 tests/k6/register_users.js",
-    "k6:search": "k6 run --iterations 1 --vus 1 tests/k6/job_search.js"
+    "k6": "k6 run --iterations 1 --vus 1 tests/k6/register_users.js",
+    "k6:search": "k6 run --iterations 10 --vus 1 tests/k6/job_search.js",
+    "k6:genai": "k6 run --vus 1 --duration 10s --summary-export=tests/output/genai-report.json tests/k6/generate_cv_cl.js && node tests/reports/genai-report.cjs"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +29,7 @@
     "@types/supertest": "^6.0.3",
     "babel-jest": "^30.0.5",
     "jest": "^30.0.5",
+    "jest-html-reporter": "^4.3.0",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.1",
@@ -60,6 +64,8 @@
     "i18n-iso-countries": "^7.14.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
+    "k6": "^0.0.0",
+    "k6-html-reporter": "^0.0.4",
     "langchain": "^0.3.30",
     "mammoth": "^1.11.0",
     "mongoose": "^8.16.2",
@@ -94,6 +100,25 @@
     ],
     "setupFilesAfterEnv": [
       "./tests/jest.setup.js"
-    ]
+    ],
+    "reporters": [
+      "default",
+      [
+        "jest-html-reporter",
+        {
+          "pageTitle": "Jest Test Report - ZobsAI Backend",
+          "outputPath": "tests/output/jest-report.html",
+          "includeFailureMsg": true,
+          "includeConsoleLog": true,
+          "theme": "darkTheme",
+          "logo": "",
+          "executionTimeWarningThreshold": 5,
+          "dateFormat": "yyyy-mm-dd HH:MM:ss",
+          "sort": "status",
+          "includeObsoleteSnapshots": true
+        }
+      ]
+    ],
+    "coverageDirectory": "tests/output/coverage"
   }
 }

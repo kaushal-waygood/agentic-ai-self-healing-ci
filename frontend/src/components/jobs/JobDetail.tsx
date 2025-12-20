@@ -213,12 +213,169 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     );
   }
 
+  const normalizeText = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/[•▪◦‣]/g, '-')
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{2,}/g, '\n\n');
+  };
+
+  const KNOWN_HEADINGS = [
+    'job description',
+    'responsibilities',
+    'requirements',
+    'qualification',
+    'qualifications',
+    'skills',
+    'skills required',
+    'experience',
+    'location',
+    'about the role',
+    'about us',
+    'what you will do',
+    'what we are looking for',
+  ];
+
+  const isHeading = (line: string, nextLine?: string) => {
+    const trimmed = line.trim();
+    const lower = trimmed.toLowerCase();
+
+    if (!trimmed) return false;
+
+    // 1️⃣ Ends with colon
+    if (trimmed.endsWith(':')) return true;
+
+    // 2️⃣ Known headings
+    if (KNOWN_HEADINGS.includes(lower)) return true;
+
+    // 3️⃣ Short Title Case (Responsibilities, Requirements)
+    if (trimmed.split(' ').length <= 4 && /^[A-Z][A-Za-z\s]+$/.test(trimmed)) {
+      return true;
+    }
+
+    // 4️⃣ ALL CAPS heading
+    if (trimmed === trimmed.toUpperCase() && trimmed.length > 3) {
+      return true;
+    }
+
+    // 5️⃣ Followed by bullet points
+    if (nextLine?.trim().startsWith('-')) return true;
+
+    return false;
+  };
+
+  const renderJobDescription = (text: string) => {
+    const lines = text.split('\n');
+
+    return lines.map((line, index) => {
+      const trimmed = line.trim();
+      const nextLine = lines[index + 1];
+
+      if (!trimmed) {
+        return <div key={index} className="h-2" />;
+      }
+
+      // ✅ Heading
+      if (isHeading(trimmed, nextLine)) {
+        return (
+          <div
+            key={index}
+            className="mt-5 mb-2 font-semibold text-slate-800 text-sm uppercase tracking-wide"
+          >
+            {trimmed.replace(/:$/, '')}
+          </div>
+        );
+      }
+
+      // ✅ Bullet point
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        return (
+          <div
+            key={index}
+            className="ml-4 flex items-start gap-2 text-sm text-slate-600"
+          >
+            <span className="mt-1.5 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0" />
+            <span>{trimmed.replace(/^[-•]/, '').trim()}</span>
+          </div>
+        );
+      }
+
+      // ✅ Normal paragraph
+      return (
+        <p key={index} className="text-sm text-slate-600 leading-relaxed">
+          {trimmed}
+        </p>
+      );
+    });
+  };
+  // const renderJobDescription = (raw: string) => {
+  //   const lines = normalizeText(raw).split('\n');
+
+  //   return lines.map((line, i) => {
+  //     const trimmed = line.trim();
+
+  //     if (!trimmed) {
+  //       return <div key={i} className="h-2" />;
+  //     }
+
+  //     // 🔹 BULLET
+  //     if (trimmed.startsWith('-')) {
+  //       return (
+  //         <div
+  //           key={i}
+  //           className="ml-4 flex items-start gap-3 text-sm text-slate-600"
+  //         >
+  //           <span className="mt-2 w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0" />
+  //           <span className="leading-relaxed">
+  //             {trimmed.replace(/^-\s*/, '')}
+  //           </span>
+  //         </div>
+  //       );
+  //     }
+
+  //     // 🔹 KEY : VALUE
+  //     if (/^[A-Za-z][A-Za-z\s]{2,25}:\s+/.test(trimmed)) {
+  //       const [key, ...rest] = trimmed.split(':');
+  //       return (
+  //         <div key={i} className="text-sm text-slate-700">
+  //           <span className="font-semibold">{key}:</span>{' '}
+  //           <span className="text-slate-600">{rest.join(':').trim()}</span>
+  //         </div>
+  //       );
+  //     }
+
+  //     // 🔹 ALL CAPS / EMPHASIZED LINE → TITLE
+  //     if (
+  //       trimmed === trimmed.toUpperCase() &&
+  //       trimmed.length > 4 &&
+  //       trimmed.length < 60
+  //     ) {
+  //       return (
+  //         <div
+  //           key={i}
+  //           className="mt-5 mb-2 text-sm font-bold tracking-wide text-slate-800"
+  //         >
+  //           {trimmed}
+  //         </div>
+  //       );
+  //     }
+
+  //     // 🔹 NORMAL TEXT
+  //     return (
+  //       <p key={i} className="text-sm text-slate-600 leading-relaxed">
+  //         {trimmed}
+  //       </p>
+  //     );
+  //   });
+  // };
+
   return (
     <div className="min-h-screen space-y-2">
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border border-white/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 opacity-90" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-20" />
+        <div className="absolute inset-0 bg-header-gradient-primary opacity-90" />
+        <div className="absolute inset-0  opacity-20" />
         <div className="relative p-2 md:p-4 text-white">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex-1 space-y-4">
@@ -319,7 +476,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               ) : (
                 <Button
                   asChild
-                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
@@ -340,7 +497,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <Button
                   onClick={handleApplyOnSite}
                   asChild
-                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  className="group relative overflow-hidden px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
                   <Link
                     href={job.applyMethod.url}
@@ -462,7 +619,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         </div>
 
         <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
-          <ReactMarkdown
+          {/* <ReactMarkdown
             // minimal custom renderers to keep perf decent
             components={{
               h3: (props: any) => (
@@ -484,7 +641,30 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             }}
           >
             {formattedDescription}
-          </ReactMarkdown>
+          </ReactMarkdown> */}
+          {/* new  */}
+          {/* <details
+            open
+            className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+          >
+            <div className="px-1 pb-4">
+              <div className=" overflow-y-auto text-sm text-slate-600 whitespace-pre-line pr-2 border-l-2 border-blue-500 pl-3">
+                {job.description}
+              </div>
+            </div>
+          </details> */}
+
+          <details
+            open
+            className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+          >
+            <summary className="hidden" />
+            <div className="px-1 pb-4">
+              {renderJobDescription(job.description)}
+              {/* <div className=" overflow-y-auto pr-3  pl-3 space-y-1">
+              </div> */}
+            </div>
+          </details>
         </div>
       </div>
 

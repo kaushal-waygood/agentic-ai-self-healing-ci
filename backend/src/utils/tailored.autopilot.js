@@ -1,5 +1,5 @@
 // src/utils/tailored.autopilot.js
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import {
   generateCVPrompts,
   generateCoverLetterPrompts,
@@ -19,11 +19,13 @@ const processCoverLetterResponse = (response) =>
 const processEmailResponse = (response) =>
   response.replace(/```html|```/g, '').trim();
 
-// Retry wrapper
 const genAIWithRetry = async (prompt, retries = 3, delay = 1000) => {
   for (let i = 0; i < retries; i++) {
     try {
-      return await genAI(prompt);
+      return await genAI(prompt, {
+        userId: req.user?._id,
+        endpoint: req.endpoint,
+      });
     } catch (error) {
       if (i === retries - 1) throw error;
       await new Promise((r) => setTimeout(r, delay));

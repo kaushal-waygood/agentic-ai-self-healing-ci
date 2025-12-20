@@ -33,15 +33,7 @@ export const initiateCVGeneration = async (
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const hasPlan = !!(user.currentPlan || user.currentPurchase || user.plan);
-
-    const freeLimit =
-      user.usageLimits && Number.isFinite(user.usageLimits.cvCreation)
-        ? user.usageLimits.cvCreation
-        : DEFAULT_FREE_MONTHLY_CV_LIMIT;
-
-    const overFreeLimit =
-      !hasPlan && user.usageCounters.cvCreation >= freeLimit;
+    const { usageMeta } = req;
 
     let studentData;
     if (useProfile === 'true' || useProfile === true) {
@@ -49,7 +41,36 @@ export const initiateCVGeneration = async (
       if (!student) {
         return res.status(404).json({ error: 'Student profile not found' });
       }
-      studentData = JSON.stringify(student);
+      const {
+        fullName,
+        location,
+        country,
+        city,
+        state,
+        phone,
+        email,
+        linkedin,
+        projects,
+        education,
+        experience,
+        skills,
+        jobRole,
+      } = student;
+      studentData = JSON.stringify({
+        fullName,
+        location,
+        country,
+        city,
+        state,
+        phone,
+        email,
+        linkedin,
+        projects,
+        education,
+        experience,
+        skills,
+        jobRole,
+      });
     } else if (savedCVId) {
       if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
         return res.status(400).json({ error: 'Invalid savedCVId' });
@@ -145,8 +166,6 @@ export const initiateCVGeneration = async (
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    await user.save();
-
     const cvTitle = `${student.fullName || user.fullName}'s CV (${
       jobTitle || ''
     })`;
@@ -161,13 +180,6 @@ export const initiateCVGeneration = async (
       finalTouch,
       flag,
       createdAt: new Date(),
-      // extra metadata so front-end and background worker can act
-      meta: {
-        hasPlan,
-        overFreeLimit,
-        usageThisMonth: user.usageCounters.cvCreation,
-        freeLimit,
-      },
     };
 
     // determine whether this is the student's first CV (safe check)
@@ -205,18 +217,13 @@ export const initiateCVGeneration = async (
       jobContextString,
       finalTouch,
       io,
+      req.endpoint,
     );
 
     return res.status(202).json({
       message:
         'CV generation has started. You will be notified when it is complete.',
       jobId: jobId.toString(),
-      meta: {
-        hasPlan,
-        overFreeLimit,
-        usageThisMonth: user.usageCounters.cvCreation,
-        freeLimit,
-      },
     });
   } catch (error) {
     console.error('Error initiating CV generation:', error);

@@ -27,6 +27,9 @@ import {
   Briefcase,
   Globe,
   Eye,
+  ArrowUpRight,
+  ArrowRightSquare,
+  MoveRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -41,6 +44,9 @@ import useProfileCompletion from '@/hooks/useProfileCompletion';
 import { usePathname, useRouter } from 'next/navigation';
 import CompletionModal from './CompletionModel';
 import { startDashboardTour } from './dashboardDriver';
+import { SpendCreditsSection } from '@/components/credits/SpendCreditsSection';
+import { useCredits } from '@/hooks/useCredits';
+import { Input } from '@/components/ui/input';
 
 export function StatCard({
   title,
@@ -146,7 +152,7 @@ export function ToolkitButton({
             <p className="text-sm text-gray-600 mt-1">{description}</p>
           </div>
 
-          <Play className="w-4 h-4 text-gray-400 group-hover:text-purple-600" />
+          <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600" />
         </div>
       </button>
     </Link>
@@ -159,7 +165,7 @@ export function ProfileReadinessCard() {
 
   if (isLoading || !data) {
     return (
-      <div className="bg-white rounded-lg  p-6">
+      <div className="bg-white rounded-lg p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 border-2 border-dashed rounded-lg">
           <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
           <p className="font-medium">Loading profile data...</p>
@@ -170,7 +176,7 @@ export function ProfileReadinessCard() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg  p-6">
+      <div className="bg-white rounded-lg p-6">
         <div className="flex flex-col items-center justify-center h-[200px] text-center text-red-500 border-2 border-dashed border-red-200 rounded-lg">
           <p className="font-medium">Error loading data</p>
         </div>
@@ -189,6 +195,40 @@ export function ProfileReadinessCard() {
 
   const score = data.percentage;
   const checks = data.categories;
+
+  /* =========================
+     ✅ PROFILE COMPLETE STATE
+     ========================= */
+  if (score === 100) {
+    return (
+      <div className="bg-white border rounded-lg p-4 transition-shadow duration-300">
+        <div className="flex justify-between items-center text-center">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <h3 className="text-xl font-semibold text-gray-900">
+              Profile Complete 🎉
+            </h3>
+          </div>
+
+          <div>
+            <Button
+              asChild
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Link href="/dashboard/profile">
+                View Profile
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================
+     🔁 EXISTING ANALYTICS UI
+     ========================= */
 
   const getScoreColor = (scoreValue) => {
     if (scoreValue >= 80) return 'text-green-600';
@@ -212,7 +252,7 @@ export function ProfileReadinessCard() {
   };
 
   return (
-    <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
+    <div className="bg-white border rounded-lg p-6 transition-shadow duration-300">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -229,6 +269,7 @@ export function ProfileReadinessCard() {
           <p className="text-sm text-gray-500">Complete</p>
         </div>
       </div>
+
       <div className="relative w-full h-3 bg-gray-200 rounded-full mb-6 overflow-hidden">
         <div
           className={`h-full bg-gradient-to-r ${getProgressColor(
@@ -249,12 +290,12 @@ export function ProfileReadinessCard() {
             }}
           >
             <CheckCircle2
-              className={`w-5 h-5 transition-colors duration-300 ${
+              className={`w-5 h-5 ${
                 checks?.[key] ? 'text-green-600' : 'text-gray-300'
               }`}
             />
             <span
-              className={`text-sm transition-colors duration-300 ${
+              className={`text-sm ${
                 checks?.[key] ? 'text-gray-900 font-medium' : 'text-gray-500'
               }`}
             >
@@ -273,7 +314,7 @@ export function ProfileReadinessCard() {
           </p>
           <Button
             asChild
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-buttonPrimary hover:bg-purple-700 text-white"
           >
             <Link href="/dashboard/profile">
               Go to Profile
@@ -398,6 +439,30 @@ function UsageMeter({ label, used, limit }: any) {
   );
 }
 
+function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition"
+    >
+      <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+        <Icon className="w-5 h-5" />
+      </div>
+
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <p className="text-xs text-gray-500">{subtitle}</p>
+      </div>
+
+      <div className="text-xs text-gray-400 whitespace-nowrap">
+        {new Date(time).toLocaleDateString()}
+      </div>
+
+      <ArrowRight className="w-4 h-4 text-gray-400" />
+    </Link>
+  );
+}
+
 export function SubscriptionStatusCard({ plan }: any) {
   const pathname = usePathname();
   // Fallback UI if there's no active plan
@@ -408,7 +473,7 @@ export function SubscriptionStatusCard({ plan }: any) {
         <p className="text-gray-600 text-sm mb-4">
           You do not have an active subscription.
         </p>
-        <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
+        <Button asChild className="w-full bg-buttonPrimary hover:bg-purple-700">
           <Link href="/dashboard/subscriptions">View Plans</Link>
         </Button>
       </div>
@@ -467,6 +532,8 @@ export function SubscriptionStatusCard({ plan }: any) {
 }
 
 export default function DashboardPage() {
+  const [recentAI, setRecentAI] = useState<any>(null);
+  const { balance, spending, checkout } = useCredits();
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [stats, setStats] = useState({
     applicationsSent: 0,
@@ -477,10 +544,12 @@ export default function DashboardPage() {
     tailoredApplications: 0,
     jobsViewed: 0,
     appliedJobsCount: 0,
-
     jobsVisited: 0,
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
+
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [savedJobs, setSavedJobs] = useState([]);
 
@@ -564,7 +633,6 @@ export default function DashboardPage() {
     }
   }, [dispatch, authUser]);
 
-  // Effect 2: Fetch dashboard stats, but ONLY after `authUser` is available.
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -655,8 +723,6 @@ export default function DashboardPage() {
     fetchSavedJobs();
   }, []);
 
-  // Instruction Driver tour logic
-
   const [showCompletionModal, setShowCompletionModal] =
     useState<boolean>(false);
 
@@ -688,6 +754,7 @@ export default function DashboardPage() {
       btn.removeEventListener('click', handleStartTour);
     };
   }, []);
+
   const fireConfetti = () => {
     const end = Date.now() + 1000;
 
@@ -717,16 +784,41 @@ export default function DashboardPage() {
     });
   };
 
+  const handleSearch = () => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+
+    const encodedQuery = encodeURIComponent(trimmed.replace(/\s+/g, '+'));
+    router.push(`/dashboard/search-jobs?q=${encodedQuery}`);
+  };
+
+  useEffect(() => {
+    const fetchRecentAI = async () => {
+      try {
+        const res = await apiInstance.get('/students/ai-activity');
+        if (res.data.success) {
+          setRecentAI(res.data.data);
+        }
+      } catch (e) {
+        console.error('Failed to load recent AI activity', e);
+      }
+    };
+
+    if (authUser) {
+      fetchRecentAI();
+    }
+  }, [authUser]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
       <div id="dashboard-scroll" className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <LayoutDashboard className="w-8 h-8 mr-3 text-purple-600" />
+            <LayoutDashboard className="w-8 h-8 mr-3 text-headingTextPrimary" />
             ZobsAI Dashboard
             <button
               id="start-tour-btn"
-              className=" mx-5 border hidden md:block rounded-lg px-2 text-white bg-purple-600 hover:bg-blue-800"
+              className=" mx-5 border hidden md:block rounded-lg px-2 text-white bg-buttonPrimary hover:bg-blue-800"
             >
               <p className="text-2xl ">Start Tour</p>
             </button>
@@ -744,6 +836,109 @@ export default function DashboardPage() {
             <div id="profile-readiness">
               <ProfileReadinessCard />
             </div>
+
+            <div className="flex gap-2 border border-purple-300 rounded-lg p-2 bg-white focus-within:ring-2 focus-within:ring-purple-400 transition">
+              <Input
+                placeholder="Search applications"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+                className="w-full border-none focus-visible:ring-0 text-gray-800 placeholder:text-gray-400"
+              />
+
+              <Button
+                onClick={handleSearch}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4"
+              >
+                <MoveRight className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                AI Tools
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Smart tools powered by AI to speed up your job search.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* AI CV Generator */}
+                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-purple-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-purple-700 transition">
+                      AI CV Generator
+                    </h4>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-5">
+                    Generate an ATS-friendly CV tailored to your skills,
+                    experience, and job role.
+                  </p>
+
+                  <Link href="/dashboard/cv-generator">
+                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                      Generate CV
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* AI Cover Letter Generator */}
+                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-blue-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition">
+                      <Send className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-700 transition">
+                      AI Cover Letter Generator
+                    </h4>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-5">
+                    Create job-specific cover letters in seconds using
+                    AI-powered insights.
+                  </p>
+
+                  <Link href="/dashboard/cover-letter-generator">
+                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                      Generate Cover Letter
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* Application Wizard */}
+                <div className="group bg-white border rounded-lg p-5 transition-all hover:shadow-md hover:border-cyan-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-cyan-100 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition">
+                      <Wand2 className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-cyan-700 transition">
+                      Application Wizard
+                    </h4>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-5">
+                    Auto-optimize your CV and cover letter for a specific job in
+                    one click.
+                  </p>
+
+                  <Link href="/dashboard/apply">
+                    <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                      Start Application
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
             {/* 🚀 APPLICATIONS SECTION */}
             <div id="my-docsx">
               <h2 className="text-xl font-semibold mt-8 mb-4 text-slate-800 dark:text-white">
@@ -779,12 +974,21 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+
+            <div>
+              <SpendCreditsSection
+                balance={balance}
+                loading={spending}
+                onCheckout={checkout}
+              />
+            </div>
+
             {/* 🧩 JOBS SECTION */}
             <div id="my-applications">
               <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
                 My Applications
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <StatCard
                   title="Saved Jobs"
                   value={stats.savedJobsCount}
@@ -847,6 +1051,54 @@ export default function DashboardPage() {
             <div id="plan-driver">
               <SubscriptionStatusCard plan={planDetails} />
             </div>
+
+            {recentAI && (
+              <div className="mt-8 bg-white border rounded-lg p-5">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Recent AI Activity
+                </h3>
+
+                <div className="space-y-2">
+                  {recentAI.cv && (
+                    <RecentActivityRow
+                      icon={FileText}
+                      title="CV Generated"
+                      subtitle={recentAI.cv.title}
+                      time={recentAI.cv.completedAt}
+                      href="/dashboard/my-docs?tab=cvs"
+                    />
+                  )}
+
+                  {recentAI.coverLetter && (
+                    <RecentActivityRow
+                      icon={Send}
+                      title="Cover Letter Generated"
+                      subtitle={recentAI.coverLetter.title}
+                      time={recentAI.coverLetter.completedAt}
+                      href="/dashboard/my-docs?tab=cover-letters"
+                    />
+                  )}
+
+                  {recentAI.tailoredApplication && (
+                    <RecentActivityRow
+                      icon={Wand2}
+                      title="Tailored Application Ready"
+                      subtitle={`${recentAI.tailoredApplication.jobTitle} · ${recentAI.tailoredApplication.companyName}`}
+                      time={recentAI.tailoredApplication.completedAt}
+                      href="/dashboard/my-docs?tab=applications"
+                    />
+                  )}
+
+                  {!recentAI.cv &&
+                    !recentAI.coverLetter &&
+                    !recentAI.tailoredApplication && (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        No completed AI activity yet.
+                      </p>
+                    )}
+                </div>
+              </div>
+            )}
 
             <div
               id="coreToolkit-driver"

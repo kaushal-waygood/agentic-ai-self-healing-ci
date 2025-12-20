@@ -77,6 +77,12 @@ app.post(
   handleStripeWebhook,
 );
 
+export function attachEndpoint(req, res, next) {
+  req.endpoint = `${req.method} ${req.originalUrl}`;
+  next();
+}
+
+app.use(attachEndpoint);
 app.use(express.json({ limit: '1000mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());

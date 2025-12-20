@@ -53,6 +53,7 @@ import {
   getTotalCredits,
   earnCreditsViaSocialLinks,
   updateStudentProfile,
+  getRecentAIActivity,
 } from '../controllers/student.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { __dirname } from '../utils/fileUploadingManaging.js';
@@ -382,7 +383,7 @@ router.post(
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="CareerPilot_${title.replace(/ /g, '_')}.pdf"`,
+        `attachment; filename="zobsai_${title.replace(/ /g, '_')}.pdf"`,
       );
 
       res.send(pdfBuffer);
@@ -433,7 +434,7 @@ router.post(
         <meta charset="UTF-8">
         <style>
           body { 
-            font-family: 'Times New Roman', serif;
+            font-family: Arial, Helvetica, sans-serif;
             line-height: 1.2;
             color: #000;
             font-size: 11pt;
@@ -616,6 +617,13 @@ router.post(
       });
     }
   },
+);
+
+router.get(
+  '/ai-activity',
+  authMiddleware,
+  isUserOrUniStudent,
+  getRecentAIActivity,
 );
 
 export default router;

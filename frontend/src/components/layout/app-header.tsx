@@ -40,6 +40,7 @@ import StreakDropdown from './StreakDropdown';
 import ReminderModal from './ReminderModal';
 import { Tooltip } from './tooltip';
 import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
+import ThemeToggle from '../ui/theme-toggle';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -593,6 +594,8 @@ const AppHeader = ({
                     </Link>
                   </div>
                   <div className="border-t border-slate-100 p-2">
+                    {/* dark and light theme toggle */}
+                    {/* <ThemeToggle /> */}
                     <button
                       className="w-full px-4 py-3 text-left hover:bg-red-50 transition-colors duration-200 flex items-center space-x-3 text-red-600"
                       onClick={handleLogout}

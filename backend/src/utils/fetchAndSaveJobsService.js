@@ -1,7 +1,7 @@
 import axios from 'axios';
 import slugify from 'slugify';
 import { Job } from '../models/jobs.model.js';
-import { genAI } from '../config/gemini.js';
+import { genAIRequest as genAI } from '../config/gemini.js';
 import { config } from '../config/config.js';
 
 export const extractJobDetailsWithAI = async (rawDescription) => {
@@ -16,7 +16,10 @@ export const extractJobDetailsWithAI = async (rawDescription) => {
     Raw text: ${rawDescription}`;
 
   try {
-    const resultText = await genAI(prompt);
+    const resultText = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
     const cleanedResponse = resultText
       .replace(/```json/g, '')
       .replace(/```/g, '')
