@@ -289,7 +289,7 @@ const JobWizard = ({
                       placeholder="✨ Paste the full job description here... Include requirements, responsibilities, and company culture for best results."
                       className={`min-h-[280px] border-2 rounded-lg p-6 pr-16 focus:ring-4 resize-none transition-all duration-500 bg-gradient-to-br from-gray-50 to-white shadow-inner ${
                         isFocused
-                          ? 'border-purple-500 ring-purple-100 shadow-lg'
+                          ? ''
                           : charCount < 200
                           ? 'border-gray-300 hover:border-gray-400'
                           : 'border-green-300 hover:border-green-400 ring-green-50'
@@ -337,9 +337,7 @@ const JobWizard = ({
                     <div className="flex items-center gap-3">
                       <div
                         className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
-                          charCount < 200
-                            ? 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border-2 border-red-200'
-                            : 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-2 border-green-200'
+                          charCount < 200 ? 'text-red-700 ' : 'text-green-700 '
                         }`}
                       >
                         {charCount} / 200 characters
@@ -365,7 +363,7 @@ const JobWizard = ({
                     <Button
                       className={`h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                         charCount >= 200 && !isLoading
-                          ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:shadow-2xl hover:shadow-pink-500/50 text-white'
+                          ? 'hover:shadow-2xl hover:shadow-pink-500/50 text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                       onClick={() => handleSetJobContext('paste')}
@@ -380,9 +378,9 @@ const JobWizard = ({
                         </>
                       ) : (
                         <>
-                          <Sparkles className="mr-3 h-6 w-6 animate-pulse" />
+                          <Sparkles className=" h-6 w-6 animate-pulse" />
                           Generate My Cover Letter
-                          <ChevronsRight className="ml-3 h-6 w-6" />
+                          <ChevronsRight className=" h-6 w-6" />
                         </>
                       )}
                     </Button>

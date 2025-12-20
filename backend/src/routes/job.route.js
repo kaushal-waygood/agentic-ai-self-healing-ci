@@ -13,6 +13,7 @@ import {
   searchJobs,
   jobViewsCount,
   getAllJobsForStudent,
+  getJobDescByJobId,
   getAllJobsQueries,
   trackJobClick,
 } from '../controllers/job.controller.js';
@@ -27,7 +28,7 @@ import {
 const router = Router();
 
 router.get('/job-queries', getAllJobsQueries);
-
+router.get('/job-desc/:jobId', getJobDescByJobId);
 router.get('/job/:jobId', getJobFromJobId);
 router.get('/job/views/:jobId', authMiddleware, isStudent, jobViewsCount);
 

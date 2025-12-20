@@ -901,3 +901,20 @@ export const trackJobClick = async (req, res) => {
 
   res.json({ success: true });
 };
+
+export const getJobDescByJobId = async (req, res) => {
+  const { jobId } = req.params;
+  try {
+    const singleJob = await Job.findById(jobId).select(
+      'description title jobType',
+    );
+    if (!singleJob) return res.status(404).json({ message: 'Job not found' });
+    res.status(200).json({ singleJob });
+  } catch (error) {
+    console.error('Error fetching job by slug:', error);
+    res.status(500).json({
+      message: 'Server Error',
+      error: config.nodeEnv === 'development' ? error.message : undefined,
+    });
+  }
+};
