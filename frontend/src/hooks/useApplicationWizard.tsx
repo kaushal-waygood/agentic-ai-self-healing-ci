@@ -1025,16 +1025,35 @@ export const useApplicationWizard = () => {
   // );
 
   const navigateToStep = useCallback(
-    (step: WizardStep, jobId?: string) => {
+    (
+      step: WizardStep,
+      options?: { jobId?: string; mode?: 'paste' | 'upload' | 'select' },
+    ) => {
       const params = new URLSearchParams(searchParams.toString());
 
+      // Always update step
       params.set('step', step);
 
-      if (jobId) {
-        params.set('slug', jobId);
+      // ----- MODE -----
+      if (options?.mode) {
+        // Only allow valid modes
+        params.set('mode', options.mode);
       } else {
-        params.delete('jobId');
+        // Preserve existing mode if valid
+        const existingMode = params.get('mode');
+        if (!existingMode || existingMode === 'undefined') {
+          params.delete('mode');
+        }
       }
+
+      // ----- JOB ID (slug) -----
+      if (options?.mode === 'select' && options.jobId) {
+        params.set('slug', options.jobId);
+      } else if (options?.mode && options.mode !== 'select') {
+        // paste / upload → remove slug
+        params.delete('slug');
+      }
+      // else: preserve existing slug when moving steps
 
       router.push(`${pathname}?${params.toString()}`, {
         scroll: false,
@@ -1111,8 +1130,6 @@ export const useApplicationWizard = () => {
             companyName: 'Not specified',
             jobDescription: value,
           };
-
-          console.log(context);
         } else if (mode === 'upload' && value instanceof File) {
           setLoadingMessage('Parsing uploaded file...');
           const dataUri = await new Promise<string>((resolve, reject) => {
@@ -1134,7 +1151,9 @@ export const useApplicationWizard = () => {
         setJobContext(context);
         setCvContext(null);
         setClContext(null);
-        navigateToStep('cv', context.jobId);
+        // navigateToStep('cv', context.jobId, mode);
+        navigateToStep('cv', { mode, jobId: context.jobId });
+
         // navigateToStep('cv');
       } catch (error) {
         toast({

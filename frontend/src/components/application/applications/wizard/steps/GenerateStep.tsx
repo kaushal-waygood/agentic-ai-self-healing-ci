@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -12,6 +12,8 @@ import {
   Zap,
   Star,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import apiInstance from '@/services/api';
 
 // Props interface based on your original component
 interface GenerateStepProps {
@@ -35,19 +37,76 @@ export const GenerateStep = ({
 }: GenerateStepProps) => {
   // We build the context items array using the props, similar to the generated code's approach.
   // This keeps the rendering logic clean.
+
+  const searchParams = useSearchParams();
+
+  const jobId = searchParams.get('slug');
+
+  const rawMode = searchParams.get('mode');
+  const mode =
+    rawMode === 'paste' || rawMode === 'upload' || rawMode === 'select'
+      ? rawMode
+      : null;
+
+  const [jobDetail, setJobDetail] = useState<any>(null);
+  const [jobLoading, setJobLoading] = useState(false);
+  const getJobPositionLabel = () => {
+    // 1️⃣ Saved Job (highest priority)
+    if (jobId && jobDetail?.title) {
+      return jobDetail.title;
+    }
+
+    // 2️⃣ Paste JD
+    if (mode === 'paste') {
+      return 'Pasted Job Description';
+    }
+
+    // 3️⃣ Upload JD
+    if (mode === 'upload') {
+      return 'Uploaded Job Description';
+    }
+
+    // 4️⃣ Fallback
+    return 'Job Description';
+  };
+
+  useEffect(() => {
+    if (!jobId) return;
+
+    const fetchJobDetail = async () => {
+      try {
+        setJobLoading(true);
+        const response = await apiInstance.get(`/jobs/job-desc/${jobId}`);
+        setJobDetail(response.data.singleJob);
+      } catch (error) {
+        console.error('Failed to fetch job detail:', error);
+      } finally {
+        setJobLoading(false);
+      }
+    };
+
+    fetchJobDetail();
+  }, [jobId]);
   const contextItems = [
+    // {
+    //   icon: Briefcase,
+    //   label: 'Job Position',
+    //   value: jobDetail?.title || 'Not specified',
+    //   // sublabel: jobContext?.company || 'Company not specified',
+    //   color: 'from-purple-500 to-purple-600',
+    // },
     {
       icon: Briefcase,
       label: 'Job Position',
-      value: jobContext?.jobTitle || 'Not specified',
-      sublabel: jobContext?.company || 'Company not specified',
+      value: getJobPositionLabel(),
       color: 'from-purple-500 to-purple-600',
     },
+
     {
       icon: FileText,
       label: 'CV Source',
       value: cvContext?.name || 'No CV selected',
-      sublabel: `Using selected CV`,
+      // sublabel: `Using selected CV`,
       color: 'from-blue-500 to-blue-600',
     },
     {
@@ -57,10 +116,10 @@ export const GenerateStep = ({
         clContext?.mode === 'skip'
           ? 'Generate from scratch'
           : `Based on ${clContext?.name}`,
-      sublabel:
-        clContext?.mode === 'skip'
-          ? 'AI will create new content'
-          : 'Using existing context',
+      // sublabel:
+      //   clContext?.mode === 'skip'
+      //     ? 'AI will create new content'
+      //     : 'Using existing context',
       color: 'from-cyan-500 to-cyan-600',
     },
   ];

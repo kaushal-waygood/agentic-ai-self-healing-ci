@@ -15,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Footer } from '@/components/layout/footer';
 import ProtectedRoute from '@/components/protected/ProtectedRoute';
 import LogRocket from 'logrocket';
+import FeedbackPopup from '@/components/ui/feedbackPopup';
 
 // 1. Define and Create Context
 interface SidebarContextType {
@@ -287,6 +288,8 @@ export default function DashboardLayoutClient({
             {showDashboardUI && <DashboardFooter />}
           </div>
         </div>
+        {/* feedback popup in 1 second delay */}
+        <FeedbackPopup delay={1000} />
       </SidebarContext.Provider>
     </ProtectedRoute>
   );

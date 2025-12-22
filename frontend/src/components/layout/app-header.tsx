@@ -391,6 +391,8 @@ const AppHeader = ({
 
   const handleLogout = async () => {
     try {
+      // 🔥 clear before redux flow
+      sessionStorage.removeItem('feedback_shown');
       dispatch(logoutRequest());
       router.push('/');
     } catch (error) {
