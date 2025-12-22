@@ -5,84 +5,92 @@ export const getStudentDetails = async () => {
   return response;
 };
 
+/* Education */
+export const getEducation = async () => {
+  const response = await apiInstance.get('/students/educations');
+  return response;
+};
+
 export const addEducation = async (data: any) => {
-  const response = await apiInstance.post('/students/education/add', data);
+  const response = await apiInstance.post('/students/educations', data);
   return response;
 };
 
 export const removeEducation = async (data: any) => {
-  const response = await apiInstance.delete(
-    `/students/education/remove/${data}`,
-  );
+  const response = await apiInstance.delete(`/students/educations/${data}`);
   return response;
 };
 
 export const updateEducation = async (index: any, data: any) => {
-  const response = await apiInstance.patch(
-    `/students/education/update/${index}`,
+  const response = await apiInstance.patch(`/students/educations/${index}`, {
     data,
-  );
+  });
+  return response;
+};
+
+/* Experience */
+export const getExperience = async () => {
+  const response = await apiInstance.get('/students/experiences');
   return response;
 };
 
 export const addExperience = async (data: any) => {
-  const response = await apiInstance.post('/students/experience/add', data);
+  const response = await apiInstance.post('/students/experiences', data);
   return response;
 };
 
 export const removeExperience = async (data: any) => {
-  const response = await apiInstance.delete(
-    '/students/experience/remove/' + data,
-  );
+  const response = await apiInstance.delete(`/students/experiences/${data}`);
   return response;
 };
 
 export const updateExperience = async (index: any, data: any) => {
-  const response = await apiInstance.patch(
-    `/students/experience/update/${index}`,
+  const response = await apiInstance.patch(`/students/experiences/${index}`, {
     data,
-  );
+  });
   return response;
 };
 
-export const addProject = async (data: any) => {
-  const response = await apiInstance.post('/students/project/add', data);
-  return response;
-};
-
-export const updateProject = async (index: any, data: any) => {
-  const response = await apiInstance.patch(
-    `/students/project/update/${index}`,
-    data,
-  );
-  return response;
-};
-
-export const removeProject = async (index: any) => {
-  const response = await apiInstance.delete(
-    '/students/project/remove/' + index,
-  );
-  return response;
-};
-
+/* Projects */
 export const getAllProjects = async () => {
   const response = await apiInstance.get('/students/projects');
   return response;
 };
 
+export const addProject = async (data: any) => {
+  const response = await apiInstance.post('/students/projects', data);
+  return response;
+};
+
+export const updateProject = async (index: any, data: any) => {
+  const response = await apiInstance.patch(`/students/projects/${index}`, data);
+  return response;
+};
+
+export const removeProject = async (index: any) => {
+  const response = await apiInstance.delete(`/students/projects/${index}`);
+  return response;
+};
+
+/* Skills */
+export const getSkills = async () => {
+  const response = await apiInstance.get('/students/skills');
+  return response;
+};
+
 export const addSkill = async (data: any) => {
-  const response = await apiInstance.post('/students/skill/add', data);
+  const response = await apiInstance.post('/students/skills', data);
   return response;
 };
 
 export const removeSkill = async (data: any) => {
-  const response = await apiInstance.delete(`/students/skill/remove/${data}`);
+  const response = await apiInstance.delete(`/students/skills/${data}`);
   return response;
 };
 
 export const updateSkill = async (index: string, data: any) => {
   console.log('data', data);
-  const response = await apiInstance.patch(`/students/skill/update/${index}`, {
+  const response = await apiInstance.patch(`/students/skills/${index}`, {
     level: data.level,
   });
   return response;

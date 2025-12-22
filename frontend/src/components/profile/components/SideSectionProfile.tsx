@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Edit,
   UploadCloud,
@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { UseFormReturn } from 'react-hook-form';
 
 // Dummy avatar for fallback
 // const dummyUser = {
@@ -30,7 +31,27 @@ const dummyUser = {
     'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png',
 };
 
-const SideSectionProfile = ({
+// Define explicit props type for clarity
+interface SideSectionProfileProps {
+  personalInfoForm: UseFormReturn<any>; // Or your specific type
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  file: File | null;
+  isDragging: boolean;
+  isUploading: boolean;
+  progress?: number;
+  handleFileChange: (file: File | null) => void;
+  handleButtonClick: () => void;
+  handleDragEnter: (e: React.DragEvent) => void;
+  handleDragLeave: (e: React.DragEvent) => void;
+  handleDragOver: (e: React.DragEvent) => void;
+  handleDrop: (e: React.DragEvent) => void;
+  handleRemoveFile: () => void;
+  handleUpload: () => void;
+  handlePersonalInfoEdit: () => Promise<void>;
+  handleCancelEdit?: () => void;
+}
+
+const SideSectionProfile: React.FC<SideSectionProfileProps> = ({
   personalInfoForm,
   fileInputRef,
   file,
@@ -46,35 +67,53 @@ const SideSectionProfile = ({
   handleRemoveFile,
   handleUpload,
   handlePersonalInfoEdit,
-  handleCancelEdit,
-}: any) => {
-  // ✅ Use public API, not internal `_formValues`
-  const formValues = personalInfoForm.getValues();
-  const {
-    fullName = '',
-    email = '',
-    phone = '',
-    jobPreference = '',
-    location = '',
-    uploadedCV = '',
-  } = formValues;
+}) => {
+  // 1. WATCH: Subscribes to form changes (this ensures UI updates when API loads)
+  const watchedValues = personalInfoForm.watch();
 
-  // ✅ Displayed profile info (added location)
-  const [profileData, setProfileData] = useState({
-    fullName,
-    email,
-    phone,
-    jobPreference,
-    location,
-    image: dummyUser.avatar,
+  // Safe destructuring with defaults
+  const fullName = watchedValues?.fullName || '';
+  const email = watchedValues?.email || '';
+  const phone = watchedValues?.phone || '';
+  const jobPreference = watchedValues?.jobPreference || '';
+  const location = watchedValues?.location || '';
+  const uploadedCV = watchedValues?.uploadedCV || '';
+  const avatar = watchedValues?.avatar || '';
+
+  // 2. STATE
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [preview, setPreview] = useState<string | null>(
+    avatar || dummyUser.avatar,
+  );
+
+  // Local state for modal inputs
+  const [tempFormData, setTempFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    jobPreference: '',
+    location: '',
   });
 
-  // ✅ Temporary form data for modal edits
-  const [tempFormData, setTempFormData] = useState({ ...profileData });
-  const [preview, setPreview] = useState<string | null>(profileData.image);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // 3. EFFECT: Sync Avatar Preview
+  useEffect(() => {
+    setPreview(avatar || dummyUser.avatar);
+  }, [avatar]);
 
-  const handleChange = (e: any) => {
+  // 4. EFFECT: Sync Modal State when opened OR when underlying data changes while open
+  useEffect(() => {
+    if (isModalOpen) {
+      setTempFormData({
+        fullName,
+        email,
+        phone,
+        jobPreference,
+        location,
+      });
+    }
+  }, [isModalOpen, fullName, email, phone, jobPreference, location]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setTempFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -85,54 +124,25 @@ const SideSectionProfile = ({
       const reader = new FileReader();
       reader.onloadend = () => setPreview(reader.result as string);
       reader.readAsDataURL(file);
+      // TODO: Implement actual avatar upload API call here if needed
     }
-  };
-
-  // ✅ Open modal with current data
-  const openEditModal = () => {
-    // sync from latest profileData
-    setTempFormData((prev) => ({
-      ...prev,
-      fullName: profileData.fullName ?? '',
-      email: profileData.email ?? '',
-      phone: profileData.phone ?? '',
-      jobPreference: profileData.jobPreference ?? '',
-      location: profileData.location ?? '', // ✅ Sync location
-    }));
-    setPreview(profileData.image);
-    setIsModalOpen(true);
   };
 
   const handleSave = async () => {
     try {
-      setProfileData((prev) => ({
-        ...prev,
-        fullName: tempFormData.fullName,
-        phone: tempFormData.phone,
-        jobPreference: tempFormData.jobPreference,
-        location: tempFormData.location, // ✅ Update profile data
-      }));
-
-      // Sync to form
+      // 1. Optimistic Update (Update Form State)
       personalInfoForm.setValue('fullName', tempFormData.fullName);
       personalInfoForm.setValue('phone', tempFormData.phone);
       personalInfoForm.setValue('jobPreference', tempFormData.jobPreference);
-      personalInfoForm.setValue('location', tempFormData.location); // ✅ Set form value
+      personalInfoForm.setValue('location', tempFormData.location);
 
-      // Order doesn't even matter now, value is explicit
-      await handlePersonalInfoEdit('fullName');
-      await handlePersonalInfoEdit('phone');
-      await handlePersonalInfoEdit('jobPreference', {
-        jobPreference: tempFormData.jobPreference,
-      });
-      // ✅ Trigger location update
-      await handlePersonalInfoEdit('location', {
-        location: tempFormData.location,
-      });
+      // 2. Call API (Wait for success)
+      await handlePersonalInfoEdit();
 
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Error saving profile:', error);
+      // Optional: Revert form values here on error if needed
     }
   };
 
@@ -150,19 +160,24 @@ const SideSectionProfile = ({
               />
             </div>
 
+            {/* Display Logic with Fallbacks */}
             <h2 className="text-xl font-semibold text-gray-900 mb-1">
-              {profileData.fullName}
+              {fullName || 'Your Name'}
             </h2>
-            <p className="text-sm text-gray-600">{profileData.email}</p>
-            <p className="text-sm text-gray-600 ">{profileData.phone}</p>
-            <p className="text-sm text-gray-600 mb-1">
-              {profileData.jobPreference}
+            <p className="text-sm text-gray-600">
+              {email || 'email@example.com'}
             </p>
-            {/* Display Location if available */}
-            {profileData.location && (
+            <p className="text-sm text-gray-600">
+              {phone || 'Add phone number'}
+            </p>
+            <p className="text-sm text-gray-600 mb-1">
+              {jobPreference || 'Add job title'}
+            </p>
+
+            {location && (
               <p className="text-sm text-gray-500 flex items-center justify-center gap-1 mb-3">
                 <MapPin className="w-3 h-3" />
-                {profileData.location}
+                {location}
               </p>
             )}
 
@@ -175,17 +190,23 @@ const SideSectionProfile = ({
           </div>
         </div>
 
+        {/* CV Link */}
         <div className="w-full bg-white rounded-lg p-4 border flex items-center justify-center">
-          <a href={uploadedCV} target="_blank" rel="noopener noreferrer">
+          <a
+            href={uploadedCV}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={!uploadedCV ? 'pointer-events-none opacity-50' : ''}
+          >
             {uploadedCV ? (
-              <div className="flex items-center gap-2">
-                <FileText className="w-6 h-6 text-gray-600" />
-                <span className="text-gray-600">View Uploaded CV</span>
+              <div className="flex items-center gap-2 text-blue-600 hover:underline">
+                <FileText className="w-6 h-6" />
+                <span>View Uploaded CV</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <UploadCloud className="w-6 h-6 text-gray-600" />
-                <span className="text-gray-600">Upload CV</span>
+              <div className="flex items-center gap-2 text-gray-400">
+                <UploadCloud className="w-6 h-6" />
+                <span>No CV Uploaded</span>
               </div>
             )}
           </a>
@@ -246,7 +267,7 @@ const SideSectionProfile = ({
 
           {file && (
             <div className="mt-6 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg  border border-gray-200 w-full max-w-md">
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 w-full max-w-md">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Sparkles className="w-6 h-6 text-blue-600" />
                 </div>
@@ -269,7 +290,7 @@ const SideSectionProfile = ({
               <button
                 onClick={handleUpload}
                 disabled={isUploading}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-8 py-3 rounded-lg  transition-all duration-300 text-base flex flex-col items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-300 text-base flex flex-col items-center justify-center gap-2 disabled:opacity-70"
               >
                 {isUploading ? (
                   <>
@@ -282,7 +303,7 @@ const SideSectionProfile = ({
                     <div className="flex items-center gap-2">
                       <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
                       <div className="text-sm font-medium">
-                        Processing... {progress}%
+                        Processing... {progress || 0}%
                       </div>
                     </div>
                   </>
@@ -305,7 +326,7 @@ const SideSectionProfile = ({
             <DialogTitle>Edit Profile</DialogTitle>
           </DialogHeader>
 
-          {/* Profile Image Upload */}
+          {/* Avatar Edit */}
           <div className="flex flex-col items-center mb-4">
             <div className="relative">
               <Image
@@ -313,7 +334,8 @@ const SideSectionProfile = ({
                 alt="Profile"
                 width={100}
                 height={100}
-                className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 "
+                className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                unoptimized
               />
               <label
                 htmlFor="profile-pic"
@@ -331,7 +353,7 @@ const SideSectionProfile = ({
             </div>
           </div>
 
-          {/* Fields */}
+          {/* Form Fields */}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -356,6 +378,7 @@ const SideSectionProfile = ({
                 value={tempFormData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"
+                className="bg-gray-50"
               />
             </div>
 
@@ -371,6 +394,7 @@ const SideSectionProfile = ({
                 placeholder="Enter your phone number"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Job Role
@@ -385,9 +409,8 @@ const SideSectionProfile = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Your Current Location
+                Location
               </label>
-              {/* ✅ Corrected Input Name and Value */}
               <Input
                 name="location"
                 value={tempFormData.location}

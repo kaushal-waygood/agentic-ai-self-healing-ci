@@ -55,7 +55,7 @@ const Project = ({
                 <div className="flex justify-between items-center">
                   <div className="flex-1 pr-4">
                     <h4 className="text-lg font-bold text-gray-800">
-                      {proj.name}
+                      {proj.projectName}
                     </h4>
                   </div>
                   <div className="flex gap-2 items-center">

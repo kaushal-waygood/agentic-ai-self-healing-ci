@@ -121,10 +121,25 @@ const studentSlice = createSlice({
     /* =========================
        Education
     ========================= */
+    getStudentEducationRequest: (state, _action: PayloadAction<void>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getStudentEducationSuccess: (state, action: PayloadAction<Education[]>) => {
+      state.loading = false;
+      state.educations = action.payload;
+      state.error = null;
+    },
+    getStudentEducationFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     addStudentEducationRequest: (
       state,
       _action: PayloadAction<Omit<Education, '_id'> | Education>,
     ) => {
+      console.log('addStudentEducationRequest');
       state.loading = true;
       state.error = null;
     },
@@ -184,6 +199,23 @@ const studentSlice = createSlice({
     /* =========================
        Experience
     ========================= */
+    getStudentExperienceRequest: (state, _action: PayloadAction<void>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getStudentExperienceSuccess: (
+      state,
+      action: PayloadAction<Experience[]>,
+    ) => {
+      state.loading = false;
+      state.experiences = action.payload;
+      state.error = null;
+    },
+    getStudentExperienceFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     addStudentExperienceRequest: (
       state,
       _action: PayloadAction<Omit<Experience, '_id'> | Experience>,
@@ -322,6 +354,20 @@ const studentSlice = createSlice({
     /* =========================
        Skills
     ========================= */
+    getStudentSkllsRequest: (state, _action: PayloadAction<void>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getStudentSkllsSuccess: (state, action: PayloadAction<Skill[]>) => {
+      state.loading = false;
+      state.skills = action.payload;
+      state.error = null;
+    },
+    getStudentSkllsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     addStudentSkillRequest: (
       state,
       _action: PayloadAction<Omit<Skill, '_id'> | Skill>,
@@ -490,6 +536,10 @@ export const {
   getStudentDetailsSuccess,
   getStudentDetailsFailure,
 
+  // Education
+  getStudentEducationRequest,
+  getStudentEducationSuccess,
+  getStudentEducationFailure,
   addStudentEducationRequest,
   addStudentEducationSuccess,
   addStudentEducationFailure,
@@ -500,6 +550,10 @@ export const {
   updateStudentEducationSuccess,
   updateStudentEducationFailure,
 
+  // Experience
+  getStudentExperienceRequest,
+  getStudentExperienceSuccess,
+  getStudentExperienceFailure,
   addStudentExperienceRequest,
   addStudentExperienceSuccess,
   addStudentExperienceFailure,
@@ -510,6 +564,7 @@ export const {
   updateStudentExperienceSuccess,
   updateStudentExperienceFailure,
 
+  // Project
   getAllProjectsRequest,
   getAllProjectsSuccess,
   getAllProjectsFailure,
@@ -523,6 +578,10 @@ export const {
   updateStudentProjectSuccess,
   updateStudentProjectFailure,
 
+  //skills
+  getStudentSkllsRequest,
+  getStudentSkllsSuccess,
+  getStudentSkllsFailure,
   addStudentSkillRequest,
   addStudentSkillSuccess,
   addStudentSkillFailure,

@@ -12,12 +12,16 @@ import {
   Reducer,
 } from 'react';
 import {
+  getStudentEducationRequest,
+  getStudentExperienceRequest,
   getStudentDetailsRequest,
   removeStudentEducationRequest,
   removeStudentExperienceRequest,
   removeStudentProjectRequest,
   removeStudentSkillRequest,
   updateStudentSkillRequest,
+  getAllProjectsRequest,
+  getStudentSkllsRequest,
 } from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useToast } from '@/hooks/use-toast';
@@ -249,7 +253,9 @@ const useFileUploader = (dispatch: any, toast: any) => {
 export const useProfile = () => {
   const { toast } = useToast();
   const dispatch = useDispatch();
-  const { students } = useSelector((state: RootState) => state.student);
+  const { students, educations, experiences, projects, skills } = useSelector(
+    (state: RootState) => state.student,
+  );
 
   // modal state (implemented with useState, not React.useReducer)
   const [modalState, modalDispatch] = ((): [
@@ -393,6 +399,13 @@ export const useProfile = () => {
     mode: 'onChange',
   });
 
+  useEffect(() => {
+    dispatch(getStudentEducationRequest());
+    dispatch(getStudentExperienceRequest());
+    dispatch(getAllProjectsRequest());
+    dispatch(getStudentSkllsRequest());
+  }, [dispatch]);
+
   // reset forms when student data changes
   useEffect(() => {
     const sd = studentData;
@@ -435,38 +448,39 @@ export const useProfile = () => {
   }, [studentData]);
 
   // defaultValues
+
+  // defaultValues
   const defaultValues: any = useMemo(() => {
-    const sd = studentData;
+    // FIX: Add safety check
+    if (!students || !students.length || !students[0]) {
+      return {
+        fullName: '',
+        email: '',
+        phone: '',
+        jobPreference: '',
+        location: '',
+        uploadedCV: '',
+        education: [],
+        experience: [],
+        projects: [],
+        skills: [],
+        // ... add other defaults if critical
+      };
+    }
+
+    const sd = students[0].student; // Assuming structure is correct based on your log
+
     return {
       fullName: sd?.fullName || '',
       email: sd?.email || '',
       phone: sd?.phone || '',
       jobPreference: sd?.jobRole || '',
-      location: sd?.location || '', // ✅ Added location default
+      location: sd?.location || '',
       uploadedCV: sd?.uploadedCV || '',
-      education: (sd?.education || []).map((edu: any) => ({
-        institution: edu.institute || '',
-        degree: edu.degree || '',
-        fieldOfStudy: edu.fieldOfStudy || '',
-        country: edu.country || '',
-        gpa: edu.grade || '',
-        startDate: edu.startDate || '',
-        endDate: edu.endDate || '',
-        _id: edu._id || '',
-        educationId: edu.educationId || '',
-      })),
-      experience: sd?.experience || [],
-      projects: (sd?.projects || []).map((proj: any) => ({
-        name: proj.projectName || '',
-        description: proj.description || '',
-        technologies: proj.technologies || '',
-        link: proj.link || '',
-        startDate: proj.startDate || '',
-        endDate: proj.endDate || '',
-        isCurrent: proj.isCurrent || false,
-        _id: proj._id || '',
-      })),
-      skills: sd?.skills || [],
+      education: educations?.educations || [], // Use optional chaining
+      experience: experiences?.experiences || [],
+      projects: projects?.projects || [],
+      skills: skills?.skills || [],
       narrativeChallenges: mockUserProfile.narratives.challenges,
       narrativeAchievements: mockUserProfile.narratives.achievements,
       narrativeAppreciation: mockUserProfile.narratives.appreciation,
@@ -482,9 +496,8 @@ export const useProfile = () => {
           : mockUserProfile.preferredSearchRadius,
       excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
     };
-  }, [studentData]);
+  }, [students, educations, experiences, projects, skills]); // Ensure ALL dependencies are listed
 
-  // initial load
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
   }, [dispatch]);
@@ -627,49 +640,37 @@ export const useProfile = () => {
   );
 
   // ✅ Updated to include location handling
-  const handlePersonalInfoEdit = useCallback(
-    async (
-      field: 'fullName' | 'email' | 'phone' | 'jobPreference' | 'location',
-      payload?: { jobPreference?: string; location?: string },
-    ) => {
-      try {
-        console.log('Field:', field, personalInfoForm.getValues(field));
+  const handlePersonalInfoEdit = useCallback(async () => {
+    try {
+      const fullName = personalInfoForm.getValues('fullName');
+      const phone = personalInfoForm.getValues('phone');
+      const jobPreference = personalInfoForm.getValues('jobPreference');
+      const location = personalInfoForm.getValues('location');
 
-        const fullName = personalInfoForm.getValues('fullName');
-        const phone = personalInfoForm.getValues('phone');
-        const jobPreference =
-          payload?.jobPreference ?? personalInfoForm.getValues('jobPreference');
-        const location =
-          payload?.location ?? personalInfoForm.getValues('location');
+      const repsonse = await apiInstance.patch('/students/profile/update', {
+        fullName,
+        phone,
+        jobPreference,
+        location,
+      });
 
-        const repsonse = await apiInstance.patch('/students/profile/update', {
-          fullName,
-          phone,
-          jobPreference,
-          location,
-        });
-
-        console.log('Response:', repsonse.data);
-
-        if (repsonse.status === 200) {
-          toast({ title: 'Personal Information Updated', variant: 'default' });
-          dispatch(getStudentDetailsRequest());
-        }
-      } catch (err) {
-        console.error(`Failed to update ${field}:`, err);
-        toast({ title: `Error updating ${field}`, variant: 'destructive' });
+      if (repsonse.status === 200) {
+        toast({ title: 'Personal Information Updated', variant: 'default' });
+        dispatch(getStudentDetailsRequest());
       }
-    },
-    [
-      personalInfoForm,
-      dispatch,
-      toast,
-      nameToggle,
-      emailToggle,
-      phoneToggle,
-      jobPrefToggle,
-    ],
-  );
+    } catch (err) {
+      console.error(`Failed to update ${field}:`, err);
+      toast({ title: `Error updating ${field}`, variant: 'destructive' });
+    }
+  }, [
+    personalInfoForm,
+    dispatch,
+    toast,
+    nameToggle,
+    emailToggle,
+    phoneToggle,
+    jobPrefToggle,
+  ]);
 
   // public API object
   const publicApi = useMemo(
