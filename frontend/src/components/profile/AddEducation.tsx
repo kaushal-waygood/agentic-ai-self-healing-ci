@@ -650,7 +650,7 @@ export const AddProject: React.FC<{
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
-      projectName: data?.name || '',
+      projectName: data?.projectName || '',
       description: data?.description || '',
       startDate: toMonth(data?.startDate),
       endDate: data?.isCurrent ? '' : toMonth(data?.endDate),

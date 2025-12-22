@@ -105,7 +105,7 @@ const JobPreferencesForm = () => {
   const { jobPreference } = useSelector((state: RootState) => state.student);
 
   useEffect(() => {
-    dispatch(getStudentJobPreferenceRequest());
+    // dispatch(getStudentJobPreferenceRequest());
   }, [dispatch]);
 
   const [formData, setFormData] =
@@ -116,8 +116,6 @@ const JobPreferencesForm = () => {
     if (!jobPreference) return;
 
     const { preferences: jp } = jobPreference as any;
-
-    console.log('jp', jp);
 
     const skillsToString = (skillsArray: any) =>
       Array.isArray(skillsArray)
@@ -318,7 +316,7 @@ const JobPreferencesForm = () => {
         duration: 4000,
       });
 
-      dispatch(getStudentJobPreferenceRequest());
+      // dispatch(getStudentJobPreferenceRequest());
     } catch (error) {
       console.error(error);
       toast({
