@@ -281,11 +281,30 @@ export const useApplicationWizard = () => {
   }>({ defaultValues: { clSource: 'skip', pastedCl: '', savedClId: '' } });
 
   //--- Navigation ---
+  // const navigateToStep = useCallback(
+  //   (step: WizardStep) => {
+  //     const params = new URLSearchParams(searchParams.toString());
+  //     params.set('step', step);
+  //     router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  //   },
+  //   [pathname, router, searchParams],
+  // );
+
   const navigateToStep = useCallback(
-    (step: WizardStep) => {
+    (step: WizardStep, jobId?: string) => {
       const params = new URLSearchParams(searchParams.toString());
+
       params.set('step', step);
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+
+      if (jobId) {
+        params.set('slug', jobId);
+      } else {
+        params.delete('jobId');
+      }
+
+      router.push(`${pathname}?${params.toString()}`, {
+        scroll: false,
+      });
     },
     [pathname, router, searchParams],
   );
@@ -380,7 +399,7 @@ export const useApplicationWizard = () => {
         setJobContext(context);
         setCvContext(null);
         setClContext(null);
-        navigateToStep('cv');
+        navigateToStep('cv', context.jobId);
       } catch (error) {
         toast({
           variant: 'destructive',

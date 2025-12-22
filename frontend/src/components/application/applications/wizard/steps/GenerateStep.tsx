@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -12,6 +12,8 @@ import {
   Zap,
   Star,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import apiInstance from '@/services/api';
 
 // Props interface based on your original component
 interface GenerateStepProps {
@@ -35,11 +37,34 @@ export const GenerateStep = ({
 }: GenerateStepProps) => {
   // We build the context items array using the props, similar to the generated code's approach.
   // This keeps the rendering logic clean.
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get('slug');
+
+  const [jobDetail, setJobDetail] = useState<any>(null);
+  const [jobLoading, setJobLoading] = useState(false);
+
+  useEffect(() => {
+    if (!jobId) return;
+
+    const fetchJobDetail = async () => {
+      try {
+        setJobLoading(true);
+        const response = await apiInstance.get(`/jobs/job-desc/${jobId}`);
+        setJobDetail(response.data.singleJob);
+      } catch (error) {
+        console.error('Failed to fetch job detail:', error);
+      } finally {
+        setJobLoading(false);
+      }
+    };
+
+    fetchJobDetail();
+  }, [jobId]);
   const contextItems = [
     {
       icon: Briefcase,
       label: 'Job Position',
-      value: jobContext?.jobTitle || 'Not specified',
+      value: jobDetail?.title || 'Not specified',
       sublabel: jobContext?.company || 'Company not specified',
       color: 'from-purple-500 to-purple-600',
     },

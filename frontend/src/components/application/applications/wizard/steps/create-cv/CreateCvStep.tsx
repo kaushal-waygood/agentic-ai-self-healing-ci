@@ -52,7 +52,7 @@ const SleekCvStep = ({
 
     fetchJobDetail();
   }, [jobId]);
-  console.log('job details by id ', jobDetail);
+
   useEffect(() => {
     const fetchCvs = async () => {
       try {
