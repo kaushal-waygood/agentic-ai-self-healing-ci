@@ -1,6 +1,6 @@
 const AvailabilityStep = ({ selectedOptions, toggleOption }) => {
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {[
         'Immediately',
         'Within 2 weeks',
@@ -11,10 +11,10 @@ const AvailabilityStep = ({ selectedOptions, toggleOption }) => {
         <button
           key={avail}
           onClick={() => toggleOption('availability', avail)}
-          className={`p-3 rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 ${
+          className={`p-3 rounded-lg border-2 transition-all duration-200 transform hover:scale-105 ${
             selectedOptions.availability === avail
-              ? 'border-purple-500 bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-              : 'border-gray-200 bg-white/50 backdrop-blur-sm hover:border-purple-300'
+              ? 'border-blue-500'
+              : 'border-gray-200 bg-white/50 hover:border-blue-300'
           }`}
         >
           <span className="text-md font-semibold">{avail}</span>

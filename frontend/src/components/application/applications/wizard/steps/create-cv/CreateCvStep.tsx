@@ -452,6 +452,8 @@ const SleekCvStep = ({
 
   const searchParams = useSearchParams();
   const jobId = searchParams.get('slug');
+  const rawMode = searchParams.get('mode');
+  const mode = rawMode && rawMode !== 'undefined' ? rawMode : null;
 
   const [jobDetail, setJobDetail] = useState<any>(null);
   const [jobLoading, setJobLoading] = useState(false);
@@ -473,6 +475,7 @@ const SleekCvStep = ({
 
     fetchJobDetail();
   }, [jobId]);
+
   useEffect(() => {
     const fetchCvs = async () => {
       try {
@@ -492,6 +495,12 @@ const SleekCvStep = ({
 
     fetchCvs();
   }, []);
+  const getJobTitle = () => {
+    if (jobId && jobDetail?.title) return jobDetail.title;
+    if (mode === 'paste') return 'Pasted Job Description';
+    if (mode === 'upload') return 'Uploaded Job Description';
+    return 'Job Description';
+  };
 
   return (
     <div className=" bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -534,39 +543,45 @@ const SleekCvStep = ({
                     Job You Are Applying For
                   </span>
                 </div>
-
                 <div className="border border-slate-200 rounded-lg bg-slate-50/50">
                   {jobLoading ? (
                     <div className="flex items-center justify-center py-6 text-slate-500">
                       Loading job details...
                     </div>
-                  ) : jobDetail ? (
-                    <details className="group">
-                      {/* Header */}
-                      <summary className="flex items-center justify-between cursor-pointer list-none px-4 py-3 rounded-lg hover:bg-slate-100 transition">
-                        <div className="flex items-center gap-3">
-                          {/* <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white">
-                            <Briefcase className="w-4 h-4" />
-                          </div> */}
+                  ) : jobId ? (
+                    jobDetail ? (
+                      <details className="group">
+                        {/* Header */}
+                        <summary className="flex items-center justify-between cursor-pointer list-none px-4 py-3 rounded-lg hover:bg-slate-100 transition">
                           <div className="font-semibold text-slate-800">
-                            {jobDetail?.title || 'Job description'}
+                            {getJobTitle()}
+                          </div>
+                          <ChevronDown className="w-5 h-5 text-slate-500 transition-transform group-open:rotate-180" />
+                        </summary>
+
+                        {/* Description */}
+                        <div className="px-1 pb-4">
+                          <div className="max-h-[280px] overflow-y-auto text-sm text-slate-600 whitespace-pre-line pr-2 border-l-2 border-blue-500 pl-3">
+                            {jobDetail.description}
                           </div>
                         </div>
-
-                        <ChevronDown className="w-5 h-5 text-slate-500 transition-transform group-open:rotate-180" />
-                      </summary>
-
-                      {/* Scrollable Description */}
-                      <div className="px-1 pb-4">
-                        <div className="max-h-[280px] overflow-y-auto text-sm text-slate-600 whitespace-pre-line pr-2 border-l-2 border-blue-500 pl-3">
-                          {jobDetail.description}
-                        </div>
-                      </div>
-                    </details>
+                      </details>
+                    ) : (
+                      <p className="text-sm text-red-500 p-4">
+                        Failed to load job data
+                      </p>
+                    )
                   ) : (
-                    <p className="text-sm text-red-500 p-4">
-                      No job data found
-                    </p>
+                    // ✅ Paste / Upload fallback UI
+                    <div className="px-4 py-3 text-sm text-slate-600">
+                      <div className="font-semibold text-slate-800 mb-1">
+                        {getJobTitle()}
+                      </div>
+                      <p>
+                        This job context was provided manually and does not have
+                        a saved job record.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -654,7 +669,7 @@ const SleekCvStep = ({
             {/* Action Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 card-entrance staggered-3">
               <button
-                className="btn-outline h-32 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700"
+                className="btn-outline p-4 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700"
                 onClick={() => handleCvContextSubmit('profile')}
                 disabled={isLoading}
               >
@@ -666,7 +681,7 @@ const SleekCvStep = ({
               </button>
 
               <button
-                className="btn-outline h-32 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700 relative"
+                className=" btn-outline p-4 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700 relative"
                 onClick={() => cvFileInputRef.current?.click()}
                 disabled={isLoading}
               >
@@ -683,20 +698,6 @@ const SleekCvStep = ({
                   </div>
                 )}
               </button>
-
-              {/* <button
-                className="btn-outline h-32 flex flex-col items-center justify-center gap-3 rounded-xl text-slate-700 hover:text-purple-700"
-                onClick={() => setWizardStep('createCv')}
-                disabled={isLoading}
-              >
-                <PlusCircle className="w-8 h-8 text-blue-500" />
-                <div className="text-center">
-                  <div className="font-semibold">Create New CV</div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    Build from scratch
-                  </div>
-                </div>
-              </button> */}
 
               <input
                 type="file"

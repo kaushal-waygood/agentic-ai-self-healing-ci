@@ -41,6 +41,7 @@ import ReminderModal from './ReminderModal';
 import { Tooltip } from './tooltip';
 import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
 import ThemeToggle from '../ui/theme-toggle';
+import { useFeedback } from '../Feedback-context/feedbackContext';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -385,15 +386,20 @@ const AppHeader = ({
     };
   }, []); // we can safely leave deps empty because we just call setters
 
+  const { openFeedback } = useFeedback();
   const handleLogout = async () => {
     try {
+      // remove feedback session token
+      sessionStorage.removeItem('feedback_shown');
       dispatch(logoutRequest());
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
-
+  // const handleLogout = () => {
+  //   openFeedback(); // 🔥 opens popup
+  // };
   const getNotificationColor = (type) => {
     switch (type) {
       case 'application':
