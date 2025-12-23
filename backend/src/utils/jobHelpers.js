@@ -7,6 +7,10 @@ import { generateEmbedding } from '../config/embedding.js';
 import crypto from 'crypto';
 import { JobInteraction } from '../models/jobInteraction.model.js';
 
+import redisClient from '../config/redis.js';
+import { stableShuffle } from './stableShuffle.js';
+import { makeTop4Key } from './dashboardKeys.js';
+
 const hashText = (t) => crypto.createHash('sha256').update(t).digest('hex');
 
 // --------------------
@@ -596,4 +600,267 @@ export async function getCTRMap(jobIds) {
     map[s._id.toString()] = Math.log(1 + ctr + s.applies * 3);
   }
   return map;
+}
+
+export async function getLocalRecommendedJobs(profile) {
+  const prefs = profile.jobPreferences || {};
+
+  const normalizedPreferredJobTypes =
+    prefs.preferredJobTypes?.map((t) =>
+      t.replace(/[\s_-]/g, '').toUpperCase(),
+    ) || [];
+
+  // ---------- USER VECTOR ----------
+  const userIntent = `
+Titles: ${profile.titles.join(', ')}
+Skills: ${profile.skills.join(', ')}
+Location: ${profile.location?.city || ''}
+`.trim();
+
+  const userVector = await generateEmbedding(userIntent);
+  if (!userVector) return [];
+
+  const appliedJobIds =
+    profile.appliedJobs?.map((j) => j.job).filter(Boolean) || [];
+
+  const country = profile.location?.country;
+
+  // ---------- VECTOR SEARCH (STRICT FILTERS ONLY) ----------
+  const pipeline = [
+    {
+      $vectorSearch: {
+        index: 'vector_index',
+        path: 'job_embedding',
+        queryVector: userVector,
+        numCandidates: 1000,
+        limit: 150,
+        filter: {
+          $and: [
+            { isActive: true },
+            { job_embedding: { $exists: true } },
+
+            // ✅ SAFE: country exact match OR remote
+            ...(country
+              ? [
+                  {
+                    $or: [{ country: { $eq: country } }, { remote: true }],
+                  },
+                ]
+              : []),
+
+            ...(appliedJobIds.length ? [{ _id: { $nin: appliedJobIds } }] : []),
+
+            ...(normalizedPreferredJobTypes.length
+              ? [{ jobTypes: { $in: normalizedPreferredJobTypes } }]
+              : []),
+          ],
+        },
+      },
+    },
+    {
+      $addFields: {
+        score: { $meta: 'vectorSearchScore' },
+      },
+    },
+    {
+      $addFields: {
+        recencyBoost: {
+          $cond: [
+            {
+              $gte: [
+                '$jobPostedAt',
+                new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+              ],
+            },
+            0.1,
+            0,
+          ],
+        },
+      },
+    },
+    {
+      $addFields: {
+        finalScore: { $add: ['$score', '$recencyBoost'] },
+      },
+    },
+    {
+      $project: {
+        job_embedding: 0,
+        __v: 0,
+      },
+    },
+  ];
+
+  let jobs = await Job.aggregate(pipeline);
+  if (!jobs.length) return [];
+
+  // ---------- CTR BOOST ----------
+  const ctrMap = await getCTRMap(jobs.map((j) => j._id));
+
+  // ---------- GEO HELPERS ----------
+  const loc = profile.location || {};
+  const userLat = loc.lat;
+  const userLng = loc.lng;
+
+  const city = loc.city?.toLowerCase();
+  const state = loc.state?.toLowerCase();
+  const countryLc = loc.country?.toLowerCase();
+
+  const haversineKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const toRad = (v) => (v * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const locationDecay = (job) => {
+    if (job.remote) return 0.15;
+
+    const jc = job.location?.city?.toLowerCase();
+    const js = job.location?.state?.toLowerCase();
+    const jco = job.country?.toLowerCase();
+
+    if (city && jc === city) return 0.3;
+    if (state && js === state) return 0.2;
+    if (countryLc && jco === countryLc) return 0.1;
+    return 0;
+  };
+
+  // ---------- FINAL SCORING ----------
+  jobs = jobs.map((job) => {
+    let geoBoost = 0;
+
+    if (userLat && userLng && job.location?.lat && job.location?.lng) {
+      const km = haversineKm(
+        userLat,
+        userLng,
+        job.location.lat,
+        job.location.lng,
+      );
+      if (km <= 200) geoBoost = Math.max(0, 1 - km / 200);
+    }
+
+    const locBoost = locationDecay(job);
+
+    return {
+      ...job,
+      finalScore:
+        job.finalScore +
+        (ctrMap[job._id.toString()] || 0) +
+        geoBoost * 0.3 +
+        locBoost,
+    };
+  });
+
+  // ---------- HUMAN SORT ----------
+  jobs.sort((a, b) => {
+    const aLoc = locationDecay(a);
+    const bLoc = locationDecay(b);
+    if (aLoc !== bLoc) return bLoc - aLoc;
+    return b.finalScore - a.finalScore;
+  });
+
+  return jobs;
+}
+
+export async function fetchAndUpsertMoreExternalJobs(profile) {
+  const queries = buildExternalQueries(profile.titles, profile.skills);
+
+  const allExternalJobs = [];
+
+  console.log('profile.location', profile.location);
+
+  for (const q of queries) {
+    const apiJobs = await fetchExternalJobsCached(
+      q,
+      profile.location?.country,
+      profile.location?.state,
+      profile.location?.city,
+      undefined,
+      normalizeEmploymentTypeForApi(
+        profile.jobPreferences?.preferredJobTypes?.join(','),
+      ),
+      undefined,
+      1,
+    );
+
+    if (Array.isArray(apiJobs)) {
+      apiJobs.forEach((aj) =>
+        allExternalJobs.push(transformRapidApiJob(aj, q)),
+      );
+    }
+  }
+
+  if (!allExternalJobs.length) return;
+
+  console.log('allExternalJobs', allExternalJobs.length);
+
+  // IMPORTANT: no arbitrary slice here
+  const deduped = dedupeByTitleCompany(allExternalJobs);
+
+  await upsertExternalJobs(deduped);
+}
+
+async function getFallbackJobs(profile, excludeIds, limit = 50) {
+  const query = {
+    isActive: true,
+    _id: { $nin: excludeIds },
+    origin: 'EXTERNAL',
+  };
+
+  // soft location preference
+  if (profile.location?.city) {
+    query['location.city'] = { $regex: profile.location.city, $options: 'i' };
+  }
+
+  // soft job type
+  if (profile.jobPreferences?.preferredJobTypes?.length) {
+    query.jobTypes = { $in: profile.jobPreferences.preferredJobTypes };
+  }
+
+  return Job.find(query).sort({ jobPostedAt: -1 }).limit(limit).lean();
+}
+
+function getTimeBucket(intervalMinutes = 10) {
+  return Math.floor(Date.now() / (intervalMinutes * 60 * 1000));
+}
+
+export async function getTop4DashboardJobs(profile) {
+  const userId = profile.userId || profile._id;
+  if (!userId) throw new Error('User ID missing for dashboard jobs');
+
+  const bucket = getTimeBucket(10); // rotates every 10 min
+  const cacheKey = makeTop4Key(userId.toString(), bucket);
+
+  // ---------- 1️⃣ Redis first ----------
+  const cached = await redisClient.get(cacheKey);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  // ---------- 2️⃣ Get high-quality pool ----------
+  const allJobs = await getLocalRecommendedJobs(profile);
+
+  if (!allJobs.length) return [];
+
+  // Take only top 30 relevant jobs
+  const pool = allJobs.slice(0, 30);
+
+  // ---------- 3️⃣ Stable shuffle ----------
+  const shuffled = stableShuffle(pool, `${userId}:${bucket}`);
+
+  const top4 = shuffled.slice(0, 4);
+
+  // ---------- 4️⃣ Cache briefly ----------
+  await redisClient.set(
+    cacheKey,
+    JSON.stringify(top4),
+    600, // 10 minutes
+  );
+
+  return top4;
 }

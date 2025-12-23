@@ -91,7 +91,6 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
     education: filters.education || [],
   });
 
-  console.log('localFilters', isOpen);
   const [educationInput, setEducationInput] = useState('');
 
   const groupedExperienceLevels = useMemo(() => {

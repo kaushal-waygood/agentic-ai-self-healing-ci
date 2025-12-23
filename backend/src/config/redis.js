@@ -5,55 +5,62 @@ const url = `redis://${config.redisHost}:${config.redisPort}`;
 
 class RedisClient {
   constructor() {
-    this.client = createClient({ url });
-    this.client.on('error', (err) => console.error('Redis Client Error', err));
-    this._connecting = this.client.connect().catch((err) => {
-      console.error('Initial redis connect error', err);
+    this.client = createClient({
+      url,
+      socket: {
+        reconnectStrategy: (retries) => {
+          // exponential backoff with cap
+          return Math.min(retries * 100, 2000);
+        },
+      },
+    });
+
+    this.client.on('error', (err) => {
+      console.error('Redis Client Error:', err);
+    });
+
+    // single connect promise (IMPORTANT)
+    this._connectPromise = this.client.connect().catch((err) => {
+      console.error('Initial Redis connection failed:', err);
     });
   }
 
+  /* -----------------------------
+     Connection handling (SAFE)
+     ----------------------------- */
+
   async ensureConnected() {
-    await this._connecting;
+    await this._connectPromise;
     if (!this.client.isReady) {
-      try {
-        await this.client.connect();
-      } catch (err) {
-        console.error('Redis ensureConnected error', err);
-      }
+      throw new Error('Redis client not ready');
     }
   }
 
-  async invalidateJobCache(jobId) {
-    if (!jobId) return;
-    const patterns = [
-      `job:${jobId}`,
-      `job:${jobId}:*`,
-      `job:*:${jobId}`,
-      `jobs:search*`, // conservative: search caches may include job lists
-      `jobs:all:*`, // clear broad job lists if needed
-      `jobs:manual:*`,
-      `jobs:rapid:*`,
-    ];
+  /* -----------------------------
+     Internal SCAN helper
+     ----------------------------- */
 
-    try {
-      await this.ensureConnected();
-      const toDelete = new Set();
+  async scanKeys(pattern) {
+    const keys = [];
+    let cursor = '0';
 
-      for (const pattern of patterns) {
-        // KEYS is ok for small deployments; use SCAN in heavy environments.
-        const keys = await this.client.keys(pattern);
-        if (keys && keys.length > 0) {
-          keys.forEach((k) => toDelete.add(k));
-        }
+    do {
+      const result = await this.client.scan(cursor, {
+        MATCH: pattern,
+        COUNT: 200,
+      });
+      cursor = result.cursor;
+      if (result.keys?.length) {
+        keys.push(...result.keys);
       }
+    } while (cursor !== '0');
 
-      if (toDelete.size > 0) {
-        await this.client.del(Array.from(toDelete));
-      }
-    } catch (err) {
-      console.error('invalidateJobCache error:', err);
-    }
+    return keys;
   }
+
+  /* -----------------------------
+     Core cache ops
+     ----------------------------- */
 
   async get(key) {
     try {
@@ -78,25 +85,11 @@ class RedisClient {
     }
   }
 
-  // Atomic set-if-not-exists with TTL. Returns true if key was set, false otherwise.
-  async setNxWithTtl(key, value, ttlSeconds) {
-    try {
-      await this.ensureConnected();
-      const res = await this.client.set(key, value, {
-        NX: true,
-        EX: ttlSeconds,
-      });
-      return res === 'OK';
-    } catch (err) {
-      console.error('Redis setNxWithTtl error:', err);
-      return false;
-    }
-  }
-
   async del(keys) {
     try {
       await this.ensureConnected();
       if (!keys) return;
+
       if (Array.isArray(keys)) {
         if (keys.length === 0) return;
         await this.client.del(keys);
@@ -109,92 +102,32 @@ class RedisClient {
   }
 
   async keys(pattern) {
+    // ⚠️ kept for backward compatibility
+    // internally uses SCAN now
     try {
       await this.ensureConnected();
-      return await this.client.keys(pattern);
+      return await this.scanKeys(pattern);
     } catch (err) {
       console.error('Redis keys error:', err);
       return [];
     }
   }
 
-  async invalidateStudentCache(studentId) {
-    const patterns = [
-      `student:${studentId}:*`,
-      `student:${studentId}`,
-      `jobs:recommended:${studentId}:*`,
-      `jobs:applied:${studentId}:*`,
-      `jobs:saved:${studentId}:*`,
-      `jobs:viewed:${studentId}:*`,
-      `jobs:visited:${studentId}:*`,
-      `stats:${studentId}:*`,
-    ];
+  /* -----------------------------
+     Atomic helpers
+     ----------------------------- */
 
+  async setNxWithTtl(key, value, ttlSeconds) {
     try {
       await this.ensureConnected();
-      for (const pattern of patterns) {
-        const keys = await this.client.keys(pattern);
-        if (keys.length > 0) {
-          await this.client.del(keys);
-        }
-      }
+      const res = await this.client.set(key, value, {
+        NX: true,
+        EX: ttlSeconds,
+      });
+      return res === 'OK';
     } catch (err) {
-      console.error('Cache invalidation error:', err);
-    }
-  }
-
-  async invalidateJobCacheForStudent(studentId, jobId) {
-    const keysToDelete = [
-      `student:${studentId}:isSaved:${jobId}`,
-      `student:${studentId}:isViewed:${jobId}`,
-      `student:${studentId}:isVisited:${jobId}`,
-    ];
-
-    try {
-      await this.ensureConnected();
-      await this.del(keysToDelete);
-    } catch (err) {
-      console.error('Job cache invalidation error:', err);
-    }
-  }
-
-  async invalidateAllJobsCache() {
-    const patterns = [
-      'jobs:all:*',
-      'jobs:manual:*',
-      'jobs:rapid:*',
-      'jobs:filtered:*',
-      // add this:
-      'jobs:recommended:*',
-    ];
-
-    try {
-      await this.ensureConnected();
-      for (const pattern of patterns) {
-        const keys = await this.client.keys(pattern);
-        if (keys.length > 0) {
-          await this.client.del(keys);
-        }
-      }
-    } catch (err) {
-      console.error('All jobs cache invalidation error:', err);
-    }
-  }
-
-  async withCache(key, ttl = 3600, callback) {
-    try {
-      await this.ensureConnected();
-      const cached = await this.get(key);
-      if (cached) return JSON.parse(cached);
-
-      const result = await callback();
-      if (result !== undefined && result !== null) {
-        await this.set(key, JSON.stringify(result), ttl);
-      }
-      return result;
-    } catch (err) {
-      console.error('Cache operation error:', err);
-      return await callback();
+      console.error('Redis setNxWithTtl error:', err);
+      return false;
     }
   }
 
@@ -212,6 +145,7 @@ class RedisClient {
     try {
       await this.ensureConnected();
       const pipeline = this.client.multi();
+
       for (const [key, value] of keyValuePairs) {
         if (ttl > 0) {
           pipeline.set(key, JSON.stringify(value), { EX: ttl });
@@ -219,9 +153,142 @@ class RedisClient {
           pipeline.set(key, JSON.stringify(value));
         }
       }
+
       await pipeline.exec();
     } catch (err) {
       console.error('Redis mset error:', err);
+    }
+  }
+
+  /* -----------------------------
+     Cache wrappers
+     ----------------------------- */
+
+  async withCache(key, ttl = 3600, callback) {
+    try {
+      await this.ensureConnected();
+
+      const cached = await this.get(key);
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch {
+          return cached;
+        }
+      }
+
+      const result = await callback();
+      if (result !== undefined && result !== null) {
+        await this.set(key, JSON.stringify(result), ttl);
+      }
+
+      return result;
+    } catch (err) {
+      console.error('Redis withCache error:', err);
+      return await callback();
+    }
+  }
+
+  /* -----------------------------
+     Invalidation helpers (SAFE)
+     ----------------------------- */
+
+  async invalidateJobCache(jobId) {
+    if (!jobId) return;
+
+    const patterns = [
+      `job:${jobId}`,
+      `job:${jobId}:*`,
+      `job:*:${jobId}`,
+      `jobs:search*`,
+      `jobs:all:*`,
+      `jobs:manual:*`,
+      `jobs:rapid:*`,
+    ];
+
+    try {
+      await this.ensureConnected();
+
+      const toDelete = new Set();
+
+      for (const pattern of patterns) {
+        const keys = await this.scanKeys(pattern);
+        keys.forEach((k) => toDelete.add(k));
+      }
+
+      if (toDelete.size > 0) {
+        await this.client.del([...toDelete]);
+      }
+    } catch (err) {
+      console.error('invalidateJobCache error:', err);
+    }
+  }
+
+  async invalidateStudentCache(studentId) {
+    if (!studentId) return;
+
+    const patterns = [
+      `student:${studentId}`,
+      `student:${studentId}:*`,
+      `jobs:recommended:${studentId}:*`,
+      `jobs:applied:${studentId}:*`,
+      `jobs:saved:${studentId}:*`,
+      `jobs:viewed:${studentId}:*`,
+      `jobs:visited:${studentId}:*`,
+      `stats:${studentId}:*`,
+    ];
+
+    try {
+      await this.ensureConnected();
+
+      for (const pattern of patterns) {
+        const keys = await this.scanKeys(pattern);
+        if (keys.length) {
+          await this.client.del(keys);
+        }
+      }
+    } catch (err) {
+      console.error('invalidateStudentCache error:', err);
+    }
+  }
+
+  async invalidateJobCacheForStudent(studentId, jobId) {
+    if (!studentId || !jobId) return;
+
+    const keys = [
+      `student:${studentId}:isSaved:${jobId}`,
+      `student:${studentId}:isViewed:${jobId}`,
+      `student:${studentId}:isVisited:${jobId}`,
+    ];
+
+    try {
+      await this.ensureConnected();
+      await this.del(keys);
+    } catch (err) {
+      console.error('invalidateJobCacheForStudent error:', err);
+    }
+  }
+
+  async invalidateAllJobsCache() {
+    const patterns = [
+      'jobs:all:*',
+      'jobs:manual:*',
+      'jobs:rapid:*',
+      'jobs:filtered:*',
+      'jobs:recommended:*',
+    ];
+
+    try {
+      await this.ensureConnected();
+
+      for (const pattern of patterns) {
+        const keys = await this.scanKeys(pattern);
+        if (keys.length) {
+          await this.client.del(keys);
+        }
+      }
+    } catch (err) {
+      console.error('invalidateAllJobsCache error:', err);
     }
   }
 }

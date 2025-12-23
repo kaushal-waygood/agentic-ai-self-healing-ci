@@ -2,6 +2,7 @@
 import { Purchase } from '../models/Purchase.js';
 import { Plan } from '../models/Plans.model.js';
 import { User } from '../models/User.model.js';
+import { calculateEndDate } from './plan.controller.js';
 
 const setUserUsageLimits = async (userId, plan, period) => {
   // Find the variant corresponding to the purchased period

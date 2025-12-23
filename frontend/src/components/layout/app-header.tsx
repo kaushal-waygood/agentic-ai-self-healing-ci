@@ -193,10 +193,6 @@ export const TotalCredit = () => {
 
   const dropdownRef = useRef(null);
 
-  useEffect(() => {
-    console.log('credits', credit.credits);
-  }, []);
-
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {

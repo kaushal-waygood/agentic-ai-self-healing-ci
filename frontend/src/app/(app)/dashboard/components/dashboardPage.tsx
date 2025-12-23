@@ -579,6 +579,49 @@ export function SubscriptionStatusCard({ plan }: any) {
   );
 }
 
+function TopJobCard({ job }: { job: TopJob }) {
+  return (
+    <Link
+      href={`/jobs/${job.slug}`}
+      className="group block bg-white border rounded-lg p-4 hover:shadow-md transition"
+    >
+      <div className="flex gap-4">
+        <img
+          src={job.logo || '/company-placeholder.png'}
+          alt={job.company}
+          className="w-12 h-12 rounded-md object-contain border"
+        />
+
+        <div className="flex-1">
+          <h4 className="font-semibold text-gray-900 group-hover:text-purple-700 line-clamp-1">
+            {job.title}
+          </h4>
+
+          <p className="text-sm text-gray-600">
+            {job.company}
+            {job.location?.city && (
+              <>
+                {' '}
+                · {job.location.city}, {job.location.state}
+              </>
+            )}
+          </p>
+
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-500">{job.jobPosted}</span>
+
+            <span className="text-xs font-semibold text-green-600">
+              Match {(job.finalScore * 100).toFixed(0)}%
+            </span>
+          </div>
+        </div>
+
+        <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600" />
+      </div>
+    </Link>
+  );
+}
+
 export default function DashboardPage() {
   const [recentAI, setRecentAI] = useState<any>(null);
   const { balance, spending, checkout } = useCredits();
@@ -855,6 +898,41 @@ export default function DashboardPage() {
     if (authUser) {
       fetchRecentAI();
     }
+  }, [authUser]);
+
+  type TopJob = {
+    _id: string;
+    title: string;
+    company: string;
+    location?: {
+      city?: string;
+      state?: string;
+    };
+    jobPosted: string;
+    logo?: string;
+    finalScore: number;
+    slug: string;
+  };
+
+  const [topJobsRecommendations, setTopJobsRecommendations] = useState<
+    TopJob[]
+  >([]);
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    const fetchTopJobs = async () => {
+      try {
+        const res = await apiInstance.get('/jobs/dashboard/top-jobs');
+        if (res.data?.jobs) {
+          setTopJobsRecommendations(res.data.jobs);
+        }
+      } catch (e) {
+        console.error('Top jobs fetch failed', e);
+      }
+    };
+
+    fetchTopJobs();
   }, [authUser]);
 
   return (
@@ -1138,6 +1216,28 @@ export default function DashboardPage() {
             <div id="plan-driver">
               <SubscriptionStatusCard plan={planDetails} />
             </div>
+
+            {topJobsRecommendations.length > 0 && (
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Top Jobs for You
+                  </h3>
+                  <Link
+                    href="/dashboard/search-jobs"
+                    className="text-sm font-medium text-purple-600 hover:underline"
+                  >
+                    View all
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                  {topJobsRecommendations.slice(0, 4).map((job) => (
+                    <TopJobCard key={job._id} job={job} />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {recentAI && (
               <div className="mt-8 bg-white border rounded-lg p-5">
