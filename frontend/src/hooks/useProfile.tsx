@@ -25,6 +25,9 @@ import {
   addStudentSkillRequest,
 } from '@/redux/reducers/studentReducer';
 
+const dummyAvatar =
+  'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png';
+
 export type ProfileState = {
   fullName: string;
   email: string;
@@ -68,7 +71,6 @@ export const useProfile = () => {
     (state: RootState) => state.student.students?.[0],
   );
 
-  // ✅ Normalize shape safely
   const studentData = studentWrapper?.student ?? studentWrapper;
 
   const [profile, setProfile] = useState<ProfileState>({
@@ -78,12 +80,21 @@ export const useProfile = () => {
     jobPreference: '',
     location: '',
     avatar: '',
+    uploadedCV: '',
   });
 
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>(dummyAvatar);
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /* -----------------------------
+     Sync Profile
+  ------------------------------ */
   useEffect(() => {
     if (!studentData) return;
 
@@ -94,10 +105,94 @@ export const useProfile = () => {
       jobPreference: studentData.jobRole ?? '',
       location: studentData.location ?? '',
       avatar: studentData.avatar ?? '',
-      uploadedCV: studentData.uploadedCV,
+      uploadedCV: studentData.uploadedCV ?? '',
     });
+
+    setPreview(studentData.avatar || dummyAvatar);
   }, [studentData]);
 
+  /* -----------------------------
+     Input handlers
+  ------------------------------ */
+  const onChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfile((p) => ({ ...p, [name]: value }));
+  }, []);
+
+  const onAvatarChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const img = e.target.files?.[0];
+      if (!img) return;
+
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result as string);
+      reader.readAsDataURL(img);
+    },
+    [],
+  );
+
+  /* -----------------------------
+     File helpers
+  ------------------------------ */
+  const handleRemoveFile = useCallback(() => {
+    setFile(null);
+    setProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  const handleButtonClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  /* -----------------------------
+     Upload CV with progress
+  ------------------------------ */
+  const handleUpload = useCallback(async () => {
+    if (!file) return;
+
+    setIsUploading(true);
+    setProgress(0);
+
+    const formData = new FormData();
+    formData.append('cv', file);
+
+    let rampTimer: ReturnType<typeof setInterval> | null = null;
+
+    rampTimer = setInterval(() => {
+      setProgress((prev) => (prev < 95 ? Math.min(95, prev + 5) : prev));
+    }, 800);
+
+    try {
+      await apiInstance.post('/students/resume/extract', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (event) => {
+          if (event.total) {
+            const percent = Math.round((event.loaded * 100) / event.total);
+            if (percent < 95) setProgress(percent);
+          }
+        },
+      });
+
+      dispatch(getStudentDetailsRequest());
+      toast({ title: 'Resume processed successfully' });
+
+      setProgress(100);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch {
+      toast({ title: 'Upload failed', variant: 'destructive' });
+    } finally {
+      if (rampTimer) clearInterval(rampTimer);
+      setTimeout(() => {
+        setIsUploading(false);
+        setProgress(0);
+      }, 1000);
+    }
+  }, [file, dispatch, toast]);
+
+  /* -----------------------------
+     Update profile
+  ------------------------------ */
   const updateProfile = useCallback(async () => {
     try {
       await apiInstance.patch('/students/profile/update', {
@@ -114,35 +209,29 @@ export const useProfile = () => {
     }
   }, [profile, dispatch, toast]);
 
-  const uploadCV = useCallback(async () => {
-    if (!file) return;
-
-    try {
-      setIsUploading(true);
-      const fd = new FormData();
-      fd.append('cv', file);
-
-      await apiInstance.post('/students/upload-resume', fd);
-      dispatch(getStudentDetailsRequest());
-
-      toast({ title: 'Resume uploaded' });
-      setFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch {
-      toast({ title: 'Upload failed', variant: 'destructive' });
-    } finally {
-      setIsUploading(false);
-    }
-  }, [file, dispatch, toast]);
-
   return {
     profile,
     setProfile,
+    preview,
+    onChange,
+    onAvatarChange,
     updateProfile,
+
     file,
     setFile,
-    uploadCV,
+    progress,
     isUploading,
+
+    isModalOpen,
+    setIsModalOpen,
+
+    isDragging,
+    setIsDragging,
+
+    handleUpload,
+    handleRemoveFile,
+    handleButtonClick,
+
     fileInputRef,
   };
 };

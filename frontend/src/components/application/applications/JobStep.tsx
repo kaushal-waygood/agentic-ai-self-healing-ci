@@ -159,7 +159,9 @@ export function JobStep({
   useEffect(() => {
     const fetchSavedJobs = async () => {
       try {
-        const response = await apiInstance.get('/students/jobs/saved-all');
+        const response = await apiInstance.get(
+          '/students/jobs/events?type=SAVED',
+        );
         setSavedJobs(response.data.jobs);
       } catch (error) {
         console.error('Error fetching saved jobs:', error);
