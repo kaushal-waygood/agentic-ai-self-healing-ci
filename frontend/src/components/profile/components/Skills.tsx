@@ -62,7 +62,7 @@ const Skills = () => {
                       {skill.skill}
                     </h4>
                     <span
-                      className={`mt-1 inline-block px-3 py-0.5 rounded-full text-xs font-semibold ${getSkillBadgeColor(
+                      className={`mt-1 inline-block  py-0.5 rounded-full text-xs font-semibold ${getSkillBadgeColor(
                         skill.level,
                       )}`}
                     >
@@ -70,7 +70,7 @@ const Skills = () => {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex  items-center gap-2">
                     <select
                       value={skill.level}
                       onChange={(e) =>
@@ -78,7 +78,7 @@ const Skills = () => {
                           level: e.target.value,
                         })
                       }
-                      className="text-gray-600 rounded border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="text-gray-600 rounded border-gray-300  py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                     >
                       <option value="BEGINNER">Beginner</option>
                       <option value="INTERMEDIATE">Intermediate</option>
@@ -87,7 +87,7 @@ const Skills = () => {
 
                     <button
                       onClick={() => setDeleteId(skill._id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0 p-2 rounded"
+                      className="text-red-600  hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0 p-2 rounded"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
