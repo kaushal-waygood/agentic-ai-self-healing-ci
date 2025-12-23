@@ -120,6 +120,12 @@ export default function FeedbackPopup({
 
   if (!open) return null;
 
+  const handleSubmit = () => {
+    console.log('Feedback:', feedback);
+    setOpen(false);
+    onClose?.();
+  };
+
   const handleClose = () => {
     setOpen(false);
     onClose?.();
@@ -160,10 +166,10 @@ export default function FeedbackPopup({
         />
 
         <button
-          onClick={handleClose}
+          onClick={handleSubmit}
           className="w-full bg-buttonPrimary text-white py-2 rounded-lg"
         >
-          Submit & Logout
+          Submit
         </button>
 
         <button

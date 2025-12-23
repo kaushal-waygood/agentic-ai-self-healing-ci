@@ -247,7 +247,10 @@ export const useExperience = () => {
   }, [dispatch]);
 
   const createExperience = useCallback(
-    (data: any) => dispatch(addStudentExperienceRequest(data)),
+    (data: any) => {
+      dispatch(addStudentExperienceRequest(data));
+      dispatch(getStudentExperienceRequest());
+    },
     [dispatch],
   );
 

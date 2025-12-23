@@ -6,6 +6,7 @@ import { Purchase } from '../models/Purchase.js';
 import { User } from '../models/User.model.js';
 import { config } from '../config/config.js';
 import { Coupon } from '../models/coupon.model.js';
+import { razorpay } from '../config/razorpay.js';
 
 const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
@@ -313,7 +314,7 @@ export const deletePlan = async (req, res) => {
 export const getSinglePlan = getPlan;
 
 // ---------- Payments & Purchases ----------
-
+// stripe
 export const createPaymentIntent = async (req, res) => {
   try {
     const userId = req.user && req.user._id;
@@ -369,8 +370,6 @@ export const createPaymentIntent = async (req, res) => {
 
       const currentRank = PLAN_RANK[activePlan.planType] ?? 0;
       const newRank = PLAN_RANK[plan.planType] ?? 0;
-
-      console.log(newRank > currentRank);
 
       // Block downgrade
       if (newRank > currentRank) {
@@ -670,6 +669,226 @@ export const handleStripeWebhook = async (req, res) => {
     return res.status(500).json({
       error: 'Failed to process payment webhook',
     });
+  }
+};
+
+// rezorpay
+
+export const createRazorpayOrder = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    const { planId, period, currency = 'inr', couponCode } = req.body;
+
+    /* ---------------- AUTH ---------------- */
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated. Please log in.',
+      });
+    }
+
+    if (!planId || !period) {
+      return res.status(400).json({
+        success: false,
+        error: 'Plan ID and period are required.',
+      });
+    }
+
+    const currencyLower = String(currency).toLowerCase();
+    if (!['inr'].includes(currencyLower)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Razorpay currently supports INR only.',
+      });
+    }
+
+    /* ---------------- ACTIVE PLAN CHECK ---------------- */
+    const userWithPurchase = await User.findById(userId)
+      .populate({
+        path: 'currentPurchase',
+        populate: { path: 'plan' },
+      })
+      .lean();
+
+    if (
+      userWithPurchase?.currentPurchase &&
+      userWithPurchase.currentPurchase.isActive &&
+      new Date(userWithPurchase.currentPurchase.endDate) > new Date()
+    ) {
+      const activePlan = userWithPurchase.currentPurchase.plan;
+      const newPlan = await Plan.findById(planId).lean();
+
+      if (!newPlan) {
+        return res.status(404).json({
+          success: false,
+          error: 'Plan not found.',
+        });
+      }
+
+      if (activePlan.planType === newPlan.planType) {
+        return res.status(403).json({
+          success: false,
+          message: 'You already have this plan active.',
+          data: {
+            currentPlanEnds: userWithPurchase.currentPurchase.endDate,
+          },
+        });
+      }
+
+      const currentRank = PLAN_RANK[activePlan.planType] ?? 0;
+      const newRank = PLAN_RANK[newPlan.planType] ?? 0;
+
+      // block downgrade
+      if (newRank > currentRank) {
+        return res.status(403).json({
+          success: false,
+          message: 'Downgrading plans before expiry is not allowed.',
+        });
+      }
+    }
+
+    /* ---------------- LOAD PLAN ---------------- */
+    const plan = await Plan.findById(planId).lean();
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        error: 'Plan not found.',
+      });
+    }
+
+    const variant = safeGetVariant(plan, period);
+    if (!variant) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid billing period for this plan.',
+      });
+    }
+
+    const basePrice = variant?.price?.effective?.[currencyLower];
+
+    if (typeof basePrice !== 'number') {
+      return res.status(400).json({
+        success: false,
+        error: `Price for currency '${currencyLower}' not found.`,
+      });
+    }
+
+    /* ---------------- PRICING ---------------- */
+    let finalPrice = basePrice;
+
+    const pricingResponse: any = {
+      period,
+      original: { [currencyLower]: +basePrice.toFixed(2) },
+      discounted: null,
+      discountAmount: null,
+      appliedCoupon: null,
+    };
+
+    /* ---------------- COUPON ---------------- */
+    if (couponCode) {
+      const code = String(couponCode).trim().toUpperCase();
+      const coupon = await Coupon.findOne({ code }).lean();
+
+      if (!coupon || !coupon.isActive) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or inactive coupon.',
+        });
+      }
+
+      const now = new Date();
+      if (
+        (coupon.startsAt && coupon.startsAt > now) ||
+        (coupon.expiresAt && coupon.expiresAt < now)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Coupon not valid at this time.',
+        });
+      }
+
+      if (coupon.maxUses != null && coupon.usedCount >= coupon.maxUses) {
+        return res.status(400).json({
+          success: false,
+          message: 'Coupon usage limit reached.',
+        });
+      }
+
+      if (
+        coupon.plansApplicable?.length &&
+        !coupon.plansApplicable.some(
+          (p) => p.toString() === plan._id.toString(),
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Coupon not applicable to this plan.',
+        });
+      }
+
+      const computed = computeDiscountedPriceForPriceObj(
+        variant.price.effective,
+        coupon,
+      );
+
+      finalPrice = computed.final[currencyLower];
+      pricingResponse.discounted = {
+        [currencyLower]: +finalPrice.toFixed(2),
+      };
+      pricingResponse.discountAmount = {
+        [currencyLower]: +computed.discount[currencyLower].toFixed(2),
+      };
+      pricingResponse.appliedCoupon = {
+        _id: coupon._id,
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue ?? null,
+        discountAmount: coupon.discountAmount ?? null,
+      };
+    } else {
+      pricingResponse.discounted = {
+        [currencyLower]: +finalPrice.toFixed(2),
+      };
+      pricingResponse.discountAmount = { [currencyLower]: 0 };
+    }
+
+    /* ---------------- AMOUNT CHECK ---------------- */
+    const amountInPaise = Math.round(finalPrice * 100);
+    if (amountInPaise <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Final amount is zero. Use server-side free activation flow.',
+        pricing: pricingResponse,
+      });
+    }
+
+    /* ---------------- RAZORPAY ORDER ---------------- */
+    const order = await razorpay.orders.create({
+      amount: amountInPaise,
+      currency: 'INR',
+      receipt: `rcpt_${Date.now()}`,
+      notes: {
+        userId: userId.toString(),
+        planId: plan._id.toString(),
+        planType: plan.planType,
+        billingPeriod: period,
+        couponCode: pricingResponse.appliedCoupon?.code || '',
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      pricing: pricingResponse,
+      key: process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (error) {
+    console.error('createRazorpayOrder error:', error);
+    return res
+      .status(500)
+      .json({ success: false, error: 'Internal Server Error' });
   }
 };
 
