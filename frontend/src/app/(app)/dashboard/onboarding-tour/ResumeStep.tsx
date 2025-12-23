@@ -4,7 +4,7 @@ const ResumeStep = ({ formData, handleFileUpload }) => {
   return (
     <div className="space-y-6">
       <label className="block">
-        <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center hover:border-purple-500 transition-all duration-300 cursor-pointer bg-white/50 backdrop-blur-sm hover:bg-white/70">
+        <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 text-center  transition-all duration-300 cursor-pointer bg-white/50 backdrop-blur-sm hover:bg-white/70">
           <Upload className="w-10 h-10 mx-auto mb-3 text-purple-500" />
           <p className="text-base font-semibold text-gray-700 mb-1">
             {formData.resume ? formData.resume.name : 'Click to upload resume'}

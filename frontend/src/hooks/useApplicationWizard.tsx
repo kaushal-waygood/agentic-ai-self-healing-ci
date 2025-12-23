@@ -281,11 +281,49 @@ export const useApplicationWizard = () => {
   }>({ defaultValues: { clSource: 'skip', pastedCl: '', savedClId: '' } });
 
   //--- Navigation ---
+  // const navigateToStep = useCallback(
+  //   (step: WizardStep) => {
+  //     const params = new URLSearchParams(searchParams.toString());
+  //     params.set('step', step);
+  //     router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  //   },
+  //   [pathname, router, searchParams],
+  // );
+
   const navigateToStep = useCallback(
-    (step: WizardStep) => {
+    (
+      step: WizardStep,
+      options?: { jobId?: string; mode?: 'paste' | 'upload' | 'select' },
+    ) => {
       const params = new URLSearchParams(searchParams.toString());
+
+      // Always update step
       params.set('step', step);
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+
+      // ----- MODE -----
+      if (options?.mode) {
+        // Only allow valid modes
+        params.set('mode', options.mode);
+      } else {
+        // Preserve existing mode if valid
+        const existingMode = params.get('mode');
+        if (!existingMode || existingMode === 'undefined') {
+          params.delete('mode');
+        }
+      }
+
+      // ----- JOB ID (slug) -----
+      if (options?.mode === 'select' && options.jobId) {
+        params.set('slug', options.jobId);
+      } else if (options?.mode && options.mode !== 'select') {
+        // paste / upload → remove slug
+        params.delete('slug');
+      }
+      // else: preserve existing slug when moving steps
+
+      router.push(`${pathname}?${params.toString()}`, {
+        scroll: false,
+      });
     },
     [pathname, router, searchParams],
   );
@@ -352,11 +390,10 @@ export const useApplicationWizard = () => {
             jobId: value,
           };
         } else if (mode === 'paste' && typeof value === 'string') {
-          const extracted = await extractJobDetails({ jobDescription: value });
           context = {
-            mode,
-            jobTitle: extracted.jobTitle,
-            companyName: extracted.companyName,
+            mode: 'paste',
+            jobTitle: 'Custom Job Description',
+            companyName: 'Not specified',
             jobDescription: value,
           };
         } else if (mode === 'upload' && value instanceof File) {
@@ -380,7 +417,10 @@ export const useApplicationWizard = () => {
         setJobContext(context);
         setCvContext(null);
         setClContext(null);
-        navigateToStep('cv');
+        // navigateToStep('cv', context.jobId, mode);
+        navigateToStep('cv', { mode, jobId: context.jobId });
+
+        // navigateToStep('cv');
       } catch (error) {
         toast({
           variant: 'destructive',
@@ -513,6 +553,8 @@ export const useApplicationWizard = () => {
   }, []);
 
   const handleGenerate = useCallback(async () => {
+    console.log('cvContext', cvContext);
+    console.log('jobContext', jobContext);
     if (!cvContext || !jobContext) {
       toast({
         variant: 'destructive',
