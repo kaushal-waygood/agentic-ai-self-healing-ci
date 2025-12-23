@@ -129,7 +129,7 @@ const ProfileInfo = () => {
         `}</style>
 
         <main className="flex flex-col md:flex-row max-w-7xl gap-4 mx-auto p-1 sticky top-7">
-          <div className="w-full md:w-1/4 md:sticky md:top-7 md:self-start">
+          <div className=" md:sticky md:top-7 md:self-start">
             <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
           <div className="flex-1">
