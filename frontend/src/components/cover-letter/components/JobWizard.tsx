@@ -179,7 +179,9 @@ const JobWizard = ({
     const fetchSavedJobs = async () => {
       try {
         setLoading(true);
-        const response = await apiInstance.get('/students/jobs/saved-all');
+        const response = await apiInstance.get(
+          '/students/jobs/events?type=SAVED',
+        );
         setSavedJobs(response.data.jobs);
       } catch (error) {
         console.error('Error fetching saved jobs:', error);

@@ -1,77 +1,67 @@
+'use client';
+
+import React, { useState } from 'react';
 import {
-  Badge,
   Briefcase,
   BriefcaseBusiness,
   Calendar,
-  CaseLower,
-  Luggage,
   MapPin,
-  PanelsTopLeft,
   Pencil,
   PlusCircle,
-  SquareSplitVertical,
   Trash2,
 } from 'lucide-react';
-import React from 'react';
 
-const Experience = ({
-  defaultValues,
-  setAddExp,
-  setEditExp,
-  setEditExpIndex,
-  setDeleteExp,
-  setDeleteExpIndex,
-}: any) => {
-  // Optional: define this helper if it exists elsewhere
+import { useExperience } from '@/hooks/useProfile';
+import { AddExperience } from '../AddEducation'; // adjust path
 
-  console.log('values : ', defaultValues);
-  const formatDateForMonthInput = (date: string) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return `${d.toLocaleString('default', {
-      month: 'short',
-    })} ${d.getFullYear()}`;
-  };
+const formatDateForMonthInput = (date: string) => {
+  if (!date) return '';
+  const d = new Date(date);
+  return `${d.toLocaleString('default', {
+    month: 'short',
+  })} ${d.getFullYear()}`;
+};
+
+const Experience = () => {
+  const { experiences, deleteExperience } = useExperience();
+
+  // local UI state (correct place)
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editData, setEditData] = useState<any | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
   return (
     <div>
+      {/* Header */}
       <div className="flex w-full items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <Briefcase className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl font-bold text-gray-800">
-            Experience ({defaultValues.experience.length})
+            Experience ({experiences.length})
           </h3>
         </div>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setAddExp(true);
-            }}
-            className="w-full flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
-          >
-            <PlusCircle className="mr-2 h-5 w-5" />
-            Add Experience
-          </button>
-        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsAddOpen(true)}
+          className="flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg transition-all"
+        >
+          <PlusCircle className="mr-2 h-5 w-5" />
+          Add Experience
+        </button>
       </div>
 
-      {/* --- Experience List --- */}
-      <div
-        id="experience"
-        // className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-200 max-h-[70vh] overflow-y-auto "
-        className=" p-2  border-purple-200 max-h-[70vh] overflow-y-auto "
-      >
+      {/* List */}
+      <div className="p-2 max-h-[70vh] overflow-y-auto">
         <div className="space-y-4">
-          {defaultValues.experience && defaultValues.experience.length > 0 ? (
-            defaultValues.experience.map((exp, index) => (
+          {experiences.length > 0 ? (
+            experiences.map((exp) => (
               <div
                 key={exp._id}
-                className="bg-white rounded-lg p-5  transition-all duration-300 border border-purple-100"
+                className="bg-white rounded-lg p-5 border border-purple-100"
               >
-                {/* Header Row */}
                 <div className="flex justify-between items-center">
                   <div className="flex-1 pr-4">
                     <h4 className="text-lg font-bold text-gray-800">
@@ -81,35 +71,24 @@ const Experience = ({
                       {exp.designation}
                     </p>
                   </div>
-                  <div className="flex gap-2 items-center">
+
+                  <div className="flex gap-2">
                     <button
-                      variant="outline"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditExp(true);
-                        setEditExpIndex(index);
-                      }}
-                      className="text-purple-600 border-purple-300 hover:bg-purple-50 h-9 w-9"
+                      onClick={() => setEditData(exp)}
+                      className="text-purple-600 border border-purple-300 hover:bg-purple-50 h-9 w-9 rounded-md flex items-center justify-center"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
+
                     <button
-                      variant="outline"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteExp(true);
-                        setDeleteExpIndex(exp._id);
-                      }}
-                      className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
+                      onClick={() => setDeleteId(exp._id)}
+                      className="text-red-600 border border-red-300 hover:bg-red-50 h-9 w-9 rounded-md flex items-center justify-center"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Always Visible Details */}
                 <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
                   {exp.description && (
                     <p className="text-gray-600 leading-relaxed">
@@ -121,17 +100,17 @@ const Experience = ({
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span>
-                        {/* {exp.startDate} - {exp.endDate || 'Present'} */}
                         {formatDateForMonthInput(exp.startDate)} to{' '}
                         {formatDateForMonthInput(exp.endDate) || 'Present'}
                       </span>
                     </div>
+
                     {exp.location && (
                       <div className="flex items-center gap-2 text-gray-600">
                         <MapPin className="h-4 w-4 text-gray-400" />
                         <span>{exp.location}</span>
-                        <BriefcaseBusiness className="h-4 w-4 text-gray-400" />
-                        <span>{exp.employmentType} </span>
+                        <BriefcaseBusiness className="h-4 w-4 text-gray-400 ml-2" />
+                        <span>{exp.employmentType}</span>
                       </div>
                     )}
                   </div>
@@ -157,10 +136,44 @@ const Experience = ({
               </div>
             ))
           ) : (
-            <div className="text-gray-500 italic">No data</div>
+            <div className="text-gray-500 italic">No experience added</div>
           )}
         </div>
       </div>
+
+      {/* ADD */}
+      {isAddOpen && <AddExperience onCancel={() => setIsAddOpen(false)} />}
+
+      {/* EDIT */}
+      {isAddOpen && <AddExperience onCancel={() => setIsAddOpen(false)} />}
+
+      {/* DELETE CONFIRM */}
+      {deleteId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-80">
+            <p className="text-gray-800 mb-4">
+              Are you sure you want to delete this experience?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="px-4 py-2 border rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  deleteExperience(deleteId);
+                  setDeleteId(null);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

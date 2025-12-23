@@ -54,7 +54,7 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">
+        <h3 className="text-md font-semibold text-gray-800 mb-2">
           Your Skills
         </h3>
         <div className="space-y-3">
@@ -67,16 +67,16 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
                 value={skill.skill}
                 onChange={(e) => onSkillChange(index, 'skill', e.target.value)}
                 placeholder="e.g., JavaScript"
-                className="h-11 text-base focus:border-purple-500"
+                className="h-11 text-base "
               />
               <Select
                 value={skill.level}
                 onValueChange={(value) => onSkillChange(index, 'level', value)}
               >
-                <SelectTrigger className="w-[180px] h-11 focus:border-purple-500">
+                <SelectTrigger className="w-[180px] h-11 ">
                   <SelectValue placeholder="Level" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="BEGINNER">Beginner</SelectItem>
                   <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
                   <SelectItem value="ADVANCED">Advanced</SelectItem>
@@ -110,7 +110,7 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
 
       {/* Experience Section */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">
+        <h3 className="text-md font-semibold text-gray-800 mb-2">
           Work Experience
         </h3>
         <div className="space-y-4">

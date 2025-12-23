@@ -10,7 +10,7 @@ const JobPreferencesStep = ({
   return (
     <div className="space-y-5">
       <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-2 ml-1">
+        <label className="block text-md font-semibold text-gray-700 mb-2 ml-1">
           Job Type (Select all that apply)
         </label>
 
@@ -30,10 +30,10 @@ const JobPreferencesStep = ({
                 key={type}
                 onClick={() => toggleOption('jobType', type)}
                 className={`
-                  p-3 rounded-lg border-2 transition-all duration-300 transform hover:scale-105
+                  p-3 rounded-lg border-2 transition-all hover:scale-105
                   ${
                     isSelected
-                      ? 'border-purple-500 bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                      ? 'border-blue-500'
                       : 'bg-white text-gray-800 border-gray-300'
                   }
                 `}
@@ -49,14 +49,14 @@ const JobPreferencesStep = ({
         value={formData.location}
         onChange={(e) => handleInputChange('location', e.target.value)}
         placeholder="Preferred Location"
-        className="h-11 text-base border-2 focus:border-purple-500 transition-all duration-300 rounded-lg px-4 bg-white/50 backdrop-blur-sm"
+        className="h-11 text-base border-2 rounded-lg px-4 bg-white/50"
       />
 
       <Input
         value={formData.expectedSalary}
         onChange={(e) => handleInputChange('expectedSalary', e.target.value)}
         placeholder="Expected Salary (Optional)"
-        className="h-11 text-base border-2 focus:border-purple-500 transition-all duration-300 rounded-lg px-4 bg-white/50 backdrop-blur-sm"
+        className="h-11 text-base border-2 rounded-lg px-4 bg-white/50"
       />
     </div>
   );

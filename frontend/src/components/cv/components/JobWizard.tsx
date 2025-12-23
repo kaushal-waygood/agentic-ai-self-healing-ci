@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import apiInstance from '@/services/api';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
 
 // Define the structure of the job object for type safety
 interface Job {
@@ -151,6 +153,8 @@ const JobWizard = ({
   const [isFocused, setIsFocused] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const { events } = useSelector((state: RootState) => state.student);
+
   const tabData = [
     {
       value: 'paste',
@@ -179,7 +183,9 @@ const JobWizard = ({
     const fetchSavedJobs = async () => {
       try {
         setLoading(true);
-        const response = await apiInstance.get('/students/jobs/saved-all');
+        const response = await apiInstance.get(
+          '/students/jobs/events?type=SAVED',
+        );
         setSavedJobs(response.data.jobs);
       } catch (error) {
         console.error('Error fetching saved jobs:', error);

@@ -13,8 +13,13 @@ import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
 import DashboardFooter from '@/components/layout/DashboardFooter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Footer } from '@/components/layout/footer';
+import { useDispatch, useSelector } from 'react-redux';
 import ProtectedRoute from '@/components/protected/ProtectedRoute';
 import LogRocket from 'logrocket';
+import FeedbackPopup from '@/components/ui/feedbackPopup';
+import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext';
+import { logoutRequest } from '@/redux/reducers/authReducer';
+import { useRouter } from 'next/navigation';
 
 // 1. Define and Create Context
 interface SidebarContextType {
@@ -70,7 +75,8 @@ export default function DashboardLayoutClient({
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-
+  const dispatch = useDispatch();
+  const router = useRouter();
   // --- START: MODIFIED LOGIC ---
   // This will be true for any path starting with /dashboard
   const isDashboardPage = pathname.startsWith('/dashboard');
@@ -78,6 +84,8 @@ export default function DashboardLayoutClient({
   const isOnboardingPage = pathname === '/dashboard/onboarding-tour';
   // This new constant controls UI visibility
   const showDashboardUI = isDashboardPage && !isOnboardingPage;
+  const [showLogoutFeedback, setShowLogoutFeedback] = useState(false);
+
   // --- END: MODIFIED LOGIC ---
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-state');
@@ -188,9 +196,10 @@ export default function DashboardLayoutClient({
 
   return (
     <ProtectedRoute>
-      <SidebarContext.Provider value={contextValue}>
-        {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
-        {/* <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
+      <FeedbackProvider>
+        <SidebarContext.Provider value={contextValue}>
+          {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
+          {/* <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
           {showDashboardUI && (
             <aside
               onMouseEnter={handleMouseEnter}
@@ -219,9 +228,9 @@ export default function DashboardLayoutClient({
           </div>
         </div> */}
 
-        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
-          {/* SIDEBAR */}
-          {/* {showDashboardUI && (
+          <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
+            {/* SIDEBAR */}
+            {/* {showDashboardUI && (
             <aside
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
@@ -232,23 +241,23 @@ export default function DashboardLayoutClient({
               <AppSidebarContent isCollapsed={!isOpen} />
             </aside>
           )} */}
-          {showDashboardUI && (
-            <>
-              {/* MOBILE OVERLAY */}
-              {!isDesktop && (
-                <div
-                  className={`fixed inset-0 z-40 bg-black/40 transition-opacity
+            {showDashboardUI && (
+              <>
+                {/* MOBILE OVERLAY */}
+                {!isDesktop && (
+                  <div
+                    className={`fixed inset-0 z-40 bg-black/40 transition-opacity
           ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
-                  onClick={() => setIsOpen(false)}
-                />
-              )}
+                    onClick={() => setIsOpen(false)}
+                  />
+                )}
 
-              {/* SIDEBAR */}
-              <div
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                className={`
+                {/* SIDEBAR */}
+                <div
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                  className={`
         fixed inset-y-0 left-0 z-50
         bg-white dark:bg-gray-900 border-r
         transition-all duration-300 ease-in-out
@@ -257,37 +266,49 @@ export default function DashboardLayoutClient({
         lg:relative lg:translate-x-0
         shrink-0
       `}
-              >
-                <AppSidebarContent isCollapsed={!sidebarVisible} />
-              </div>
-            </>
-          )}
-
-          {/* MAIN CONTENT AREA */}
-          <div className="flex flex-1 flex-col w-full min-w-0">
-            {/* HEADER */}
-            {showDashboardUI && (
-              <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                <AppHeader
-                  setIsSearchOpen={setIsSearchOpen}
-                  onMenuClick={toggle}
-                  isSidebarOpen={isOpen}
-                />
-              </header>
+                >
+                  <AppSidebarContent isCollapsed={!sidebarVisible} />
+                </div>
+              </>
             )}
 
-            {/* SCROLL WRAPPER */}
-            <ScrollArea className="flex-1 min-w-0 overflow-x-hidden">
-              <main className="min-w-0 overflow-x-hidden">{children}</main>
+            {/* MAIN CONTENT AREA */}
+            <div className="flex flex-1 flex-col w-full min-w-0">
+              {/* HEADER */}
+              {showDashboardUI && (
+                <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                  <AppHeader
+                    setIsSearchOpen={setIsSearchOpen}
+                    onMenuClick={toggle}
+                    isSidebarOpen={isOpen}
+                  />
+                </header>
+              )}
 
-              {!isDashboardPage && <Footer />}
-            </ScrollArea>
+              {/* SCROLL WRAPPER */}
+              <ScrollArea className="flex-1 min-w-0 overflow-x-hidden">
+                <main className="min-w-0 overflow-x-hidden">{children}</main>
 
-            {/* FOOTER */}
-            {showDashboardUI && <DashboardFooter />}
+                {!isDashboardPage && <Footer />}
+              </ScrollArea>
+
+              {/* FOOTER */}
+              {showDashboardUI && <DashboardFooter />}
+            </div>
           </div>
-        </div>
-      </SidebarContext.Provider>
+          {/* feedback popup in 1 second delay */}
+          {/* <FeedbackPopup delay={1000} /> */}
+          <FeedbackPopup
+            delay={30000}
+            forceOpen={showLogoutFeedback}
+            onClose={() => {
+              setShowLogoutFeedback(false);
+              dispatch(logoutRequest());
+              router.push('/');
+            }}
+          />
+        </SidebarContext.Provider>
+      </FeedbackProvider>
     </ProtectedRoute>
   );
 }

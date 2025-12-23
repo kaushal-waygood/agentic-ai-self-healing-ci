@@ -82,6 +82,7 @@ router.post(
   isUserOrUniStudent,
   appliedJob,
 );
+
 router.get(
   '/job/isapplied',
   authMiddleware,

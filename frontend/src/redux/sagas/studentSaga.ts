@@ -11,6 +11,9 @@ import {
   getStudentDetailsFailure,
 
   // education
+  getStudentEducationRequest,
+  getStudentEducationSuccess,
+  getStudentEducationFailure,
   addStudentEducationRequest,
   addStudentEducationSuccess,
   addStudentEducationFailure,
@@ -22,6 +25,9 @@ import {
   updateStudentEducationFailure,
 
   // experience
+  getStudentExperienceRequest,
+  getStudentExperienceSuccess,
+  getStudentExperienceFailure,
   addStudentExperienceRequest,
   addStudentExperienceSuccess,
   addStudentExperienceFailure,
@@ -47,6 +53,9 @@ import {
   updateStudentProjectFailure,
 
   // skills
+  getStudentSkllsRequest,
+  getStudentSkllsSuccess,
+  getStudentSkllsFailure,
   addStudentSkillRequest,
   addStudentSkillSuccess,
   addStudentSkillFailure,
@@ -77,6 +86,12 @@ import {
   updateJobPreferedByStudentRequest,
   updateJobPreferedByStudentSuccess,
   updateJobPreferedByStudentFailure,
+  postStudentEventsRequest,
+  postStudentEventsSuccess,
+  postStudentEventsFailure,
+  getStudentEventsRequest,
+  getStudentEventsSuccess,
+  getStudentEventsFailure,
 } from '../reducers/studentReducer';
 
 import {
@@ -89,6 +104,7 @@ import {
   removeEducation,
 
   // experience
+  getExperience,
   addExperience,
   updateExperience,
   removeExperience,
@@ -119,6 +135,10 @@ import {
   saveJob,
   visitedJobs,
   viewedJobs,
+  getSkills,
+  getEducation,
+  studentEvents,
+  getStudentEvent,
 } from '@/services/api/student';
 import {
   savedStudentJobsRequest,
@@ -205,6 +225,15 @@ function* getStudentDetailsSaga() {
 /* ============================================================
    Education
 ============================================================ */
+function* getStudentEducationSaga() {
+  try {
+    const response: AxiosResponse<Education[]> = yield call(getEducation);
+    yield put(getStudentEducationSuccess(response.data));
+  } catch (error) {
+    yield put(getStudentEducationFailure(getErrorMessage(error)));
+  }
+}
+
 function* addStudentEducationSaga(
   action: PayloadAction<Omit<Education, '_id'> | Education>,
 ) {
@@ -214,18 +243,16 @@ function* addStudentEducationSaga(
       action.payload,
     );
     yield put(addStudentEducationSuccess(response.data));
-    yield put(getStudentDetailsRequest());
+    yield put(getStudentEducationRequest());
   } catch (error) {
     yield put(addStudentEducationFailure(getErrorMessage(error)));
   }
 }
 
 function* removeStudentEducationSaga(action: PayloadAction<ID>) {
-  console.log(action.payload);
   try {
     yield call(removeEducation, action.payload);
     yield put(removeStudentEducationSuccess(action.payload));
-    yield put(getStudentDetailsRequest());
   } catch (error) {
     yield put(removeStudentEducationFailure(getErrorMessage(error)));
   }
@@ -242,9 +269,21 @@ function* updateStudentEducationSaga(
       data,
     );
     yield put(updateStudentEducationSuccess(response.data));
-    yield put(getStudentDetailsRequest());
+    yield put(getStudentEducationRequest());
   } catch (error) {
     yield put(updateStudentEducationFailure(getErrorMessage(error)));
+  }
+}
+
+/* ============================================================
+   Experience
+============================================================ */
+function* getStudentExperienceSaga() {
+  try {
+    const response: AxiosResponse<Experience[]> = yield call(getExperience);
+    yield put(getStudentExperienceSuccess(response.data));
+  } catch (error) {
+    yield put(getStudentExperienceFailure(getErrorMessage(error)));
   }
 }
 
@@ -257,7 +296,7 @@ function* addStudentExperienceSaga(
       action.payload,
     );
     yield put(addStudentExperienceSuccess(response.data));
-    yield put(getStudentDetailsRequest());
+    yield put(getStudentExperienceRequest());
   } catch (error) {
     yield put(addStudentExperienceFailure(getErrorMessage(error)));
   }
@@ -267,7 +306,7 @@ function* removeStudentExperienceSaga(action: PayloadAction<ID>) {
   try {
     yield call(removeExperience, action.payload);
     yield put(removeStudentExperienceSuccess(action.payload));
-    yield put(getStudentDetailsRequest());
+    yield put(getStudentExperienceRequest());
   } catch (error) {
     yield put(removeStudentExperienceFailure(getErrorMessage(error)));
   }
@@ -284,7 +323,7 @@ function* updateStudentExperienceSaga(
       data,
     );
     yield put(updateStudentExperienceSuccess(response.data));
-    yield put(getStudentDetailsRequest());
+    yield put(getStudentExperienceRequest());
   } catch (error) {
     yield put(updateStudentExperienceFailure(getErrorMessage(error)));
   }
@@ -293,13 +332,22 @@ function* updateStudentExperienceSaga(
 /* ============================================================
    Skills
 ============================================================ */
+function* getStudentSkillsSaga() {
+  try {
+    const response: AxiosResponse<Skill[]> = yield call(getSkills);
+    yield put(getStudentSkllsSuccess(response.data));
+  } catch (error) {
+    yield put(getStudentSkllsFailure(getErrorMessage(error)));
+  }
+}
+
 function* addStudentSkillsSaga(
   action: PayloadAction<Omit<Skill, '_id'> | Skill>,
 ) {
   try {
     const response: AxiosResponse<Skill> = yield call(addSkill, action.payload);
     yield put(addStudentSkillSuccess(response.data));
-    yield put(getStudentDetailsRequest());
+    yield put(getStudentSkllsRequest());
   } catch (error) {
     yield put(addStudentSkillFailure(getErrorMessage(error)));
   }
@@ -309,7 +357,7 @@ function* removeStudentSkillsSaga(action: PayloadAction<ID>) {
   try {
     yield call(removeSkill, action.payload);
     yield put(removeStudentSkillSuccess(action.payload));
-    yield put(getStudentDetailsRequest());
+    yield put(getStudentSkllsRequest());
   } catch (error) {
     yield put(removeStudentSkillFailure(getErrorMessage(error)));
   }
@@ -318,7 +366,6 @@ function* removeStudentSkillsSaga(action: PayloadAction<ID>) {
 function* updateStudentSkillsSaga(
   action: PayloadAction<{ data: Partial<Skill> & { _id: ID }; index: ID }>,
 ) {
-  console.log(action.payload);
   try {
     const { skillId, skillData } = action.payload;
     const response: AxiosResponse<Skill> = yield call(
@@ -327,12 +374,15 @@ function* updateStudentSkillsSaga(
       skillData,
     );
     yield put(updateStudentSkillSuccess(response.data));
-    yield put(getStudentDetailsRequest());
+    yield put(getStudentSkllsRequest());
   } catch (error) {
     yield put(updateStudentSkillFailure(getErrorMessage(error)));
   }
 }
 
+/* ============================================================
+   Projects
+============================================================ */
 function* getAllProjectsSaga() {
   try {
     const response: AxiosResponse<Project[]> = yield call(getAllProjects);
@@ -352,7 +402,7 @@ function* addStudentProjectsSaga(
       action.payload,
     );
     yield put(addStudentProjectSuccess(response.data));
-    yield put(getStudentDetailsRequest());
+    yield put(getAllProjectsRequest());
   } catch (error) {
     yield put(addStudentProjectFailure(getErrorMessage(error)));
   }
@@ -369,7 +419,7 @@ function* updateStudentProjectsSaga(
       data,
     );
     yield put(updateStudentProjectSuccess(response.data));
-    yield put(getStudentDetailsRequest());
+    yield put(getAllProjectsRequest());
   } catch (error) {
     yield put(updateStudentProjectFailure(getErrorMessage(error)));
   }
@@ -385,6 +435,9 @@ function* removeStudentProjectsSaga(action: PayloadAction<ID>) {
   }
 }
 
+/* ============================================================
+   Job Preference
+============================================================ */
 function* updateStudentJobPreferenceSaga(
   action: PayloadAction<Record<string, any>>,
 ) {
@@ -402,7 +455,6 @@ function* updateStudentJobPreferenceSaga(
 
 function* getStudentJobPreferenceSaga() {
   try {
-    console.log('recommendProfileJob');
     const response: AxiosResponse = yield call(recommendProfileJob);
     yield put(getStudentJobPreferenceSuccess(response.data));
     yield put(getStudentDetailsRequest());
@@ -448,7 +500,6 @@ function* updateJobPreferedByStudentSaga(
 
 function* savedJobsSaga(action: PayloadAction<Record<string, any>>) {
   try {
-    console.log(action.payload);
     const response: AxiosResponse = yield call(saveJob, action.payload);
     yield put(savedStudentJobsSuccess(response.data));
     yield put(getStudentDetailsRequest());
@@ -469,7 +520,6 @@ function* visitedJobsSaga(action: PayloadAction<Record<string, any>>) {
 
 function* viewedJobsSaga(action: PayloadAction<Record<string, any>>) {
   try {
-    console.log(action.payload);
     const response: AxiosResponse = yield call(viewedJobs, action.payload);
     yield put(viewedJobsSuccess(response.data));
     yield put(getStudentDetailsRequest());
@@ -478,11 +528,30 @@ function* viewedJobsSaga(action: PayloadAction<Record<string, any>>) {
   }
 }
 
+function* postStudentEventsSaga(action: PayloadAction<Record<string, any>>) {
+  try {
+    const response: AxiosResponse = yield call(studentEvents, action.payload);
+    yield put(postStudentEventsSuccess(response.data));
+  } catch (error) {
+    yield put(postStudentEventsFailure(getErrorMessage(error)));
+  }
+}
+
+function* getStudentEventsSaga(action: PayloadAction<Record<string, any>>) {
+  try {
+    const response: AxiosResponse = yield call(getStudentEvent, action.payload);
+    yield put(getStudentEventsSuccess(response.data));
+  } catch (error) {
+    yield put(getStudentEventsFailure(getErrorMessage(error)));
+  }
+}
+
 export function* studentWatcher() {
   // details
   yield takeLatest(getStudentDetailsRequest.type, getStudentDetailsSaga);
 
   // education
+  yield takeLatest(getStudentEducationRequest.type, getStudentEducationSaga);
   yield takeLatest(addStudentEducationRequest.type, addStudentEducationSaga);
   yield takeLatest(
     removeStudentEducationRequest.type,
@@ -494,6 +563,7 @@ export function* studentWatcher() {
   );
 
   // experience
+  yield takeLatest(getStudentExperienceRequest.type, getStudentExperienceSaga);
   yield takeLatest(addStudentExperienceRequest.type, addStudentExperienceSaga);
   yield takeLatest(
     updateStudentExperienceRequest.type,
@@ -505,6 +575,7 @@ export function* studentWatcher() {
   );
 
   // skills
+  yield takeLatest(getStudentSkllsRequest.type, getStudentSkillsSaga);
   yield takeLatest(addStudentSkillRequest.type, addStudentSkillsSaga);
   yield takeLatest(removeStudentSkillRequest.type, removeStudentSkillsSaga);
   yield takeLatest(updateStudentSkillRequest.type, updateStudentSkillsSaga);
@@ -538,4 +609,7 @@ export function* studentWatcher() {
   yield takeLatest(savedStudentJobsRequest.type, savedJobsSaga);
   yield takeLatest(visitedJobsRequest.type, visitedJobsSaga);
   yield takeLatest(viewedJobsRequest.type, viewedJobsSaga);
+
+  yield takeLatest(postStudentEventsRequest.type, postStudentEventsSaga);
+  yield takeLatest(postStudentEventsRequest.type, getStudentEventsSaga);
 }
