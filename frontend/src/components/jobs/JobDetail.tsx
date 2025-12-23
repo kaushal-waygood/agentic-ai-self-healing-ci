@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 
 import { JobListing } from '@/lib/data/jobs';
+import { getStudentEventsRequest } from '@/redux/reducers/studentReducer';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -187,7 +188,9 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
   const handleApplyOnSite = useCallback(async () => {
     try {
-      dispatch(visitedJobsRequest(job._id || job.slug));
+      dispatch(
+        getStudentEventsRequest({ jobId: job._id || job.slug, type: 'VISIT' }),
+      );
     } catch {
       toast({
         variant: 'destructive',
