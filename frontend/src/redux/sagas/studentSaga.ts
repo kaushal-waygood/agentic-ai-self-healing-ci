@@ -86,6 +86,9 @@ import {
   updateJobPreferedByStudentRequest,
   updateJobPreferedByStudentSuccess,
   updateJobPreferedByStudentFailure,
+  getStudentEventsRequest,
+  getStudentEventsSuccess,
+  getStudentEventsFailure,
 } from '../reducers/studentReducer';
 
 import {
@@ -131,6 +134,7 @@ import {
   viewedJobs,
   getSkills,
   getEducation,
+  studentEvents,
 } from '@/services/api/student';
 import {
   savedStudentJobsRequest,
@@ -245,7 +249,6 @@ function* removeStudentEducationSaga(action: PayloadAction<ID>) {
   try {
     yield call(removeEducation, action.payload);
     yield put(removeStudentEducationSuccess(action.payload));
-    yield put(getStudentEducationRequest());
   } catch (error) {
     yield put(removeStudentEducationFailure(getErrorMessage(error)));
   }
@@ -521,6 +524,15 @@ function* viewedJobsSaga(action: PayloadAction<Record<string, any>>) {
   }
 }
 
+function* getStudentEventsSaga(action: PayloadAction<Record<string, any>>) {
+  try {
+    const response: AxiosResponse = yield call(studentEvents, action.payload);
+    yield put(getStudentEventsSuccess(response.data));
+  } catch (error) {
+    yield put(getStudentEventsFailure(getErrorMessage(error)));
+  }
+}
+
 export function* studentWatcher() {
   // details
   yield takeLatest(getStudentDetailsRequest.type, getStudentDetailsSaga);
@@ -584,4 +596,6 @@ export function* studentWatcher() {
   yield takeLatest(savedStudentJobsRequest.type, savedJobsSaga);
   yield takeLatest(visitedJobsRequest.type, visitedJobsSaga);
   yield takeLatest(viewedJobsRequest.type, viewedJobsSaga);
+
+  yield takeLatest(getStudentEventsRequest.type, getStudentEventsSaga);
 }

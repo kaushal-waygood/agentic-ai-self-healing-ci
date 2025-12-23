@@ -146,3 +146,8 @@ export const isVisited = async (data: any) => {
   const response = await apiInstance.get(`/students/jobs/is-visited/${data}`);
   return response;
 };
+
+export const studentEvents = async (data: any) => {
+  const response = await apiInstance.post('/students/jobs/events', data);
+  return response;
+};

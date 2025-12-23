@@ -1,69 +1,64 @@
+'use client';
+
+import React, { useState } from 'react';
 import {
   Award,
   Calendar,
-  ChevronDown,
   GraduationCap,
   MapPin,
   Pencil,
   PlusCircle,
   Trash2,
 } from 'lucide-react';
-import React from 'react';
 
-const Education = ({
-  defaultValues,
-  setAddEdu,
-  setEditEdu,
-  setEditEduIndex,
-  setDeleteEdu,
-  setDeleteEduIndex,
-}: any) => {
-  // Optional: define this helper if it exists elsewhere
-  const formatDateForMonthInput = (date: string) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return `${d.toLocaleString('default', {
-      month: 'short',
-    })} ${d.getFullYear()}`;
-  };
+import { useEducation } from '@/hooks/useProfile';
+import { AddEducation } from '../AddEducation'; // adjust path if needed
+
+const formatDateForMonthInput = (date: string) => {
+  if (!date) return '';
+  const d = new Date(date);
+  return `${d.toLocaleString('default', {
+    month: 'short',
+  })} ${d.getFullYear()}`;
+};
+
+const Education = () => {
+  const { educations, deleteEducation } = useEducation();
+
+  // modal state (LOCAL, correct place)
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editData, setEditData] = useState<any | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   return (
-    <div className=" ">
-      {/* button  */}
-      <div className="flex w-full items-center justify-between mb-4 ">
+    <div>
+      {/* Header */}
+      <div className="flex w-full items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <GraduationCap className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl font-bold text-gray-800">Education</h3>
         </div>
-        <div className="flex  items-center gap-4">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setAddEdu(true);
-            }}
-            className="w-full  flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700  text-white rounded-lg  transition-all duration-300"
-          >
-            <PlusCircle className="mr-2 h-5 w-5" />
-            Add Education
-          </button>
-          {/* <ChevronDown className="h-5 w-5 transition-transform duration-300 group-data-[state=open]:rotate-180" /> */}
-        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsAddOpen(true)}
+          className="flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg transition-all"
+        >
+          <PlusCircle className="mr-2 h-5 w-5" />
+          Add Education
+        </button>
       </div>
 
-      <div
-        id="education"
-        // className="bg-gradient-to-r  from-blue-50 to-cyan-50 rounded-2xl p-6 border max-h-[70vh] overflow-y-auto  border-blue-200"
-        className=" rounded-xl p-2 max-h-[70vh] overflow-y-auto  border-blue-200"
-      >
-        <div className="space-y-4  ">
-          {defaultValues.education && defaultValues.education.length > 0 ? (
-            defaultValues.education.map((edu, index) => (
+      {/* List */}
+      <div className="rounded-xl p-2 max-h-[70vh] overflow-y-auto">
+        <div className="space-y-4">
+          {educations.length > 0 ? (
+            educations.map((edu) => (
               <div
                 key={edu._id}
-                className="bg-white rounded-lg p-5  transition-all duration-300 border border-blue-100 "
+                className="bg-white rounded-lg p-5 border border-blue-100"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
@@ -79,49 +74,40 @@ const Education = ({
                       </p>
                     )}
                   </div>
+
                   <div className="flex gap-2">
                     <button
-                      size="icon"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditEdu(true);
-
-                        setEditEduIndex(index);
-                      }}
-                      className="text-blue-600 border-blue-300 hover:bg-blue-50 h-9 w-9"
+                      onClick={() => setEditData(edu)}
+                      className="text-blue-600 border border-blue-300 hover:bg-blue-50 h-9 w-9 rounded-md flex items-center justify-center"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
+
                     <button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => {
-                        console.log(edu._id);
-                        setDeleteEdu(true);
-                        setDeleteEduIndex(edu._id);
-                      }}
-                      className="text-red-600 border-red-300 hover:bg-red-50 h-9 w-9"
+                      onClick={() => setDeleteId(edu._id)}
+                      className="text-red-600 border border-red-300 hover:bg-red-50 h-9 w-9 rounded-md flex items-center justify-center"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span>
                       {formatDateForMonthInput(edu.startDate)} to{' '}
                       {formatDateForMonthInput(edu.endDate) || 'Present'}
-                      {/* {edu.startDate} - {edu.endDate || 'Present'} */}
                     </span>
                   </div>
+
                   {edu.gpa && (
                     <div className="flex items-center gap-2 text-gray-600">
                       <Award className="h-4 w-4 text-gray-400" />
                       <span>GPA: {edu.gpa}</span>
                     </div>
                   )}
+
                   {edu.country && (
                     <div className="flex items-center gap-2 text-gray-600">
                       <MapPin className="h-4 w-4 text-gray-400" />
@@ -132,10 +118,50 @@ const Education = ({
               </div>
             ))
           ) : (
-            <div className=" text-gray-500  italic">No data</div>
+            <div className="text-gray-500 italic">No education added</div>
           )}
         </div>
       </div>
+
+      {/* ADD MODAL */}
+      {isAddOpen && <AddEducation onCancel={() => setIsAddOpen(false)} />}
+
+      {/* EDIT MODAL */}
+      {editData && (
+        <AddEducation
+          isEdit
+          data={editData}
+          onCancel={() => setEditData(null)}
+        />
+      )}
+
+      {/* DELETE CONFIRM */}
+      {deleteId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-80">
+            <p className="text-gray-800 mb-4">
+              Are you sure you want to delete this education?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="px-4 py-2 border rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  deleteEducation(deleteId);
+                  setDeleteId(null);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

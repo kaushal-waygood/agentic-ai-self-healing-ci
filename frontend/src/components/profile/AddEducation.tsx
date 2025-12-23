@@ -65,6 +65,16 @@ const monthToIso = (month?: string) =>
 
 /* ---------------------------- Shared UI pieces --------------------------- */
 
+function useLockScroll() {
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, []);
+}
+
 type ModalShellProps = {
   title: string;
   subtitle?: string;
@@ -73,40 +83,55 @@ type ModalShellProps = {
   children: ReactNode;
 };
 
-const ModalShell: React.FC<ModalShellProps> = ({
+const ModalShell = ({
   title,
   subtitle,
   icon: Icon,
   onClose,
   children,
-}) => {
+}: any) => {
+  useLockScroll();
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className={`bg-header-gradient-primary p-5 text-white relative`}>
-          <div className="flex items-center justify-between">
+    <div className="fixed inset-0 z-[999]">
+      {/* Overlay */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+        <div
+          className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-5 text-white flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                {Icon ? <Icon className="w-6 h-6" /> : null}
-              </div>
+              {Icon && (
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Icon className="w-5 h-5" />
+                </div>
+              )}
               <div>
-                <h2 className="text-xl font-bold">{title}</h2>
+                <h2 className="font-semibold text-lg">{title}</h2>
                 {subtitle && (
                   <p className="text-white/80 text-sm">{subtitle}</p>
                 )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
+
+            <button
               onClick={onClose}
-              className="w-10 h-10 bg-white/20 rounded-full hover:bg-white/30 text-white"
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
             >
-              <X className="w-5 h-5" />
-            </Button>
+              ✕
+            </button>
           </div>
+
+          {children}
         </div>
-        {children}
       </div>
     </div>
   );
@@ -226,6 +251,19 @@ const useStepControls = (initial = 0) => {
 
   return { currentStep, next, prev, goto, setCurrentStep };
 };
+
+export function useLockBodyScroll(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [active]);
+}
 
 /* ---------------------------- UI bits left alone --------------------------- */
 
@@ -401,7 +439,7 @@ export const AddEducation: React.FC<{
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
-      institution: data?.institution || '',
+      institution: data?.institute || '',
       degree: data?.degree || '',
       fieldOfStudy: data?.fieldOfStudy || '',
       country: data?.country || '',

@@ -11,6 +11,8 @@ import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
 import { Search, Frown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { getStudentEventsRequest } from '@/redux/reducers/studentReducer';
+import { useDispatch } from 'react-redux';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
@@ -28,6 +30,7 @@ export default function JobsPage() {
     notification,
     loadMoreJobs,
   } = useJobs();
+  const dispatch = useDispatch();
 
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
@@ -54,10 +57,10 @@ export default function JobsPage() {
   /* ===================== CLICK TRACKING (SINGLE SOURCE) ===================== */
   async function trackJobClick(jobId: string, query?: string) {
     try {
-      const payload: any = {};
+      const payload: any = { jobId, type: 'VIEW' };
       if (query) payload.query = query;
 
-      await apiInstance.post(`/jobs/${jobId}/click`, payload);
+      dispatch(getStudentEventsRequest(payload));
     } catch {
       // analytics must never break UX
     }

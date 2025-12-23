@@ -66,22 +66,28 @@ export default function ApplicationsPage() {
 
         switch (statusFilter) {
           case 'Applied':
-            response = await apiInstance.get('/students/jobs/applied-all');
-            rawData = response.data.appliedJobs || [];
+            response = await apiInstance.get(
+              '/students/jobs/events?type=APPLIED',
+            );
+            rawData = response.data.jobs || [];
             statusLabel = 'Applied';
             break;
           case 'Visited':
-            response = await apiInstance.get(`/students/jobs/visited-all`);
+            response = await apiInstance.get(
+              `/students/jobs/events?type=VISIT`,
+            );
             rawData = response.data.jobs || [];
             statusLabel = 'Visited';
             break;
           case 'Viewed':
-            response = await apiInstance.get(`/students/jobs/viewed-all`);
+            response = await apiInstance.get(`/students/jobs/events?type=VIEW`);
             rawData = response.data.jobs || [];
             statusLabel = 'Viewed';
             break;
           case 'Saved':
-            response = await apiInstance.get(`/students/jobs/saved-all`);
+            response = await apiInstance.get(
+              `/students/jobs/events?type=SAVED`,
+            );
             rawData = response.data.jobs || [];
             statusLabel = 'Saved';
             break;
@@ -108,7 +114,9 @@ export default function ApplicationsPage() {
             return; // Exit early
 
           default:
-            response = await apiInstance.get(`/students/jobs/saved-all`);
+            response = await apiInstance.get(
+              `/students/jobs/events?type=SAVED`,
+            );
             rawData = response.data.jobs || [];
             statusLabel = 'Saved';
             break;

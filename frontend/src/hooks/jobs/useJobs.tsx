@@ -9,7 +9,6 @@ import {
   searchJobRequest,
 } from '@/redux/reducers/jobReducer';
 import { RootState } from '@/redux/rootReducer';
-import apiInstance from '@/services/api';
 
 export const useJobs = () => {
   const dispatch = useDispatch();

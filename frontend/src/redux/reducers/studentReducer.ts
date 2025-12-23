@@ -67,6 +67,7 @@ type StudentState = {
   error: string | null;
   jobPreference: JobPreference | null;
   savedJobs: string[]; // keep consistent
+  events: any[];
   resume?: any;
 };
 
@@ -79,6 +80,7 @@ const initialState: StudentState = {
   savedJobs: [],
   jobPreference: null,
   loading: false,
+  events: [],
   error: null,
 };
 
@@ -225,7 +227,7 @@ const studentSlice = createSlice({
     },
     addStudentExperienceSuccess: (state, action: PayloadAction<Experience>) => {
       state.loading = false;
-      state.experiences = [...state.experiences, action.payload];
+      state.experiences.push(action.payload);
       state.error = null;
     },
     addStudentExperienceFailure: (state, action: PayloadAction<string>) => {
@@ -522,6 +524,20 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
+    getStudentEventsRequest: (state, _action: PayloadAction<void>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getStudentEventsSuccess: (state, action: PayloadAction<any>) => {
+      state.loading = false;
+      state.events = action.payload;
+      state.error = null;
+    },
+    getStudentEventsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     /* =========================
        Utils
     ========================= */
@@ -610,6 +626,10 @@ export const {
   getAllSavedJobsRequest,
   getAllSavedJobsSuccess,
   getAllSavedJobsFailure,
+
+  getStudentEventsRequest,
+  getStudentEventsSuccess,
+  getStudentEventsFailure,
 
   clearError,
 } = studentSlice.actions;
