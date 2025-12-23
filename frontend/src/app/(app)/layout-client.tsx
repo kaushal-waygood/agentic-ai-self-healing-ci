@@ -16,10 +16,6 @@ import { Footer } from '@/components/layout/footer';
 import { useDispatch, useSelector } from 'react-redux';
 import ProtectedRoute from '@/components/protected/ProtectedRoute';
 import LogRocket from 'logrocket';
-import FeedbackPopup from '@/components/ui/feedbackPopup';
-import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext';
-import { logoutRequest } from '@/redux/reducers/authReducer';
-import { useRouter } from 'next/navigation';
 
 // 1. Define and Create Context
 interface SidebarContextType {
@@ -292,23 +288,11 @@ export default function DashboardLayoutClient({
                 {!isDashboardPage && <Footer />}
               </ScrollArea>
 
-              {/* FOOTER */}
-              {showDashboardUI && <DashboardFooter />}
-            </div>
+            {/* FOOTER */}
+            {showDashboardUI && <DashboardFooter />}
           </div>
-          {/* feedback popup in 1 second delay */}
-          {/* <FeedbackPopup delay={1000} /> */}
-          <FeedbackPopup
-            delay={30000}
-            forceOpen={showLogoutFeedback}
-            onClose={() => {
-              setShowLogoutFeedback(false);
-              dispatch(logoutRequest());
-              router.push('/');
-            }}
-          />
-        </SidebarContext.Provider>
-      </FeedbackProvider>
+        </div>
+      </SidebarContext.Provider>
     </ProtectedRoute>
   );
 }

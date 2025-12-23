@@ -1,6 +1,15 @@
 // middlewares/credits.middleware.js
 import { User } from '../models/User.model.js';
 
+// const ACTION_TO_DB_FIELD = {
+//   CV_GENERATION: 'cvCreation',
+//   CV_REGENERATION: 'cvCreation',
+//   COVER_LETTER: 'coverLetter',
+//   COVER_LETTER_GENERATION: 'coverLetter',
+//   TAILORED_APPLY: 'aiApplication',
+//   AUTO_APPLY: 'autoApply',
+//   AI_AUTO_APPLY: 'aiAutoApply',
+// };
 const ACTION_TO_DB_FIELD = {
   CV_GENERATION: 'cvCreation',
   CV_REGENERATION: 'cvCreation',
@@ -19,7 +28,11 @@ export const checkCredits = (actionType) => {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
+      console.log('userId', actionType);
+
       const usageField = ACTION_TO_DB_FIELD[actionType];
+
+      console.log('usageField', usageField);
 
       if (!usageField) {
         return res.status(500).json({
