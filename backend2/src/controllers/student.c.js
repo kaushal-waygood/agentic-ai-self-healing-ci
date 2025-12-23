@@ -1031,6 +1031,8 @@ export const getSavedJobs = async (req, res) => {
     .sort({ createdAt: -1 })
     .lean();
 
+  console.log('saved', saved);
+
   res.json({ success: true, jobs: saved });
 };
 
@@ -1069,8 +1071,8 @@ export const StudentAnalytics = async (req, res) => {
 
   try {
     const [
-      impressionCount,
       viewCount,
+      visitCount, 
       savedCount,
       appliedCount,
       cvCount,
@@ -1080,12 +1082,12 @@ export const StudentAnalytics = async (req, res) => {
     ] = await Promise.all([
       JobInteraction.countDocuments({
         user: userId,
-        type: 'IMPRESSION',
+        type: 'VIEW',
       }),
 
       JobInteraction.countDocuments({
         user: userId,
-        type: 'VIEW',
+        type: 'VISIT',
       }),
 
       JobInteraction.countDocuments({
@@ -1116,9 +1118,9 @@ export const StudentAnalytics = async (req, res) => {
     ]);
 
     return res.status(200).json({
-      jobsVisited: impressionCount,
       jobsViewed: viewCount,
       savedJobsCount: savedCount,
+      jobsVisited: visitCount,
 
       appliedJobsCount: appliedCount,
       applicationsSent: appliedCount,

@@ -11,7 +11,7 @@ import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
 import { Search, Frown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { getStudentEventsRequest } from '@/redux/reducers/studentReducer';
+import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
 
 export default function JobsPage() {
@@ -60,7 +60,7 @@ export default function JobsPage() {
       const payload: any = { jobId, type: 'VIEW' };
       if (query) payload.query = query;
 
-      dispatch(getStudentEventsRequest(payload));
+      dispatch(postStudentEventsRequest(payload));
     } catch {
       // analytics must never break UX
     }

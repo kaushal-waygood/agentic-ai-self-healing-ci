@@ -1222,60 +1222,69 @@ export const AddSkill: React.FC<{ onCancel: () => void }> = ({ onCancel }) => {
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={handleSubmit(handleFormSubmit)}
-        className="space-y-8 bg-white p-4 rounded-lg"
-      >
-        <div className="space-y-4">
-          <FormField
-            control={control}
-            name="skill"
-            rules={{ required: 'Skill is required' }}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Skill*</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Your skill" required />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name="level"
-            rules={{ required: 'Level is required' }}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Level*</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="z-[9999] max-h-[300px] bg-white">
-                    {skillTypes.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+    <ModalShell
+      // title={isEdit ? 'Edit Skills' : 'Add Skills'}
+      icon={Briefcase}
+      onClose={onCancel}
+      headerGradient="from-purple-500 to-indigo-500"
+    >
+      <div className="p-6 overflow-y-auto flex-1">
+        <Form {...form}>
+          <form
+            onSubmit={handleSubmit(handleFormSubmit)}
+            className="space-y-8 bg-white p-4 rounded-lg"
+          >
+            <div className="space-y-4">
+              <FormField
+                control={control}
+                name="skill"
+                rules={{ required: 'Skill is required' }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Skill*</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Your skill" required />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="level"
+                rules={{ required: 'Level is required' }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Level*</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="z-[9999] max-h-[300px] bg-white">
+                        {skillTypes.map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit">Save Skill</Button>
-        </div>
-      </form>
-    </Form>
+            <div className="flex justify-end gap-4">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button type="submit">Save Skill</Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+    </ModalShell>
   );
 };

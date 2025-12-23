@@ -32,8 +32,8 @@ export default function ApplicationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [jobStats, setJobStats] = useState({
     savedJobsCount: 0,
-    viewedJobsCount: 0,
-    visitedJobsCount: 0,
+    jobsViewed: 0,
+    jobsVisited: 0,
     appliedJobsCount: 0,
   });
 
@@ -47,8 +47,8 @@ export default function ApplicationsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await apiInstance.get(`/students/job/stats`);
-        setJobStats(response.data.statCounts);
+        const response = await apiInstance.get(`/students/jobs/stats`);
+        setJobStats(response.data);
       } catch (error) {
         console.error('Failed to fetch job stats:', error);
       }
@@ -193,14 +193,14 @@ export default function ApplicationsPage() {
           />
           <StatCard
             label="Viewed Jobs"
-            value={jobStats.viewedJobsCount}
+            value={jobStats.jobsViewed}
             icon={Eye}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Viewed')}
           />
           <StatCard
             label="Visited Links"
-            value={jobStats.visitedJobsCount}
+            value={jobStats.jobsVisited}
             icon={Link}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Visited')}

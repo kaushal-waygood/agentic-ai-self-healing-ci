@@ -79,11 +79,12 @@ const DocumentPage = () => {
 
             transformed = {
               type: 'cv',
-              cv: cvData.cv || '',
+              cv: cvData.cv || cvData.html || '',
               atsScore: cvData.atsScore || 0,
               atsScoreReasoning: cvData.atsScoreReasoning || '',
               jobTitle: responseData?.cv?.jobTitle || '',
             };
+
             break;
           }
 
@@ -104,6 +105,8 @@ const DocumentPage = () => {
           case 'application': {
             const app = responseData.application;
 
+            console.log('app', app);
+
             transformed = {
               type: 'application',
               jobTitle: app.jobTitle,
@@ -114,9 +117,11 @@ const DocumentPage = () => {
               atsScore: app.tailoredCV?.atsScore || 0,
               atsScoreReasoning: app.tailoredCV?.atsScoreReasoning || '',
 
-              coverLetter: app.tailoredCoverLetter || '',
-              email: app.applicationEmail || '',
+              coverLetter: app.tailoredCoverLetter.html || '',
+              email: app.applicationEmail.html || '',
             };
+
+            console.log('transformed', transformed);
 
             setRefinedCv(transformed.cv);
             setTailoredCl(transformed.coverLetter);

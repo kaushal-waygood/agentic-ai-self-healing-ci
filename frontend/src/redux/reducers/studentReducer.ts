@@ -524,6 +524,20 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
+    postStudentEventsRequest: (state, _action: PayloadAction<void>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    postStudentEventsSuccess: (state, action: PayloadAction<any>) => {
+      state.loading = false;
+      state.events = action.payload;
+      state.error = null;
+    },
+    postStudentEventsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     getStudentEventsRequest: (state, _action: PayloadAction<void>) => {
       state.loading = true;
       state.error = null;
@@ -626,6 +640,10 @@ export const {
   getAllSavedJobsRequest,
   getAllSavedJobsSuccess,
   getAllSavedJobsFailure,
+
+  postStudentEventsRequest,
+  postStudentEventsSuccess,
+  postStudentEventsFailure,
 
   getStudentEventsRequest,
   getStudentEventsSuccess,

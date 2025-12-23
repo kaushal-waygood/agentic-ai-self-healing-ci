@@ -86,6 +86,9 @@ import {
   updateJobPreferedByStudentRequest,
   updateJobPreferedByStudentSuccess,
   updateJobPreferedByStudentFailure,
+  postStudentEventsRequest,
+  postStudentEventsSuccess,
+  postStudentEventsFailure,
   getStudentEventsRequest,
   getStudentEventsSuccess,
   getStudentEventsFailure,
@@ -135,6 +138,7 @@ import {
   getSkills,
   getEducation,
   studentEvents,
+  getStudentEvent,
 } from '@/services/api/student';
 import {
   savedStudentJobsRequest,
@@ -524,9 +528,18 @@ function* viewedJobsSaga(action: PayloadAction<Record<string, any>>) {
   }
 }
 
-function* getStudentEventsSaga(action: PayloadAction<Record<string, any>>) {
+function* postStudentEventsSaga(action: PayloadAction<Record<string, any>>) {
   try {
     const response: AxiosResponse = yield call(studentEvents, action.payload);
+    yield put(postStudentEventsSuccess(response.data));
+  } catch (error) {
+    yield put(postStudentEventsFailure(getErrorMessage(error)));
+  }
+}
+
+function* getStudentEventsSaga(action: PayloadAction<Record<string, any>>) {
+  try {
+    const response: AxiosResponse = yield call(getStudentEvent, action.payload);
     yield put(getStudentEventsSuccess(response.data));
   } catch (error) {
     yield put(getStudentEventsFailure(getErrorMessage(error)));
@@ -597,5 +610,6 @@ export function* studentWatcher() {
   yield takeLatest(visitedJobsRequest.type, visitedJobsSaga);
   yield takeLatest(viewedJobsRequest.type, viewedJobsSaga);
 
-  yield takeLatest(getStudentEventsRequest.type, getStudentEventsSaga);
+  yield takeLatest(postStudentEventsRequest.type, postStudentEventsSaga);
+  yield takeLatest(postStudentEventsRequest.type, getStudentEventsSaga);
 }
