@@ -55,6 +55,7 @@ import {
 } from '@/redux/reducers/studentReducer';
 
 import { countries } from '@/lib/data/countries';
+import ModalPortal from '../ui/modalPortal';
 
 /* ---------------------------- Utilities ---------------------------------- */
 const toMonth = (iso?: string) =>
@@ -93,49 +94,99 @@ const ModalShell = ({
   useLockScroll();
 
   return (
-    <div className="fixed inset-0 z-[999]">
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+    <ModalPortal>
+      <div className="fixed inset-0 z-[9999]">
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/50 " onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
-        <div
-          className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-5 text-white flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              {Icon && (
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Icon className="w-5 h-5" />
-                </div>
-              )}
-              <div>
-                <h2 className="font-semibold text-lg">{title}</h2>
-                {subtitle && (
-                  <p className="text-white/80 text-sm">{subtitle}</p>
+        {/* Modal */}
+        <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+          <div
+            className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-5 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                {Icon && (
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <Icon className="w-5 h-5" />
+                  </div>
                 )}
+                <div>
+                  <h2 className="font-semibold text-lg">{title}</h2>
+                  {subtitle && (
+                    <p className="text-white/80 text-sm">{subtitle}</p>
+                  )}
+                </div>
               </div>
+
+              <button
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
+              >
+                ✕
+              </button>
             </div>
 
-            <button
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
-            >
-              ✕
-            </button>
+            {children}
           </div>
-
-          {children}
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };
+
+// const ModalShell = ({
+//   title,
+//   subtitle,
+//   icon: Icon,
+//   onClose,
+//   children,
+// }: any) => {
+//   useLockScroll();
+
+//   return (
+//     <div className="fixed inset-0 z-[9999]">
+//       {/* Overlay */}
+//       <div className="absolute inset-0  backdrop-blur-sm" onClick={onClose} />
+
+//       {/* Modal */}
+//       <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+//         <div
+//           className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in"
+//           onClick={(e) => e.stopPropagation()}
+//         >
+//           {/* Header */}
+//           <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-5 text-white flex justify-between items-center">
+//             <div className="flex items-center gap-3">
+//               {Icon && (
+//                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+//                   <Icon className="w-5 h-5" />
+//                 </div>
+//               )}
+//               <div>
+//                 <h2 className="font-semibold text-lg">{title}</h2>
+//                 {subtitle && (
+//                   <p className="text-white/80 text-sm">{subtitle}</p>
+//                 )}
+//               </div>
+//             </div>
+
+//             <button
+//               onClick={onClose}
+//               className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
+//             >
+//               ✕
+//             </button>
+//           </div>
+
+//           {children}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
 type StepDef = {
   id: string;
