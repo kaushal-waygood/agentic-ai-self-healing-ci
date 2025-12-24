@@ -303,8 +303,8 @@ export default function DashboardLayoutClient({
             forceOpen={showLogoutFeedback}
             onClose={() => {
               setShowLogoutFeedback(false);
-              dispatch(logoutRequest());
-              router.push('/');
+              // dispatch(logoutRequest());
+              // router.push('/');
             }}
           />
         </SidebarContext.Provider>

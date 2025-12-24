@@ -24,7 +24,7 @@ export function CreditsFooterActions({
       </button>
       <button
         onClick={onShare}
-        className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:shadow-lg hover:shadow-blue-400/30 text-white rounded-lg transition-all duration-300 flex items-center gap-2"
+        className="px-4 py-2.5 bg-buttonPrimary hover:shadow-lg hover:shadow-blue-400/30 text-white rounded-lg transition-all duration-300 flex items-center gap-2"
       >
         <Copy className="w-4 h-4" />
         Share

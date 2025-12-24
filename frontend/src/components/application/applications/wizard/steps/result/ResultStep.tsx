@@ -25,6 +25,7 @@ import EditableMaterial from '@/components/application/editable-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 const planTierOrder = { free: 0, plus: 1, pro: 2 };
 const mockUserProfile = {
@@ -140,6 +141,7 @@ const ResultStep = ({
     defaultTab || 'job',
   );
 
+  console.log('context', jobContext);
   const CustomButton = ({
     variant,
     onClick,
@@ -168,28 +170,28 @@ const ResultStep = ({
       id: 'job',
       title: 'Job Details',
       icon: Briefcase,
-      color: 'from-purple-500 to-purple-600',
+      color: 'tabPrimary',
       description: "Review the job you're applying for",
     },
     {
       id: 'cv',
       title: 'Tailored CV',
       icon: FileText,
-      color: 'from-blue-500 to-blue-600',
+      color: 'tabPrimary',
       description: 'Your customized resume',
     },
     {
       id: 'cover',
       title: 'Cover Letter',
       icon: FileCheck2,
-      color: 'from-cyan-500 to-cyan-600',
+      color: 'tabPrimary',
       description: 'Personalized cover letter',
     },
     {
       id: 'email',
-      title: 'Application Email',
+      title: 'Email',
       icon: Mail,
-      color: 'from-purple-500 to-cyan-500',
+      color: 'tabPrimary',
       description: 'Ready-to-send application email',
     },
   ];
@@ -217,9 +219,10 @@ const ResultStep = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-4 font-sans">
+    <div className="max-w-6xl mx-auto sm:p-6 p-1 space-y-4 font-sans">
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 mb-4 p-2 bg-slate-100 rounded-lg shadow-inner">
+
+      <div className="flex flex-wrap gap-2 mb-4 justify-center p-2 bg-slate-100 rounded-lg shadow-inner">
         {sections.map((section, index) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -229,51 +232,55 @@ const ResultStep = ({
             <CustomButton
               key={section.id}
               onClick={() => setActiveSection(section.id)}
-              className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-300 transform ${
+              className={`flex-col sm:flex-row items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-300 transform ${
                 isActive
-                  ? `bg-gradient-to-r ${section.color} text-white shadow-lg scale-105`
+                  ? `bg-${section.color} text-white scale-105 `
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white hover:shadow-sm'
               }`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="relative">
-                <Icon className="w-5 h-5" />
+                <Icon className=" w-5 h-5" />
                 {isSaved && (
                   <CheckCircle className="absolute -top-1 -right-1 w-3 h-3 text-green-500 animate-bounce" />
                 )}
               </div>
-              <span className="hidden sm:inline">{section.title}</span>
+              <span className={` ${isActive ? '' : 'hidden sm:inline '} `}>
+                {section.title}
+              </span>
             </CustomButton>
           );
         })}
       </div>
 
       {/* Content Sections */}
-      <div className="space-y-6">
+      <div className="space-y-6 ">
         {/* Job Details Section */}
         {activeSection === 'job' && jobContext && (
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-2">
-              <div className="flex items-center space-x-3 text-white">
-                <Briefcase className="w-6 h-6" />
-                <h2 className="text-2xl font-bold">Job Details</h2>
+            <div className="bg-header-gradient-primary p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 justify-center text-white">
+                  <Briefcase className="hidden sm:inline w-6 h-6" />
+                  <h2 className="text-2xl font-bold bg-transparent text-white">
+                    Job Details
+                  </h2>
+                </div>
               </div>
-              <p className="text-purple-100 mt-2">
+              <p className=" text-slate-100">
                 This is the job you are creating an application for.
               </p>
             </div>
 
             <div className="p-4">
-              <div className="mb-4">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">
+              <div className="mb-2">
+                <h3 className="text-lg sm:text-2xl font-bold text-slate-900 ">
                   {jobContext.jobTitle}
                 </h3>
-                <p className="text-lg text-slate-600">
+                <p className="text-md sm:text-lg text-slate-600">
                   {jobContext.companyName}
                 </p>
               </div>
-
-              <div className="w-full h-px bg-slate-200 my-4" />
 
               <div className="h-64 overflow-y-auto p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
                 <div
@@ -290,18 +297,21 @@ const ResultStep = ({
         {/* Tailored CV Section */}
         {activeSection === 'cv' && (
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-2">
+            <div className="bg-header-gradient-primary p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 justify-center text-white">
-                  <FileText className="w-6 h-6" />
+                  <FileText className="hidden sm:inline w-6 h-6" />
                   <h2 className="text-2xl font-bold bg-transparent text-white">
                     Tailored CV
                   </h2>
                 </div>
               </div>
+              <p className=" text-slate-100">
+                Personalized resume aligned with your target role.
+              </p>
             </div>
 
-            <div className="p-8">
+            <div className="">
               <EditableMaterial
                 editorId="cv-editor"
                 title="CV Content"
@@ -316,12 +326,15 @@ const ResultStep = ({
         {/* Tailored Cover Letter Section */}
         {activeSection === 'cover' && (
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 p-2">
+            <div className="bg-header-gradient-primary p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 text-white">
-                  <FileCheck2 className="w-6 h-6" />
-                  <h2 className="text-2xl font-bold">Tailored Cover Letter</h2>
+                <div className="flex items-center gap-2 justify-center text-white">
+                  <FileCheck2 className="hidden sm:inline w-6 h-6" />
+                  <h2 className="text-2xl font-bold bg-transparent text-white">
+                    Tailored Cover Letter
+                  </h2>
                 </div>
+
                 <div className="flex space-x-2">
                   <InternalEditableMaterialButton
                     variant="ghost"
@@ -340,12 +353,12 @@ const ResultStep = ({
                   </InternalEditableMaterialButton>
                 </div>
               </div>
-              <p className="text-cyan-100 mt-2">
+              <p className="text-purple-100">
                 Personalized cover letter highlighting your relevant experience.
               </p>
             </div>
 
-            <div className="p-8">
+            <div className="">
               <EditableMaterial
                 editorId="cl-editor"
                 title="Cover Letter"
@@ -360,14 +373,15 @@ const ResultStep = ({
         {/* Application Email Draft Section */}
         {activeSection === 'email' && (
           <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
-            <div className="bg-gradient-to-r from-purple-500 to-cyan-500 p-2">
+            <div className="bg-header-gradient-primary p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 text-white">
-                  <Mail className="w-6 h-6" />
-                  <h2 className="text-2xl font-bold">
+                <div className="flex items-center gap-2 justify-center text-white">
+                  <Mail className="hidden sm:inline w-6 h-6" />
+                  <h2 className="text-2xl font-bold bg-transparent text-white">
                     Application Email Draft
                   </h2>
                 </div>
+
                 <div className="flex space-x-2">
                   <InternalEditableMaterialButton
                     variant="ghost"
@@ -386,12 +400,12 @@ const ResultStep = ({
                   </InternalEditableMaterialButton>
                 </div>
               </div>
-              <p className="text-purple-100 mt-2">
+              <p className="text-purple-100">
                 Ready-to-send email for your application submission.
               </p>
             </div>
 
-            <div className="p-8">
+            <div className="">
               <EditableMaterial
                 editorId="email-editor"
                 title="Email Draft"
@@ -434,13 +448,13 @@ const ResultStep = ({
             </CustomButton>
           )} */}
 
-          <CustomButton
+          <Button
             onClick={() => router.push('/dashboard/apply')}
-            className="flex items-center space-x-2 px-4 py-2 bg-slate-600 to-slate-700 text-white rounded-lg font-medium "
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium "
           >
             <PlusCircle className="w-4 h-4" />
             <span>New Applications</span>
-          </CustomButton>
+          </Button>
         </div>
       </div>
 

@@ -25,7 +25,7 @@
 //   if (!open) return null;
 
 //   return (
-//     <div className="fixed bottom-6 right-6 z-50 w-[340px] rounded-xl bg-white shadow-2xl border border-slate-200 animate-slideUp">
+//     <div className="fixed bottom-6 right-6 z-50 w-[340px] rounded-lg bg-white shadow-2xl border border-slate-200 animate-slideUp">
 //       <div className="flex items-center justify-between px-4 py-3 border-b bg-header-gradient-primary text-white rounded-t-xl">
 //         <div className="flex items-center gap-2">
 //           <MessageSquare className="w-5 h-5" />
@@ -127,14 +127,14 @@ export default function FeedbackPopup({
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 w-[340px] rounded-xl
+      className="fixed bottom-6 right-6 z-50 w-[340px] rounded-lg
                     bg-white shadow-2xl border border-slate-200"
     >
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3
-                      bg-gradient-to-r from-purple-500 to-blue-500
-                      text-white rounded-t-xl"
+                     bg-header-gradient-primary
+                      text-white rounded-t-lg"
       >
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5" />
@@ -146,7 +146,7 @@ export default function FeedbackPopup({
       </div>
 
       {/* Body */}
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 ">
         <p className="text-sm text-slate-600">
           Before you go, how was your experience?
         </p>
@@ -155,15 +155,15 @@ export default function FeedbackPopup({
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
           placeholder="Your feedback helps us improve..."
-          className="w-full min-h-[80px] resize-none rounded-lg
+          className="w-full bg-gray-200 min-h-[80px] resize-none rounded-lg
                      border px-3 py-2 text-sm"
         />
 
         <button
           onClick={handleClose}
-          className="w-full bg-buttonPrimary text-white py-2 rounded-lg"
+          className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-2 rounded-lg"
         >
-          Submit & Logout
+          Submit
         </button>
 
         <button

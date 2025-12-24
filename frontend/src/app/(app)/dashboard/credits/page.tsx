@@ -48,9 +48,11 @@ export default function CreditsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8 flex justify-between">
+        <div className="mb-4 flex flex-wrap gap-2 justify-between">
           <div>
-            <h1 className="text-4xl font-bold">Credits Wallet</h1>
+            <h1 className="text-2xl md:text-3xl font-semibold text-headingTextPrimary">
+              Credits Wallet
+            </h1>
             <p className="text-gray-600">
               Track your balance, earn rewards, and purchase services.
             </p>
