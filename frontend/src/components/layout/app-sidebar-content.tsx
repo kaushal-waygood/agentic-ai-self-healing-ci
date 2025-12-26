@@ -117,7 +117,7 @@ export const AppSidebarContent = ({
         allowedRoles: [ROLES.STUDENT],
       },
       {
-        title: 'AI Auto Docs',
+        title: 'AI Auto Application',
         href: '/dashboard/ai-auto-apply',
         icon: Bot,
         allowedRoles: [ROLES.STUDENT],

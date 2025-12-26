@@ -302,7 +302,7 @@ export default function DashboardLayoutClient({
             delay={30000}
             forceOpen={showLogoutFeedback}
             onClose={() => {
-              setShowLogoutFeedback(false);
+              // setShowLogoutFeedback(false);
               // dispatch(logoutRequest());
               // router.push('/');
             }}

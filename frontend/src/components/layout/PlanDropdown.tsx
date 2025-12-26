@@ -9,21 +9,24 @@ const planConfig = {
     title: 'Free Plan',
     buttonClasses:
       'flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-blue-100 to-gray-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 transition-all duration-200 border border-blue-300',
-    headerClasses: 'p-4 bg-gradient-to-r from-blue-400 to-blue-600',
+    headerClasses:
+      'p-4 bg-gradient-to-r from-blue-400 to-blue-600 rounded-t-lg',
   },
   Weekly: {
     Icon: Zap,
     title: 'Weekly Plan',
     buttonClasses:
       'flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300 transition-all duration-200 border border-green-300',
-    headerClasses: 'p-4 bg-gradient-to-r from-green-400 to-green-600',
+    headerClasses:
+      'p-4 bg-gradient-to-r from-green-400 to-green-600 rounded-t-lg',
   },
   Monthly: {
     Icon: Zap,
     title: 'Monthly Plan',
     buttonClasses:
       'flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 hover:from-purple-200 hover:to-purple-300 transition-all duration-200 border border-purple-300',
-    headerClasses: 'p-4 bg-gradient-to-r from-purple-400 to-purple-600',
+    headerClasses:
+      'p-4 bg-gradient-to-r from-purple-400 to-purple-600 rounded-t-lg',
   },
 };
 
@@ -65,7 +68,7 @@ const PlanDropdown = ({
   const manualDocsLimit = planLimits?.aiMannualApplication ?? 0;
 
   return (
-    <div className="relative">
+    <div className="relative ">
       <button onClick={onToggle} className={config.buttonClasses}>
         <Icon className="w-4 h-4" />
         <span className="text-xs font-medium hidden sm:inline">{planType}</span>
@@ -73,7 +76,19 @@ const PlanDropdown = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden z-50">
+        // <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden z-50">
+        <div
+          className="
+            fixed md:absolute
+            top-16 md:top-full
+            left-4 right-4 md:left-auto md:right-0
+            mt-0 md:mt-2
+            w-auto md:w-80
+            bg-white rounded-xl
+            shadow-2xl border border-slate-200
+            z-50
+          "
+        >
           <div className={config.headerClasses}>
             <div className="flex items-center space-x-3 text-white">
               <Icon className="w-6 h-6" />

@@ -377,7 +377,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     <div className="min-h-screen space-y-2">
       {/* Header */}
       <div className="relative overflow-hidden rounded-lg border border-white/20">
-        <div className="absolute inset-0 bg-header-gradient-primary opacity-90" />
+        <div className="absolute inset-0 bg-header-gradient-primary" />
         <div className="absolute inset-0  opacity-20" />
         <div className="relative p-2 md:p-4 text-white">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
@@ -513,12 +513,21 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   </Link>
                 </Button>
               )}
+              <Button
+                onClick={handleGetMatchScore}
+                className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
+              >
+                <div className="relative flex items-center justify-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>AI ATS Score</span>
+                </div>
+              </Button>
 
               {/* Match Score */}
               {!matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
-                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-amber-500 to-orange-500  text-white border-0"
+                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-green-500  text-white border-0"
                 >
                   <div className="relative flex items-center justify-center gap-2">
                     <Sparkles className="w-5 h-5" />

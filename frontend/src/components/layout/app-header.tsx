@@ -436,21 +436,10 @@ const AppHeader = ({
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md ">
-        {/* <div className="flex items-center justify-between px-6 py-2 ">
-          <div className="flex items-center space-x-3"></div>
-
-          <div className="flex items-center space-x-4"> */}
         <div className="flex items-center justify-between px-4 lg:px-6 py-2">
           {/* LEFT SIDE */}
           <div className="flex items-center space-x-3">
             {/* HAMBURGER — MOBILE ONLY */}
-            {/* <button
-              onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
-              aria-label="Open menu"
-            >
-              <Menu className="w-6 h-6 text-slate-700" />
-            </button> */}
 
             <button
               onClick={onMenuClick}

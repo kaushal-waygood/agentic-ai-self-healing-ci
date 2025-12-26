@@ -184,314 +184,11 @@ const LoginForm = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // return (
-  //   // THEME CHANGE: Main background changed to a light gradient.
-  //   <div className="mt-[-25px] h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8 relative overflow-hidden">
-  //     {/* THEME CHANGE: Animated blobs softened for a light background. */}
-  //     <div className="absolute inset-0 overflow-hidden">
-  //       <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full filter blur-3xl opacity-40 animate-pulse hidden sm:block"></div>
-  //       <div
-  //         className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-200 rounded-full filter blur-3xl opacity-50 animate-pulse hidden sm:block"
-  //         style={{ animationDelay: '2s' }}
-  //       ></div>
-  //       <div
-  //         className="absolute top-1/2 left-1/2 w-80 h-80 bg-cyan-100 rounded-full filter blur-3xl opacity-60 animate-pulse -translate-x-1/2 -translate-y-1/2"
-  //         style={{ animationDelay: '4s' }}
-  //       ></div>
-  //     </div>
-
-  //     {/* THEME CHANGE: Mouse-follow gradient softened. */}
-  //     <div
-  //       className="fixed w-96 h-96 bg-gradient-radial from-purple-200/40 to-transparent rounded-full pointer-events-none transition-all duration-300 ease-out hidden md:block"
-  //       style={{ left: mousePosition.x - 192, top: mousePosition.y - 192 }}
-  //     />
-
-  //     <div className="relative z-10 w-full max-w-md">
-  //       {/* THEME CHANGE: Card styling for light theme with glassmorphism effect. */}
-  //       <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-6 sm:p-8 transform transition-all duration-500">
-  //         {/* Header */}
-  //         <div className="text-center mb-8">
-  //           <div className="relative inline-block mb-6">
-  //             {/* <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center transform transition-all duration-300 hover:rotate-12 shadow-lg">
-  //               <Rocket className="h-8 w-8 text-white" />
-  //             </div> */}
-  //             <div className="w-16 h-16  rounded-lg flex items-center justify-center ">
-  //               <Image
-  //                 src="logo.png"
-  //                 alt="Zobsai logo"
-  //                 width={100}
-  //                 height={100}
-  //               />
-  //             </div>
-  //             <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
-  //               <Sparkles className="h-3 w-3 text-yellow-800" />
-  //             </div>
-  //           </div>
-
-  //           {/* THEME CHANGE: Header text colors updated for contrast. */}
-  //           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-  //             Welcome Back!
-  //           </h1>
-  //           <p className="text-gray-500 text-sm leading-relaxed">
-  //             Enter your credentials to access your account
-  //           </p>
-  //         </div>
-
-  //         {/* --- Integrated Login Form --- */}
-  //         <Form {...loginForm}>
-  //           <form
-  //             onSubmit={loginForm.handleSubmit(onSubmit)}
-  //             className="space-y-6"
-  //           >
-  //             {/* Email Field */}
-  //             <FormField
-  //               control={loginForm.control}
-  //               name="email"
-  //               render={({ field }) => (
-  //                 <FormItem className="relative">
-  //                   <FormLabel className="block text-sm font-medium text-gray-700 mb-2">
-  //                     Email Address
-  //                   </FormLabel>
-  //                   <FormControl>
-  //                     <div className="relative">
-  //                       <div
-  //                         className={`absolute inset-y-0 left-0 pl-4 flex items-center transition-all duration-300 ${
-  //                           focusedField === 'email'
-  //                             ? 'text-purple-600'
-  //                             : 'text-gray-400'
-  //                         }`}
-  //                       >
-  //                         <Mail className="h-5 w-5" />
-  //                       </div>
-  //                       {/* THEME CHANGE: Input styling for light theme. */}
-  //                       <input
-  //                         {...field}
-  //                         onFocus={() => setFocusedField('email')}
-  //                         onBlur={() => setFocusedField('')}
-  //                         className="w-full pl-12 pr-4 py-3 bg-white/50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-300 hover:bg-gray-50"
-  //                         placeholder="name@example.com"
-  //                         disabled={loginForm.formState.isSubmitting}
-  //                       />
-  //                     </div>
-  //                   </FormControl>
-  //                   <FormMessage className="text-red-500 text-xs mt-1" />
-  //                 </FormItem>
-  //               )}
-  //             />
-
-  //             {/* Password Field */}
-  //             <FormField
-  //               control={loginForm.control}
-  //               name="password"
-  //               render={({ field }) => (
-  //                 <FormItem className="relative">
-  //                   <FormLabel className="block text-sm font-medium text-gray-700 mb-2">
-  //                     Password
-  //                   </FormLabel>
-  //                   <FormControl>
-  //                     <div className="relative">
-  //                       <div
-  //                         className={`absolute inset-y-0 left-0 pl-4 flex items-center transition-all duration-300 ${
-  //                           focusedField === 'password'
-  //                             ? 'text-purple-600'
-  //                             : 'text-gray-400'
-  //                         }`}
-  //                       >
-  //                         <Lock className="h-5 w-5" />
-  //                       </div>
-  //                       {/* THEME CHANGE: Input styling for light theme. */}
-  //                       <input
-  //                         type={showPassword ? 'text' : 'password'}
-  //                         {...field}
-  //                         onFocus={() => setFocusedField('password')}
-  //                         onBlur={() => setFocusedField('')}
-  //                         className="w-full pl-12 pr-12 py-3 bg-white/50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-300 hover:bg-gray-50"
-  //                         placeholder="••••••••"
-  //                         disabled={loginForm.formState.isSubmitting}
-  //                       />
-  //                       {/* THEME CHANGE: Eye icon colors updated. */}
-  //                       <button
-  //                         type="button"
-  //                         onClick={() => setShowPassword(!showPassword)}
-  //                         className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-blue-600"
-  //                       >
-  //                         {showPassword ? (
-  //                           <EyeOff className="h-5 w-5" />
-  //                         ) : (
-  //                           <Eye className="h-5 w-5" />
-  //                         )}
-  //                       </button>
-  //                     </div>
-  //                   </FormControl>
-  //                   <FormMessage className="text-red-500 text-xs mt-1" />
-  //                 </FormItem>
-  //               )}
-  //             />
-
-  //             {/* Forgot Password Button */}
-  //             <div className="flex justify-end">
-  //               {/* THEME CHANGE: Link color updated. */}
-  //               <button
-  //                 type="button"
-  //                 onClick={() => setForgotPasswordOpen(true)}
-  //                 className="text-sm text-blue-600 hover:text-blue-500 transition-colors duration-200 hover:underline"
-  //               >
-  //                 Forgot password?
-  //               </button>
-  //             </div>
-
-  //             {/* Login Button (Gradient works well on light theme) */}
-  //             <button
-  //               type="submit"
-  //               disabled={loginForm.formState.isSubmitting}
-  //               className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-purple-200"
-  //             >
-  //               <div className="relative flex items-center justify-center">
-  //                 {loginForm.formState.isSubmitting ? (
-  //                   <>
-  //                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-  //                     Logging in...
-  //                   </>
-  //                 ) : (
-  //                   <>
-  //                     Login
-  //                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-  //                   </>
-  //                 )}
-  //               </div>
-  //             </button>
-  //           </form>
-  //         </Form>
-
-  //         {/* THEME CHANGE: Divider styled for light theme. */}
-  //         <div className="relative my-8">
-  //           <div className="absolute inset-0 flex items-center">
-  //             <div className="w-full border-t border-gray-200" />
-  //           </div>
-  //           <div className="relative flex justify-center text-xs uppercase">
-  //             <span className="bg-white/80 px-4 text-gray-500 rounded-full backdrop-blur-sm">
-  //               Or continue with
-  //             </span>
-  //           </div>
-  //         </div>
-
-  //         <div className="flex flex-col gap-4">
-  //           <GoogleSignInButton form={loginForm} />
-  //           <LinkedInSignInButton form={loginForm} />
-  //         </div>
-
-  //         {/* Sign Up Link */}
-  //         <div className="mt-8 text-center">
-  //           <p className="text-gray-600 text-sm">
-  //             Don't have an account?{' '}
-  //             <Link
-  //               href="/signup"
-  //               className="text-blue-600 hover:text-blue-500 font-medium transition-colors hover:underline"
-  //             >
-  //               Sign up
-  //             </Link>
-  //           </p>
-  //         </div>
-  //       </div>
-  //     </div>
-
-  //     {/* --- Integrated Forgot Password Modal (Themed for light background) --- */}
-  //     {forgotPasswordOpen && (
-  //       <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-  //         <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 w-full max-w-sm shadow-lg">
-  //           <h3 className="text-xl font-semibold text-gray-900 mb-2">
-  //             Reset Password
-  //           </h3>
-  //           <p className="text-gray-600 text-sm mb-6">
-  //             Enter your email address and we'll send you a link to reset it.
-  //           </p>
-  //           <Form {...forgotPasswordForm}>
-  //             <form
-  //               onSubmit={forgotPasswordForm.handleSubmit(
-  //                 onForgotPasswordSubmit,
-  //               )}
-  //             >
-  //               <FormField
-  //                 control={forgotPasswordForm.control}
-  //                 name="email"
-  //                 render={({ field }) => (
-  //                   <FormItem className="mb-4">
-  //                     <FormControl>
-  //                       <input
-  //                         {...field}
-  //                         placeholder="Enter your email"
-  //                         className="w-full px-4 py-3 bg-white/50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-  //                         disabled={isForgotPasswordSubmitting}
-  //                       />
-  //                     </FormControl>
-  //                     <FormMessage className="text-red-500 text-xs mt-1" />
-  //                   </FormItem>
-  //                 )}
-  //               />
-  //               <div className="flex gap-3">
-  //                 <button
-  //                   type="button"
-  //                   onClick={() => setForgotPasswordOpen(false)}
-  //                   className="flex-1 px-4 py-2 bg-gray-200/80 text-gray-800 rounded-lg hover:bg-gray-300/80"
-  //                 >
-  //                   Cancel
-  //                 </button>
-  //                 <button
-  //                   type="submit"
-  //                   disabled={isForgotPasswordSubmitting}
-  //                   className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 flex items-center justify-center disabled:opacity-50"
-  //                 >
-  //                   {isForgotPasswordSubmitting ? (
-  //                     'Sending...'
-  //                   ) : (
-  //                     <>
-  //                       <Mail className="h-4 w-4 mr-2" /> Send Link
-  //                     </>
-  //                   )}
-  //                 </button>
-  //               </div>
-  //             </form>
-  //           </Form>
-  //         </div>
-  //       </div>
-  //     )}
-  //   </div>
-  // );
-
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-4 md:p-5 pt-6 pb-6 overflow-y-auto bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
-      {/* SOFT BLOBS – made responsive */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 -right-32 w-56 h-56 sm:w-72 sm:h-72 bg-purple-200 rounded-full blur-3xl opacity-40 animate-pulse hidden sm:block"></div>
-
+      <div className="relative z-10 w-full max-w-xs sm:max-w-2xl ">
         <div
-          className="absolute -bottom-32 -left-32 w-56 h-56 sm:w-72 sm:h-72 bg-blue-200 rounded-full blur-3xl opacity-50 animate-pulse hidden sm:block"
-          style={{ animationDelay: '2s' }}
-        ></div>
-
-        <div
-          className="absolute top-1/2 left-1/2 w-56 h-56 sm:w-72 sm:h-72 bg-cyan-100 rounded-full blur-3xl opacity-60 animate-pulse
-          -translate-x-1/2 -translate-y-1/2"
-          style={{ animationDelay: '4s' }}
-        ></div>
-      </div>
-
-      {/* Mouse-follow gradient */}
-      <div
-        className="fixed w-72 h-72 sm:w-96 sm:h-96 bg-gradient-radial from-purple-200/40 to-transparent
-        rounded-full pointer-events-none transition-all duration-300 ease-out hidden md:block"
-        style={{ left: mousePosition.x - 192, top: mousePosition.y - 192 }}
-      />
-
-      {/* CONTENT WRAPPER */}
-      {/* <div className="relative z-10 w-full max-w-sm sm:max-w-md md:max-w-lg">
-       */}
-      {/* <div className="relative z-10 w-full max-w-sm sm:max-w-md">
-       */}
-
-      <div className="relative z-10 w-full max-w-xs sm:max-w-sm">
-        <div
-          className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl
+          className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-lg
           p-5 sm:p-6 md:p-6 transition-all duration-500"
         >
           {/* HEADER */}
@@ -509,7 +206,7 @@ const LoginForm = () => {
 
             <h1
               className="text-lg sm:text-2xl font-bold text-gray-900 
-              bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+             bg-headingTextPrimary bg-clip-text text-transparent"
             >
               Welcome Back!
             </h1>
@@ -519,157 +216,224 @@ const LoginForm = () => {
             </p>
           </div>
 
-          {/* LOGIN FORM */}
-          <Form {...loginForm}>
-            <form
-              onSubmit={loginForm.handleSubmit(onSubmit)}
-              className="space-y-4 sm:space-y-2
+          <div className="flex flex-col sm:flex-row gap-4 justify-between">
+            <div className="w-full sm:w-1/2">
+              {/* LOGIN FORM */}
+              <Form {...loginForm}>
+                <form
+                  onSubmit={loginForm.handleSubmit(onSubmit)}
+                  className="space-y-4 sm:space-y-2
 "
-            >
-              {/* EMAIL */}
-              <FormField
-                control={loginForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Email Address
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <div
-                          className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
-                            focusedField === 'email'
-                              ? 'text-purple-600'
-                              : 'text-gray-400'
-                          }`}
-                        >
-                          <Mail className="h-5 w-5" />
-                        </div>
-
-                        <input
-                          {...field}
-                          onFocus={() => setFocusedField('email')}
-                          onBlur={() => setFocusedField('')}
-                          className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
-                          text-gray-900 placeholder-gray-400  transition-all"
-                          placeholder="name@example.com"
-                          disabled={loginForm.formState.isSubmitting}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-red-500 text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              {/* PASSWORD */}
-              <FormField
-                control={loginForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Password
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <div
-                          className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
-                            focusedField === 'password'
-                              ? 'text-purple-600'
-                              : 'text-gray-400'
-                          }`}
-                        >
-                          <Lock className="h-5 w-5" />
-                        </div>
-
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          {...field}
-                          onFocus={() => setFocusedField('password')}
-                          onBlur={() => setFocusedField('')}
-                          className="w-full text-sm pl-10 sm:pl-12 pr-10 py-2 bg-white/50 border border-gray-300 rounded-lg
-                          text-gray-900 placeholder-gray-400  transition-all"
-                          placeholder="••••••••"
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-gray-400 hover:text-blue-600"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-5 w-5" />
-                          ) : (
-                            <Eye className="h-5 w-5" />
-                          )}
-                        </button>
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-red-500 text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              {/* FORGOT PASSWORD */}
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setForgotPasswordOpen(true)}
-                  className="text-xs sm:text-xs text-blue-600 hover:text-blue-500 hover:underline"
                 >
-                  Forgot password?
-                </button>
+                  {/* EMAIL */}
+                  <FormField
+                    control={loginForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">
+                          Email Address
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <div
+                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                focusedField === 'email'
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              <Mail className="h-5 w-5" />
+                            </div>
+
+                            <input
+                              {...field}
+                              onFocus={() => setFocusedField('email')}
+                              onBlur={() => setFocusedField('')}
+                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                          text-gray-900 placeholder-gray-400  transition-all"
+                              placeholder="name@example.com"
+                              disabled={loginForm.formState.isSubmitting}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-xs" />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* PASSWORD */}
+                  <FormField
+                    control={loginForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">
+                          Password
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <div
+                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                focusedField === 'password'
+                                  ? 'text-purple-600'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              <Lock className="h-5 w-5" />
+                            </div>
+
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              {...field}
+                              onFocus={() => setFocusedField('password')}
+                              onBlur={() => setFocusedField('')}
+                              className="w-full text-sm pl-10 sm:pl-12 pr-10 py-2 bg-white/50 border border-gray-300 rounded-lg
+                          text-gray-900 placeholder-gray-400  transition-all"
+                              placeholder="••••••••"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-gray-400 hover:text-blue-600"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-5 w-5" />
+                              ) : (
+                                <Eye className="h-5 w-5" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-xs" />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* FORGOT PASSWORD */}
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setForgotPasswordOpen(true)}
+                      className="text-xs sm:text-xs text-blue-600 hover:text-blue-500 hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+
+                  {/* LOGIN BUTTON */}
+                  <button
+                    type="submit"
+                    disabled={loginForm.formState.isSubmitting}
+                    className="w-full bg-buttonPrimary text-white font-semibold
+                py-3 rounded-lg hover:shadow-lg transition-all disabled:opacity-60 hover:scale-[1.02] group-hover:shadow-lg"
+                  >
+                    {loginForm.formState.isSubmitting ? (
+                      <div className="flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                        Logging in...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center">
+                        Login <ArrowRight className="ml-2 h-5 w-5" />
+                      </div>
+                    )}
+                  </button>
+                </form>
+              </Form>
+            </div>
+
+            <div className="w-full sm:w-1/2 flex flex-col gap-3 sm:gap-4">
+              {/* DIVIDER */}
+              <div className=" relative my-1 ">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-white/80 px-3 text-gray-500">
+                    Or continue with
+                  </span>
+                </div>
               </div>
 
-              {/* LOGIN BUTTON */}
-              <button
-                type="submit"
-                disabled={loginForm.formState.isSubmitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold
-                py-3 rounded-xl hover:shadow-lg transition-all disabled:opacity-60"
-              >
-                {loginForm.formState.isSubmitting ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                    Logging in...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    Login <ArrowRight className="ml-2 h-5 w-5" />
-                  </div>
-                )}
-              </button>
-            </form>
-          </Form>
+              {/* SOCIAL LOGIN */}
+              <div className="flex flex-col gap-3 sm:gap-4">
+                <GoogleSignInButton form={loginForm} />
+                <LinkedInSignInButton form={loginForm} />
+              </div>
 
-          {/* DIVIDER */}
-          <div className="relative my-4 sm:my-5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              {/* SIGN UP */}
+              {/* <div className="mt-4 text-center">
+                <p className="text-gray-600 text-xs sm:text-sm">
+                  Don't have an account?{' '}
+                  <Link
+                    href="/signup"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Sign up
+                  </Link>
+                </p>
+              </div> */}
+              {/* SIGN UP – Highlighted CTA */}
+              {/* <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50/60 px-4 py-3 text-center">
+                <p className="text-gray-700 text-sm font-medium">
+                  Don’t have an account?
+                </p>
+
+                <Link
+                  href="/signup"
+                  className="mt-1 inline-flex items-center gap-1
+    text-sm font-semibold text-blue-700
+    hover:text-blue-800 underline underline-offset-4"
+                >
+                  Create an account
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div> */}
+
+              {/* SIGN UP – Enhanced with animation */}
+              <div className=" relative group">
+                {/* CTA Card */}
+                <div
+                  className="relative rounded-lg border border-blue-200
+                  hover:border-blue-700
+  
+    px-4 py-3 text-center
+    transition-all duration-300
+    group-hover:scale-[1.02]
+    group-hover:shadow-lg"
+                >
+                  <p className="text-gray-700 text-xs ">
+                    Don’t have an account?
+                  </p>
+
+                  <Link
+                    href="/signup"
+                    className="mt-1 inline-flex items-center gap-2
+      text-sm font-semibold text-blue-700
+      
+      transition-colors duration-300"
+                  >
+                    <span className="relative">
+                      Create an account
+                      {/* underline animation */}
+                      <span
+                        className="absolute left-0 -bottom-0.5 h-[2px] w-0
+          bg-blue-700
+          transition-all duration-300 group-hover:w-full"
+                      />
+                    </span>
+
+                    {/* Arrow animation */}
+                    <ArrowRight
+                      className="h-4 w-4 transition-transform duration-300
+        group-hover:translate-x-1"
+                    />
+                  </Link>
+                </div>
+              </div>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-white/80 px-3 text-gray-500">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* SOCIAL LOGIN */}
-          <div className="flex flex-col gap-3 sm:gap-4">
-            <GoogleSignInButton form={loginForm} />
-            <LinkedInSignInButton form={loginForm} />
-          </div>
-
-          {/* SIGN UP */}
-          <div className="mt-4 text-center">
-            <p className="text-gray-600 text-xs sm:text-sm">
-              Don't have an account?{' '}
-              <Link href="/signup" className="text-blue-600 hover:underline">
-                Sign up
-              </Link>
-            </p>
           </div>
         </div>
       </div>
