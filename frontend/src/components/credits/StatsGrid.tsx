@@ -146,26 +146,26 @@ export function StatsGrid({
       desc: 'Available credits',
       icon: <Zap className="w-5 h-5 text-blue-600" />,
       color: 'text-blue-700',
-      extra:
-        pendingClaims > 0
-          ? `${pendingClaims} pending claim${pendingClaims > 1 ? 's' : ''}`
-          : null,
+      // extra:
+      //   pendingClaims > 0
+      //     ? `${pendingClaims} pending claim${pendingClaims > 1 ? 's' : ''}`
+      //     : null,
     },
-    earned: {
-      label: 'Earned',
-      value: totalEarned,
-      desc: 'Total earned',
-      icon: <TrendingUp className="w-5 h-5 text-green-600" />,
-      color: 'text-green-700',
-      extra: 'Click to view earn history',
-    },
+    // earned: {
+    //   label: 'Earned',
+    //   value: totalEarned,
+    //   desc: 'Total earned',
+    //   icon: <TrendingUp className="w-5 h-5 text-green-600" />,
+    //   color: 'text-green-700',
+    //   // extra: 'Click to view earn history',
+    // },
     spent: {
       label: 'Spent',
       value: totalSpent,
       desc: 'Total spent',
       icon: <TrendingDown className="w-5 h-5 text-red-600" />,
       color: 'text-red-700',
-      extra: 'Click to view spend history',
+      // extra: 'Click to view spend history',
     },
     transactions: {
       label: 'Transactions',
@@ -173,7 +173,7 @@ export function StatsGrid({
       desc: 'Total transactions',
       icon: <Clock className="w-5 h-5 text-purple-600" />,
       color: 'text-purple-700',
-      extra: 'Click to view all transactions',
+      // extra: 'Click to view all transactions',
     },
   };
 
@@ -184,7 +184,7 @@ export function StatsGrid({
       {/* ================= MOBILE SEGMENTED CONTROL ================= */}
       <div className="sm:hidden mb-6  ">
         {/* Pills */}
-        <div className="inline-flex rounded-lg bg-gray-100 p-2 mb-4">
+        <div className="flex flex-row justify-between rounded-lg bg-gray-100 p-2 mb-2">
           {[
             { key: 'balance', label: 'All' },
             { key: 'earned', label: 'Earned' },
@@ -207,16 +207,15 @@ export function StatsGrid({
         </div>
 
         {/* Selected Stat Card */}
-        <div className="rounded-xl border p-4">
-          <div className="flex items-center justify-between mb-2">
+        <div className="">
+          <div className="flex items-center justify-between ">
             <span className="text-sm font-medium text-gray-600">
               {activeStat.label}
             </span>
-            {activeStat.icon}
-          </div>
-
-          <div className={`text-3xl font-bold ${activeStat.color}`}>
-            {activeStat.value}
+            <div className={`text-3xl font-bold ${activeStat.color}`}>
+              {activeStat.value}
+            </div>
+            {/* {activeStat.icon} */}
           </div>
 
           <p className="text-xs text-gray-600 mt-1">{activeStat.desc}</p>
@@ -228,7 +227,8 @@ export function StatsGrid({
       </div>
 
       {/* ================= DESKTOP GRID ================= */}
-      <div className="hidden sm:grid grid-cols-4 lg:grid-cols-4 gap-4 mb-6">
+
+      <div className="hidden sm:grid grid-cols-4 gap-4 mb-6">
         {(Object.keys(statsMap) as Array<StatsGridProps['activeTab']>).map(
           (key) => {
             const stat = statsMap[key];
@@ -237,31 +237,50 @@ export function StatsGrid({
               <div
                 key={key}
                 onClick={() => onChange(key)}
-                className={`cursor-pointer rounded-xl border p-2 sm:p-4 transition-all duration-300 hover:shadow-lg
-                ${
-                  activeTab === key
-                    ? 'ring-2 ring-offset-2 ring-blue-500 shadow-lg scale-[1.01]'
-                    : ''
-                }`}
+                className={`
+            group cursor-pointer rounded-lg border 
+             backdrop-blur 
+            p-3 sm:p-4
+            transition-all duration-300 ease-out
+            hover:-translate-y-1 hover:shadow-xl
+            
+
+            ${
+              activeTab === key
+                ? 'ring-2 ring-offset-2 ring-blue-500 shadow-xl scale-[1.02] bg-blue-100 '
+                : 'bg-white hover:border-gray-300 '
+            }
+          `}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-600 text-sm font-medium">
-                    {stat.label}{' '}
-                  </span>
-                  {/* {stat.icon} */}
-                  <span className={`text-2xl font-bold ${stat.color}`}>
+                {/* Top Row */}
+                <div className="flex items-start justify-between ">
+                  <div>
+                    <p className="text-sm uppercase tracking-wide text-gray-500 font-bold">
+                      {stat.label}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{stat.desc}</p>
+                  </div>
+
+                  <span
+                    className={`
+                text-3xl font-extrabold
+                ${stat.color}
+                transition-transform duration-300
+                group-hover:scale-110
+              `}
+                  >
                     {stat.value}
                   </span>
                 </div>
 
-                {/* <div className={`text-2xl sm:text-3xl font-bold ${stat.color}`}>
-                  {stat.value}
-                </div> */}
+                {/* Divider */}
+                {/* <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent my-2" /> */}
 
-                <p className="text-xs text-gray-600 mt-1">{stat.desc}</p>
-
+                {/* Extra Info */}
                 {stat.extra && (
-                  <p className="mt-2 text-[11px] opacity-70">{stat.extra}</p>
+                  <p className="text-[11px] text-gray-500 opacity-80 leading-relaxed">
+                    {stat.extra}
+                  </p>
                 )}
               </div>
             );

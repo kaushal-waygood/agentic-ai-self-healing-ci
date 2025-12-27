@@ -121,7 +121,7 @@ export const AppSidebarContent = ({
         href: '/dashboard/ai-auto-apply',
         icon: Bot,
         allowedRoles: [ROLES.STUDENT],
-        comingSoon: true,
+        comingSoon: false,
       },
       {
         title: 'Application Wizard',

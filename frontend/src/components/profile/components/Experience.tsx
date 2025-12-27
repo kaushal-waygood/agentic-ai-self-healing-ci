@@ -30,6 +30,7 @@ const Experience = () => {
   const [editData, setEditData] = useState<any | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  console.log('edittdata', editData);
   return (
     <div>
       {/* Header */}
@@ -145,7 +146,13 @@ const Experience = () => {
       {isAddOpen && <AddExperience onCancel={() => setIsAddOpen(false)} />}
 
       {/* EDIT */}
-      {isAddOpen && <AddExperience onCancel={() => setIsAddOpen(false)} />}
+      {editData && (
+        <AddExperience
+          isEdit={true}
+          data={editData}
+          onCancel={() => setEditData(null)}
+        />
+      )}
 
       {/* DELETE CONFIRM */}
       {deleteId && (

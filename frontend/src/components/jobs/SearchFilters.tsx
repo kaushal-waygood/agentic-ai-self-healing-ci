@@ -225,7 +225,7 @@ export const SearchFilters = ({
             value={localFilters.query}
             onChange={(e) => handleInputChange('query', e.target.value)}
             onKeyDown={handleKeyDown}
-            className="input-search w-full"
+            className="border-none outline-none w-full"
             aria-label="Search jobs"
           />
         </div>
