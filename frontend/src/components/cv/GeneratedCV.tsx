@@ -140,7 +140,7 @@ const GeneratedCV = ({
     <div className="min-h-screen p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
         {/* ATS Score Header */}
-        <div className="mb-3 md:mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-lg">
+        {/* <div className="mb-3 md:mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-lg">
           <div className="flex items-center gap-2 ">
             <div className="w-12 h-12  rounded-lg flex items-center justify-center flex-shrink-0">
               <Award className="h-7 w-7 text-white" />
@@ -151,39 +151,36 @@ const GeneratedCV = ({
                 {cvData ? 'CV Generated Successfully!' : 'Loading CV...'}
               </h2>
             </div>
-            <div className="text-center  p-2 rounded-lg">
+            <div className="text-center p-2 rounded-lg">
+              <div className={`text-4xl font-bold bg-clip-text`}>
+                {atsScore}
+              </div>
+              <div className="text-xs">ATS Score</div>
+            </div>
+          </div>
+        </div> */}
+
+        {/* Main CV Content */}
+        <div className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-lg overflow-hidden">
+          {/* header  */}
+          <div className="flex items-center gap-2 bg-header-gradient-primary text-white ">
+            <div className="w-12 h-12  rounded-lg flex items-center justify-center flex-shrink-0">
+              <FileText className="h-7 w-7 " />
+            </div>
+
+            <div className="flex-1">
+              <h2 className="text-lg  md:text-xl font-bold ">
+                {cvData ? 'Your AI Generated CV' : 'Loading CV...'}
+              </h2>
+            </div>
+            <div className="text-center p-2 rounded-lg">
               <div className={`text-4xl font-bold bg-clip-text`}>
                 {atsScore}
               </div>
               <div className="text-xs ">ATS Score</div>
             </div>
           </div>
-        </div>
-
-        {/* Main CV Content */}
-        <div className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white p-3">
-            <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-3 p-2">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="text-lg text-white md:text-xl font-bold ">
-                  {cvData ? 'Your AI Generated CV' : 'Loading CV...'}
-                </h3>
-              </div>
-              {/* {cvData && (
-                <button
-                  onClick={onSave}
-                  className="w-full lg:w-auto bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg px-6 py-2.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 text-sm font-medium flex-shrink-0"
-                >
-                  <Save className="h-4 w-4" />
-                  <span>Save Final Version</span>
-                </button>
-              )} */}
-            </div>
-          </div>
-
+          {/* content  */}
           {cvData ? (
             <div className="p-2 md:p-3 lg:p-4">
               <EditableMaterial
@@ -191,6 +188,7 @@ const GeneratedCV = ({
                 content={
                   typeof cvContent.cv === 'object' ? cvContent.cv : cvContent
                 }
+                title={'CV Content'}
                 isHtml={true}
                 setContent={setEditableContent}
                 handleEditToggle={handleEditToggle}

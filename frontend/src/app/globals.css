@@ -310,7 +310,7 @@ h6 {
 }
 
 .input-search-box-div {
-  @apply flex col-span-2 justify-center items-center border border-gray-300 p-2 rounded-xl min-w-[250px] relative;
+  @apply flex  justify-center items-center border border-gray-300 p-2 rounded-xl min-w-[250px] relative;
 }
 
 .input-search {

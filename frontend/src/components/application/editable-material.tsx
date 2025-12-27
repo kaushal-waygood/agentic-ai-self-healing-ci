@@ -419,11 +419,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col transition-all duration-300 ${className} ${
+      className={`bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col transition-all duration-300 ${className} ${
         isFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'relative'
       }`}
     >
-      <header className="flex items-center justify-between p-4 border-b border-gray-200 flex-wrap gap-2">
+      <header className="flex items-center justify-between border-b p p-2 border-gray-200 flex-wrap gap-2">
         <h3 className="text-lg font-semibold text-gray-800 flex items-center">
           {isEditing ? (
             <Edit3 className="w-5 h-5 mr-2 text-indigo-500" />
@@ -469,8 +469,8 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <button
             className={`p-2 rounded-lg border border-gray-200 flex items-center space-x-2 transition-all ${
               hasChangesForFinalSave
-                ? 'text-gray-600 hover:bg-gray-200 cursor-pointer'
-                : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                ? 'text-gray-100 hover:bg-blue-700 bg-buttonPrimary'
+                : 'text-gray-500 bg-gray-100 cursor-not-allowed'
             }`}
             onClick={handleSaveDocument}
             disabled={!hasChangesForFinalSave || isLoading}
@@ -483,7 +483,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             }
           >
             <Save className="h-4 w-4" />
-            <span>Save Final Version</span>
+            <span>Save </span>
           </button>
 
           <button
@@ -500,7 +500,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </div>
       </header>
 
-      <main className="flex-grow p-6 overflow-y-auto">
+      <main className="flex-grow p-2 overflow-y-auto">
         <div
           ref={editorRef}
           contentEditable={isEditing}

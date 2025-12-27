@@ -17,7 +17,7 @@ export function GoogleSignInButton({ authType = 'login' }) {
 
   // Determine button text based on the authType prop
   const buttonText =
-    authType === 'signup' ? 'Login with Google' : 'Sign up with Google';
+    authType === 'signup' ? 'Login with Google' : 'Sign in with Google';
   const loadingText =
     authType === 'signup'
       ? 'Redirecting to Google...'
