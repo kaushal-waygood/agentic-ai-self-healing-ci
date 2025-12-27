@@ -17,6 +17,7 @@ const userSchema = new Schema(
       type: String,
       enum: ['google', 'local', 'firebase', 'linkedin'],
       default: 'local',
+      index: true,
     },
 
     googleAuth: {
@@ -42,6 +43,7 @@ const userSchema = new Schema(
       required: true,
       unique: true,
       lowercase: true,
+      index: true,
     },
 
     password: {
@@ -55,6 +57,10 @@ const userSchema = new Schema(
     avatar: String,
     jobRole: String,
 
+    /* ============================
+       AUTHORIZATION
+       (role = permissions, accountType = identity)
+    ============================ */
     role: {
       type: String,
       enum: [
@@ -72,6 +78,7 @@ const userSchema = new Schema(
         'user',
       ],
       default: 'user',
+      index: true,
     },
 
     accountType: {
@@ -91,35 +98,23 @@ const userSchema = new Schema(
         'individual',
       ],
       default: 'user',
+      index: true,
     },
 
     /* ============================
        EMAIL / OTP SECURITY
     ============================ */
-    otp: {
-      type: String,
-      select: false,
-    },
-
-    otpExpires: {
-      type: Date,
-      select: false,
-    },
+    otp: { type: String, select: false },
+    otpExpires: { type: Date, select: false },
 
     isEmailVerified: {
       type: Boolean,
       default: false,
+      index: true,
     },
 
-    passwordResetToken: {
-      type: String,
-      select: false,
-    },
-
-    passwordResetExpires: {
-      type: Date,
-      select: false,
-    },
+    passwordResetToken: { type: String, select: false },
+    passwordResetExpires: { type: Date, select: false },
 
     /* ============================
        ORGANIZATION
@@ -127,6 +122,7 @@ const userSchema = new Schema(
     organization: {
       type: Schema.Types.ObjectId,
       ref: 'Organization',
+      index: true,
     },
 
     /* ============================
@@ -136,17 +132,20 @@ const userSchema = new Schema(
       type: String,
       unique: true,
       default: () => uuidv4().slice(0, 8),
+      index: true,
     },
 
     referredBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       default: null,
+      index: true,
     },
 
     referralCount: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     referredUsers: [
@@ -158,10 +157,13 @@ const userSchema = new Schema(
 
     /* ============================
        CREDITS & TRANSACTIONS
+       ⚠️ Backward compatible
+       ⚠️ New writes should go to CreditLedger
     ============================ */
     credits: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     creditTransactions: [
@@ -186,6 +188,8 @@ const userSchema = new Schema(
 
     /* ============================
        PLANS & USAGE
+       ⚠️ usageCounters kept for compatibility
+       ⚠️ authoritative usage = Usage collection
     ============================ */
     plan: {
       type: Schema.Types.ObjectId,
@@ -200,6 +204,7 @@ const userSchema = new Schema(
     currentPurchase: {
       type: Schema.Types.ObjectId,
       ref: 'Purchase',
+      index: true,
     },
 
     usageLimits: {
@@ -225,6 +230,7 @@ const userSchema = new Schema(
 
     /* ============================
        DAILY STREAK
+       (kept untouched)
     ============================ */
     dailyStreak: {
       current: { type: Number, default: 0 },
@@ -261,6 +267,9 @@ const userSchema = new Schema(
       virtuals: true,
       transform(_, ret) {
         delete ret.password;
+        delete ret.otp;
+        delete ret.passwordResetToken;
+        delete ret.passwordResetExpires;
         return ret;
       },
     },
@@ -268,10 +277,9 @@ const userSchema = new Schema(
 );
 
 /* ============================
-   HOOKS & METHODS
+   HOOKS
 ============================ */
 
-// Password hashing
 userSchema.pre('save', async function (next) {
   if (
     !this.isModified('password') ||
@@ -286,7 +294,10 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// JWT
+/* ============================
+   METHODS
+============================ */
+
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {

@@ -7,6 +7,8 @@ import { User } from '../models/User.model.js';
 import { config } from '../config/config.js';
 import { Coupon } from '../models/coupon.model.js';
 import { razorpay } from '../config/razorpay.js';
+import crypto from 'crypto';
+import { Payment } from '../models/Payment.route.js';
 
 const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
@@ -53,7 +55,6 @@ const parseFeatureLimitValue = (raw) => {
 };
 
 const buildUsageLimitsFromFeatures = (features = []) => {
-  console.log('buildUsageLimitsFromFeatures', features);
   const limits = {};
   features.forEach((feature) => {
     const key = USAGE_LIMIT_MAP[feature.name];
@@ -63,7 +64,6 @@ const buildUsageLimitsFromFeatures = (features = []) => {
     limits[key] = parsed;
   });
 
-  console.log('buildUsageLimitsFromFeatures', limits);
   return limits;
 };
 
@@ -673,7 +673,6 @@ export const handleStripeWebhook = async (req, res) => {
 };
 
 // rezorpay
-
 export const createRazorpayOrder = async (req, res) => {
   try {
     const userId = req.user && req.user._id;
@@ -776,7 +775,7 @@ export const createRazorpayOrder = async (req, res) => {
     /* ---------------- PRICING ---------------- */
     let finalPrice = basePrice;
 
-    const pricingResponse: any = {
+    const pricingResponse = {
       period,
       original: { [currencyLower]: +basePrice.toFixed(2) },
       discounted: null,
@@ -889,6 +888,151 @@ export const createRazorpayOrder = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, error: 'Internal Server Error' });
+  }
+};
+
+export const verifyRazorpayPayment = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
+
+    /* ---------------- BASIC VALIDATION ---------------- */
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing Razorpay payment parameters.',
+      });
+    }
+
+    /* ---------------- SIGNATURE VERIFICATION ---------------- */
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      // this is a hard stop – do not proceed
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification failed.',
+      });
+    }
+
+    /* ---------------- IDEMPOTENCY ---------------- */
+    const alreadyProcessed = await Purchase.findOne({
+      paymentId: razorpay_payment_id,
+      paymentGateway: 'razorpay',
+    }).session(session);
+
+    if (alreadyProcessed) {
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).json({ success: true });
+    }
+
+    /* ---------------- FETCH ORDER ---------------- */
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+    if (!order) {
+      throw new Error('Razorpay order not found.');
+    }
+
+    const { userId, planId, billingPeriod, couponCode } = order.notes || {};
+
+    if (!userId || !planId || !billingPeriod) {
+      throw new Error('Missing order metadata.');
+    }
+
+    /* ---------------- LOAD PLAN ---------------- */
+    const plan = await Plan.findById(planId).session(session).lean();
+
+    if (!plan) {
+      throw new Error(`Plan not found: ${planId}`);
+    }
+
+    const variant = safeGetVariant(plan, billingPeriod);
+    if (!variant) {
+      throw new Error(`Billing variant '${billingPeriod}' not found.`);
+    }
+
+    /* ---------------- DEACTIVATE OLD PURCHASES ---------------- */
+    await Purchase.updateMany(
+      { user: userId, isActive: true },
+      { $set: { isActive: false } },
+      { session },
+    );
+
+    /* ---------------- CREATE PURCHASE ---------------- */
+    const amountPaid = order.amount / 100;
+
+    const newPurchase = new Purchase({
+      user: userId,
+      plan: planId,
+      billingVariant: {
+        period: billingPeriod,
+        price: {
+          inr: variant.price.effective.inr,
+          usd: variant.price.effective.usd ?? null,
+        },
+      },
+      amountPaid,
+      currency: order.currency.toLowerCase(),
+      paymentStatus: 'completed',
+      paymentGateway: 'razorpay',
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      couponCode: couponCode || null,
+      startDate: new Date(),
+      endDate: calculateEndDate(billingPeriod),
+      isActive: true,
+    });
+
+    await newPurchase.save({ session });
+
+    /* ---------------- UPDATE USER ---------------- */
+    const user = await User.findById(userId).session(session);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
+    user.currentPlan = planId;
+    user.currentPurchase = newPurchase._id;
+    user.usageLimits = buildUsageLimitsFromFeatures(variant.features || []);
+    user.usageCounters = {
+      cvCreation: 0,
+      coverLetter: 0,
+      aiApplication: 0,
+      autoApply: 0,
+      autoApplyDailyLimit: 0,
+      manualApplication: 0,
+      lastReset: new Date(),
+    };
+
+    await user.save({ session });
+
+    /* ---------------- COMMIT ---------------- */
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payment verified and plan activated.',
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error(
+      `verifyRazorpayPayment failed for order ${req.body?.razorpay_order_id}:`,
+      error,
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to process payment.',
+    });
   }
 };
 
@@ -1135,4 +1279,45 @@ export const createSimplePurchaseDev = async (req, res) => {
       }
     }
   }
+};
+
+export const routePayment = async (req, res) => {
+  const { currency, country } = req.body;
+
+  if (currency === 'inr' && country === 'IN') {
+    return res.status(200).json({
+      success: true,
+      gateway: 'stripe',
+    });
+  }
+
+  const gateway = 'razorpay';
+
+  return res.status(200).json({
+    success: true,
+    gateway,
+  });
+};
+
+export const razorpayWebhook = async (req, res) => {
+  const event = req.body;
+
+  if (event.event === 'payment.captured') {
+    await Payment.findOneAndUpdate(
+      { gatewayPaymentId: event.payload.payment.entity.id },
+      { status: 'completed' },
+    );
+  }
+
+  if (event.event === 'payment.failed') {
+    await Payment.findOneAndUpdate(
+      { gatewayPaymentId: event.payload.payment.entity.id },
+      {
+        status: 'failed',
+        failureReason: event.payload.payment.entity.error_description,
+      },
+    );
+  }
+
+  res.status(200).json({ received: true });
 };

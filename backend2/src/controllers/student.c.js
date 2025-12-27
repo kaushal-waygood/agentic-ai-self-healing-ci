@@ -1031,8 +1031,6 @@ export const getSavedJobs = async (req, res) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  console.log('saved', saved);
-
   res.json({ success: true, jobs: saved });
 };
 
@@ -1072,7 +1070,7 @@ export const StudentAnalytics = async (req, res) => {
   try {
     const [
       viewCount,
-      visitCount, 
+      visitCount,
       savedCount,
       appliedCount,
       cvCount,
