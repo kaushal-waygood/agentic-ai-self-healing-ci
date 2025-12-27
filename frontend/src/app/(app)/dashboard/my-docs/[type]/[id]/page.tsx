@@ -12,6 +12,7 @@ import ResultStep from '@/components/application/applications/wizard/steps/resul
 import { toast } from '@/hooks/use-toast';
 import { RootState } from '@/redux/rootReducer';
 import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
+import Image from 'next/image';
 
 const DocumentPage = () => {
   const { type, id } = useParams();
@@ -224,8 +225,17 @@ const DocumentPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading…
+      <div className="flex items-center flex-col justify-center min-h-screen">
+        <div>
+          <Image
+            src="/logo.png"
+            alt="zobsai logo"
+            width={100}
+            height={100}
+            className="w-10 h-10 animate-bounce"
+          />
+        </div>
+        <div className="text-lg">LOADING...</div>
       </div>
     );
   }

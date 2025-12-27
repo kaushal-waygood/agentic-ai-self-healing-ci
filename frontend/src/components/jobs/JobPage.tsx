@@ -171,8 +171,13 @@ export default function JobsPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
-                <div className="h-full flex items-center justify-center bg-white border rounded-xl">
-                  <p>Loading Job Detail</p>
+                <div className="h-full flex flex-col items-center justify-center bg-white border rounded-xl">
+                  <img
+                    src="/logo.png"
+                    alt="zobsAi"
+                    className="w-10 h-10 animate-bounce"
+                  />
+                  <p className="font-medium">Loading Job data...</p>
                 </div>
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />

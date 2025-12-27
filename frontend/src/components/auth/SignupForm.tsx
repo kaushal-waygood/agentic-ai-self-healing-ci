@@ -177,7 +177,7 @@ const SignupForm = () => {
   return (
     <div
       className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 
-flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relative"
+flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relative"
     >
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full filter blur-3xl opacity-40 animate-pulse hidden sm:block"></div>
@@ -189,10 +189,10 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
       {/* <div className="relative z-10 w-full max-w-lg "> */}
       <div className="relative z-10 w-full max-w-sm sm:max-w-md">
         {signupSuccess ? (
-          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl p-5 sm:p-6">
+          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-lg p-5 sm:p-6">
             <div className="text-center mb-10">
               <div className="relative inline-block mb-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl mx-auto flex items-center justify-center ">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg mx-auto flex items-center justify-center ">
                   <MailCheck className="h-10 w-10 text-white" />
                 </div>
               </div>
@@ -217,13 +217,13 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value)}
                     disabled={isVerifying}
-                    className="w-full pl-12 pr-4 h-14 text-base bg-white/50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all duration-300"
+                    className="w-full pl-12 pr-4 h-14 text-base bg-white/50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all duration-300"
                   />
                 </div>
                 <Button
                   onClick={handleVerification}
                   disabled={!verificationCode || isVerifying}
-                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-xl transition-all duration-300 "
+                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-lg transition-all duration-300 "
                 >
                   {isVerifying ? 'Verifying...' : 'Verify Account'}
                 </Button>
@@ -256,7 +256,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
             </div>
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-3xl sm:p-4 ">
+          <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-lg sm:p-4 p-2">
             <div className="text-center mb-5">
               <div className="relative inline-block mb-1 sm:mb-2">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center">
@@ -269,7 +269,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
                 </div>
               </div>
 
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 bg-headingTextPrimary bg-clip-text text-transparent">
                 Create an Account
               </h1>
               <p className="text-gray-500 text-xs sm:text-sm leading-relaxed">
@@ -306,7 +306,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
                             </FormControl>
                             <FormLabel
                               htmlFor="r1"
-                              className="flex flex-row items-center gap-2 rounded-xl border-2 border-gray-200 bg-white/50 p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer transition-all duration-300"
+                              className="flex flex-row items-center gap-2 rounded-lg border-2 border-gray-200 bg-white/50 p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer transition-all duration-300"
                             >
                               <UserPlus className="mb-2 h-7 w-7" /> Individual
                             </FormLabel>
@@ -322,7 +322,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
                             </FormControl>
                             <FormLabel
                               htmlFor="r2"
-                              className="flex flex-row items-center gap-2 rounded-xl border-2 border-gray-200 bg-white/50 p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer transition-all duration-300"
+                              className="flex flex-row items-center gap-2 rounded-lg border-2 border-gray-200 bg-white/50 p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer transition-all duration-300"
                             >
                               <Building className="mb-2 h-7 w-7" /> Institution
                             </FormLabel>
@@ -349,7 +349,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
                               <Building className="h-5 w-5" />
                             </div>
                             <Input
-                              className="pl-12 w-full h-10 text-sm bg-white/50 border-gray-300 rounded-xl focus:ring-purple-600 transition-all duration-300"
+                              className="pl-12 w-full h-10 text-sm bg-white/50 border-gray-300 rounded-lg focus:ring-purple-600 transition-all duration-300"
                               placeholder="e.g., State University"
                               {...field}
                             />
@@ -361,218 +361,224 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
                   />
                 )}
 
-                <div className="grid grid-cols-1 gap-3 mb-2">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-medium">
-                          Your Full Name
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <div
-                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
-                                focusedField === 'fullName'
-                                  ? 'text-purple-600'
-                                  : 'text-gray-400'
-                              }`}
-                            >
-                              <User className="h-5 w-5" />
-                            </div>
-                            <input
-                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div className="col-span-2 space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700 font-medium">
+                            Full Name
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <div
+                                className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                  focusedField === 'fullName'
+                                    ? 'text-purple-600'
+                                    : 'text-gray-400'
+                                }`}
+                              >
+                                <User className="h-5 w-5" />
+                              </div>
+                              <input
+                                className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
                           text-gray-900 placeholder-gray-400 transition-all "
-                              placeholder="John Doe"
-                              {...field}
-                              onFocus={() => setFocusedField('fullName')}
-                              onBlur={() => setFocusedField('')}
-                              disabled={form.formState.isSubmitting}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-medium">
-                          Your Email Address
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            {/* <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-                              <Mail className="h-5 w-5" />
-                            </div> */}
-
-                            <div
-                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
-                                focusedField === 'email'
-                                  ? 'text-purple-600'
-                                  : 'text-gray-400'
-                              }`}
-                            >
-                              <Mail className="h-5 w-5" />
+                                placeholder="John Doe"
+                                {...field}
+                                onFocus={() => setFocusedField('fullName')}
+                                onBlur={() => setFocusedField('')}
+                                disabled={form.formState.isSubmitting}
+                              />
                             </div>
-                            <input
-                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
-                          text-gray-900 placeholder-gray-400 transition-all"
-                              placeholder="name@example.com"
-                              {...field}
-                              onFocus={() => setFocusedField('email')}
-                              onBlur={() => setFocusedField('')}
-                              disabled={form.formState.isSubmitting}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-medium">
-                          Password
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <div
-                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
-                                focusedField === 'password'
-                                  ? 'text-purple-600'
-                                  : 'text-gray-400'
-                              }`}
-                            >
-                              <Lock className="h-5 w-5" />
-                            </div>
-                            <input
-                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700 font-medium">
+                            Email Address
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <div
+                                className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                  focusedField === 'email'
+                                    ? 'text-purple-600'
+                                    : 'text-gray-400'
+                                }`}
+                              >
+                                <Mail className="h-5 w-5" />
+                              </div>
+                              <input
+                                className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
                           text-gray-900 placeholder-gray-400 transition-all"
-                              type={showPassword ? 'text' : 'password'}
-                              placeholder="••••••••"
-                              {...field}
-                              onFocus={() => setFocusedField('password')}
-                              onBlur={() => setFocusedField('')}
-                              disabled={form.formState.isSubmitting}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
-                            >
-                              {showPassword ? (
-                                <EyeOff className="h-5 w-5" />
-                              ) : (
-                                <Eye className="h-5 w-5" />
-                              )}
-                            </button>
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
+                                placeholder="name@example.com"
+                                {...field}
+                                onFocus={() => setFocusedField('email')}
+                                onBlur={() => setFocusedField('')}
+                                disabled={form.formState.isSubmitting}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-medium">
-                          Confirm Password
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <div
-                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
-                                focusedField === 'confirmPassword'
-                                  ? 'text-purple-600'
-                                  : 'text-gray-400'
-                              }`}
-                            >
-                              <Lock className="h-5 w-5" />
-                            </div>
-                            <input
-                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                  <div className="col-span-2 sm:col-span-1">
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700 font-medium">
+                            Password
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <div
+                                className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                  focusedField === 'password'
+                                    ? 'text-purple-600'
+                                    : 'text-gray-400'
+                                }`}
+                              >
+                                <Lock className="h-5 w-5" />
+                              </div>
+                              <input
+                                className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
                           text-gray-900 placeholder-gray-400 transition-all"
-                              type={showConfirmPassword ? 'text' : 'password'}
-                              placeholder="••••••••"
-                              {...field}
-                              onFocus={() => setFocusedField('confirmPassword')}
-                              onBlur={() => setFocusedField('')}
-                              disabled={form.formState.isSubmitting}
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setShowConfirmPassword(!showConfirmPassword)
-                              }
-                              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
-                            >
-                              {showConfirmPassword ? (
-                                <EyeOff className="h-5 w-5" />
-                              ) : (
-                                <Eye className="h-5 w-5" />
-                              )}
-                            </button>
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                {...field}
+                                onFocus={() => setFocusedField('password')}
+                                onBlur={() => setFocusedField('')}
+                                disabled={form.formState.isSubmitting}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-5 w-5" />
+                                ) : (
+                                  <Eye className="h-5 w-5" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700 font-medium">
+                            Confirm Password
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <div
+                                className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                  focusedField === 'confirmPassword'
+                                    ? 'text-purple-600'
+                                    : 'text-gray-400'
+                                }`}
+                              >
+                                <Lock className="h-5 w-5" />
+                              </div>
+                              <input
+                                className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                          text-gray-900 placeholder-gray-400 transition-all"
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                {...field}
+                                onFocus={() =>
+                                  setFocusedField('confirmPassword')
+                                }
+                                onBlur={() => setFocusedField('')}
+                                disabled={form.formState.isSubmitting}
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setShowConfirmPassword(!showConfirmPassword)
+                                }
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                              >
+                                {showConfirmPassword ? (
+                                  <EyeOff className="h-5 w-5" />
+                                ) : (
+                                  <Eye className="h-5 w-5" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="referredBy"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-medium">
-                          Referral Code (Optional)
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <div
-                              className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
-                                focusedField === 'referredBy'
-                                  ? 'text-purple-600'
-                                  : 'text-gray-400'
-                              }`}
-                            >
-                              <FileText className="h-5 w-5" />
-                            </div>
-                            <input
-                              className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
+                  <div className="col-span-2">
+                    <FormField
+                      control={form.control}
+                      name="referredBy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700 font-medium">
+                            Referral Code (Optional)
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <div
+                                className={`absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center transition-all ${
+                                  focusedField === 'referredBy'
+                                    ? 'text-purple-600'
+                                    : 'text-gray-400'
+                                }`}
+                              >
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <input
+                                className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
                           text-gray-900 placeholder-gray-400 transition-all"
-                              placeholder="Enter code here"
-                              {...field}
-                              onFocus={() => setFocusedField('referredBy')}
-                              onBlur={() => setFocusedField('')}
-                              disabled={
-                                form.formState.isSubmitting || isRefCodeFromUrl
-                              }
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
+                                placeholder="Enter code here"
+                                {...field}
+                                onFocus={() => setFocusedField('referredBy')}
+                                onBlur={() => setFocusedField('')}
+                                disabled={
+                                  form.formState.isSubmitting ||
+                                  isRefCodeFromUrl
+                                }
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
-                  className="w-full mt-3 group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-xl transition-all duration-300 "
+                  className="w-full mt-3 group bg-buttonPrimary text-white font-semibold py-4 px-6 text-lg rounded-lg transition-all duration-300 hover:scale-[1.02] group-hover:shadow-lg"
                 >
                   {form.formState.isSubmitting ? (
                     'Creating Account...'
@@ -589,7 +595,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-6 overflow-y-auto relat
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
+              <div className="relative flex justify-center text-xs ">
                 <span className="bg-white/80 px-4 text-gray-500 rounded-full backdrop-blur-sm">
                   Or continue with
                 </span>

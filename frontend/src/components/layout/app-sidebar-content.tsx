@@ -20,6 +20,10 @@ import {
   Layers,
   ZapIcon,
   Activity,
+  Clock10,
+  BookOpen,
+  Handshake,
+  Network,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -113,7 +117,7 @@ export const AppSidebarContent = ({
         allowedRoles: [ROLES.STUDENT],
       },
       {
-        title: 'AI Auto Docs',
+        title: 'AI Auto Application',
         href: '/dashboard/ai-auto-apply',
         icon: Bot,
         allowedRoles: [ROLES.STUDENT],
@@ -160,9 +164,14 @@ export const AppSidebarContent = ({
 
       // === EXTRAS (Visible to Everyone) ===
       {
-        title: 'ZobsAI Partnership',
+        title: 'Partnership',
         href: '/dashboard/partnership',
-        icon: ZapIcon,
+        icon: Rocket,
+      },
+      {
+        title: 'Blogs',
+        href: 'https://zobsai.com/resources/',
+        icon: BookOpen,
       },
       {
         title: 'Refer & Earn',

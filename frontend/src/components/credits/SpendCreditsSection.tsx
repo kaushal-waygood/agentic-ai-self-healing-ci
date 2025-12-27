@@ -34,26 +34,41 @@ const CATALOG: SpendItem[] = [
     badge: 'Popular',
   },
   {
-    id: 'COVER_LETTER',
-    name: 'Featured Job Application',
-    description: 'Your applied job moves to top priority for recruiters.',
-    cost: 10,
-    benefit: 'Priority Placement',
-  },
-  {
-    id: 'AUTO_APPLY',
-    name: 'AI Resume Review',
-    description: 'Expert AI-driven resume feedback and improvement.',
-    cost: 10,
-    benefit: '+1 Resume Credit',
-  },
-  {
-    id: 'AUTOPILOT_AGENT_CREATE',
-    name: 'Cover Letter Pack (3)',
+    id: 'Cover_GENERATION',
+    name: 'Generate Cover Letter',
     description: 'Generate or enhance up to 3 cover letters.',
     cost: 10,
     benefit: '+3 Cover Letters',
   },
+  {
+    id: 'JOB_MATCH_SCORE',
+    name: 'Generate AI Job Match Score',
+    description:
+      'Get a job match score based on your resume and job description.',
+    cost: 10,
+    benefit: 'Job Match Score',
+  },
+  // {
+  //   id: 'COVER_LETTER',
+  //   name: 'Featured Job Application',
+  //   description: 'Your applied job moves to top priority for recruiters.',
+  //   cost: 10,
+  //   benefit: 'Priority Placement',
+  // },
+  // {
+  //   id: 'AUTO_APPLY',
+  //   name: 'AI Resume Review',
+  //   description: 'Expert AI-driven resume feedback and improvement.',
+  //   cost: 10,
+  //   benefit: '+1 Resume Credit',
+  // },
+  // {
+  //   id: 'AUTOPILOT_AGENT_CREATE',
+  //   name: 'Cover Letter Pack (3)',
+  //   description: 'Generate or enhance up to 3 cover letters.',
+  //   cost: 10,
+  //   benefit: '+3 Cover Letters',
+  // },
 ];
 
 export function SpendCreditsSection({
