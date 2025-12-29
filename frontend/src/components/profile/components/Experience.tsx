@@ -13,6 +13,7 @@ import {
 
 import { useExperience } from '@/hooks/useProfile';
 import { AddExperience } from '../AddEducation'; // adjust path
+import ModalPortal from '@/components/ui/modalPortal';
 
 const formatDateForMonthInput = (date: string) => {
   if (!date) return '';
@@ -76,7 +77,7 @@ const Experience = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditData(exp)}
-                      className="text-purple-600 border border-purple-300 hover:bg-purple-50 h-9 w-9 rounded-md flex items-center justify-center"
+                      className="text-blue-600 border border-blue-300 hover:bg-blue-50 h-9 w-9 rounded-md flex items-center justify-center"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -155,32 +156,34 @@ const Experience = () => {
       )}
 
       {/* DELETE CONFIRM */}
-      {deleteId && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-80">
-            <p className="text-gray-800 mb-4">
-              Are you sure you want to delete this experience?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="px-4 py-2 border rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  deleteExperience(deleteId);
-                  setDeleteId(null);
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded"
-              >
-                Delete
-              </button>
+      <ModalPortal>
+        {deleteId && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-80">
+              <p className="text-gray-800 mb-4">
+                Are you sure you want to delete this experience?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setDeleteId(null)}
+                  className="px-4 py-2 border rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    deleteExperience(deleteId);
+                    setDeleteId(null);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </ModalPortal>
     </div>
   );
 };

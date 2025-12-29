@@ -310,9 +310,9 @@ h6 {
 }
 
 .input-search-box-div {
-  @apply flex justify-center items-center  border-gray-300  rounded-xl min-w-[250px] relative;
+  @apply flex justify-center items-center border p-2 border-gray-300  rounded-lg min-w-[250px] relative;
 }
 
 .input-search {
-  @apply w-full outline-none  bg-gray-50;
+  @apply w-full outline-none bg-gray-50;
 }
