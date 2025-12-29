@@ -1,11 +1,12 @@
 import { generateContent } from '../config/gemini.js';
 import { generateCoverLetterPrompts } from '../prompt/generateCoverletter.js';
-import { StudentCL } from '../models/students/studentCL.model.js'; // NEW MODEL
-import { User } from '../models/User.model.js';
+import { Student } from '../models/student.model.js';
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
+import { convertToStyledHtml } from './coverletter.htmlify.js';
+import { User } from '../models/User.model.js';
 import { wrapCoverLetterHtml } from './coverletterTemplate.js';
 
 export const processCoverLetterGeneration = async (
@@ -16,57 +17,75 @@ export const processCoverLetterGeneration = async (
   finalTouch,
   io,
 ) => {
-  let clId = null;
+  let clId;
 
   try {
-    // 1. Fetch from StudentCL collection
-    const clDoc = await StudentCL.findOne({ student: userId, jobId: jobId });
+    const student = await Student.findOne(
+      { _id: userId, 'cls.jobId': jobId },
+      { 'cls.$': 1 },
+    );
 
-    if (!clDoc) {
+    if (!student || !student.cls || student.cls.length === 0) {
       throw new Error(
-        `No StudentCL found with jobId: ${jobId} for user: ${userId}`,
+        `No cover letter found with jobId: ${jobId} for user: ${userId}`,
       );
     }
 
-    clId = clDoc._id;
-
-    // 2. Parse Student Data
+    clId = student.cls[0]._id;
     let parsed = {};
     if (typeof studentData === 'string') {
       try {
         parsed = JSON.parse(studentData);
       } catch (e) {
-        console.warn('Failed to parse studentData string', e);
+        console.warn(
+          'processCoverLetterGeneration: failed to parse studentData string',
+          e,
+        );
         parsed = {};
       }
     } else if (typeof studentData === 'object' && studentData !== null) {
       parsed = studentData;
     }
 
-    // 3. Prepare Prompt Data
     let studentProfile = {};
     if (parsed && typeof parsed === 'object') {
       if (parsed.profile && typeof parsed.profile === 'object') {
         studentProfile = { ...parsed.profile };
-        if (parsed.resumeText) studentProfile.resumeText = parsed.resumeText;
+        if (parsed.resumeText) {
+          studentProfile.resumeText = parsed.resumeText;
+        }
       } else {
         studentProfile = { ...parsed };
       }
     }
 
-    // Ensure array fields exist
-    ['education', 'experience', 'skills', 'projects'].forEach((field) => {
-      studentProfile[field] = Array.isArray(studentProfile[field])
-        ? studentProfile[field]
-        : [];
-    });
     studentProfile.fullName = studentProfile.fullName || '';
     studentProfile.email = studentProfile.email || '';
     studentProfile.phone = studentProfile.phone || '';
+    studentProfile.education = Array.isArray(studentProfile.education)
+      ? studentProfile.education
+      : studentProfile.education
+      ? studentProfile.education
+      : [];
+    studentProfile.experience = Array.isArray(studentProfile.experience)
+      ? studentProfile.experience
+      : studentProfile.experience
+      ? studentProfile.experience
+      : [];
+    studentProfile.skills = Array.isArray(studentProfile.skills)
+      ? studentProfile.skills
+      : studentProfile.skills
+      ? studentProfile.skills
+      : [];
+    studentProfile.projects = Array.isArray(studentProfile.projects)
+      ? studentProfile.projects
+      : studentProfile.projects
+      ? studentProfile.projects
+      : [];
+    // resumeText fallback
     studentProfile.resumeText =
       studentProfile.resumeText || parsed.resumeText || '';
 
-    // 4. Generate AI Content
     const prompt = generateCoverLetterPrompts(
       jobContextString,
       JSON.stringify(studentProfile),
@@ -82,39 +101,54 @@ export const processCoverLetterGeneration = async (
       .replace(/```/g, '')
       .trim();
 
-    // Security check
+    const profileForHtml = (() => {
+      try {
+        if (parsed && parsed.profile && typeof parsed.profile === 'object') {
+          return { ...parsed.profile };
+        }
+        return parsed || {};
+      } catch (e) {
+        return {};
+      }
+    })();
+
     if (/<(style|html|head|body|script|link)|style\s*=/i.test(cleaned)) {
       throw new Error('Invalid Cover Letter HTML: forbidden tags detected');
     }
 
     const htmlContent = wrapCoverLetterHtml(cleaned, 'Cover Letter');
 
-    // 5. Update StudentCL (Success)
-    const updateResult = await StudentCL.findByIdAndUpdate(clId, {
-      $set: {
-        status: 'completed',
-        clData: { html: htmlContent },
-        completedAt: new Date(),
-        jobContextString: jobContextString, // Update context if needed
-        finalTouch: finalTouch,
+    const updateResult = await Student.updateOne(
+      { 'cls._id': clId },
+      {
+        $set: {
+          'cls.$.status': 'completed',
+          'cls.$.clData': { html: htmlContent },
+          'cls.$.completedAt': new Date(),
+          'cls.$.jobContextString': jobContextString,
+          'cls.$.finalTouch': finalTouch,
+        },
       },
-    });
+    );
 
-    if (!updateResult) {
-      throw new Error(`Failed to update StudentCL with ID: ${clId}`);
+    if (updateResult.matchedCount === 0) {
+      throw new Error(
+        `Failed to update cover letter with clId: ${clId} (match count 0)`,
+      );
     }
 
-    // 6. Increment Usage
     try {
       await User.updateOne(
         { _id: userId },
         { $inc: { 'usageCounters.coverLetter': 1 } },
       );
     } catch (incErr) {
-      console.error(`Failed to increment usage for user ${userId}:`, incErr);
+      console.error(
+        `Failed to increment coverLetterCreation for user ${userId}:`,
+        incErr,
+      );
     }
 
-    // 7. Send Notification
     await sendRealTimeUserNotification(
       io,
       userId,
@@ -125,39 +159,68 @@ export const processCoverLetterGeneration = async (
     );
   } catch (error) {
     console.error(
-      `CL generation failed for user: ${userId}, job: ${jobId}`,
+      `Cover letter generation failed for user: ${userId}, job: ${jobId}`,
       error,
     );
 
-    // Error Handling Logic
-    let errorMessage = 'An unknown error occurred.';
-    let userFriendlyMessage = 'Sorry, we encountered an issue.';
+    // Enhanced error handling with user-friendly messages
+    let errorMessage = 'An unknown error occurred during generation.';
+    let userFriendlyMessage =
+      'Sorry, we encountered an issue generating your cover letter.';
 
-    if (error?.status === 503 || error?.message?.includes('overload')) {
-      userFriendlyMessage = 'AI service overloaded. Please try again later.';
+    if (error?.status === 503) {
+      errorMessage =
+        'AI service is temporarily overloaded. Please try again in a few moments.';
+      userFriendlyMessage =
+        'The AI service is currently busy. Please try again in a few minutes.';
     } else if (error?.status === 429) {
-      userFriendlyMessage = 'Too many requests. Please wait a moment.';
+      errorMessage = 'Rate limit exceeded. Please try again later.';
+      userFriendlyMessage =
+        "We're processing too many requests. Please wait a moment and try again.";
+    } else if (error?.status === 401) {
+      errorMessage = 'Invalid API key or authentication failed.';
+      userFriendlyMessage =
+        'Service configuration issue. Please contact support.';
+    } else if (error?.status === 400) {
+      errorMessage = 'Bad request - invalid prompt or parameters.';
+      userFriendlyMessage =
+        'There was an issue with the generation request. Please try again.';
     } else if (error?.message) {
       errorMessage = error.message;
-    }
 
-    // Update StudentCL (Failure)
-    if (clId || userId) {
-      const filter = clId ? { _id: clId } : { student: userId, jobId: jobId };
-      try {
-        await StudentCL.updateOne(filter, {
-          $set: {
-            status: 'failed',
-            error: errorMessage,
-            completedAt: new Date(),
-          },
-        });
-      } catch (e) {
-        console.error('Failed to update failure state in DB:', e);
+      // Extract user-friendly message from specific error types
+      if (
+        error.message.includes('overloaded') ||
+        error.message.includes('overload')
+      ) {
+        userFriendlyMessage =
+          'The AI service is currently overloaded. Please try again in a few minutes.';
+      } else if (
+        error.message.includes('quota') ||
+        error.message.includes('limit')
+      ) {
+        userFriendlyMessage = 'Service limit reached. Please try again later.';
       }
     }
 
-    // Notification
+    const failureFilter = clId
+      ? { 'cls._id': clId }
+      : { _id: userId, 'cls.jobId': jobId };
+
+    // Update with failed status
+    try {
+      await Student.updateOne(failureFilter, {
+        $set: {
+          'cls.$.status': 'failed',
+          'cls.$.error': errorMessage,
+          'cls.$.completedAt': new Date(),
+        },
+      });
+    } catch (e) {
+      console.error('Failed to mark cover letter job as failed in DB:', e);
+    }
+
+    // Send a failure notification
     try {
       await sendRealTimeUserNotification(
         io,

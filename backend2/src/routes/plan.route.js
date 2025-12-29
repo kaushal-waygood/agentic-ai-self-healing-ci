@@ -2,16 +2,13 @@ import {
   cleanupIndexes,
   createPaymentIntent,
   createPlan,
-  createRazorpayOrder,
   // createSimplePurchase,
   createSimplePurchaseDev,
   getActivePlan,
   getAllPlans,
   getPaymentStatus,
   getSinglePlan,
-  routePayment,
   updatePlan,
-  verifyRazorpayPayment,
 } from '../controllers/plan.controller.js';
 import { Router } from 'express';
 import {
@@ -54,10 +51,5 @@ router.post(
   createSimplePurchaseDev,
 );
 router.get('/payment/status/:id', authMiddleware, getPaymentStatus);
-
-router.post('/payment/create-order', authMiddleware, createRazorpayOrder);
-router.post('/payment/verify', authMiddleware, verifyRazorpayPayment);
-
-router.post('/payments/route', authMiddleware, routePayment);
 
 export default router;

@@ -15,12 +15,6 @@ import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
 import mongoose from 'mongoose';
 import { processTailoredApplication } from '../utils/tailoredApply.background.js';
-import { StudentCV } from '../models/students/studentCV.model.js';
-import { StudentCL } from '../models/students/studentCL.model.js'; // NEW MODEL
-import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.js';
-import { StudentApplication } from '../models/students/studentApplication.model.js';
-import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
-import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
 
 // --------Helper Functions---------
 
@@ -174,15 +168,21 @@ export const convertDataIntoHTML = async (req, res) => {
 export const getAllCVs = async (req, res) => {
   try {
     const { _id } = req.user;
-    const studentCVs = await StudentCV.find({ student: _id }).sort({
-      createdAt: -1,
-    });
+    // 1. Remove .sort() from the query. It's not effective on findById.
+    const user = await Student.findById(_id).select('cvs');
 
-    if (!studentCVs) {
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.status(200).json({ cvs: studentCVs });
+    // 2. Safely handle the case where user.cvs might be undefined.
+    //    If it is, default to an empty array before sorting.
+    const cvsToSort = user.cvs || [];
+
+    // 3. Sort the resulting array. This works even if the array is empty.
+    const sortedCVs = cvsToSort.sort((a, b) => b.createdAt - a.createdAt);
+
+    res.status(200).json({ cvs: sortedCVs });
   } catch (error) {
     console.error('Error fetching CVs:', error);
     res.status(500).json({ error: 'Failed to retrieve CVs' });
@@ -192,17 +192,16 @@ export const getAllCVs = async (req, res) => {
 export const getAllCLs = async (req, res) => {
   try {
     const { _id } = req.user;
-    const studentCLs = await StudentCL.find({ student: _id }).sort({
-      createdAt: -1,
-    });
+    const user = await Student.findById(_id).select('cls');
 
-    if (!studentCLs) {
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const clsToSort = studentCLs || [];
+    const clsToSort = user.cls || [];
+    const sortedCLs = clsToSort.sort((a, b) => b.createdAt - a.createdAt);
 
-    res.status(200).json({ cls: clsToSort });
+    res.status(200).json({ cls: sortedCLs });
   } catch (error) {
     console.error('Error fetching CVs:', error);
     res.status(500).json({ error: 'Failed to retrieve CVs' });
@@ -212,17 +211,18 @@ export const getAllCLs = async (req, res) => {
 export const getAllTailoredApplications = async (req, res) => {
   try {
     const { _id } = req.user;
-    const applications = await StudentTailoredApplication.find({
-      student: _id,
-    }).sort({
-      createdAt: -1,
-    });
+    const user = await Student.findById(_id).select('tailoredApplications');
 
-    if (!applications) {
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.status(200).json({ tailoredApplications: applications });
+    const tailoredApplicationsToSort = user.tailoredApplications || [];
+    const sortedTailoredApplications = tailoredApplicationsToSort.sort(
+      (a, b) => b.createdAt - a.createdAt,
+    );
+
+    res.status(200).json({ tailoredApplications: sortedTailoredApplications });
   } catch (error) {
     console.error('Error fetching CVs:', error);
     res.status(500).json({ error: 'Failed to retrieve CVs' });
@@ -234,14 +234,21 @@ export const getSingleCV = async (req, res) => {
     const { cvId } = req.params;
     const { _id: userId } = req.user;
 
-    const cv = await StudentCV.findOne({
-      student: userId,
-      _id: cvId,
-    });
+    const student = await Student.findOne(
+      {
+        _id: userId,
+        'cvs._id': cvId,
+      },
+      {
+        'cvs.$': 1,
+      },
+    );
 
-    if (!cv) {
+    if (!student || !student.cvs || student.cvs.length === 0) {
       return res.status(404).json({ error: 'CV not found' });
     }
+
+    const cv = student.cvs[0]; // Get the first (and only) matched CV
 
     res.status(200).json({
       success: true,
@@ -258,18 +265,25 @@ export const getSingleCL = async (req, res) => {
     const { clId } = req.params;
     const { _id: userId } = req.user;
 
-    const studentCL = await StudentCL.findOne({
-      student: userId,
-      _id: clId,
-    });
+    const student = await Student.findOne(
+      {
+        _id: userId,
+        'cls._id': clId,
+      },
+      {
+        'cls.$': 1,
+      },
+    );
 
-    if (!studentCL) {
+    if (!student || !student.cls || student.cls.length === 0) {
       return res.status(404).json({ error: 'CV not found' });
     }
 
+    const cl = student.cls[0]; // Get the first (and only) matched CV
+
     res.status(200).json({
       success: true,
-      cl: studentCL,
+      cl,
     });
   } catch (error) {
     console.error('Error fetching CV:', error);
@@ -282,20 +296,29 @@ export const getSingleTailoredApplication = async (req, res) => {
     const { applicationId } = req.params;
     const { _id: userId } = req.user;
 
-    const student = await StudentTailoredApplication.findOne({
-      student: userId,
-      _id: applicationId,
-    });
+    const student = await Student.findOne(
+      {
+        _id: userId,
+        'tailoredApplications._id': applicationId,
+      },
+      {
+        'tailoredApplications.$': 1,
+      },
+    );
 
-    console.log(student);
-
-    if (!student) {
+    if (
+      !student ||
+      !student.tailoredApplications ||
+      student.tailoredApplications.length === 0
+    ) {
       return res.status(404).json({ error: 'CV not found' });
     }
 
+    const application = student.tailoredApplications[0]; // Get the first (and only) matched CV
+
     res.status(200).json({
       success: true,
-      application: student,
+      application,
     });
   } catch (error) {
     console.error('Error fetching CV:', error);
@@ -441,6 +464,8 @@ export const renameHtmlCV = async (req, res) => {
       { new: true },
     );
 
+    console.log('Updated student:', student);
+
     if (!student) {
       return res.status(404).json({
         error: 'CV not found or user unauthorized',
@@ -552,33 +577,28 @@ export const refreshStatus = async (req, res) => {
   const { _id: userId } = req.user;
 
   const modelName = getModelForType(type);
-  console.log(modelName);
   if (!modelName) {
     return res.status(400).json({ error: 'Invalid type' });
   }
 
   try {
-    let student;
-    modelName === 'cvs'
-      ? (student = await StudentCV.find({ student: userId, _id: id }).exec())
-      : modelName === 'cls'
-      ? (student = await StudentCL.find({
-          student: userId,
-          _id: id,
-        }).exec())
-      : (student = await StudentTailoredApplication.find({
-          student: userId,
-          _id: id,
-        }).exec());
+    // Find the student, but only select the one matching item from the array
+    const student = await Student.findById(userId)
+      .select({ [modelName]: { $elemMatch: { _id: id } } })
+      .exec();
 
-    if (!student || student.length === 0) {
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    if (!student[modelName] || student[modelName].length === 0) {
       return res
         .status(404)
         .json({ error: `Item with id ${id} not found for this student.` });
     }
 
     // Get the single item from the array
-    const item = student[0];
+    const item = student[modelName][0];
 
     res.status(200).json({ success: true, item: item });
   } catch (error) {
@@ -708,13 +728,15 @@ export const generateCoverLetterByJobId = async (req, res) => {
 };
 
 export const saveStudentHTMLCV = async (req, res) => {
-  const { _id: studentId } = req.user;
+  const { _id } = req.user;
   const { html, title, ats } = req.body;
 
   try {
-    const htmlString = typeof html === 'object' && html?.cv ? html.cv : html;
+    // Handle html as either string or object
+    const htmlString = typeof html === 'object' && html.cv ? html.cv : html;
 
     if (!htmlString || typeof htmlString !== 'string') {
+      console.log('Invalid HTML content:', html);
       return res.status(400).json({ error: 'Invalid HTML content' });
     }
 
@@ -722,17 +744,32 @@ export const saveStudentHTMLCV = async (req, res) => {
       return res.status(400).json({ error: 'Invalid title' });
     }
 
-    const cv = await StudentHtmlCV.create({
-      student: studentId,
-      html: htmlString,
-      htmlCVTitle: title,
-      ats,
-    });
+    const student = await Student.findByIdAndUpdate(
+      _id,
+      {
+        $push: {
+          htmlCV: {
+            html: htmlString,
+            htmlCVTitle: title,
+            ats,
+            updatedAt: new Date(),
+          },
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
 
     return res.json({
       success: true,
       message: 'HTML CV saved successfully',
-      data: cv,
+      data: {
+        cvCount: student.htmlCV.length,
+        latestCV: student.htmlCV[student.htmlCV.length - 1],
+      },
     });
   } catch (error) {
     console.error('Error saving HTML CV:', error);
@@ -744,61 +781,45 @@ export const saveStudentHTMLCV = async (req, res) => {
 };
 
 export const getStudentHTMLCV = async (req, res) => {
-  const { _id: studentId } = req.user;
-
+  const { _id } = req.user;
   try {
-    const cvs = await StudentHtmlCV.find({ student: studentId }).sort({
-      createdAt: -1,
-    });
-
-    return res.json({
-      success: true,
-      count: cvs.length,
-      html: cvs,
-    });
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    return res.json({ success: true, html: student.htmlCV });
   } catch (error) {
     console.error('Error getting HTML CV:', error);
-    return res.status(500).json({
-      error: 'Failed to get HTML CV',
-    });
+    return res.status(500).json({ error: 'Failed to get HTML CV' });
   }
 };
 
 export const getSingleStudentHTMLCV = async (req, res) => {
-  const { _id: studentId } = req.user;
+  const { _id } = req.user;
   const { cvId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(cvId)) {
-    return res.status(400).json({ error: 'Invalid CV ID' });
-  }
-
   try {
-    const cv = await StudentHtmlCV.findOne({
-      _id: cvId,
-      student: studentId,
-    });
-
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    const cv = student.htmlCV.find((cv) => cv._id.toString() === cvId);
     if (!cv) {
       return res.status(404).json({ error: 'HTML CV not found' });
     }
-
-    return res.json({
-      success: true,
-      html: cv,
-    });
+    return res.json({ success: true, html: cv });
   } catch (error) {
     console.error('Error getting HTML CV:', error);
-    return res.status(500).json({
-      error: 'Failed to get HTML CV',
-    });
+    return res.status(500).json({ error: 'Failed to get HTML CV' });
   }
 };
 
 export const savedStudentHTMLLetter = async (req, res) => {
-  const { _id: studentId } = req.user;
+  const { _id } = req.user;
   const { html, title } = req.body;
 
   try {
+    // Validate input
     if (!html || typeof html !== 'string') {
       return res.status(400).json({ error: 'Invalid HTML content' });
     }
@@ -807,19 +828,43 @@ export const savedStudentHTMLLetter = async (req, res) => {
       return res.status(400).json({ error: 'Invalid title' });
     }
 
-    const letter = await StudentCoverLetter.create({
-      student: studentId,
-      coverLetter: html,
-      coverLetterTitle: title,
-    });
+    const student = await Student.findByIdAndUpdate(
+      _id,
+      {
+        $push: {
+          coverLetter: {
+            coverLetter: html,
+            coverLetterTitle: title,
+            updatedAt: new Date(),
+          },
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Defensive fallback if htmlLetter is undefined or null
+    const htmlLetters = Array.isArray(student.htmlLetter)
+      ? student.htmlLetter
+      : [];
 
     return res.json({
       success: true,
       message: 'HTML Letter saved successfully',
-      data: letter,
     });
   } catch (error) {
     console.error('Error saving HTML Letter:', error);
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: error.errors,
+      });
+    }
+
     return res.status(500).json({
       error: 'Failed to save HTML Letter',
       message: error.message,
@@ -828,53 +873,56 @@ export const savedStudentHTMLLetter = async (req, res) => {
 };
 
 export const getStudentHTMLLetter = async (req, res) => {
-  const { _id: studentId } = req.user;
-
+  const { _id } = req.user;
   try {
-    const letters = await StudentCoverLetter.find({
-      student: studentId,
-    }).sort({ createdAt: -1 });
-
-    return res.json({
-      success: true,
-      count: letters.length,
-      html: letters,
-    });
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    return res.json({ success: true, html: student.coverLetter });
   } catch (error) {
     console.error('Error getting HTML Letter:', error);
-    return res.status(500).json({
-      error: 'Failed to get HTML Letter',
-    });
+    return res.status(500).json({ error: 'Failed to get HTML Letter' });
   }
 };
 
 export const getSingleStudentHTMLLetter = async (req, res) => {
-  const { _id: studentId } = req.user;
+  const { _id } = req.user;
   const { letterId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(letterId)) {
-    return res.status(400).json({ error: 'Invalid Letter ID' });
-  }
+  console.log('Fetching HTML Letter for student:', _id, 'Letter ID:', letterId);
 
   try {
-    const letter = await StudentCoverLetter.findOne({
-      _id: letterId,
-      student: studentId,
-    });
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Debug log to inspect structure
+    console.log('Student HTML Letters:', student.coverLetter);
+
+    // Check if the array exists
+    if (
+      !Array.isArray(student.coverLetter) ||
+      student.coverLetter.length === 0
+    ) {
+      return res
+        .status(404)
+        .json({ error: 'No HTML Letters found for this student' });
+    }
+
+    const letter = student.coverLetter.find(
+      (letter) => letter._id.toString() === letterId,
+    );
 
     if (!letter) {
       return res.status(404).json({ error: 'HTML Letter not found' });
     }
 
-    return res.json({
-      success: true,
-      html: letter,
-    });
+    return res.json({ success: true, html: letter });
   } catch (error) {
     console.error('Error getting HTML Letter:', error);
-    return res.status(500).json({
-      error: 'Failed to get HTML Letter',
-    });
+    return res.status(500).json({ error: 'Failed to get HTML Letter' });
   }
 };
 
@@ -894,12 +942,9 @@ export const createTailoredApply = async (req, res) => {
   } = req.body;
 
   try {
+    // Step 1: Determine Job Source and Validate
     let jobDetails;
     if (jobId) {
-      if (!mongoose.Types.ObjectId.isValid(jobId)) {
-        return res.status(400).json({ error: 'Invalid Job ID format' });
-      }
-
       const jobFromDb = await Job.findById(jobId).lean();
       if (!jobFromDb) {
         return res.status(404).json({ error: 'Job not found in database' });
@@ -922,34 +967,34 @@ export const createTailoredApply = async (req, res) => {
       });
     }
 
+    // Step 2: Determine CV source
     let studentData = null;
     let cvContent = null;
 
     const wantsProfile = useProfile === 'true' || useProfile === true;
 
     if (wantsProfile) {
-      const student = await Student.findById(_id).lean();
-
+      const student = await Student.findById(_id)
+        .select('-token -appliedJobs -savedJobs -viewedJobs -visitedJobs')
+        .lean();
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
       }
       studentData = student;
     } else if (savedCVId) {
-      const savedCV = await StudentHtmlCV.findOne({
-        _id: savedCVId,
-        student: _id,
-      });
-      if (!savedCV) {
-        return res.status(404).json({ error: 'Saved CV not found' });
-      }
-      cvContent = savedCV.html;
+      cvContent = await getCvContentBySavedId(_id, savedCVId);
       if (!cvContent) {
-        return res.status(422).json({ error: 'Saved CV has no content' });
+        return res
+          .status(404)
+          .json({ error: 'No CV found for the provided savedCVId' });
       }
     } else if (req.file) {
-      return res
-        .status(400)
-        .json({ error: 'File upload not fully implemented in this snippet' });
+      cvContent = await extractTextFromBuffer(req.file);
+      if (!cvContent || !cvContent.trim()) {
+        return res
+          .status(400)
+          .json({ error: 'Failed to read text from uploaded CV file' });
+      }
     } else {
       return res.status(400).json({
         error:
@@ -957,9 +1002,11 @@ export const createTailoredApply = async (req, res) => {
       });
     }
 
-    const newApplication = await StudentTailoredApplication.create({
-      student: _id,
-      jobId: jobId || null, // Optional if applying to external job
+    // Step 3: Create application entry in database
+    const applicationId = new mongoose.Types.ObjectId();
+    const newApplication = {
+      _id: applicationId,
+      jobId: jobId ? new mongoose.Types.ObjectId(jobId) : null,
       jobTitle: jobDetails.title,
       companyName: jobDetails.company,
       jobDescription: jobDetails.description,
@@ -971,8 +1018,19 @@ export const createTailoredApply = async (req, res) => {
       status: 'pending',
       flag,
       createdAt: new Date(),
-    });
+    };
 
+    await Student.findByIdAndUpdate(
+      _id,
+      {
+        $push: {
+          tailoredApplications: { $each: [newApplication], $position: 0 },
+        },
+      },
+      { new: false },
+    );
+
+    // Step 4: Prepare data for background processing
     const applicationData = {
       job: {
         title: jobDetails.title,
@@ -980,29 +1038,21 @@ export const createTailoredApply = async (req, res) => {
         description: jobDetails.description,
       },
       candidate: studentData ?? { cv: cvContent },
+
       coverLetter: coverLetterText || '',
       preferences: finalTouch || '',
     };
 
+    // Step 5: Trigger background processing (fire and forget)
     const io = req.app.get('io');
+    processTailoredApplication(_id, applicationId, applicationData, io);
 
-    console.log(
-      'Tailored application generation has started. ',
-      newApplication._id,
-      applicationData,
-    );
-
-    processTailoredApplication(
-      _id,
-      newApplication._id, // Pass the new document ID
-      applicationData,
-      io,
-    ).catch((err) => console.error('Background Job Failed to Start:', err));
-
+    // Step 6: Immediate response
     return res.status(202).json({
       success: true,
-      message: 'Tailored application generation has started.',
-      applicationId: newApplication._id.toString(),
+      message:
+        'Tailored application generation has started. You will be notified when it is complete.',
+      applicationId: applicationId.toString(),
     });
   } catch (error) {
     console.error('Error initiating tailored application:', error);
@@ -1053,6 +1103,9 @@ export const saveTailoredApplication = async (req, res) => {
       existingApplication.cvContent = cvContent;
       existingApplication.coverLetterContent = coverLetterContent;
       existingApplication.emailContent = emailContent;
+      console.log(
+        `Updating existing application for job: ${jobTitle} at ${jobCompany}`,
+      );
     } else {
       // 3. If not found, create a new application with the full job details
       const newApplication = {
@@ -1064,6 +1117,9 @@ export const saveTailoredApplication = async (req, res) => {
         emailContent,
       };
       student.applications.push(newApplication);
+      console.log(
+        `Creating new application for job: ${jobTitle} at ${jobCompany}`,
+      );
     }
 
     // 4. Save the changes to the database
@@ -1101,6 +1157,7 @@ export const getSavedApplications = async (req, res) => {
   }
 };
 
+// calculateJobMatchScore controller
 export const calculateJobMatchScore = async (req, res) => {
   const { jobDescription } = req.body;
 

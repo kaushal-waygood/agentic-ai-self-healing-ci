@@ -312,6 +312,51 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       );
     });
   };
+
+  const handleGetATSScore = useCallback(async () => {
+    if (!job?.description) return;
+
+    setIsLoadingScore(true);
+    setMatchScore(null);
+    setScoreError(null);
+    setProgress(0);
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    let interval = window.setInterval(() => {
+      setProgress((prev) => (prev < 90 ? prev + 5 : prev));
+    }, 1000);
+
+    try {
+      const response = await apiInstance.post(
+        '/students/ats-score', // <-- new API endpoint for ATS
+        { jobDescription: job.description },
+        { signal },
+      );
+
+      if (signal.aborted) return;
+
+      setProgress(100);
+      setMatchScore(response.data); // assuming same structure
+      if (job._id) {
+        localStorage.setItem(
+          `atsScore_${job._id}`,
+          JSON.stringify(response.data),
+        );
+      }
+    } catch (error) {
+      if (!signal.aborted) {
+        console.error('ATS score error:', error);
+        setProgress(0);
+        setScoreError('Failed to calculate ATS Score');
+      }
+    } finally {
+      clearInterval(interval);
+      setIsLoadingScore(false);
+    }
+  }, [job?._id, job?.description]);
+
   // const renderJobDescription = (raw: string) => {
   //   const lines = normalizeText(raw).split('\n');
 
@@ -514,7 +559,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </Button>
               )}
               <Button
-                onClick={handleGetMatchScore}
+                onClick={handleGetATSScore}
                 className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
               >
                 <div className="relative flex items-center justify-center gap-2">

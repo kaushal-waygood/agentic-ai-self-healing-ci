@@ -240,7 +240,7 @@ const SideSectionProfile = () => {
         ref={fileInputRef}
         type="file"
         className="hidden"
-        accept=".pdf,.doc,.docx"
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
         onChange={(e) => setFile(e.target.files?.[0] || null)}
       />
 

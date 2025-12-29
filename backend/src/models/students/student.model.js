@@ -1,71 +1,52 @@
-// src/models/student.model.js
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 const studentSchema = new Schema(
   {
-    user: {
+    _id: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      index: true,
     },
 
-    fullName: { type: String, required: true, trim: true },
-
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-
+    fullName: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
     phone: String,
+
     profileImage: String,
     resumeUrl: String,
-    uploadedCV: String,
 
     jobRole: String,
-    location: { type: String, trim: true },
+    location: String,
 
     hasCompletedOnboarding: { type: Boolean, default: false },
 
-    jobPreferences: { type: Object, default: {} },
-
-    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization' },
+    jobPreferences: {
+      preferredJobTypes: [String],
+      preferredCities: [String],
+      preferredCountries: [String],
+      preferredSalary: {
+        min: Number,
+        currency: String,
+        period: String,
+      },
+      immediateAvailability: Boolean,
+      isRemote: Boolean,
+    },
 
     settings: {
       autopilotEnabled: { type: Boolean, default: false },
       autopilotLimit: { type: Number, default: 5 },
     },
 
-    autopilotAgent: [Object],
-
-    appliedJobs: [Object],
-    savedJobs: [Object],
-    viewedJobs: [Object],
-    visitedJobs: [Object],
-
-    tours: {
-      type: Map,
-      of: new Schema(
-        {
-          currentStep: Number,
-          completed: Boolean,
-          updatedAt: Date,
-        },
-        { _id: false },
-      ),
-      default: {},
-    },
-
-    isActive: { type: Boolean, default: true },
     profileVisibility: {
       type: String,
       enum: ['public', 'private'],
       default: 'public',
     },
+
+    isActive: { type: Boolean, default: true },
   },
-  { timestamps: true },
+  { timestamps: true, strict: false },
 );
 
-export const Student = model('Student', studentSchema);
+export const Student =
+  mongoose.models.Student || mongoose.model('Students', studentSchema);

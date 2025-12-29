@@ -6,9 +6,6 @@ import { Purchase } from '../models/Purchase.js';
 import { User } from '../models/User.model.js';
 import { config } from '../config/config.js';
 import { Coupon } from '../models/coupon.model.js';
-import { razorpay } from '../config/razorpay.js';
-import crypto from 'crypto';
-import { Payment } from '../models/Payment.route.js';
 
 const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
@@ -55,6 +52,7 @@ const parseFeatureLimitValue = (raw) => {
 };
 
 const buildUsageLimitsFromFeatures = (features = []) => {
+  console.log('buildUsageLimitsFromFeatures', features);
   const limits = {};
   features.forEach((feature) => {
     const key = USAGE_LIMIT_MAP[feature.name];
@@ -64,6 +62,7 @@ const buildUsageLimitsFromFeatures = (features = []) => {
     limits[key] = parsed;
   });
 
+  console.log('buildUsageLimitsFromFeatures', limits);
   return limits;
 };
 
@@ -314,7 +313,7 @@ export const deletePlan = async (req, res) => {
 export const getSinglePlan = getPlan;
 
 // ---------- Payments & Purchases ----------
-// stripe
+
 export const createPaymentIntent = async (req, res) => {
   try {
     const userId = req.user && req.user._id;
@@ -370,6 +369,8 @@ export const createPaymentIntent = async (req, res) => {
 
       const currentRank = PLAN_RANK[activePlan.planType] ?? 0;
       const newRank = PLAN_RANK[plan.planType] ?? 0;
+
+      console.log(newRank > currentRank);
 
       // Block downgrade
       if (newRank > currentRank) {
@@ -672,370 +673,6 @@ export const handleStripeWebhook = async (req, res) => {
   }
 };
 
-// rezorpay
-export const createRazorpayOrder = async (req, res) => {
-  try {
-    const userId = req.user && req.user._id;
-    const { planId, period, currency = 'inr', couponCode } = req.body;
-
-    /* ---------------- AUTH ---------------- */
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User not authenticated. Please log in.',
-      });
-    }
-
-    if (!planId || !period) {
-      return res.status(400).json({
-        success: false,
-        error: 'Plan ID and period are required.',
-      });
-    }
-
-    const currencyLower = String(currency).toLowerCase();
-    if (!['inr'].includes(currencyLower)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Razorpay currently supports INR only.',
-      });
-    }
-
-    /* ---------------- ACTIVE PLAN CHECK ---------------- */
-    const userWithPurchase = await User.findById(userId)
-      .populate({
-        path: 'currentPurchase',
-        populate: { path: 'plan' },
-      })
-      .lean();
-
-    if (
-      userWithPurchase?.currentPurchase &&
-      userWithPurchase.currentPurchase.isActive &&
-      new Date(userWithPurchase.currentPurchase.endDate) > new Date()
-    ) {
-      const activePlan = userWithPurchase.currentPurchase.plan;
-      const newPlan = await Plan.findById(planId).lean();
-
-      if (!newPlan) {
-        return res.status(404).json({
-          success: false,
-          error: 'Plan not found.',
-        });
-      }
-
-      if (activePlan.planType === newPlan.planType) {
-        return res.status(403).json({
-          success: false,
-          message: 'You already have this plan active.',
-          data: {
-            currentPlanEnds: userWithPurchase.currentPurchase.endDate,
-          },
-        });
-      }
-
-      const currentRank = PLAN_RANK[activePlan.planType] ?? 0;
-      const newRank = PLAN_RANK[newPlan.planType] ?? 0;
-
-      // block downgrade
-      if (newRank > currentRank) {
-        return res.status(403).json({
-          success: false,
-          message: 'Downgrading plans before expiry is not allowed.',
-        });
-      }
-    }
-
-    /* ---------------- LOAD PLAN ---------------- */
-    const plan = await Plan.findById(planId).lean();
-    if (!plan) {
-      return res.status(404).json({
-        success: false,
-        error: 'Plan not found.',
-      });
-    }
-
-    const variant = safeGetVariant(plan, period);
-    if (!variant) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid billing period for this plan.',
-      });
-    }
-
-    const basePrice = variant?.price?.effective?.[currencyLower];
-
-    if (typeof basePrice !== 'number') {
-      return res.status(400).json({
-        success: false,
-        error: `Price for currency '${currencyLower}' not found.`,
-      });
-    }
-
-    /* ---------------- PRICING ---------------- */
-    let finalPrice = basePrice;
-
-    const pricingResponse = {
-      period,
-      original: { [currencyLower]: +basePrice.toFixed(2) },
-      discounted: null,
-      discountAmount: null,
-      appliedCoupon: null,
-    };
-
-    /* ---------------- COUPON ---------------- */
-    if (couponCode) {
-      const code = String(couponCode).trim().toUpperCase();
-      const coupon = await Coupon.findOne({ code }).lean();
-
-      if (!coupon || !coupon.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid or inactive coupon.',
-        });
-      }
-
-      const now = new Date();
-      if (
-        (coupon.startsAt && coupon.startsAt > now) ||
-        (coupon.expiresAt && coupon.expiresAt < now)
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Coupon not valid at this time.',
-        });
-      }
-
-      if (coupon.maxUses != null && coupon.usedCount >= coupon.maxUses) {
-        return res.status(400).json({
-          success: false,
-          message: 'Coupon usage limit reached.',
-        });
-      }
-
-      if (
-        coupon.plansApplicable?.length &&
-        !coupon.plansApplicable.some(
-          (p) => p.toString() === plan._id.toString(),
-        )
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Coupon not applicable to this plan.',
-        });
-      }
-
-      const computed = computeDiscountedPriceForPriceObj(
-        variant.price.effective,
-        coupon,
-      );
-
-      finalPrice = computed.final[currencyLower];
-      pricingResponse.discounted = {
-        [currencyLower]: +finalPrice.toFixed(2),
-      };
-      pricingResponse.discountAmount = {
-        [currencyLower]: +computed.discount[currencyLower].toFixed(2),
-      };
-      pricingResponse.appliedCoupon = {
-        _id: coupon._id,
-        code: coupon.code,
-        discountType: coupon.discountType,
-        discountValue: coupon.discountValue ?? null,
-        discountAmount: coupon.discountAmount ?? null,
-      };
-    } else {
-      pricingResponse.discounted = {
-        [currencyLower]: +finalPrice.toFixed(2),
-      };
-      pricingResponse.discountAmount = { [currencyLower]: 0 };
-    }
-
-    /* ---------------- AMOUNT CHECK ---------------- */
-    const amountInPaise = Math.round(finalPrice * 100);
-    if (amountInPaise <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Final amount is zero. Use server-side free activation flow.',
-        pricing: pricingResponse,
-      });
-    }
-
-    /* ---------------- RAZORPAY ORDER ---------------- */
-    const order = await razorpay.orders.create({
-      amount: amountInPaise,
-      currency: 'INR',
-      receipt: `rcpt_${Date.now()}`,
-      notes: {
-        userId: userId.toString(),
-        planId: plan._id.toString(),
-        planType: plan.planType,
-        billingPeriod: period,
-        couponCode: pricingResponse.appliedCoupon?.code || '',
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      pricing: pricingResponse,
-      key: process.env.RAZORPAY_KEY_ID,
-    });
-  } catch (error) {
-    console.error('createRazorpayOrder error:', error);
-    return res
-      .status(500)
-      .json({ success: false, error: 'Internal Server Error' });
-  }
-};
-
-export const verifyRazorpayPayment = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-      req.body;
-
-    /* ---------------- BASIC VALIDATION ---------------- */
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing Razorpay payment parameters.',
-      });
-    }
-
-    /* ---------------- SIGNATURE VERIFICATION ---------------- */
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest('hex');
-
-    if (expectedSignature !== razorpay_signature) {
-      // this is a hard stop – do not proceed
-      return res.status(400).json({
-        success: false,
-        message: 'Payment verification failed.',
-      });
-    }
-
-    /* ---------------- IDEMPOTENCY ---------------- */
-    const alreadyProcessed = await Purchase.findOne({
-      paymentId: razorpay_payment_id,
-      paymentGateway: 'razorpay',
-    }).session(session);
-
-    if (alreadyProcessed) {
-      await session.commitTransaction();
-      session.endSession();
-      return res.status(200).json({ success: true });
-    }
-
-    /* ---------------- FETCH ORDER ---------------- */
-    const order = await razorpay.orders.fetch(razorpay_order_id);
-    if (!order) {
-      throw new Error('Razorpay order not found.');
-    }
-
-    const { userId, planId, billingPeriod, couponCode } = order.notes || {};
-
-    if (!userId || !planId || !billingPeriod) {
-      throw new Error('Missing order metadata.');
-    }
-
-    /* ---------------- LOAD PLAN ---------------- */
-    const plan = await Plan.findById(planId).session(session).lean();
-
-    if (!plan) {
-      throw new Error(`Plan not found: ${planId}`);
-    }
-
-    const variant = safeGetVariant(plan, billingPeriod);
-    if (!variant) {
-      throw new Error(`Billing variant '${billingPeriod}' not found.`);
-    }
-
-    /* ---------------- DEACTIVATE OLD PURCHASES ---------------- */
-    await Purchase.updateMany(
-      { user: userId, isActive: true },
-      { $set: { isActive: false } },
-      { session },
-    );
-
-    /* ---------------- CREATE PURCHASE ---------------- */
-    const amountPaid = order.amount / 100;
-
-    const newPurchase = new Purchase({
-      user: userId,
-      plan: planId,
-      billingVariant: {
-        period: billingPeriod,
-        price: {
-          inr: variant.price.effective.inr,
-          usd: variant.price.effective.usd ?? null,
-        },
-      },
-      amountPaid,
-      currency: order.currency.toLowerCase(),
-      paymentStatus: 'completed',
-      paymentGateway: 'razorpay',
-      paymentId: razorpay_payment_id,
-      orderId: razorpay_order_id,
-      couponCode: couponCode || null,
-      startDate: new Date(),
-      endDate: calculateEndDate(billingPeriod),
-      isActive: true,
-    });
-
-    await newPurchase.save({ session });
-
-    /* ---------------- UPDATE USER ---------------- */
-    const user = await User.findById(userId).session(session);
-    if (!user) {
-      throw new Error(`User not found: ${userId}`);
-    }
-
-    user.currentPlan = planId;
-    user.currentPurchase = newPurchase._id;
-    user.usageLimits = buildUsageLimitsFromFeatures(variant.features || []);
-    user.usageCounters = {
-      cvCreation: 0,
-      coverLetter: 0,
-      aiApplication: 0,
-      autoApply: 0,
-      autoApplyDailyLimit: 0,
-      manualApplication: 0,
-      lastReset: new Date(),
-    };
-
-    await user.save({ session });
-
-    /* ---------------- COMMIT ---------------- */
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({
-      success: true,
-      message: 'Payment verified and plan activated.',
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-
-    console.error(
-      `verifyRazorpayPayment failed for order ${req.body?.razorpay_order_id}:`,
-      error,
-    );
-
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to process payment.',
-    });
-  }
-};
-
 export const getPaymentStatus = async (req, res) => {
   try {
     const { paymentIntentId } = req.params;
@@ -1279,45 +916,4 @@ export const createSimplePurchaseDev = async (req, res) => {
       }
     }
   }
-};
-
-export const routePayment = async (req, res) => {
-  const { currency, country } = req.body;
-
-  if (currency === 'inr' && country === 'IN') {
-    return res.status(200).json({
-      success: true,
-      gateway: 'stripe',
-    });
-  }
-
-  const gateway = 'razorpay';
-
-  return res.status(200).json({
-    success: true,
-    gateway,
-  });
-};
-
-export const razorpayWebhook = async (req, res) => {
-  const event = req.body;
-
-  if (event.event === 'payment.captured') {
-    await Payment.findOneAndUpdate(
-      { gatewayPaymentId: event.payload.payment.entity.id },
-      { status: 'completed' },
-    );
-  }
-
-  if (event.event === 'payment.failed') {
-    await Payment.findOneAndUpdate(
-      { gatewayPaymentId: event.payload.payment.entity.id },
-      {
-        status: 'failed',
-        failureReason: event.payload.payment.entity.error_description,
-      },
-    );
-  }
-
-  res.status(200).json({ received: true });
 };

@@ -13,8 +13,8 @@ const schema = new Schema(
 
     employmentType: {
       type: String,
-      enum: ['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT'],
-      default: 'FULL_TIME',
+      enum: ['FULL-TIME', 'PART-TIME', 'INTERNSHIP', 'CONTRACT'],
+      default: 'FULL-TIME',
     },
 
     experienceYrs: Number,
