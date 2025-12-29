@@ -138,7 +138,7 @@ export const searchJobs = async (req, res) => {
         const cached = JSON.parse(cachedRaw);
 
         await JobInteraction.insertMany(
-          jobs.map((job) => ({
+          cached.jobs.map((job) => ({
             jobId: job._id,
             userId: req.user?._id || null,
             query: q || null,
@@ -146,6 +146,7 @@ export const searchJobs = async (req, res) => {
           })),
           { ordered: false },
         );
+
         return res.status(200).json({
           jobs: cached.jobs,
           pagination: {
@@ -285,24 +286,50 @@ export const searchJobs = async (req, res) => {
         );
 
         try {
-          await Job.bulkWrite(
-            externalJobsFormatted.map((job) => ({
-              updateOne: {
-                filter: { jobId: job.jobId },
-                update: {
-                  $set: job,
-                  $addToSet: { queries: q },
+          const ops = externalJobsFormatted.map((job) => ({
+            updateOne: {
+              filter: { jobId: job.jobId, origin: 'EXTERNAL' },
+              update: {
+                $set: {
+                  title: job.title,
+                  description: job.description,
+                  responsibilities: job.responsibilities,
+                  qualifications: job.qualifications,
+                  company: job.company,
+                  country: job.country,
+                  logo: job.logo,
+                  location: job.location,
+                  applyMethod: job.applyMethod,
+                  isActive: true,
+                  jobTypes: job.jobTypes,
+                  experience: job.experience,
+                  salary: job.salary,
+                  remote: job.remote,
+                  jobPosted: job.jobPosted,
+                  jobPostedAt: job.jobPostedAt,
                 },
-                upsert: true,
+                $addToSet: {
+                  queries: {
+                    $each: Array.isArray(job.queries) ? job.queries : [q],
+                  },
+                },
+                $setOnInsert: { slug: job.slug },
               },
-            })),
-          );
+              upsert: true,
+            },
+          }));
+
+          await Job.bulkWrite(ops, { ordered: false });
         } catch (e) {
           console.warn('Background DB save failed:', e?.message);
         }
 
-        jobs = externalJobsFormatted.slice(0, limitNum);
-        totalJobs = externalJobsFormatted.length;
+        jobs = await Job.find({
+          jobId: { $in: externalJobsFormatted.map((j) => j.jobId) },
+        })
+          .limit(limitNum)
+          .lean();
+        totalJobs = jobs.length;
       } else {
         const locationString = [city, state, country]
           .filter(Boolean)
@@ -722,8 +749,10 @@ export const getSingleJobDetail = async (req, res) => {
 
 export const getJobDetailBySlug = async (req, res) => {
   const { slug } = req.query || {};
+  console.log(slug);
   try {
     const singleJob = await Job.findOne({ slug });
+    console.log(singleJob);
     if (!singleJob) return res.status(404).json({ message: 'Job not found' });
     res.status(200).json({ singleJob });
   } catch (error) {

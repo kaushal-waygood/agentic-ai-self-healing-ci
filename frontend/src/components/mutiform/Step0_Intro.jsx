@@ -1,6 +1,7 @@
 // Step0_SimpleIntroSlim.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bot, Plus, Trash2, Edit } from 'lucide-react';
+import apiInstance from '@/services/api';
 
 const Step0_SimpleIntroSlim = ({
   nextStep = () => {},
@@ -12,6 +13,7 @@ const Step0_SimpleIntroSlim = ({
   confirmDelete = () => {},
   cancelDelete = () => {},
 }) => {
+  const [autopilotEnabled, setAutopilotEnabled] = useState(null);
   const list = Array.isArray(agents?.autoPilot) ? agents.autoPilot : [];
   const totalAgents = list.length;
   const activeAgents = list.filter((a) => a.status === 'active').length;
@@ -22,6 +24,36 @@ const Step0_SimpleIntroSlim = ({
         list.reduce((s, a) => s + (a.successRate || 0), 0) / list.length,
       )
     : 0;
+
+  useEffect(() => {
+    const fetchAutoPilotStatus = async () => {
+      try {
+        const response = await apiInstance.get('/students/autopilot/status');
+        setAutopilotEnabled(response.data.autopilotStatus);
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to fetch autopilot status');
+      }
+    };
+    fetchAutoPilotStatus();
+  }, []);
+
+  const onToggleAutoPilot = async () => {
+    try {
+      const response = await apiInstance.post('/students/autopilot/toggle', {
+        autopilotEnabled: !autopilotEnabled,
+      });
+
+      setAutopilotEnabled(response.data.autopilotStatus);
+      // Ideally trigger refetch here so UI stays consistent
+      // e.g. fetchAgents() or a callback from parent
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to toggle autopilot');
+    }
+  };
+
+  console.log(autopilotEnabled);
 
   return (
     <div className="w-full max-w-5xl mx-auto p-6 animate-fade-in">
@@ -42,17 +74,17 @@ const Step0_SimpleIntroSlim = ({
               </span>
 
               <button
-                onClick={() => onToggleAutoPilot()}
+                onClick={onToggleAutoPilot}
                 className={`
-          relative inline-flex h-6 w-12 items-center rounded-full transition-all
-          ${agents?.autopilotEnabled ? 'bg-green-500' : 'bg-gray-400'}
-        `}
+    relative inline-flex h-6 w-12 items-center rounded-full transition-all
+    ${autopilotEnabled ? 'bg-green-500' : 'bg-gray-400'}
+  `}
               >
                 <span
                   className={`
-            inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-all
-            ${agents?.autopilotEnabled ? 'translate-x-6' : 'translate-x-1'}
-          `}
+      inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-all
+      ${autopilotEnabled ? 'translate-x-6' : 'translate-x-1'}
+    `}
                 />
               </button>
             </div>

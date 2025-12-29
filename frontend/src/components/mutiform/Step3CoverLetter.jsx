@@ -51,11 +51,13 @@ const Step3CoverLetter = ({
       <div className="form-card">
         <label>Cover Letter Strategy</label>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 border-black">
           {/* Option 1: Generate new letter */}
           <label
             className={`strategy-option  ${
-              values.coverLetterStrategy === 'generate' ? 'selected' : ''
+              values.coverLetterStrategy === 'generate'
+                ? 'border-blue-500 border-2 bg-blue-50'
+                : ''
             }`}
           >
             <input
@@ -74,7 +76,9 @@ const Step3CoverLetter = ({
           {/* Option 2: Use saved template */}
           <label
             className={`strategy-option ${
-              values.coverLetterStrategy === 'template' ? 'selected' : ''
+              values.coverLetterStrategy === 'template'
+                ? 'border-blue-500 border-2 bg-blue-50'
+                : ''
             }`}
           >
             <input

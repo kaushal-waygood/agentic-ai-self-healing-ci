@@ -6,10 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { CVDataPromptPilot as CVDataPrompt } from '../prompt/studentCVData.js';
 import { genAIRequest as genAI } from '../config/gemini.js';
 
-/**
- * Attempt to safely parse JSON, returning object or throwing descriptive Error.
- * This performs multiple tolerant passes to handle common AI-formatting problems.
- */
 async function tolerantParseJSON(rawText) {
   const safeSlice = (s, n = 2000) =>
     typeof s === 'string'
