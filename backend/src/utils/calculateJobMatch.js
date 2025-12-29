@@ -1,169 +1,173 @@
 import { genAIRequest as genAI } from '../config/gemini.js';
 
-// Limit long strings
-const trimText = (str, maxLen = 500) => {
-  if (!str) return '';
-  if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen) + '... [truncated]';
-};
+/* =========================================================
+   Helper Utilities
+========================================================= */
 
-const pickTop = (arr, n = 5) => {
-  if (!Array.isArray(arr)) return [];
-  return arr.slice(0, n);
-};
+const extractKeywords = (text) => [
+  ...new Set((text || '').toLowerCase().match(/[a-zA-Z\+\#\.]+/g) || []),
+];
 
-const safeParseJsonFromLLM = (raw) => {
-  if (!raw || typeof raw !== 'string') {
-    throw new Error('Empty or non-string LLM response');
-  }
+const array = (v) => (Array.isArray(v) ? v : []);
+const clamp = (v) => Math.max(1, Math.min(Math.round(v), 10));
+const top = (arr, n = 5) => array(arr).slice(0, n);
 
-  let text = raw.trim();
+/* =========================================================
+   Weight Based ATS Scoring (Skills 40% + Exp 40% + Edu 20%)
+========================================================= */
 
-  // Remove markdown fences if they exist
-  if (text.startsWith('```')) {
-    const fenced = text.match(/```json?\s*([\s\S]*?)```/i);
-    if (fenced && fenced[1]) {
-      text = fenced[1].trim();
-    }
-  }
+function evaluateSkills(studentSkills, keywords) {
+  const matched = studentSkills.filter((s) =>
+    keywords.some((k) => s.skill.toLowerCase().includes(k)),
+  );
+  const missing = keywords.filter(
+    (k) => !studentSkills.some((s) => s.skill.toLowerCase().includes(k)),
+  );
 
-  // Try to extract JSON by first and last brace if there's junk around
-  const firstBrace = text.indexOf('{');
-  const lastBrace = text.lastIndexOf('}');
-  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-    throw new Error('No valid JSON object found in LLM response');
-  }
-
-  const jsonCandidate = text.slice(firstBrace, lastBrace + 1);
-
-  return JSON.parse(jsonCandidate);
-};
-
-// Build a compact student profile
-const buildStudentSummary = (student) => {
-  // Adapt field names to your schema
-  const {
-    name,
-    headline,
-    currentRole,
-    totalExperienceYears,
-    skills = [],
-    education = [],
-    experiences = [],
-    projects = [],
-  } = student;
-
-  return {
-    name: name || undefined,
-    headline: trimText(headline, 200),
-    currentRole: currentRole || undefined,
-    totalExperienceYears: totalExperienceYears || null,
-    topSkills: pickTop(skills, 15),
-    education: pickTop(
-      education.map((e) => ({
-        degree: e.degree,
-        field: e.field,
-        institute: e.institute,
-      })),
-      3,
-    ),
-    experiences: pickTop(
-      experiences.map((exp) => ({
-        role: exp.role,
-        company: exp.company,
-        duration: exp.duration,
-        summary: trimText(exp.summary || exp.description || '', 300),
-        techStack: pickTop(exp.techStack || [], 10),
-      })),
-      3,
-    ),
-    projects: pickTop(
-      projects.map((p) => ({
-        title: p.title,
-        summary: trimText(p.description || '', 250),
-        techStack: pickTop(p.techStack || [], 10),
-      })),
-      3,
-    ),
-  };
-};
-
-// Build a compact job summary from raw JD string
-const buildJobSummary = (jobDescription) => {
-  // If your JD is already structured, adapt this accordingly
-  return {
-    rawText: trimText(jobDescription, 2000),
-  };
-};
-
-export const calculateJobMatch = async (
-  jobDescription,
-  student,
-  userId,
-  endpoint,
-) => {
-  let rawResponse = '';
-
-  const studentSummary = buildStudentSummary(student);
-  const jobSummary = buildJobSummary(jobDescription);
-
-  // Optional logging to see how big things are
-  console.log('Student summary chars:', JSON.stringify(studentSummary).length);
-  console.log('Job summary chars:', JSON.stringify(jobSummary).length);
-
-  const prompt = `
-You are an expert career counselor AI. Your primary goal is to encourage and empower students by showing them how their skills can fit a job description.
-
-Analyze the provided **JobSummary** and **StudentSummary** JSON data.
-
-Return a single VALID JSON object ONLY. 
-Do NOT include markdown, backticks, or any explanation outside the JSON.
-No \` or \json \` wrappers. No extra text.
-
-Scoring rules:
-- Your tone must be encouraging and optimistic.
-- Score leniently, focusing on potential and transferable skills.
-- Score is an integer between 1 and 10.
-- 5–6 = potential match with room to grow.
-- 7–8 = strong match.
-- 1–3 only for complete mismatch of career paths.
-
-JSON RESPONSE FORMAT (MANDATORY):
-{
-  "matchScore": <integer 1-10>,
-  "recommendation": "<single paragraph, highlighting strengths first, then 1–3 constructive suggestions>"
+  const score = Math.min((matched.length / (keywords.length || 1)) * 40, 40);
+  return { matched, missing, score };
 }
 
-JobSummary:
-${JSON.stringify(jobSummary, null, 2)}
+function evaluateExperience(experience, keywords) {
+  let hits = 0;
+  experience.forEach((exp) => {
+    keywords.forEach((k) => {
+      if (exp.description?.toLowerCase().includes(k)) hits++;
+    });
+  });
 
-StudentSummary:
-${JSON.stringify(studentSummary, null, 2)}
+  return { score: Math.min(hits * 2, 40) };
+}
+
+function evaluateEducation(education, jd) {
+  const requireDegree = /(bachelor|degree|b\.tech|bsc)/i.test(jd);
+  const hasDegree = education.some((e) =>
+    /(bachelor|degree|b\.tech|bsc)/i.test(e.degree),
+  );
+
+  return { score: hasDegree ? 20 : requireDegree ? 10 : 15 };
+}
+
+/* =========================================================
+   New Feature: Role Fit %, Seniority %, Tech Fit %
+========================================================= */
+
+function computeTechFit(matched, total) {
+  return Math.round((matched.length / (total || 1)) * 100);
+}
+
+function computeRoleFit(experience, keywords) {
+  let hits = 0;
+
+  experience.forEach((exp) => {
+    keywords.forEach((k) => {
+      if (exp.description?.toLowerCase().includes(k)) hits++;
+    });
+  });
+
+  return Math.min(Math.round((hits / (keywords.length || 1)) * 100), 100);
+}
+
+function computeSeniorityFit(student, jobDescription) {
+  const minExpMatch = /(1|2|3|4|5|6|7|8|9|10)\+?\s*years/i.exec(jobDescription);
+  const minExp = minExpMatch ? Number(minExpMatch[1]) : 0;
+  const userExp = student.totalExperienceYears || 0;
+
+  if (!minExp) return 80; // JD does not specify
+  if (userExp >= minExp) return 100;
+  if (userExp >= minExp * 0.7) return 75;
+  if (userExp >= minExp * 0.4) return 50;
+  return 30;
+}
+
+/* =========================================================
+   Suggestions Engine
+========================================================= */
+
+function generateSuggestions(student, missing) {
+  const s = [];
+
+  if (missing.length) s.push(`Upskill in: ${missing.slice(0, 8).join(', ')}`);
+  if (student.projects.length < 2)
+    s.push('Add more production-level projects.');
+  if (student.skills.every((x) => x.level === 'BEGINNER'))
+    s.push('Upgrade a core skill beyond beginner level.');
+  if (!student.experience.length) s.push('Add work experience or internships.');
+
+  return s;
+}
+
+/* =========================================================
+   AI Resume Summary + Recommendation Text
+========================================================= */
+
+async function rewriteRecommendation(student, jobDescription) {
+  const prompt = `
+You are a professional job-match & resume coach.
+Analyze the student's background vs the Job Description and generate:
+
+1) A positive, motivational recommendation paragraph
+2) A rewritten resume summary tailored to the job to increase hiring chance
+
+Return strictly JSON (NO markdown, NO backticks):
+
+{
+ "recommendation":"text",
+ "improvedSummary":"text"
+}
+
+JobDescription: ${jobDescription.slice(0, 1500)}
+Skills: ${student.skills.map((s) => s.skill).join(', ')}
+Projects: ${student.projects.map((p) => p.projectName).join(', ')}
+Experience: ${JSON.stringify(student.experience)}
 `;
 
-  try {
-    rawResponse = await genAI(prompt, {
-      userId: userId,
-      endpoint: endpoint,
-    });
+  const raw = await genAI(prompt);
+  const text = (typeof raw === 'string' ? raw : raw?.text || '').trim();
+  const first = text.indexOf('{');
+  const last = text.lastIndexOf('}');
 
-    const parsedResponse = safeParseJsonFromLLM(
-      typeof rawResponse === 'string' ? rawResponse : rawResponse?.text ?? '',
-    );
+  return JSON.parse(text.slice(first, last + 1));
+}
 
-    if (parsedResponse.matchScore > 10) parsedResponse.matchScore = 10;
-    if (parsedResponse.matchScore < 1) parsedResponse.matchScore = 1;
+/* =========================================================
+   FINAL MAIN FUNCTION (Used in Controller)
+========================================================= */
 
-    return parsedResponse;
-  } catch (error) {
-    console.error('Error calculating job match:', error);
-    console.error('Raw AI Response that failed parsing:', rawResponse);
+export async function calculateJobMatch(jobDescription, student) {
+  const keywords = extractKeywords(jobDescription);
 
-    return {
-      matchScore: 0,
-      recommendation:
-        'An error occurred while calculating the match score. Please try again.',
-      error: 'Failed to process AI response.',
-    };
-  }
-};
+  const skills = evaluateSkills(student.skills, keywords);
+  const exp = evaluateExperience(student.experience, keywords);
+  const edu = evaluateEducation(student.education, jobDescription);
+
+  const weightedScore = skills.score + exp.score + edu.score;
+  const matchScore = clamp(weightedScore / 10); // Convert to scale 1–10
+
+  // New %
+  const techFit = computeTechFit(skills.matched, keywords.length);
+  const roleFit = computeRoleFit(student.experience, keywords);
+  const seniorityFit = computeSeniorityFit(student, jobDescription);
+
+  const suggestions = generateSuggestions(student, skills.missing);
+  const llm = await rewriteRecommendation(student, jobDescription);
+
+  return {
+    matchScore,
+    techFitPercent: techFit,
+    roleFitPercent: roleFit,
+    seniorityFitPercent: seniorityFit,
+
+    breakdown: {
+      tech: `${techFit}%`,
+      role: `${roleFit}%`,
+      seniority: `${seniorityFit}%`,
+    },
+
+    skillsMatched: skills.matched,
+    skillsMissing: skills.missing,
+    suggestions,
+    recommendation: llm.recommendation,
+    improvedSummary: llm.improvedSummary,
+  };
+}

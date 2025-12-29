@@ -1,10 +1,10 @@
 // utils/genAIWrapper.js
 import { genAIRequest as genAI } from '../config/gemini.js';
 
-export const callGenAI = async (prompt) => {
+export const callGenAI = async (prompt, userId, endpoint) => {
   const AI = genAI(prompt, {
-    userId: req.user?._id,
-    endpoint: req.endpoint,
+    userId,
+    endpoint,
   });
 
   try {

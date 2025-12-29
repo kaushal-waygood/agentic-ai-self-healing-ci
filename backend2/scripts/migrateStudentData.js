@@ -1,118 +1,65 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 
-// Import your models
-import { Student } from '../src/models/students/student.model.js';
-import { StudentEducation } from '../src/models/students/studentEducation.model.js';
-import { StudentExperience } from '../src/models/students/studentExperience.model.js';
-import { StudentSkill } from '../src/models/students/studentSkill.model.js';
-import { StudentProject } from '../src/models/students/studentProject.model.js';
-import { StudentCV } from '../src/models/students/studentCV.model.js';
-import { StudentCL } from '../src/models/students/studentCL.model.js';
-import { StudentApplication } from '../src/models/students/studentApplication.model.js';
-import { StudentTailoredApplication } from '../src/models/students/studentTailoredApplication.model.js';
-import { StudentHtmlCV } from '../src/models/students/studentHtmlCV.model.js';
-import { StudentCoverLetter } from '../src/models/students/studentCoverLetter.model.js';
+import { Student } from './src/models/students/student.model.js';
+import { StudentEducation } from './src/models/students/studentEducation.model.js';
+import { StudentExperience } from './src/models/students/studentExperience.model.js';
+import { StudentSkill } from './src/models/students/studentSkill.model.js';
+import { StudentProject } from './src/models/students/studentProject.model.js';
+import { StudentCV } from './src/models/students/studentCV.model.js';
+import { StudentCL } from './src/models/students/studentCL.model.js';
+import { StudentApplication } from './src/models/student/studentApplication.model.js';
+import { StudentTailoredApplication } from './src/models/student/studentTailoredApplication.model.js';
+import { StudentHtmlCV } from './src/models/student/studentHtmlCV.model.js';
+import { StudentCoverLetter } from './src/models/student/studentCoverLetter.model.js';
 
-dotenv.config();
+await mongoose.connect(process.env.MONGO_URI);
 
-// 1. Helper function to ignore "Duplicate Key" errors
-async function safeInsert(Model, data) {
-  if (!data || data.length === 0) return;
-  try {
-    // ordered: false tells Mongo to keep processing even if one fails
-    await Model.insertMany(data, { ordered: false });
-  } catch (error) {
-    // Code 11000 = Duplicate Key. We ignore it.
-    // If it's any OTHER error, we want to know.
-    if (
-      error.code !== 11000 &&
-      !error.writeErrors?.every((e) => e.code === 11000)
-    ) {
-      console.error(
-        `❌ Error inserting into ${Model.modelName}:`,
-        error.message,
-      );
-    }
-  }
-}
+const students = await Student.find({});
 
-console.log('🔌 Connecting to MongoDB...');
-await mongoose.connect(
-  'mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot',
-); // Make sure your .env is loaded
-
-console.log('🚀 Starting Migration...');
-
-// Ensure we get all fields, even those not in strict schema
-const students = await Student.find({}, {}, { strict: false });
-
-let count = 0;
 for (const student of students) {
   const sid = student._id;
-  count++;
 
-  // Show progress every 10 students
-  if (count % 10 === 0) console.log(`Processing student #${count}...`);
-
-  await safeInsert(
-    StudentEducation,
+  await StudentEducation.insertMany(
     (student.education || []).map((e) => ({ ...e, student: sid })),
   );
 
-  await safeInsert(
-    StudentExperience,
-    (student.experience || []).map((e) => ({
-      ...e,
-      student: sid,
-      // Fix for the Freelance error you had earlier
-      employmentType:
-        e.employmentType === 'FREELANCE' ? 'CONTRACT' : e.employmentType,
-    })),
+  await StudentExperience.insertMany(
+    (student.experience || []).map((e) => ({ ...e, student: sid })),
   );
 
-  await safeInsert(
-    StudentSkill,
+  await StudentSkill.insertMany(
     (student.skills || []).map((s) => ({ ...s, student: sid })),
   );
 
-  await safeInsert(
-    StudentProject,
+  await StudentProject.insertMany(
     (student.projects || []).map((p) => ({ ...p, student: sid })),
   );
 
-  await safeInsert(
-    StudentCV,
+  await StudentCV.insertMany(
     (student.cvs || []).map((c) => ({ ...c, student: sid })),
   );
 
-  await safeInsert(
-    StudentCL,
+  await StudentCL.insertMany(
     (student.cls || []).map((c) => ({ ...c, student: sid })),
   );
 
-  await safeInsert(
-    StudentApplication,
+  await StudentApplication.insertMany(
     (student.applications || []).map((a) => ({ ...a, student: sid })),
   );
 
-  await safeInsert(
-    StudentTailoredApplication,
+  await StudentTailoredApplication.insertMany(
     (student.tailoredApplications || []).map((a) => ({ ...a, student: sid })),
   );
 
-  await safeInsert(
-    StudentHtmlCV,
+  await StudentHtmlCV.insertMany(
     (student.htmlCV || []).map((c) => ({ ...c, student: sid })),
   );
 
-  await safeInsert(
-    StudentCoverLetter,
+  await StudentCoverLetter.insertMany(
     (student.coverLetter || []).map((c) => ({ ...c, student: sid })),
   );
 
-  // ⚠️ DANGER ZONE: Only uncomment this when you are 100% sure migration worked.
-  /*
+  // OPTIONAL cleanup after verification
   student.education = [];
   student.experience = [];
   student.skills = [];
@@ -123,9 +70,9 @@ for (const student of students) {
   student.tailoredApplications = [];
   student.htmlCV = [];
   student.coverLetter = [];
+
   await student.save();
-  */
 }
 
-console.log('✅ Migration completed successfully!');
+console.log('Migration completed');
 process.exit(0);

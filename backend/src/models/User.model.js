@@ -1,80 +1,66 @@
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/config.js';
-import crypto from 'crypto'; // Added for password reset token
-import { v4 as uuidv4 } from 'uuid'; // <-- use this
-import { link } from 'fs';
 
 const userSchema = new Schema(
   {
-    firebaseUid: {
-      type: String,
-    },
-    linkedInUid: {
-      type: String,
-    },
+    /* ============================
+       AUTH PROVIDERS
+    ============================ */
+    firebaseUid: String,
+    linkedInUid: String,
+
     authMethod: {
       type: String,
       enum: ['google', 'local', 'firebase', 'linkedin'],
       default: 'local',
+      index: true,
     },
+
     googleAuth: {
-      refreshToken: { type: String },
-      accessToken: { type: String },
-      expiryDate: { type: Number },
+      refreshToken: { type: String, select: false },
+      accessToken: String,
+      expiryDate: Number,
     },
+
     tokens: {
       access_token: String,
       scope: String,
       token_type: String,
       expiry_date: Number,
     },
-    avatar: {
-      type: String,
-    },
-    accountType: {
-      type: String,
-      // Note: Kept existing enum for consistency, but will be set by middleware.
-      enum: [
-        'user',
-        'guest-org',
-        'employer-admin',
-        'student',
-        'tpo',
-        'hr',
-        'university_staff', // Assuming this might be needed, though 'OrgAdmin' is used below
-        'employer',
-        'OrgAdmin',
-        'admin',
-        'super-admin',
-        'individual', // Assuming this is the new default generic typeguest-org
-      ],
-      required: function () {
-        return this.authMethod === 'local';
-      },
-      // CHANGED DEFAULT: Use a generic default
-      default: 'user',
-    },
-    fullName: {
-      type: String,
-    },
+
+    /* ============================
+       CORE IDENTITY
+    ============================ */
+    fullName: String,
+
     email: {
       type: String,
       required: true,
       unique: true,
       lowercase: true,
+      index: true,
     },
+
     password: {
       type: String,
       required: function () {
-        // This function returns true if the authMethod is 'local'
         return this.authMethod === 'local';
       },
+      select: false,
     },
-    jobRole: {
-      type: String,
-    },
+
+    avatar: String,
+    jobRole: String,
+
+    /* ============================
+       AUTHORIZATION
+       (role = permissions, accountType = identity)
+    ============================ */
     role: {
       type: String,
       enum: [
@@ -92,49 +78,74 @@ const userSchema = new Schema(
         'user',
       ],
       default: 'user',
-    },
-    credits: { type: Number, default: 0 }, // current balance
-    referralCode: {
-      type: String,
-      unique: true,
-      default: () => uuidv4().slice(0, 8),
-    },
-    referredBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
+      index: true,
     },
 
-    otp: {
+    accountType: {
       type: String,
+      enum: [
+        'user',
+        'guest-org',
+        'employer-admin',
+        'student',
+        'tpo',
+        'hr',
+        'university_staff',
+        'employer',
+        'OrgAdmin',
+        'admin',
+        'super-admin',
+        'individual',
+      ],
+      default: 'user',
+      index: true,
     },
-    otpExpires: {
-      type: Date,
-    },
+
+    /* ============================
+       EMAIL / OTP SECURITY
+    ============================ */
+    otp: { type: String, select: false },
+    otpExpires: { type: Date, select: false },
+
     isEmailVerified: {
       type: Boolean,
       default: false,
+      index: true,
     },
+
+    passwordResetToken: { type: String, select: false },
+    passwordResetExpires: { type: Date, select: false },
+
+    /* ============================
+       ORGANIZATION
+    ============================ */
     organization: {
       type: Schema.Types.ObjectId,
       ref: 'Organization',
-    },
-    referralCount: {
-      type: Number,
-      default: 0,
+      index: true,
     },
 
-    // --- Credit & Referral additions ---
-    credits: { type: Number, default: 0 }, // current balance
+    /* ============================
+       REFERRAL SYSTEM
+    ============================ */
     referralCode: {
       type: String,
       unique: true,
       default: () => uuidv4().slice(0, 8),
+      index: true,
     },
+
     referredBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       default: null,
+      index: true,
+    },
+
+    referralCount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
     referredUsers: [
@@ -144,7 +155,17 @@ const userSchema = new Schema(
       },
     ],
 
-    // Credit transaction log
+    /* ============================
+       CREDITS & TRANSACTIONS
+       ⚠️ Backward compatible
+       ⚠️ New writes should go to CreditLedger
+    ============================ */
+    credits: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     creditTransactions: [
       {
         type: {
@@ -154,18 +175,22 @@ const userSchema = new Schema(
         },
         amount: { type: Number, required: true },
         balanceAfter: { type: Number, required: true },
-        kind: { type: String }, // e.g., 'signup_referral', 'cv_generation', 'daily_checkin'
-        meta: { type: Schema.Types.Mixed },
+        kind: String,
+        meta: Schema.Types.Mixed,
         createdAt: { type: Date, default: Date.now },
       },
     ],
 
-    passwordResetToken: {
-      type: String,
+    freeCreditsGranted: {
+      type: Boolean,
+      default: false,
     },
-    passwordResetExpires: {
-      type: Date,
-    },
+
+    /* ============================
+       PLANS & USAGE
+       ⚠️ usageCounters kept for compatibility
+       ⚠️ authoritative usage = Usage collection
+    ============================ */
     plan: {
       type: Schema.Types.ObjectId,
       ref: 'Plan',
@@ -175,10 +200,13 @@ const userSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'Plan',
     },
+
     currentPurchase: {
       type: Schema.Types.ObjectId,
       ref: 'Purchase',
+      index: true,
     },
+
     usageLimits: {
       cvCreation: { type: Number, default: 0 },
       coverLetter: { type: Number, default: 0 },
@@ -188,6 +216,7 @@ const userSchema = new Schema(
       aiAutoApplyDailyLimit: { type: Number, default: 0 },
       aiMannualApplication: { type: Number, default: 0 },
     },
+
     usageCounters: {
       cvCreation: { type: Number, default: 0 },
       coverLetter: { type: Number, default: 0 },
@@ -198,27 +227,31 @@ const userSchema = new Schema(
       aiMannualApplication: { type: Number, default: 0 },
       lastReset: { type: Date, default: Date.now },
     },
-    freeCreditsGranted: {
-      type: Boolean,
-      default: false,
-    },
 
+    /* ============================
+       DAILY STREAK
+       (kept untouched)
+    ============================ */
     dailyStreak: {
       current: { type: Number, default: 0 },
       longest: { type: Number, default: 0 },
-      lastClaimedAt: { type: Date },
-
-      // recovery mechanics
-      freezeTokens: { type: Number, default: 0 }, // "protection" items
-      lastRecoveryAt: { type: Date }, // last time a recovery was used
+      lastClaimedAt: Date,
+      freezeTokens: { type: Number, default: 0 },
+      lastRecoveryAt: Date,
     },
 
+    /* ============================
+       ROLE HISTORY
+    ============================ */
     roleHistory: [
       {
-        oldRole: { type: String },
-        newRole: { type: String },
-        changedBy: { type: Schema.Types.ObjectId, ref: 'User' }, // Who changed it
-        reason: { type: String }, // optional: UI prompt
+        oldRole: String,
+        newRole: String,
+        changedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        reason: String,
         changedAt: { type: Date, default: Date.now },
         organizationContext: {
           type: Schema.Types.ObjectId,
@@ -227,39 +260,44 @@ const userSchema = new Schema(
       },
     ],
   },
-
   {
     timestamps: true,
     versionKey: false,
     toJSON: {
       virtuals: true,
-      transform: function (doc, ret) {
-        delete ret.password; // Always remove password when converting to JSON
+      transform(_, ret) {
+        delete ret.password;
+        delete ret.otp;
+        delete ret.passwordResetToken;
+        delete ret.passwordResetExpires;
         return ret;
       },
     },
   },
 );
 
-// Password hashing middleware
+/* ============================
+   HOOKS
+============================ */
+
 userSchema.pre('save', async function (next) {
   if (
     !this.isModified('password') ||
     !this.password ||
     this.authMethod !== 'local'
-  )
+  ) {
     return next();
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
   }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
-// Access token generation
+/* ============================
+   METHODS
+============================ */
+
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
@@ -275,22 +313,20 @@ userSchema.methods.generateAccessToken = function () {
   );
 };
 
-userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password, this.password);
+userSchema.methods.isPasswordCorrect = function (password) {
+  return bcrypt.compare(password, this.password);
 };
 
-// Password reset token generation
 userSchema.methods.generatePasswordResetToken = function () {
-  const resetToken = crypto.randomBytes(20).toString('hex');
+  const rawToken = crypto.randomBytes(20).toString('hex');
 
   this.passwordResetToken = crypto
     .createHash('sha256')
-    .update(resetToken)
+    .update(rawToken)
     .digest('hex');
 
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-  return resetToken;
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+  return rawToken;
 };
 
 export const User = model('User', userSchema);

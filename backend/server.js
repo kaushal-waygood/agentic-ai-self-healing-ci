@@ -33,6 +33,7 @@ async function startHttpServer() {
   const io = new SocketIOServer(server, {
     cors: {
       origin: [
+        'https://luminous-sherise-unobtrusively.ngrok-free.dev',
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:5000',

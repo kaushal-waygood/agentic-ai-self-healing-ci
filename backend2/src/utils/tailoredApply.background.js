@@ -1,36 +1,42 @@
-/* ============================================================
-   Updated Worker: processTailoredApplication
-============================================================ */
-import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
-import { User } from '../models/User.model.js';
-import {
-  notificationTemplates,
-  sendRealTimeUserNotification,
-} from './notification.utils.js';
+// src/utils/tailoredApply.background.js
+
+import { genAIRequest as genAI } from '../config/gemini.js';
 import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
 import { generateCoverLetterPrompts } from '../prompt/generateCoverletter.js';
 import {
   generateEmailPrompt,
   processEmailResponse,
 } from '../prompt/generateEmail.js';
-import { genAIRequest as genAI } from '../config/gemini.js';
+
+import { Student } from '../models/student.model.js';
+import { User } from '../models/User.model.js';
+
+import {
+  notificationTemplates,
+  sendRealTimeUserNotification,
+} from './notification.utils.js';
+
 import { wrapCVHtml } from '../utils/cvTemplate.js';
 import { wrapEmailHtml } from '../utils/emailTemplate.js';
+
 import { condenseExperience } from '../utils/cvCondense.js';
 import { calculateATSScore } from '../utils/atsScore.js';
 
-// --- Helpers ---
+// ---------------- helpers ----------------
+
 const stripCodeFences = (s) =>
   String(s || '')
     .replace(/```json|```html|```/g, '')
     .trim();
+
 const FORBIDDEN_TAG_REGEX = /<(style|html|head|body|script|link)|style\s*=/i;
-const ensureArray = (arr) => (Array.isArray(arr) ? arr : []);
 
 const genAIWithRetry = async (prompt) => {
-  // Add retry logic here if needed, currently passing through
+  // retry handled inside gemini.js already
   return genAI(prompt);
 };
+
+// ---------------- main worker ----------------
 
 export const processTailoredApplication = async (
   userId,
@@ -38,41 +44,34 @@ export const processTailoredApplication = async (
   applicationData,
   io,
 ) => {
-  console.log(`[Job Start] Processing Application: ${applicationId}`);
-
   try {
-    // 1. Validate Document Exists
-    const appDoc = await StudentTailoredApplication.findById(applicationId);
-    if (!appDoc) throw new Error(`Application doc not found: ${applicationId}`);
-
-    // 2. Normalize Candidate Data
+    // ---------- 1. Normalize candidate safely ----------
     let candidateObj = {};
+
     if (typeof applicationData.candidate === 'string') {
       try {
         candidateObj = JSON.parse(applicationData.candidate);
       } catch {
         candidateObj = {};
       }
-    } else if (typeof applicationData.candidate === 'object') {
-      candidateObj = applicationData.candidate || {};
+    } else if (
+      applicationData.candidate &&
+      typeof applicationData.candidate === 'object'
+    ) {
+      candidateObj = applicationData.candidate;
     }
 
-    // 3. Prepare Slim Candidate (Fixing the cvText issue)
-    // NOTE: If 'uploadedCV' is just a URL, the AI cannot read the file content.
-    // Ideally, you should parse the PDF text before this step.
-    // For now, we pass the URL so at least the AI knows a CV exists.
+    // ---------- 2. Slim candidate (prompt control) ----------
     const slimCandidate = {
       fullName: candidateObj.fullName || '',
       email: candidateObj.email || '',
       phone: candidateObj.phone || '',
       location: candidateObj.location || '',
       jobRole: candidateObj.jobRole || '',
-      education: ensureArray(candidateObj.education),
-      experience: ensureArray(candidateObj.experience),
-      skills: ensureArray(candidateObj.skills),
-      projects: ensureArray(candidateObj.projects),
-      // ✅ FIX: Check uploadedCV if cv is missing
-      cvText: candidateObj.cv || candidateObj.uploadedCV || '',
+      education: candidateObj.education || [],
+      experience: candidateObj.experience || [],
+      skills: candidateObj.skills || [],
+      projects: candidateObj.projects || [],
     };
 
     const sanitized = {
@@ -80,10 +79,8 @@ export const processTailoredApplication = async (
       candidate: slimCandidate,
     };
 
-    // ---------------------------------------------------------
-    // A. Generate CV
-    // ---------------------------------------------------------
-    console.log('Generating CV...');
+    // ================= CV =================
+
     const cvPrompt = generateCVPrompt(
       sanitized.job.description,
       JSON.stringify(slimCandidate, null, 2),
@@ -91,34 +88,36 @@ export const processTailoredApplication = async (
     );
 
     const cvRaw = await genAIWithRetry(cvPrompt);
-    let parsedCV;
 
+    let parsedCV;
     try {
       parsedCV = JSON.parse(stripCodeFences(cvRaw));
-    } catch (e) {
-      console.error('JSON Parse Error for CV:', cvRaw);
-      throw new Error('AI returned invalid CV JSON format');
+    } catch {
+      throw new Error('AI returned invalid CV JSON');
     }
 
-    if (!parsedCV.cv || FORBIDDEN_TAG_REGEX.test(parsedCV.cv)) {
-      throw new Error('AI returned invalid or malicious HTML in CV');
+    if (!parsedCV.cv || typeof parsedCV.cv !== 'string') {
+      throw new Error('CV JSON missing required "cv" field');
     }
 
-    // Normalize and Wrap CV
+    if (FORBIDDEN_TAG_REGEX.test(parsedCV.cv)) {
+      throw new Error('Invalid CV HTML returned by AI');
+    }
+
+    // ---- normalize CV (SAME AS CV PIPELINE) ----
     parsedCV.cv = condenseExperience(parsedCV.cv);
     parsedCV.cv = wrapCVHtml(parsedCV.cv, sanitized.job.title);
+
     parsedCV.atsScore = calculateATSScore(
       parsedCV.cv,
       sanitized.job.description,
     );
     parsedCV.atsScoreReasoning =
       parsedCV.atsScoreReasoning ||
-      'Score calculated based on keyword overlap.';
+      'Score calculated based on keyword overlap between job description and CV content.';
 
-    // ---------------------------------------------------------
-    // B. Generate Cover Letter
-    // ---------------------------------------------------------
-    console.log('Generating Cover Letter...');
+    // ================= COVER LETTER =================
+
     const clPrompt = generateCoverLetterPrompts(
       sanitized.job.title,
       JSON.stringify(slimCandidate),
@@ -129,74 +128,62 @@ export const processTailoredApplication = async (
     const tailoredCoverLetter = stripCodeFences(clRaw);
 
     if (FORBIDDEN_TAG_REGEX.test(tailoredCoverLetter)) {
-      throw new Error('AI returned invalid HTML in Cover Letter');
+      throw new Error('Invalid Cover Letter HTML returned by AI');
     }
 
-    // ---------------------------------------------------------
-    // C. Generate Email
-    // ---------------------------------------------------------
-    console.log('Generating Email...');
+    // ================= EMAIL =================
+
+    // const emailPrompt = generateEmailPrompt(sanitized);
+    // const emailRaw = await genAIWithRetry(emailPrompt);
+
+    // let applicationEmail = processEmailResponse(emailRaw);
+
+    // // deterministic name replacement
+    // applicationEmail = applicationEmail.replace(
+    //   /\[Your Name\]/gi,
+    //   slimCandidate.fullName || '',
+    // );
+
     const emailPrompt = generateEmailPrompt(sanitized);
     const emailRaw = await genAIWithRetry(emailPrompt);
     const emailText = processEmailResponse(emailRaw);
 
-    // Parse Email Sections
+    // ---- parse deterministic sections ----
     const subjectMatch = emailText.match(/SUBJECT:\s*(.+)/i);
     const bodyMatch = emailText.match(/BODY:\s*([\s\S]*?)\nSIGNATURE:/i);
     const signatureMatch = emailText.match(/SIGNATURE:\s*(.+)/i);
 
-    let applicationEmail = {};
-    if (subjectMatch && bodyMatch) {
-      applicationEmail = {
-        subject: subjectMatch[1].trim(),
-        body: bodyMatch[1].trim(),
-        signature: signatureMatch?.[1]?.trim() || slimCandidate.fullName || '',
-        html: wrapEmailHtml(
-          subjectMatch[1].trim(),
-          bodyMatch[1].trim(),
-          signatureMatch?.[1]?.trim(),
-        ),
-      };
-    } else {
-      applicationEmail = {
-        raw: emailText,
-        html: wrapEmailHtml('Job Application', emailText, ''),
-      };
+    if (!subjectMatch || !bodyMatch) {
+      throw new Error('Invalid email format returned by AI');
     }
 
-    // ---------------------------------------------------------
-    // D. Database Update
-    // ---------------------------------------------------------
-    console.log('Updating Database...');
+    const subject = subjectMatch[1].trim();
+    const body = bodyMatch[1].trim();
+    const signature =
+      signatureMatch?.[1]?.trim() || slimCandidate.fullName || '';
 
-    const updateResult = await StudentTailoredApplication.findByIdAndUpdate(
-      applicationId,
+    // ---- wrap with template ----
+    const applicationEmail = wrapEmailHtml(subject, body, signature);
+
+    // ================= DB UPDATE =================
+
+    await Student.updateOne(
+      { _id: userId, 'tailoredApplications._id': applicationId },
       {
         $set: {
-          status: 'completed',
-          tailoredCV: parsedCV,
-          tailoredCoverLetter: { html: tailoredCoverLetter },
-          applicationEmail: applicationEmail,
-          completedAt: new Date(),
-          error: null, // Clear any previous errors
+          'tailoredApplications.$.status': 'completed',
+          'tailoredApplications.$.tailoredCV': parsedCV,
+          'tailoredApplications.$.tailoredCoverLetter': tailoredCoverLetter,
+          'tailoredApplications.$.applicationEmail': applicationEmail,
+          'tailoredApplications.$.completedAt': new Date(),
         },
       },
-      { new: true, runValidators: true }, // ✅ Returns the updated doc and runs schema validators
     );
 
-    if (!updateResult) {
-      throw new Error('Application document missing during update phase');
-    }
-
-    // ---------------------------------------------------------
-    // E. Usage & Notifications
-    // ---------------------------------------------------------
     await User.updateOne(
       { _id: userId },
       { $inc: { 'usageCounters.aiApplication': 1 } },
     );
-
-    console.log(`[Success] Application ${applicationId} completed.`);
 
     await sendRealTimeUserNotification(
       io,
@@ -207,21 +194,19 @@ export const processTailoredApplication = async (
       ),
     );
   } catch (error) {
-    console.error(
-      `[TAILORED APPLY FAILED] AppId: ${applicationId}`,
-      error.message,
+    console.error('[TAILORED APPLY FAILED]', error);
+
+    await Student.updateOne(
+      { _id: userId, 'tailoredApplications._id': applicationId },
+      {
+        $set: {
+          'tailoredApplications.$.status': 'failed',
+          'tailoredApplications.$.error': error.message,
+          'tailoredApplications.$.completedAt': new Date(),
+        },
+      },
     );
 
-    // Update DB with Failure Status
-    await StudentTailoredApplication.findByIdAndUpdate(applicationId, {
-      $set: {
-        status: 'failed',
-        error: error.message,
-        completedAt: new Date(),
-      },
-    });
-
-    // Notify User of Failure
     await sendRealTimeUserNotification(
       io,
       userId,

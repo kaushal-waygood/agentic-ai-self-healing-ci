@@ -1,11 +1,13 @@
+// src/utils/cv.background.js
+
 import { genAIRequest as genAI } from '../config/gemini.js';
 import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
-import { StudentCV } from '../models/students/studentCV.model.js'; // Import the separate model
-import { User } from '../models/User.model.js';
+import { Student } from '../models/student.model.js';
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
+import { User } from '../models/User.model.js';
 import { wrapCVHtml } from '../utils/cvTemplate.js';
 import { condenseExperience } from '../utils/cvCondense.js';
 import { calculateATSScore } from '../utils/atsScore.js';
@@ -20,6 +22,7 @@ function parseRetryDelayFromError(err) {
       for (const d of err.errorDetails) {
         if (d['@type'] && d['@type'].includes('RetryInfo') && d.retryDelay) {
           const s = String(d.retryDelay);
+          // common shape: "25s" or "25.868348239s"
           const match = s.match(/([\d.]+)s/);
           if (match) {
             const secs = parseFloat(match[1]);
@@ -52,30 +55,27 @@ export const processCVGeneration = async (
   let jobTitle = 'your recent job';
 
   try {
-    // 1. Fetch the existing pending record from the StudentCV collection
-    // We sort by createdAt desc to get the most recent request if multiple exist
-    const cvDoc = await StudentCV.findOne({
-      student: userId,
-      jobId: jobId,
-    }).sort({ createdAt: -1 });
+    // Grab the CV subdocument created by initiateCVGeneration
+    // We expect the cvs array to include the entry with jobId.
+    const student = await Student.findOne(
+      { _id: userId, 'cvs.jobId': jobId },
+      { 'cvs.$': 1 },
+    );
 
-    if (!cvDoc) {
-      throw new Error(
-        `No StudentCV document found for user: ${userId} and job: ${jobId}`,
-      );
+    if (!student || !student.cvs || !student.cvs.length) {
+      throw new Error(`No CV found with jobId: ${jobId} for user: ${userId}`);
     }
 
-    cvId = cvDoc._id;
-    jobTitle = cvDoc.cvTitle || jobTitle;
+    const cvSubDoc = student.cvs[0];
+    cvId = cvSubDoc._id;
+    jobTitle = cvSubDoc.jobTitle || jobTitle;
 
-    // 2. Prepare Prompt
     const prompt = generateCVPrompt(jobContextString, studentData, finalTouch);
 
     let attempt = 0;
     let parsedJson = null;
     let lastErr = null;
 
-    // 3. AI Generation Loop (Retries)
     while (attempt < MAX_RETRIES) {
       attempt += 1;
       try {
@@ -83,31 +83,32 @@ export const processCVGeneration = async (
           userId: userId,
           endpoint,
         });
-
         const cleanedJsonString = rawJsonResponse
           .replace(/```json|```/g, '')
           .trim();
         parsedJson = JSON.parse(cleanedJsonString);
 
-        // Security check
+        // forbid dangerous tags
         if (
           /<(style|html|head|body|script|link)|style\s*=/i.test(parsedJson.cv)
         ) {
           throw new Error('Invalid CV HTML: forbidden tags detected');
         }
 
-        // Post-processing
+        // auto-condense experience (SAFE)
         parsedJson.cv = condenseExperience(parsedJson.cv);
+
+        // wrap HTML
         parsedJson.cv = wrapCVHtml(parsedJson.cv, jobTitle);
 
-        // ATS Score
+        // ATS score normalization (OVERRIDE model score safely)
         const atsScore = calculateATSScore(parsedJson.cv, jobContextString);
         parsedJson.atsScore = atsScore;
         parsedJson.atsScoreReasoning =
           parsedJson.atsScoreReasoning ||
-          'Score calculated based on keyword overlap.';
+          'Score calculated based on keyword overlap between job description and CV content.';
 
-        break; // Success
+        break;
       } catch (err) {
         lastErr = err;
         const retryDelayFromService = parseRetryDelayFromError(err);
@@ -115,13 +116,14 @@ export const processCVGeneration = async (
           retryDelayFromService ??
           Math.min(INITIAL_BACKOFF_MS * 2 ** (attempt - 1), MAX_BACKOFF_MS);
 
-        // Jitter
+        // add jitter +-25%
         const jitter = Math.floor(backoff * 0.25);
         backoff = Math.max(
           200,
           backoff + (Math.floor(Math.random() * (2 * jitter + 1)) - jitter),
         );
 
+        // If this was the last attempt, break and surface the error
         if (attempt >= MAX_RETRIES) {
           console.error(
             `genAI failed after ${attempt} attempts`,
@@ -131,36 +133,39 @@ export const processCVGeneration = async (
         }
 
         console.warn(
-          `genAI attempt ${attempt} failed. Retrying in ${backoff}ms.`,
+          `genAI attempt ${attempt} failed. Backing off ${backoff}ms. err=${
+            err?.status || err?.message || err
+          }`,
         );
+        // sleep then retry
         await sleep(backoff);
       }
     }
 
-    // 4. Handle Failure (Retries Exhausted)
     if (!parsedJson) {
+      // Retries exhausted OR parse failure
       const errMessage = lastErr
         ? lastErr.message || JSON.stringify(lastErr)
         : 'Unknown generation error';
-
+      // mark CV as queued if it's a quota issue (429) or failed transiently, so an external scheduler can retry later
       const isQuota = lastErr && lastErr.status === 429;
+
       const nextRetryAt = isQuota
         ? new Date(
             Date.now() + (parseRetryDelayFromError(lastErr) ?? 60 * 1000),
-          )
+          ) // try again after service-suggested delay or 60s
         : null;
 
-      // Update StudentCV status to failed/queued
-      const updateData = {
-        status: isQuota ? 'queued' : 'failed',
-        error: errMessage,
-        completedAt: new Date(),
+      const updateQueued = {
+        $set: {
+          'cvs.$.status': isQuota ? 'queued' : 'failed',
+          'cvs.$.error': errMessage,
+          'cvs.$.completedAt': new Date(),
+        },
       };
+      if (nextRetryAt) updateQueued.$set['cvs.$.nextRetryAt'] = nextRetryAt;
 
-      // Note: 'nextRetryAt' isn't in standard schema, but we can log it or
-      // rely on an external scheduler picking up 'queued' items.
-
-      await StudentCV.findByIdAndUpdate(cvId, { $set: updateData });
+      await Student.updateOne({ 'cvs._id': cvId }, updateQueued);
 
       await sendRealTimeUserNotification(
         io,
@@ -175,39 +180,51 @@ export const processCVGeneration = async (
           : notificationTemplates.CV_GENERATED_FAILED(jobTitle),
       );
 
-      return; // Stop processing
+      // stop processing since we couldn't generate content
+      return;
     }
 
-    // 5. Handle Success
+    // success — extract atsScore safely
     const atsScore = parsedJson.atsScore ?? 0;
 
-    // Update StudentCV with results
-    const updateResult = await StudentCV.findByIdAndUpdate(cvId, {
-      $set: {
-        status: 'completed',
-        cvData: parsedJson, // Stores HTML, ATS score, and reasoning
-        completedAt: new Date(),
-        // Update context fields in case they changed during processing logic
-        jobContextString: jobContextString,
-        finalTouch: finalTouch,
+    // Update subdocument: mark completed and save response
+    const updateResult = await Student.updateOne(
+      { 'cvs._id': cvId },
+      {
+        $set: {
+          'cvs.$.status': 'completed',
+          'cvs.$.cvData': parsedJson,
+          'cvs.$.atsScore': atsScore,
+          'cvs.$.completedAt': new Date(),
+          'cvs.$.jobContextString': jobContextString,
+          'cvs.$.finalTouch': finalTouch,
+        },
       },
-    });
+    );
 
-    if (!updateResult) {
-      throw new Error(`Failed to update StudentCV with ID: ${cvId}`);
+    if (!updateResult || updateResult.matchedCount === 0) {
+      throw new Error(`Failed to update CV with cvId: ${cvId} (match count 0)`);
     }
 
-    // Increment Usage Stats on User model
+    // Only increment user's cvCreation usage AFTER successful persist of CV
     try {
       await User.updateOne(
         { _id: userId },
-        { $inc: { 'usageCounters.cvCreation': 1 } },
+        {
+          $inc: {
+            'usageCounters.cvCreation': 1,
+          },
+        },
       );
     } catch (incErr) {
-      console.error(`Failed to increment usage for user ${userId}:`, incErr);
+      // Log but don't fail the whole flow if increment fails
+      console.error(
+        `Failed to increment usageCounters.cvCreation for user ${userId}:`,
+        incErr,
+      );
     }
 
-    // Send Notification
+    // Notify success
     await sendRealTimeUserNotification(
       io,
       userId,
@@ -215,34 +232,34 @@ export const processCVGeneration = async (
     );
   } catch (error) {
     console.error(
-      `CV generation process failed for user: ${userId}, job: ${jobId}`,
+      `CV generation failed for user: ${userId}, job: ${jobId}`,
       error,
     );
-
     const errorMessage =
       error?.message || 'An unknown error occurred during generation.';
 
-    // Fallback failure update
-    if (cvId) {
-      try {
-        await StudentCV.findByIdAndUpdate(cvId, {
-          $set: {
-            status: 'failed',
-            error: errorMessage,
-            completedAt: new Date(),
-          },
-        });
-      } catch (e) {
-        console.error('Failed to persist error state to StudentCV:', e);
-      }
+    // If cvId known, update the specific subdoc; else update the student's cvs matching jobId
+    const failureFilter = cvId
+      ? { 'cvs._id': cvId }
+      : { _id: userId, 'cvs.jobId': jobId };
+    const setObj = {
+      'cvs.$.status': 'failed',
+      'cvs.$.error': errorMessage,
+      'cvs.$.completedAt': new Date(),
+    };
+
+    try {
+      await Student.updateOne(failureFilter, { $set: setObj });
+    } catch (e) {
+      console.error('Failed to persist failed state to Student model:', e);
     }
 
-    // Fallback Notification
+    const titleForFailure = jobTitle || 'your recent CV';
     try {
       await sendRealTimeUserNotification(
         io,
         userId,
-        notificationTemplates.CV_GENERATED_FAILED(jobTitle),
+        notificationTemplates.CV_GENERATED_FAILED(titleForFailure),
       );
     } catch (notifyErr) {
       console.error('Failed to send failure notification:', notifyErr);
