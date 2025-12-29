@@ -233,7 +233,7 @@ const uploadToMemory = multer({
 router.post(
   '/applications/tailor',
   authMiddleware,
-  isUserOrUniStudent,
+  isUserOrUniStudent,   
   checkCredits('TAILORED_APPLY'),
   requireCompleteProfile,
   uploadToMemory.single('cv'),

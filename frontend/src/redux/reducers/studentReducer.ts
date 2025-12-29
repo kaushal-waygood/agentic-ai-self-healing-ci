@@ -227,7 +227,7 @@ const studentSlice = createSlice({
     },
     addStudentExperienceSuccess: (state, action: PayloadAction<Experience>) => {
       state.loading = false;
-      state.experiences.push(action.payload);
+      state.experiences = [...state.experiences, action.payload];
       state.error = null;
     },
     addStudentExperienceFailure: (state, action: PayloadAction<string>) => {

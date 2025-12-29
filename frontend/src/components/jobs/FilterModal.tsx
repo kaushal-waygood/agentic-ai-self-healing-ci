@@ -180,18 +180,23 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
     handleFilterChange(resetState);
   };
 
+  console.log('locat filters', localFilters);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl bg-white">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">More Filters</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-headingTextPrimary ">
+            More Filters
+          </DialogTitle>
           <DialogDescription>
             Refine your job search to find the perfect fit.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 ">
-          <div className="input-search-box-div">
+        {/* <div className="grid grid-cols-1 gap-4"> */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          <div className=" input-search-box-div">
             <Globe className="input-search-icon" />
             <CountrySelector
               value={localFilters.country || ''}
@@ -206,7 +211,7 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
             />
           </div>
 
-          <div className="input-search-box-div">
+          <div className=" input-search-box-div">
             <MapPin className="input-search-icon" />
             <StateSelector
               countryCode={localFilters.country}
@@ -299,13 +304,10 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
         </div>
 
         <DialogFooter className="pt-4 border-t">
-          <Button variant="ghost" onClick={handleReset}>
+          <Button variant="outline" onClick={handleReset}>
             Reset Filters
           </Button>
-          <Button
-            onClick={handleApply}
-            className="bg-gradient-to-r from-purple-500 to-blue-500 text-white"
-          >
+          <Button onClick={handleApply} className=" ">
             Apply Filters
           </Button>
         </DialogFooter>

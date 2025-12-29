@@ -18,9 +18,9 @@ const Step1AgentConfig = ({
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
       {/* ... Header remains the same ... */}
-      <div className="relative bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 rounded-lg px-6 py-4 mb-2 text-white shadow-xl overflow-hidden">
+      <div className="relative bg-header-gradient-primary rounded-lg px-6 py-4 mb-2 text-white shadow-xl overflow-hidden">
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 ">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center font-bold text-xl">
               1
             </div>
@@ -35,8 +35,6 @@ const Step1AgentConfig = ({
               : "Define your agent's name and job search criteria"}
           </p>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="bg-white rounded-lg shadow-xl p-8 space-y-4 border border-gray-100">
@@ -51,7 +49,7 @@ const Step1AgentConfig = ({
               placeholder="e.g. Senior Product Manager Hunter"
               onChange={handleChange('agentName')}
               value={values.agentName} // Use value for controlled component
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 outline-none hover:border-blue-400 hover:bg-blue-50"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg transition-all duration-200 outline-none  focus:ring-blue-500"
             />
           </div>
         </div>
@@ -68,7 +66,7 @@ const Step1AgentConfig = ({
               onChange={handleChange('jobTitle')}
               value={values.jobTitle}
               disabled={isEditing} // Disable when editing
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg transition-all duration-200 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed hover:border-blue-400 hover:bg-blue-50"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg transition-all duration-200 outline-none focus:ring-blue-500"
             />
           </div>
         </div>
@@ -221,7 +219,7 @@ const Step1AgentConfig = ({
             disabled={!canProceed}
             className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 ${
               canProceed
-                ? 'bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                ? 'bg-buttonPrimary hover:from-purple-700 hover:to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >

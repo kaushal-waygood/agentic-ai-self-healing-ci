@@ -70,7 +70,7 @@ const AgentPreviewModal = ({
               onConfirm();
               nextStep();
             }}
-            className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
+            className="px-4 py-2 rounded-md bg-buttonPrimary text-white hover:bg-blue-700"
           >
             Confirm & Save
           </button>

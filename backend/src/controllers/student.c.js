@@ -720,6 +720,7 @@ export const updateExperience = async (req, res) => {
 
   const update = {};
   for (const key of allowed) {
+    console.log('key', key);
     if (req.body[key] !== undefined) {
       update[key] = req.body[key];
     }
@@ -1031,8 +1032,6 @@ export const getSavedJobs = async (req, res) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  console.log('saved', saved);
-
   res.json({ success: true, jobs: saved });
 };
 
@@ -1072,7 +1071,7 @@ export const StudentAnalytics = async (req, res) => {
   try {
     const [
       viewCount,
-      visitCount, 
+      visitCount,
       savedCount,
       appliedCount,
       cvCount,

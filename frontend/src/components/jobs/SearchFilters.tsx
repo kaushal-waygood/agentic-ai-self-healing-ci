@@ -217,7 +217,7 @@ export const SearchFilters = ({
       {/* <div className="flex items-center justify-between gap-2 "> */}
       <div className="flex flex-col lg:flex-row gap-2">
         <div className="input-search-box-div w-full">
-          <Search className="input-search-icon  " />
+          <Search className="input-search-icon " />
           <input
             id="search-bar"
             type="text"
@@ -235,7 +235,7 @@ export const SearchFilters = ({
             onClick={handleSearchClick}
             disabled={isSearching}
             aria-busy={isSearching}
-            className={`flex items-center justify-center gap-2 px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform ${
+            className={`flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform ${
               isSearching
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-buttonPrimary hover:to-blue-600 text-white hover:scale-105 shadow-lg hover:shadow-purple-200/50'
@@ -255,7 +255,7 @@ export const SearchFilters = ({
 
           <button
             onClick={onOpenFilterModal}
-            className="flex items-center justify-center gap-2 bg-buttonPrimary hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
+            className="flex items-center justify-center gap-2 bg-buttonPrimary hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
           >
             <Filter className="w-4 h-4" />
             Filters

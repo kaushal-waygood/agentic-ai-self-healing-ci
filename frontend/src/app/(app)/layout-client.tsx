@@ -297,15 +297,9 @@ export default function DashboardLayoutClient({
             </div>
           </div>
           {/* feedback popup in 1 second delay */}
-          {/* <FeedbackPopup delay={1000} /> */}
           <FeedbackPopup
-            delay={30000}
-            forceOpen={showLogoutFeedback}
-            onClose={() => {
-              setShowLogoutFeedback(false);
-              dispatch(logoutRequest());
-              router.push('/');
-            }}
+            delay={1000}
+            // forceOpen={showLogoutFeedback}
           />
         </SidebarContext.Provider>
       </FeedbackProvider>

@@ -13,6 +13,7 @@ import { Search, Frown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
+import Image from 'next/image';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
@@ -139,6 +140,7 @@ export default function JobsPage() {
               ref={jobListRef}
               className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 scrollbar-thin"
             >
+              {/* Notification state */}
               {notification && !loading && (
                 <div className="flex flex-col items-center justify-center h-full p-6 bg-white rounded-lg border">
                   <Frown className="w-12 h-12 text-gray-400 mb-4" />
@@ -146,12 +148,55 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {loading &&
+              {/* Loading skeleton */}
+              {/* {loading &&
                 jobs.length === 0 &&
                 Array.from({ length: 8 }).map((_, i) => (
                   <JobCardSkeleton key={i} />
-                ))}
+                ))} */}
+              {/* {loading && jobs.length === 0 && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="relative w-12 h-12">
+                    <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-indigo-500 border-r-blue-500 animate-spin" />
+                    <div className="absolute inset-2 rounded-full bg-white shadow-inner" />
+                  </div>
+                </div>
+              )} */}
 
+              {loading && jobs.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <div>
+                    <Image
+                      src="/logo.png"
+                      alt="zobsai logo"
+                      width={100}
+                      height={100}
+                      className="w-10 h-10 animate-bounce"
+                    />
+                  </div>
+                  <div className="text-md font-semibold">LOADING...</div>
+                </div>
+              )}
+
+              {/* ❌ No Jobs Found UI */}
+              {!loading && !notification && jobs.length === 0 && (
+                <div className="flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg border ">
+                  <div className="w-14 h-14 flex items-center justify-center rounded-full bg-gray-100 mb-4">
+                    <Frown className="w-7 h-7 text-gray-400" />
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                    No jobs found
+                  </h3>
+
+                  <p className="text-sm text-gray-500 max-w-xs">
+                    Try adjusting your filters or search criteria to see more
+                    results.
+                  </p>
+                </div>
+              )}
+
+              {/* Job list */}
               {!notification &&
                 jobs.map((job: any) => (
                   <JobCard
@@ -162,6 +207,7 @@ export default function JobsPage() {
                   />
                 ))}
 
+              {/* Infinite loading */}
               {loading && jobs.length > 0 && <JobCardSkeleton />}
 
               <div ref={observerRef} style={{ height: '1px' }} />
@@ -171,13 +217,18 @@ export default function JobsPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
-                <div className="h-full flex items-center justify-center bg-white border rounded-xl">
-                  <p>Loading Job Detail</p>
+                <div className="h-full flex flex-col items-center justify-center bg-white border rounded-lg">
+                  <img
+                    src="/logo.png"
+                    alt="zobsAi"
+                    className="w-10 h-10 animate-bounce"
+                  />
+                  <p className="font-medium">Loading Job data...</p>
                 </div>
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full p-12 bg-white border rounded-2xl text-center">
+                <div className="flex flex-col items-center justify-center h-full p-12 bg-white border rounded-lg text-center">
                   <Search className="w-12 h-12 text-purple-400 mb-4" />
                   <p className="text-gray-500">
                     {jobs.length

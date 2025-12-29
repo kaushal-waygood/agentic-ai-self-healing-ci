@@ -13,6 +13,7 @@ export function getLLMProvider() {
       });
 
     case 'deepseek':
+      console.log('calling');
       return new DeepSeekProvider({
         apiKey: process.env.DEEPSEEK_API_KEY,
         model: 'deepseek-chat',
