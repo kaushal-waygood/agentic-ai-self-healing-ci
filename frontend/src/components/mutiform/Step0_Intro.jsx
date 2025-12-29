@@ -26,28 +26,11 @@ const Step0_SimpleIntroSlim = ({
   return (
     <div className="w-full max-w-5xl mx-auto p-6 animate-fade-in">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-6 py-4 rounded-lg shadow-lg mb-4">
-        {/* <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-wide">AI Job Agents</h1>
-            <p className="text-sm opacity-90 mt-1">
-              Manage, track & automate your job search
-            </p>
-          </div>
-
-          <button
-            onClick={nextStep}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-purple-700 font-medium shadow-md hover:shadow-lg transition-all hover:scale-[1.02]"
-          >
-            <Plus className="w-4 h-4" />
-            Create Agent
-          </button>
-        </div> */}
-
+      <div className="bg-header-gradient-primary text-white px-6 py-4 rounded-lg shadow-lg mb-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-wide">AI Job Agents</h1>
-            <p className="text-sm opacity-90 mt-1">
+            <p className="text-sm opacity-90 ">
               Manage, track & automate your job search
             </p>
           </div>

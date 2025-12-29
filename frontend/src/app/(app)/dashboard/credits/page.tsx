@@ -48,21 +48,27 @@ export default function CreditsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-4 flex flex-wrap gap-2 justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-headingTextPrimary">
-              Credits Wallet
-            </h1>
-            <p className="text-gray-600">
-              Track your balance, earn rewards, and purchase services.
-            </p>
+        <div className="mb-4">
+          <div className="flex items-center justify-between ">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-semibold text-headingTextPrimary">
+                Credits Wallet
+              </h1>
+            </div>
+            <div>
+              <CreditsFooterActions
+                refreshing={refreshing}
+                onRefresh={refresh}
+                onShare={() =>
+                  navigator.clipboard.writeText(window.location.href)
+                }
+              />
+            </div>
           </div>
 
-          <CreditsFooterActions
-            refreshing={refreshing}
-            onRefresh={refresh}
-            onShare={() => navigator.clipboard.writeText(window.location.href)}
-          />
+          <p className="text-gray-600">
+            Track your balance, earn rewards, and purchase services.
+          </p>
         </div>
 
         <StatsGrid

@@ -1330,7 +1330,7 @@ export default function DashboardPage() {
                   title="AI Auto-Application"
                   description="Automate your job search."
                   color="green"
-                  comingSoon={true}
+                  comingSoon={false}
                 />
               </div>
             </div>

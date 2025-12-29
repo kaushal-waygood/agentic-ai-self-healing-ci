@@ -102,15 +102,15 @@ import { MessageSquare, X, Send, CheckCircle } from 'lucide-react';
 
 interface FeedbackPopupProps {
   delay?: number;
-  forceOpen?: boolean;
-  onClose?: () => void;
+  // forceOpen?: boolean;
+  // onClose?: () => void;
 }
 
 export default function FeedbackPopup({
   delay = 30000,
-  forceOpen = false,
-  onClose,
-}: FeedbackPopupProps) {
+}: // forceOpen = false,
+// onClose,
+FeedbackPopupProps) {
   const [open, setOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -127,26 +127,17 @@ export default function FeedbackPopup({
     return () => clearTimeout(timer);
   }, [delay]);
 
-  // Manual open (logout click)
-  useEffect(() => {
-    if (forceOpen) {
-      setOpen(true);
-      setSubmitted(false);
-    }
-  }, [forceOpen]);
-
   const handleClose = () => {
     setOpen(false);
     setSubmitted(false);
     setFeedback('');
-    onClose?.();
+    // onClose?.();
   };
 
   const handleSubmit = () => {
     // Optional: send `feedback` to API here
     setSubmitted(true);
 
-    // Auto close after showing thank you
     setTimeout(() => {
       handleClose();
     }, 3000);

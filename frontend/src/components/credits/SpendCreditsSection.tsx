@@ -80,6 +80,7 @@ export function SpendCreditsSection({
 
   // FIXED: Typo 'rouer' changed to 'router'
   const router = useRouter();
+  const [openHelp, setOpenHelp] = useState(false);
 
   const totalCost = useMemo(
     () =>
@@ -126,93 +127,44 @@ export function SpendCreditsSection({
 
   return (
     <div className="mb-8">
+      {/* <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+          <span className="p-2 rounded-lg bg-blue-100">
+            <Sparkles className="w-4 h-4 text-blue-500" />{' '}
+          </span>
+          Spend Credits
+        </h2>
+        <div className="text-xl font-semibold text-gray-600">
+          Balance:{' '}
+          <span className="font-bold text-2xl text-blue-700">{balance}</span>
+        </div>
+      </div> */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-          Spend Credits <Sparkles className="w-4 h-4 text-yellow-500" />
+          <span className="p-2 rounded-lg bg-blue-100">
+            <Sparkles className="w-4 h-4 text-blue-500" />
+          </span>
+          Spend Credits
         </h2>
-        <div className="text-sm text-gray-600">
-          Balance:{' '}
-          <span className="font-semibold text-blue-700">{balance}</span>
+
+        <div className="flex items-center gap-4">
+          <div className="text-xl font-semibold text-gray-600">
+            Balance:{' '}
+            <span className="font-bold text-2xl text-blue-700">{balance}</span>
+          </div>
+
+          {/* Help Button */}
+          <button
+            onClick={() => setOpenHelp(true)}
+            className="px-3 py-1.5 text-sm rounded-lg bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 transition"
+          >
+            How it works?
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {CATALOG.map((item) => {
-          const qty = cart[item.id] || 0;
-          const lineTotal = item.cost * qty;
-
-          return (
-            <div
-              key={item.id}
-              className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    {item.name}
-                  </h3>
-                  {item.badge && (
-                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 border border-blue-100">
-                      {item.badge}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-xs text-gray-600 mb-2">{item.description}</p>
-
-                <p className="text-xs text-green-700 font-medium mb-3">
-                  🛠 {item.benefit}
-                </p>
-
-                <div className="text-sm font-semibold text-gray-800">
-                  {item.cost} credits
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleRemove(item.id)}
-                    disabled={qty === 0}
-                    className={`h-8 w-8 flex items-center justify-center rounded-full border text-xs transition ${
-                      qty === 0
-                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-
-                  <span className="min-w-[2ch] text-center text-sm font-medium text-gray-800">
-                    {qty}
-                  </span>
-
-                  <button
-                    onClick={() => handleAdd(item.id)}
-                    className="h-8 w-8 flex items-center justify-center rounded-full border border-gray-300 text-xs text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-
-                {qty > 0 && (
-                  <div className="text-right text-xs text-gray-600">
-                    <div className="font-semibold text-gray-900">
-                      {lineTotal} credits
-                    </div>
-                    <div className="text-[11px] text-gray-500">
-                      {qty} item{qty > 1 ? 's' : ''}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Summary / Action Footer */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center  gap-4 mb-4">
         {/* Left: Totals */}
         <div className="text-sm text-gray-700 flex-shrink-0">
           Selected:{' '}
@@ -268,6 +220,138 @@ export function SpendCreditsSection({
           </button>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {CATALOG.map((item) => {
+          const qty = cart[item.id] || 0;
+          const lineTotal = item.cost * qty;
+
+          return (
+            <div
+              key={item.id}
+              className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 flex flex-row justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    {item.name}
+                  </h3>
+                  {item.badge && (
+                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 border border-blue-100">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-600 mb-2">{item.description}</p>
+
+                <p className="text-xs text-green-700 font-medium mb-3">
+                  🛠 {item.benefit}
+                </p>
+
+                <div className="text-md  font-semibold text-gray-800">
+                  {item.cost} credits
+                </div>
+              </div>
+
+              <div className=" flex items-center flex-col justify-between">
+                <div className="flex items-center justify-center ">
+                  <button
+                    onClick={() => handleRemove(item.id)}
+                    disabled={qty === 0}
+                    className={`h-8 w-8 flex  items-center justify-center rounded-full border text-xs transition ${
+                      qty === 0
+                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Minus className="w-3 h-3" />
+                  </button>
+
+                  <span className="min-w-[2ch] text-center text-md font-medium text-gray-800">
+                    {qty}
+                  </span>
+
+                  <button
+                    onClick={() => handleAdd(item.id)}
+                    className="h-8 w-8 flex items-center justify-center rounded-full border border-gray-300 text-xs text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {qty > 0 && (
+                  <div className="text-right text-md text-gray-600">
+                    <div className="font-semibold text-gray-900">
+                      {lineTotal} credits
+                    </div>
+                    <div className="text-[11px] text-gray-500">
+                      {qty} item{qty > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {openHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setOpenHelp(false)}
+          />
+
+          {/* Modal */}
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                How to Spend Credits
+              </h3>
+              <button
+                onClick={() => setOpenHelp(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Steps */}
+            <div className="space-y-4">
+              {[
+                'Select an item you want to redeem',
+                'Increase quantity using + button',
+                'Check remaining credits at the top',
+                'Click "Redeem Credits" to confirm',
+                'Credits will be deducted instantly',
+              ].map((step, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border"
+                >
+                  <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center">
+                    {idx + 1}
+                  </div>
+                  <p className="text-sm text-gray-700">{step}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setOpenHelp(false)}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

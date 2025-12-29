@@ -720,6 +720,7 @@ export const updateExperience = async (req, res) => {
 
   const update = {};
   for (const key of allowed) {
+    console.log('key', key);
     if (req.body[key] !== undefined) {
       update[key] = req.body[key];
     }
