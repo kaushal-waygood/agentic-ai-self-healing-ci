@@ -1,107 +1,105 @@
-import axios from 'axios';
-import pdfParse from 'pdf-parse';
-import Tesseract from 'tesseract.js';
 import { genAIRequest as genAI } from '../config/gemini.js';
 
-const safeParse = (res) => JSON.parse(res.match(/\{[\s\S]*\}/)?.[0] || '{}');
-
-const extractResumeText = async (url) => {
-  const tryUrls = [
-    url,
-    url.replace('/upload/', '/upload/fl_attachment/'), // PDF forced download
-    url.replace('/image/upload/', '/image/upload/fl_attachment/'), // Your config hack
+// ------------------ Keyword Extraction ------------------
+export function extractKeywords(jobDescription) {
+  return [
+    ...new Set(
+      jobDescription.toLowerCase().match(/[a-zA-Z\+\#\.]+/g), // fast keyword bucket
+    ),
   ];
-
-  const extractPDFPrompt = `
-    Return ONLY JSON:
-
-    {
-     "text": "<text>",
-    }
-
-    URL: ${JSON.stringify(url)}
-    `;
-
-  const raw = await genAI(extractPDFPrompt);
-  const extractedText = safeParse(typeof raw === 'string' ? raw : raw?.text);
-
-  console.log('extractedText', extractedText);
-
-  let buffer;
-  for (let link of tryUrls) {
-    try {
-      const { data } = await axios.get(link, {
-        responseType: 'arraybuffer',
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-      buffer = data;
-      break;
-    } catch {}
-  }
-
-  if (!buffer) return '';
-
-  // 1) Try text extraction
-  const parsed = await pdfParse(buffer);
-
-  console.log('parsed', parsed);
-  if (parsed.text.trim().length > 20) return parsed.text;
-
-  // 2) Fallback: OCR for image-type PDFs
-  console.log('OCR fallback triggered...');
-  const base64 = Buffer.from(buffer).toString('base64');
-  const img = `data:application/pdf;base64,${base64}`;
-
-  const ocr = await Tesseract.recognize(img, 'eng');
-  return ocr.data.text || '';
-};
-
-export const calculateATSScore = async (
-  jobDescription,
-  resumeUrl,
-  userId,
-  endpoint,
-) => {
-  try {
-    const resumeText = await extractResumeText(resumeUrl);
-
-    if (!resumeText || resumeText.length < 50) {
-      return {
-        atsScore: 5,
-        skillsMatched: [],
-        skillsMissing: ['Resume content unreadable or scanned'],
-        summary:
-          'Resume could not be parsed properly. Upload a text-based PDF for better accuracy.',
-      };
-    }
-
-    const prompt = `
-Return ONLY JSON:
-
-{
- "atsScore": <1-100>,
- "skillsMatched": [],
- "skillsMissing": [],
- "summary": "2-4 sentence ATS evaluation"
 }
 
-JobDescription: ${JSON.stringify(jobDescription.slice(0, 3000))}
-ResumeText: ${JSON.stringify(resumeText.slice(0, 8000))}
+// ------------------ Skills Score (40%) ------------------
+export function evaluateSkills(studentSkills, keywords) {
+  const matched = studentSkills.filter((s) =>
+    keywords.some((k) => s.skill.toLowerCase().includes(k)),
+  );
+
+  const missing = keywords.filter(
+    (k) => !studentSkills.some((s) => s.skill.toLowerCase().includes(k)),
+  );
+
+  const score = Math.min((matched.length / (keywords.length || 1)) * 40, 40);
+
+  return { matched, missing, score };
+}
+
+// ------------------ Experience Score (40%) ------------------
+export function evaluateExperience(experience, keywords) {
+  let relevanceHits = 0;
+
+  experience.forEach((exp) => {
+    keywords.forEach((k) => {
+      if (exp.description?.toLowerCase().includes(k)) relevanceHits++;
+    });
+  });
+
+  const score = Math.min(relevanceHits * 2, 40); // tuned weight
+
+  return { score };
+}
+
+// ------------------ Education Score (20%) ------------------
+export function evaluateEducation(education, jobDescription) {
+  const needDegree = /(bachelor|degree|bsc|b\.tech)/i.test(jobDescription);
+  const hasDegree = education.some((e) =>
+    /(bachelor|degree|bsc|b\.tech)/i.test(e.degree),
+  );
+
+  return { score: hasDegree ? 20 : needDegree ? 10 : 15 }; // fallback score
+}
+
+// ------------------ Suggestions Generator ------------------
+export function generateSuggestions(student, missing) {
+  const s = [];
+  if (missing.length) s.push(`Learn or improve: ${missing.join(', ')}`);
+  if (!student.experience.length) s.push('Add relevant work experience.');
+  if (student.projects.length < 2)
+    s.push('Add more real projects to boost credibility.');
+  if (student.skills.every((s) => s.level === 'BEGINNER'))
+    s.push('Increase at least one skill to intermediate level.');
+  return s;
+}
+
+// ------------------ Resume Rewrite via LLM ------------------
+export async function generateTailoredResumeRewrite(student, jobDescription) {
+  const rewritePrompt = `
+Act as a resume optimization engine.
+Rewrite a professional resume summary tailored for this job.
+Be concise, impact-driven, ATS-friendly.
+Return PLAIN TEXT ONLY.
+
+Job Description: ${jobDescription.slice(0, 1200)}
+
+Experience: ${JSON.stringify(student.experience)}
+Skills: ${student.skills.map((s) => s.skill).join(', ')}
+Projects: ${student.projects.map((p) => p.projectName).join(', ')}
 `;
 
-    const raw = await genAI(prompt, { userId, endpoint });
-    const result = safeParse(typeof raw === 'string' ? raw : raw?.text);
+  const raw = await genAI(rewritePrompt);
+  return typeof raw === 'string' ? raw.trim() : raw.text.trim();
+}
 
-    result.atsScore = Math.max(1, Math.min(result.atsScore || 1, 100));
-    return result;
-  } catch (err) {
-    // console.error('ATS Score Error:', err);
-    return {
-      atsScore: 0,
-      skillsMatched: [],
-      skillsMissing: [],
-      summary: 'ATS evaluation failed internally.',
-      error: true,
-    };
-  }
-};
+// ------------------ ATS Main Engine ------------------
+export async function computeATS(jobDescription, student) {
+  const keywords = extractKeywords(jobDescription.toLowerCase());
+  const skills = evaluateSkills(student.skills, keywords);
+  const exp = evaluateExperience(student.experience, keywords);
+  const edu = evaluateEducation(student.education, jobDescription);
+
+  const finalScore = Math.round(skills.score + exp.score + edu.score);
+
+  const suggestions = generateSuggestions(student, skills.missing);
+  const improvedSummary = await generateTailoredResumeRewrite(
+    student,
+    jobDescription,
+  );
+
+  return {
+    atsScore: finalScore,
+    skillsMatched: skills.matched,
+    skillsMissing: skills.missing,
+    suggestions,
+    improvedResumeSummary: improvedSummary,
+  };
+}

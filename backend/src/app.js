@@ -23,7 +23,11 @@ import socialRouter from './routes/social.js';
 import bringZobsRoutes from './routes/bringzobs.route.js';
 import notificationRoutes from './routes/notification.route.js';
 import sitemapRoutes from './routes/sitemap.js';
-import { handleStripeWebhook } from './controllers/plan.controller.js';
+
+import {
+  handleStripeWebhook,
+  razorpayWebhook,
+} from './controllers/plan.controller.js';
 
 import newFeatureRoutes from './routes/newFeature.route.js';
 import { config } from './config/config.js';
@@ -31,6 +35,23 @@ import { ensurePlanValidity } from './middlewares/ensurePlanValidity.js';
 
 const app = express();
 app.set('trust proxy', 1);
+
+/* ---------------- WEBHOOKS MUST COME FIRST ---------------- */
+// No cors, no JSON, no cookie, no ensurePlanValidity here
+
+app.post(
+  '/api/v1/razorpay/webhook',
+  express.raw({ type: 'application/json' }),
+  razorpayWebhook,
+);
+
+app.post(
+  '/api/v1/plan/payment/webhook',
+  express.raw({ type: 'application/json' }),
+  handleStripeWebhook,
+);
+
+/* ---------------- STANDARD MIDDLEWARE ---------------- */
 
 app.use(morgan('dev'));
 app.use(helmet());
@@ -41,13 +62,14 @@ const limiter = rateLimit({
   max: 5000,
   standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many requests from this IP, please try again after 15 minutes.',
+  message: 'Too many requests. Try again later.',
 });
 app.use(limiter);
 
 app.use(
   cors({
     origin: [
+      'https://luminous-sherise-unobtrusively.ngrok-free.dev',
       'http://127.0.0.1:3000',
       'http://localhost:3000',
       'http://127.0.0.1:3001',
@@ -60,42 +82,20 @@ app.use(
       'chrome-extension://obfphahhgennnkhdhpkjnbadgcaolkbk',
     ],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-    ],
   }),
 );
 
-// 4) Stripe webhook must come BEFORE express.json, using raw body
-app.post(
-  '/api/v1/plan/payment/webhook',
-  express.raw({ type: 'application/json' }),
-  handleStripeWebhook,
-);
-
-export function attachEndpoint(req, res, next) {
-  req.endpoint = `${req.method} ${req.originalUrl}`;
-  next();
-}
-
-app.use(attachEndpoint);
-app.use(express.json({ limit: '1000mb' }));
+app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(ensurePlanValidity);
 
-app.get('/api', (req, res) => res.send('Hello from the server!'));
+/* ---------------- ROUTES ---------------- */
+
+app.get('/api', (req, res) => res.send('Hello from server'));
 
 app.get('/health-check', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    message: 'Server is healthy',
-    data: Date.now().toString(),
-  });
+  res.status(200).json({ status: 'ok', time: new Date() });
 });
 
 app.use('/api/v1/user', userRoutes);
@@ -116,6 +116,8 @@ app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/v1', sitemapRoutes);
 app.use('/api/v1/social', socialRouter);
 
+/* ---------------- ERRORS ---------------- */
+
 app.use((req, res, next) => next(createHttpError(404, 'Endpoint not found')));
 
 app.use((err, req, res, next) => {
@@ -124,7 +126,7 @@ app.use((err, req, res, next) => {
     error: {
       status: err.status || 500,
       message: err.message,
-      ...(config.nodeEnv === 'development' && { stack: err.stack }),
+      ...(config.nodeEnv === 'local' && { stack: err.stack }),
     },
   });
 });

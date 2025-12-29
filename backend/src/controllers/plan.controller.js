@@ -1284,40 +1284,48 @@ export const createSimplePurchaseDev = async (req, res) => {
 export const routePayment = async (req, res) => {
   const { currency, country } = req.body;
 
-  if (currency === 'inr' && country === 'IN') {
-    return res.status(200).json({
-      success: true,
-      gateway: 'stripe',
-    });
-  }
-
-  const gateway = 'razorpay';
-
   return res.status(200).json({
     success: true,
-    gateway,
+    gateway: 'razorpay',
   });
 };
 
 export const razorpayWebhook = async (req, res) => {
-  const event = req.body;
+  try {
+    const signature = req.headers['x-razorpay-signature'];
+    const body = req.body; // raw body because express.raw is used
 
-  if (event.event === 'payment.captured') {
-    await Payment.findOneAndUpdate(
-      { gatewayPaymentId: event.payload.payment.entity.id },
-      { status: 'completed' },
-    );
+    const expected = crypto
+      .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET)
+      .update(req.body.toString()) // << Not req.rawBody
+      .digest('hex');
+
+    if (signature !== expected) {
+      return res.status(400).send('Invalid signature');
+    }
+
+    const event = body.event;
+
+    switch (event) {
+      case 'payment.captured':
+        console.log('Payment captured webhook received');
+        break;
+
+      case 'refund.processed':
+        console.log('Refund completed');
+        break;
+
+      case 'payment.failed':
+        console.log('Payment failed webhook');
+        break;
+
+      default:
+        console.log('Unhandled event:', event);
+    }
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send('Webhook processing failed');
   }
-
-  if (event.event === 'payment.failed') {
-    await Payment.findOneAndUpdate(
-      { gatewayPaymentId: event.payload.payment.entity.id },
-      {
-        status: 'failed',
-        failureReason: event.payload.payment.entity.error_description,
-      },
-    );
-  }
-
-  res.status(200).json({ received: true });
 };

@@ -21,7 +21,7 @@ import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.
 import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
 import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
-import { calculateATSScore } from '../utils/calculateATSScore.js';
+import { computeATS } from '../utils/calculateATSScore.js';
 import axios from 'axios';
 
 // --------Helper Functions---------
@@ -1101,52 +1101,37 @@ export const getSavedApplications = async (req, res) => {
 };
 
 export const calculateJobMatchScore = async (req, res) => {
-  const { jobDescription } = req.body;
-
   try {
-    const student = await Student.findById(req.user._id);
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
+    const { jobDescription } = req.body;
+    if (!jobDescription)
+      return res.status(400).json({ error: 'Job description required' });
 
-    const { matchScore, recommendation } = await calculateJobMatch(
-      jobDescription,
-      student,
-      req.user._id,
-      req.endpoint,
-    );
+    const student = await Student.findById(req.user._id).lean();
+    if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    return res.json({ matchScore, recommendation });
-  } catch (error) {
-    console.error('Error in calculateJobMatchScore:', error);
-    return res
-      .status(500)
-      .json({ error: 'Failed to calculate job match score' });
+    const result = await calculateJobMatch(jobDescription, student);
+
+    return res.json(result);
+  } catch (err) {
+    console.error('JobMatch Error:', err);
+    return res.status(500).json({ error: 'Failed to calculate match score' });
   }
 };
 
 export const calculateATS = async (req, res) => {
-  const { jobDescription } = req.body;
-
   try {
-    const student = await Student.findById(req.user._id);
+    const { jobDescription } = req.body;
+    if (!jobDescription)
+      return res.status(400).json({ error: 'Job Description required' });
+
+    const student = await Student.findById(req.user._id).lean();
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    const resumeUrl = student.resumeUrl;
-    if (!resumeUrl)
-      return res.status(400).json({ error: 'Resume not uploaded' });
+    const result = await computeATS(jobDescription, student);
 
-    // CALL SCORE FUNCTION WITH RESUME URL
-    const atsScore = await calculateATSScore(
-      jobDescription,
-      resumeUrl,
-      req.user._id,
-      req.endpoint,
-    );
-
-    return res.json({ atsScore }); // <--- frontend expects atsScore prop
+    return res.json(result);
   } catch (err) {
-    console.error('ATS Controller Error:', err);
+    console.error('ATS Error:', err);
     return res.status(500).json({ error: 'ATS scoring failed' });
   }
 };
