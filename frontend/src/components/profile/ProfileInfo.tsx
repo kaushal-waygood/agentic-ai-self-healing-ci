@@ -49,61 +49,7 @@ const navItems = [
     gradient: 'tabPrimary',
   },
 ];
-const ProfileInfo = ({
-  personalInfoForm,
-  handlePersonalInfoSubmit,
-  isNameEditable,
-  handlePersonalInfoEdit,
-  toggleNameEdit,
-  isEmailEditable,
-  isPhoneEditable,
-  toggleEmailEdit,
-  setHandleName,
-  handleCancelEdit,
-  togglePhoneEdit,
-
-  // careerDetailsForm,
-  progress,
-
-  fileInputRef,
-  file,
-  isDragging,
-  isUploading,
-  isJobPrefEditable,
-  careerDetailsForm,
-  expandedIndex,
-  defaultValues,
-  handleFileChange,
-  handleButtonClick,
-  handleDragEnter,
-  handleDragLeave,
-  handleDragOver,
-  handleDrop,
-  handleRemoveFile,
-  handleUpload,
-  handleCareerDetailsSubmit,
-  setIsJobPrefEditable,
-  toggleExpand,
-  setAddEdu,
-  setEditEdu,
-  setEditEduIndex,
-  setDeleteEdu,
-  setDeleteEduIndex,
-  setAddProj,
-  setEditProj,
-  setEditProjIndex,
-  setDeleteProj,
-  setDeleteProjIndex,
-  setAddExp,
-  setEditExp,
-  setEditExpIndex,
-  setDeleteExp,
-  setDeleteExpIndex,
-  setAddSkill,
-  setDeleteSkill,
-  setDeleteSkillIndex,
-  handleLevelChange,
-}: any) => {
+const ProfileInfo = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -123,34 +69,7 @@ const ProfileInfo = ({
   };
 
   const ProfileSidebar = () => {
-    return (
-      <SideSectionProfile
-        personalInfoForm={personalInfoForm}
-        fileInputRef={fileInputRef}
-        file={file}
-        isDragging={isDragging}
-        isUploading={isUploading}
-        handleFileChange={handleFileChange}
-        handleButtonClick={handleButtonClick}
-        handleDragEnter={handleDragEnter}
-        handleDragLeave={handleDragLeave}
-        handleDragOver={handleDragOver}
-        handleDrop={handleDrop}
-        handleRemoveFile={handleRemoveFile}
-        handleUpload={handleUpload}
-        progress={progress}
-        handlePersonalInfoEdit={handlePersonalInfoEdit}
-        handlePersonalInfoSubmit={handlePersonalInfoSubmit}
-        isNameEditable={isNameEditable}
-        toggleNameEdit={toggleNameEdit}
-        isEmailEditable={isEmailEditable}
-        isPhoneEditable={isPhoneEditable}
-        toggleEmailEdit={toggleEmailEdit}
-        togglePhoneEdit={togglePhoneEdit}
-        setHandleName={setHandleName}
-        handleCancelEdit={handleCancelEdit}
-      />
-    );
+    return <SideSectionProfile />;
   };
 
   const renderContent = () => {
@@ -159,87 +78,25 @@ const ProfileInfo = ({
         return (
           <div>
             {/* Education  */}
-            <Education
-              personalInfoForm={personalInfoForm}
-              fileInputRef={fileInputRef}
-              file={file}
-              isDragging={isDragging}
-              isUploading={isUploading}
-              isJobPrefEditable={isJobPrefEditable}
-              careerDetailsForm={careerDetailsForm}
-              expandedIndex={expandedIndex}
-              defaultValues={defaultValues} // THIS IS THE KEY ONE!
-              handleFileChange={handleFileChange}
-              handleButtonClick={handleButtonClick}
-              handleDragEnter={handleDragEnter}
-              handleDragLeave={handleDragLeave}
-              handleDragOver={handleDragOver}
-              handleDrop={handleDrop}
-              handleRemoveFile={handleRemoveFile}
-              handleUpload={handleUpload}
-              handleCareerDetailsSubmit={handleCareerDetailsSubmit}
-              setIsJobPrefEditable={setIsJobPrefEditable}
-              toggleExpand={toggleExpand}
-              setAddEdu={setAddEdu}
-              setEditEdu={setEditEdu}
-              setEditEduIndex={setEditEduIndex}
-              setDeleteEdu={setDeleteEdu}
-              setDeleteEduIndex={setDeleteEduIndex}
-              setAddProj={setAddProj}
-              setEditProj={setEditProj}
-              setEditProjIndex={setEditProjIndex}
-              setDeleteProj={setDeleteProj}
-              setDeleteProjIndex={setDeleteProjIndex}
-              setAddExp={setAddExp}
-              setEditExp={setEditExp}
-              setEditExpIndex={setEditExpIndex}
-              setDeleteExp={setDeleteExp}
-              setDeleteExpIndex={setDeleteExpIndex}
-              setAddSkill={setAddSkill}
-              setDeleteSkill={setDeleteSkill}
-              setDeleteSkillIndex={setDeleteSkillIndex}
-              handleLevelChange={handleLevelChange}
-            />
+            <Education />
           </div>
         );
       case 'project':
         return (
           <div>
-            <Project
-              defaultValues={defaultValues}
-              setAddProj={setAddProj}
-              setEditProj={setEditProj}
-              setEditProjIndex={setEditProjIndex}
-              setDeleteProj={setDeleteProj}
-              setDeleteProjIndex={setDeleteProjIndex}
-            />
+            <Project />
           </div>
         );
       case 'experience':
         return (
           <div>
-            <Experience
-              expandedIndex={expandedIndex}
-              defaultValues={defaultValues}
-              toggleExpand={toggleExpand}
-              setAddExp={setAddExp}
-              setEditExp={setEditExp}
-              setEditExpIndex={setEditExpIndex}
-              setDeleteExp={setDeleteExp}
-              setDeleteExpIndex={setDeleteExpIndex}
-            />
+            <Experience />
           </div>
         );
       case 'skills':
         return (
           <div>
-            <Skills
-              defaultValues={defaultValues}
-              setAddSkill={setAddSkill}
-              setDeleteSkill={setDeleteSkill}
-              setDeleteSkillIndex={setDeleteSkillIndex}
-              handleLevelChange={handleLevelChange}
-            />
+            <Skills />
           </div>
         );
       case 'jobPreferences':
@@ -272,7 +129,7 @@ const ProfileInfo = ({
         `}</style>
 
         <main className="flex flex-col md:flex-row max-w-7xl gap-4 mx-auto p-1 sticky top-7">
-          <div className="w-full md:w-1/4 md:sticky md:top-7 md:self-start">
+          <div className=" md:sticky md:top-7 md:self-start">
             <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
           <div className="flex-1">

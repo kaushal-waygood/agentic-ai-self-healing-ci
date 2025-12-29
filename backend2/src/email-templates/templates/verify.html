@@ -1,0 +1,35 @@
+<table role="presentation" width="100%" style="border-collapse: collapse">
+  <tr>
+    <td class="body">
+      <h2 style="margin-top: 0">Dear, {{name}}!</h2>
+      <p>
+        Thanks for signing up for <strong>{{brandName}}</strong>. Please verify
+        your email address using the code below. It expires in
+        {{otpExpiryMinutes}} minutes.
+      </p>
+
+      <div style="text-align: center; margin: 22px 0">
+        <div
+          style="
+            display: inline-block;
+            padding: 18px 26px;
+            border-radius: 10px;
+            background: #f3f8ff;
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: 6px;
+          "
+        >
+          {{otp}}
+        </div>
+      </div>
+
+      <p>
+        If you didn't create an account, ignore this message or contact support
+        at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.
+      </p>
+
+      <p style="margin-top: 18px">Best,<br />{{brandName}} Team</p>
+    </td>
+  </tr>
+</table>

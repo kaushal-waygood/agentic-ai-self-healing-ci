@@ -1,0 +1,57 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.pnpm-debug.log*
+
+# Logs
+logs/
+*.log
+*.log.*
+
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Editor-specific
+.vscode/
+.idea/
+*.swp
+
+# Build output
+dist/
+build/
+coverage/
+tests/output/coverage/
+tests/output/*.html
+tests/output/*.json
+.next/
+out/
+tmp/
+temp/
+
+.env
+.env.local
+.env.example
+
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+.cache/
+*.tgz
+
+# PM2
+pids/
+*.pid
+*.seed
+*.pid.lock
+public
+
+# test outputfiles and resumes
+resumes
+output

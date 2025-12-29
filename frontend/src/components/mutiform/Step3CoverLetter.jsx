@@ -37,25 +37,27 @@ const Step3CoverLetter = ({
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
       {/* header  */}
-      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-6 py-4 rounded-lg shadow-lg mb-4">
+      <div className="bg-header-gradient-primary text-white px-6 py-4 rounded-lg shadow-lg mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center font-bold">
             3
           </div>
           <h2 className="text-2xl font-bold">Set Cover Letter Strategy</h2>
         </div>
-        <p className="text-white/90 mt-2">
+        <p className="text-white/90 ">
           Choose how you want to handle your cover letter (optional).
         </p>
       </div>
       <div className="form-card">
         <label>Cover Letter Strategy</label>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 border-black">
           {/* Option 1: Generate new letter */}
           <label
             className={`strategy-option  ${
-              values.coverLetterStrategy === 'generate' ? 'selected' : ''
+              values.coverLetterStrategy === 'generate'
+                ? 'border-blue-500 border-2 bg-blue-50'
+                : ''
             }`}
           >
             <input
@@ -74,7 +76,9 @@ const Step3CoverLetter = ({
           {/* Option 2: Use saved template */}
           <label
             className={`strategy-option ${
-              values.coverLetterStrategy === 'template' ? 'selected' : ''
+              values.coverLetterStrategy === 'template'
+                ? 'border-blue-500 border-2 bg-blue-50'
+                : ''
             }`}
           >
             <input
@@ -110,7 +114,7 @@ const Step3CoverLetter = ({
                         target: { value: cl._id },
                       })
                     }
-                    className={`p-3 border rounded-xl text-left transition ${
+                    className={`p-3 border rounded-lg text-left transition ${
                       values.savedClId === cl._id
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-400'
@@ -167,13 +171,15 @@ const Step3CoverLetter = ({
 
         <div className="form-navigation mt-6 flex justify-between">
           <button
-            className="back-btn px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+            className="back-btn px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
             onClick={prevStep}
           >
             ← Back
           </button>
           <button
-            className="next-btn px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 
+             bg-buttonPrimary hover:to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105
+                "
             // onClick={nextStep}
             onClick={() => {
               handleSubmit();

@@ -31,22 +31,21 @@ export default function StreakDropdown({
   isClaiming,
   onCheckIn,
 }: StreakDropdownProps) {
-  const [animate, setAnimate] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setAnimate(true), 10);
-    return () => clearTimeout(t);
-  }, []);
-
   const todayIdx = getTodayIndex();
 
   return (
     <div
-      className={`
-        absolute right-0 mt-2 w-80 bg-white shadow-xl rounded-xl border 
-        p-4 z-50 transform transition-all duration-300
-        ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}
-      `}
+      className="
+            fixed md:absolute
+            top-16 md:top-full
+            left-4 right-4 md:left-auto md:right-0
+            mt-0 md:mt-2
+            w-auto md:w-80
+            p-4
+            bg-white rounded-xl
+            shadow-2xl border border-slate-200
+            z-50
+          "
     >
       {/* Header */}
       <div className="flex justify-between">

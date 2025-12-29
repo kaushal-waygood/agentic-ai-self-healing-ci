@@ -36,6 +36,7 @@ import {
   refreshStatus,
   renameHtmlCV,
   renameCoverLetter,
+  calculateATS,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 import {
@@ -260,5 +261,7 @@ router.post(
   isUserOrUniStudent,
   calculateJobMatchScore,
 );
+
+router.post('/ats-score', authMiddleware, isUserOrUniStudent, calculateATS);
 
 export default router;

@@ -1,0 +1,1184 @@
+import { __dirname } from '../utils/fileUploadingManaging.js';
+import pdfParse from 'pdf-parse';
+import { genAIRequest as genAI } from '../config/gemini.js';
+import { convertToHTMLPrompt } from '../prompt/convertToHTML.js';
+import { Job } from '../models/jobs.model.js';
+import { Student } from '../models/student.model.js';
+import { initiateCVGeneration } from '../utils/generateCVCore.js';
+import { initiateCoverLetterGeneration } from '../utils/generateCoverLetterCore.js';
+import { calculateJobMatch } from '../utils/calculateJobMatch.js';
+import {
+  generateCLRegeneratePrompt,
+  generateCVRegeneratePrompt,
+} from '../prompt/generateCVPrompt.js';
+import mammoth from 'mammoth';
+import Tesseract from 'tesseract.js';
+import mongoose from 'mongoose';
+import { processTailoredApplication } from '../utils/tailoredApply.background.js';
+
+// --------Helper Functions---------
+
+const getModelForType = (type) => {
+  switch (type) {
+    case 'cv':
+      return 'cvs';
+    case 'cl': // for Cover Letter
+      return 'cls';
+    case 'tailored': // for Tailored CV
+      return 'tailoredApplications';
+    default:
+      return null; // Invalid type
+  }
+};
+
+const extractTextFromBuffer = async (file) => {
+  const { buffer, mimetype } = file;
+  let extractedText = '';
+
+  if (mimetype === 'application/pdf') {
+    const parsedPDF = await pdfParse(buffer);
+    extractedText = parsedPDF.text;
+  } else if (
+    mimetype ===
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    mimetype === 'application/msword'
+  ) {
+    const result = await mammoth.extractRawText({ buffer });
+    extractedText = result.value;
+  } else if (mimetype.startsWith('image/')) {
+    const {
+      data: { text },
+    } = await Tesseract.recognize(buffer, 'eng');
+    extractedText = text;
+  } else {
+    throw new Error(
+      'Unsupported file type for CV. Please use PDF, DOCX, or an image.',
+    );
+  }
+  return extractedText;
+};
+
+function stripHtmlToText(html = '') {
+  if (typeof html !== 'string') return '';
+  // remove scripts/styles
+  const withoutScripts = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '');
+  // replace breaks/paragraphs with newlines
+  const withNewlines = withoutScripts
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n');
+  // remove remaining tags
+  const noTags = withNewlines.replace(/<[^>]+>/g, '');
+  // collapse whitespace
+  return noTags.replace(/\r?\n\s*\r?\n/g, '\n\n').trim();
+}
+
+function extractCvTextFromCvData(cvData) {
+  if (!cvData) return '';
+  if (typeof cvData === 'string') return cvData.trim();
+  // common fields people store
+  if (typeof cvData.rawText === 'string' && cvData.rawText.trim())
+    return cvData.rawText.trim();
+  if (typeof cvData.text === 'string' && cvData.text.trim())
+    return cvData.text.trim();
+  if (Array.isArray(cvData.sections)) {
+    try {
+      return cvData.sections
+        .map((s) => {
+          if (!s) return '';
+          if (typeof s === 'string') return s;
+          if (typeof s.title === 'string' || typeof s.content === 'string') {
+            return [s.title || '', s.content || ''].filter(Boolean).join('\n');
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+    } catch {
+      // fall through
+    }
+  }
+  // last resort: stringify
+  try {
+    return JSON.stringify(cvData);
+  } catch {
+    return '';
+  }
+}
+
+async function getCvContentBySavedId(studentId, savedCVId) {
+  if (!savedCVId) return null;
+
+  // Load only what we need
+  const student = await Student.findById(studentId).select('cvs htmlCV').lean();
+  if (!student) throw new Error('Student not found');
+
+  // Try Student.cvs subdoc
+  let cvText = null;
+  if (Array.isArray(student.cvs) && student.cvs.length) {
+    const found = student.cvs.find((d) => String(d._id) === String(savedCVId));
+    if (found) {
+      cvText = extractCvTextFromCvData(found.cvData);
+      if (cvText && cvText.trim()) return cvText.trim();
+    }
+  }
+
+  // Try Student.htmlCV subdoc
+  if (Array.isArray(student.htmlCV) && student.htmlCV.length) {
+    const foundHtml = student.htmlCV.find(
+      (d) => String(d._id) === String(savedCVId),
+    );
+    if (foundHtml && typeof foundHtml.html === 'string') {
+      cvText = stripHtmlToText(foundHtml.html);
+      if (cvText && cvText.trim()) return cvText.trim();
+    }
+  }
+
+  return null;
+}
+
+// -------Controllers -----------
+
+export const convertDataIntoHTML = async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const prompt = convertToHTMLPrompt(student);
+    const rawText = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
+    const htmlContent = rawText.replace(/```html|```/g, '');
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(htmlContent);
+  } catch (error) {
+    console.error('Error converting data into PDF:', error);
+    res.status(500).json({ error: 'Failed to convert data into PDF' });
+  }
+};
+
+export const getAllCVs = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    // 1. Remove .sort() from the query. It's not effective on findById.
+    const user = await Student.findById(_id).select('cvs');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // 2. Safely handle the case where user.cvs might be undefined.
+    //    If it is, default to an empty array before sorting.
+    const cvsToSort = user.cvs || [];
+
+    // 3. Sort the resulting array. This works even if the array is empty.
+    const sortedCVs = cvsToSort.sort((a, b) => b.createdAt - a.createdAt);
+
+    res.status(200).json({ cvs: sortedCVs });
+  } catch (error) {
+    console.error('Error fetching CVs:', error);
+    res.status(500).json({ error: 'Failed to retrieve CVs' });
+  }
+};
+
+export const getAllCLs = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const user = await Student.findById(_id).select('cls');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const clsToSort = user.cls || [];
+    const sortedCLs = clsToSort.sort((a, b) => b.createdAt - a.createdAt);
+
+    res.status(200).json({ cls: sortedCLs });
+  } catch (error) {
+    console.error('Error fetching CVs:', error);
+    res.status(500).json({ error: 'Failed to retrieve CVs' });
+  }
+};
+
+export const getAllTailoredApplications = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const user = await Student.findById(_id).select('tailoredApplications');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const tailoredApplicationsToSort = user.tailoredApplications || [];
+    const sortedTailoredApplications = tailoredApplicationsToSort.sort(
+      (a, b) => b.createdAt - a.createdAt,
+    );
+
+    res.status(200).json({ tailoredApplications: sortedTailoredApplications });
+  } catch (error) {
+    console.error('Error fetching CVs:', error);
+    res.status(500).json({ error: 'Failed to retrieve CVs' });
+  }
+};
+
+export const getSingleCV = async (req, res) => {
+  try {
+    const { cvId } = req.params;
+    const { _id: userId } = req.user;
+
+    const student = await Student.findOne(
+      {
+        _id: userId,
+        'cvs._id': cvId,
+      },
+      {
+        'cvs.$': 1,
+      },
+    );
+
+    if (!student || !student.cvs || student.cvs.length === 0) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    const cv = student.cvs[0]; // Get the first (and only) matched CV
+
+    res.status(200).json({
+      success: true,
+      cv,
+    });
+  } catch (error) {
+    console.error('Error fetching CV:', error);
+    res.status(500).json({ error: 'Failed to retrieve CV' });
+  }
+};
+
+export const getSingleCL = async (req, res) => {
+  try {
+    const { clId } = req.params;
+    const { _id: userId } = req.user;
+
+    const student = await Student.findOne(
+      {
+        _id: userId,
+        'cls._id': clId,
+      },
+      {
+        'cls.$': 1,
+      },
+    );
+
+    if (!student || !student.cls || student.cls.length === 0) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    const cl = student.cls[0]; // Get the first (and only) matched CV
+
+    res.status(200).json({
+      success: true,
+      cl,
+    });
+  } catch (error) {
+    console.error('Error fetching CV:', error);
+    res.status(500).json({ error: 'Failed to retrieve CV' });
+  }
+};
+
+export const getSingleTailoredApplication = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { _id: userId } = req.user;
+
+    const student = await Student.findOne(
+      {
+        _id: userId,
+        'tailoredApplications._id': applicationId,
+      },
+      {
+        'tailoredApplications.$': 1,
+      },
+    );
+
+    if (
+      !student ||
+      !student.tailoredApplications ||
+      student.tailoredApplications.length === 0
+    ) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    const application = student.tailoredApplications[0]; // Get the first (and only) matched CV
+
+    res.status(200).json({
+      success: true,
+      application,
+    });
+  } catch (error) {
+    console.error('Error fetching CV:', error);
+    res.status(500).json({ error: 'Failed to retrieve CV' });
+  }
+};
+
+export const deleteSingleCV = async (req, res) => {
+  try {
+    const { cvId } = req.params;
+    const { _id: userId } = req.user;
+
+    // First find the CV to get file paths
+    const student = await Student.findOne({ _id: userId, 'cvs._id': cvId });
+
+    if (!student) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    const cvToDelete = student.cvs.id(cvId);
+
+    // Delete associated file from storage if exists
+    if (cvToDelete.filePath) {
+      await deleteFileFromStorage(cvToDelete.filePath);
+    }
+
+    // Remove from database
+    await Student.updateOne({ _id: userId }, { $pull: { cvs: { _id: cvId } } });
+
+    res.status(200).json({
+      success: true,
+      message: 'CV deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting CV:', error);
+    res.status(500).json({ error: 'Failed to delete CV' });
+  }
+};
+
+export const deleteSingleCL = async (req, res) => {
+  try {
+    const { clId } = req.params;
+    const { _id: userId } = req.user;
+
+    // First find the CV to get file paths
+    const student = await Student.findOne({ _id: userId, 'cls._id': clId });
+
+    if (!student) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    const clToDelete = student.cls.id(clId);
+
+    // Delete associated file from storage if exists
+    if (clToDelete.filePath) {
+      await deleteFileFromStorage(clToDelete.filePath);
+    }
+
+    // Remove from database
+    await Student.updateOne({ _id: userId }, { $pull: { cls: { _id: clId } } });
+
+    res.status(200).json({
+      success: true,
+      message: 'Cover Letter deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting CV:', error);
+    res.status(500).json({ error: 'Failed to delete CV' });
+  }
+};
+
+export const deleteSingleTailoredApplication = async (req, res) => {
+  try {
+    const { appId } = req.params;
+    const { _id: userId } = req.user;
+
+    // First find the student to get the tailored application details
+    const student = await Student.findOne({
+      _id: userId,
+      'tailoredApplications._id': appId,
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Tailored application not found' });
+    }
+
+    const tailoredApplicationToDelete = student.tailoredApplications.id(appId);
+
+    if (!tailoredApplicationToDelete) {
+      return res.status(404).json({ error: 'Tailored application not found' });
+    }
+
+    // Delete associated file from storage if exists
+    if (tailoredApplicationToDelete.filePath) {
+      await deleteFileFromStorage(tailoredApplicationToDelete.filePath);
+    }
+
+    // Remove from database - FIXED: pulling from tailoredApplications, not cls
+    await Student.updateOne(
+      { _id: userId },
+      { $pull: { tailoredApplications: { _id: appId } } },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Tailored application deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting tailored application:', error);
+    res.status(500).json({ error: 'Failed to delete tailored application' });
+  }
+};
+
+export const renameHtmlCV = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!id || !title?.trim()) {
+      return res.status(400).json({
+        error: 'CV ID and new title are required',
+      });
+    }
+
+    if (title.trim().length > 100) {
+      return res.status(400).json({
+        error: 'Title must be less than 100 characters',
+      });
+    }
+
+    const student = await Student.findOneAndUpdate(
+      {
+        _id,
+        'cvs._id': id,
+      },
+      {
+        $set: {
+          'cvs.$.cvTitle': title.trim(),
+          'cvs.$.updatedAt': new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    console.log('Updated student:', student);
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'CV not found or user unauthorized',
+      });
+    }
+
+    res.json({
+      message: 'CV renamed successfully',
+      newTitle: title.trim(),
+      cvId: id,
+    });
+  } catch (error) {
+    console.error('Error renaming CV:', error);
+    res.status(500).json({
+      error: 'Failed to rename CV',
+    });
+  }
+};
+
+export const renameCoverLetter = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const { id } = req.params; // <-- 1. Get ID from URL params
+    const { title } = req.body; // <-- 2. Get 'title' from body
+
+    if (!id || !title?.trim()) {
+      // <-- 3. Use new variable names
+      return res.status(400).json({
+        error: 'Cover letter ID and new title are required',
+      });
+    }
+
+    if (title.trim().length > 100) {
+      return res.status(400).json({
+        error: 'Title must be less than 100 characters',
+      });
+    }
+
+    const student = await Student.findOneAndUpdate(
+      {
+        _id,
+        'coverLetter._id': id, // <-- 4. Find using the ID from params
+      },
+      {
+        $set: {
+          'coverLetter.$.coverLetterTitle': title.trim(), // <-- 5. Set using 'title'
+          'coverLetter.$.updatedAt': new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'Cover letter not found or user unauthorized',
+      });
+    }
+
+    res.json({
+      message: 'Cover letter renamed successfully',
+      newTitle: title.trim(),
+      coverLetterId: id,
+    });
+  } catch (error) {
+    console.error('Error renaming cover letter:', error);
+    res.status(500).json({
+      error: 'Failed to rename cover letter',
+    });
+  }
+};
+
+// CV
+export const generateCVByTitle = async (req, res) => {
+  const { title } = req.body;
+  if (!title) {
+    return res.status(400).json({ error: 'Job title is required' });
+  }
+
+  const jobTitle = title;
+  await initiateCVGeneration(req, res, jobTitle, title);
+};
+
+export const generateCVByJD = async (req, res) => {
+  const { jobDescription } = req.body;
+  if (!jobDescription) {
+    return res.status(400).json({ error: 'Job description is required' });
+  }
+  await initiateCVGeneration(req, res, jobDescription);
+};
+
+export const generateCVByJobId = async (req, res) => {
+  const { jobId } = req.body;
+
+  if (!jobId) {
+    return res.status(400).json({ error: 'Job ID is required' });
+  }
+
+  const job = await Job.findById(jobId);
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  const jobTitle = job.title;
+  await initiateCVGeneration(req, res, job.description, jobTitle);
+};
+
+export const refreshStatus = async (req, res) => {
+  const { type, id } = req.params;
+  const { _id: userId } = req.user;
+
+  const modelName = getModelForType(type);
+  if (!modelName) {
+    return res.status(400).json({ error: 'Invalid type' });
+  }
+
+  try {
+    // Find the student, but only select the one matching item from the array
+    const student = await Student.findById(userId)
+      .select({ [modelName]: { $elemMatch: { _id: id } } })
+      .exec();
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    if (!student[modelName] || student[modelName].length === 0) {
+      return res
+        .status(404)
+        .json({ error: `Item with id ${id} not found for this student.` });
+    }
+
+    // Get the single item from the array
+    const item = student[modelName][0];
+
+    res.status(200).json({ success: true, item: item });
+  } catch (error) {
+    console.error(`Error refreshing status for ${type}:`, error);
+    res.status(500).json({ error: `Failed to retrieve ${type}` });
+  }
+};
+
+export const regenerateCV = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const studentData = await Student.findById(_id);
+    const { jobContextString, finalTouch, previousCVJson } = req.body;
+
+    if (!jobContextString || !studentData || !previousCVJson) {
+      return res.status(400).json({
+        error:
+          'jobContextString, studentData, and previousCVJson are required for regeneration.',
+      });
+    }
+
+    // --- Step 1: Create the regeneration prompt ---
+    const prompt = generateCVRegeneratePrompt(
+      jobContextString,
+      studentData,
+      finalTouch, // This can be null or undefined
+      previousCVJson,
+    );
+
+    // --- Step 2: Generate, Clean, Parse, and Respond ---
+    const rawJsonResponse = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
+    const cleanedJsonString = rawJsonResponse
+      .replace(/```json|```/g, '')
+      .trim();
+
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(cleanedJsonString);
+    } catch (error) {
+      console.error('Error parsing JSON from AI on regeneration:', error);
+      console.error('Raw AI Response:', cleanedJsonString);
+      return res
+        .status(500)
+        .json({ error: 'Failed to parse AI response on regeneration' });
+    }
+
+    return res.json(parsedJson);
+  } catch (error) {
+    console.error('Error in CV regeneration:', error);
+    return res.status(500).json({ error: 'Failed to regenerate CV' });
+  }
+};
+
+export const regenerateCL = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const studentData = await Student.findById(_id);
+    const {
+      jobContextString,
+      finalTouch,
+      currentContent: previousCLJson,
+    } = req.body;
+
+    const prompt = generateCLRegeneratePrompt(
+      jobContextString,
+      studentData,
+      finalTouch,
+      previousCLJson,
+    );
+
+    const rawJsonResponse = await genAI(prompt, {
+      userId: req.user?._id,
+      endpoint: req.endpoint,
+    });
+    const cleanedJsonString = rawJsonResponse
+      .replace(/```json|```/g, '')
+      .trim();
+
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(cleanedJsonString);
+    } catch (error) {
+      console.error('Error parsing JSON from AI on CL regeneration:', error);
+      console.error('Raw AI Response:', cleanedJsonString);
+      return res
+        .status(500)
+        .json({ error: 'Failed to parse AI response on CL regeneration' });
+    }
+
+    return res.json(parsedJson);
+  } catch (error) {
+    console.error('Error in CL regeneration:', error);
+    return res.status(500).json({ error: 'Failed to regenerate CL' });
+  }
+};
+
+// Cover letter
+export const generateCoverLetterByTitle = async (req, res) => {
+  const { title } = req.body;
+  if (!title) {
+    return res.status(400).json({ error: 'Job title is required' });
+  }
+  await initiateCoverLetterGeneration(req, res, title);
+};
+
+export const generateCoverLetterByJD = async (req, res) => {
+  const { jobDescription } = req.body;
+  if (!jobDescription) {
+    return res.status(400).json({ error: 'Job description is required' });
+  }
+  await initiateCoverLetterGeneration(req, res, jobDescription);
+};
+
+export const generateCoverLetterByJobId = async (req, res) => {
+  const { jobId } = req.body;
+  if (!jobId) {
+    return res.status(400).json({ error: 'Job ID is required' });
+  }
+  const job = await Job.findById(jobId);
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+  await initiateCoverLetterGeneration(req, res, job.description);
+};
+
+export const saveStudentHTMLCV = async (req, res) => {
+  const { _id } = req.user;
+  const { html, title, ats } = req.body;
+
+  try {
+    // Handle html as either string or object
+    const htmlString = typeof html === 'object' && html.cv ? html.cv : html;
+
+    if (!htmlString || typeof htmlString !== 'string') {
+      console.log('Invalid HTML content:', html);
+      return res.status(400).json({ error: 'Invalid HTML content' });
+    }
+
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({ error: 'Invalid title' });
+    }
+
+    const student = await Student.findByIdAndUpdate(
+      _id,
+      {
+        $push: {
+          htmlCV: {
+            html: htmlString,
+            htmlCVTitle: title,
+            ats,
+            updatedAt: new Date(),
+          },
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'HTML CV saved successfully',
+      data: {
+        cvCount: student.htmlCV.length,
+        latestCV: student.htmlCV[student.htmlCV.length - 1],
+      },
+    });
+  } catch (error) {
+    console.error('Error saving HTML CV:', error);
+    return res.status(500).json({
+      error: 'Failed to save HTML CV',
+      message: error.message,
+    });
+  }
+};
+
+export const getStudentHTMLCV = async (req, res) => {
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    return res.json({ success: true, html: student.htmlCV });
+  } catch (error) {
+    console.error('Error getting HTML CV:', error);
+    return res.status(500).json({ error: 'Failed to get HTML CV' });
+  }
+};
+
+export const getSingleStudentHTMLCV = async (req, res) => {
+  const { _id } = req.user;
+  const { cvId } = req.params;
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    const cv = student.htmlCV.find((cv) => cv._id.toString() === cvId);
+    if (!cv) {
+      return res.status(404).json({ error: 'HTML CV not found' });
+    }
+    return res.json({ success: true, html: cv });
+  } catch (error) {
+    console.error('Error getting HTML CV:', error);
+    return res.status(500).json({ error: 'Failed to get HTML CV' });
+  }
+};
+
+export const savedStudentHTMLLetter = async (req, res) => {
+  const { _id } = req.user;
+  const { html, title } = req.body;
+
+  try {
+    // Validate input
+    if (!html || typeof html !== 'string') {
+      return res.status(400).json({ error: 'Invalid HTML content' });
+    }
+
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({ error: 'Invalid title' });
+    }
+
+    const student = await Student.findByIdAndUpdate(
+      _id,
+      {
+        $push: {
+          coverLetter: {
+            coverLetter: html,
+            coverLetterTitle: title,
+            updatedAt: new Date(),
+          },
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Defensive fallback if htmlLetter is undefined or null
+    const htmlLetters = Array.isArray(student.htmlLetter)
+      ? student.htmlLetter
+      : [];
+
+    return res.json({
+      success: true,
+      message: 'HTML Letter saved successfully',
+    });
+  } catch (error) {
+    console.error('Error saving HTML Letter:', error);
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        error: 'Validation error',
+        details: error.errors,
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Failed to save HTML Letter',
+      message: error.message,
+    });
+  }
+};
+
+export const getStudentHTMLLetter = async (req, res) => {
+  const { _id } = req.user;
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    return res.json({ success: true, html: student.coverLetter });
+  } catch (error) {
+    console.error('Error getting HTML Letter:', error);
+    return res.status(500).json({ error: 'Failed to get HTML Letter' });
+  }
+};
+
+export const getSingleStudentHTMLLetter = async (req, res) => {
+  const { _id } = req.user;
+  const { letterId } = req.params;
+
+  console.log('Fetching HTML Letter for student:', _id, 'Letter ID:', letterId);
+
+  try {
+    const student = await Student.findById(_id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Debug log to inspect structure
+    console.log('Student HTML Letters:', student.coverLetter);
+
+    // Check if the array exists
+    if (
+      !Array.isArray(student.coverLetter) ||
+      student.coverLetter.length === 0
+    ) {
+      return res
+        .status(404)
+        .json({ error: 'No HTML Letters found for this student' });
+    }
+
+    const letter = student.coverLetter.find(
+      (letter) => letter._id.toString() === letterId,
+    );
+
+    if (!letter) {
+      return res.status(404).json({ error: 'HTML Letter not found' });
+    }
+
+    return res.json({ success: true, html: letter });
+  } catch (error) {
+    console.error('Error getting HTML Letter:', error);
+    return res.status(500).json({ error: 'Failed to get HTML Letter' });
+  }
+};
+
+export const createTailoredApply = async (req, res) => {
+  const { _id } = req.user;
+  const {
+    jobId,
+    jobTitle,
+    companyName,
+    jobDescription,
+    useProfile,
+    savedCVId,
+    savedCoverLetterId,
+    coverLetterText,
+    finalTouch,
+    flag,
+  } = req.body;
+
+  try {
+    // Step 1: Determine Job Source and Validate
+    let jobDetails;
+    if (jobId) {
+      const jobFromDb = await Job.findById(jobId).lean();
+      if (!jobFromDb) {
+        return res.status(404).json({ error: 'Job not found in database' });
+      }
+      jobDetails = {
+        title: jobFromDb.title || jobFromDb.jobTitle || 'Untitled',
+        company: jobFromDb.company || jobFromDb.companyName || 'Unknown',
+        description: jobFromDb.description || jobFromDb.jobDescription || '',
+      };
+    } else if (jobTitle && companyName && jobDescription) {
+      jobDetails = {
+        title: jobTitle,
+        company: companyName,
+        description: jobDescription,
+      };
+    } else {
+      return res.status(400).json({
+        error:
+          'Job information is required. Provide either a jobId or the jobTitle, companyName, and jobDescription.',
+      });
+    }
+
+    // Step 2: Determine CV source
+    let studentData = null;
+    let cvContent = null;
+
+    const wantsProfile = useProfile === 'true' || useProfile === true;
+
+    if (wantsProfile) {
+      const student = await Student.findById(_id)
+        .select('-token -appliedJobs -savedJobs -viewedJobs -visitedJobs')
+        .lean();
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+      studentData = student;
+    } else if (savedCVId) {
+      cvContent = await getCvContentBySavedId(_id, savedCVId);
+      if (!cvContent) {
+        return res
+          .status(404)
+          .json({ error: 'No CV found for the provided savedCVId' });
+      }
+    } else if (req.file) {
+      cvContent = await extractTextFromBuffer(req.file);
+      if (!cvContent || !cvContent.trim()) {
+        return res
+          .status(400)
+          .json({ error: 'Failed to read text from uploaded CV file' });
+      }
+    } else {
+      return res.status(400).json({
+        error:
+          'A CV source is required (useProfile=true, savedCVId, or file upload).',
+      });
+    }
+
+    // Step 3: Create application entry in database
+    const applicationId = new mongoose.Types.ObjectId();
+    const newApplication = {
+      _id: applicationId,
+      jobId: jobId ? new mongoose.Types.ObjectId(jobId) : null,
+      jobTitle: jobDetails.title,
+      companyName: jobDetails.company,
+      jobDescription: jobDetails.description,
+      useProfile: wantsProfile,
+      savedCVId: savedCVId || null,
+      savedCoverLetterId: savedCoverLetterId || null,
+      coverLetterText: coverLetterText || null,
+      finalTouch: finalTouch || null,
+      status: 'pending',
+      flag,
+      createdAt: new Date(),
+    };
+
+    await Student.findByIdAndUpdate(
+      _id,
+      {
+        $push: {
+          tailoredApplications: { $each: [newApplication], $position: 0 },
+        },
+      },
+      { new: false },
+    );
+
+    // Step 4: Prepare data for background processing
+    const applicationData = {
+      job: {
+        title: jobDetails.title,
+        company: jobDetails.company,
+        description: jobDetails.description,
+      },
+      candidate: studentData ?? { cv: cvContent },
+
+      coverLetter: coverLetterText || '',
+      preferences: finalTouch || '',
+    };
+
+    // Step 5: Trigger background processing (fire and forget)
+    const io = req.app.get('io');
+    processTailoredApplication(_id, applicationId, applicationData, io);
+
+    // Step 6: Immediate response
+    return res.status(202).json({
+      success: true,
+      message:
+        'Tailored application generation has started. You will be notified when it is complete.',
+      applicationId: applicationId.toString(),
+    });
+  } catch (error) {
+    console.error('Error initiating tailored application:', error);
+    return res.status(500).json({
+      error: 'Failed to start tailored application generation',
+      details: error.message,
+    });
+  }
+};
+
+export const saveTailoredApplication = async (req, res) => {
+  const studentId = req.user._id;
+  const {
+    jobTitle,
+    jobCompany,
+    jobDescription,
+    cvContent,
+    coverLetterContent,
+    emailContent,
+  } = req.body;
+
+  if (
+    !jobTitle ||
+    !jobCompany ||
+    !jobDescription ||
+    !cvContent ||
+    !coverLetterContent ||
+    !emailContent
+  ) {
+    return res
+      .status(400)
+      .json({ message: 'Missing required application data.' });
+  }
+
+  try {
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // 2. Find an existing application by title and company to update it
+    const existingApplication = student.applications.find(
+      (app) => app.jobTitle === jobTitle && app.jobCompany === jobCompany,
+    );
+
+    if (existingApplication) {
+      // If found, update its content
+      existingApplication.cvContent = cvContent;
+      existingApplication.coverLetterContent = coverLetterContent;
+      existingApplication.emailContent = emailContent;
+      console.log(
+        `Updating existing application for job: ${jobTitle} at ${jobCompany}`,
+      );
+    } else {
+      // 3. If not found, create a new application with the full job details
+      const newApplication = {
+        jobTitle,
+        jobCompany,
+        jobDescription,
+        cvContent,
+        coverLetterContent,
+        emailContent,
+      };
+      student.applications.push(newApplication);
+      console.log(
+        `Creating new application for job: ${jobTitle} at ${jobCompany}`,
+      );
+    }
+
+    // 4. Save the changes to the database
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Application saved successfully.',
+    });
+  } catch (error) {
+    console.error('Error saving tailored application:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getSavedApplications = async (req, res) => {
+  const studentId = req.user._id;
+
+  try {
+    // 1. Find the student by their ID and select only the 'applications' field
+    const student = await Student.findById(studentId).select('applications');
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // 2. Return the array of applications
+    res.status(200).json({
+      success: true,
+      applications: student.applications,
+    });
+  } catch (error) {
+    console.error('Error fetching saved applications:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// calculateJobMatchScore controller
+export const calculateJobMatchScore = async (req, res) => {
+  const { jobDescription } = req.body;
+
+  try {
+    const student = await Student.findById(req.user._id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const { matchScore, recommendation } = await calculateJobMatch(
+      jobDescription,
+      student,
+      req.user._id,
+      req.endpoint,
+    );
+
+    return res.json({ matchScore, recommendation });
+  } catch (error) {
+    console.error('Error in calculateJobMatchScore:', error);
+    return res
+      .status(500)
+      .json({ error: 'Failed to calculate job match score' });
+  }
+};

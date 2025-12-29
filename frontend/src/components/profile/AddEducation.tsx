@@ -55,6 +55,7 @@ import {
 } from '@/redux/reducers/studentReducer';
 
 import { countries } from '@/lib/data/countries';
+import ModalPortal from '../ui/modalPortal';
 
 /* ---------------------------- Utilities ---------------------------------- */
 const toMonth = (iso?: string) =>
@@ -65,6 +66,16 @@ const monthToIso = (month?: string) =>
 
 /* ---------------------------- Shared UI pieces --------------------------- */
 
+function useLockScroll() {
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, []);
+}
+
 type ModalShellProps = {
   title: string;
   subtitle?: string;
@@ -73,44 +84,109 @@ type ModalShellProps = {
   children: ReactNode;
 };
 
-const ModalShell: React.FC<ModalShellProps> = ({
+const ModalShell = ({
   title,
   subtitle,
   icon: Icon,
   onClose,
   children,
-}) => {
+}: any) => {
+  useLockScroll();
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className={`bg-header-gradient-primary p-5 text-white relative`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                {Icon ? <Icon className="w-6 h-6" /> : null}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">{title}</h2>
-                {subtitle && (
-                  <p className="text-white/80 text-sm">{subtitle}</p>
+    <ModalPortal>
+      <div className="fixed inset-0 z-[9999]">
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/50 " onClick={onClose} />
+
+        {/* Modal */}
+        <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+          <div
+            className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-5 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                {Icon && (
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <Icon className="w-5 h-5" />
+                  </div>
                 )}
+                <div>
+                  <h2 className="font-semibold text-lg">{title}</h2>
+                  {subtitle && (
+                    <p className="text-white/80 text-sm">{subtitle}</p>
+                  )}
+                </div>
               </div>
+
+              <button
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
+              >
+                ✕
+              </button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="w-10 h-10 bg-white/20 rounded-full hover:bg-white/30 text-white"
-            >
-              <X className="w-5 h-5" />
-            </Button>
+
+            {children}
           </div>
         </div>
-        {children}
       </div>
-    </div>
+    </ModalPortal>
   );
 };
+
+// const ModalShell = ({
+//   title,
+//   subtitle,
+//   icon: Icon,
+//   onClose,
+//   children,
+// }: any) => {
+//   useLockScroll();
+
+//   return (
+//     <div className="fixed inset-0 z-[9999]">
+//       {/* Overlay */}
+//       <div className="absolute inset-0  backdrop-blur-sm" onClick={onClose} />
+
+//       {/* Modal */}
+//       <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+//         <div
+//           className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in"
+//           onClick={(e) => e.stopPropagation()}
+//         >
+//           {/* Header */}
+//           <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-5 text-white flex justify-between items-center">
+//             <div className="flex items-center gap-3">
+//               {Icon && (
+//                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+//                   <Icon className="w-5 h-5" />
+//                 </div>
+//               )}
+//               <div>
+//                 <h2 className="font-semibold text-lg">{title}</h2>
+//                 {subtitle && (
+//                   <p className="text-white/80 text-sm">{subtitle}</p>
+//                 )}
+//               </div>
+//             </div>
+
+//             <button
+//               onClick={onClose}
+//               className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
+//             >
+//               ✕
+//             </button>
+//           </div>
+
+//           {children}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
 type StepDef = {
   id: string;
@@ -226,6 +302,19 @@ const useStepControls = (initial = 0) => {
 
   return { currentStep, next, prev, goto, setCurrentStep };
 };
+
+export function useLockBodyScroll(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [active]);
+}
 
 /* ---------------------------- UI bits left alone --------------------------- */
 
@@ -401,7 +490,7 @@ export const AddEducation: React.FC<{
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
-      institution: data?.institution || '',
+      institution: data?.institute || '',
       degree: data?.degree || '',
       fieldOfStudy: data?.fieldOfStudy || '',
       country: data?.country || '',
@@ -640,7 +729,7 @@ export const AddProject: React.FC<{
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
-      projectName: data?.name || '',
+      projectName: data?.projectName || '',
       description: data?.description || '',
       startDate: toMonth(data?.startDate),
       endDate: data?.isCurrent ? '' : toMonth(data?.endDate),
@@ -1184,60 +1273,69 @@ export const AddSkill: React.FC<{ onCancel: () => void }> = ({ onCancel }) => {
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={handleSubmit(handleFormSubmit)}
-        className="space-y-8 bg-white p-4 rounded-lg"
-      >
-        <div className="space-y-4">
-          <FormField
-            control={control}
-            name="skill"
-            rules={{ required: 'Skill is required' }}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Skill*</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Your skill" required />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name="level"
-            rules={{ required: 'Level is required' }}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Level*</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="z-[9999] max-h-[300px] bg-white">
-                    {skillTypes.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+    <ModalShell
+      // title={isEdit ? 'Edit Skills' : 'Add Skills'}
+      icon={Briefcase}
+      onClose={onCancel}
+      headerGradient="from-purple-500 to-indigo-500"
+    >
+      <div className="p-6 overflow-y-auto flex-1">
+        <Form {...form}>
+          <form
+            onSubmit={handleSubmit(handleFormSubmit)}
+            className="space-y-8 bg-white p-4 rounded-lg"
+          >
+            <div className="space-y-4">
+              <FormField
+                control={control}
+                name="skill"
+                rules={{ required: 'Skill is required' }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Skill*</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Your skill" required />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="level"
+                rules={{ required: 'Level is required' }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Level*</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="z-[9999] max-h-[300px] bg-white">
+                        {skillTypes.map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit">Save Skill</Button>
-        </div>
-      </form>
-    </Form>
+            <div className="flex justify-end gap-4">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button type="submit">Save Skill</Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+    </ModalShell>
   );
 };

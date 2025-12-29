@@ -70,7 +70,7 @@ export default function ProtectedRoute({
             className="w-10 h-10 animate-bounce"
           />
         </div>
-        <div className="text-lg">LOADING...</div>
+        <div className="text-md font-semibold">LOADING...</div>
       </div>
     );
   }

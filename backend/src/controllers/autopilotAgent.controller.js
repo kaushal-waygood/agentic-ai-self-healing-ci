@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/config.js';
 import { User } from '../models/User.model.js';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
+import { extractTextFromCV, parseCVData } from './rough.js';
 
 // ----------------- helpers -----------------
 const toBool = (v) => {
@@ -158,6 +159,7 @@ export const createAutopilotAgent = async (req, res) => {
           message: 'Only PDF files are allowed for CV upload',
         });
       }
+
       if (req.file.size > 5 * 1024 * 1024) {
         fs.unlinkSync(req.file.path);
         return res.status(400).json({
@@ -167,25 +169,37 @@ export const createAutopilotAgent = async (req, res) => {
       }
 
       try {
-        const extractedData = await extractDataFromCV(req.file.path);
+        const fileBuffer = fs.readFileSync(req.file.path);
+
+        const text = await extractTextFromCV({
+          buffer: fileBuffer,
+          mimetype: req.file.mimetype,
+        });
+
+        const extractedData = await parseCVData(text, studentId);
+        console.log('extractedData', extractedData);
 
         newAgent.uploadedCVData = {
-          skills: (extractedData.skills || []).map((skill) => ({
-            ...skill,
-            skillId: ensureStringId(),
-          })),
-          experience: (extractedData.experience || []).map((exp) => ({
-            ...exp,
-            experienceId: ensureStringId(),
-          })),
-          education: (extractedData.education || []).map((edu) => ({
-            ...edu,
-            educationId: ensureStringId(),
-          })),
-          projects: (extractedData.projects || []).map((proj) => ({
-            ...proj,
-            projectId: ensureStringId(),
-          })),
+          skills:
+            extractedData.skills?.map((s) => ({
+              ...s,
+              skillId: ensureStringId(),
+            })) || [],
+          experience:
+            extractedData.experience?.map((e) => ({
+              ...e,
+              experienceId: ensureStringId(),
+            })) || [],
+          education:
+            extractedData.education?.map((e) => ({
+              ...e,
+              educationId: ensureStringId(),
+            })) || [],
+          projects:
+            extractedData.projects?.map((p) => ({
+              ...p,
+              projectId: ensureStringId(),
+            })) || [],
           jobRole: extractedData.jobRole || '',
         };
       } catch (err) {
@@ -206,8 +220,6 @@ export const createAutopilotAgent = async (req, res) => {
       !Array.isArray(studentBefore.autopilotAgent) ||
       studentBefore.autopilotAgent.length === 0;
 
-    console.log('isFirstCV:', isFirstCV);
-
     if (isFirstCV) {
       addCredits(studentId, CREDIT_EARN.FIRST_AUTO_AGENT_SETUP);
     }
@@ -218,8 +230,6 @@ export const createAutopilotAgent = async (req, res) => {
       { $push: { autopilotAgent: newAgent } },
       { new: true, runValidators: true },
     );
-
-    console.log(updated);
 
     if (!updated) {
       return res

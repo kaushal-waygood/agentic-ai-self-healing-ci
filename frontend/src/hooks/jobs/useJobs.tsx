@@ -9,7 +9,6 @@ import {
   searchJobRequest,
 } from '@/redux/reducers/jobReducer';
 import { RootState } from '@/redux/rootReducer';
-import apiInstance from '@/services/api';
 
 export const useJobs = () => {
   const dispatch = useDispatch();
@@ -74,7 +73,7 @@ export const useJobs = () => {
       filtersFromUrl.query = query;
     }
 
-    if (pathName === '/dashboard/search-jobs' || pathName === '/search-jobs') {
+    if (pathName === '/dashboard/search-jobs') {
       if (isEmptyFilters(filtersFromUrl)) {
         dispatch(getRecommendJobsRequest());
       } else {

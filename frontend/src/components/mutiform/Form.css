@@ -67,8 +67,7 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: #8a2387;
-  box-shadow: 0 0 0 2px rgba(138, 35, 135, 0.2);
+  border-color: blue;
 }
 
 .checkbox-label {
@@ -85,7 +84,6 @@ textarea:focus {
 .employment-option,
 .strategy-option {
   padding: 15px;
-  border: 2px solid #eee;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -99,7 +97,6 @@ textarea:focus {
 }
 .employment-option.selected,
 .strategy-option.selected {
-  border-color: #e94057;
   background-color: #fff8f9;
 }
 .employment-option small,

@@ -1,858 +1,426 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { mockUserProfile } from '@/lib/data/user';
+'use client';
+
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  Reducer,
-} from 'react';
-import {
-  getStudentDetailsRequest,
-  removeStudentEducationRequest,
-  removeStudentExperienceRequest,
-  removeStudentProjectRequest,
-  removeStudentSkillRequest,
-  updateStudentSkillRequest,
-} from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
+import {
+  getStudentDetailsRequest,
+  getStudentSkllsRequest,
+  removeStudentSkillRequest,
+  updateStudentSkillRequest,
+  getStudentEducationRequest,
+  removeStudentEducationRequest,
+  getStudentExperienceRequest,
+  removeStudentExperienceRequest,
+  getAllProjectsRequest,
+  addStudentProjectRequest,
+  updateStudentProjectRequest,
+  removeStudentProjectRequest,
+  addStudentExperienceRequest,
+  updateStudentExperienceRequest,
+  addStudentEducationRequest,
+  updateStudentEducationRequest,
+  addStudentSkillRequest,
+} from '@/redux/reducers/studentReducer';
 
-/* ===========================
-   Validation Schemas
-   =========================== */
+const dummyAvatar =
+  'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png';
 
-const employmentTypes = [
-  'Full-time',
-  'Part-time',
-  'Contract',
-  'Internship',
-] as const;
-
-const educationEntrySchema = z.object({
-  institution: z.string().min(1, 'Institution name is required'),
-  degree: z.string().min(1, 'Degree is required'),
-  fieldOfStudy: z.string().optional(),
-  country: z.string().min(1, 'Country is required'),
-  gpa: z.string().optional(),
-  startDate: z.string().min(1, 'Start date is required'),
-  endDate: z.string().min(1, 'End date is required'),
-});
-
-const experienceEntrySchema = z
-  .object({
-    company: z.string().min(1, 'Company name is required'),
-    jobTitle: z.string().min(1, 'Job title is required'),
-    employmentType: z.enum(employmentTypes).optional(),
-    location: z.string().optional(),
-    isCurrent: z.boolean().default(false).optional(),
-    startDate: z.string().min(1, 'Start date is required'),
-    endDate: z.string().optional(),
-    responsibilities: z.string().optional(),
-  })
-  .refine((d) => d.isCurrent || (!!d.endDate && d.endDate.length > 0), {
-    message: 'End date is required for past jobs.',
-    path: ['endDate'],
-  });
-
-const projectEntrySchema = z
-  .object({
-    name: z.string().min(1, 'Project name is required'),
-    description: z.string().min(1, 'Project description is required'),
-    technologies: z.string().optional(),
-    link: z
-      .string()
-      .url({ message: 'Please enter a valid URL.' })
-      .or(z.literal(''))
-      .optional(),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
-    isCurrent: z.boolean().default(false).optional(),
-  })
-  .refine((d) => d.isCurrent || (!!d.endDate && d.endDate.length > 0), {
-    message: 'End date is required for past projects.',
-    path: ['endDate'],
-  });
-
-// ✅ Added location to schema
-const profileFormSchema = z.object({
-  fullName: z
-    .string()
-    .min(2, { message: 'Full name must be at least 2 characters.' }),
-  avatar: z.string().url({ message: 'Please enter a valid URL.' }),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  location: z.string().optional(), // <--- ADDED
-  jobPreference: z
-    .string()
-    .min(2, { message: 'Job preference must be at least 2 characters.' }),
-  education: z.array(educationEntrySchema).optional(),
-  experience: z.array(experienceEntrySchema).optional(),
-  projects: z.array(projectEntrySchema).optional(),
-  skills: z.string().optional(),
-  narrativeChallenges: z.string().optional(),
-  narrativeAchievements: z.string().optional(),
-  narrativeAppreciation: z.string().optional(),
-  preferredCountry: z.string().optional(),
-  preferredLanguage: z.string().optional(),
-  preferredDatePosted: z
-    .enum(['all', 'today', '3days', 'week', 'month'])
-    .optional(),
-  prefersWorkFromHome: z.boolean().optional(),
-  preferredEmploymentTypes: z.array(z.string()).optional(),
-  preferredJobRequirements: z.array(z.string()).optional(),
-  preferredSearchRadius: z.preprocess(
-    (val) =>
-      val === '' || val == null || Number.isNaN(Number(val))
-        ? undefined
-        : Number(val),
-    z.number().min(0, 'Radius must be positive').optional(),
-  ),
-  excludedJobPublishers: z.string().optional(),
-  uploadedCV: z.string().optional(),
-});
-
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
-
-const useToggle = (initial = false) => {
-  const [val, setVal] = useState<boolean>(initial);
-  const on = useCallback(() => setVal(true), []);
-  const off = useCallback(() => setVal(false), []);
-  const toggle = useCallback(() => setVal((s) => !s), []);
-  return { val, setVal, on, off, toggle };
+export type ProfileState = {
+  fullName: string;
+  email: string;
+  phone: string;
+  jobPreference: string;
+  location: string;
+  avatar: string;
+  uploadedCV?: string;
 };
 
-type ModalState = {
-  addEdu: boolean;
-  addExp: boolean;
-  addProj: boolean;
-  addSkill: boolean;
-  editEdu: boolean;
-  editExp: boolean;
-  editProj: boolean;
-  editSkill: boolean;
-  deleteEdu: boolean;
-  deleteExp: boolean;
-  deleteProj: boolean;
-  deleteSkill: boolean;
-};
-
-type ModalAction =
-  | { type: 'toggle'; key: keyof ModalState; value?: boolean }
-  | { type: 'set'; key: keyof ModalState; value: boolean };
-
-const modalReducer: Reducer<ModalState, ModalAction> = (state, action) => {
-  switch (action.type) {
-    case 'toggle':
-      return { ...state, [action.key]: action.value ?? !state[action.key] };
-    case 'set':
-      return { ...state, [action.key]: action.value };
-    default:
-      return state;
-  }
-};
-
-const useFileUploader = (dispatch: any, toast: any) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleFileChange = useCallback((selectedFile: File | null) => {
-    setFile(selectedFile);
-  }, []);
-
-  const handleRemoveFile = useCallback(() => {
-    setFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }, []);
-
-  const handleUpload = useCallback(async () => {
-    if (!file) return;
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append('cv', file);
-
-    try {
-      await apiInstance.post('/students/upload-resume', formData);
-      dispatch(getStudentDetailsRequest());
-      toast({
-        title: 'Resume Uploaded Successfully',
-        description: 'Your resume has been updated.',
-      });
-      handleRemoveFile();
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast({
-        title: 'Upload Failed',
-        description: 'Failed to upload resume. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  }, [file, dispatch, toast, handleRemoveFile]);
-
-  const handleButtonClick = useCallback(
-    () => fileInputRef.current?.click(),
-    [],
-  );
-  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  }, []);
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-  const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-      const files = e.dataTransfer.files;
-      if (files && files.length > 0) handleFileChange(files[0]);
-    },
-    [handleFileChange],
-  );
-
-  return {
-    file,
-    setFile: handleFileChange,
-    isDragging,
-    setIsDragging,
-    fileInputRef,
-    isUploading,
-    setIsUploading,
-    handleFileChange,
-    handleDrop,
-    handleDragOver,
-    handleDragLeave,
-    handleDragEnter,
-    handleButtonClick,
-    handleRemoveFile,
-    handleUpload,
-  } as const;
+export type JobPreferences = {
+  preferredCountries: string[];
+  preferredCities: string[];
+  isRemote: boolean;
+  relocationWillingness: boolean;
+  preferredJobTitles: string[];
+  preferredJobTypes: string[];
+  preferredIndustries: string[];
+  preferredExperienceLevel: string | null;
+  preferredSalary: {
+    min: number | null;
+    max: number | null;
+    currency: string;
+    period: string;
+  };
+  preferredCertifications: string[];
+  preferredEducationLevel: string | null;
+  preferredCompanySizes: string[];
+  preferredCompanyCultures: string[];
+  visaSponsorshipRequired: boolean;
+  immediateAvailability: boolean;
+  mustHaveSkills: string[];
+  niceToHaveSkills: string[];
 };
 
 export const useProfile = () => {
-  const { toast } = useToast();
   const dispatch = useDispatch();
-  const { students } = useSelector((state: RootState) => state.student);
+  const { toast } = useToast();
 
-  // modal state (implemented with useState, not React.useReducer)
-  const [modalState, modalDispatch] = ((): [
-    ModalState,
-    (a: ModalAction) => void,
-  ] => {
-    const initial: ModalState = {
-      addEdu: false,
-      addExp: false,
-      addProj: false,
-      addSkill: false,
-      editEdu: false,
-      editExp: false,
-      editProj: false,
-      editSkill: false,
-      deleteEdu: false,
-      deleteExp: false,
-      deleteProj: false,
-      deleteSkill: false,
-    };
+  const studentWrapper = useSelector(
+    (state: RootState) => state.student.students?.[0],
+  );
 
-    const [s, setS] = useState<ModalState>(initial);
-    const localDispatch = (a: ModalAction) => {
-      if (a.type === 'toggle') {
-        setS((prev) => ({ ...prev, [a.key]: a.value ?? !prev[a.key] }));
-      } else {
-        setS((prev) => ({ ...prev, [a.key]: a.value }));
-      }
-    };
-    return [s, localDispatch];
-  })();
+  const studentData = studentWrapper?.student ?? studentWrapper;
 
-  // indices
-  const [editEduIndex, setEditEduIndex] = useState(0);
-  const [editExpIndex, setEditExpIndex] = useState(0);
-  const [editProjIndex, setEditProjIndex] = useState(0);
-  const [editSkillIndex, setEditSkillIndex] = useState(0);
-
-  const [deleteEduIndex, setDeleteEduIndex] = useState(0);
-  const [deleteExpIndex, setDeleteExpIndex] = useState(0);
-  const [deleteProjIndex, setDeleteProjIndex] = useState(0);
-  const [deleteSkillIndex, setDeleteSkillIndex] = useState(0);
-
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-
-  // toggles for editable fields
-  const nameToggle = useToggle(false);
-  const emailToggle = useToggle(false);
-  const phoneToggle = useToggle(false);
-  const jobPrefToggle = useToggle(false);
-
-  // file uploader
-  const fileUploader = useFileUploader(dispatch, toast);
-
-  // student data
-  const getStudentData = useCallback(() => {
-    if (!Array.isArray(students) || students.length === 0) return null;
-    return students[0]?.studentDetails || students[0] || null;
-  }, [students]);
-
-  const studentData = useMemo(() => getStudentData(), [getStudentData]);
-
-  // forms
-  // ✅ Added location to Pick
-  const personalInfoForm = useForm<
-    Pick<
-      ProfileFormValues,
-      | 'fullName'
-      | 'email'
-      | 'phone'
-      | 'avatar'
-      | 'jobPreference'
-      | 'uploadedCV'
-      | 'location'
-    >
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({
-        fullName: true,
-        email: true,
-        phone: true,
-        avatar: true,
-        jobPreference: true,
-        uploadedCV: true,
-        location: true,
-      }),
-    ),
-    mode: 'onChange',
+  const [profile, setProfile] = useState<ProfileState>({
+    fullName: '',
+    email: '',
+    phone: '',
+    jobPreference: '',
+    location: '',
+    avatar: '',
+    uploadedCV: '',
   });
 
-  const careerDetailsForm = useForm<
-    Pick<ProfileFormValues, 'jobPreference' | 'skills'>
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({ jobPreference: true, skills: true }),
-    ),
-    mode: 'onChange',
-  });
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>(dummyAvatar);
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const narrativesForm = useForm<
-    Pick<
-      ProfileFormValues,
-      'narrativeChallenges' | 'narrativeAchievements' | 'narrativeAppreciation'
-    >
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({
-        narrativeChallenges: true,
-        narrativeAchievements: true,
-        narrativeAppreciation: true,
-      }),
-    ),
-    mode: 'onChange',
-  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const jobSearchForm = useForm<
-    Pick<
-      ProfileFormValues,
-      | 'preferredCountry'
-      | 'preferredLanguage'
-      | 'preferredDatePosted'
-      | 'prefersWorkFromHome'
-      | 'preferredEmploymentTypes'
-      | 'preferredJobRequirements'
-      | 'preferredSearchRadius'
-      | 'excludedJobPublishers'
-    >
-  >({
-    resolver: zodResolver(
-      profileFormSchema.pick({
-        preferredCountry: true,
-        preferredLanguage: true,
-        preferredDatePosted: true,
-        prefersWorkFromHome: true,
-        preferredEmploymentTypes: true,
-        preferredJobRequirements: true,
-        preferredSearchRadius: true,
-        excludedJobPublishers: true,
-      }),
-    ),
-    mode: 'onChange',
-  });
-
-  // reset forms when student data changes
+  /* -----------------------------
+     Sync Profile
+  ------------------------------ */
   useEffect(() => {
-    const sd = studentData;
-    if (!sd) return;
+    if (!studentData) return;
 
-    personalInfoForm.reset({
-      fullName: sd.fullName || '',
-      email: sd.email || '',
-      phone: sd.phone || '',
-      avatar: sd.avatar || '',
-      jobPreference: sd.jobRole || '',
-      uploadedCV: sd.uploadedCV || '',
-      location: sd.location || '', // ✅ Reset location
+    setProfile({
+      fullName: studentData.fullName ?? '',
+      email: studentData.email ?? '',
+      phone: studentData.phone ?? '',
+      jobPreference: studentData.jobRole ?? '',
+      location: studentData.location ?? '',
+      avatar: studentData.avatar ?? '',
+      uploadedCV: studentData.resumeUrl ?? '',
     });
 
-    careerDetailsForm.reset({
-      jobPreference: sd.jobRole || '',
-    });
-
-    narrativesForm.reset({
-      narrativeChallenges: mockUserProfile.narratives.challenges,
-      narrativeAchievements: mockUserProfile.narratives.achievements,
-      narrativeAppreciation: mockUserProfile.narratives.appreciation,
-    });
-
-    jobSearchForm.reset({
-      preferredCountry: mockUserProfile.preferredCountry || 'US',
-      preferredLanguage: mockUserProfile.preferredLanguage || 'en',
-      preferredDatePosted: mockUserProfile.preferredDatePosted || 'all',
-      prefersWorkFromHome: mockUserProfile.prefersWorkFromHome || false,
-      preferredEmploymentTypes: mockUserProfile.preferredEmploymentTypes || [],
-      preferredJobRequirements: mockUserProfile.preferredJobRequirements || [],
-      preferredSearchRadius:
-        mockUserProfile.preferredSearchRadius === undefined
-          ? undefined
-          : mockUserProfile.preferredSearchRadius,
-      excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setPreview(studentData.avatar || dummyAvatar);
   }, [studentData]);
 
-  // defaultValues
-  const defaultValues: any = useMemo(() => {
-    const sd = studentData;
-    return {
-      fullName: sd?.fullName || '',
-      email: sd?.email || '',
-      phone: sd?.phone || '',
-      jobPreference: sd?.jobRole || '',
-      location: sd?.location || '', // ✅ Added location default
-      uploadedCV: sd?.uploadedCV || '',
-      education: (sd?.education || []).map((edu: any) => ({
-        institution: edu.institute || '',
-        degree: edu.degree || '',
-        fieldOfStudy: edu.fieldOfStudy || '',
-        country: edu.country || '',
-        gpa: edu.grade || '',
-        startDate: edu.startDate || '',
-        endDate: edu.endDate || '',
-        _id: edu._id || '',
-        educationId: edu.educationId || '',
-      })),
-      experience: sd?.experience || [],
-      projects: (sd?.projects || []).map((proj: any) => ({
-        name: proj.projectName || '',
-        description: proj.description || '',
-        technologies: proj.technologies || '',
-        link: proj.link || '',
-        startDate: proj.startDate || '',
-        endDate: proj.endDate || '',
-        isCurrent: proj.isCurrent || false,
-        _id: proj._id || '',
-      })),
-      skills: sd?.skills || [],
-      narrativeChallenges: mockUserProfile.narratives.challenges,
-      narrativeAchievements: mockUserProfile.narratives.achievements,
-      narrativeAppreciation: mockUserProfile.narratives.appreciation,
-      preferredCountry: mockUserProfile.preferredCountry || 'US',
-      preferredLanguage: mockUserProfile.preferredLanguage || 'en',
-      preferredDatePosted: mockUserProfile.preferredDatePosted || 'all',
-      prefersWorkFromHome: mockUserProfile.prefersWorkFromHome || false,
-      preferredEmploymentTypes: mockUserProfile.preferredEmploymentTypes || [],
-      preferredJobRequirements: mockUserProfile.preferredJobRequirements || [],
-      preferredSearchRadius:
-        mockUserProfile.preferredSearchRadius === undefined
-          ? undefined
-          : mockUserProfile.preferredSearchRadius,
-      excludedJobPublishers: mockUserProfile.excludedJobPublishers || '',
-    };
-  }, [studentData]);
+  /* -----------------------------
+     Input handlers
+  ------------------------------ */
+  const onChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfile((p) => ({ ...p, [name]: value }));
+  }, []);
 
-  // initial load
+  const onAvatarChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const img = e.target.files?.[0];
+      if (!img) return;
+
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result as string);
+      reader.readAsDataURL(img);
+    },
+    [],
+  );
+
+  /* -----------------------------
+     File helpers
+  ------------------------------ */
+  const handleRemoveFile = useCallback(() => {
+    setFile(null);
+    setProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  const handleButtonClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  /* -----------------------------
+     Upload CV with progress
+  ------------------------------ */
+  const handleUpload = useCallback(async () => {
+    if (!file) return;
+
+    setIsUploading(true);
+    setProgress(0);
+
+    const formData = new FormData();
+    formData.append('cv', file);
+
+    let rampTimer: ReturnType<typeof setInterval> | null = null;
+
+    rampTimer = setInterval(() => {
+      setProgress((prev) => (prev < 95 ? Math.min(95, prev + 5) : prev));
+    }, 800);
+
+    try {
+      await apiInstance.post('/students/resume/extract', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (event) => {
+          if (event.total) {
+            const percent = Math.round((event.loaded * 100) / event.total);
+            if (percent < 95) setProgress(percent);
+          }
+        },
+      });
+
+      dispatch(getStudentDetailsRequest());
+      toast({ title: 'Resume processed successfully' });
+
+      setProgress(100);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch {
+      toast({ title: 'Upload failed', variant: 'destructive' });
+    } finally {
+      if (rampTimer) clearInterval(rampTimer);
+      setTimeout(() => {
+        setIsUploading(false);
+        setProgress(0);
+      }, 1000);
+    }
+  }, [file, dispatch, toast]);
+
+  /* -----------------------------
+     Update profile
+  ------------------------------ */
+  const updateProfile = useCallback(async () => {
+    try {
+      await apiInstance.patch('/students/profile/update', {
+        fullName: profile.fullName,
+        phone: profile.phone,
+        jobPreference: profile.jobPreference,
+        location: profile.location,
+      });
+
+      dispatch(getStudentDetailsRequest());
+      toast({ title: 'Profile updated' });
+    } catch {
+      toast({ title: 'Profile update failed', variant: 'destructive' });
+    }
+  }, [profile, dispatch, toast]);
+
+  return {
+    profile,
+    setProfile,
+    preview,
+    onChange,
+    onAvatarChange,
+    updateProfile,
+
+    file,
+    setFile,
+    progress,
+    isUploading,
+
+    isModalOpen,
+    setIsModalOpen,
+
+    isDragging,
+    setIsDragging,
+
+    handleUpload,
+    handleRemoveFile,
+    handleButtonClick,
+
+    fileInputRef,
+  };
+};
+
+export const useExperience = () => {
+  const dispatch = useDispatch();
+  const experiences = useSelector(
+    (s: RootState) => s.student.experiences?.experiences || [],
+  );
+
   useEffect(() => {
-    dispatch(getStudentDetailsRequest());
+    dispatch(getStudentExperienceRequest());
   }, [dispatch]);
 
-  // handlers
-  const handleDeleteSkills = useCallback(
-    (index: string) => {
-      if (index) {
-        dispatch(removeStudentSkillRequest(index));
-      } else {
-        console.error('Skill ID not found for deletion');
-      }
-      modalDispatch({ type: 'set', key: 'deleteSkill', value: false });
-    },
-    [dispatch, modalDispatch],
-  );
-
-  const handleDeleteExp = useCallback(
-    (index: string) => {
-      if (index) {
-        dispatch(removeStudentExperienceRequest(index));
-      } else {
-        console.error('Experience ID not found for deletion');
-      }
-      modalDispatch({ type: 'set', key: 'deleteExp', value: false });
-    },
-    [dispatch, modalDispatch],
-  );
-
-  const handleDeleteProject = useCallback(
-    (index: string) => {
-      if (index) {
-        dispatch(removeStudentProjectRequest(index));
-      } else {
-        console.error('Project ID not found for deletion');
-      }
-      modalDispatch({ type: 'set', key: 'deleteProj', value: false });
-    },
-    [dispatch, modalDispatch],
-  );
-
-  const deleteEducation = useCallback(
-    (index: string) => {
-      if (index) {
-        dispatch(removeStudentEducationRequest(index));
-      } else {
-        console.error('Education ID not found for deletion');
-      }
-      modalDispatch({ type: 'set', key: 'deleteEdu', value: false });
-    },
-    [dispatch, modalDispatch],
-  );
-
-  const handlePersonalInfoSubmit = useCallback(
-    (data: Pick<ProfileFormValues, 'fullName' | 'email'>) => {
-      toast({
-        title: 'Personal Information Updated',
-        description: 'Your personal information has been saved successfully.',
-      });
-    },
-    [toast],
-  );
-
-  const handleCareerDetailsSubmit = useCallback(
-    (data: Pick<ProfileFormValues, 'jobPreference' | 'skills'>) => {
-      toast({
-        title: 'Career Details Updated',
-        description: 'Your career details have been saved successfully.',
-      });
-    },
-    [toast],
-  );
-
-  const handleNarrativesSubmit = useCallback(
-    (
-      data: Pick<
-        ProfileFormValues,
-        | 'narrativeChallenges'
-        | 'narrativeAchievements'
-        | 'narrativeAppreciation'
-      >,
-    ) => {
-      toast({
-        title: 'Narratives Updated',
-        description: 'Your narratives have been saved successfully.',
-      });
-    },
-    [toast],
-  );
-
-  const onCancel = useCallback(
-    () => modalDispatch({ type: 'set', key: 'addEdu', value: false }),
-    [modalDispatch],
-  );
-
-  const handleLevelChange = useCallback(
-    (index: string, level: string) => {
-      if (index) {
-        dispatch(
-          updateStudentSkillRequest({ skillId: index, skillData: { level } }),
-        );
-      } else {
-        console.error('Skill ID not found for update');
-      }
+  const createExperience = useCallback(
+    (data: any) => {
+      dispatch(addStudentExperienceRequest(data));
+      dispatch(getStudentExperienceRequest());
     },
     [dispatch],
   );
 
-  const toggleExpand = useCallback((index: number) => {
-    setExpandedIndex((prev) => (prev === index ? null : index));
-  }, []);
-
-  const handleEdit = useCallback((index: number) => {
-    setEditProjIndex(index);
-  }, []);
-
-  const toggleNameEdit = useCallback(() => nameToggle.toggle(), [nameToggle]);
-  const toggleEmailEdit = useCallback(
-    () => emailToggle.toggle(),
-    [emailToggle],
-  );
-  const togglePhoneEdit = useCallback(
-    () => phoneToggle.toggle(),
-    [phoneToggle],
+  const updateExperience = useCallback(
+    (id: string, data: any) =>
+      dispatch(updateStudentExperienceRequest({ id, data })),
+    [dispatch],
   );
 
-  const handleCancelEdit = useCallback(
-    (field: 'fullName' | 'email' | 'phone' | 'all') => {
-      personalInfoForm.reset();
-      if (field === 'fullName') nameToggle.off();
-      if (field === 'email') emailToggle.off();
-      if (field === 'phone') phoneToggle.off();
-      if (field === 'all') {
-        nameToggle.off();
-        emailToggle.off();
-        phoneToggle.off();
-      }
-    },
-    [personalInfoForm, nameToggle, emailToggle, phoneToggle],
+  const deleteExperience = useCallback(
+    (id: string) => dispatch(removeStudentExperienceRequest(id)),
+    [dispatch],
   );
-
-  // ✅ Updated to include location handling
-  const handlePersonalInfoEdit = useCallback(
-    async (
-      field: 'fullName' | 'email' | 'phone' | 'jobPreference' | 'location',
-      payload?: { jobPreference?: string; location?: string },
-    ) => {
-      try {
-        console.log('Field:', field, personalInfoForm.getValues(field));
-
-        const fullName = personalInfoForm.getValues('fullName');
-        const phone = personalInfoForm.getValues('phone');
-        const jobPreference =
-          payload?.jobPreference ?? personalInfoForm.getValues('jobPreference');
-        const location =
-          payload?.location ?? personalInfoForm.getValues('location');
-
-        const repsonse = await apiInstance.patch('/students/profile/update', {
-          fullName,
-          phone,
-          jobPreference,
-          location,
-        });
-
-        console.log('Response:', repsonse.data);
-
-        if (repsonse.status === 200) {
-          toast({ title: 'Personal Information Updated', variant: 'default' });
-          dispatch(getStudentDetailsRequest());
-        }
-      } catch (err) {
-        console.error(`Failed to update ${field}:`, err);
-        toast({ title: `Error updating ${field}`, variant: 'destructive' });
-      }
-    },
-    [
-      personalInfoForm,
-      dispatch,
-      toast,
-      nameToggle,
-      emailToggle,
-      phoneToggle,
-      jobPrefToggle,
-    ],
-  );
-
-  // public API object
-  const publicApi = useMemo(
-    () => ({
-      isNameEditable: nameToggle.val,
-      isEmailEditable: emailToggle.val,
-      isPhoneEditable: phoneToggle.val,
-      isJobPrefEditable: jobPrefToggle.val,
-      setIsJobPrefEditable: jobPrefToggle.setVal,
-      addEdu: modalState.addEdu,
-      addExp: modalState.addExp,
-      addProj: modalState.addProj,
-      addSkill: modalState.addSkill,
-      editProjIndex,
-      expandedIndex,
-      deleteEdu: modalState.deleteEdu,
-      deleteExp: modalState.deleteExp,
-      deleteProj: modalState.deleteProj,
-      deleteSkill: modalState.deleteSkill,
-      deleteEduIndex,
-      deleteExpIndex,
-      deleteProjIndex,
-      deleteSkillIndex,
-      editEdu: modalState.editEdu,
-      editExp: modalState.editExp,
-      editProj: modalState.editProj,
-      editSkill: modalState.editSkill,
-      editEduIndex,
-      editExpIndex,
-      editSkillIndex,
-      handleDeleteSkills,
-      handleDeleteExp,
-      handleDeleteProject,
-      file: fileUploader.file,
-      setFile: fileUploader.setFile,
-      isDragging: fileUploader.isDragging,
-      setIsDragging: fileUploader.setIsDragging,
-      fileInputRef: fileUploader.fileInputRef,
-      isUploading: fileUploader.isUploading,
-      setIsUploading: fileUploader.setIsUploading,
-      handleFileChange: fileUploader.handleFileChange,
-      handleDrop: fileUploader.handleDrop,
-      handleDragOver: fileUploader.handleDragOver,
-      handleDragLeave: fileUploader.handleDragLeave,
-      handleDragEnter: fileUploader.handleDragEnter,
-      handleButtonClick: fileUploader.handleButtonClick,
-      handleRemoveFile: fileUploader.handleRemoveFile,
-      handleUpload: fileUploader.handleUpload,
-      personalInfoForm,
-      careerDetailsForm,
-      narrativesForm,
-      jobSearchForm,
-      handlePersonalInfoSubmit,
-      handleCareerDetailsSubmit,
-      handleNarrativesSubmit,
-      onCancel,
-      deleteEducation,
-      handleLevelChange,
-      toggleExpand,
-      handleEdit,
-      toggleNameEdit,
-      toggleEmailEdit,
-      togglePhoneEdit,
-      handlePersonalInfoEdit,
-      handleCancelEdit,
-      defaultValues,
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      nameToggle.val,
-      emailToggle.val,
-      phoneToggle.val,
-      jobPrefToggle.val,
-      modalState,
-      editProjIndex,
-      expandedIndex,
-      deleteEduIndex,
-      deleteExpIndex,
-      deleteProjIndex,
-      deleteSkillIndex,
-      editEduIndex,
-      editExpIndex,
-      editSkillIndex,
-      fileUploader.file,
-      fileUploader.isDragging,
-      fileUploader.fileInputRef,
-      fileUploader.isUploading,
-      personalInfoForm,
-      careerDetailsForm,
-      narrativesForm,
-      jobSearchForm,
-      defaultValues,
-    ],
-  );
-
-  // wrappers to expose setters...
-  // (Rest of the file remains unchanged from original logic)
-  function setEditEdu(v: boolean) {
-    modalDispatch({ type: 'set', key: 'editEdu', value: v });
-  }
-  function setEditExp(v: boolean) {
-    modalDispatch({ type: 'set', key: 'editExp', value: v });
-  }
-  function setEditProj(v: boolean) {
-    modalDispatch({ type: 'set', key: 'editProj', value: v });
-  }
-  function setEditSkill(v: boolean) {
-    modalDispatch({ type: 'set', key: 'editSkill', value: v });
-  }
-
-  function setDeleteEdu(v: boolean) {
-    modalDispatch({ type: 'set', key: 'deleteEdu', value: v });
-  }
-  function setDeleteExp(v: boolean) {
-    modalDispatch({ type: 'set', key: 'deleteExp', value: v });
-  }
-  function setDeleteProj(v: boolean) {
-    modalDispatch({ type: 'set', key: 'deleteProj', value: v });
-  }
-  function setDeleteSkill(v: boolean) {
-    modalDispatch({ type: 'set', key: 'deleteSkill', value: v });
-  }
-
-  function setAddEdu(v: boolean) {
-    modalDispatch({ type: 'set', key: 'addEdu', value: v });
-  }
-  function setAddExp(v: boolean) {
-    modalDispatch({ type: 'set', key: 'addExp', value: v });
-  }
-  function setAddProj(v: boolean) {
-    modalDispatch({ type: 'set', key: 'addProj', value: v });
-  }
-  function setAddSkill(v: boolean) {
-    modalDispatch({ type: 'set', key: 'addSkill', value: v });
-  }
-
-  function setDeleteEduIndexFn(v: number) {
-    setDeleteEduIndex(v);
-  }
-  function setDeleteExpIndexFn(v: number) {
-    setDeleteExpIndex(v);
-  }
-  function setDeleteProjIndexFn(v: number) {
-    setDeleteProjIndex(v);
-  }
-  function setDeleteSkillIndexFn(v: number) {
-    setDeleteSkillIndex(v);
-  }
-
-  function setEditEduIndexFn(v: number) {
-    setEditEduIndex(v);
-  }
-  function setEditExpIndexFn(v: number) {
-    setEditExpIndex(v);
-  }
-  function setEditProjIndexFn(v: number) {
-    setEditProjIndex(v);
-  }
-  function setEditSkillIndexFn(v: number) {
-    setEditSkillIndex(v);
-  }
 
   return {
-    ...publicApi,
-    setEditEdu,
-    setEditExp,
-    setEditProj,
-    setEditSkill,
-    setDeleteEdu,
-    setDeleteExp,
-    setDeleteProj,
-    setDeleteSkill,
-    setAddEdu,
-    setAddExp,
-    setAddProj,
-    setAddSkill,
-    setDeleteEduIndex: setDeleteEduIndexFn,
-    setDeleteExpIndex: setDeleteExpIndexFn,
-    setDeleteProjIndex: setDeleteProjIndexFn,
-    setDeleteSkillIndex: setDeleteSkillIndexFn,
-    setEditEduIndex: setEditEduIndexFn,
-    setEditExpIndex: setEditExpIndexFn,
-    setEditProjIndex: setEditProjIndexFn,
-    setEditSkillIndex: setEditSkillIndexFn,
-  } as any;
+    experiences,
+    createExperience,
+    updateExperience,
+    deleteExperience,
+  };
+};
+
+export const useEducation = () => {
+  const dispatch = useDispatch();
+  const educations = useSelector(
+    (s: RootState) => s.student.educations?.educations || [],
+  );
+
+  useEffect(() => {
+    dispatch(getStudentEducationRequest());
+  }, [dispatch]);
+
+  const createEducation = useCallback(
+    (data: any) => dispatch(addStudentEducationRequest(data)),
+    [dispatch],
+  );
+
+  const updateEducation = useCallback(
+    (id: string, data: any) =>
+      dispatch(updateStudentEducationRequest({ id, data })),
+    [dispatch],
+  );
+
+  const deleteEducation = useCallback(
+    (id: string) => dispatch(removeStudentEducationRequest(id)),
+    [dispatch],
+  );
+
+  return {
+    educations,
+    createEducation,
+    updateEducation,
+    deleteEducation,
+  };
+};
+
+export const useSkills = () => {
+  const dispatch = useDispatch();
+  const skills = useSelector((s: RootState) => s.student.skills?.skills || []);
+
+  useEffect(() => {
+    dispatch(getStudentSkllsRequest());
+  }, [dispatch]);
+
+  const createSkill = useCallback(
+    (data: { name: string; level: string }) =>
+      dispatch(addStudentSkillRequest(data)),
+    [dispatch],
+  );
+
+  const updateSkill = useCallback(
+    (id: string, data: { level: string }) =>
+      dispatch(updateStudentSkillRequest({ skillId: id, skillData: data })),
+    [dispatch],
+  );
+
+  const deleteSkill = useCallback(
+    (id: string) => dispatch(removeStudentSkillRequest(id)),
+    [dispatch],
+  );
+
+  return {
+    skills,
+    createSkill,
+    updateSkill,
+    deleteSkill,
+  };
+};
+
+export const useProjects = () => {
+  const dispatch = useDispatch();
+  const projects = useSelector(
+    (s: RootState) => s.student.projects?.projects || [],
+  );
+
+  useEffect(() => {
+    dispatch(getAllProjectsRequest());
+  }, [dispatch]);
+
+  const createProject = useCallback(
+    (data: any) => dispatch(addStudentProjectRequest(data)),
+    [dispatch],
+  );
+
+  const updateProject = useCallback(
+    (id: string, data: any) =>
+      dispatch(updateStudentProjectRequest({ id, data })),
+    [dispatch],
+  );
+
+  const deleteProject = useCallback(
+    (id: string) => dispatch(removeStudentProjectRequest(id)),
+    [dispatch],
+  );
+
+  return {
+    projects,
+    createProject,
+    updateProject,
+    deleteProject,
+  };
+};
+
+export const useJobPreferences = () => {
+  const dispatch = useDispatch();
+  const { toast } = useToast();
+
+  const studentWrapper = useSelector((s: RootState) => s.student.students?.[0]);
+
+  const jobPreferences =
+    studentWrapper?.student?.jobPreferences ?? studentWrapper;
+
+  // optional: fetch fresh data if missing
+  useEffect(() => {
+    if (!jobPreferences) {
+      dispatch(getStudentDetailsRequest());
+    }
+  }, [jobPreferences, dispatch]);
+
+  /**
+   * Update entire job preference object
+   */
+  const updateJobPreferences = useCallback(
+    async (data: Partial<JobPreferences>) => {
+      try {
+        // normalize dangerous fields
+        const payload = {
+          ...data,
+          relocationWillingness:
+            typeof data.relocationWillingness === 'string'
+              ? data.relocationWillingness === 'true'
+              : data.relocationWillingness,
+        };
+
+        await apiInstance.post('/students/job-preferences', payload);
+
+        dispatch(getStudentDetailsRequest());
+        toast({ title: 'Job preferences updated' });
+      } catch (err) {
+        toast({
+          title: 'Failed to update job preferences',
+          variant: 'destructive',
+        });
+      }
+    },
+    [dispatch, toast],
+  );
+
+  return {
+    jobPreferences,
+    updateJobPreferences,
+  };
 };

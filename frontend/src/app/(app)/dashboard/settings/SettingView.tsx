@@ -24,9 +24,9 @@ export default function SettingsView() {
   const sections = [
     { id: 'account', label: 'Account', icon: UserCircle },
     { id: 'security', label: 'Security', icon: Shield },
-    //   { id: 'notifications', label: 'Notifications', icon: Bell },
-    //   { id: 'appearance', label: 'Appearance', icon: Palette },
-    //   { id: 'danger', label: 'Danger Zone', icon: Trash2 },
+    // { id: 'notifications', label: 'Notifications', icon: Bell },
+    // { id: 'appearance', label: 'Appearance', icon: Palette },
+    // { id: 'danger', label: 'Danger Zone', icon: Trash2 },
   ];
 
   const renderSectionContent = () => {
@@ -60,7 +60,7 @@ export default function SettingsView() {
 
         <div className="grid gap-8 lg:grid-cols-4">
           <aside className="lg:col-span-1">
-            <nav className="sticky top-6 space-y-2 p-2 rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-gray-200 dark:border-gray-700">
+            <nav className="flex flex-row gap-4 lg:flex-col p-2 rounded-lg bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700">
               {sections.map((section) => {
                 const Icon = section.icon;
                 const isActive = activeSection === section.id;
@@ -68,10 +68,10 @@ export default function SettingsView() {
                   <button
                     key={section.id}
                     onClick={() => handleSectionChange(section.id)}
-                    className={`w-full flex items-center space-x-3 p-3 rounded-xl transition-all duration-300 group ${
+                    className={`w-full flex  items-center justify-center space-x-3 p-3 rounded-lg transition-all duration-300 group ${
                       isActive
                         ? 'bg-tabPrimary text-white shadow-lg'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        : 'hover:bg-gray-200 bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                     }`}
                   >
                     <Icon

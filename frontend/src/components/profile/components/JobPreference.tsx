@@ -13,26 +13,42 @@ import {
   Code,
   Award,
 } from 'lucide-react';
-import { Textarea } from '../../ui/textarea';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '../../ui/form';
-import { useDispatch, useSelector } from 'react-redux';
-import {
-  getStudentDetailsRequest,
-  getStudentJobPreferenceRequest,
-} from '@/redux/reducers/studentReducer';
-import apiInstance from '@/services/api';
-import { RootState } from '@/redux/rootReducer';
-import LocationPreferences from './LocationPreferences';
 import { useToast } from '@/hooks/use-toast';
+import LocationPreferences from './LocationPreferences';
+import { useJobPreferences } from '@/hooks/useProfile';
 
-// Types for form data
+/* ------------------------------------------------------------------ */
+/* Static Config */
+/* ------------------------------------------------------------------ */
+
+const sections = [
+  { id: 'location', label: 'Location', icon: MapPin, color: 'tabPrimary' },
+  { id: 'job', label: 'Job Details', icon: Briefcase, color: 'tabPrimary' },
+  {
+    id: 'compensation',
+    label: 'Compensation',
+    icon: DollarSign,
+    color: 'tabPrimary',
+  },
+  {
+    id: 'skills',
+    label: 'Skills & Education',
+    icon: GraduationCap,
+    color: 'tabPrimary',
+  },
+  { id: 'company', label: 'Company', icon: Building, color: 'tabPrimary' },
+  {
+    id: 'additional',
+    label: 'Additional',
+    icon: Settings,
+    color: 'tabPrimary',
+  },
+] as const;
+
+/* ------------------------------------------------------------------ */
+/* Types */
+/* ------------------------------------------------------------------ */
+
 interface PreferredSalary {
   min: string;
   max: string;
@@ -46,16 +62,16 @@ interface JobPreferencesFormData {
   isRemote: boolean;
   relocationWillingness: string;
 
-  preferredJobTitles: string; // comma-separated in UI
+  preferredJobTitles: string;
   preferredJobTypes: string[];
-  preferredIndustries: string; // comma-separated in UI
+  preferredIndustries: string;
   preferredExperienceLevel: string;
 
   preferredSalary: PreferredSalary;
 
-  mustHaveSkills: string; // comma-separated
-  niceToHaveSkills: string; // comma-separated
-  preferredCertifications: string; // comma-separated
+  mustHaveSkills: string;
+  niceToHaveSkills: string;
+  preferredCertifications: string;
   preferredEducationLevel: string;
 
   preferredCompanySizes: string[];
@@ -65,210 +81,231 @@ interface JobPreferencesFormData {
   immediateAvailability: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/* Defaults */
+/* ------------------------------------------------------------------ */
+
 const defaultFormData: JobPreferencesFormData = {
   preferredCountries: [],
   preferredCities: [],
   isRemote: false,
   relocationWillingness: '',
-
   preferredJobTitles: '',
   preferredJobTypes: [],
   preferredIndustries: '',
   preferredExperienceLevel: '',
-
-  preferredSalary: {
-    min: '',
-    max: '',
-    currency: 'USD',
-    period: 'YEAR',
-  },
-
+  preferredSalary: { min: '', max: '', currency: 'USD', period: 'YEAR' },
   mustHaveSkills: '',
   niceToHaveSkills: '',
   preferredCertifications: '',
   preferredEducationLevel: '',
-
   preferredCompanySizes: [],
   preferredCompanyCultures: [],
-
   visaSponsorshipRequired: false,
   immediateAvailability: false,
 };
 
+/* ------------------------------------------------------------------ */
+/* Helpers */
+/* ------------------------------------------------------------------ */
+
+const jobTypes = [
+  {
+    id: 'FULL_TIME',
+    label: 'Full-time',
+    color: 'from-purple-400 to-purple-600',
+  },
+  { id: 'PART_TIME', label: 'Part-time', color: 'from-blue-400 to-blue-600' },
+  { id: 'CONTRACT', label: 'Contract', color: 'from-cyan-400 to-cyan-600' },
+  {
+    id: 'TEMPORARY',
+    label: 'Temporary',
+    color: 'from-green-400 to-green-600',
+  },
+  {
+    id: 'INTERNSHIP',
+    label: 'Internship',
+    color: 'from-yellow-400 to-yellow-600',
+  },
+  { id: 'FREELANCE', label: 'Freelance', color: 'from-red-400 to-red-600' },
+];
+
+const experienceLevels = [
+  { id: 'ENTRY_LEVEL', label: 'Entry Level', icon: '🌱' },
+  { id: 'MID_LEVEL', label: 'Mid Level', icon: '🚀' },
+  { id: 'SENIOR', label: 'Senior Level', icon: '⭐' },
+  { id: 'EXECUTIVE', label: 'Executive', icon: '👑' },
+  { id: 'NONE', label: 'None', icon: '💫' },
+];
+
+const companySizes = [
+  { id: 'small', label: 'Small', desc: '1-50 employees', icon: '🏠' },
+  { id: 'medium', label: 'Medium', desc: '51-500 employees', icon: '🏢' },
+  { id: 'large', label: 'Large', desc: '501-1000 employees', icon: '🏬' },
+  {
+    id: 'enterprise',
+    label: 'Enterprise',
+    desc: '1000+ employees',
+    icon: '🌆',
+  },
+];
+
+const educationLevels = [
+  { id: 'high_school', label: 'High School', icon: '📚' },
+  { id: 'associate', label: 'Associate Degree', icon: '🎓' },
+  { id: 'bachelor', label: "Bachelor's Degree", icon: '🎓' },
+  { id: 'master', label: "Master's Degree", icon: '📜' },
+  { id: 'phd', label: 'PhD', icon: '🔬' },
+  { id: 'none', label: 'No Formal Education Required', icon: '💡' },
+];
+
+const companyCultures = [
+  { id: 'startup', label: 'Startup', icon: '🚀', color: 'purple' },
+  { id: 'tech', label: 'Tech-focused', icon: '💻', color: 'blue' },
+  { id: 'corporate', label: 'Corporate', icon: '🏛️', color: 'slate' },
+  { id: 'nonprofit', label: 'Non-profit', icon: '❤️', color: 'green' },
+  { id: 'remote-first', label: 'Remote-first', icon: '🌍', color: 'cyan' },
+];
+
+const splitToArray = (v: string) =>
+  v
+    ? v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+
+const arrayToString = (a?: string[]) => (Array.isArray(a) ? a.join(', ') : '');
+
+const skillsToString = (a?: { skill: string }[]) =>
+  Array.isArray(a)
+    ? a
+        .map((s) => s.skill)
+        .filter(Boolean)
+        .join(', ')
+    : '';
+
+const hydrateForm = (jp: any): JobPreferencesFormData => ({
+  preferredCountries: jp.preferredCountries ?? [],
+  preferredCities: jp.preferredCities ?? [],
+  isRemote: jp.isRemote ?? false,
+  relocationWillingness: String(jp.relocationWillingness ?? ''),
+  preferredJobTitles: arrayToString(jp.preferredJobTitles),
+  preferredJobTypes: jp.preferredJobTypes ?? [],
+  preferredIndustries: arrayToString(jp.preferredIndustries),
+  preferredExperienceLevel: jp.preferredExperienceLevel ?? '',
+  preferredSalary: {
+    min: jp.preferredSalary?.min ?? '',
+    max: jp.preferredSalary?.max ?? '',
+    currency: jp.preferredSalary?.currency ?? 'USD',
+    period: jp.preferredSalary?.period ?? 'YEAR',
+  },
+  mustHaveSkills: skillsToString(jp.mustHaveSkills),
+  niceToHaveSkills: skillsToString(jp.niceToHaveSkills),
+  preferredCertifications: arrayToString(jp.preferredCertifications),
+  preferredEducationLevel: jp.preferredEducationLevel ?? '',
+  preferredCompanySizes: jp.preferredCompanySizes ?? [],
+  preferredCompanyCultures: jp.preferredCompanyCultures ?? [],
+  visaSponsorshipRequired: jp.visaSponsorshipRequired ?? false,
+  immediateAvailability: jp.immediateAvailability ?? false,
+});
+
+const buildPayload = (fd: JobPreferencesFormData) => ({
+  ...fd,
+  relocationWillingness: fd.relocationWillingness === 'true',
+  preferredJobTitles: splitToArray(fd.preferredJobTitles),
+  preferredIndustries: splitToArray(fd.preferredIndustries),
+  preferredCertifications: splitToArray(fd.preferredCertifications),
+  mustHaveSkills: splitToArray(fd.mustHaveSkills).map((skill) => ({ skill })),
+  niceToHaveSkills: splitToArray(fd.niceToHaveSkills).map((skill) => ({
+    skill,
+  })),
+});
+
+/* ------------------------------------------------------------------ */
+/* Component */
+/* ------------------------------------------------------------------ */
+
+const CustomCheckbox = ({
+  checked,
+  onChange,
+  children,
+  color = 'blue',
+}: {
+  checked: boolean;
+  onChange: () => void;
+  children: React.ReactNode;
+  color?: string;
+}) => (
+  <div
+    className={`relative cursor-pointer group transition-all duration-300 transform hover:scale-105 ${
+      checked
+        ? ``
+        : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
+    } rounded-xl p-4 border-2 ${
+      checked ? `border-${color}-400` : 'border-slate-200 dark:border-slate-600'
+    }`}
+    onClick={onChange}
+  >
+    <div className="flex items-center justify-between">
+      {children}
+      <div
+        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+          checked ? 'border-blue-400 bg-white/20' : `border-${color}-300`
+        }`}
+      >
+        {checked && <Check className="w-4 h-4 text-blue-400" />}
+      </div>
+    </div>
+  </div>
+);
+
 const JobPreferencesForm = () => {
+  const { toast } = useToast();
+  const { jobPreferences, updateJobPreferences } = useJobPreferences();
+
+  console.log('jobPreference Compo', jobPreferences);
+
   const [activeSection, setActiveSection] = useState<
     'location' | 'job' | 'compensation' | 'skills' | 'company' | 'additional'
   >('location');
-  const { toast } = useToast();
 
-  const dispatch = useDispatch();
-  const { jobPreference } = useSelector((state: RootState) => state.student);
+  const [formData, setFormData] = useState(defaultFormData);
 
   useEffect(() => {
-    dispatch(getStudentJobPreferenceRequest());
-  }, [dispatch]);
+    if (jobPreferences) {
+      setFormData(hydrateForm(jobPreferences));
+    }
+  }, [jobPreferences]);
 
-  const [formData, setFormData] =
-    useState<JobPreferencesFormData>(defaultFormData);
-
-  // hydrate from jobPreference when it loads/changes
-  useEffect(() => {
-    if (!jobPreference) return;
-
-    const { preferences: jp } = jobPreference as any;
-
-    console.log('jp', jp);
-
-    const skillsToString = (skillsArray: any) =>
-      Array.isArray(skillsArray)
-        ? skillsArray
-            .map((item) => item.skill ?? '')
-            .filter(Boolean)
-            .join(', ')
-        : '';
-
-    const arrayToString = (stringArray: any) =>
-      Array.isArray(stringArray) ? stringArray.join(', ') : '';
-
-    setFormData((prev) => ({
-      ...prev,
-      preferredCountries: jp.preferredCountries || [],
-      preferredCities: jp.preferredCities || [],
-      isRemote: jp.isRemote || false,
-      relocationWillingness: jp.relocationWillingness || '',
-
-      preferredJobTitles: arrayToString(jp.preferredJobTitles),
-      preferredJobTypes: jp.preferredJobTypes || [],
-      preferredIndustries: arrayToString(jp.preferredIndustries),
-      preferredExperienceLevel: jp.preferredExperienceLevel || '',
-
-      preferredSalary: {
-        min: jp.preferredSalary?.min || '',
-        max: jp.preferredSalary?.max || '',
-        currency: jp.preferredSalary?.currency || 'USD',
-        period: jp.preferredSalary?.period || 'YEAR',
-      },
-
-      mustHaveSkills: skillsToString(jp.mustHaveSkills),
-      niceToHaveSkills: skillsToString(jp.niceToHaveSkills),
-
-      preferredCertifications: arrayToString(jp.preferredCertifications),
-      preferredEducationLevel: jp.preferredEducationLevel || '',
-
-      preferredCompanySizes: jp.preferredCompanySizes || [],
-      preferredCompanyCultures: jp.preferredCompanyCultures || [],
-
-      visaSponsorshipRequired: jp.visaSponsorshipRequired || false,
-      immediateAvailability: jp.immediateAvailability || false,
-    }));
-  }, [jobPreference]);
-
-  const experienceLevels = [
-    { id: 'ENTRY_LEVEL', label: 'Entry Level', icon: '🌱' },
-    { id: 'MID_LEVEL', label: 'Mid Level', icon: '🚀' },
-    { id: 'SENIOR', label: 'Senior Level', icon: '⭐' },
-    { id: 'EXECUTIVE', label: 'Executive', icon: '👑' },
-    { id: 'NONE', label: 'None', icon: '💫' },
-  ];
-
-  const jobTypes = [
-    {
-      id: 'FULL_TIME',
-      label: 'Full-time',
-      color: 'from-purple-400 to-purple-600',
-    },
-    { id: 'PART_TIME', label: 'Part-time', color: 'from-blue-400 to-blue-600' },
-    { id: 'CONTRACT', label: 'Contract', color: 'from-cyan-400 to-cyan-600' },
-    {
-      id: 'TEMPORARY',
-      label: 'Temporary',
-      color: 'from-green-400 to-green-600',
-    },
-    {
-      id: 'INTERNSHIP',
-      label: 'Internship',
-      color: 'from-yellow-400 to-yellow-600',
-    },
-    { id: 'FREELANCE', label: 'Freelance', color: 'from-red-400 to-red-600' },
-  ];
-
-  const companySizes = [
-    { id: 'small', label: 'Small', desc: '1-50 employees', icon: '🏠' },
-    { id: 'medium', label: 'Medium', desc: '51-500 employees', icon: '🏢' },
-    { id: 'large', label: 'Large', desc: '501-1000 employees', icon: '🏬' },
-    {
-      id: 'enterprise',
-      label: 'Enterprise',
-      desc: '1000+ employees',
-      icon: '🌆',
-    },
-  ];
-
-  const companyCultures = [
-    { id: 'startup', label: 'Startup', icon: '🚀', color: 'purple' },
-    { id: 'tech', label: 'Tech-focused', icon: '💻', color: 'blue' },
-    { id: 'corporate', label: 'Corporate', icon: '🏛️', color: 'slate' },
-    { id: 'nonprofit', label: 'Non-profit', icon: '❤️', color: 'green' },
-    { id: 'remote-first', label: 'Remote-first', icon: '🌍', color: 'cyan' },
-  ];
-
-  const educationLevels = [
-    { id: 'high_school', label: 'High School', icon: '📚' },
-    { id: 'associate', label: 'Associate Degree', icon: '🎓' },
-    { id: 'bachelor', label: "Bachelor's Degree", icon: '🎓' },
-    { id: 'master', label: "Master's Degree", icon: '📜' },
-    { id: 'phd', label: 'PhD', icon: '🔬' },
-    { id: 'none', label: 'No Formal Education Required', icon: '💡' },
-  ];
-
-  const sections = [
-    { id: 'location', label: 'Location', icon: MapPin, color: 'tabPrimary' },
-    {
-      id: 'job',
-      label: 'Job Details',
-      icon: Briefcase,
-      color: 'tabPrimary',
-    },
-    {
-      id: 'compensation',
-      label: 'Compensation',
-      icon: DollarSign,
-      color: 'tabPrimary',
-    },
-    {
-      id: 'skills',
-      label: 'Skills & Education',
-      icon: GraduationCap,
-      color: 'tabPrimary',
-    },
-    { id: 'company', label: 'Company', icon: Building, color: 'tabPrimary' },
-    {
-      id: 'additional',
-      label: 'Additional',
-      icon: Settings,
-      color: 'tabPrimary',
-    },
-  ] as const;
-
-  const handleInputChange = (
-    field: keyof JobPreferencesFormData,
-    value: any,
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleSavePreferences = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateJobPreferences(buildPayload(formData));
+    toast({ title: 'Preferences saved' });
   };
 
-  const handleSalaryChange = (field: keyof PreferredSalary, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      preferredSalary: {
-        ...prev.preferredSalary,
-        [field]: value,
-      },
-    }));
-  };
+  /* ✅ FIXED: now has access to state */
+  const SectionNavigation = () => (
+    <div className="flex flex-wrap gap-1 mb-4">
+      {sections.map((section) => {
+        const Icon = section.icon;
+        return (
+          <button
+            key={section.id}
+            onClick={() => setActiveSection(section.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              activeSection === section.id
+                ? `bg-${section.color} text-white`
+                : 'bg-white text-slate-600'
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            <span className="text-sm">{section.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const handleNextSection = () => {
     const currentIndex = sections.findIndex((s) => s.id === activeSection);
@@ -284,65 +321,15 @@ const JobPreferencesForm = () => {
     }
   };
 
-  const handleSavePreferences = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const splitToArray = (value: string) =>
-      value
-        ? value
-            .split(',')
-            .map((v) => v.trim())
-            .filter(Boolean)
-        : [];
-
-    const payload = {
-      ...formData,
-      preferredCountries: Array.isArray(formData.preferredCountries)
-        ? formData.preferredCountries
-        : splitToArray(formData.preferredCountries as any),
-      preferredCities: Array.isArray(formData.preferredCities)
-        ? formData.preferredCities
-        : splitToArray(formData.preferredCities as any),
-
-      preferredJobTitles: splitToArray(formData.preferredJobTitles),
-      preferredIndustries: splitToArray(formData.preferredIndustries),
-      preferredCertifications: splitToArray(formData.preferredCertifications),
-
-      mustHaveSkills: splitToArray(formData.mustHaveSkills).map((skill) => ({
-        skill,
-      })),
-      niceToHaveSkills: splitToArray(formData.niceToHaveSkills).map(
-        (skill) => ({ skill }),
-      ),
-    };
-
-    try {
-      await apiInstance.post('/students/prefered-job/add', {
-        formData: payload,
-      });
-
-      toast({
-        variant: 'default',
-        title: 'Success',
-        description: 'Preferences saved successfully',
-        duration: 4000,
-      });
-
-      dispatch(getStudentJobPreferenceRequest());
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not save job preferences.',
-        duration: 4000,
-      });
-    }
+  const handleInputChange = (
+    field: keyof JobPreferencesFormData,
+    value: any,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
-
-  useEffect(() => {
-    dispatch(getStudentDetailsRequest());
-  }, [dispatch]);
 
   const toggleArrayValue = (
     field:
@@ -363,63 +350,15 @@ const JobPreferencesForm = () => {
     });
   };
 
-  const CustomCheckbox = ({
-    checked,
-    onChange,
-    children,
-    color = 'blue',
-  }: {
-    checked: boolean;
-    onChange: () => void;
-    children: React.ReactNode;
-    color?: string;
-  }) => (
-    <div
-      className={`relative cursor-pointer group transition-all duration-300 transform hover:scale-105 ${
-        checked
-          ? ``
-          : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
-      } rounded-xl p-4 border-2 ${
-        checked
-          ? `border-${color}-400`
-          : 'border-slate-200 dark:border-slate-600'
-      }`}
-      onClick={onChange}
-    >
-      <div className="flex items-center justify-between">
-        {children}
-        <div
-          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-            checked ? 'border-blue-400 bg-white/20' : `border-${color}-300`
-          }`}
-        >
-          {checked && <Check className="w-4 h-4 text-blue-400" />}
-        </div>
-      </div>
-    </div>
-  );
-
-  const SectionNavigation = () => (
-    <div className=" flex flex-wrap gap-1 mb-4">
-      {sections.map((section) => {
-        const Icon = section.icon;
-        return (
-          <button
-            key={section.id}
-            onClick={() => setActiveSection(section.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 ${
-              activeSection === section.id
-                ? `bg-${section.color} text-white  shadow-${section.color}-400/30`
-                : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            <span className="text-sm">{section.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
+  const handleSalaryChange = (field: keyof PreferredSalary, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      preferredSalary: {
+        ...prev.preferredSalary,
+        [field]: value,
+      },
+    }));
+  };
 
   const renderActiveSection = () => {
     switch (activeSection) {
@@ -641,28 +580,6 @@ const JobPreferencesForm = () => {
                 />
               </div>
 
-              {/* <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-                  <GraduationCap className="inline w-4 h-4 mr-2" />
-                  Education Level
-                </label>
-                <div className="space-y-2">
-                  {educationLevels.map((level) => (
-                    <CustomCheckbox
-                      key={level.id}
-                      checked={formData.preferredEducationLevel === level.id}
-                      onChange={() =>
-                        handleInputChange('preferredEducationLevel', level.id)
-                      }
-                      color="blue"
-                    >
-                      <div className="font-medium">
-                        {level.icon} {level.label}
-                      </div>
-                    </CustomCheckbox>
-                  ))}
-                </div>
-              </div> */}
               <div className="space-y-1">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
                   <GraduationCap className="inline w-4 h-4 mr-2" />
@@ -800,220 +717,87 @@ const JobPreferencesForm = () => {
   };
 
   return (
-    <div className="dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="rounded-lg p-2 sm:p-6 md:p-2 max-h-[80vh] overflow-y-auto">
-        {/* <div className="text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent mb-3 sm:mb-4">
-            Job Preferences
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base max-w-2xl mx-auto px-2">
-            Tell us about your dream job and we'll help you find the perfect
-            match. Complete each section to get personalized job
-            recommendations.
-          </p>
-        </div> */}
+    <div className="rounded-lg p-2 max-h-[80vh] overflow-y-auto">
+      <SectionNavigation />
 
-        <div className="mb-2 sm:mb-4">
-          <SectionNavigation />
-        </div>
-
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3 sm:p-6 md:p-2">
-            <div className="mb-2 sm:mb-4">
-              <div className="flex items-center flex-wrap gap-4 justify-between">
-                <div>
-                  <h2 className="text-md sm:text-md md:text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
-                    {sections.find((s) => s.id === activeSection)?.label}
-                  </h2>
-                </div>
-
-                <div className="hidden lg:flex justify-between items-center flex-wrap gap-1 sm:gap-0">
-                  {sections.map((section, index) => (
-                    <div key={section.id} className="flex items-center">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                          activeSection === section.id
-                            ? `bg-${section.color}  text-white shadow-lg`
-                            : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      {index < sections.length - 1 && (
-                        <div className="w-6 sm:w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-2"></div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {sections.findIndex((s) => s.id === activeSection) > 0 && (
-                    <button
-                      onClick={handlePreviousSection}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
-                    >
-                      Back
-                    </button>
-                  )}
-
-                  {sections.findIndex((s) => s.id === activeSection) <
-                    sections.length - 1 && (
-                    <button
-                      onClick={handleNextSection}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
-                    >
-                      Next
-                    </button>
-                  )}
-
-                  {sections.findIndex((s) => s.id === activeSection) ===
-                    sections.length - 1 && (
-                    <button
-                      onClick={handleSavePreferences}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
-                    >
-                      Save
-                    </button>
-                  )}
-                </div>
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-purple-400/10 border border-white/20 p-3 sm:p-6 md:p-2">
+          <div className="mb-2 sm:mb-4">
+            <div className="flex items-center flex-wrap gap-4 justify-between">
+              <div>
+                <h2 className="text-md sm:text-md md:text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
+                  {sections.find((s) => s.id === activeSection)?.label}
+                </h2>
               </div>
 
-              {/* <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-20 sm:w-24"></div> */}
-            </div>
+              <div className="hidden lg:flex justify-between items-center flex-wrap gap-1 sm:gap-0">
+                {sections.map((section, index) => (
+                  <div key={section.id} className="flex items-center">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                        activeSection === section.id
+                          ? `bg-${section.color}  text-white shadow-lg`
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                      }`}
+                    >
+                      {index + 1}
+                    </div>
+                    {index < sections.length - 1 && (
+                      <div className="w-6 sm:w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-2"></div>
+                    )}
+                  </div>
+                ))}
+              </div>
 
-            {renderActiveSection()}
-          </div>
-        </div>
-        {/* 
-        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-8">
-          {sections.findIndex((s) => s.id === activeSection) > 0 && (
-            <button
-              onClick={handlePreviousSection}
-              className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
-            >
-              Back
-            </button>
-          )}
+              <div className="flex items-center gap-2">
+                {sections.findIndex((s) => s.id === activeSection) > 0 && (
+                  <button
+                    onClick={handlePreviousSection}
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-gray-300 dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg font-semibold shadow hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                  >
+                    Back
+                  </button>
+                )}
 
-          {sections.findIndex((s) => s.id === activeSection) <
-            sections.length - 1 && (
-            <button
-              onClick={handleNextSection}
-              className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
-            >
-              Next
-            </button>
-          )}
+                {sections.findIndex((s) => s.id === activeSection) <
+                  sections.length - 1 && (
+                  <button
+                    onClick={handleNextSection}
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-blue-400/30 hover:shadow-xl hover:shadow-blue-400/40 transform hover:scale-105 transition-all duration-300"
+                  >
+                    Next
+                  </button>
+                )}
 
-          {sections.findIndex((s) => s.id === activeSection) ===
-            sections.length - 1 && (
-            <button
-              onClick={handleSavePreferences}
-              className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
-            >
-              Save Preferences
-            </button>
-          )}
-        </div> */}
-
-        {/* <div className="max-w-md mx-auto mt-8 ">
-          <div className="flex justify-between items-center flex-wrap gap-1 sm:gap-0">
-            {sections.map((section, index) => (
-              <div key={section.id} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                    activeSection === section.id
-                      ? `bg-${section.color}  text-white shadow-lg`
-                      : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
-                  }`}
-                >
-                  {index + 1}
-                </div>
-                {index < sections.length - 1 && (
-                  <div className="w-6 sm:w-8 h-0.5 bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-2"></div>
+                {sections.findIndex((s) => s.id === activeSection) ===
+                  sections.length - 1 && (
+                  <button
+                    onClick={handleSavePreferences}
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-3 bg-buttonPrimary text-white rounded-xl font-semibold shadow-lg shadow-purple-400/30 hover:shadow-xl hover:shadow-purple-400/40 transform hover:scale-105 transition-all duration-300"
+                  >
+                    Save
+                  </button>
                 )}
               </div>
-            ))}
+            </div>
+
+            {/* <div className="h-1 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full w-20 sm:w-24"></div> */}
           </div>
-        </div> */}
+
+          {renderActiveSection()}
+        </div>
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={handleSavePreferences}
+          className="px-8 py-3 bg-buttonPrimary text-white rounded-xl font-semibold"
+        >
+          Save
+        </button>
       </div>
     </div>
   );
 };
 
 export default JobPreferencesForm;
-
-// Interface for props
-interface NarrativProps {
-  narrativesForm: any;
-  handleNarrativesSubmit: any;
-}
-
-// Narratives Component (unchanged)
-export const Narratives = ({
-  narrativesForm,
-  handleNarrativesSubmit,
-}: NarrativProps) => {
-  return (
-    <Form {...narrativesForm}>
-      <form onSubmit={narrativesForm.handleSubmit(handleNarrativesSubmit)}>
-        <div className="space-y-4">
-          <FormField
-            control={narrativesForm.control}
-            name="narrativeChallenges"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Challenging Situations Overcome</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe a challenging situation you overcame..."
-                    className="resize-y min-h-[100px]"
-                    {...field}
-                    value={field.value ?? ''}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={narrativesForm.control}
-            name="narrativeAchievements"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Significant Achievements</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe a significant achievement..."
-                    className="resize-y min-h-[100px]"
-                    {...field}
-                    value={field.value ?? ''}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={narrativesForm.control}
-            name="narrativeAppreciation"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Appreciation Received</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe any appreciation or recognition you received..."
-                    className="resize-y min-h-[100px]"
-                    {...field}
-                    value={field.value ?? ''}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </form>
-    </Form>
-  );
-};

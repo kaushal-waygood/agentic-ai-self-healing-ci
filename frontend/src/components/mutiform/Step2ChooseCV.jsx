@@ -88,14 +88,14 @@ const Step2ChooseCV = ({
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-6 py-4 rounded-lg shadow-lg mb-4">
+      <div className="bg-header-gradient-primary text-white px-6 py-4 rounded-lg shadow-lg mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center font-bold">
             2
           </div>
           <h2 className="text-2xl font-bold">Choose Your Master CV</h2>
         </div>
-        <p className="text-white/90 mt-2">
+        <p className="text-white/90">
           Select a saved CV or upload a new one. Selecting will advance to the
           next step.
         </p>
@@ -191,7 +191,7 @@ const Step2ChooseCV = ({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-buttonPrimary text-white shadow-sm"
           >
             <UploadCloud className="w-4 h-4" />
             Browse or drop file
@@ -248,7 +248,7 @@ const Step2ChooseCV = ({
           <button
             onClick={nextStep}
             className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 
-              bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105
+             bg-buttonPrimary hover:to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105
                 "
           >
             Next <ArrowRight className="w-4 h-4" />

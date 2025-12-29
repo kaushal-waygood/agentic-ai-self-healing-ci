@@ -804,7 +804,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchSavedJobs = async () => {
       try {
-        const response = await apiInstance.get('/students/jobs/saved-all');
+        const response = await apiInstance.get(
+          `/students/jobs/events?type=SAVED`,
+        );
         setSavedJobs(response.data.jobs);
       } catch (error) {
         console.error('Error fetching saved jobs:', error);
@@ -1139,14 +1141,15 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
-
-            <div>
-              <SpendCreditsSection
-                balance={balance}
-                loading={spending}
-                onCheckout={checkout}
-              />
-            </div>
+            {planDetails?.planType === 'Free' && (
+              <div>
+                <SpendCreditsSection
+                  balance={balance}
+                  loading={spending}
+                  onCheckout={checkout}
+                />
+              </div>
+            )}
 
             {/* 🧩 JOBS SECTION */}
             <div id="my-applications">
@@ -1324,10 +1327,10 @@ export default function DashboardPage() {
                 <ToolkitButton
                   href="/dashboard/ai-auto-apply"
                   icon={Bot}
-                  title="AI Auto-Apply Agents"
+                  title="AI Auto-Application"
                   description="Automate your job search."
                   color="green"
-                  comingSoon={true}
+                  comingSoon={false}
                 />
               </div>
             </div>

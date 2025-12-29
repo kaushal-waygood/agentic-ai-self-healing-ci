@@ -1,3 +1,4 @@
 .env
 develop.deploy
 main.deploy
+/rof/*

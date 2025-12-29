@@ -1,15 +1,19 @@
 'use client';
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Edit,
   UploadCloud,
   X,
   Sparkles,
   Camera,
-  Check,
   FileText,
   MapPin,
+  Phone,
+  Mail,
+  Briefcase,
 } from 'lucide-react';
+
 import {
   Dialog,
   DialogContent,
@@ -21,393 +25,494 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
-// Dummy avatar for fallback
-// const dummyUser = {
-//   avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Alex+Rider',
-// };
-const dummyUser = {
-  avatar:
-    'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png',
-};
+import { useProfile } from '@/hooks/useProfile';
+import apiInstance from '@/services/api';
+import { useDispatch } from 'react-redux';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 
-const SideSectionProfile = ({
-  personalInfoForm,
-  fileInputRef,
-  file,
-  isDragging,
-  isUploading,
-  progress,
-  handleFileChange,
-  handleButtonClick,
-  handleDragEnter,
-  handleDragLeave,
-  handleDragOver,
-  handleDrop,
-  handleRemoveFile,
-  handleUpload,
-  handlePersonalInfoEdit,
-  handleCancelEdit,
-}: any) => {
-  // ✅ Use public API, not internal `_formValues`
-  const formValues = personalInfoForm.getValues();
+// const dummyAvatar =
+//   'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png';
+
+const SideSectionProfile = () => {
   const {
-    fullName = '',
-    email = '',
-    phone = '',
-    jobPreference = '',
-    location = '',
-    uploadedCV = '',
-  } = formValues;
+    profile,
+    setProfile,
+    file,
+    setFile,
+    uploadCV,
+    isUploading,
+    fileInputRef,
+    updateProfile,
+  } = useProfile();
 
-  // ✅ Displayed profile info (added location)
-  const [profileData, setProfileData] = useState({
-    fullName,
-    email,
-    phone,
-    jobPreference,
-    location,
-    image: dummyUser.avatar,
-  });
+  const [isDragging, setIsDragging] = useState(false);
 
-  // ✅ Temporary form data for modal edits
-  const [tempFormData, setTempFormData] = useState({ ...profileData });
-  const [preview, setPreview] = useState<string | null>(profileData.image);
+  const [progress, setProgress] = useState(0);
+  // const [isUploading, setIsUploading] = useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [preview, setPreview] = useState<string>('');
 
-  const handleChange = (e: any) => {
+  /* -----------------------------
+     Sync avatar preview
+  ------------------------------ */
+  useEffect(() => {
+    if (profile.avatar) {
+      setPreview(profile.avatar);
+    }
+  }, [profile.avatar]);
+
+  /* -----------------------------
+     Handlers
+  ------------------------------ */
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setTempFormData((prev) => ({ ...prev, [name]: value }));
+    setProfile((p) => ({ ...p, [name]: value }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+  const onAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const img = e.target.files?.[0];
+    if (!img) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setPreview(reader.result as string);
+    reader.readAsDataURL(img);
   };
 
-  // ✅ Open modal with current data
-  const openEditModal = () => {
-    // sync from latest profileData
-    setTempFormData((prev) => ({
-      ...prev,
-      fullName: profileData.fullName ?? '',
-      email: profileData.email ?? '',
-      phone: profileData.phone ?? '',
-      jobPreference: profileData.jobPreference ?? '',
-      location: profileData.location ?? '', // ✅ Sync location
-    }));
-    setPreview(profileData.image);
-    setIsModalOpen(true);
-  };
+  const dispatch = useDispatch();
 
-  const handleSave = async () => {
+  const handleRemoveFile = useCallback(() => {
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  const handleUpload = useCallback(async () => {
+    if (!file) return;
+
+    // setIsUploading(true);
+    setProgress(0);
+
+    const formData = new FormData();
+    formData.append('cv', file);
+
+    let rampTimer: ReturnType<typeof setInterval> | null = null;
+
+    rampTimer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev < 95) {
+          return Math.min(95, prev + Math.floor(Math.random() * 8 + 2));
+        }
+        if (rampTimer) {
+          clearInterval(rampTimer);
+          rampTimer = null;
+        }
+        return prev;
+      });
+    }, 800);
+
     try {
-      setProfileData((prev) => ({
-        ...prev,
-        fullName: tempFormData.fullName,
-        phone: tempFormData.phone,
-        jobPreference: tempFormData.jobPreference,
-        location: tempFormData.location, // ✅ Update profile data
-      }));
+      await new Promise((r) => setTimeout(r, 300));
 
-      // Sync to form
-      personalInfoForm.setValue('fullName', tempFormData.fullName);
-      personalInfoForm.setValue('phone', tempFormData.phone);
-      personalInfoForm.setValue('jobPreference', tempFormData.jobPreference);
-      personalInfoForm.setValue('location', tempFormData.location); // ✅ Set form value
-
-      // Order doesn't even matter now, value is explicit
-      await handlePersonalInfoEdit('fullName');
-      await handlePersonalInfoEdit('phone');
-      await handlePersonalInfoEdit('jobPreference', {
-        jobPreference: tempFormData.jobPreference,
-      });
-      // ✅ Trigger location update
-      await handlePersonalInfoEdit('location', {
-        location: tempFormData.location,
+      await apiInstance.post('/students/resume/extract', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (event: ProgressEvent) => {
+          if (event.total) {
+            const percent = Math.round((event.loaded * 100) / event.total);
+            if (percent < 95) setProgress(percent);
+          }
+        },
       });
 
-      setIsModalOpen(false);
+      if (rampTimer) {
+        clearInterval(rampTimer);
+        rampTimer = null;
+      }
+
+      let finishTimer: ReturnType<typeof setInterval> | null = setInterval(
+        () => {
+          setProgress((prev) => {
+            if (prev >= 100) {
+              if (finishTimer) clearInterval(finishTimer);
+              finishTimer = null;
+              return 100;
+            }
+            return prev + 1;
+          });
+        },
+        20,
+      );
+
+      dispatch(getStudentDetailsRequest());
     } catch (error) {
-      console.error('Error updating profile:', error);
+      if (rampTimer) clearInterval(rampTimer);
+      // eslint-disable-next-line no-console
+      console.error('Error uploading file:', error);
+    } finally {
+      setTimeout(() => {
+        // setIsUploading(false);
+        setProgress(0);
+      }, 1000);
     }
+  }, [file, dispatch]);
+
+  const handleButtonClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleDragEnter = useCallback((e: DragEvt) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvt) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvt) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: DragEvt, cb: (f: File) => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) cb(files[0]);
+  }, []);
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+
+    const parts = name.trim().split(' ').filter(Boolean);
+
+    if (parts.length === 1) {
+      return parts[0][0].toUpperCase();
+    }
+
+    return parts[0][0].toUpperCase() + parts[parts.length - 1][0].toUpperCase();
   };
 
+  /* -----------------------------
+     Render
+  ------------------------------ */
   return (
-    <div>
-      <aside className="w-full lg:w-80 space-y-2 max-h-[80vh] overflow-y-auto p-2">
-        {/* Profile Card */}
-        <div className="p-2 border border-gray-200 rounded-lg ">
-          <div className="flex flex-col items-center text-center ">
-            <div className=" mb-2">
-              <img
-                src={preview || dummyUser.avatar}
-                alt="Avatar"
-                className="w-24 h-24 rounded-full  object-cover"
-              />
-            </div>
-
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">
-              {profileData.fullName}
-            </h2>
-            <p className="text-sm text-gray-600">{profileData.email}</p>
-            <p className="text-sm text-gray-600 ">{profileData.phone}</p>
-            <p className="text-sm text-gray-600 mb-1">
-              {profileData.jobPreference}
-            </p>
-            {/* Display Location if available */}
-            {profileData.location && (
-              <p className="text-sm text-gray-500 flex items-center justify-center gap-1 mb-3">
-                <MapPin className="w-3 h-3" />
-                {profileData.location}
-              </p>
-            )}
-
-            <Button
-              onClick={openEditModal}
-              className="mt-2 bg-buttonPrimary hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition-all duration-300 flex items-center gap-2"
-            >
-              <Edit size={16} /> Edit Profile
-            </Button>
-          </div>
-        </div>
-
-        <div className="w-full bg-white rounded-lg p-4 border flex items-center justify-center">
-          <a href={uploadedCV} target="_blank" rel="noopener noreferrer">
-            {uploadedCV ? (
-              <div className="flex items-center gap-2">
-                <FileText className="w-6 h-6 text-gray-600" />
-                <span className="text-gray-600">View Uploaded CV</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <UploadCloud className="w-6 h-6 text-gray-600" />
-                <span className="text-gray-600">Upload CV</span>
-              </div>
-            )}
-          </a>
-        </div>
-
-        {/* Upload CV Section */}
-        <div className="bg-white rounded-lg p-4 border  ">
-          <div className="text-center ">
-            {/* <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              Upload Your CV
-            </h3> */}
-            <p className="font-semibold text-gray-600">
-              Let AI analyze and populate your profile details.
-            </p>
-          </div>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
-            className="hidden"
-            accept=".pdf,.doc,.docx,.txt"
-          />
-
-          <div
-            className={`relative w-full h-48 p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-all duration-300 ${
-              isDragging
-                ? 'border-cyan-500 bg-cyan-100 scale-105'
-                : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50 '
-            }`}
-            onClick={handleButtonClick}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <div className="flex flex-col items-center justify-center gap-3 h-full">
-              <div
-                className={`p-4 rounded-full transition-colors duration-300 ${
-                  isDragging
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-blue-100 text-cyan-600'
-                }`}
-              >
-                <UploadCloud className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  {isDragging ? 'Drop your file here' : 'Drag & drop your CV'}
-                </p>
-                <p className="text-sm text-gray-500">or click to browse</p>
-                <p className="text-xs text-gray-400 mt-2">
-                  Supports PDF, DOC, DOCX, TXT
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {file && (
-            <div className="mt-6 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg  border border-gray-200 w-full max-w-md">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Sparkles className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <p className="font-medium text-gray-800 truncate">
-                    {file.name}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {(file.size / 1024).toFixed(1)} KB
-                  </p>
-                </div>
-                <button
-                  onClick={handleRemoveFile}
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 w-9 flex-shrink-0"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <button
-                onClick={handleUpload}
-                disabled={isUploading}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-8 py-3 rounded-lg  transition-all duration-300 text-base flex flex-col items-center justify-center gap-2"
-              >
-                {isUploading ? (
-                  <>
-                    <div className="w-full bg-cyan-100 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="h-3 bg-gradient-to-r from-yellow-600 to-blue-600 rounded-full transition-all duration-300"
-                        style={{ width: `${progress}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                      <div className="text-sm font-medium">
-                        Processing... {progress}%
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5" />
-                    Process CV
-                  </>
-                )}
-              </button>
-            </div>
+    <aside className="w-full lg:w-80 space-y-4 p-3 max-h-[80vh] overflow-y-auto">
+      {/* ================= Profile Card ================= */}
+      <div className="border rounded-lg p-3 text-center bg-white">
+        {/* <img
+          src={preview}
+          alt="Avatar"
+          className="w-24 h-24 rounded-full mx-auto object-cover"
+        /> */}
+        <div className="w-24 h-24 rounded-full mx-auto flex items-center justify-center bg-blue-500 text-white text-5xl font-semibold">
+          {profile.avatar ? (
+            <img
+              src={profile.avatar}
+              alt="Avatar"
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            getInitials(profile.fullName)
           )}
         </div>
-      </aside>
 
-      {/* Edit Modal */}
+        <h2 className="mt-2 font-semibold text-gray-900">
+          {profile.fullName || 'Your Name'}
+        </h2>
+
+        <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
+          <Mail className="w-4 h-4" />
+          {profile.email}
+        </p>
+
+        {profile.phone && (
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
+            <Phone className="w-4 h-4" />
+            {profile.phone}
+          </p>
+        )}
+
+        {profile.jobPreference && (
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
+            <Briefcase className="w-4 h-4" />
+            {profile.jobPreference}
+          </p>
+        )}
+
+        {profile.location && (
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
+            <MapPin className="w-4 h-4" />
+            {profile.location}
+          </p>
+        )}
+
+        <Button onClick={() => setIsModalOpen(true)} className="mt-3 w-full">
+          <Edit size={16} /> Edit Profile
+        </Button>
+      </div>
+
+      {/* ================= CV Section ================= */}
+      <div className="border rounded-lg p-3 bg-white text-center">
+        {profile.uploadedCV ? (
+          <a
+            href={profile.uploadedCV}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 text-gray-700"
+          >
+            <FileText className="w-5 h-5" />
+            View Uploaded CV
+          </a>
+        ) : (
+          <p className="text-sm text-gray-500">No CV uploaded</p>
+        )}
+      </div>
+
+      {/* ================= Upload CV ================= */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
+      />
+
+      <div
+        className={`relative w-full h-48 p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-all duration-300 ${
+          isDragging
+            ? 'border-cyan-500 bg-cyan-100 scale-105'
+            : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50 '
+        }`}
+        onClick={handleButtonClick}
+        // onDragEnter={handleDragEnter}
+        // onDragLeave={handleDragLeave}
+        // onDragOver={handleDragOver}
+        // onDrop={handleDrop}
+      >
+        <div className="flex flex-col items-center justify-center gap-3 h-full">
+          <div
+            className={`p-4 rounded-full transition-colors duration-300 ${
+              isDragging
+                ? 'bg-blue-500 text-white'
+                : 'bg-blue-100 text-cyan-600'
+            }`}
+          >
+            <UploadCloud className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              {isDragging ? 'Drop your file here' : 'Drag & drop your CV'}
+            </p>
+            <p className="text-sm text-gray-500">or click to browse</p>
+            <p className="text-xs text-gray-400 mt-2">
+              Supports PDF, DOC, DOCX, TXT
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* <Button
+        variant="outline"
+        onClick={() => fileInputRef.current?.click()}
+        className="w-full"
+      >
+        <UploadCloud size={16} /> Select CV
+      </Button> */}
+
+      {/* {file && (
+        <div className="border rounded-lg p-3 bg-white space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-blue-600" />
+              <span className="text-sm truncate">{file.name}</span>
+            </div>
+            <button onClick={() => setFile(null)}>
+              <X className="w-4 h-4 text-red-500" />
+            </button>
+          </div>
+
+          <Button onClick={uploadCV} disabled={isUploading} className="w-full">
+            {isUploading ? 'Uploading...' : 'Upload CV'}
+          </Button>
+        </div>
+      )} */}
+
+      {file && (
+        <div className="mt-6 flex flex-col items-center gap-4">
+          <div className="flex items-center gap-3 p-3 bg-white rounded-lg  border border-gray-200 w-full max-w-md">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Sparkles className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="font-medium text-gray-800 truncate">{file.name}</p>
+              <p className="text-sm text-gray-500">
+                {(file.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
+            <button
+              onClick={handleRemoveFile}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 w-9 flex-shrink-0"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <button
+            onClick={handleUpload}
+            disabled={isUploading}
+            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-8 py-3 rounded-lg  transition-all duration-300 text-base flex flex-col items-center justify-center gap-2"
+          >
+            {isUploading ? (
+              <>
+                <div className="w-full bg-cyan-100 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-3 bg-gradient-to-r from-yellow-600 to-blue-600 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  <div className="text-sm font-medium">
+                    Processing... {progress}%
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-5 w-5" />
+                Process CV
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* ================= Edit Modal ================= */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-md bg-white">
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
           </DialogHeader>
 
-          {/* Profile Image Upload */}
-          <div className="flex flex-col items-center mb-4">
+          {/* Avatar */}
+          <div className="flex justify-center mb-4">
             <div className="relative">
-              <Image
-                src={preview || dummyUser.avatar}
-                alt="Profile"
-                width={100}
-                height={100}
-                className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 "
-              />
-              <label
-                htmlFor="profile-pic"
-                className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer hover:bg-blue-700 transition"
-              >
-                <Camera className="h-4 w-4 text-white" />
-              </label>
-              <input
-                id="profile-pic"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
+              <div className="w-24 h-24 rounded-full flex items-center justify-center bg-blue-500 text-white text-5xl font-semibold">
+                {preview ? (
+                  <Image
+                    src={preview}
+                    alt="Avatar"
+                    width={96}
+                    height={96}
+                    className="rounded-full object-cover"
+                  />
+                ) : (
+                  getInitials(profile.fullName)
+                )}
+              </div>
+
+              {/* upload pictures  */}
+
+              {/* <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer">
+                <Camera className="w-4 h-4 text-white" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onAvatarChange}
+                />
+              </label> */}
             </div>
           </div>
 
           {/* Fields */}
-          <div className="space-y-4">
+          <form className="space-y-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="fullName" className="block mb-1 font-medium">
                 Full Name
               </label>
               <Input
+                id="fullName"
                 name="fullName"
-                value={tempFormData.fullName}
-                onChange={handleChange}
-                placeholder="Enter your name"
+                value={profile.fullName}
+                onChange={onChange}
+                placeholder="John Doe"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block mb-1 font-medium">
                 Email
               </label>
               <Input
+                id="email"
                 name="email"
                 type="email"
+                value={profile.email}
                 disabled
-                value={tempFormData.email}
-                onChange={handleChange}
-                placeholder="Enter your email"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="phone" className="block mb-1 font-medium">
                 Phone
               </label>
               <Input
+                id="phone"
                 name="phone"
-                type="tel"
-                value={tempFormData.phone}
-                onChange={handleChange}
-                placeholder="Enter your phone number"
+                value={profile.phone}
+                onChange={onChange}
+                placeholder="+91 98765 43210"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="jobPreference" className="block mb-1 font-medium">
                 Job Role
               </label>
               <Input
+                id="jobPreference"
                 name="jobPreference"
-                value={tempFormData.jobPreference}
-                onChange={handleChange}
-                placeholder="Enter your job preference"
+                value={profile.jobPreference}
+                onChange={onChange}
+                placeholder="Frontend Developer"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Your Current Location
+              <label htmlFor="location" className="block mb-1 font-medium">
+                Location
               </label>
-              {/* ✅ Corrected Input Name and Value */}
               <Input
+                id="location"
                 name="location"
-                value={tempFormData.location}
-                onChange={handleChange}
-                placeholder="e.g. New York, USA"
+                value={profile.location}
+                onChange={onChange}
+                placeholder="Bangalore"
               />
             </div>
-          </div>
+          </form>
 
-          <DialogFooter className="mt-6 flex justify-end gap-3">
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button className="hover:bg-blue-700" onClick={handleSave}>
-              <Check size={16} className="mr-2" /> Save Changes
+            <Button
+              onClick={async () => {
+                await updateProfile();
+                setIsModalOpen(false);
+              }}
+            >
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </aside>
   );
 };
 

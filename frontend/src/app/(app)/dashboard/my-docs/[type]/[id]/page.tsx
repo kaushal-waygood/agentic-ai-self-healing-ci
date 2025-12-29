@@ -12,6 +12,7 @@ import ResultStep from '@/components/application/applications/wizard/steps/resul
 import { toast } from '@/hooks/use-toast';
 import { RootState } from '@/redux/rootReducer';
 import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
+import Image from 'next/image';
 
 const DocumentPage = () => {
   const { type, id } = useParams();
@@ -79,11 +80,12 @@ const DocumentPage = () => {
 
             transformed = {
               type: 'cv',
-              cv: cvData.cv || '',
+              cv: cvData.cv || cvData.html || '',
               atsScore: cvData.atsScore || 0,
               atsScoreReasoning: cvData.atsScoreReasoning || '',
               jobTitle: responseData?.cv?.jobTitle || '',
             };
+
             break;
           }
 
@@ -104,6 +106,8 @@ const DocumentPage = () => {
           case 'application': {
             const app = responseData.application;
 
+            console.log('app', app);
+
             transformed = {
               type: 'application',
               jobTitle: app.jobTitle,
@@ -114,9 +118,11 @@ const DocumentPage = () => {
               atsScore: app.tailoredCV?.atsScore || 0,
               atsScoreReasoning: app.tailoredCV?.atsScoreReasoning || '',
 
-              coverLetter: app.tailoredCoverLetter || '',
-              email: app.applicationEmail || '',
+              coverLetter: app.tailoredCoverLetter.html || '',
+              email: app.applicationEmail.html || '',
             };
+
+            console.log('transformed', transformed);
 
             setRefinedCv(transformed.cv);
             setTailoredCl(transformed.coverLetter);
@@ -219,8 +225,17 @@ const DocumentPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading…
+      <div className="flex items-center flex-col justify-center min-h-screen">
+        <div>
+          <Image
+            src="/logo.png"
+            alt="zobsai logo"
+            width={100}
+            height={100}
+            className="w-10 h-10 animate-bounce"
+          />
+        </div>
+        <div className="text-lg">LOADING...</div>
       </div>
     );
   }
