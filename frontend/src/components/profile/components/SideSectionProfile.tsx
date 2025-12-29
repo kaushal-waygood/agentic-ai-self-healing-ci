@@ -9,6 +9,9 @@ import {
   Camera,
   FileText,
   MapPin,
+  Phone,
+  Mail,
+  Briefcase,
 } from 'lucide-react';
 
 import {
@@ -27,8 +30,8 @@ import apiInstance from '@/services/api';
 import { useDispatch } from 'react-redux';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 
-const dummyAvatar =
-  'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png';
+// const dummyAvatar =
+//   'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png';
 
 const SideSectionProfile = () => {
   const {
@@ -48,13 +51,15 @@ const SideSectionProfile = () => {
   // const [isUploading, setIsUploading] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [preview, setPreview] = useState<string>(dummyAvatar);
+  const [preview, setPreview] = useState<string>('');
 
   /* -----------------------------
      Sync avatar preview
   ------------------------------ */
   useEffect(() => {
-    setPreview(profile.avatar || dummyAvatar);
+    if (profile.avatar) {
+      setPreview(profile.avatar);
+    }
   }, [profile.avatar]);
 
   /* -----------------------------
@@ -179,6 +184,18 @@ const SideSectionProfile = () => {
     if (files && files.length > 0) cb(files[0]);
   }, []);
 
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+
+    const parts = name.trim().split(' ').filter(Boolean);
+
+    if (parts.length === 1) {
+      return parts[0][0].toUpperCase();
+    }
+
+    return parts[0][0].toUpperCase() + parts[parts.length - 1][0].toUpperCase();
+  };
+
   /* -----------------------------
      Render
   ------------------------------ */
@@ -186,28 +203,48 @@ const SideSectionProfile = () => {
     <aside className="w-full lg:w-80 space-y-4 p-3 max-h-[80vh] overflow-y-auto">
       {/* ================= Profile Card ================= */}
       <div className="border rounded-lg p-3 text-center bg-white">
-        <img
+        {/* <img
           src={preview}
           alt="Avatar"
           className="w-24 h-24 rounded-full mx-auto object-cover"
-        />
+        /> */}
+        <div className="w-24 h-24 rounded-full mx-auto flex items-center justify-center bg-blue-500 text-white text-5xl font-semibold">
+          {profile.avatar ? (
+            <img
+              src={profile.avatar}
+              alt="Avatar"
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            getInitials(profile.fullName)
+          )}
+        </div>
 
         <h2 className="mt-2 font-semibold text-gray-900">
           {profile.fullName || 'Your Name'}
         </h2>
 
-        <p className="text-sm text-gray-600">{profile.email}</p>
+        <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
+          <Mail className="w-4 h-4" />
+          {profile.email}
+        </p>
 
         {profile.phone && (
-          <p className="text-sm text-gray-600">{profile.phone}</p>
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
+            <Phone className="w-4 h-4" />
+            {profile.phone}
+          </p>
         )}
 
         {profile.jobPreference && (
-          <p className="text-sm text-gray-600 mt-1">{profile.jobPreference}</p>
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
+            <Briefcase className="w-4 h-4" />
+            {profile.jobPreference}
+          </p>
         )}
 
         {profile.location && (
-          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 mt-1">
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
             <MapPin className="w-4 h-4" />
             {profile.location}
           </p>
@@ -364,14 +401,23 @@ const SideSectionProfile = () => {
           {/* Avatar */}
           <div className="flex justify-center mb-4">
             <div className="relative">
-              <Image
-                src={preview}
-                alt="Avatar"
-                width={96}
-                height={96}
-                className="rounded-full object-cover border"
-              />
-              <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer">
+              <div className="w-24 h-24 rounded-full flex items-center justify-center bg-blue-500 text-white text-5xl font-semibold">
+                {preview ? (
+                  <Image
+                    src={preview}
+                    alt="Avatar"
+                    width={96}
+                    height={96}
+                    className="rounded-full object-cover"
+                  />
+                ) : (
+                  getInitials(profile.fullName)
+                )}
+              </div>
+
+              {/* upload pictures  */}
+
+              {/* <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer">
                 <Camera className="w-4 h-4 text-white" />
                 <input
                   type="file"
@@ -379,38 +425,77 @@ const SideSectionProfile = () => {
                   className="hidden"
                   onChange={onAvatarChange}
                 />
-              </label>
+              </label> */}
             </div>
           </div>
 
           {/* Fields */}
-          <div className="space-y-3">
-            <Input
-              name="fullName"
-              value={profile.fullName}
-              onChange={onChange}
-              placeholder="Full Name"
-            />
-            <Input value={profile.email} disabled />
-            <Input
-              name="phone"
-              value={profile.phone}
-              onChange={onChange}
-              placeholder="Phone"
-            />
-            <Input
-              name="jobPreference"
-              value={profile.jobPreference}
-              onChange={onChange}
-              placeholder="Job Role"
-            />
-            <Input
-              name="location"
-              value={profile.location}
-              onChange={onChange}
-              placeholder="Location"
-            />
-          </div>
+          <form className="space-y-2">
+            <div>
+              <label htmlFor="fullName" className="block mb-1 font-medium">
+                Full Name
+              </label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={profile.fullName}
+                onChange={onChange}
+                placeholder="John Doe"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block mb-1 font-medium">
+                Email
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={profile.email}
+                disabled
+              />
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block mb-1 font-medium">
+                Phone
+              </label>
+              <Input
+                id="phone"
+                name="phone"
+                value={profile.phone}
+                onChange={onChange}
+                placeholder="+91 98765 43210"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="jobPreference" className="block mb-1 font-medium">
+                Job Role
+              </label>
+              <Input
+                id="jobPreference"
+                name="jobPreference"
+                value={profile.jobPreference}
+                onChange={onChange}
+                placeholder="Frontend Developer"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="location" className="block mb-1 font-medium">
+                Location
+              </label>
+              <Input
+                id="location"
+                name="location"
+                value={profile.location}
+                onChange={onChange}
+                placeholder="Bangalore"
+              />
+            </div>
+          </form>
 
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>

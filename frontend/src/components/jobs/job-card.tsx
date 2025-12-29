@@ -19,7 +19,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
         isActive
           ? 'bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 border-2 border-purple-400 shadow-2xl shadow-purple-200/50 scale-[1.02]'
           : 'bg-white hover:bg-gradient-to-br hover:from-purple-50/50 hover:via-blue-50/30 hover:to-white border border-gray-200 hover:border-purple-300 shadow-md hover:shadow-2xl hover:shadow-purple-100/40'
-      } rounded-xl p-2 px-3 overflow-hidden`}
+      } rounded-lg p-2 px-3 overflow-hidden`}
     >
       {/* Animated gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-600/0 via-blue-600/0 to-cyan-600/0 group-hover:from-purple-600/5 group-hover:via-blue-600/5 group-hover:to-cyan-600/5 transition-all duration-700"></div>
@@ -121,7 +121,7 @@ export function JobCardSkeleton() {
       <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
 
       <div className="flex items-start gap-4 mb-3">
-        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-200 to-gray-100 animate-pulse"></div>
+        <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-gray-200 to-gray-100 animate-pulse"></div>
 
         <div className="flex-1 space-y-3">
           {/* Title skeleton */}
