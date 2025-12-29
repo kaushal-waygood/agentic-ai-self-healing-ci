@@ -2044,6 +2044,26 @@ export const toggleAutopilot = async (req, res, next) => {
   }
 };
 
+export const getAutopilotStatus = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    res.status(200).json({
+      success: true,
+      autopilotStatus: student.settings.autopilotEnabled,
+    });
+  } catch (error) {
+    console.error('Error getting autopilot status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get autopilot status',
+    });
+  }
+};
+
 export const jobViewedByStudent = async (req, res) => {
   try {
     const { jobId } = req.params;

@@ -9,10 +9,7 @@ import apiInstance from '@/services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToast } from '@/hooks/use-toast';
 
-import {
-  createAutopilotRequest,
-  getAutopilotRequest,
-} from '@/redux/reducers/autopilotReducer';
+import { getAutopilotRequest } from '@/redux/reducers/autopilotReducer';
 
 import AgentPreviewModal from './AgentPreviewModal'; // NEW FILE (see below)
 import GeneratingAgent from './step5GeneratingAgent';
@@ -34,13 +31,14 @@ const MultiStepForm = () => {
   const initialFormData = {
     agentName: '',
     jobTitle: '',
+    keywords: [],
     country: '',
     isRemote: false,
     employmentTypes: [],
     cvFile: null,
     coverLetterStrategy: 'generate',
     coverLetterInstructions: '',
-    maxApplications: 1,
+    maxApplications: 5,
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -111,69 +109,47 @@ const MultiStepForm = () => {
     setIsPreviewOpen(false);
     try {
       const submissionData = new FormData();
+
       submissionData.append('agentName', formData.agentName);
       submissionData.append('jobTitle', formData.jobTitle);
       submissionData.append('country', formData.country);
-      submissionData.append('isRemote', String(!!formData.isRemote));
+      submissionData.append('isRemote', String(formData.isRemote));
+      submissionData.append(
+        'employmentTypes',
+        JSON.stringify(formData.employmentTypes),
+      );
       submissionData.append(
         'maxApplications',
         String(formData.maxApplications),
       );
+
       submissionData.append(
-        'employmentTypes',
-        JSON.stringify(formData.employmentTypes || []),
-      );
+        'keywords',
+        JSON.stringify(formData.keywords || []),
+      ); // <-- fixed
 
-      if (formData.cvFile) {
-        const f = formData.cvFile;
-        if (f instanceof File || f instanceof Blob) {
-          submissionData.append('cv', f, f.name || 'cv');
-        } else if (f.__savedCvId) {
-          submissionData.append('savedCvId', String(f.__savedCvId));
-        }
-      }
+      if (formData.cvFile instanceof File)
+        submissionData.append('cv', formData.cvFile);
 
-      if (editingAgentId) {
-        await apiInstance.put(
-          `/pilotagent/update/${editingAgentId}`,
-          submissionData,
-          {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          },
-        );
-        alert('Agent updated successfully!');
-        dispatch(getAutopilotRequest());
-      } else {
-        const timerPromise = new Promise((resolve) =>
-          setTimeout(resolve, 5000),
-        );
+      await apiInstance.post('/pilotagent/create', submissionData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-        const apiPromise = apiInstance.post(
-          '/pilotagent/create',
-          submissionData,
-          {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          },
-        );
-
-        await Promise.all([apiPromise, timerPromise]);
-
-        dispatch(getAutopilotRequest());
-      }
-
-      setEditingAgentId(null);
+      dispatch(getAutopilotRequest());
       setFormData(initialFormData);
       setStep(0);
     } catch (err) {
-      console.error('Submit error:', err);
-      alert('There was an error saving the agent.');
-      setStep(0);
+      console.error(err);
     }
   };
 
   useEffect(() => {
     dispatch(getAutopilotRequest());
   }, [dispatch]);
+
+  const updateKeywords = (array) => {
+    setFormData((prev) => ({ ...prev, keywords: array }));
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -186,6 +162,7 @@ const MultiStepForm = () => {
             setDeletePopup={setDeletePopup}
             nextStep={nextStep}
             agents={autopilot}
+            setAgents={setAgents}
             onEdit={handleEditAgent}
             onDelete={handleDeleteAgent}
           />
@@ -198,6 +175,7 @@ const MultiStepForm = () => {
             prevStep={prevStep}
             handleChange={handleChange}
             handleCheckboxChange={handleCheckboxChange}
+            updateKeywords={updateKeywords} // <-- ADDED
             values={formData}
           />
         );
@@ -222,16 +200,7 @@ const MultiStepForm = () => {
         );
       case 4:
         return <GeneratingAgent />;
-      // <Step4ConfigureSave
-      //   prevStep={prevStep}
-      //   nextStep={nextStep}
-      //   handleChange={handleChange}
-      //   handleSubmit={handlePreview} // CHANGED
-      //   values={formData}
-      // />
 
-      // case 5:
-      //   return <GeneratingAgent />;
       default:
         return <div>Done.</div>;
     }
@@ -244,7 +213,6 @@ const MultiStepForm = () => {
       {isPreviewOpen && (
         <AgentPreviewModal
           formData={formData}
-          nextStep={nextStep}
           onCancel={() => setIsPreviewOpen(false)}
           onConfirm={confirmSubmit}
         />
