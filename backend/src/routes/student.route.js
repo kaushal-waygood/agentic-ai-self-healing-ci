@@ -670,6 +670,8 @@ import {
   getCreditsSummary,
   getProfileBasedRecommendedJobs,
   getTotalCredits,
+  toggleAutopilot,
+  getAutopilotStatus,
 } from '../controllers/student.controller.js';
 import {
   checkoutCredits,
@@ -834,6 +836,20 @@ router.get(
   authMiddleware,
   isUserOrUniStudent,
   getRecentAIActivity,
+);
+
+router.post(
+  '/autopilot/toggle',
+  authMiddleware,
+  isUserOrUniStudent,
+  toggleAutopilot,
+);
+
+router.get(
+  '/autopilot/status',
+  authMiddleware,
+  isUserOrUniStudent,
+  getAutopilotStatus,
 );
 
 export default router;

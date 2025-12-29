@@ -105,7 +105,7 @@ export const useProfile = () => {
       jobPreference: studentData.jobRole ?? '',
       location: studentData.location ?? '',
       avatar: studentData.avatar ?? '',
-      uploadedCV: studentData.uploadedCV ?? '',
+      uploadedCV: studentData.resumeUrl ?? '',
     });
 
     setPreview(studentData.avatar || dummyAvatar);

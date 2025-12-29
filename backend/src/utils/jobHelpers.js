@@ -436,10 +436,9 @@ Company: ${j.company}
     });
   }
 
-  if (!ops.length) return;
-
   try {
-    await Job.bulkWrite(ops, { ordered: false });
+    const result = await Job.bulkWrite(ops, { ordered: false });
+    console.log(result);
   } catch (e) {
     const dupesOnly = e?.writeErrors?.every((w) => w?.code === 11000);
     if (!dupesOnly) throw e;

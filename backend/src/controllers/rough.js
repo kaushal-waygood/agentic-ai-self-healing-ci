@@ -19,7 +19,10 @@ import { StudentExperience } from '../models/students/studentExperience.model.js
 import { StudentSkill } from '../models/students/studentSkill.model.js';
 import { StudentProject } from '../models/students/studentProject.model.js';
 
-// Normalize employment types
+// =======================================================
+// Helpers / Utility Blocks
+// =======================================================
+
 const normalizeEmploymentType = (type) => {
   if (!type) return 'FULL-TIME';
   const upper = type.toUpperCase().replace('_', '-').replace(' ', '-');
@@ -30,164 +33,55 @@ const normalizeEmploymentType = (type) => {
   return 'FULL-TIME';
 };
 
-export const extractStudentDataFromCV = async (req, res) => {
+// ================= Cloudinary Upload =================
+async function uploadToCloudinary(req) {
   try {
-    const userId = req.user?._id;
-
-    console.log('=== Upload Debug ===');
-    console.log('Original Name:', req.file.originalname);
-    console.log('MIME Type:', req.file.mimetype);
-    console.log('Extension:', path.extname(req.file.originalname));
-    console.log('Size:', req.file.size);
-
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    if (!req.file?.buffer)
-      return res.status(400).json({ error: 'No CV uploaded' });
-
-    // ------------------------------------------------------------------------
-    // 1) Upload to Cloudinary (non-blocking for extraction)
-    // ------------------------------------------------------------------------
-    let cvUrl = null;
-    try {
-      const publicId = `cvs/${userId}-${Date.now()}`;
-      const cloud = await uploadBufferToCloudinary(req.file.buffer, {
-        folder: 'cvs',
-        public_id: `${userId}-${Date.now()}`,
-        resource_type: 'image',
-        format: 'pdf',
-        type: 'upload',
-        access_mode: 'public', // required
-        invalidate: true,
-      });
-
-      console.log(cloud);
-      cvUrl = cloud?.secure_url || cloud?.url || null;
-    } catch (err) {
-      console.warn('⚠ Cloudinary Upload Failed:', err.message);
-    }
-
-    // ------------------------------------------------------------------------
-    // 2) TEXT Extraction depends on file type
-    // ------------------------------------------------------------------------
-    let extractedText = '';
-    const type = req.file.mimetype;
-
-    const file = req.file;
-
-    // PDF
-    if (type === 'application/pdf') {
-      const pdf = await pdfParse(file.buffer);
-      extractedText = pdf.text;
-    }
-
-    // DOCX
-    else if (
-      type ===
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ) {
-      const doc = await mammoth.extractRawText({ buffer: req.file.buffer });
-      extractedText = doc.value;
-    }
-
-    // DOC (optional convert path)
-    else if (type === 'application/msword') {
-      return res
-        .status(400)
-        .json({ error: 'DOC unsupported. Upload PDF/DOCX instead.' });
-    }
-
-    // IMAGE → OCR
-    else if (['image/png', 'image/jpeg'].includes(type)) {
-      const ocr = await Tesseract.recognize(req.file.buffer, 'eng');
-      extractedText = ocr.data.text;
-    } else return res.status(400).json({ error: 'Invalid resume format' });
-
-    if (!extractedText.trim())
-      return res.status(400).json({ error: 'Could not extract text' });
-
-    // ------------------------------------------------------------------------
-    // 3) AI Parsing + fallback
-    // ------------------------------------------------------------------------
-    let extractedData;
-    try {
-      const prompt = CVDataPrompt(extractedText);
-      const aiResponse = await retryOperation(
-        () => callGenAI(prompt, { userId, endpoint: 'resume-extract' }),
-        { retries: 3, baseDelay: 1000 },
-      );
-
-      const parsed = JSON.parse(
-        String(aiResponse)
-          .replace(/```json|```/g, '')
-          .trim(),
-      );
-      extractedData = mapAiResponseToSchema(userId, parsed);
-    } catch (err) {
-      console.warn('⚠ AI failed -> using fallback');
-      const fallback = parseBasicFromText(extractedText);
-      extractedData = mapFallbackToSchema(userId, fallback);
-    }
-
-    // ------------------------------------------------------------------------
-    // 4) DB Write (your logic preserved)
-    // ------------------------------------------------------------------------
-    const studentUpdate = {
-      ...(extractedData.personalInfo.fullName && {
-        fullName: extractedData.personalInfo.fullName,
-      }),
-      ...(extractedData.personalInfo.phone && {
-        phone: extractedData.personalInfo.phone,
-      }),
-      ...(extractedData.personalInfo.location && {
-        location: extractedData.personalInfo.location,
-      }),
-      ...(extractedData.personalInfo.jobRole && {
-        jobRole: extractedData.personalInfo.jobRole,
-      }),
-      ...(extractedData.jobPreferences && {
-        jobPreferences: extractedData.jobPreferences,
-      }),
-      ...(cvUrl && { resumeUrl: cvUrl }),
-      hasCompletedOnboarding: true,
-    };
-
-    const student = await Student.findByIdAndUpdate(userId, studentUpdate, {
-      new: true,
+    const cloud = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: 'cvs',
+      public_id: `${req.user?._id}-${Date.now()}`,
+      resource_type: 'image',
+      format: 'pdf',
+      type: 'upload',
+      access_mode: 'public',
+      invalidate: true,
     });
 
-    await Promise.all([
-      StudentEducation.deleteMany({ student: userId }),
-      StudentExperience.deleteMany({ student: userId }),
-      StudentSkill.deleteMany({ student: userId }),
-      StudentProject.deleteMany({ student: userId }),
-    ]);
-
-    if (extractedData.education.length)
-      await StudentEducation.insertMany(extractedData.education);
-    if (extractedData.experience.length)
-      await StudentExperience.insertMany(extractedData.experience);
-    if (extractedData.skills.length)
-      await StudentSkill.insertMany(extractedData.skills);
-    if (extractedData.projects.length)
-      await StudentProject.insertMany(extractedData.projects);
-
-    redisClient.invalidateStudentCache?.(userId);
-
-    return res.json({
-      success: true,
-      resumeUrl: cvUrl,
-      data: extractedData,
-      message: 'Resume processed successfully',
-    });
+    return cloud?.secure_url || cloud?.url || null;
   } catch (err) {
-    console.error('❌ CV Extraction Error:', err);
-    return res.status(500).json({ error: err.message });
+    console.warn('⚠ Cloudinary Upload Failed:', err.message);
+    return null;
   }
-};
+}
 
-// ------------------------------------------------------------------------
-// Mappers (your original preserved)
-// ------------------------------------------------------------------------
+// ================= File → Text Extraction =================
+export async function extractTextFromCV(file) {
+  const type = file.mimetype;
+
+  if (type === 'application/pdf') {
+    const pdf = await pdfParse(file.buffer);
+    return pdf.text;
+  }
+
+  if (
+    type ===
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) {
+    const doc = await mammoth.extractRawText({ buffer: file.buffer });
+    return doc.value;
+  }
+
+  if (type === 'application/msword')
+    throw { status: 400, message: 'DOC unsupported. Upload PDF/DOCX instead.' };
+
+  if (['image/png', 'image/jpeg'].includes(type)) {
+    const ocr = await Tesseract.recognize(file.buffer, 'eng');
+    return ocr.data.text;
+  }
+
+  throw { status: 400, message: 'Invalid resume format' };
+}
+
+// ================= Schema Mapping =================
 function mapAiResponseToSchema(userId, json) {
   return {
     personalInfo: {
@@ -196,7 +90,6 @@ function mapAiResponseToSchema(userId, json) {
       location: json.location || '',
       jobRole: json.jobRole || json.currentRole || '',
     },
-
     education: (json.education || []).map((e) => ({
       student: userId,
       educationId: uuidv4(),
@@ -208,7 +101,6 @@ function mapAiResponseToSchema(userId, json) {
       grade: e.grade || '',
       isCurrentlyStudying: !!e.isCurrentlyStudying,
     })),
-
     experience: (json.experience || []).map((x) => ({
       student: userId,
       experienceId: uuidv4(),
@@ -222,7 +114,6 @@ function mapAiResponseToSchema(userId, json) {
       currentlyWorking: !!x.currentlyWorking,
       employmentType: normalizeEmploymentType(x.employmentType),
     })),
-
     skills: (json.skills || []).map((s) => ({
       student: userId,
       skillId: uuidv4(),
@@ -233,7 +124,6 @@ function mapAiResponseToSchema(userId, json) {
         ? s.level.toUpperCase()
         : 'INTERMEDIATE',
     })),
-
     projects: (json.projects || []).map((p) => ({
       student: userId,
       projectName: p.projectName || '',
@@ -243,7 +133,6 @@ function mapAiResponseToSchema(userId, json) {
       startDate: p.startDate ? new Date(p.startDate) : null,
       endDate: p.endDate ? new Date(p.endDate) : null,
     })),
-
     jobPreferences: json.jobPreferences || {},
   };
 }
@@ -263,3 +152,102 @@ function mapFallbackToSchema(userId, basic) {
     jobPreferences: {},
   };
 }
+
+// ================= AI + Fallback Parsing =================
+export async function parseCVData(text, userId) {
+  if (!text.trim()) throw { status: 400, message: 'Could not extract text' };
+
+  try {
+    const prompt = CVDataPrompt(text);
+    const aiResponse = await retryOperation(
+      () => callGenAI(prompt, { userId, endpoint: 'resume-extract' }),
+      { retries: 3, baseDelay: 1000 },
+    );
+
+    const parsed = JSON.parse(
+      String(aiResponse)
+        .replace(/```json|```/g, '')
+        .trim(),
+    );
+    return mapAiResponseToSchema(userId, parsed);
+  } catch (err) {
+    console.warn('⚠ AI failed -> using fallback');
+    return mapFallbackToSchema(userId, parseBasicFromText(text));
+  }
+}
+
+// ================= DB Save =================
+async function saveStudentDataToDB(userId, extractedData, cvUrl) {
+  const studentUpdate = {
+    ...(extractedData.personalInfo.fullName && {
+      fullName: extractedData.personalInfo.fullName,
+    }),
+    ...(extractedData.personalInfo.phone && {
+      phone: extractedData.personalInfo.phone,
+    }),
+    ...(extractedData.personalInfo.location && {
+      location: extractedData.personalInfo.location,
+    }),
+    ...(extractedData.personalInfo.jobRole && {
+      jobRole: extractedData.personalInfo.jobRole,
+    }),
+    jobPreferences: extractedData.jobPreferences,
+    ...(cvUrl && { resumeUrl: cvUrl }),
+    hasCompletedOnboarding: true,
+  };
+
+  await Student.findByIdAndUpdate(userId, studentUpdate, { new: true });
+  await Promise.all([
+    StudentEducation.deleteMany({ student: userId }),
+    StudentExperience.deleteMany({ student: userId }),
+    StudentSkill.deleteMany({ student: userId }),
+    StudentProject.deleteMany({ student: userId }),
+  ]);
+
+  if (extractedData.education.length)
+    await StudentEducation.insertMany(extractedData.education);
+  if (extractedData.experience.length)
+    await StudentExperience.insertMany(extractedData.experience);
+  if (extractedData.skills.length)
+    await StudentSkill.insertMany(extractedData.skills);
+  if (extractedData.projects.length)
+    await StudentProject.insertMany(extractedData.projects);
+}
+
+// =======================================================
+// Main Controller (Final Function)
+// =======================================================
+
+export const extractStudentDataFromCV = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!req.file?.buffer)
+      return res.status(400).json({ error: 'No CV uploaded' });
+
+    console.log('=== Upload Debug ===');
+    console.log(
+      'Original:',
+      req.file.originalname,
+      '| Type:',
+      req.file.mimetype,
+    );
+
+    const cvUrl = await uploadToCloudinary(req);
+    const text = await extractTextFromCV(req.file);
+    const extractedData = await parseCVData(text, userId);
+
+    await saveStudentDataToDB(userId, extractedData, cvUrl);
+    redisClient.invalidateStudentCache?.(userId);
+
+    res.json({
+      success: true,
+      resumeUrl: cvUrl,
+      data: extractedData,
+      message: 'Resume processed successfully',
+    });
+  } catch (err) {
+    console.error('❌ CV Extraction Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
