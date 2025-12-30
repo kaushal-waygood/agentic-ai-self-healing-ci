@@ -87,7 +87,8 @@ export function ApplicationWizardClient() {
           <SleekCvStep
             mockUserProfile={mockUserProfile}
             handleCvContextSubmit={actions.handleCvContextSubmit}
-            setWizardState={navigateToStep}
+            // setWizardState={navigateToStep}
+            setWizardStep={navigateToStep}
             selectedCvId={selectedCvId}
             setSelectedCvId={actions.setSelectedCvId}
             isLoading={isLoading}
