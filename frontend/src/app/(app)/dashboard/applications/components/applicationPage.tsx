@@ -141,7 +141,8 @@ export default function ApplicationsPage() {
               apiJob.job.createdAt,
           }));
 
-        setApplications(formattedApplications);
+        // setApplications(formattedApplications);
+        setApplications(dedupeById(formattedApplications));
       } catch (error) {
         console.error(`Failed to fetch ${statusFilter} applications:`, error);
         toast({
@@ -162,6 +163,10 @@ export default function ApplicationsPage() {
     params.set('status', statusFilter);
     router.replace(`${window.location.pathname}?${params.toString()}`);
   }, [statusFilter, router]);
+
+  function dedupeById<T extends { id: string }>(items: T[]) {
+    return Array.from(new Map(items.map((item) => [item.id, item])).values());
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
