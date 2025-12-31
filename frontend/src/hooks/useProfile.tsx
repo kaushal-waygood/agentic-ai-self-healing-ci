@@ -310,7 +310,7 @@ export const useEducation = () => {
 export const useSkills = () => {
   const dispatch = useDispatch();
   const skills = useSelector((s: RootState) => s.student.skills?.skills || []);
-
+  console.log('skills', skills);
   useEffect(() => {
     dispatch(getStudentSkllsRequest());
   }, [dispatch]);

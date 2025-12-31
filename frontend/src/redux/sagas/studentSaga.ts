@@ -242,7 +242,7 @@ function* addStudentEducationSaga(
       addEducation,
       action.payload,
     );
-    yield put(addStudentEducationSuccess(response.data));
+    yield put(addStudentEducationSuccess(response.data.education));
     yield put(getStudentEducationRequest());
   } catch (error) {
     yield put(addStudentEducationFailure(getErrorMessage(error)));
@@ -295,7 +295,7 @@ function* addStudentExperienceSaga(
       addExperience,
       action.payload,
     );
-    yield put(addStudentExperienceSuccess(response.data));
+    yield put(addStudentExperienceSuccess(response.data.experience));
     yield put(getStudentExperienceRequest());
   } catch (error) {
     yield put(addStudentExperienceFailure(getErrorMessage(error)));
@@ -341,13 +341,24 @@ function* getStudentSkillsSaga() {
   }
 }
 
+// function* addStudentSkillsSaga(
+//   action: PayloadAction<Omit<Skill, '_id'> | Skill>,
+// ) {
+//   try {
+//     const response: AxiosResponse<Skill> = yield call(addSkill, action.payload);
+//     yield put(addStudentSkillSuccess(response.data));
+//     yield put(getStudentSkllsRequest());
+//   } catch (error) {
+//     yield put(addStudentSkillFailure(getErrorMessage(error)));
+//   }
+// }
 function* addStudentSkillsSaga(
   action: PayloadAction<Omit<Skill, '_id'> | Skill>,
 ) {
   try {
-    const response: AxiosResponse<Skill> = yield call(addSkill, action.payload);
-    yield put(addStudentSkillSuccess(response.data));
-    yield put(getStudentSkllsRequest());
+    const response: AxiosResponse<any> = yield call(addSkill, action.payload);
+
+    yield put(addStudentSkillSuccess(response.data.skill));
   } catch (error) {
     yield put(addStudentSkillFailure(getErrorMessage(error)));
   }
@@ -401,7 +412,7 @@ function* addStudentProjectsSaga(
       addProject,
       action.payload,
     );
-    yield put(addStudentProjectSuccess(response.data));
+    yield put(addStudentProjectSuccess(response.data.project));
     yield put(getAllProjectsRequest());
   } catch (error) {
     yield put(addStudentProjectFailure(getErrorMessage(error)));

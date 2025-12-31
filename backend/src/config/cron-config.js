@@ -1,6 +1,5 @@
 import cron from 'node-cron';
 
-// Task 1: A simple task that runs every minute
 export const task1 = () => {
   console.log('[Cron] Running a simple task every minute');
 };

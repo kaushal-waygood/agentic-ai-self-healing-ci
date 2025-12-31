@@ -72,6 +72,9 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [token, setToken] = useState<string | undefined>(undefined);
 
+  const MATCH_SCORE_KEY = (jobId?: string) =>
+    jobId ? `matchScore_${jobId}` : '';
+
   // token lookup (SSR-safe)
   useEffect(() => {
     try {
@@ -92,8 +95,23 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     const controller = new AbortController();
     const { signal } = controller;
 
-    const savedScore = localStorage.getItem(`matchScore_${job._id}`);
-    setMatchScore(savedScore ? (JSON.parse(savedScore) as MatchScore) : null);
+    // const savedScore = localStorage.getItem(`matchScore_${job._id}`);
+    // setMatchScore(savedScore ? (JSON.parse(savedScore) as MatchScore) : null);
+    try {
+      const raw = localStorage.getItem(MATCH_SCORE_KEY(job._id));
+      const parsed = raw ? JSON.parse(raw) : null;
+
+      if (parsed && typeof parsed.matchScore === 'number') {
+        setMatchScore(parsed);
+      } else {
+        setMatchScore(null);
+        localStorage.removeItem(MATCH_SCORE_KEY(job._id));
+      }
+    } catch {
+      setMatchScore(null);
+      localStorage.removeItem(MATCH_SCORE_KEY(job._id));
+    }
+
     setIsLoadingScore(false);
     setProgress(0);
 
@@ -185,6 +203,59 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       setIsLoadingScore(false);
     }
   }, [job?._id, job?.description]);
+
+  // const handleGetMatchScore = useCallback(async () => {
+  //   if (!job?.description) return;
+
+  //   if (job._id) {
+  //     localStorage.removeItem(`matchScore_${job._id}`);
+  //   }
+
+  //   setIsLoadingScore(true);
+  //   setMatchScore(null);
+  //   setScoreError(null);
+  //   setProgress(0);
+
+  //   const controller = new AbortController();
+  //   const { signal } = controller;
+
+  //   const interval = window.setInterval(() => {
+  //     setProgress((p) => (p < 90 ? p + 5 : p));
+  //   }, 800);
+
+  //   try {
+  //     const response = await apiInstance.post(
+  //       '/students/calculate-match',
+  //       { jobDescription: job.description },
+  //       { signal },
+  //     );
+
+  //     if (signal.aborted) return;
+
+  //     const data = response.data as MatchScore;
+
+  //     // ✅ SAVE ONLY ON SUCCESS
+  //     if (job._id) {
+  //       localStorage.setItem(MATCH_SCORE_KEY(job._id), JSON.stringify(data));
+  //     }
+
+  //     setProgress(100);
+  //     setMatchScore(data);
+  //   } catch (error) {
+  //     console.error('Match score error:', error);
+
+  //     // ❌ CLEAR ANY OLD CACHE ON ERROR
+  //     if (job._id) {
+  //       localStorage.removeItem(MATCH_SCORE_KEY(job._id));
+  //     }
+
+  //     setScoreError('Failed to calculate match score. Please try again.');
+  //     setProgress(0);
+  //   } finally {
+  //     clearInterval(interval);
+  //     setIsLoadingScore(false);
+  //   }
+  // }, [job?._id, job?.description]);
 
   const handleApplyOnSite = useCallback(async () => {
     try {
@@ -356,67 +427,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       setIsLoadingScore(false);
     }
   }, [job?._id, job?.description]);
-
-  // const renderJobDescription = (raw: string) => {
-  //   const lines = normalizeText(raw).split('\n');
-
-  //   return lines.map((line, i) => {
-  //     const trimmed = line.trim();
-
-  //     if (!trimmed) {
-  //       return <div key={i} className="h-2" />;
-  //     }
-
-  //     // 🔹 BULLET
-  //     if (trimmed.startsWith('-')) {
-  //       return (
-  //         <div
-  //           key={i}
-  //           className="ml-4 flex items-start gap-3 text-sm text-slate-600"
-  //         >
-  //           <span className="mt-2 w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0" />
-  //           <span className="leading-relaxed">
-  //             {trimmed.replace(/^-\s*/, '')}
-  //           </span>
-  //         </div>
-  //       );
-  //     }
-
-  //     // 🔹 KEY : VALUE
-  //     if (/^[A-Za-z][A-Za-z\s]{2,25}:\s+/.test(trimmed)) {
-  //       const [key, ...rest] = trimmed.split(':');
-  //       return (
-  //         <div key={i} className="text-sm text-slate-700">
-  //           <span className="font-semibold">{key}:</span>{' '}
-  //           <span className="text-slate-600">{rest.join(':').trim()}</span>
-  //         </div>
-  //       );
-  //     }
-
-  //     // 🔹 ALL CAPS / EMPHASIZED LINE → TITLE
-  //     if (
-  //       trimmed === trimmed.toUpperCase() &&
-  //       trimmed.length > 4 &&
-  //       trimmed.length < 60
-  //     ) {
-  //       return (
-  //         <div
-  //           key={i}
-  //           className="mt-5 mb-2 text-sm font-bold tracking-wide text-slate-800"
-  //         >
-  //           {trimmed}
-  //         </div>
-  //       );
-  //     }
-
-  //     // 🔹 NORMAL TEXT
-  //     return (
-  //       <p key={i} className="text-sm text-slate-600 leading-relaxed">
-  //         {trimmed}
-  //       </p>
-  //     );
-  //   });
-  // };
 
   return (
     <div className="min-h-screen space-y-2">
@@ -590,7 +600,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               </Button>
 
               {/* Match Score */}
-              {!matchScore && !isLoadingScore && (
+              {!scoreError && !matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-green-500  text-white border-0"
@@ -603,19 +613,32 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {isLoadingScore && (
-                <div className="relative overflow-hidden px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+                <div
+                  className="relative overflow-hidden px-6 py-2 rounded-lg
+      bg-gradient-to-r from-blue-500 to-green-500 text-white
+      w-[100px]" // 🔒 lock button width
+                >
+                  {/* Progress bar */}
                   <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-400/50 to-blue-400/50 transition-all duration-300"
+                    className="absolute inset-y-0 left-0
+        bg-gradient-to-r from-purple-400/50 to-blue-400/50
+        transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
+
+                  {/* Content */}
                   <div className="relative flex items-center justify-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="font-semibold">{progress}%</span>
+
+                    {/* Fixed-width number */}
+                    <span className="font-semibold tabular-nums w-[3ch] text-center">
+                      {progress}%
+                    </span>
                   </div>
                 </div>
               )}
 
-              {matchScore && !isLoadingScore && (
+              {/* {matchScore && !isLoadingScore && (
                 <div className="relative overflow-hidden px-6 py-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white  animate-in fade-in zoom-in duration-500">
                   <div className="flex items-center justify-center gap-2">
                     <TrendingUp className="w-4 h-4" />
@@ -624,6 +647,48 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     </span>
                   </div>
                 </div>
+              )} */}
+              {matchScore && !isLoadingScore && (
+                <button
+                  onClick={handleGetMatchScore}
+                  className="group relative overflow-hidden px-6 py-2 rounded-lg
+    bg-gradient-to-r from-blue-500 to-green-500 text-white
+      font-bold transition-all duration-300
+    
+      animate-in fade-in zoom-in"
+                >
+                  {/* Normal content */}
+                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="text-lg">{matchScore.matchScore}/10</span>
+                  </div>
+
+                  {/* Hover content */}
+                  <div
+                    className="absolute inset-0 flex items-center justify-center gap-2
+      opacity-0 scale-105
+      transition-all duration-200
+      group-hover:opacity-100 group-hover:scale-100"
+                  >
+                    {/* <Sparkles className="w-4 h-4" /> */}
+                    <span className="text-sm tracking-wide">
+                      Recalculate Match Score
+                    </span>
+                  </div>
+                </button>
+              )}
+
+              {scoreError && !isLoadingScore && (
+                <Button
+                  onClick={handleGetMatchScore}
+                  variant="outline"
+                  className="border-red-300 text-red-600 hover:bg-red-500 hover:text-white"
+                >
+                  Retry Match Score
+                </Button>
+              )}
+              {scoreError && (
+                <p className="text-xs text-red-600 mt-1">{scoreError}</p>
               )}
             </div>
           ) : (
