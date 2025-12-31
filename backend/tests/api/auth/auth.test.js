@@ -1,20 +1,23 @@
-import constants from "../../config/constants.js";
-import axios from "../../utils/axiosConfig.js";
-import { User } from "../../../src/models/User.model.js";
-import connectDB, { disconnectDB } from "../../../src/config/db.js";
+import constants from '../../config/constants.js';
+import axios from '../../utils/axiosConfig.js';
+import { User } from '../../../src/models/User.model.js';
+import connectDB, { disconnectDB } from '../../../src/config/db.js';
 
-describe("Auth Tests", () => {
-    jest.setTimeout(30000); // Increase timeout to 30s
-    const testUser = {
-        email: `test${Date.now()}@test.com`,
-        password: "Help@123",
-        confirmPassword: "Help@123",
-        fullName: "Test User",
-    };
+describe('Auth Tests', () => {
+  jest.setTimeout(30000); // Increase timeout to 30s
+  const testUser = {
+    email: `test${Date.now()}@test.com`,
+    password: 'Help@123',
+    confirmPassword: 'Help@123',
+    fullName: 'Test User',
+  };
 
-    beforeAll(async () => {
-        await connectDB();
-    });
+  beforeAll(async () => {
+    await connectDB();
+  });
+
+  it('should signup user', async () => {
+    const res = await axios.post('/api/v1/user/signup', testUser);
 
     expect(res.status).toBe(200);
     expect(res.data.accessToken).toBeDefined();
