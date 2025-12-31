@@ -24,7 +24,20 @@ jobs:
         id: vars
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
+      # -------------------------------
+      # Install Backend Dependencies & Run Tests
+      # -------------------------------
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: Run Backend Tests (Block Deployment if Fail)
+        working-directory: ./backend
+        run: npm test -- --ci
+        # if this fails → pipeline stops automatically
+
       - name: Log in to GitHub Container Registry
+        if: success()
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -35,6 +48,7 @@ jobs:
       # Build & Push Backend Image
       # -------------------------------
       - name: Build & Push Backend Image
+        if: success()
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -48,15 +62,16 @@ jobs:
       # Build & Push Frontend Image
       # -------------------------------
       - name: Set Frontend Build Args from ConfigMap
+        if: success()
         id: frontend-args
         run: |
-          # You can either fetch from k3s or define them as secrets for CI
           echo "NEXT_PUBLIC_API_URL=https://api.dev.zobsai.com" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51S91qQIdYj6K0osbkzgNmVJQ8Pt2AXyFFri0f84jMsrRKLdc15qIw3aiN7eLMdktmDxgqeH8shl3784s9QVUXUPs00RM7BbtaS" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_NODE_ENV=development" >> $GITHUB_ENV
 
       - name: Build & Push Frontend Image
+        if: success()
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -75,9 +90,11 @@ jobs:
       # Update manifests
       # -------------------------------
       - name: List dev manifest files
+        if: success()
         run: ls -R manifests/dev/
 
       - name: Update Backend Deployment Manifest
+        if: success()
         run: |
           MANIFEST="manifests/dev/zobsai-backend-deployment-dev.yaml"
           if [ -f "$MANIFEST" ]; then
@@ -88,6 +105,7 @@ jobs:
           fi
 
       - name: Update Frontend Deployment Manifest
+        if: success()
         run: |
           MANIFEST="manifests/dev/zobsai-frontend-deployment-dev.yaml"
           if [ -f "$MANIFEST" ]; then
@@ -98,6 +116,7 @@ jobs:
           fi
 
       - name: Commit and Push Manifest Changes
+        if: success()
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
