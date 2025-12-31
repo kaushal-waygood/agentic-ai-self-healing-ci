@@ -49,21 +49,21 @@ const Skills = () => {
       </div>
 
       {/* Skills Grid */}
-      <div className="p-2 max-h-[70vh] overflow-y-auto">
+      <div className="p-2  overflow-y-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {skills.length > 0 ? (
             skills.map((skill: any) => (
               <div
                 key={skill._id}
-                className="bg-white rounded-lg p-4 shadow-inner hover:shadow-lg transition-all border border-gray-200 flex flex-col justify-between"
+                className="bg-white rounded-lg p-4  transition-all border border-gray-200 flex flex-col justify-between"
               >
-                <div className="flex justify-between items-start gap-2">
-                  <div className="pr-2">
-                    <h4 className="text-base font-bold text-gray-800 break-all">
+                <div className="flex flex-wrap justify-between items-start gap-2">
+                  <div className="">
+                    <h4 className="text-base font-bold text-gray-800 break-all ">
                       {skill.skill}
                     </h4>
                     <span
-                      className={`mt-1 inline-block  py-0.5 rounded-full text-xs font-semibold ${getSkillBadgeColor(
+                      className={`mt-1 inline-block  rounded-lg p-1 text-xs font-semibold ${getSkillBadgeColor(
                         skill.level,
                       )}`}
                     >
@@ -79,7 +79,7 @@ const Skills = () => {
                           level: e.target.value,
                         })
                       }
-                      className="text-gray-600 rounded border-gray-300  py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="text-gray-600 rounded border-gray-300  text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                     >
                       <option value="BEGINNER">Beginner</option>
                       <option value="INTERMEDIATE">Intermediate</option>
@@ -88,7 +88,7 @@ const Skills = () => {
 
                     <button
                       onClick={() => setDeleteId(skill._id)}
-                      className="text-red-600  hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0 p-2 rounded"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0 p-2 rounded-full transition-colors duration-200"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
