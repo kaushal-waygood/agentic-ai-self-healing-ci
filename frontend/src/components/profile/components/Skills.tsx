@@ -52,7 +52,7 @@ const Skills = () => {
       <div className="p-2 max-h-[70vh] overflow-y-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {skills.length > 0 ? (
-            skills.map((skill) => (
+            skills.map((skill: any) => (
               <div
                 key={skill._id}
                 className="bg-white rounded-lg p-4 shadow-inner hover:shadow-lg transition-all border border-gray-200 flex flex-col justify-between"
