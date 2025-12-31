@@ -992,6 +992,7 @@ export const AddExperience: React.FC<{
     startDate: string;
     endDate: string;
     responsibilities: string;
+    description: string;
   }>;
 }> = ({ onCancel, data, isEdit }) => {
   const form = useForm({
@@ -1005,6 +1006,7 @@ export const AddExperience: React.FC<{
       startDate: toMonth(data?.startDate),
       endDate: toMonth(data?.endDate),
       responsibilities: data?.responsibilities || '',
+      description: data?.description || '',
     },
     mode: 'onSubmit',
   });
@@ -1219,7 +1221,7 @@ export const AddExperience: React.FC<{
               />
               <FormField
                 control={control}
-                name="responsibilities"
+                name="description"
                 render={({ field }) => (
                   <FormItem className="mt-6">
                     <FormLabel>Responsibilities (Optional)</FormLabel>
@@ -1256,7 +1258,10 @@ export const AddExperience: React.FC<{
 
 const skillTypes = ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] as const;
 
-export const AddSkill: React.FC<{ onCancel: () => void }> = ({ onCancel }) => {
+export const AddSkill: React.FC<{
+  onCancel: () => void;
+  isEdit?: boolean;
+}> = ({ onCancel, isEdit }) => {
   const form = useForm<{ skill: string; level: string }>({
     defaultValues: { skill: '', level: '' },
     mode: 'onSubmit',
@@ -1274,7 +1279,7 @@ export const AddSkill: React.FC<{ onCancel: () => void }> = ({ onCancel }) => {
 
   return (
     <ModalShell
-      // title={isEdit ? 'Edit Skills' : 'Add Skills'}
+      title={isEdit ? 'Edit Skills' : 'Add Skills'}
       icon={Briefcase}
       onClose={onCancel}
       headerGradient="from-purple-500 to-indigo-500"

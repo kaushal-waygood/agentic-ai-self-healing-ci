@@ -39,7 +39,9 @@ const Education = () => {
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <GraduationCap className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">Education</h3>
+          <h3 className="text-xl font-bold text-gray-800">
+            Education ({educations.length})
+          </h3>
         </div>
 
         <button
@@ -56,12 +58,12 @@ const Education = () => {
       <div className="rounded-xl p-2 max-h-[70vh] overflow-y-auto">
         <div className="space-y-4">
           {educations.length > 0 ? (
-            educations.map((edu) => (
-              <div
-                key={edu._id}
-                className="bg-white rounded-lg p-5 border border-blue-100"
-              >
+            educations.map((edu, index) => (
+              <div key={edu._id} className="bg-white rounded-lg p-4 border ">
                 <div className="flex justify-between items-start mb-4">
+                  <span className="text-sm font-semibold text-gray-500 shrink-0 mr-2">
+                    {index + 1}.
+                  </span>
                   <div className="flex-1">
                     <h4 className="text-lg font-bold text-gray-800 mb-1">
                       {edu.degree}
@@ -113,6 +115,12 @@ const Education = () => {
                     <div className="flex items-center gap-2 text-gray-600">
                       <MapPin className="h-4 w-4 text-gray-400" />
                       <span>{edu.country}</span>
+                    </div>
+                  )}
+                  {edu.grade && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Award className="h-4 w-4 text-gray-400" />
+                      <span>grade: {edu.grade}</span>
                     </div>
                   )}
                 </div>
