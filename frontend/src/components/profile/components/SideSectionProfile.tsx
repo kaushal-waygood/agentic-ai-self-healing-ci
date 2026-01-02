@@ -39,16 +39,18 @@ const SideSectionProfile = () => {
     setProfile,
     file,
     setFile,
-    uploadCV,
-    isUploading,
+    // uploadCV,
+    // isUploading,
+    // handleUpload,
     fileInputRef,
     updateProfile,
   } = useProfile();
 
   const [isDragging, setIsDragging] = useState(false);
+  // const [isUploadingCV, setIsUploadingCV] = useState(false);
 
   const [progress, setProgress] = useState(0);
-  // const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [preview, setPreview] = useState<string>('');
@@ -89,7 +91,7 @@ const SideSectionProfile = () => {
   const handleUpload = useCallback(async () => {
     if (!file) return;
 
-    // setIsUploading(true);
+    setIsUploading(true);
     setProgress(0);
 
     const formData = new FormData();
@@ -220,21 +222,14 @@ const SideSectionProfile = () => {
           )}
         </div>
 
-        <h2 className="mt-2 font-semibold text-gray-900">
+        <h2 className="mt-2 text-lg font-semibold text-gray-900">
           {profile.fullName || 'Your Name'}
         </h2>
-
-        <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
-          <Mail className="w-4 h-4" />
-          {profile.email}
-        </p>
-
-        {profile.phone && (
-          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
-            <Phone className="w-4 h-4" />
-            {profile.phone}
+        <div className=" space-y-1 mt-2 ">
+          <p className="text-sm   text-gray-500 flex items-center justify-left gap-2 ">
+            <Mail className="w-4 h-4" />
+            {profile.email}
           </p>
-        )}
 
         {profile.jobRole && (
           <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
@@ -243,13 +238,21 @@ const SideSectionProfile = () => {
           </p>
         )}
 
-        {profile.location && (
-          <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
-            <MapPin className="w-4 h-4" />
-            {profile.location}
-          </p>
-        )}
 
+         {profile.phone && (
+            <p className="text-sm text-gray-500 flex items-center justify-left gap-2 ">
+              <Phone className="w-4 h-4" />
+              {profile.phone}
+            </p>
+          )}
+
+          {profile.location && (
+            <p className="text-sm text-gray-500 flex items-center justify-left gap-2 ">
+              <MapPin className="w-4 h-4" />
+              {profile.location}
+            </p>
+          )}
+        </div>
         <Button onClick={() => setIsModalOpen(true)} className="mt-3 w-full">
           <Edit size={16} /> Edit Profile
         </Button>
@@ -282,7 +285,7 @@ const SideSectionProfile = () => {
       />
 
       <div
-        className={`relative w-full h-48 p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-all duration-300 ${
+        className={`relative w-full p-2 bg-white  border-2 border-dashed rounded-lg text-center cursor-pointer transition-all duration-300 ${
           isDragging
             ? 'border-cyan-500 bg-cyan-100 scale-105'
             : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50 '
@@ -295,7 +298,7 @@ const SideSectionProfile = () => {
       >
         <div className="flex flex-col items-center justify-center gap-3 h-full">
           <div
-            className={`p-4 rounded-full transition-colors duration-300 ${
+            className={`p-2 rounded-full transition-colors duration-300 ${
               isDragging
                 ? 'bg-blue-500 text-white'
                 : 'bg-blue-100 text-cyan-600'
@@ -344,18 +347,18 @@ const SideSectionProfile = () => {
       {file && (
         <div className="mt-6 flex flex-col items-center gap-4">
           <div className="flex items-center gap-3 p-3 bg-white rounded-lg  border border-gray-200 w-full max-w-md">
-            <div className="p-2 bg-blue-100 rounded-lg">
+            {/* <div className="p-2 bg-blue-100 rounded-lg">
               <Sparkles className="w-6 h-6 text-blue-600" />
-            </div>
+            </div> */}
             <div className="flex-1 overflow-hidden">
-              <p className="font-medium text-gray-800 truncate">{file.name}</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-xs text-gray-800 ">{file.name}</p>
+              <p className="text-xs text-gray-500">
                 {(file.size / 1024).toFixed(1)} KB
               </p>
             </div>
             <button
               onClick={handleRemoveFile}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50 h-9 w-9 flex-shrink-0"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
             >
               <X className="h-5 w-5" />
             </button>
@@ -364,13 +367,13 @@ const SideSectionProfile = () => {
           <button
             onClick={handleUpload}
             disabled={isUploading}
-            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-8 py-3 rounded-lg  transition-all duration-300 text-base flex flex-col items-center justify-center gap-2"
+            className="bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg  transition-all duration-300 text-base flex flex-col items-center justify-center gap-2"
           >
             {isUploading ? (
               <>
                 <div className="w-full bg-cyan-100 rounded-full h-3 overflow-hidden">
                   <div
-                    className="h-3 bg-gradient-to-r from-yellow-600 to-blue-600 rounded-full transition-all duration-300"
+                    className="h-3 bg-gradient-to-r from-yellow-600 to-blue-600 rounded-full transition-all duration-200"
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
@@ -382,10 +385,7 @@ const SideSectionProfile = () => {
                 </div>
               </>
             ) : (
-              <>
-                <Sparkles className="h-5 w-5" />
-                Process CV
-              </>
+              <>Process CV</>
             )}
           </button>
         </div>
