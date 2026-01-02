@@ -112,7 +112,7 @@ const ProfileInfo = () => {
 
   return (
     <>
-      <div className="relative  bg-gradient-to-br from-white via-slate-50 to-blue-50 py-6">
+      <div className="relative py-6">
         <style jsx>{`
           @keyframes float {
             0%,

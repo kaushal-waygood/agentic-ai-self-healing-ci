@@ -49,7 +49,7 @@ const Skills = () => {
       </div>
 
       {/* Skills Grid */}
-      <div className="p-2  overflow-y-auto">
+      <div className="p-2 max-h-[70vh]  overflow-y-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {skills.length > 0 ? (
             skills.map((skill: any) => (
@@ -57,9 +57,9 @@ const Skills = () => {
                 key={skill._id}
                 className="bg-white rounded-lg p-4  transition-all border border-gray-200 flex flex-col justify-between"
               >
-                <div className="flex flex-wrap justify-between items-start gap-2">
+                <div className="flex flex-wrap justify-between items-start ">
                   <div className="">
-                    <h4 className="text-base font-bold text-gray-800 break-all ">
+                    <h4 className="text-base font-bold text-gray-800 break-all line-clamp-1">
                       {skill.skill}
                     </h4>
                     <span
@@ -71,7 +71,7 @@ const Skills = () => {
                     </span>
                   </div>
 
-                  <div className="flex  items-center gap-2">
+                  <div className="flex items-center ">
                     <select
                       value={skill.level}
                       onChange={(e) =>
@@ -79,7 +79,7 @@ const Skills = () => {
                           level: e.target.value,
                         })
                       }
-                      className="text-gray-600 rounded border-gray-300  text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="text-gray-600 border rounded border-gray-300   text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                     >
                       <option value="BEGINNER">Beginner</option>
                       <option value="INTERMEDIATE">Intermediate</option>
