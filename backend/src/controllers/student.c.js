@@ -155,6 +155,8 @@ export const updateStudentCoreProfile = async (req, res) => {
   const studentId = req.user._id;
   const { fullName, phone, jobRole, location } = req.body;
 
+  console.log(req.body);
+
   const update = {};
   if (fullName !== undefined) update.fullName = fullName;
   if (phone !== undefined) update.phone = phone;
@@ -164,6 +166,8 @@ export const updateStudentCoreProfile = async (req, res) => {
   if (!Object.keys(update).length) {
     return res.status(400).json({ message: 'No valid fields to update' });
   }
+
+  console.log(update);
 
   try {
     const student = await Student.findByIdAndUpdate(

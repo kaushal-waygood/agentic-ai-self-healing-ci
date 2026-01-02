@@ -32,7 +32,7 @@ export type ProfileState = {
   fullName: string;
   email: string;
   phone: string;
-  jobPreference: string;
+  jobRole: string;
   location: string;
   avatar: string;
   uploadedCV?: string;
@@ -70,14 +70,15 @@ export const useProfile = () => {
   const studentWrapper = useSelector(
     (state: RootState) => state.student.students?.[0],
   );
+  console.log('studentWrapper.student', studentWrapper);
 
-  const studentData = studentWrapper?.student ?? studentWrapper;
+  const studentData = studentWrapper?.student;
 
   const [profile, setProfile] = useState<ProfileState>({
     fullName: '',
     email: '',
     phone: '',
-    jobPreference: '',
+    jobRole: '',
     location: '',
     avatar: '',
     uploadedCV: '',
@@ -102,7 +103,7 @@ export const useProfile = () => {
       fullName: studentData.fullName ?? '',
       email: studentData.email ?? '',
       phone: studentData.phone ?? '',
-      jobPreference: studentData.jobRole ?? '',
+      jobRole: studentData.jobRole ?? '',
       location: studentData.location ?? '',
       avatar: studentData.avatar ?? '',
       uploadedCV: studentData.resumeUrl ?? '',
@@ -110,6 +111,8 @@ export const useProfile = () => {
 
     setPreview(studentData.avatar || dummyAvatar);
   }, [studentData]);
+
+  console.log('profile', profile);
 
   /* -----------------------------
      Input handlers
@@ -198,7 +201,7 @@ export const useProfile = () => {
       await apiInstance.patch('/students/profile/update', {
         fullName: profile.fullName,
         phone: profile.phone,
-        jobPreference: profile.jobPreference,
+        jobRole: profile.jobRole,
         location: profile.location,
       });
 

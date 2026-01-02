@@ -309,6 +309,14 @@ export async function fetchExternalJobs(
         'X-RapidAPI-Host': config.rapidApiHost,
       },
     });
+
+    const headers = response.headers;
+    console.log('RapidAPI usage:', {
+      limit: headers['x-ratelimit-requests-limit'],
+      remaining: headers['x-ratelimit-requests-remaining'],
+      reset: headers['x-ratelimit-requests-reset'],
+      creditsRemaining: headers['x-rapidapi-billing-credits-remaining'],
+    });
     return response?.data?.data || [];
   } catch (e) {
     console.error(

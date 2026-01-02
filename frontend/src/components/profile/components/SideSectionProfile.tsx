@@ -236,10 +236,10 @@ const SideSectionProfile = () => {
           </p>
         )}
 
-        {profile.jobPreference && (
+        {profile.jobRole && (
           <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
             <Briefcase className="w-4 h-4" />
-            {profile.jobPreference}
+            {profile.jobRole}
           </p>
         )}
 
@@ -471,13 +471,13 @@ const SideSectionProfile = () => {
             </div>
 
             <div>
-              <label htmlFor="jobPreference" className="block mb-1 font-medium">
+              <label htmlFor="jobRole" className="block mb-1 font-medium">
                 Job Role
               </label>
               <Input
-                id="jobPreference"
-                name="jobPreference"
-                value={profile.jobPreference}
+                id="jobRole"
+                name="jobRole"
+                value={profile.jobRole}
                 onChange={onChange}
                 placeholder="Frontend Developer"
               />
