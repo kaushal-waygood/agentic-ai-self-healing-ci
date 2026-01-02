@@ -226,27 +226,27 @@ const SideSectionProfile = () => {
           {profile.fullName || 'Your Name'}
         </h2>
         <div className=" space-y-1 mt-2 ">
-          <p className="text-sm   text-gray-500 flex items-center justify-left gap-2 ">
+          <p className="text-sm   text-gray-500 flex items-center justify-center gap-2 ">
             <Mail className="w-4 h-4" />
             {profile.email}
           </p>
 
           {profile.phone && (
-            <p className="text-sm text-gray-500 flex items-center justify-left gap-2 ">
+            <p className="text-sm text-gray-500 flex items-center  justify-center gap-2 ">
               <Phone className="w-4 h-4" />
               {profile.phone}
             </p>
           )}
 
           {profile.jobPreference && (
-            <p className="text-sm text-gray-500 flex items-center justify-left gap-2 ">
+            <p className="text-sm text-gray-500 flex items-center justify-center gap-2 ">
               <Briefcase className="w-4 h-4" />
               {profile.jobPreference}
             </p>
           )}
 
           {profile.location && (
-            <p className="text-sm text-gray-500 flex items-center justify-left gap-2 ">
+            <p className="text-sm text-gray-500 flex items-center justify-center gap-2 ">
               <MapPin className="w-4 h-4" />
               {profile.location}
             </p>

@@ -38,7 +38,7 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
           setTags={(newTags) =>
             setFormData((prev) => ({ ...prev, preferredCountries: newTags }))
           }
-          placeholder="Type country and press Enter..."
+          placeholder="Type and press Enter..."
         />
         <TagInput
           label="Preferred Cities"
@@ -47,12 +47,12 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
           setTags={(newTags) =>
             setFormData((prev) => ({ ...prev, preferredCities: newTags }))
           }
-          placeholder="Type city and press Enter..."
+          placeholder="Type and press Enter..."
         />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <CustomCheckbox
+        {/* <CustomCheckbox
           checked={formData.isRemote}
           onChange={() => handleInputChange('isRemote', !formData.isRemote)}
           color="blue"
@@ -63,9 +63,9 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
               Only consider remote opportunities
             </div>
           </div>
-        </CustomCheckbox>
+        </CustomCheckbox> */}
 
-        <div className="group">
+        {/* <div className="group">
           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
             Willingness to Relocate
           </label>
@@ -82,7 +82,7 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
             <option value="very-willing"> Very willing to relocate</option>
             <option value="seeking"> Actively seeking relocation</option>
           </select>
-        </div>
+        </div> */}
       </div>
     </div>
   );
