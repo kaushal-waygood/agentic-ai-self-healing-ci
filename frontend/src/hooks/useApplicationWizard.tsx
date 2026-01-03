@@ -1280,28 +1280,48 @@ export const useApplicationWizard = () => {
   }, []);
 
   const handleGenerate = useCallback(async () => {
-    // reset any prior rate-limit state
+    if (!jobContext || !cvContext) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Information',
+        description: 'Job or CV context is missing.',
+      });
+      navigateToStep('job');
+      return;
+    }
+
     setRateLimited(false);
     setRateLimitMessage(null);
-
     setIsLoading(true);
     navigateToStep('generate');
+
     try {
       const formData = new FormData();
 
-      // if (jobContext.jobId) formData.append('jobId', jobContext.jobId);
-      else {
+      // ---------------------------
+      // JOB CONTEXT
+      // ---------------------------
+      if (jobContext.jobId) {
+        formData.append('jobId', jobContext.jobId);
+      } else {
         formData.append('jobTitle', jobContext.jobTitle);
         formData.append('companyName', jobContext.companyName || '');
+
         const slug = searchParams.get('slug');
         if (slug) {
           const response = await apiInstance.get(`/jobs/find/${slug}`);
-          formData.append('jobDescription', response.data.description);
+          formData.append(
+            'jobDescription',
+            response.data?.job?.description || '',
+          );
         } else {
           formData.append('jobDescription', jobContext.jobDescription || '');
         }
       }
 
+      // ---------------------------
+      // CV CONTEXT
+      // ---------------------------
       if (cvContext.mode === 'profile') {
         formData.append('useProfile', 'true');
       } else if (
@@ -1318,16 +1338,19 @@ export const useApplicationWizard = () => {
         formData.append('useProfile', 'false');
       }
 
-      if (clContext) {
-        if (clContext.mode === 'saved' && typeof clContext.value === 'string')
-          formData.append('savedCoverLetterId', clContext.value);
-        else if (clContext.mode === 'paste' && clContext.value)
-          formData.append('coverLetterText', clContext.value as string);
+      // ---------------------------
+      // COVER LETTER CONTEXT
+      // ---------------------------
+      if (clContext?.mode === 'saved' && typeof clContext.value === 'string') {
+        formData.append('savedCoverLetterId', clContext.value);
+      } else if (clContext?.mode === 'paste' && clContext.value) {
+        formData.append('coverLetterText', clContext.value);
       }
 
-      // optional final touch
+      // ---------------------------
+      // META
+      // ---------------------------
       formData.append('finalTouch', 'Tailor for ATS optimization');
-
       formData.append('flag', 'web');
 
       const response = await apiInstance.post(
@@ -1345,24 +1368,26 @@ export const useApplicationWizard = () => {
 
       toast({
         title: 'Success!',
-        description: 'Your tailored documents are ready for review.',
+        description: 'Your tailored documents are ready.',
       });
 
       navigateToStep('result');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Tailor Error:', error);
+
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
         description:
-          (error as any).response?.data?.message ||
-          'Failed to generate application. Please try again.',
+          error?.response?.data?.message || 'Failed to generate application.',
       });
+
+      navigateToStep('cl');
+    } finally {
       setIsLoading(false);
       setLoadingMessage('');
-      navigateToStep('cl');
     }
-  }, [cvContext, jobContext, clContext, navigateToStep, toast, searchParams]);
+  }, [jobContext, cvContext, clContext, navigateToStep, toast, searchParams]);
 
   const handleCVFileUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
