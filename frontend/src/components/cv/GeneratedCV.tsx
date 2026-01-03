@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Save,
@@ -16,11 +14,12 @@ import {
 } from 'lucide-react';
 
 import EditableMaterial from '../application/editable-material';
-import { Input } from '../ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
+} from '@radix-ui/react-alert-dialog';
+import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -40,10 +39,9 @@ const GeneratedCV = ({
   cvNameForSavingInput,
   setCvNameForSavingInput,
   confirmSaveNamedCv,
-}) => {
+}: any) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
@@ -51,30 +49,19 @@ const GeneratedCV = ({
   const cvData = generatedCvOutput;
 
   useEffect(() => {
-    if (!generatedCvOutput) return;
+    if (cvData && cvData.cv) {
+      setEditableContent(cvData.cv);
+    }
+  }, [cvData]);
 
-    setEditableContent(generatedCvOutput.cv || '');
-    setSelectedTemplate(generatedCvOutput.template || 'classic');
-  }, [generatedCvOutput]);
+  const handleEditToggle = () => {
+    if (isEditing) {
+      setEditableContent(cvData.cv);
+    }
+    setIsEditing(!isEditing);
+  };
 
-  // ---------------------------------------------
-  // Final HTML = TEMPLATE CSS + CONTENT
-  // ---------------------------------------------
-  const finalHtml = useMemo(() => {
-    const templateCss = CV_TEMPLATES[selectedTemplate] || CV_TEMPLATES.classic;
-
-    return `
-      ${templateCss}
-      <div class="container">
-        ${editableContent}
-      </div>
-    `;
-  }, [selectedTemplate, editableContent]);
-
-  // ---------------------------------------------
-  // Download handler
-  // ---------------------------------------------
-  const handleDownload = async (format: 'pdf' | 'docx') => {
+  const handleDownload = async (format) => {
     const setLoading =
       format === 'pdf' ? setIsDownloadingPdf : setIsDownloadingDocx;
     setLoading(true);
@@ -89,37 +76,48 @@ const GeneratedCV = ({
       const response = await axios.post(
         endpoint,
         {
-          html: finalHtml,
+          html: editableContent,
           title: 'Generated_CV',
         },
-        { responseType: 'blob' },
+        {
+          responseType: 'blob',
+        },
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `CareerPilot_CV.${format}`;
+
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `CareerPilot_Generated_CV.${format}`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (filenameMatch && filenameMatch.length === 2) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Download failed:', err);
+    } catch (error) {
+      console.error(`Error downloading ${format}:`, error);
+      alert(
+        `Failed to download ${format.toUpperCase()}. Please check the console for details.`,
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------------------------------------
-  // Save handler (persist template + content)
-  // ---------------------------------------------
   const onSave = () => {
-    if (isEditing) setIsEditing(false);
+    if (isEditing) {
+      setIsEditing(false);
+    }
 
-    handleInitiateSave({
-      html: editableContent,
-      template: selectedTemplate,
-    });
+    handleInitiateSave(editableContent);
   };
 
   if (!generatedCvOutput) {
@@ -135,7 +133,7 @@ const GeneratedCV = ({
   const [selectedTemplate, setSelectedTemplate] = useState(resumeTemplates[0]);
 
   return (
-    <div className="min-h-screen p-3">
+    <div className="min-h-screen p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
         {/* Main CV Content */}
         <div className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-lg overflow-hidden">
@@ -224,7 +222,6 @@ const GeneratedCV = ({
         </div>
       </div>
 
-      {/* Naming Dialog */}
       {isNamingDialogDisplayed && (
         <AlertDialog
           open={isNamingDialogDisplayed}
@@ -234,17 +231,15 @@ const GeneratedCV = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Name Your CV</AlertDialogTitle>
               <AlertDialogDescription>
-                Give this version a clear name.
+                Give this version a unique name. E.g., "CV for Google PM Role".
               </AlertDialogDescription>
             </AlertDialogHeader>
-
             <Input
+              placeholder="Enter CV Name"
               value={cvNameForSavingInput}
               onChange={(e) => setCvNameForSavingInput(e.target.value)}
-              placeholder="e.g. CV for Backend Engineer Role"
               className="my-4"
             />
-
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmSaveNamedCv}>

@@ -202,6 +202,7 @@ export default function JobsPage() {
                   <JobCard
                     key={job._id || job.jobId}
                     job={job}
+                    id={job._id || job.jobId}
                     isActive={selectedJob?._id === job._id}
                     onClick={() => handleCardClick(job)}
                   />
