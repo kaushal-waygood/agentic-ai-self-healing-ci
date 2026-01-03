@@ -27,33 +27,10 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { Input } from '../ui/input';
-import TemplateSidebar from '../application/applications/TemplateSidebar';
-export const resumeTemplates = [
-  {
-    id: 'classic',
-    name: 'Classic',
-    thumbnail: '/templates/classic.png',
-    className: 'resume-classic',
-  },
-  {
-    id: 'modern',
-    name: 'Modern',
-    thumbnail: '/templates/modern.png',
-    className: 'resume-modern',
-  },
-  {
-    id: 'minimal',
-    name: 'Minimal',
-    thumbnail: '/templates/minimal.png',
-    className: 'resume-minimal',
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    thumbnail: '/templates/professional.png',
-    className: 'resume-professional',
-  },
-];
+import TemplateSidebar, {
+  resumeTemplates,
+} from '../application/applications/TemplateSidebar';
+
 const GeneratedCV = ({
   generatedCvOutput = null,
   handleInitiateSave,
@@ -147,8 +124,6 @@ const GeneratedCV = ({
   const atsScore = cvData?.atsScore || cvData?.ats || 0;
   const cvContent = cvData?.cv;
 
-  // src/constants/resumeTemplates.ts
-
   const [selectedTemplate, setSelectedTemplate] = useState(resumeTemplates[0]);
 
   return (
@@ -192,9 +167,9 @@ const GeneratedCV = ({
             //     type="resume"
             //   />
             // </div>
-            <div className="flex h-[calc(100vh-140px)] relative">
+            <div className="flex relative ">
               {/* Desktop Sidebar */}
-              <div className="hidden lg:block">
+              <div className="hidden h-[calc(100vh-140px)] lg:relative lg:flex lg:flex-shrink-0">
                 <TemplateSidebar
                   activeTemplate={selectedTemplate}
                   onSelect={setSelectedTemplate}
@@ -202,14 +177,14 @@ const GeneratedCV = ({
               </div>
 
               {/* Resume Content */}
-              <div className="flex-1 overflow-y-auto p-2 md:p-4">
+              <div className="flex-1 p-2 md:p-4">
                 <div className={selectedTemplate.className}>
                   {/* Mobile template toggle */}
                   <div className="lg:hidden flex justify-end mb-2">
                     <button
                       onClick={() => setIsTemplateOpen(true)}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg
-      bg-primary text-white text-sm font-medium"
+                         bg-primary text-white text-sm font-medium"
                     >
                       <Sparkles className="w-4 h-4" />
                       Templates

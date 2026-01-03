@@ -783,26 +783,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
       <div className="flex items-center gap-2 justify-end mb-3">
         <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200 shadow-sm">
-          {matchScore && !isLoadingScore && (
-            <button
-              onClick={() => {
-                setActiveView('match');
-                setOpenCard(null);
-              }}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg
-          text-sm font-semibold transition-all duration-200
-          ${
-            activeView === 'match'
-              ? 'bg-white text-purple-700 shadow'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
-          }`}
-            >
-              <Star className="w-4 h-4" />
-              <span>Match Score :</span>
-              <span className="text-xs font-bold">{matchScore.matchScore}</span>
-            </button>
-          )}
-
           {atsScore?.atsScore && (
             <button
               onClick={() => {
@@ -820,6 +800,26 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               <Zap className="w-4 h-4" />
               <span>ATS Score :</span>
               <span className="text-xs font-bold">{atsScore.atsScore}</span>
+            </button>
+          )}
+
+          {matchScore && !isLoadingScore && (
+            <button
+              onClick={() => {
+                setActiveView('match');
+                setOpenCard(null);
+              }}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg
+          text-sm font-semibold transition-all duration-200
+          ${
+            activeView === 'match'
+              ? 'bg-white text-purple-700 shadow'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+          }`}
+            >
+              <Star className="w-4 h-4" />
+              <span>Match Score :</span>
+              <span className="text-xs font-bold">{matchScore.matchScore}</span>
             </button>
           )}
         </div>
