@@ -409,7 +409,7 @@ export default function DocumentsPage() {
         {/* ✅ Stat Tabs (interactive with params) */}
         <div className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <StatCard
-            label="CVs"
+            label="Curiculums Vitae"
             value={stats.cvsCount}
             icon={FileText}
             color="from-blue-500 to-blue-600"
@@ -425,7 +425,7 @@ export default function DocumentsPage() {
             onClick={() => setActiveTab('cover-letters')}
           />
           <StatCard
-            label="Applications"
+            label="Tailored Applications "
             value={stats.tailoredApplicationsCount}
             icon={Send}
             color="from-green-500 to-emerald-500"

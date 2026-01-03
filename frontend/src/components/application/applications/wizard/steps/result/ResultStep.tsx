@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+
 import {
   ArrowLeft,
   Save,
@@ -26,47 +26,9 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import TemplateSidebar from '../../../TemplateSidebar';
 
-const planTierOrder = { free: 0, plus: 1, pro: 2 };
-const mockUserProfile = {
-  organizationId: 'org1',
-  currentPlanId: 'free',
-  personalPlanId: 'plus',
-  role: 'OrgMember',
-};
-const mockOrganizations = [{ id: 'org1', planId: 'pro' }];
 const cn = (...classes: string[]) => classes.filter(Boolean).join(' ');
-const useToast = () => ({
-  toast: ({
-    title,
-    description,
-    variant,
-  }: {
-    title: string;
-    description?: string;
-    variant?: string;
-  }) => {
-    console.log('Toast:', title, description, variant);
-  },
-});
-
-// --- MOCK/PLACEHOLDER UI COMPONENTS ---
-const Card = ({
-  className,
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) => (
-  <div className={cn('bg-white border rounded-lg', className)}>{children}</div>
-);
-const CardContent = ({
-  className,
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) => <div className={cn('p-4', className)}>{children}</div>;
 
 const InternalEditableMaterialButton = ({
   variant,
@@ -98,9 +60,6 @@ const InternalEditableMaterialButton = ({
     {children}
   </button>
 );
-const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-  <textarea {...props} />
-);
 
 interface ResultStepProps {
   jobContext: any;
@@ -115,6 +74,33 @@ interface ResultStepProps {
   handleStartNew: () => void;
   handleSaveAndFinish: () => void;
 }
+
+export const resumeTemplates = [
+  {
+    id: 'classic',
+    name: 'Classic',
+    thumbnail: '/templates/classic.png',
+    className: 'resume-classic',
+  },
+  {
+    id: 'modern',
+    name: 'Modern',
+    thumbnail: '/templates/modern.png',
+    className: 'resume-modern',
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    thumbnail: '/templates/minimal.png',
+    className: 'resume-minimal',
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    thumbnail: '/templates/professional.png',
+    className: 'resume-professional',
+  },
+];
 
 // --- MAIN ResultStep COMPONENT ---
 const ResultStep = ({
@@ -137,11 +123,7 @@ const ResultStep = ({
   const { user } = useSelector((state: RootState) => state.auth);
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'cv' | 'cl' | 'email' | 'job'>(
-    defaultTab || 'job',
-  );
-
-  console.log('context', jobContext);
+  const [selectedTemplate, setSelectedTemplate] = useState(resumeTemplates[0]);
   const CustomButton = ({
     variant,
     onClick,
@@ -282,14 +264,24 @@ const ResultStep = ({
                 </p>
               </div>
 
-              <div className="h-64 overflow-y-auto p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
+              {/* <div className="h-64 overflow-y-auto p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
                 <div
                   className="prose max-w-none text-slate-700"
-                  dangerouslySetInnerHTML={{
-                    __html: jobContext.jobDescription,
-                  }}
+                  // dangerouslySetInnerHTML={{
+                  //   __html: jobContext.jobDescription,
+                  // }}
                 />
-              </div>
+                <p>{jobContext.jobDescription}</p>
+              </div> */}
+
+              <p className="text-sm leading-relaxed">
+                {jobContext.jobDescription.split('\n').map((line, i) => (
+                  <span key={i}>
+                    {line}
+                    <br />
+                  </span>
+                ))}
+              </p>
             </div>
           </div>
         )}
@@ -311,14 +303,23 @@ const ResultStep = ({
               </p>
             </div>
 
-            <div className="">
-              <EditableMaterial
-                editorId="cv-editor"
-                title="CV Content"
-                content={refinedCv}
-                setContent={setRefinedCv}
-                isHtml={true}
-              />
+            <div className="flex relative">
+              {/* Desktop Sidebar */}
+              <div className="hidden h-[calc(100vh-140px)] lg:relative lg:flex lg:flex-shrink-0">
+                <TemplateSidebar
+                  activeTemplate={selectedTemplate}
+                  onSelect={setSelectedTemplate}
+                />
+              </div>
+              <div className="flex-1 overflow-y-auto p-2 md:p-4">
+                <EditableMaterial
+                  editorId="cv-editor"
+                  title="CV Content"
+                  content={refinedCv}
+                  setContent={setRefinedCv}
+                  isHtml={true}
+                />
+              </div>
             </div>
           </div>
         )}
