@@ -56,11 +56,11 @@ async function startHttpServer() {
 
   const shutdown = async (signal) => {
     console.log(`${signal} received. Shutting down.`);
-    try {
-      // await stopWorkerSupervisor();
-    } catch (e) {
-      console.error('[WorkerSupervisor] stop failed:', e?.message || e);
-    }
+    // try {
+    //   await stopWorkerSupervisor();
+    // } catch (e) {
+    //   console.error('[WorkerSupervisor] stop failed:', e?.message || e);
+    // }
     io.close();
     server.close(() => process.exit(0));
   };

@@ -37,6 +37,7 @@ import {
   renameHtmlCV,
   renameCoverLetter,
   calculateATS,
+  changeTempateCV,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 import {
@@ -260,6 +261,13 @@ router.post(
   authMiddleware,
   isUserOrUniStudent,
   calculateJobMatchScore,
+);
+
+router.post(
+  '/change/template',
+  authMiddleware,
+  isUserOrUniStudent,
+  changeTempateCV,
 );
 
 router.post('/ats-score', authMiddleware, isUserOrUniStudent, calculateATS);

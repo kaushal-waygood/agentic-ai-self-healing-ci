@@ -8,6 +8,22 @@ const schema = new Schema(
 
     status: { type: String, enum: ['pending', 'completed', 'failed'] },
     flag: { type: String, enum: ['web', 'app', 'extension'] },
+    template: {
+      type: String,
+      enum: [
+        'classic',
+        'modern',
+        'minimal',
+        'executive',
+        'compact',
+        'academic',
+        'tech',
+        'government',
+        'sales',
+        'legal',
+        'student',
+      ],
+    },
 
     cvTitle: String,
     jobContextString: String,

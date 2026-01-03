@@ -12,7 +12,7 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+
 import EditableMaterial from '../application/editable-material';
 import {
   AlertDialog,
@@ -27,22 +27,9 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { Input } from '../ui/input';
-
-// Mock data for initial rendering
-const mockData = {
-  atsScore: 92,
-  cv: `<h2>John Doe</h2>
-       <p><strong>Senior Software Engineer</strong></p>
-       <p>Email: john@example.com | Phone: +1234567890</p>
-       <h3>Professional Summary</h3>
-       <p>Experienced software engineer with 8+ years in full-stack development, specializing in React, Node.js, and cloud technologies.</p>
-       <h3>Experience</h3>
-       <p><strong>Senior Software Engineer</strong> - Tech Corp (2020-Present)</p>
-       <ul>
-         <li>Led development of microservices architecture</li>
-         <li>Mentored junior developers and conducted code reviews</li>
-       </ul>`,
-};
+import TemplateSidebar, {
+  resumeTemplates,
+} from '../application/applications/TemplateSidebar';
 
 const GeneratedCV = ({
   generatedCvOutput = null,
@@ -57,8 +44,9 @@ const GeneratedCV = ({
   const [editableContent, setEditableContent] = useState('');
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
 
-  const cvData = generatedCvOutput || mockData;
+  const cvData = generatedCvOutput;
 
   useEffect(() => {
     if (cvData && cvData.cv) {
@@ -136,30 +124,11 @@ const GeneratedCV = ({
   const atsScore = cvData?.atsScore || cvData?.ats || 0;
   const cvContent = cvData?.cv;
 
+  const [selectedTemplate, setSelectedTemplate] = useState(resumeTemplates[0]);
+
   return (
     <div className="min-h-screen p-2 md:p-3 lg:p-4">
       <div className="max-w-7xl mx-auto">
-        {/* ATS Score Header */}
-        {/* <div className="mb-3 md:mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-lg">
-          <div className="flex items-center gap-2 ">
-            <div className="w-12 h-12  rounded-lg flex items-center justify-center flex-shrink-0">
-              <Award className="h-7 w-7 text-white" />
-            </div>
-
-            <div className="flex-1">
-              <h2 className="text-xl text-white bg-transparent font-bold">
-                {cvData ? 'CV Generated Successfully!' : 'Loading CV...'}
-              </h2>
-            </div>
-            <div className="text-center p-2 rounded-lg">
-              <div className={`text-4xl font-bold bg-clip-text`}>
-                {atsScore}
-              </div>
-              <div className="text-xs">ATS Score</div>
-            </div>
-          </div>
-        </div> */}
-
         {/* Main CV Content */}
         <div className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-lg overflow-hidden">
           {/* header  */}
@@ -182,21 +151,62 @@ const GeneratedCV = ({
           </div>
           {/* content  */}
           {cvData ? (
-            <div className="p-2 md:p-3 lg:p-4">
-              <EditableMaterial
-                isEditing={isEditing}
-                content={
-                  typeof cvContent.cv === 'object' ? cvContent.cv : cvContent
-                }
-                title={'CV Content'}
-                isHtml={true}
-                setContent={setEditableContent}
-                handleEditToggle={handleEditToggle}
-                handleDownload={handleDownload}
-                isDownloadingPdf={isDownloadingPdf}
-                isDownloadingDocx={isDownloadingDocx}
-                type="resume"
-              />
+            // <div className="p-2 md:p-3 lg:p-4">
+            //   <EditableMaterial
+            //     isEditing={isEditing}
+            //     content={
+            //       typeof cvContent.cv === 'object' ? cvContent.cv : cvContent
+            //     }
+            //     title={'CV Content'}
+            //     isHtml={true}
+            //     setContent={setEditableContent}
+            //     handleEditToggle={handleEditToggle}
+            //     handleDownload={handleDownload}
+            //     isDownloadingPdf={isDownloadingPdf}
+            //     isDownloadingDocx={isDownloadingDocx}
+            //     type="resume"
+            //   />
+            // </div>
+            <div className="flex h-[calc(100vh-140px)] relative ">
+              {/* Desktop Sidebar */}
+              <div className="hidden lg:relative lg:flex lg:flex-shrink-0">
+                <TemplateSidebar
+                  activeTemplate={selectedTemplate}
+                  onSelect={setSelectedTemplate}
+                />
+              </div>
+
+              {/* Resume Content */}
+              <div className="flex-1 overflow-y-auto p-2 md:p-4">
+                <div className={selectedTemplate.className}>
+                  {/* Mobile template toggle */}
+                  <div className="lg:hidden flex justify-end mb-2">
+                    <button
+                      onClick={() => setIsTemplateOpen(true)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg
+                         bg-primary text-white text-sm font-medium"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Templates
+                    </button>
+                  </div>
+
+                  <EditableMaterial
+                    isEditing={isEditing}
+                    content={
+                      typeof cvContent === 'object' ? cvContent.cv : cvContent
+                    }
+                    title="CV Content"
+                    isHtml
+                    setContent={setEditableContent}
+                    handleEditToggle={handleEditToggle}
+                    handleDownload={handleDownload}
+                    isDownloadingPdf={isDownloadingPdf}
+                    isDownloadingDocx={isDownloadingDocx}
+                    type="resume"
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div className="p-8 flex justify-center items-center">
@@ -204,37 +214,6 @@ const GeneratedCV = ({
             </div>
           )}
         </div>
-
-        {/* Action Footer */}
-        {/* {cvData && (
-          <div className="mt-6 md:mt-8 bg-white/60 backdrop-blur-xl border border-gray-200 rounded-lg p-2 md:p-3">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6">
-              <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <div className="text-sm md:text-base font-semibold text-gray-900">
-                    Ready to apply?
-                  </div>
-                  <div className="text-xs md:text-sm text-gray-600">
-                    Your CV is optimized and ready to impress employers
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                <button className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
-                  <Clock className="h-4 w-4" />
-                  <span>Save for Later</span>
-                </button>
-                <button className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg transition-all text-sm font-medium">
-                  <Award className="h-4 w-4" />
-                  <span>Start Applying</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )} */}
       </div>
 
       {isNamingDialogDisplayed && (
@@ -263,6 +242,30 @@ const GeneratedCV = ({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {isTemplateOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 lg:hidden">
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl
+      max-h-[80vh] overflow-y-auto p-4 animate-slide-up"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm">Choose Template</h3>
+              <button onClick={() => setIsTemplateOpen(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <TemplateSidebar
+              activeTemplate={selectedTemplate}
+              onSelect={(template) => {
+                setSelectedTemplate(template);
+                setIsTemplateOpen(false);
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

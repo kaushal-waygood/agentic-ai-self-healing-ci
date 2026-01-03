@@ -5,11 +5,12 @@ import {
   generateCoverLetterPrompts,
   generateEmailPrompt,
 } from './generateTailored.js';
-import { Student } from '../models/student.model.js';
+// Removed unused Student import
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
+import { StudentApplication } from '../models/students/studentApplication.model.js';
 
 // Cleanup helpers
 const processCVResponse = (response) =>
@@ -19,12 +20,19 @@ const processCoverLetterResponse = (response) =>
 const processEmailResponse = (response) =>
   response.replace(/```html|```/g, '').trim();
 
-const genAIWithRetry = async (prompt, retries = 3, delay = 1000) => {
+const genAIWithRetry = async (
+  prompt,
+  endpoint,
+  userId,
+  retries = 3,
+  delay = 1000,
+) => {
   for (let i = 0; i < retries; i++) {
     try {
+      // Corrected arguments passed to genAI
       return await genAI(prompt, {
-        userId: req.user?._id,
-        endpoint: req.endpoint,
+        userId: userId,
+        endpoint: endpoint,
       });
     } catch (error) {
       if (i === retries - 1) throw error;
@@ -53,49 +61,49 @@ export const processTailoredApplication = async (
   applicationId,
   applicationData,
   io,
+  endpoint,
 ) => {
   try {
     const data = normalizeApplicationData(applicationData);
 
     // 1) CV
-    const cvResponse = await genAIWithRetry(generateCVPrompts(data));
+    const cvResponse = await genAIWithRetry(
+      generateCVPrompts(data),
+      endpoint,
+      userId,
+    );
     const tailoredCV = processCVResponse(cvResponse);
 
     // 2) Cover Letter
     const coverLetterResponse = await genAIWithRetry(
       generateCoverLetterPrompts(data),
+      endpoint,
+      userId,
     );
     const tailoredCoverLetter = processCoverLetterResponse(coverLetterResponse);
 
     // 3) Email
-    const emailResponse = await genAIWithRetry(generateEmailPrompt(data));
+    const emailResponse = await genAIWithRetry(
+      generateEmailPrompt(data),
+      endpoint,
+      userId,
+    );
     const applicationEmail = processEmailResponse(emailResponse);
 
-    // Update application subdoc
-    const updateResult = await Student.updateOne(
-      {
-        _id: userId,
-        'tailoredApplications._id': applicationId,
-      },
+    // ✅ FIX: Update the EXISTING application instead of creating a new one
+    await StudentApplication.updateOne(
+      { _id: applicationId },
       {
         $set: {
-          'tailoredApplications.$.status': 'completed',
-          'tailoredApplications.$.tailoredCV': tailoredCV,
-          'tailoredApplications.$.tailoredCoverLetter': tailoredCoverLetter,
-          'tailoredApplications.$.applicationEmail': applicationEmail,
-          'tailoredApplications.$.completedAt': new Date(),
+          tailoredCV: tailoredCV,
+          tailoredCoverLetter: tailoredCoverLetter,
+          emailContent: applicationEmail, // Ensure field name matches schema (emailContent vs applicationEmail)
+          status: 'completed', // Matches worker status flow
+          completedAt: new Date(),
         },
-        $inc: { 'usageCounters.tailoredApplications': 1 },
       },
     );
 
-    if (updateResult.matchedCount === 0) {
-      throw new Error(
-        `No application found with ID: ${applicationId} for user: ${userId}`,
-      );
-    }
-
-    // Notify (null-safe)
     try {
       if (io) {
         await sendRealTimeUserNotification(
@@ -123,16 +131,15 @@ export const processTailoredApplication = async (
       error?.message || 'An unknown error occurred during generation.';
 
     try {
-      await Student.updateOne(
+      await StudentApplication.updateOne(
         {
-          _id: userId,
-          'tailoredApplications._id': applicationId,
+          _id: applicationId,
         },
         {
           $set: {
-            'tailoredApplications.$.status': 'failed',
-            'tailoredApplications.$.error': errorMessage,
-            'tailoredApplications.$.completedAt': new Date(),
+            status: 'failed',
+            error: errorMessage, // Ensure schema has 'error' field if you want to save this
+            completedAt: new Date(),
           },
         },
       );
@@ -143,7 +150,6 @@ export const processTailoredApplication = async (
       );
     }
 
-    // Notify (null-safe)
     try {
       if (io) {
         await sendRealTimeUserNotification(

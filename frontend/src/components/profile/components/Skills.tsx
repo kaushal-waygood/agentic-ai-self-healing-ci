@@ -35,7 +35,9 @@ const Skills = () => {
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <Code className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-2xl font-extrabold text-gray-800">Skills</h3>
+          <h3 className="text-xl font-extrabold text-gray-800">
+            Skills ({skills.length}){' '}
+          </h3>
         </div>
 
         <button
@@ -49,37 +51,88 @@ const Skills = () => {
       </div>
 
       {/* Skills Grid */}
-      <div className="p-2  overflow-y-auto">
+      <div className="p-2 max-h-[70vh]  overflow-y-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {skills.length > 0 ? (
-            skills.map((skill: any) => (
+            skills.map((skill: any, index) => (
+              // <div
+              //   key={skill._id}
+              //   className="bg-white rounded-lg p-4  transition-all border border-gray-200 flex flex-col justify-between"
+              // >
+              //   <div className="flex flex-wrap justify-between items-start ">
+              //     <div className="">
+              //       <h4 className="text-base font-bold text-gray-800 break-all line-clamp-1">
+              //         <span className="text-sm font-semibold text-gray-500 shrink-0 mr-1">
+              //           {index + 1}.
+              //         </span>
+              //         {skill.skill}
+              //       </h4>
+              //     </div>
+
+              //     <div className="flex justify-between gap-2">
+              //       <span
+              //         className={`mt-1 inline-block  rounded-lg p-1 text-xs font-semibold ${getSkillBadgeColor(
+              //           skill.level,
+              //         )}`}
+              //       >
+              //         {skill.level}
+              //       </span>
+              //       <select
+              //         value={skill.level}
+              //         onChange={(e) =>
+              //           updateSkill(skill._id, {
+              //             level: e.target.value,
+              //           })
+              //         }
+              //         className="text-gray-600 border rounded border-gray-300   text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              //       >
+              //         <option value="BEGINNER">Beginner</option>
+              //         <option value="INTERMEDIATE">Intermediate</option>
+              //         <option value="EXPERT">Expert</option>
+              //       </select>
+
+              //       <button
+              //         onClick={() => setDeleteId(skill._id)}
+              //         className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0 p-2 rounded-full transition-colors duration-200"
+              //       >
+              //         <Trash2 className="h-4 w-4" />
+              //       </button>
+              //     </div>
+              //   </div>
+              // </div>
+
               <div
                 key={skill._id}
-                className="bg-white rounded-lg p-4  transition-all border border-gray-200 flex flex-col justify-between"
+                className="bg-white rounded-lg p-4 border border-gray-200 flex flex-col gap-3"
               >
-                <div className="flex flex-wrap justify-between items-start gap-2">
-                  <div className="">
-                    <h4 className="text-base font-bold text-gray-800 break-all ">
-                      {skill.skill}
-                    </h4>
-                    <span
-                      className={`mt-1 inline-block  rounded-lg p-1 text-xs font-semibold ${getSkillBadgeColor(
-                        skill.level,
-                      )}`}
-                    >
-                      {skill.level}
-                    </span>
-                  </div>
+                {/* First line: Skill title */}
+                <h4 className="text-base font-bold text-gray-800 line-clamp-1">
+                  <span className="text-sm font-semibold text-gray-500 mr-1">
+                    {index + 1}.
+                  </span>
+                  {skill.skill}
+                </h4>
 
-                  <div className="flex  items-center gap-2">
+                {/* Second line: CENTERED & BETWEEN */}
+                <div className="flex items-center flex-wrap justify-between ">
+                  {/* Left side */}
+                  <span
+                    className={`rounded-lg px-2 py-1 text-xs font-semibold ${getSkillBadgeColor(
+                      skill.level,
+                    )}`}
+                  >
+                    {skill.level}
+                  </span>
+
+                  {/* Right side */}
+                  <div className="flex items-center gap-2">
                     <select
                       value={skill.level}
                       onChange={(e) =>
-                        updateSkill(skill._id, {
-                          level: e.target.value,
-                        })
+                        updateSkill(skill._id, { level: e.target.value })
                       }
-                      className="text-gray-600 rounded border-gray-300  text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="text-gray-600 border rounded border-gray-300 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-blue-400"
                     >
                       <option value="BEGINNER">Beginner</option>
                       <option value="INTERMEDIATE">Intermediate</option>
@@ -88,7 +141,7 @@ const Skills = () => {
 
                     <button
                       onClick={() => setDeleteId(skill._id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0 p-2 rounded-full transition-colors duration-200"
+                      className="text-red-600 border border-red-300 hover:bg-red-50 h-9 w-9 rounded-md flex items-center justify-center"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

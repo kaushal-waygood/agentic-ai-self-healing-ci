@@ -39,10 +39,8 @@ const InviteContent = () => {
         token,
       });
 
-      console.log('Invite accepted:', res);
       setStatus('success');
 
-      // Redirect after 2 seconds
       setTimeout(() => {
         router.push('/dashboard'); // Change this to your desired path
       }, 2000);

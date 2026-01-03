@@ -1,4 +1,3 @@
-import { savedStudentResume } from '@/services/api/ai';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 type Resume = {

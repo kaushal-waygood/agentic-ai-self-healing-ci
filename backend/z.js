@@ -148,15 +148,3 @@
 //   console.error('Error:', err);
 // });
 
-import dotenv from 'dotenv';
-import jwt from 'jsonwebtoken';
-
-dotenv.config();
-
-const token =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OTA4NTJlNDY4MmRmOTdlNTliOWNmZjIiLCJlbWFpbCI6ImhlbGxvQGdtYWlsLmNvbSIsInJvbGUiOiJ1c2VyIiwiYWNjb3VudFR5cGUiOiJ1c2VyIiwiaWF0IjoxNzY1MDA2OTQ3LCJleHAiOjE3NjU2MTE3NDd9.H_6zQ_hwjJUx4Xyz0bDE8H3EqQUnaeP6fb0JcJFcBdY';
-const secret = process.env.ACCESS_TOKEN_SECRET;
-
-console.log('SECRET:', secret);
-const decoded = jwt.verify(token, secret);
-console.log('DECODED:', decoded);
