@@ -568,22 +568,21 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   </Link>
                 </Button>
               )}
-              {/* <Button
-                // onClick={handleGetATSScore}
+              <Button
+                onClick={handleGetATSScore}
                 className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
               >
                 <div className="relative flex items-center justify-center gap-2">
                   <Sparkles className="w-5 h-5" />
                   <span>AI ATS Score</span>
                 </div>
-              </Button> */}
-              <Button
+              </Button>
+              {/* <Button
                 disabled
                 className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold
   bg-gradient-to-r from-blue-500 to-orange-500 text-white
   opacity-90 cursor-not-allowed"
               >
-                {/* Small badge */}
                 <span
                   className="absolute -top-1.5 -right-1 
     rounded-full bg-black/80 px-1.5 py-0.5
@@ -597,7 +596,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   <Sparkles className="w-5 h-5" />
                   <span>AI ATS Score</span>
                 </div>
-              </Button>
+              </Button> */}
 
               {/* Match Score */}
               {!scoreError && !matchScore && !isLoadingScore && (

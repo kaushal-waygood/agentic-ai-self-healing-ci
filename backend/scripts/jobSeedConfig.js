@@ -53,5 +53,12 @@ export const UNIVERSAL_JOB_TITLES = [
   'Associate',
 ];
 
-export const COUNTRIES = ['IN', 'US'];
+export const COUNTRY_LOCATION_MAP = {
+  IN: {
+    metros: ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Pune', 'Chennai'],
+    states: ['Maharashtra', 'Karnataka', 'Delhi', 'Telangana'],
+  },
+};
+
+export const COUNTRIES = ['IN'];
 export const MAX_PAGES = 3;

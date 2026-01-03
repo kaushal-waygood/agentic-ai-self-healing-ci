@@ -36,6 +36,7 @@ export const DocumentCard = ({
   getStatusIcon,
   getStatusColor,
   formatDate,
+  docState,
 }: any) => {
   const router = useRouter();
   const [status, setStatus] = useState(item.status);

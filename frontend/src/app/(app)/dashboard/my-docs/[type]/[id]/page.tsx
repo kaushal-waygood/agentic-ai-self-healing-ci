@@ -106,8 +106,6 @@ const DocumentPage = () => {
           case 'application': {
             const app = responseData.application;
 
-            console.log('app', app);
-
             transformed = {
               type: 'application',
               jobTitle: app.jobTitle,
@@ -121,8 +119,6 @@ const DocumentPage = () => {
               coverLetter: app.tailoredCoverLetter.html || '',
               email: app.applicationEmail.html || '',
             };
-
-            console.log('transformed', transformed);
 
             setRefinedCv(transformed.cv);
             setTailoredCl(transformed.coverLetter);
