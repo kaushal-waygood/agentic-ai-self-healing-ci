@@ -180,8 +180,6 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
     handleFilterChange(resetState);
   };
 
-  console.log('locat filters', localFilters);
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl bg-white">
