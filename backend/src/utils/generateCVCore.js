@@ -15,6 +15,10 @@ import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js'; // As
 // Utils
 import { processCVGeneration } from '../utils/cv.background.js';
 import { earnCreditsForAction } from '../utils/credits.js';
+import { StudentSkill } from '../models/students/studentSkill.model.js';
+import { StudentExperience } from '../models/students/studentExperience.model.js';
+import { StudentEducation } from '../models/students/studentEducation.model.js';
+import { StudentProject } from '../models/students/studentProject.model.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,26 +45,23 @@ export const initiateCVGeneration = async (
     let studentData;
 
     if (useProfile === 'true' || useProfile === true) {
-      // Fetch Full Student Profile with populated relational data
       const student = await Student.findById(_id).lean();
       if (!student) {
         return res.status(404).json({ error: 'Student profile not found' });
       }
 
-      // Fetch relational data manually since they are in separate collections now
-      // (Assuming you have imported these models, or rely on aggregation if needed)
-      // For simplicity, we just pass what the background worker needs.
-      // If the background worker fetches these from the DB, we might just pass IDs.
-      // However, the original code serialized the data, so let's stick to that pattern
-      // but acknowledge we might need to fetch the relations if 'student' doesn't have them populated.
+      const skills = await StudentSkill.find({ student: _id }).lean();
+      const experiences = await StudentExperience.find({ student: _id }).lean();
+      const educations = await StudentEducation.find({ student: _id }).lean();
+      const projects = await StudentProject.find({ student: _id }).lean();
 
-      // If your Student model doesn't virtual populate these, you might need to query them:
-      // const skills = await StudentSkill.find({ student: _id });
-      // ... etc.
-      // For now, assuming `processCVGeneration` handles data fetching or you populate it here.
-      // Let's assume standard behavior: we send what we have.
-
-      studentData = JSON.stringify(student);
+      studentData = JSON.stringify({
+        student,
+        skills,
+        experiences,
+        educations,
+        projects,
+      });
     } else if (savedCVId) {
       if (!mongoose.Types.ObjectId.isValid(savedCVId)) {
         return res.status(400).json({ error: 'Invalid savedCVId' });

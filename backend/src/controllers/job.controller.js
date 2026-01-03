@@ -137,12 +137,16 @@ export const searchJobs = async (req, res) => {
       if (cachedRaw) {
         const cached = JSON.parse(cachedRaw);
 
+        // ✅ FIXED: Proper impression tracking
         await JobInteraction.insertMany(
           cached.jobs.map((job) => ({
-            jobId: job._id,
-            userId: req.user?._id || null,
-            query: q || null,
-            action: 'impression',
+            job: job._id,
+            user: req.user?._id || null,
+            type: 'IMPRESSION',
+            meta: {
+              query: q || null,
+              source: 'search',
+            },
           })),
           { ordered: false },
         );
@@ -290,28 +294,9 @@ export const searchJobs = async (req, res) => {
             updateOne: {
               filter: { jobId: job.jobId, origin: 'EXTERNAL' },
               update: {
-                $set: {
-                  title: job.title,
-                  description: job.description,
-                  responsibilities: job.responsibilities,
-                  qualifications: job.qualifications,
-                  company: job.company,
-                  country: job.country,
-                  logo: job.logo,
-                  location: job.location,
-                  applyMethod: job.applyMethod,
-                  isActive: true,
-                  jobTypes: job.jobTypes,
-                  experience: job.experience,
-                  salary: job.salary,
-                  remote: job.remote,
-                  jobPosted: job.jobPosted,
-                  jobPostedAt: job.jobPostedAt,
-                },
+                $set: job,
                 $addToSet: {
-                  queries: {
-                    $each: Array.isArray(job.queries) ? job.queries : [q],
-                  },
+                  queries: { $each: job.queries || [q] },
                 },
                 $setOnInsert: { slug: job.slug },
               },
@@ -329,6 +314,7 @@ export const searchJobs = async (req, res) => {
         })
           .limit(limitNum)
           .lean();
+
         totalJobs = jobs.length;
       } else {
         const locationString = [city, state, country]
@@ -343,16 +329,41 @@ export const searchJobs = async (req, res) => {
     /* ===================== 6) FINAL SORT ===================== */
     jobs = sortJobsByPostedDateDesc(jobs);
 
-    const payload = {
-      jobs,
-      totalJobs,
-      notification,
-    };
+    /* ===================== 7) AGGREGATE JOB VIEWS ===================== */
+    const jobIds = jobs.map((j) => j._id);
 
-    /* ===================== 7) CACHE WRITE ===================== */
+    const viewCounts = await JobInteraction.aggregate([
+      {
+        $match: {
+          job: { $in: jobIds },
+          type: 'VIEW',
+        },
+      },
+      {
+        $group: {
+          _id: '$job',
+          views: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const viewsMap = Object.fromEntries(
+      viewCounts.map((v) => [String(v._id), v.views]),
+    );
+
+    jobs = jobs.map((job) => ({
+      ...job,
+      jobViews: viewsMap[String(job._id)] || 0,
+    }));
+
+    /* ===================== 8) CACHE WRITE ===================== */
     try {
       if (lockAcquired) {
-        await redisClient.set(cacheKey, JSON.stringify(payload), SEARCH_TTL);
+        await redisClient.set(
+          cacheKey,
+          JSON.stringify({ jobs, totalJobs, notification }),
+          SEARCH_TTL,
+        );
       }
     } catch (e) {
       console.warn('searchJobs: cache write failed', e?.message);
@@ -360,18 +371,23 @@ export const searchJobs = async (req, res) => {
       if (lockAcquired) await redisClient.del(lockKey);
     }
 
+    /* ===================== 9) IMPRESSION TRACKING ===================== */
     await JobInteraction.insertMany(
       jobs.map((job) => ({
-        jobId: job._id,
-        userId: req.user?._id || null,
-        query: q || null,
-        action: 'impression',
+        job: job._id,
+        user: req.user?._id || null,
+        type: 'IMPRESSION',
+        meta: {
+          query: q || null,
+          source: 'search',
+        },
       })),
       { ordered: false },
     );
 
-    /* ===================== 8) RESPONSE ===================== */
+    /* ===================== 10) RESPONSE ===================== */
     const totalPages = Math.ceil((totalJobs || 0) / limitNum);
+
     return res.status(200).json({
       jobs,
       pagination: {
@@ -987,6 +1003,31 @@ export const getJobDescByJobId = async (req, res) => {
     res.status(200).json({ singleJob });
   } catch (error) {
     console.error('Error fetching job by slug:', error);
+    res.status(500).json({
+      message: 'Server Error',
+      error: config.nodeEnv === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const getJobStats = async (req, res) => {
+  try {
+    const stats = await JobInteraction.aggregate([
+      {
+        $match: {
+          type: 'VIEW',
+        },
+      },
+      {
+        $group: {
+          _id: '$job',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+    res.status(200).json({ stats });
+  } catch (error) {
+    console.error('Error fetching job stats:', error);
     res.status(500).json({
       message: 'Server Error',
       error: config.nodeEnv === 'development' ? error.message : undefined,

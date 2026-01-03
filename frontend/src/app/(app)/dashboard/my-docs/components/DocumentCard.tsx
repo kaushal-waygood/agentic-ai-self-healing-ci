@@ -11,16 +11,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import apiInstance from '@/services/api';
-import {
-  CheckCircle2,
-  Copy,
-  Download,
-  Loader2,
-  Trash2,
-  RefreshCw,
-  Edit3,
-  Eye,
-} from 'lucide-react';
+import { Download, Loader2, Trash2, RefreshCw, Edit3, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -29,23 +20,18 @@ export const DocumentCard = ({
   index,
   type,
   onDelete,
-  onCopy,
   onDownload,
-  onRename, // Add onRename prop
-  copiedId,
+  onRename,
   getStatusIcon,
   getStatusColor,
   formatDate,
-  docState,
 }: any) => {
   const router = useRouter();
   const [status, setStatus] = useState(item.status);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
-  // We need a separate loading state for the rename save action
   const [isSavingRename, setIsSavingRename] = useState(false);
 
-  // Determine if we should show processing state
   const isProcessing = status === 'pending';
   const isClickable = status === 'completed';
 
@@ -86,7 +72,6 @@ export const DocumentCard = ({
     }
   };
 
-  // Set default rename title to the displayed title
   const [renameTitle, setRenameTitle] = useState(item.title || getTitle());
 
   const getFilename = () => {
@@ -151,32 +136,26 @@ export const DocumentCard = ({
     }
   };
 
-  // Handle rename click
   const handleRenameClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    // Reset renameTitle to the current title when opening
+    e.stopPropagation();
     setRenameTitle(item.title || getTitle());
     setIsRenaming(true);
   };
 
-  // Handle the save action from the rename dialog
   const handleRenameSubmit = async () => {
     if (!renameTitle || isSavingRename) return;
 
     setIsSavingRename(true);
     try {
-      // Call the onRename prop passed from the parent component
       await onRename(item._id, renameTitle);
     } catch (error) {
       console.error('Error during rename submission:', error);
-      // You could show a toast notification here
     } finally {
       setIsSavingRename(false);
       setIsRenaming(false);
     }
   };
 
-  // Check if this document type supports renaming
   const supportsRename = type === 'cv' || type === 'coverLetter';
 
   return (
@@ -248,26 +227,6 @@ export const DocumentCard = ({
               <Edit3 className="h-4 w-4" />
             </button>
           )}
-
-          {/* <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onCopy(getContent(), item._id);
-            }}
-            disabled={!isClickable}
-            className={`p-2 transition-colors ${
-              isClickable
-                ? 'text-gray-500 hover:text-blue-600'
-                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-            }`}
-            title={isClickable ? 'Copy to clipboard' : 'Not available'}
-          >
-            {copiedId === item._id ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-          </button> */}
 
           <button
             onClick={(e) => {

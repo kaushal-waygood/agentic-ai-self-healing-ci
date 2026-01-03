@@ -7,8 +7,6 @@ import {
   Send,
   Clock,
   Trash2,
-  Download,
-  Copy,
   CheckCircle2,
   X,
   Search,
