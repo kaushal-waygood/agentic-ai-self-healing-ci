@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { Input } from '../ui/input';
+import EditorToolbar from './EditorToolbar';
 
 interface EditableMaterialProps {
   content: string;
@@ -164,6 +165,27 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       const words = text.trim().split(/\s+/).filter(Boolean);
       setWordCount(words.length);
     }
+  };
+
+  const exec = (cmd: string, value?: string) => {
+    document.execCommand(cmd, false, value);
+    editorRef.current?.focus();
+    handleInput();
+  };
+
+  const applyFontSize = (size: number) => {
+    document.execCommand('fontSize', false, '7');
+    const fonts = editorRef.current?.getElementsByTagName('font');
+    if (!fonts) return;
+
+    Array.from(fonts).forEach((font) => {
+      if (font.size === '7') {
+        font.removeAttribute('size');
+        font.style.fontSize = `${size}px`;
+      }
+    });
+
+    handleInput();
   };
 
   const handleEditToggle = async () => {
@@ -434,6 +456,23 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </h3>
         {isEditing && (
           <div className="flex items-center space-x-1 border border-gray-300 rounded-lg p-1 bg-gray-50 flex-wrap">
+            <EditorToolbar
+              onFontFamily={(font) => exec('fontName', font)}
+              onFontSize={applyFontSize}
+              onTextColor={(color) => exec('foreColor', color)}
+              onHighlight={(color) => exec('hiliteColor', color)}
+              onBold={() => formatText('bold')}
+              onItalic={() => formatText('italic')}
+              onUnderline={() => formatText('underline')}
+              onAlignLeft={() => exec('justifyLeft')}
+              onAlignCenter={() => exec('justifyCenter')}
+              onAlignRight={() => exec('justifyRight')}
+              onAlignJustify={() => exec('justifyFull')}
+              onBulletList={() => exec('insertUnorderedList')}
+              onNumberList={() => exec('insertOrderedList')}
+              onClear={() => exec('removeFormat')}
+            />
+
             <button
               onClick={() => formatText('bold')}
               className="p-2 font-bold hover:bg-gray-200 rounded"

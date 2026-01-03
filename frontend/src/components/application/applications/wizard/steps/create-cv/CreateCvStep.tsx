@@ -73,6 +73,7 @@ const SleekCvStep = ({
 
     fetchCvs();
   }, []);
+
   const getJobTitle = () => {
     if (jobId && jobDetail?.title) return jobDetail.title;
     if (mode === 'paste') return 'Pasted Job Description';

@@ -1173,14 +1173,7 @@ export const useApplicationWizard = () => {
     async (mode: CvContext['mode'], value?: string | File) => {
       if (mode === 'profile') {
         setCvContext({ mode, value: 'profile', name: 'Your Profile' });
-      }
-      // else if (value) {
-      //   const cvName = typeof value === 'string';
-      //   // ? resume?.find((r) => r._id === value)?.name || 'Saved CV'
-      //   // : value.name;
-      //   setCvContext({ mode, value, name: cvName });
-      // }
-      else if (mode === 'saved') {
+      } else if (mode === 'saved') {
         setCvContext({ mode, value: value as string, name: 'Your saved cv' });
       } else {
         return;
@@ -1287,18 +1280,6 @@ export const useApplicationWizard = () => {
   }, []);
 
   const handleGenerate = useCallback(async () => {
-    console.log('cvContext', cvContext);
-    console.log('jobContext', jobContext);
-    if (!cvContext || !jobContext) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Information',
-        description: 'Please ensure both job and CV information are provided.',
-      });
-      navigateToStep('job');
-      return;
-    }
-
     // reset any prior rate-limit state
     setRateLimited(false);
     setRateLimitMessage(null);
@@ -1308,7 +1289,7 @@ export const useApplicationWizard = () => {
     try {
       const formData = new FormData();
 
-      if (jobContext.jobId) formData.append('jobId', jobContext.jobId);
+      // if (jobContext.jobId) formData.append('jobId', jobContext.jobId);
       else {
         formData.append('jobTitle', jobContext.jobTitle);
         formData.append('companyName', jobContext.companyName || '');

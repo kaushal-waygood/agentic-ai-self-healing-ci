@@ -174,7 +174,6 @@ export default function DocumentsPage() {
     type: 'cv' | 'coverLetter',
     currentTitle: string,
   ) => {
-    console.log('Renaming document:', documentId);
     setCurrentDocument({ id: documentId, type, currentTitle });
     setNewTitle(currentTitle);
     setIsRenameDialogOpen(true);
@@ -375,6 +374,27 @@ export default function DocumentsPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+
+  const [loading, setLoading] = useState(false);
+
+  const fetchSavedCVs = async () => {
+    try {
+      setLoading(true);
+      const response = await apiInstance.get('/students/resume/saved');
+      setCvs(response.data.html || []);
+      setStats((prev) => ({
+        ...prev,
+        cvsCount: response.data.html?.length || 0,
+      }));
+
+      setCvs(response.data.html || []);
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch CVs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -600,6 +620,7 @@ const DocumentSection = ({
   type,
 }: any) => {
   const [visibleCount, setVisibleCount] = useState(10);
+  const [docState, setDocState] = useState<'generated' | 'saved'>('generated');
 
   // 1. Add state to store the search input
   const [searchTerm, setSearchTerm] = useState('');
@@ -672,6 +693,30 @@ const DocumentSection = ({
         <h2 className="text-lg md:text-2xl font-semibold text-gray-900 dark:text-white ">
           {title}
         </h2>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setDocState('generated')}
+            className={`px-4 py-2 rounded-md ${
+              docState === 'generated'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          >
+            Generated
+          </button>
+
+          <button
+            onClick={() => setDocState('saved')}
+            className={`px-4 py-2 rounded-md ${
+              docState === 'saved'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          >
+            Saved
+          </button>
+        </div>
 
         <div className="flex items-center">
           {/* Input + X inside */}
@@ -764,6 +809,7 @@ const DocumentSection = ({
                 getStatusColor={getStatusColor}
                 formatDate={formatDate}
                 onRename={handleRenameDocument}
+                docState={docState}
               />
             ))}
           {/* Show "See More" only if not all items are visible */}

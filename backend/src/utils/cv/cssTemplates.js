@@ -1,11 +1,4 @@
-// src/utils/cvTemplate.js
-
-/* ======================================================
-   CV TEMPLATE REGISTRY (SINGLE FILE, MULTI TEMPLATE)
-   ATS-safe by design. No icons. No grids. No nonsense.
-====================================================== */
-
-const CV_TEMPLATES = {
+export const CV_TEMPLATES = {
   classic: `
 <style>
 .container {
@@ -228,34 +221,3 @@ li { margin-bottom: 4px; }
 </style>
 `,
 };
-
-/* ======================================================
-   HTML WRAPPER
-====================================================== */
-
-export function wrapCVHtml(
-  bodyHtml,
-  { title = 'Resume', template = 'classic' } = {},
-) {
-  const css = CV_TEMPLATES[template] || CV_TEMPLATES.student;
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>${title}</title>
-${css}
-</head>
-<body>
-<div class="container">
-${bodyHtml}
-</div>
-</body>
-</html>`;
-}
-
-/* ======================================================
-   EXPORTED METADATA
-====================================================== */
-
-export const AVAILABLE_CV_TEMPLATES = Object.keys(CV_TEMPLATES);
