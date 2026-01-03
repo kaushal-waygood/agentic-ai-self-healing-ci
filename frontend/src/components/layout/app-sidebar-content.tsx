@@ -51,6 +51,7 @@ export const AppSidebarContent = ({
     STUDENT: 'user', // Default role for job seekers
     employerAdmin: 'employer-admin',
     guestOrg: 'guest-org',
+    uniAdmin: 'uni-admin',
   };
 
   // Safe fallback to 'user' if role is missing
@@ -147,7 +148,12 @@ export const AppSidebarContent = ({
         title: 'Post a Job',
         href: '/dashboard/posted-jobs',
         icon: Users, // Or Briefcase
-        allowedRoles: [ROLES.HR, ROLES.employerAdmin, ROLES.guestOrg],
+        allowedRoles: [
+          ROLES.HR,
+          ROLES.employerAdmin,
+          ROLES.guestOrg,
+          ROLES.uniAdmin,
+        ],
       },
       {
         title: 'Team Management',
@@ -159,7 +165,7 @@ export const AppSidebarContent = ({
         title: 'Candidates',
         href: '/dashboard/candidates',
         icon: Users,
-        allowedRoles: [ROLES.HR, ROLES.employerAdmin],
+        allowedRoles: [ROLES.HR, ROLES.employerAdmin, ROLES.uniAdmin],
       },
 
       // === EXTRAS (Visible to Everyone) ===
