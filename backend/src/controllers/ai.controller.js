@@ -546,6 +546,38 @@ export const generateCVByJobId = async (req, res) => {
   await initiateCVGeneration(req, res, job.description, jobTitle);
 };
 
+export const changeTempateCV = async (req, res) => {
+  const { _id } = req.user;
+  const { id } = req.params;
+  const { template } = req.body;
+
+  if (!id || !template) {
+    return res.status(400).json({ error: 'CV ID and template are required' });
+  }
+
+  const student = await StudentCV.findOneAndUpdate(
+    {
+      student: _id,
+      _id: id,
+    },
+    {
+      template: template,
+      updatedAt: new Date(),
+    },
+    { new: true },
+  );
+
+  if (!student) {
+    return res.status(404).json({ error: 'CV not found or user unauthorized' });
+  }
+
+  res.json({
+    message: 'CV template changed successfully',
+    newTemplate: template,
+    cvId: id,
+  });
+};
+
 export const refreshStatus = async (req, res) => {
   const { type, id } = req.params;
   const { _id: userId } = req.user;
