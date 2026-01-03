@@ -2,7 +2,18 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { FileText, Loader2 } from 'lucide-react';
+import {
+  Save,
+  Award,
+  FileText,
+  Sparkles,
+  Clock,
+  Edit3,
+  Copy,
+  Download,
+  Loader2,
+  X,
+} from 'lucide-react';
 
 import EditableMaterial from '../application/editable-material';
 import { Input } from '../ui/input';
@@ -16,36 +27,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
-
-import { CV_TEMPLATES } from '@/utils/cvTemplate';
-
-// ---------------------------------------------
-// Types (stop using `any`, it bites later)
-// ---------------------------------------------
-interface GeneratedCVProps {
-  generatedCvOutput: {
-    cv: string;
-    atsScore?: number;
-    template?: string;
-  } | null;
-  handleInitiateSave: (payload: { html: string; template: string }) => void;
-  isNamingDialogDisplayed: boolean;
-  setIsNamingDialogDisplayed: (v: boolean) => void;
-  cvNameForSavingInput: string;
-  setCvNameForSavingInput: (v: string) => void;
-  confirmSaveNamedCv: () => void;
-}
-
-// ---------------------------------------------
-// Template list (single source of truth)
-// ---------------------------------------------
-const TEMPLATE_OPTIONS = Object.keys(CV_TEMPLATES);
-
-// ---------------------------------------------
-// Component
-// ---------------------------------------------
-const GeneratedCV: React.FC<GeneratedCVProps> = ({
-  generatedCvOutput,
+import { Input } from '../ui/input';
+import TemplateSidebar from '../application/applications/TemplateSidebar';
+export const resumeTemplates = [
+  {
+    id: 'classic',
+    name: 'Classic',
+    thumbnail: '/templates/classic.png',
+    className: 'resume-classic',
+  },
+  {
+    id: 'modern',
+    name: 'Modern',
+    thumbnail: '/templates/modern.png',
+    className: 'resume-modern',
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    thumbnail: '/templates/minimal.png',
+    className: 'resume-minimal',
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    thumbnail: '/templates/professional.png',
+    className: 'resume-professional',
+  },
+];
+const GeneratedCV = ({
+  generatedCvOutput = null,
   handleInitiateSave,
   isNamingDialogDisplayed,
   setIsNamingDialogDisplayed,
@@ -58,10 +69,10 @@ const GeneratedCV: React.FC<GeneratedCVProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
 
-  // ---------------------------------------------
-  // Initialize content + template
-  // ---------------------------------------------
+  const cvData = generatedCvOutput;
+
   useEffect(() => {
     if (!generatedCvOutput) return;
 
@@ -144,51 +155,97 @@ const GeneratedCV: React.FC<GeneratedCVProps> = ({
 
   const atsScore = generatedCvOutput.atsScore ?? 0;
 
+  // src/constants/resumeTemplates.ts
+
+  const [selectedTemplate, setSelectedTemplate] = useState(resumeTemplates[0]);
+
   return (
     <div className="min-h-screen p-3">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 bg-header-gradient-primary text-white p-3 rounded-t-lg">
-          <FileText className="w-6 h-6" />
-          <h2 className="text-lg font-bold flex-1">Your AI Generated CV</h2>
-          <div className="text-center">
-            <div className="text-3xl font-bold">{atsScore}</div>
-            <div className="text-xs">ATS Score</div>
+        {/* Main CV Content */}
+        <div className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-lg overflow-hidden">
+          {/* header  */}
+          <div className="flex items-center gap-2 bg-header-gradient-primary text-white ">
+            <div className="w-12 h-12  rounded-lg flex items-center justify-center flex-shrink-0">
+              <FileText className="h-7 w-7 " />
+            </div>
+
+            <div className="flex-1">
+              <h2 className="text-lg  md:text-xl font-bold ">
+                {cvData ? 'Your AI Generated CV' : 'Loading CV...'}
+              </h2>
+            </div>
+            <div className="text-center p-2 rounded-lg">
+              <div className={`text-4xl font-bold bg-clip-text`}>
+                {atsScore}
+              </div>
+              <div className="text-xs ">ATS Score</div>
+            </div>
           </div>
-        </div>
+          {/* content  */}
+          {cvData ? (
+            // <div className="p-2 md:p-3 lg:p-4">
+            //   <EditableMaterial
+            //     isEditing={isEditing}
+            //     content={
+            //       typeof cvContent.cv === 'object' ? cvContent.cv : cvContent
+            //     }
+            //     title={'CV Content'}
+            //     isHtml={true}
+            //     setContent={setEditableContent}
+            //     handleEditToggle={handleEditToggle}
+            //     handleDownload={handleDownload}
+            //     isDownloadingPdf={isDownloadingPdf}
+            //     isDownloadingDocx={isDownloadingDocx}
+            //     type="resume"
+            //   />
+            // </div>
+            <div className="flex h-[calc(100vh-140px)] relative">
+              {/* Desktop Sidebar */}
+              <div className="hidden lg:block">
+                <TemplateSidebar
+                  activeTemplate={selectedTemplate}
+                  onSelect={setSelectedTemplate}
+                />
+              </div>
 
-        {/* Template Selector */}
-        <div className="flex flex-wrap gap-2 p-3 bg-white border-b">
-          {TEMPLATE_OPTIONS.map((tpl) => (
-            <button
-              key={tpl}
-              onClick={() => setSelectedTemplate(tpl)}
-              className={`px-3 py-1 text-sm rounded border transition ${
-                selectedTemplate === tpl
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black'
-              }`}
-            >
-              {tpl}
-            </button>
-          ))}
-        </div>
+              {/* Resume Content */}
+              <div className="flex-1 overflow-y-auto p-2 md:p-4">
+                <div className={selectedTemplate.className}>
+                  {/* Mobile template toggle */}
+                  <div className="lg:hidden flex justify-end mb-2">
+                    <button
+                      onClick={() => setIsTemplateOpen(true)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg
+      bg-primary text-white text-sm font-medium"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Templates
+                    </button>
+                  </div>
 
-        {/* CV Content */}
-        <div className="bg-white shadow rounded-b-lg p-4">
-          <EditableMaterial
-            isEditing={isEditing}
-            content={finalHtml}
-            isHtml
-            title="CV Content"
-            setContent={setEditableContent}
-            handleEditToggle={() => setIsEditing((v) => !v)}
-            handleDownload={handleDownload}
-            isDownloadingPdf={isDownloadingPdf}
-            isDownloadingDocx={isDownloadingDocx}
-            onSave={onSave}
-            type="resume"
-          />
+                  <EditableMaterial
+                    isEditing={isEditing}
+                    content={
+                      typeof cvContent === 'object' ? cvContent.cv : cvContent
+                    }
+                    title="CV Content"
+                    isHtml
+                    setContent={setEditableContent}
+                    handleEditToggle={handleEditToggle}
+                    handleDownload={handleDownload}
+                    isDownloadingPdf={isDownloadingPdf}
+                    isDownloadingDocx={isDownloadingDocx}
+                    type="resume"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 flex justify-center items-center">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -221,6 +278,30 @@ const GeneratedCV: React.FC<GeneratedCVProps> = ({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {isTemplateOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 lg:hidden">
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl
+      max-h-[80vh] overflow-y-auto p-4 animate-slide-up"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm">Choose Template</h3>
+              <button onClick={() => setIsTemplateOpen(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <TemplateSidebar
+              activeTemplate={selectedTemplate}
+              onSelect={(template) => {
+                setSelectedTemplate(template);
+                setIsTemplateOpen(false);
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

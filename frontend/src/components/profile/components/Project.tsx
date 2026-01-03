@@ -60,7 +60,7 @@ const Project = () => {
             projects.map((proj, index) => (
               <div key={proj._id} className="bg-white rounded-lg p-4 border">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-500 shrink-0 mr-2">
+                  <span className="text-sm font-semibold text-gray-500 shrink-0 mr-1">
                     {index + 1}.
                   </span>
                   <div className="flex-1 pr-4">
@@ -117,7 +117,7 @@ const Project = () => {
                         {proj.technologies.map((tech: string) => (
                           <span
                             key={tech}
-                            className="px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-xs font-medium"
+                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-xs font-medium"
                           >
                             {tech}
                           </span>

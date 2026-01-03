@@ -62,14 +62,14 @@ const Experience = () => {
             experiences.map((exp, index) => (
               <div key={exp._id} className="bg-white rounded-lg p-4 border ">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-500 shrink-0 mr-2">
-                    {index + 1}.
-                  </span>
                   <div className="flex-1">
                     <h4 className="text-lg font-bold text-gray-800">
+                      <span className="text-sm font-semibold text-gray-500 shrink-0 mr-1">
+                        {index + 1}.
+                      </span>
                       {exp.company}
                     </h4>
-                    <p className="text-purple-600 font-medium ">
+                    <p className="text-blue-600 font-medium ">
                       {exp.designation}
                     </p>
                   </div>
@@ -106,12 +106,13 @@ const Experience = () => {
                         {formatDateForMonthInput(exp.endDate) || 'Present'}
                       </span>
                     </div>
-                    {exp.experienceYrs && (
+                    {exp.experienceYrs > 0 && (
                       <div className="flex items-center gap-2 text-gray-600">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span>{exp.experienceYrs} years</span>
                       </div>
                     )}
+
                     {exp.location && (
                       <div className="flex items-center gap-2 text-gray-600">
                         <MapPin className="h-4 w-4 text-gray-400" />
