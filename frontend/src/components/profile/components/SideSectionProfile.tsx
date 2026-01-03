@@ -231,17 +231,17 @@ const SideSectionProfile = () => {
             {profile.email}
           </p>
 
-          {profile.phone && (
-            <p className="text-sm text-gray-500 flex items-center  justify-center gap-2 ">
-              <Phone className="w-4 h-4" />
-              {profile.phone}
+          {profile.jobRole && (
+            <p className="text-sm text-gray-500 flex items-center justify-center gap-1 ">
+              <Briefcase className="w-4 h-4" />
+              {profile.jobRole}
             </p>
           )}
 
-          {profile.jobPreference && (
+          {profile.phone && (
             <p className="text-sm text-gray-500 flex items-center justify-center gap-2 ">
-              <Briefcase className="w-4 h-4" />
-              {profile.jobPreference}
+              <Phone className="w-4 h-4" />
+              {profile.phone}
             </p>
           )}
 

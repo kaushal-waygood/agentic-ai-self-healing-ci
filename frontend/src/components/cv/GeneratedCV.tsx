@@ -120,9 +120,15 @@ const GeneratedCV = ({
     handleInitiateSave(editableContent);
   };
 
-  // Safe data extraction with fallbacks
-  const atsScore = cvData?.atsScore || cvData?.ats || 0;
-  const cvContent = cvData?.cv;
+  if (!generatedCvOutput) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  const atsScore = generatedCvOutput.atsScore ?? 0;
 
   const [selectedTemplate, setSelectedTemplate] = useState(resumeTemplates[0]);
 
@@ -167,9 +173,9 @@ const GeneratedCV = ({
             //     type="resume"
             //   />
             // </div>
-            <div className="flex h-[calc(100vh-140px)] relative ">
+            <div className="flex relative ">
               {/* Desktop Sidebar */}
-              <div className="hidden lg:relative lg:flex lg:flex-shrink-0">
+              <div className="hidden h-[calc(100vh-140px)] lg:relative lg:flex lg:flex-shrink-0">
                 <TemplateSidebar
                   activeTemplate={selectedTemplate}
                   onSelect={setSelectedTemplate}
@@ -177,7 +183,7 @@ const GeneratedCV = ({
               </div>
 
               {/* Resume Content */}
-              <div className="flex-1 overflow-y-auto p-2 md:p-4">
+              <div className="flex-1 p-2 md:p-4">
                 <div className={selectedTemplate.className}>
                   {/* Mobile template toggle */}
                   <div className="lg:hidden flex justify-end mb-2">

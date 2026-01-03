@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Filter, Search, SearchIcon, Loader2 } from 'lucide-react';
+import { Filter, Search, SearchIcon, Loader2, Loader } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { State } from 'country-state-city';
 
@@ -36,6 +36,9 @@ export const SearchFilters = ({
 }: SearchFiltersProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  useEffect(() => {
+    if (!searchParams) return;
+  }, []);
 
   const [localFilters, setLocalFilters] = useState<FilterState>({
     ...defaultFilters,
@@ -44,7 +47,7 @@ export const SearchFilters = ({
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    if (!searchParams) return;
+    if (!searchParams || isSearching) return;
 
     const query = searchParams.get('q') || '';
     const country = searchParams.get('country') || '';
@@ -83,15 +86,14 @@ export const SearchFilters = ({
       experience: experience.length ? experience : prev.experience,
       education: education.length ? education : prev.education,
     }));
-  }, [searchParams]);
+  }, [searchParams, isSearching]);
 
-  // Keep prop -> state sync predictable
   useEffect(() => {
     if (!initialFilters) return;
     setLocalFilters((prev) => ({
       ...defaultFilters,
-      ...prev, // preserve user edits if parent trickles partial updates
-      ...initialFilters, // but let incoming props win
+      ...prev,
+      ...initialFilters,
     }));
   }, [initialFilters]);
 
@@ -104,25 +106,6 @@ export const SearchFilters = ({
     },
     [],
   );
-
-  const handleCountryChange = useCallback(
-    (countryCode: string, countryName: string) => {
-      setLocalFilters((prev: any) => ({
-        ...prev,
-        country: countryName, // what you will "send" / show
-        countryCode, // what StateSelector needs
-        state: '', // reset state when country changes
-      }));
-    },
-    [],
-  );
-
-  const handleStateChange = useCallback((stateCode: string) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      state: stateCode,
-    }));
-  }, []);
 
   const getStateName = (countryCode: string, stateCode: string): string => {
     if (!countryCode || !stateCode) return '';
@@ -167,40 +150,72 @@ export const SearchFilters = ({
     router.push(url, { scroll: false });
   };
 
-  const handleSearchClick = useCallback(async () => {
-    const stateName = getStateName(
-      localFilters.countryCode,
-      localFilters.state,
-    );
+  // const handleSearchClick = useCallback(async () => {
+  //   const stateName = getStateName(
+  //     localFilters.countryCode,
+  //     localFilters.state,
+  //   );
 
-    const searchFilters: Partial<FilterState> = {
-      query: localFilters.query,
-      country: localFilters.country,
-      countryCode: localFilters.countryCode,
-      state: stateName, // backend gets name
-      city: localFilters.city,
-      datePosted: localFilters.datePosted,
-      employmentType: [...localFilters.employmentType],
-      experience: [...localFilters.experience],
-      education: [...localFilters.education],
+  //   const searchFilters: Partial<FilterState> = {
+  //     query: localFilters.query,
+  //     country: localFilters.country,
+  //     countryCode: localFilters.countryCode,
+  //     state: stateName, // backend gets name
+  //     city: localFilters.city,
+  //     datePosted: localFilters.datePosted,
+  //     employmentType: [...localFilters.employmentType],
+  //     experience: [...localFilters.experience],
+  //     education: [...localFilters.education],
+  //   };
+
+  //   setIsSearching(true);
+  //   try {
+  //     pushFiltersToUrl({
+  //       ...localFilters,
+  //       state: localFilters.state, // still code here
+  //       country: localFilters.country,
+  //       countryCode: localFilters.countryCode,
+  //     });
+
+  //     await Promise.resolve(onSearchChange(searchFilters));
+  //   } catch (error) {
+  //     console.error('Search error:', error);
+  //   } finally {
+  //     setIsSearching(false);
+  //   }
+  // }, [localFilters, onSearchChange]);
+
+  // const handleSearchClick = useCallback(async () => {
+  //   setIsSearching(true);
+
+  //   try {
+  //     pushFiltersToUrl(localFilters);
+  //     await Promise.resolve(onSearchChange(localFilters));
+  //   } finally {
+  //     setIsSearching(false);
+  //   }
+  // }, [localFilters, onSearchChange]);
+
+  const handleSearchClick = useCallback(() => {
+    if (isSearching) return;
+    setIsSearching(true);
+  }, [isSearching]);
+
+  useEffect(() => {
+    if (!isSearching) return;
+
+    const runSearch = async () => {
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        pushFiltersToUrl(localFilters);
+        await Promise.resolve(onSearchChange(localFilters));
+      } finally {
+        setIsSearching(false);
+      }
     };
 
-    setIsSearching(true);
-    try {
-      pushFiltersToUrl({
-        ...localFilters,
-        state: localFilters.state, // still code here
-        country: localFilters.country,
-        countryCode: localFilters.countryCode,
-      });
-
-      await Promise.resolve(onSearchChange(searchFilters));
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [localFilters, onSearchChange]);
+    runSearch();
+  }, [isSearching, localFilters, onSearchChange]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -217,7 +232,7 @@ export const SearchFilters = ({
       {/* <div className="flex items-center justify-between gap-2 "> */}
       <div className="flex flex-col lg:flex-row gap-2">
         <div className="input-search-box-div w-full">
-          <Search className="input-search-icon " />
+          <Search className="w-4 h-4 input-search-icon " />
           <input
             id="search-bar"
             type="text"
@@ -234,22 +249,19 @@ export const SearchFilters = ({
           <button
             onClick={handleSearchClick}
             disabled={isSearching}
-            aria-busy={isSearching}
-            className={`flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform ${
-              isSearching
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-buttonPrimary hover:to-blue-600 text-white hover:scale-105 shadow-lg hover:shadow-purple-200/50'
+            className={`flex items-center bg-buttonPrimary text-white justify-center gap-2 px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform ${
+              isSearching ? ' cursor-not-allowed' : ' hover:scale-105  '
             }`}
           >
             {isSearching ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+                <Loader
+                  className="w-10 h-6
+                 animate-spin"
+                />
               </>
             ) : (
-              <>
-                <SearchIcon className="w-4 h-4" />
-                Search
-              </>
+              <>Search</>
             )}
           </button>
 
@@ -257,7 +269,7 @@ export const SearchFilters = ({
             onClick={onOpenFilterModal}
             className="flex items-center justify-center gap-2 bg-buttonPrimary hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-200/50"
           >
-            <Filter className="w-4 h-4" />
+            <Filter className="w-10 h-4" />
             Filters
           </button>
         </div>

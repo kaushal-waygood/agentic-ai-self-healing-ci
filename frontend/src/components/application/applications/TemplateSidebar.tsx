@@ -75,6 +75,20 @@ export const resumeTemplates = [
       'https://placehold.co/300x420/f8fafc/0f172a?text=Professional+Resume',
     className: 'resume-professional2',
   },
+  {
+    id: 'professional4',
+    name: 'Professional2',
+    thumbnail:
+      'https://placehold.co/300x420/f8fafc/0f172a?text=Professional+Resume',
+    className: 'resume-professional2',
+  },
+  {
+    id: 'professional5',
+    name: 'Professional2',
+    thumbnail:
+      'https://placehold.co/300x420/f8fafc/0f172a?text=Professional+Resume',
+    className: 'resume-professional2',
+  },
 ];
 
 const TemplateSidebar = ({ activeTemplate, onSelect }) => {
