@@ -52,8 +52,6 @@ export const processCVGeneration = async (
   let jobTitle = 'your recent job';
 
   try {
-    // 1. Fetch the existing pending record from the StudentCV collection
-    // We sort by createdAt desc to get the most recent request if multiple exist
     const cvDoc = await StudentCV.findOne({
       student: userId,
       jobId: jobId,
@@ -80,7 +78,7 @@ export const processCVGeneration = async (
       attempt += 1;
       try {
         const rawJsonResponse = await genAI(prompt, {
-          userId: userId,
+          userId,
           endpoint,
         });
 

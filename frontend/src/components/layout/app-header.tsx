@@ -376,7 +376,6 @@ const AppHeader = ({
         return;
       }
 
-      // Otherwise close all menus
       closeAllMenus();
     };
 
@@ -397,9 +396,6 @@ const AppHeader = ({
       console.error('Logout error:', error);
     }
   };
-  // const handleLogout = () => {
-  //   openFeedback(); // 🔥 opens popup
-  // };
   const getNotificationColor = (type) => {
     switch (type) {
       case 'application':

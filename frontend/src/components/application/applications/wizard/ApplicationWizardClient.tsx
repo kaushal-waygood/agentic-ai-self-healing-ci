@@ -97,13 +97,21 @@ type WizardStep =
   | 'generate'
   | 'result';
 
-type JobContext = {
-  mode: 'select' | 'paste' | 'upload';
-  jobId?: string;
-  jobTitle: string;
-  jobDescription: string;
-  companyName: string;
-};
+type JobContext =
+  | {
+      mode: 'select';
+      jobId: string;
+    }
+  | {
+      mode: 'paste';
+      jobTitle: string;
+      companyName?: string;
+      jobDescription: string;
+    }
+  | {
+      mode: 'upload';
+      jobFile: File;
+    };
 
 type CvContext = {
   mode: 'upload' | 'profile' | 'create' | 'saved';
@@ -469,70 +477,43 @@ export function ApplicationWizardClient() {
   }, [wizardStep, isLoading]);
 
   // --- Step Handlers ---
-  const handleJobContextSubmit = async (
-    mode: JobContext['mode'],
-    value: File | string,
-  ) => {
-    setIsLoading(true);
-    setLoadingMessage('Processing job details...');
-    try {
-      let context: JobContext;
-      if (mode === 'select' && typeof value === 'string') {
-        const job = await getJobDetails({ jobId: value });
-        if (!job) throw new Error('Job details could not be found.');
-        context = {
-          mode,
-          jobId: job.id,
-          jobTitle: job.title,
-          companyName: job.company,
-          jobDescription: job.description,
-        };
-      } else if (mode === 'paste' && typeof value === 'string') {
-        const extracted = await extractJobDetails({ jobDescription: value });
-        context = {
-          mode,
-          jobTitle: extracted.jobTitle,
-          companyName: extracted.companyName,
-          jobDescription: value,
-        };
-      } else if (mode === 'upload' && value instanceof File) {
-        setLoadingMessage('Parsing uploaded file...');
-        const dataUri = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(value);
+  const handleJobContextSubmit = useCallback(
+    async (mode: JobContext['mode'], value: File | string) => {
+      setIsLoading(true);
+      setLoadingMessage('Saving job context...');
+
+      try {
+        let context: JobContext;
+
+        if (jobContext.mode === 'select') {
+          formData.append('jobId', jobContext.jobId);
+        }
+
+        if (jobContext.mode === 'paste') {
+          formData.append('jobTitle', jobContext.jobTitle);
+          formData.append('companyName', jobContext.companyName || '');
+          formData.append('jobDescription', jobContext.jobDescription);
+        }
+
+        if (jobContext.mode === 'upload') {
+          formData.append('jobDescriptionFile', jobContext.jobFile); // ✅ THIS
+        }
+
+        setJobContext(context);
+        navigateToStep('cv', { mode });
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Job Context Error',
+          description: (error as Error).message,
         });
-        const parsed = await parseJobFromFile({ jobDescDataUri: dataUri });
-        context = {
-          mode: 'upload',
-          jobTitle: parsed.jobTitle,
-          companyName: parsed.companyName,
-          jobDescription: parsed.jobDescription,
-        };
-      } else {
-        throw new Error('Invalid job context submission.');
+      } finally {
+        setIsLoading(false);
+        setLoadingMessage('');
       }
-      // Fix: Set the entire context object, not just the title
-      setJobContext(context);
-      // Reset subsequent steps whenever a new job context is set
-      setCvContext(null);
-      setClContext(null);
-      setWizardStep('cv');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Processing Job',
-        description: (error as Error).message,
-      });
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
-      if (jobDescFileInputRef.current) {
-        jobDescFileInputRef.current.value = '';
-      }
-    }
-  };
+    },
+    [navigateToStep, toast],
+  );
 
   const handleCvContextSubmit = async (
     mode: CvContext['mode'],

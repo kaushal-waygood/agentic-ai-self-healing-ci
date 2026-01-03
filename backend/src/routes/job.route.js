@@ -17,6 +17,7 @@ import {
   getAllJobsQueries,
   trackJobClick,
   trackJobImpressions,
+  getJobStats,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -29,6 +30,7 @@ import { getDashboardTopJobs } from '../controllers/student.controller.js';
 
 const router = Router();
 
+router.get('/job-stats', getJobStats);
 router.get('/job-queries', getAllJobsQueries);
 router.get('/job-desc/:jobId', getJobDescByJobId);
 router.get(

@@ -88,13 +88,6 @@ export const GenerateStep = ({
     fetchJobDetail();
   }, [jobId]);
   const contextItems = [
-    // {
-    //   icon: Briefcase,
-    //   label: 'Job Position',
-    //   value: jobDetail?.title || 'Not specified',
-    //   // sublabel: jobContext?.company || 'Company not specified',
-    //   color: 'from-purple-500 to-purple-600',
-    // },
     {
       icon: Briefcase,
       label: 'Job Position',
@@ -116,10 +109,6 @@ export const GenerateStep = ({
         clContext?.mode === 'skip'
           ? 'Generate from scratch'
           : `Based on ${clContext?.name}`,
-      // sublabel:
-      //   clContext?.mode === 'skip'
-      //     ? 'AI will create new content'
-      //     : 'Using existing context',
       color: 'from-cyan-500 to-cyan-600',
     },
   ];
@@ -215,11 +204,7 @@ export const GenerateStep = ({
               </p>
             </div>
           ) : (
-            /* Default State */
             <>
-              {/* Generate Button connected to your `handleGenerate` prop */}
-
-              {/* Back Button connected to your `setWizardStep` prop */}
               <div className="flex flex-wrap  justify-between">
                 <button
                   type="button"
