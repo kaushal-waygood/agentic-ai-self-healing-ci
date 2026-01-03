@@ -666,7 +666,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       animate-in fade-in zoom-in"
                 >
                   {/* Normal content */}
-                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
+                  <div className="flex items-center justify-center gap-2 py-1.5 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
                     <TrendingUp className="w-4 h-4" />
                     <span className="text-lg">{atsScore?.atsScore}/100</span>
                   </div>
@@ -734,7 +734,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       animate-in fade-in zoom-in"
                 >
                   {/* Normal content */}
-                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
+                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95 py-1.5">
                     <TrendingUp className="w-4 h-4" />
                     <span className="text-lg">{matchScore.matchScore}/10</span>
                   </div>
