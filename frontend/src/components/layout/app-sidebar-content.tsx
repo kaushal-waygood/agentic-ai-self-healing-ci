@@ -641,7 +641,7 @@ export const AppSidebarContent = ({
         comingSoon: false,
       },
       {
-        title: 'Application Wizard',
+        title: 'Tailored Application',
         href: '/dashboard/apply',
         icon: Wand2,
         allowedRoles: [ROLES.STUDENT],

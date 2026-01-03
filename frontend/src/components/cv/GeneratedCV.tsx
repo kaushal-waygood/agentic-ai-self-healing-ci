@@ -83,18 +83,18 @@ const GeneratedCV = ({
   return (
     <div className="min-h-screen p-3">
       <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
-        <div className="flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-3">
+        <div className="flex items-center gap-3 bg-header-gradient-primary text-white p-3">
           <FileText />
-          <h2 className="text-lg font-bold flex-1">AI Generated CV</h2>
+          <h2 className="text-xl font-bold flex-1">AI Generated CV</h2>
           <div className="text-right">
             <div className="text-3xl font-bold">{atsScore}</div>
-            <div className="text-xs">ATS</div>
+            <div className="text-xs">ATS Score</div>
           </div>
         </div>
 
         {cvData ? (
-          <div className="flex h-[calc(100vh-140px)]">
-            <div className="hidden lg:block overflow-y-auto">
+          <div className="flex ">
+            <div className="hidden h-[calc(100vh-100px)] lg:flex lg:flex-shrink-0">
               <TemplateSidebar
                 activeTemplate={selectedTemplate}
                 onSelect={setSelectedTemplate}
