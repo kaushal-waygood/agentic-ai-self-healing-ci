@@ -28,6 +28,7 @@ import {
 } from '../utils/credits.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { getCachedReco, makeRecoKey } from '../utils/recoCache.js';
+import { StudentSkill } from '../models/students/studentSkill.model.js';
 
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
@@ -148,7 +149,10 @@ export async function claimProfileCompletionCreditsForUser(userId) {
 }
 
 async function buildUserProfileFromStudent(userId) {
-  const student = await Student.findById(userId).lean();
+  const student = await Student.findById(userId)
+    .select('location jobRole jobPreferences')
+    .lean();
+  let skills = await StudentSkill.find({ student: userId }).lean();
 
   if (!student) {
     return {
@@ -164,12 +168,12 @@ async function buildUserProfileFromStudent(userId) {
 
   // Skills
   const skillsRaw = [
-    ...(student.skills || []).map((s) => s.skill),
+    ...(skills || []).map((s) => s.skill),
     ...(student.jobPreferences?.mustHaveSkills || []).map((s) => s.skill),
     ...(student.jobPreferences?.niceToHaveSkills || []).map((s) => s.skill),
   ];
 
-  const skills = normalizeSet(skillsRaw);
+  skills = normalizeSet(skillsRaw);
 
   // Titles
   const titlesRaw = [
@@ -440,8 +444,6 @@ export const updateStudentProfile = async (req, res) => {
   const { _id } = req.user;
   // Destructure all possible fields that are allowed to be updated
   const { fullName, phone, email, location, jobPreference: jobRole } = req.body;
-
-  console.log(req.body);
 
   try {
     const update = {};
@@ -1895,6 +1897,31 @@ export const getProfileCompletion = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+// ===== PROMPT LOGGING SETUP =====
+const PROMPT_LOG_DIR = path.resolve(process.cwd(), 'logs');
+const PROMPT_LOG_FILE = path.join(PROMPT_LOG_DIR, 'profile.txt');
+
+function logPromptToFile(profile, meta = {}) {
+  try {
+    if (!fs.existsSync(PROMPT_LOG_DIR)) {
+      fs.mkdirSync(PROMPT_LOG_DIR, { recursive: true });
+    }
+
+    console.log(profile);
+
+    const entry = `
+==============================
+TIMESTAMP: ${new Date().toISOString()}
+==============================
+${JSON.stringify(profile)}
+
+`;
+
+    fs.appendFile(PROMPT_LOG_FILE, entry, () => {});
+  } catch {
+    // Silent failure. Logging must never break generation.
+  }
+}
 
 export const getProfileBasedRecommendedJobs = async (req, res) => {
   try {
@@ -1903,9 +1930,11 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
 
     const profile = await buildUserProfileFromStudent(userId);
 
+    logPromptToFile(profile);
+
     let jobs = await getLocalRecommendedJobs(profile);
 
-    const MIN_RESULTS = 20;
+    const MIN_RESULTS = 1000;
 
     if (jobs.length < MIN_RESULTS) {
       await fetchAndUpsertMoreExternalJobs(profile);

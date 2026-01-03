@@ -470,13 +470,13 @@ const SideSectionProfile = () => {
             </div>
 
             <div>
-              <label htmlFor="jobPreference" className="block mb-1 font-medium">
+              <label htmlFor="jobRole" className="block mb-1 font-medium">
                 Job Role
               </label>
               <Input
-                id="jobPreference"
-                name="jobPreference"
-                value={profile.jobPreference}
+                id="jobRole"
+                name="jobRole"
+                value={profile.jobRole}
                 onChange={onChange}
                 placeholder="Frontend Developer"
               />

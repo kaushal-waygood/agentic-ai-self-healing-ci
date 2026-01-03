@@ -445,47 +445,6 @@ export function ProfileForm({ isOnboarding = false }: ProfileFormProps) {
         handleLevelChange={handleLevelChange}
       />
 
-      <CareerDetailsComponent
-        fileInputRef={fileInputRef}
-        file={file}
-        isDragging={isDragging}
-        isUploading={isUploading}
-        isJobPrefEditable={isJobPrefEditable}
-        careerDetailsForm={careerDetailsForm}
-        expandedIndex={expandedIndex}
-        defaultValues={defaultValues}
-        handleFileChange={handleFileChange}
-        handleButtonClick={handleButtonClick}
-        handleDragEnter={handleDragEnter}
-        handleDragLeave={handleDragLeave}
-        handleDragOver={handleDragOver}
-        handleDrop={(e: DragEvt) => handleDrop(e, handleFileChange)}
-        handleRemoveFile={handleRemoveFile}
-        handleUpload={uploadResume}
-        handleCareerDetailsSubmit={handleCareerDetailsSubmit}
-        setIsJobPrefEditable={setIsJobPrefEditable}
-        toggleExpand={toggleExpand}
-        setAddEdu={setAddEdu}
-        setEditEdu={setEditEdu}
-        setEditEduIndex={setEditEduIndex}
-        setDeleteEdu={setDeleteEdu}
-        setDeleteEduIndex={setDeleteEduIndex}
-        setAddProj={setAddProj}
-        setEditProj={setEditProj}
-        setEditProjIndex={setEditProjIndex}
-        setDeleteProj={setDeleteProj}
-        setDeleteProjIndex={setDeleteProjIndex}
-        setAddExp={setAddExp}
-        setEditExp={setEditExp}
-        setEditExpIndex={setEditExpIndex}
-        setDeleteExp={setDeleteExp}
-        setDeleteExpIndex={setDeleteExpIndex}
-        setAddSkill={setAddSkill}
-        setDeleteSkill={setDeleteSkill}
-        setDeleteSkillIndex={setDeleteSkillIndex}
-        handleLevelChange={handleLevelChange}
-      />
-
       {/* Add modals */}
       {addEdu && (
         <ModalOverlay>
