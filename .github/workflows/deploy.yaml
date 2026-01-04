@@ -15,13 +15,17 @@ jobs:
       packages: write
 
     steps:
+      # -------------------------------
       # Checkout Code
+      # -------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # ensures all files and history are available
 
-      # Set lowercase repo owner
+      # -------------------------------
+      # Set Repository Owner
+      # -------------------------------
       - name: Set lowercase repo owner
         id: vars
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
@@ -35,7 +39,8 @@ jobs:
           path: |
             ~/.npm
             backend/node_modules
-          key: ${{ runner.os }}-backend-node-${{ hashFiles('backend/package-lock.json') }}
+          # include package.json as a fallback so the key resolves even when package-lock.json is absent
+          key: ${{ runner.os }}-backend-node-${{ hashFiles('backend/package-lock.json','backend/package.json') }}
           restore-keys: |
             ${{ runner.os }}-backend-node-
 
@@ -44,9 +49,22 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install backend dependencies
+      - name: Show backend lockfile presence
         working-directory: ./backend
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then echo "backend/package-lock.json: present"; else echo "backend/package-lock.json: missing"; fi
+          ls -la
+
+      - name: Install backend dependencies (conditional)
+        working-directory: ./backend
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Found package-lock.json — running npm ci"
+            npm ci
+          else
+            echo "No package-lock.json — running npm install"
+            npm install
+          fi
 
       - name: Run backend tests
         working-directory: ./backend
@@ -69,7 +87,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: ./backend/Dockerfile
+          file: ./backend/dockerfile
           push: true
           tags: |
             ghcr.io/${{ env.repo_owner }}/zobsai-backend:latest
@@ -94,7 +112,7 @@ jobs:
           path: |
             ~/.npm
             frontend/node_modules
-          key: ${{ runner.os }}-frontend-node-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-frontend-node-${{ hashFiles('frontend/package-lock.json','frontend/package.json') }}
           restore-keys: |
             ${{ runner.os }}-frontend-node-
 
@@ -103,9 +121,22 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install frontend dependencies
+      - name: Show frontend lockfile presence
         working-directory: ./frontend
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then echo "frontend/package-lock.json: present"; else echo "frontend/package-lock.json: missing"; fi
+          ls -la
+
+      - name: Install frontend dependencies (conditional)
+        working-directory: ./frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Found package-lock.json — running npm ci"
+            npm ci
+          else
+            echo "No package-lock.json — running npm install"
+            npm install
+          fi
 
       - name: Run frontend tests
         working-directory: ./frontend
