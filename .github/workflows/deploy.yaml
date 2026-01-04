@@ -30,14 +30,6 @@ jobs:
         id: vars
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
-      # -------------------------------
-      # (Optional) Install Chromium on runner for Puppeteer tests
-      # -------------------------------
-      # If your tests use Puppeteer and expect Chromium present on the runner,
-      # uncomment the step below. The backend Dockerfile already installs chromium
-      # inside the image, but tests running on the GitHub runner may need it too.
-      #- name: Install Chromium for tests
-      #  run: sudo apt-get update && sudo apt-get install -y chromium
 
       # -------------------------------
       # Run Backend Tests
