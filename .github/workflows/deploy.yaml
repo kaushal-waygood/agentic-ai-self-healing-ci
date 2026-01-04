@@ -15,30 +15,34 @@ jobs:
       packages: write
 
     steps:
-      # -------------------------------
       # Checkout Code
-      # -------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # ensures all files and history are available
+          fetch-depth: 0
 
-      # -------------------------------
-      # Set Repository Owner
-      # -------------------------------
+      # Set lowercase repo owner
       - name: Set lowercase repo owner
         id: vars
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
       # -------------------------------
-      # Run Backend Tests
+      # Backend: Cache, Setup Node, Install, Test
       # -------------------------------
-      - name: Setup Node for backend (cache enabled)
+      - name: Cache backend npm and node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            backend/node_modules
+          key: ${{ runner.os }}-backend-node-${{ hashFiles('backend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-node-
+
+      - name: Setup Node for backend
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install backend dependencies
         working-directory: ./backend
@@ -82,14 +86,22 @@ jobs:
           echo "NEXT_PUBLIC_NODE_ENV=production" >> $GITHUB_ENV
 
       # -------------------------------
-      # Run Frontend Tests
+      # Frontend: Cache, Setup Node, Install, Test
       # -------------------------------
-      - name: Setup Node for frontend (cache enabled)
+      - name: Cache frontend npm and node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            frontend/node_modules
+          key: ${{ runner.os }}-frontend-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-node-
+
+      - name: Setup Node for frontend
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: ./frontend
