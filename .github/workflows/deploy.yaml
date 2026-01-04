@@ -31,6 +31,32 @@ jobs:
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
       # -------------------------------
+      # (Optional) Install Chromium on runner for Puppeteer tests
+      # -------------------------------
+      # If your tests use Puppeteer and expect Chromium present on the runner,
+      # uncomment the step below. The backend Dockerfile already installs chromium
+      # inside the image, but tests running on the GitHub runner may need it too.
+      #- name: Install Chromium for tests
+      #  run: sudo apt-get update && sudo apt-get install -y chromium
+
+      # -------------------------------
+      # Run Backend Tests
+      # -------------------------------
+      - name: Setup Node for backend
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run backend tests
+        working-directory: ./backend
+        run: npm test
+
+      # -------------------------------
       # Log in to GitHub Container Registry
       # -------------------------------
       - name: Log in to GitHub Container Registry
@@ -62,6 +88,26 @@ jobs:
           echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=<prod-client-id>" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<prod-key>" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_NODE_ENV=production" >> $GITHUB_ENV
+
+      # -------------------------------
+      # Run Frontend Tests
+      # -------------------------------
+      - name: Setup Node for frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        env:
+          NEXT_PUBLIC_NODE_ENV: production
+        run: npm test
+
       # -------------------------------
       # Build & Push Frontend Image
       # -------------------------------
