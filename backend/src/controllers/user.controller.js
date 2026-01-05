@@ -324,10 +324,11 @@ export const firebaseAuth = async (req, res) => {
           cvCreation: 1,
           coverLetter: 1,
           aiApplication: 1,
-          autoApply: 0,
           aiAutoApply: 0,
           aiAutoApplyDailyLimit: 0,
           aiMannualApplication: -1,
+          atsScore: 0,
+          jobMatching: 0,
         },
       });
     } else if (user.firebaseUid && user.firebaseUid !== uid) {
@@ -406,10 +407,11 @@ export const firebaseGoogleSignup = async (req, res) => {
           cvCreation: 1,
           coverLetter: 1,
           aiApplication: 1,
-          autoApply: 0,
           aiAutoApply: 0,
           aiAutoApplyDailyLimit: 0,
           aiMannualApplication: -1,
+          atsScore: 0,
+          jobMatching: 0,
         },
       });
 
@@ -535,10 +537,11 @@ export const linkedInCallback = async (req, res) => {
           cvCreation: 1,
           coverLetter: 1,
           aiApplication: 1,
-          autoApply: 0,
           aiAutoApply: 0,
           aiAutoApplyDailyLimit: 0,
           aiMannualApplication: -1,
+          atsScore: 0,
+          jobMatching: 0,
         },
       });
     } else if (!user.linkedInUid) {
@@ -664,10 +667,11 @@ export const verifyEmail = async (req, res) => {
         cvCreation: 1,
         coverLetter: 1,
         aiApplication: 1,
-        autoApply: 0,
         aiAutoApply: 0,
         aiAutoApplyDailyLimit: 0,
         aiMannualApplication: -1,
+        atsScore: 0,
+        jobMatching: 0,
       };
       user.freeCreditsGranted = true;
     }

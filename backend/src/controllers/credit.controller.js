@@ -9,16 +9,13 @@ import {
 const USAGE_LIMIT_INCREMENTS = {
   CV_GENERATION: { field: 'cvCreation', perUnit: 1 },
   COVER_LETTER: { field: 'coverLetter', perUnit: 1 },
-  AUTO_APPLY: { field: 'autoApply', perUnit: 1 },
   AUTOPILOT_AGENT_CREATE: { field: 'aiAutoApply', perUnit: 1 },
   TAILORED_APPLY: { field: 'aiMannualApplication', perUnit: 1 },
   AI_MOCK_INTERVIEW: { field: 'aiApplication', perUnit: 1 },
 
-  // These currently just burn credits without adding limits.
-  // You can attach them later if you want:
-  JOB_MATCH_SCORE: null,
+  JOB_MATCH_SCORE: { field: 'jobMatching', perUnit: 1 },
   LINKEDIN_OPTIMISER: null,
-  CV_ATS_SCORE: null,
+  CV_ATS_SCORE: { field: 'atsScore', perUnit: 1 },
   CV_ATS_OPTIMISER: null,
 };
 

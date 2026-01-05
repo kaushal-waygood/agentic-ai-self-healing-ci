@@ -22,10 +22,11 @@ export const ensurePlanValidity = async (req, res, next) => {
         cvCreation: 0,
         coverLetter: 0,
         aiApplication: 0,
-        autoApply: 0,
         aiAutoApply: 0,
         aiAutoApplyDailyLimit: 0,
         aiMannualApplication: 0,
+        atsScore: 0,
+        jobMatching: 0,
         lastReset: new Date(),
       };
 

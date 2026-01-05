@@ -44,6 +44,10 @@ type JobContext =
   | {
       mode: 'upload';
       jobFile: File;
+    }
+  | {
+      mode: 'slug';
+      slug: string;
     };
 
 export type CvContext = {
@@ -247,9 +251,6 @@ export const useCvForm = (jobTitle?: string) => {
   };
 };
 
-/**
- * Main hook to manage the entire application wizard state and logic.
- */
 export const useApplicationWizard = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -288,16 +289,6 @@ export const useApplicationWizard = () => {
     savedClId: string;
   }>({ defaultValues: { clSource: 'skip', pastedCl: '', savedClId: '' } });
 
-  //--- Navigation ---
-  // const navigateToStep = useCallback(
-  //   (step: WizardStep) => {
-  //     const params = new URLSearchParams(searchParams.toString());
-  //     params.set('step', step);
-  //     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  //   },
-  //   [pathname, router, searchParams],
-  // );
-
   const navigateToStep = useCallback(
     (
       step: WizardStep,
@@ -310,24 +301,19 @@ export const useApplicationWizard = () => {
 
       // ----- MODE -----
       if (options?.mode) {
-        // Only allow valid modes
         params.set('mode', options.mode);
       } else {
-        // Preserve existing mode if valid
         const existingMode = params.get('mode');
         if (!existingMode || existingMode === 'undefined') {
           params.delete('mode');
         }
       }
 
-      // ----- JOB ID (slug) -----
       if (options?.mode === 'select' && options.jobId) {
         params.set('slug', options.jobId);
       } else if (options?.mode && options.mode !== 'select') {
-        // paste / upload → remove slug
         params.delete('slug');
       }
-      // else: preserve existing slug when moving steps
 
       router.push(`${pathname}?${params.toString()}`, {
         scroll: false,
@@ -524,44 +510,51 @@ export const useApplicationWizard = () => {
 
   useEffect(() => {
     const slug = searchParams.get('slug');
+    console.log('slug', slug);
     const fetchJob = async () => {
       const response = await apiInstance.get(`/jobs/find/${slug}`);
 
+      console.log('response', response.data);
+
       setJobContext({
+        mode: 'select',
         jobId: response?.data?.job._id,
-        jobTitle: response.data.job.title,
-        companyName: response.data.job.company,
-        jobDescription: response.data.job.description,
       });
     };
 
-    if (slug) fetchJob();
-  }, []);
+      fetchJob();
+  }, [searchParams]);
+
+  console.log('jobContext', jobContext);
 
   const handleGenerate = useCallback(async () => {
+    // 🔒 HARD GUARD (this is the fix)
+
+    console.log('jobContext', jobContext);
+    console.log('cvContext', cvContext);
+    console.log('clContext', clContext);
     if (!jobContext || !cvContext) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
-        description: 'Job or CV context is missing.',
+        description: 'Please complete the Job and CV steps before generating.',
       });
       navigateToStep('job');
       return;
     }
 
-    setRateLimited(false);
-    setRateLimitMessage(null);
     setIsLoading(true);
-    navigateToStep('generate');
+    setLoadingMessage('Generating your tailored application...');
 
     try {
       const formData = new FormData();
+      const slugId = searchParams.get('slug');
 
       // ---------------------------
       // JOB CONTEXT
       // ---------------------------
       if (jobContext.mode === 'select') {
-        formData.append('jobId', jobContext.jobId);
+        formData.append('jobId', slugId || jobContext.jobId);
       }
 
       if (jobContext.mode === 'paste') {
@@ -571,7 +564,7 @@ export const useApplicationWizard = () => {
       }
 
       if (jobContext.mode === 'upload') {
-        formData.append('jobDescriptionFile', jobContext.jobFile); // ✅ THIS
+        formData.append('jobDescriptionFile', jobContext.jobFile);
       }
 
       // ---------------------------
@@ -628,15 +621,13 @@ export const useApplicationWizard = () => {
 
       navigateToStep('result');
     } catch (error: any) {
-      console.error('Tailor Error:', error);
-
+      console.error(error);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
         description:
           error?.response?.data?.message || 'Failed to generate application.',
       });
-
       navigateToStep('cl');
     } finally {
       setIsLoading(false);
@@ -699,17 +690,6 @@ export const useApplicationWizard = () => {
   // Inside your useApplicationWizard hook...
 
   const handleSaveAndFinish = useCallback(async () => {
-    // ✅ FIX: Removed arguments
-    // ✅ FIX: Add a guard clause to ensure data exists before saving
-    if (!jobContext || !generatedData.refinedCv) {
-      toast({
-        variant: 'destructive',
-        title: 'Cannot Save',
-        description: 'Job details or generated content is missing.',
-      });
-      return;
-    }
-
     setIsLoading(true);
     setLoadingMessage('Saving your application...');
 
