@@ -5,14 +5,21 @@ type Resume = {
   htmlCVTitle: string;
 };
 
+type Letter = {
+  coverLetter: string;
+  htmlLetterTitle: string;
+};
+
 type AI = {
   resume: Resume[];
+  letter: Letter[];
   loading: boolean;
   error: string | null;
 };
 
 const initialState: AI = {
   resume: [],
+  letter: [],
   loading: false,
   error: null,
 };
@@ -52,6 +59,19 @@ const AISlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    savedStudentLetterRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    savedStudentLetterSuccess: (state, action: PayloadAction<string[]>) => {
+      state.loading = false;
+      state.letter = action.payload;
+    },
+    savedStudentLetterFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -63,5 +83,9 @@ export const {
   savedStudentResumeRequest,
   savedStudentResumeSuccess,
   savedStudentResumeFailure,
+
+  savedStudentLetterRequest,
+  savedStudentLetterSuccess,
+  savedStudentLetterFailure,
 } = AISlice.actions;
 export default AISlice.reducer;

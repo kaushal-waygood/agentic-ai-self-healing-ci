@@ -8,10 +8,14 @@ import {
   savedStudentResumeRequest,
   savedStudentResumeSuccess,
   savedStudentResumeFailure,
+  savedStudentLetterRequest,
+  savedStudentLetterSuccess,
+  savedStudentLetterFailure,
 } from '../reducers/aiReducer';
 import {
   generateCVByJobDescription,
   savedStudentResume,
+  savedStudentLetter,
 } from '@/services/api/ai';
 import { AxiosResponse } from 'axios';
 
@@ -39,10 +43,22 @@ function* savedStudentResumeSaga(action: PayloadAction<any>) {
   }
 }
 
+function* savedStudentLetterSaga(action: PayloadAction<any>) {
+  try {
+    const response: AxiosResponse = yield call(savedStudentLetter);
+    yield put(savedStudentLetterSuccess(response.data));
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Login failed';
+    yield put(savedStudentLetterFailure(errorMessage));
+  }
+}
+
 export function* watchAI() {
   yield takeLatest(
     generateCVByJobDescriptionRequest.type,
     generateCVByJobDescriptionSaga,
   );
   yield takeLatest(savedStudentResumeRequest.type, savedStudentResumeSaga);
+  yield takeLatest(savedStudentLetterRequest.type, savedStudentLetterSaga);
 }
