@@ -395,21 +395,9 @@ export const deleteSingleCV = async (req, res) => {
     const { _id: userId } = req.user;
 
     // First find the CV to get file paths
-    const student = await Student.findOne({ _id: userId, 'cvs._id': cvId });
+    const student = await StudentCV.deleteOne({ student: userId, _id: cvId });
 
-    if (!student) {
-      return res.status(404).json({ error: 'CV not found' });
-    }
-
-    const cvToDelete = student.cvs.id(cvId);
-
-    // Delete associated file from storage if exists
-    if (cvToDelete.filePath) {
-      await deleteFileFromStorage(cvToDelete.filePath);
-    }
-
-    // Remove from database
-    await Student.updateOne({ _id: userId }, { $pull: { cvs: { _id: cvId } } });
+    console.log(student);
 
     res.status(200).json({
       success: true,
@@ -427,21 +415,7 @@ export const deleteSingleCL = async (req, res) => {
     const { _id: userId } = req.user;
 
     // First find the CV to get file paths
-    const student = await Student.findOne({ _id: userId, 'cls._id': clId });
-
-    if (!student) {
-      return res.status(404).json({ error: 'CV not found' });
-    }
-
-    const clToDelete = student.cls.id(clId);
-
-    // Delete associated file from storage if exists
-    if (clToDelete.filePath) {
-      await deleteFileFromStorage(clToDelete.filePath);
-    }
-
-    // Remove from database
-    await Student.updateOne({ _id: userId }, { $pull: { cls: { _id: clId } } });
+    const student = await StudentCL.deleteOne({ student: userId, _id: clId });
 
     res.status(200).json({
       success: true,
@@ -459,31 +433,14 @@ export const deleteSingleTailoredApplication = async (req, res) => {
     const { _id: userId } = req.user;
 
     // First find the student to get the tailored application details
-    const student = await Student.findOne({
-      _id: userId,
-      'tailoredApplications._id': appId,
+    const student = await StudentTailoredApplication.deleteOne({
+      student: userId,
+      _id: appId,
     });
 
     if (!student) {
       return res.status(404).json({ error: 'Tailored application not found' });
     }
-
-    const tailoredApplicationToDelete = student.tailoredApplications.id(appId);
-
-    if (!tailoredApplicationToDelete) {
-      return res.status(404).json({ error: 'Tailored application not found' });
-    }
-
-    // Delete associated file from storage if exists
-    if (tailoredApplicationToDelete.filePath) {
-      await deleteFileFromStorage(tailoredApplicationToDelete.filePath);
-    }
-
-    // Remove from database - FIXED: pulling from tailoredApplications, not cls
-    await Student.updateOne(
-      { _id: userId },
-      { $pull: { tailoredApplications: { _id: appId } } },
-    );
 
     res.status(200).json({
       success: true,
@@ -513,16 +470,13 @@ export const renameHtmlCV = async (req, res) => {
       });
     }
 
-    const student = await Student.findOneAndUpdate(
+    const student = await StudentCV.findOneAndUpdate(
       {
-        _id,
-        'cvs._id': id,
+        student: _id,
+        _id: id,
       },
       {
-        $set: {
-          'cvs.$.cvTitle': title.trim(),
-          'cvs.$.updatedAt': new Date(),
-        },
+        cvTitle: title.trim(),
       },
       { new: true },
     );
@@ -565,16 +519,13 @@ export const renameCoverLetter = async (req, res) => {
       });
     }
 
-    const student = await Student.findOneAndUpdate(
+    const student = await StudentCL.findOneAndUpdate(
       {
-        _id,
-        'coverLetter._id': id, // <-- 4. Find using the ID from params
+        student: _id,
+        _id: id,
       },
       {
-        $set: {
-          'coverLetter.$.coverLetterTitle': title.trim(), // <-- 5. Set using 'title'
-          'coverLetter.$.updatedAt': new Date(),
-        },
+        coverLetterTitle: title.trim(),
       },
       { new: true },
     );
