@@ -7,8 +7,10 @@ const ACTION_TO_DB_FIELD = {
   COVER_LETTER: 'coverLetter',
   COVER_LETTER_GENERATION: 'coverLetter',
   TAILORED_APPLY: 'aiApplication',
-  AUTO_APPLY: 'autoApply',
   AI_AUTO_APPLY: 'aiAutoApply',
+  AI_MANUAL_APPLY: 'aiMannualApplication',
+  ATS_SCORE: 'atsScore',
+  JOB_MATCHING: 'jobMatching',
 };
 
 export const checkCredits = (actionType) => {

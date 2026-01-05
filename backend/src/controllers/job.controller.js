@@ -744,9 +744,8 @@ export const getSingleJobDetail = async (req, res) => {
     const cacheKey = `job:${jobId}`;
 
     const job = await redisClient.withCache(cacheKey, 3600, async () => {
-      // Support both Mongo _id and our jobId field
       if (isObjectId(jobId)) return Job.findById(jobId).select('-queries');
-      return Job.findOne({ jobId }).select('-queries');
+      return Job.findOne({ _id: jobId }).select('-queries');
     });
 
     if (!job)
