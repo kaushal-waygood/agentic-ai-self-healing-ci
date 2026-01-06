@@ -8,6 +8,7 @@ import React, {
   useMemo,
 } from 'react';
 import { usePathname } from 'next/navigation';
+import { AppSidebarContent } from '@/components/dashboard/layout/sidebar';
 // Context Definitions
 interface SidebarContextType {
   isOpen: boolean;
@@ -37,9 +38,13 @@ export default function DashboardLayout({
   const [isPinned, setPinned] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  // --- LOGIC UPDATE ---
+  // Since this file is in app/dashboard/layout.tsx, we know we are in the dashboard.
+  // We only need to check if we are on a specific page where we want to HIDE it.
   const isOnboardingPage = pathname === '/dashboard/onboarding-tour';
   const showSidebar = !isOnboardingPage;
 
+  // Hydrate Sidebar State from LocalStorage
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-state');
     if (saved) {
@@ -49,10 +54,12 @@ export default function DashboardLayout({
     }
   }, []);
 
+  // Persist Sidebar State
   useEffect(() => {
     localStorage.setItem('sidebar-state', JSON.stringify({ isOpen, isPinned }));
   }, [isOpen, isPinned]);
 
+  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -65,6 +72,7 @@ export default function DashboardLayout({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Sidebar Handlers
   const toggle = () => setIsOpen(!isOpen);
   const handleMouseEnter = () => {
     if (!isPinned) setIsOpen(true);
