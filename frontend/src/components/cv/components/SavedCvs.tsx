@@ -27,6 +27,7 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
   const [activeSearch, setActiveSearch] = useState('');
   const route = useRouter();
   const searchParams = useSearchParams();
+  console.log('resume', resume);
 
   useEffect(() => {
     setAnimateIn(true);
@@ -195,7 +196,10 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                       <div className="flex-1 space-y-3">
                         <div className="flex items-start gap-4">
-                          <div className="min-w-0 flex-1">
+                          <div
+                            onClick={() => handleLoadCv(savedCv, i)}
+                            className="min-w-0 flex-1"
+                          >
                             <h5
                               className={`text-md font-semibold leading-tight transition-all duration-300 ${
                                 hoveredIndex === i
@@ -203,6 +207,8 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
                                   : 'text-gray-900'
                               }`}
                             >
+                              <span className="text-gray-400">{i + 1}. </span>
+
                               {savedCv.htmlCVTitle}
                             </h5>
                             <p className="flex items-center text-sm text-gray-500 mt-1">

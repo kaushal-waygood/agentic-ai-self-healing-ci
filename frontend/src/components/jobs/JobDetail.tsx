@@ -34,6 +34,7 @@ import {
   TrendingUp,
   Star,
   Zap,
+  Send,
 } from 'lucide-react';
 
 import { JobListing } from '@/lib/data/jobs';
@@ -109,22 +110,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     const controller = new AbortController();
     const { signal } = controller;
 
-    // try {
-    //   const raw = localStorage.getItem(MATCH_SCORE_KEY(job._id));
-    //   const parsed = raw ? JSON.parse(raw) : null;
-
-    //   if (parsed && typeof parsed.matchScore === 'number') {
-    //     setMatchScore(parsed);
-    //   } else {
-    //     setMatchScore(null);
-    //     localStorage.removeItem(MATCH_SCORE_KEY(job._id));
-    //   }
-    // } catch {
-    //   setMatchScore(null);
-    //   localStorage.removeItem(MATCH_SCORE_KEY(job._id));
-    // }
-
-    // ----- MATCH SCORE -----
     try {
       const rawMatch = localStorage.getItem(MATCH_SCORE_KEY(job._id));
       const parsedMatch = rawMatch ? JSON.parse(rawMatch) : null;
@@ -251,59 +236,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       setIsLoadingScore(false);
     }
   }, [job?._id, job?.description]);
-
-  // const handleGetMatchScore = useCallback(async () => {
-  //   if (!job?.description) return;
-
-  //   if (job._id) {
-  //     localStorage.removeItem(`matchScore_${job._id}`);
-  //   }
-
-  //   setIsLoadingScore(true);
-  //   setMatchScore(null);
-  //   setScoreError(null);
-  //   setProgress(0);
-
-  //   const controller = new AbortController();
-  //   const { signal } = controller;
-
-  //   const interval = window.setInterval(() => {
-  //     setProgress((p) => (p < 90 ? p + 5 : p));
-  //   }, 800);
-
-  //   try {
-  //     const response = await apiInstance.post(
-  //       '/students/calculate-match',
-  //       { jobDescription: job.description },
-  //       { signal },
-  //     );
-
-  //     if (signal.aborted) return;
-
-  //     const data = response.data as MatchScore;
-
-  //     // ✅ SAVE ONLY ON SUCCESS
-  //     if (job._id) {
-  //       localStorage.setItem(MATCH_SCORE_KEY(job._id), JSON.stringify(data));
-  //     }
-
-  //     setProgress(100);
-  //     setMatchScore(data);
-  //   } catch (error) {
-  //     console.error('Match score error:', error);
-
-  //     // ❌ CLEAR ANY OLD CACHE ON ERROR
-  //     if (job._id) {
-  //       localStorage.removeItem(MATCH_SCORE_KEY(job._id));
-  //     }
-
-  //     setScoreError('Failed to calculate match score. Please try again.');
-  //     setProgress(0);
-  //   } finally {
-  //     clearInterval(interval);
-  //     setIsLoadingScore(false);
-  //   }
-  // }, [job?._id, job?.description]);
 
   const handleApplyOnSite = useCallback(async () => {
     try {
@@ -476,7 +408,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     }
   }, [job?._id, job?.description]);
 
-  console.log('atsScore', atsScore);
+  const handleApplyNow = () => {
+    router.replace(`/dashboard/jobs/${job._id}/apply`);
+  };
+
   return (
     <div className="min-h-screen space-y-2">
       {/* Header */}
@@ -599,7 +534,9 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {/* Company Site */}
-              {job.applyMethod?.url && job.applyMethod.url !== 'email' && (
+              {job.origin === 'EXTERNAL' &&
+              job.applyMethod.url &&
+              job.applyMethod.url !== 'email' ? (
                 <Button
                   onClick={handleApplyOnSite}
                   asChild
@@ -613,6 +550,22 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     <div className="relative flex items-center justify-center gap-2">
                       <ExternalLink className="w-5 h-5" />
                       <span>Company Site</span>
+                    </div>
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleApplyNow}
+                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                >
+                  <Link
+                    href={`/dashboard/jobs/${job._id}/apply`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="relative flex items-center justify-center gap-2">
+                      {/* <Send className="w-5 h-5" /> */}
+                      <span>Apply Now</span>
                     </div>
                   </Link>
                 </Button>
@@ -666,7 +619,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       animate-in fade-in zoom-in"
                 >
                   {/* Normal content */}
-                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
+                  <div className="flex items-center justify-center gap-2 py-1.5 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
                     <TrendingUp className="w-4 h-4" />
                     <span className="text-lg">{atsScore?.atsScore}/100</span>
                   </div>
@@ -734,7 +687,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       animate-in fade-in zoom-in"
                 >
                   {/* Normal content */}
-                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
+                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95 py-1.5">
                     <TrendingUp className="w-4 h-4" />
                     <span className="text-lg">{matchScore.matchScore}/10</span>
                   </div>
@@ -783,26 +736,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
       <div className="flex items-center gap-2 justify-end mb-3">
         <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200 shadow-sm">
-          {matchScore && !isLoadingScore && (
-            <button
-              onClick={() => {
-                setActiveView('match');
-                setOpenCard(null);
-              }}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg
-          text-sm font-semibold transition-all duration-200
-          ${
-            activeView === 'match'
-              ? 'bg-white text-purple-700 shadow'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
-          }`}
-            >
-              <Star className="w-4 h-4" />
-              <span>Match Score :</span>
-              <span className="text-xs font-bold">{matchScore.matchScore}</span>
-            </button>
-          )}
-
           {atsScore?.atsScore && (
             <button
               onClick={() => {
@@ -820,6 +753,26 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               <Zap className="w-4 h-4" />
               <span>ATS Score :</span>
               <span className="text-xs font-bold">{atsScore.atsScore}</span>
+            </button>
+          )}
+
+          {matchScore && !isLoadingScore && (
+            <button
+              onClick={() => {
+                setActiveView('match');
+                setOpenCard(null);
+              }}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg
+          text-sm font-semibold transition-all duration-200
+          ${
+            activeView === 'match'
+              ? 'bg-white text-purple-700 shadow'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+          }`}
+            >
+              <Star className="w-4 h-4" />
+              <span>Match Score :</span>
+              <span className="text-xs font-bold">{matchScore.matchScore}</span>
             </button>
           )}
         </div>

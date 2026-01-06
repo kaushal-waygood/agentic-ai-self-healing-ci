@@ -17,6 +17,8 @@ import {
   getAllJobsQueries,
   trackJobClick,
   trackJobImpressions,
+  getJobStats,
+  updateJobDescription,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -29,6 +31,15 @@ import { getDashboardTopJobs } from '../controllers/student.controller.js';
 
 const router = Router();
 
+router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
+router.patch(
+  '/mannual/:jobId',
+  authMiddleware,
+  isAnyAdmin,
+  updateJobDescription,
+);
+
+router.get('/job-stats', getJobStats);
 router.get('/job-queries', getAllJobsQueries);
 router.get('/job-desc/:jobId', getJobDescByJobId);
 router.get(
@@ -40,7 +51,6 @@ router.get(
 router.get('/job/:jobId', getJobFromJobId);
 router.get('/job/views/:jobId', authMiddleware, isStudent, jobViewsCount);
 
-router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
 router.get('/find', getJobDetailBySlug);
 router.get('/find/:jobId', getSingleJobDetail);
 

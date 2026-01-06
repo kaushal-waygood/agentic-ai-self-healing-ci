@@ -21,7 +21,7 @@ type Props = {
 const fetchJobForMetadata = async (jobId: string) => {
   try {
     // Using native fetch is better for Next.js Server Components
-    const res = await fetch(`${API_BASE_URL}/jobs/find?slug=${jobId}`, {
+    const res = await fetch(`${API_BASE_URL}/jobs/find/${jobId}`, {
       next: { revalidate: 60 }, // Optional: Cache data for 60 seconds
     });
 
@@ -64,8 +64,6 @@ const Page = ({ params }: Props) => {
     <>
       <Navigation />
       <div className="container">
-        {/* Pass jobId so the client component can fetch its own data if needed, 
-            or pass the initial data if you want to pre-fill it */}
         <JobDetailPage jobId={params.jobId} />
       </div>
     </>

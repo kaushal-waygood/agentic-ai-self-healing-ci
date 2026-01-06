@@ -344,7 +344,7 @@ const LoginForm = () => {
               </Form>
             </div>
 
-            <div className="w-full sm:w-1/2 flex flex-col gap-3 sm:gap-4">
+            <div className="w-full sm:w-1/2 flex flex-col justify-end gap-3 sm:gap-4 sm:border-l-2 border-gray-200 sm:pl-4 ">
               {/* DIVIDER */}
               <div className=" relative my-1 ">
                 <div className="absolute inset-0 flex items-center">
@@ -362,35 +362,6 @@ const LoginForm = () => {
                 <GoogleSignInButton form={loginForm} />
                 <LinkedInSignInButton form={loginForm} />
               </div>
-
-              {/* SIGN UP */}
-              {/* <div className="mt-4 text-center">
-                <p className="text-gray-600 text-xs sm:text-sm">
-                  Don't have an account?{' '}
-                  <Link
-                    href="/signup"
-                    className="text-blue-600 hover:underline"
-                  >
-                    Sign up
-                  </Link>
-                </p>
-              </div> */}
-              {/* SIGN UP – Highlighted CTA */}
-              {/* <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50/60 px-4 py-3 text-center">
-                <p className="text-gray-700 text-sm font-medium">
-                  Don’t have an account?
-                </p>
-
-                <Link
-                  href="/signup"
-                  className="mt-1 inline-flex items-center gap-1
-    text-sm font-semibold text-blue-700
-    hover:text-blue-800 underline underline-offset-4"
-                >
-                  Create an account
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div> */}
 
               {/* SIGN UP – Enhanced with animation */}
               <div className=" relative group">

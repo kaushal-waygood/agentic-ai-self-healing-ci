@@ -38,6 +38,7 @@ import {
   renameCoverLetter,
   calculateATS,
   changeTempateCV,
+  getAllTemplates,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 import {
@@ -56,6 +57,15 @@ router.post(
   isUserOrUniStudent,
   memoryUpload.single('cv'),
   extractStudentDataFromCV,
+);
+
+router.get('/templates', authMiddleware, isUserOrUniStudent, getAllTemplates);
+
+router.post(
+  '/change/template',
+  authMiddleware,
+  isUserOrUniStudent,
+  changeTempateCV,
 );
 
 router.get(
@@ -238,7 +248,10 @@ router.post(
   isUserOrUniStudent,
   checkCredits('TAILORED_APPLY'),
   requireCompleteProfile,
-  uploadToMemory.single('cv'),
+  uploadToMemory.fields([
+    { name: 'cv', maxCount: 1 },
+    { name: 'jobDescriptionFile', maxCount: 1 },
+  ]),
   createTailoredApply,
 );
 
@@ -261,13 +274,6 @@ router.post(
   authMiddleware,
   isUserOrUniStudent,
   calculateJobMatchScore,
-);
-
-router.post(
-  '/change/template',
-  authMiddleware,
-  isUserOrUniStudent,
-  changeTempateCV,
 );
 
 router.post('/ats-score', authMiddleware, isUserOrUniStudent, calculateATS);

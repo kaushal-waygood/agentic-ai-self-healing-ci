@@ -206,7 +206,6 @@ const JobWizard = ({
         {/* Enhanced Header */}
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
-            <div className="absolute inset-0 2xl "></div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative z-10">
               AI-Powered CV Generator
             </h1>

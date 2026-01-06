@@ -142,7 +142,7 @@
 
 //   return (
 //     <div
-//       className={`relative w-full flex flex-col rounded-2xl border transition-all duration-300 group ${
+//       className={`relative w-full flex flex-col rounded-lg border transition-all duration-300 group ${
 //         isPopular
 //           ? 'bg-white border-purple-400 shadow-2xl shadow-purple-500/20 scale-105'
 //           : 'bg-white border-gray-200 hover:shadow-xl'
@@ -200,7 +200,7 @@
 
 //         {/* --- Interactive Button Group Design --- */}
 //         {isComplexCard && (
-//           <div className="mt-8 mb-4 bg-gray-100 p-1 rounded-xl">
+//           <div className="mt-8 mb-4 bg-gray-100 p-1 rounded-lg">
 //             <div className="flex items-center justify-center gap-1">
 //               {plan.billingVariants
 //                 .filter((v) =>
@@ -272,8 +272,12 @@
 
 'use client';
 
+import { setCheckoutRequest } from '@/redux/actions/checkoutAction';
 import { ArrowRight, Building2, Check, Crown, Star, Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
 import { useState } from 'react';
+import { useDispatch } from 'react-redux';
 
 // --- Interfaces for type safety ---
 interface Price {
@@ -342,12 +346,12 @@ const colorConfig = {
   },
 };
 
-const STUDENT_DISCOUNT_PERCENT = 20;
+const STUDENT_DISCOUNT_PERCENT = 50;
 
 const PlanCard = ({
   plan,
   currency,
-  handlePlanSelect,
+  // handlePlanSelect,
   isSubscriptionPage,
 }: PlanCardProps) => {
   const [selectedPeriod, setSelectedPeriod] = useState(
@@ -358,7 +362,6 @@ const PlanCard = ({
 
   // ✅ Student discount state (NEW)
   const [studentDiscount, setStudentDiscount] = useState(false);
-
   const IconComponent = planIcons[plan.planType];
   const planColor = planColors[plan.planType];
   const isPopular = plan.popular;
@@ -377,15 +380,13 @@ const PlanCard = ({
       ? selectedVariant.price.effective.usd
       : selectedVariant.price.effective.inr;
 
-  // ✅ Derived student discounted price (NEW)
   const effectivePrice = studentDiscount
     ? basePrice - (basePrice * STUDENT_DISCOUNT_PERCENT) / 100
     : basePrice;
 
+  const price = Number(effectivePrice.toFixed(2));
   const displayPrice =
-    currency === 'usd'
-      ? `$${effectivePrice}`
-      : `₹${Math.round(effectivePrice)}`;
+    currency === 'usd' ? `$${price.toFixed(2)}` : `₹${Math.round(price)}`;
 
   const pricePerDay = () => {
     if (plan.planType === 'Free') return 0;
@@ -409,9 +410,34 @@ const PlanCard = ({
     </div>
   );
 
+  const dispatch = useDispatch();
+  const router = useRouter();
+
+  const handlePlanSelect = (plan: Plan) => {
+    dispatch(
+      setCheckoutRequest({
+        planId: plan.plan._id,
+        planType: plan.plan.planType,
+        period: selectedPeriod,
+        currency,
+        basePrice,
+        discountPercent: STUDENT_DISCOUNT_PERCENT,
+        discountAmount: studentDiscount
+          ? (basePrice * STUDENT_DISCOUNT_PERCENT) / 100
+          : 0,
+        finalPrice: price,
+        studentDiscountApplied: studentDiscount,
+      }),
+    );
+
+    router.push(
+      `/dashboard/checkout?planId=${plan.plan._id}&period=${selectedPeriod}`,
+    );
+  };
+
   return (
     <div
-      className={`relative w-full flex flex-col rounded-2xl border transition-all duration-300 group ${
+      className={`relative w-full flex flex-col rounded-lg border transition-all duration-300 group ${
         isPopular
           ? 'bg-white border-purple-400 shadow-2xl shadow-purple-500/20 scale-105'
           : 'bg-white border-gray-200 hover:shadow-xl'
@@ -453,27 +479,33 @@ const PlanCard = ({
           </div>
         </div>
 
-        {/* 🎓 Student Discount Toggle */}
         {plan.planType !== 'Free' && (
-          <div className="mt-4 flex items-center justify-between bg-gray-50 px-4 py-2 rounded-lg">
-            <div>
-              <p className="text-sm font-semibold text-gray-700">
-                Student Discount
+          <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
+            {/* LEFT */}
+            <div className="flex flex-col">
+              <p className="text-md font-semibold text-gray-800 flex items-center gap-1">
+                🎓 Student Discount
+                <span className="text-purple-600 font-bold text-lg">
+                  {STUDENT_DISCOUNT_PERCENT}%
+                </span>
               </p>
               <p className="text-xs text-gray-500">
-                Save {STUDENT_DISCOUNT_PERCENT}% with student ID
+                Verify student ID to save instantly
               </p>
             </div>
 
+            {/* RIGHT – TOGGLE */}
             <button
               onClick={() => setStudentDiscount((prev) => !prev)}
-              className={`relative w-11 h-6 rounded-full transition-colors ${
+              role="switch"
+              aria-checked={studentDiscount}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
                 studentDiscount ? 'bg-purple-600' : 'bg-gray-300'
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                  studentDiscount ? 'translate-x-5' : ''
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-300 ${
+                  studentDiscount ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
             </button>
@@ -481,7 +513,7 @@ const PlanCard = ({
         )}
 
         {isComplexCard && (
-          <div className="mt-8 mb-4 bg-gray-100 p-1 rounded-xl">
+          <div className="mt-8 mb-4 bg-gray-100 p-1  rounded-lg">
             <div className="flex items-center justify-center gap-1">
               {plan.billingVariants
                 .filter((v) =>
@@ -516,7 +548,6 @@ const PlanCard = ({
       </div>
 
       <div className="px-6 flex-grow">
-        <div className="h-px bg-gray-200 my-4"></div>
         <ul className="space-y-3">
           {selectedVariant.features.map((feature) => (
             <li key={feature.name} className="flex items-start gap-3">
@@ -534,7 +565,19 @@ const PlanCard = ({
 
       <div className="p-6 mt-auto">
         <button
-          onClick={() => handlePlanSelect({ plan, period: selectedPeriod })}
+          // onClick={() =>
+          //   handlePlanSelect({
+          //     plan,
+          //     period: selectedPeriod,
+
+          //   })
+          // }
+
+          onClick={() =>
+            handlePlanSelect({
+              plan,
+            })
+          }
           className="w-full"
         >
           <ActionButton>

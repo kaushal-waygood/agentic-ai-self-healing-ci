@@ -1,88 +1,66 @@
-import React from 'react';
-
+import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import apiInstance from '@/services/api';
 
-// export const resumeTemplates = [
-//   {
-//     id: 'classic',
-//     name: 'Classic',
-//     thumbnail: '/templates/classic.svg',
-//     className: 'resume-classic',
-//   },
-//   {
-//     id: 'modern',
-//     name: 'Modern',
-//     thumbnail: '/templates/modern.svg',
-//     className: 'resume-modern',
-//   },
-//   {
-//     id: 'minimal',
-//     name: 'Minimal',
-//     thumbnail: '/templates/minimal.svg',
-//     className: 'resume-minimal',
-//   },
-//   {
-//     id: 'professional',
-//     name: 'Professional',
-//     thumbnail: '/templates/professional.svg',
-//     className: 'resume-professional',
-//   },
-//   {
-//     id: 'test',
-//     name: 'test',
-//     thumbnail: '/templates/professional.svg',
-//     className: 'resume-test ',
-//   },
-// ];
+const TEMPLATE_THUMBNAILS: Record<string, string> = {
+  classic: 'https://placehold.co/300x420?text=Classic',
+  modern: 'https://placehold.co/300x420?text=Modern',
+  minimal: 'https://placehold.co/300x420?text=Minimal',
+  executive: 'https://placehold.co/300x420?text=Executive',
+  compact: 'https://placehold.co/300x420?text=Compact',
+  academic: 'https://placehold.co/300x420?text=Academic',
+  tech: 'https://placehold.co/300x420?text=Tech',
+  government: 'https://placehold.co/300x420?text=Government',
+  sales: 'https://placehold.co/300x420?text=Sales',
+  legal: 'https://placehold.co/300x420?text=Legal',
+  student: 'https://placehold.co/300x420?text=Student',
+};
 
-export const resumeTemplates = [
-  {
-    id: 'classic',
-    name: 'Classic',
-    thumbnail: 'https://placehold.co/300x420/ffffff/000000?text=Classic+Resume',
-    className: 'resume-classic',
-  },
-  {
-    id: 'modern',
-    name: 'Modern',
-    thumbnail: 'https://placehold.co/300x420/eff6ff/2563eb?text=Modern+Resume',
-    className: 'resume-modern',
-  },
-  {
-    id: 'minimal',
-    name: 'Minimal',
-    thumbnail: 'https://placehold.co/300x420/ffffff/111827?text=Minimal+Resume',
-    className: 'resume-minimal',
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    thumbnail:
-      'https://placehold.co/300x420/f8fafc/0f172a?text=Professional+Resume',
-    className: 'resume-professional',
-  },
-  {
-    id: 'professional2',
-    name: 'Professional2',
-    thumbnail:
-      'https://placehold.co/300x420/f8fafc/0f172a?text=Professional+Resume',
-    className: 'resume-professional2',
-  },
-  {
-    id: 'professional3',
-    name: 'Professional2',
-    thumbnail:
-      'https://placehold.co/300x420/f8fafc/0f172a?text=Professional+Resume',
-    className: 'resume-professional2',
-  },
-];
+export interface ResumeTemplate {
+  id: string;
+  name: string;
+  style: string;
+  thumbnail: string;
+}
 
-const TemplateSidebar = ({ activeTemplate, onSelect }) => {
+interface Props {
+  activeTemplate: ResumeTemplate | null;
+  onSelect: (template: ResumeTemplate) => void;
+}
+
+const TemplateSidebar: React.FC<Props> = ({ activeTemplate, onSelect }) => {
+  const [templates, setTemplates] = useState<ResumeTemplate[]>([]);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const { data } = await apiInstance.get('/students/templates');
+
+        const normalized = Object.entries(data).map(
+          ([key, style]: [string, any]) => ({
+            id: key,
+            name: key.charAt(0).toUpperCase() + key.slice(1),
+            style,
+            thumbnail:
+              TEMPLATE_THUMBNAILS[key] ||
+              'https://placehold.co/300x420?text=Template',
+          }),
+        );
+
+        setTemplates(normalized);
+      } catch (err) {
+        console.error('Failed to fetch templates', err);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
   return (
     <div className="w-56 border-r bg-white p-3 space-y-3 overflow-y-auto">
       <h3 className="font-semibold text-sm text-gray-700">Resume Templates</h3>
 
-      {resumeTemplates.map((template) => (
+      {templates.map((template) => (
         <button
           key={template.id}
           onClick={() => onSelect(template)}

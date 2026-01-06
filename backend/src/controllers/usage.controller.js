@@ -28,7 +28,11 @@ const FEATURE_MAP = {
   'cv-creation': 'cvCreation',
   'cover-letter': 'coverLetter',
   'ai-application': 'aiApplication',
-  'auto-apply': 'autoApply',
+  'auto-apply': 'aiAutoApply',
+  'ai-auto-apply-daily-limit': 'aiAutoApplyDailyLimit',
+  'ai-mannual-application': 'aiMannualApplication',
+  'ats-score': 'atsScore',
+  'job-matching': 'jobMatching',
 };
 
 const updateUsageCounter = async (userId, feature, creditsUsed) => {
@@ -49,7 +53,11 @@ export const resetUsageCounters = async () => {
           'usageCounters.cvCreation': 0,
           'usageCounters.coverLetter': 0,
           'usageCounters.aiApplication': 0,
-          'usageCounters.autoApply': 0,
+          'usageCounters.aiAutoApply': 0,
+          'usageCounters.aiAutoApplyDailyLimit': 0,
+          'usageCounters.aiMannualApplication': 0,
+          'usageCounters.atsScore': 0,
+          'usageCounters.jobMatching': 0,
           'usageCounters.lastReset': new Date(),
         },
       },

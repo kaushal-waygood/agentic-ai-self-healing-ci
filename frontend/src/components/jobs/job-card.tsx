@@ -9,6 +9,8 @@ interface JobCardProps {
   job: JobListing;
   isActive?: boolean;
   onClick?: () => void;
+  jobViews?: number;
+  jobPosted?: string;
 }
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
@@ -97,12 +99,12 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-gray-100 to-gray-50 group-hover:from-purple-100 group-hover:to-blue-100 rounded-full transition-all duration-300 shadow-sm group-hover:shadow-md">
                 <Eye className="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-600 transition-colors" />
                 <span className="text-xs font-semibold text-gray-600 group-hover:text-purple-700 transition-colors">
-                  {job.views}
+                  {job.jobViews}
                 </span>
               </div>
             </div>
 
-            {job.views > 100 && (
+            {job.jobViews > 100 && (
               <div className="flex items-center gap-1 text-xs font-semibold text-green-600 animate-in fade-in duration-500">
                 <TrendingUp className="w-3 h-3" />
                 <span>Trending</span>

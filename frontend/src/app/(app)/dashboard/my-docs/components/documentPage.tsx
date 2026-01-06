@@ -7,16 +7,21 @@ import {
   Send,
   Clock,
   Trash2,
-  Download,
-  Copy,
   CheckCircle2,
   X,
   Search,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast, useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DocumentCard } from './DocumentCard';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import {
+  savedStudentCoverLetterRequest,
+  savedStudentResumeRequest,
+} from '@/redux/reducers/aiReducer';
+import { useDispatch } from 'react-redux';
 
 interface CV {
   _id: string;
@@ -147,6 +152,8 @@ export default function DocumentsPage() {
         ...prev,
         coverLettersCount: response.data.cls?.length || 0,
       }));
+
+      console.log('response.data.cls', response.data.cls);
     } catch (error) {
       console.error('Failed to fetch cover letters:', error);
       throw error;
@@ -375,24 +382,13 @@ export default function DocumentsPage() {
       minute: '2-digit',
     });
 
-  const [loading, setLoading] = useState(false);
-
-  const fetchSavedCVs = async () => {
-    try {
-      setLoading(true);
-      const response = await apiInstance.get('/students/resume/saved');
-      setCvs(response.data.html || []);
-      setStats((prev) => ({
-        ...prev,
-        cvsCount: response.data.html?.length || 0,
-      }));
-
-      setCvs(response.data.html || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch CVs:', error);
-    } finally {
-      setLoading(false);
+  const refreshGeneratedDocs = (type: 'cv' | 'coverLetter' | 'application') => {
+    if (type === 'cv') {
+      fetchCVs();
+    } else if (type === 'coverLetter') {
+      fetchCoverLetters();
+    } else if (type === 'application') {
+      fetchApplications();
     }
   };
 
@@ -411,7 +407,7 @@ export default function DocumentsPage() {
         {/* ✅ Stat Tabs (interactive with params) */}
         <div className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <StatCard
-            label="CVs"
+            label="Curiculums Vitae"
             value={stats.cvsCount}
             icon={FileText}
             color="from-blue-500 to-blue-600"
@@ -427,7 +423,7 @@ export default function DocumentsPage() {
             onClick={() => setActiveTab('cover-letters')}
           />
           <StatCard
-            label="Applications"
+            label="Tailored Applications "
             value={stats.tailoredApplicationsCount}
             icon={Send}
             color="from-green-500 to-emerald-500"
@@ -455,6 +451,7 @@ export default function DocumentsPage() {
                 <DocumentSection
                   title="Generated CVs"
                   items={cvs}
+                  refreshGeneratedDocs={refreshGeneratedDocs}
                   onDelete={deleteCV}
                   onCopy={copyToClipboard}
                   onDownload={downloadAsFile}
@@ -470,6 +467,7 @@ export default function DocumentsPage() {
               {activeTab === 'cover-letters' && (
                 <DocumentSection
                   title="Generated Cover Letters"
+                  refreshGeneratedDocs={refreshGeneratedDocs}
                   items={coverLetters}
                   onDelete={deleteCoverLetter}
                   onCopy={copyToClipboard}
@@ -615,18 +613,38 @@ const DocumentSection = ({
   onDownload,
   copiedId,
   getStatusIcon,
+  refreshGeneratedDocs,
   getStatusColor,
   formatDate,
   type,
 }: any) => {
   const [visibleCount, setVisibleCount] = useState(10);
-  const [docState, setDocState] = useState<'generated' | 'saved'>('generated');
+  // const [docState, setDocState] = useState<'generated' | 'saved'>('generated');
+  const dispatch = useDispatch();
+
+  const searchParams = useSearchParams();
+
+  const initialDocState =
+    searchParams.get('q') === 'saved' ? 'saved' : 'generated';
+
+  const [docState, setDocState] = useState<'generated' | 'saved'>(
+    initialDocState,
+  );
 
   // 1. Add state to store the search input
   const [searchTerm, setSearchTerm] = useState('');
 
   // actual search used for filtering
   const [finalSearchTerm, setFinalSearchTerm] = useState('');
+
+  const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
+
+  /* ---------- effects ---------- */
+
+  useEffect(() => {
+    dispatch(savedStudentResumeRequest());
+    dispatch(savedStudentCoverLetterRequest());
+  }, [dispatch]);
 
   // Auto reset when input becomes empty
   useEffect(() => {
@@ -635,10 +653,41 @@ const DocumentSection = ({
     }
   }, [searchTerm]);
 
-  //  the filtering logic
-  const filteredItems = items.filter((item: any) => {
-    if (!finalSearchTerm) return true;
+  // const listToRender = (() => {
+  //   if (docState !== 'saved') return items;
 
+  //   if (type === 'cv') return resume?.html;
+  //   if (type === 'coverLetter') return letter?.html;
+
+  //   return [];
+  // })();
+
+  useEffect(() => {
+    if (type === 'application') {
+      setDocState('generated');
+    }
+  }, [type]);
+
+  const listToRender = (() => {
+    if (docState === 'saved') {
+      if (type === 'cv') {
+        return Array.isArray(resume?.html) ? resume.html : [];
+      }
+
+      if (type === 'coverLetter') {
+        return Array.isArray(coverLetter?.html) ? coverLetter.html : [];
+      }
+
+      return [];
+    }
+
+    return Array.isArray(items) ? items : [];
+  })();
+
+  //  the filtering logic
+  // const filteredItems = items.filter((item: any) => {
+  const filteredItems = listToRender.filter((item: any) => {
+    if (!finalSearchTerm) return true;
     const searchLower = finalSearchTerm.toLowerCase();
 
     const title = (item.jobTitle || '').toLowerCase();
@@ -656,24 +705,59 @@ const DocumentSection = ({
     setFinalSearchTerm(searchTerm); // 🔥 Search only when triggered
   };
 
+  // const handleRenameDocument = async (documentId: string, newTitle: string) => {
+  //   try {
+  //     await apiInstance.patch(`/students/cv/${documentId}/rename`, {
+  //       title: newTitle,
+  //     });
+
+  //     // 2. Update the state locally to show the change immediately
+  //     setDocuments((currentDocs) =>
+  //       currentDocs.map((doc) =>
+  //         doc._id === documentId ? { ...doc, title: newTitle } : doc,
+  //       ),
+  //     );
+
+  //     toast({
+  //       title: 'Document Renamed',
+  //       description: 'Your document has a new name.',
+  //     });
+  //   } catch (error) {
+  //     console.error('Rename failed:', error);
+  //     toast({
+  //       variant: 'destructive',
+  //       title: 'Rename Failed',
+  //       description: 'Could not update the document name.',
+  //     });
+  //     // Re-throw the error so the DocumentCard's loading state can stop
+  //     throw error;
+  //   }
+  // };
   const handleRenameDocument = async (documentId: string, newTitle: string) => {
     try {
-      // 1. Make the API call
-      // (Update this endpoint to match your backend)
-      await apiInstance.patch(`/students/cv/${documentId}/rename`, {
-        title: newTitle,
-      });
+      const endpoint =
+        docState === 'saved'
+          ? type === 'cv'
+            ? `/students/resume/${documentId}/rename`
+            : `/students/cover-letter/${documentId}/rename`
+          : type === 'cv'
+          ? `/students/cv/${documentId}/rename`
+          : `/students/cl/${documentId}/rename`;
 
-      // 2. Update the state locally to show the change immediately
-      setDocuments((currentDocs) =>
-        currentDocs.map((doc) =>
-          doc._id === documentId ? { ...doc, title: newTitle } : doc,
-        ),
-      );
+      await apiInstance.patch(endpoint, { title: newTitle });
+
+      // 🔥 refresh logic
+      if (docState === 'saved') {
+        type === 'cv'
+          ? dispatch(savedStudentResumeRequest())
+          : dispatch(savedStudentCoverLetterRequest());
+      } else {
+        refreshGeneratedDocs(type);
+      }
 
       toast({
         title: 'Document Renamed',
-        description: 'Your document has a new name.',
+        description: 'Updated name fetched successfully.',
       });
     } catch (error) {
       console.error('Rename failed:', error);
@@ -682,7 +766,6 @@ const DocumentSection = ({
         title: 'Rename Failed',
         description: 'Could not update the document name.',
       });
-      // Re-throw the error so the DocumentCard's loading state can stop
       throw error;
     }
   };
@@ -690,32 +773,70 @@ const DocumentSection = ({
   return (
     <div className="p-6">
       <div className="flex items-center flex-wrap justify-between mb-6">
-        <h2 className="text-lg md:text-2xl font-semibold text-gray-900 dark:text-white ">
+        {/* <h2 className="text-lg md:text-2xl font-semibold text-gray-900 dark:text-white ">
           {title}
-        </h2>
+        </h2> */}
 
         <div className="flex gap-2">
-          <button
-            onClick={() => setDocState('generated')}
-            className={`px-4 py-2 rounded-md ${
-              docState === 'generated'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 dark:bg-gray-700'
-            }`}
-          >
-            Generated
-          </button>
+          {type !== 'application' ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setDocState('generated');
+                  const params = new URLSearchParams(window.location.search);
+                  params.delete('q');
+                  window.history.replaceState(
+                    null,
+                    '',
+                    `?${params.toString()}`,
+                  );
+                }}
+                className={`px-4 py-2 rounded-md ${
+                  docState === 'generated'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+              >
+                Generated
+              </button>
 
-          <button
-            onClick={() => setDocState('saved')}
-            className={`px-4 py-2 rounded-md ${
-              docState === 'saved'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 dark:bg-gray-700'
-            }`}
-          >
-            Saved
-          </button>
+              <button
+                onClick={() => {
+                  setDocState('saved');
+                  const params = new URLSearchParams(window.location.search);
+                  params.set('q', 'saved');
+                  window.history.replaceState(
+                    null,
+                    '',
+                    `?${params.toString()}`,
+                  );
+                }}
+                className={`px-4 py-2 rounded-md ${
+                  docState === 'saved'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+              >
+                Saved
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setDocState('generated');
+                const params = new URLSearchParams(window.location.search);
+                params.delete('q');
+                window.history.replaceState(null, '', `?${params.toString()}`);
+              }}
+              className={`px-4 py-2 rounded-md ${
+                docState === 'generated'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Generated
+            </button>
+          )}
         </div>
 
         <div className="flex items-center">
@@ -757,7 +878,8 @@ const DocumentSection = ({
       </div>
 
       {/* 4. Update conditional rendering logic */}
-      {items.length === 0 ? (
+      {/* {items.length === 0 ? ( */}
+      {listToRender?.length === 0 ? (
         // This shows if there are NO items at all
         <div className="text-center py-12">
           <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
@@ -778,7 +900,7 @@ const DocumentSection = ({
               : 'Create your first tailored application to see it here'}
           </p>
         </div>
-      ) : filteredItems.length === 0 ? (
+      ) : filteredItems?.length === 0 ? (
         // This shows if there are items, but none match the search
         <div className="text-center py-12">
           <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
@@ -791,7 +913,7 @@ const DocumentSection = ({
         </div>
       ) : (
         // This shows the filtered results
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 gap-4">
           {/* 5. Map over the filtered list */}
           {filteredItems
             .slice(0, visibleCount)
@@ -813,7 +935,7 @@ const DocumentSection = ({
               />
             ))}
           {/* Show "See More" only if not all items are visible */}
-          {visibleCount < filteredItems.length && (
+          {visibleCount < filteredItems?.length && (
             <div className="text-center mt-4">
               <button
                 onClick={() => setVisibleCount(visibleCount + 10)}

@@ -1,5 +1,3 @@
-// src/models/jobs.model.js
-
 import { Schema, model } from 'mongoose';
 import slugify from 'slugify';
 
@@ -20,7 +18,6 @@ const jobSchema = new Schema(
 
     // human-readable string from API ("11 days ago")
     jobPosted: { type: String },
-
     // REAL date for sorting
     jobPostedAt: { type: Date },
 
@@ -65,6 +62,27 @@ const jobSchema = new Schema(
     remote: { type: Boolean, default: false },
     jobAddress: { type: String },
 
+    // --- NEW: Screening Questions ---
+    screeningQuestions: [
+      {
+        question: { type: String, required: true },
+        type: {
+          type: String,
+          enum: ['text', 'boolean', 'number', 'date'],
+          default: 'text',
+        },
+        required: { type: Boolean, default: true },
+      },
+    ],
+
+    // --- NEW: Candidate Assignment ---
+    assignment: {
+      isEnabled: { type: Boolean, default: false },
+      type: { type: String, enum: ['MANUAL', 'FILE'] }, // Manual text or File upload required from candidate
+      instruction: { type: String }, // The text question or instructions
+      fileUrl: { type: String }, // Optional: Link to a brief/PDF uploaded by the recruiter
+    },
+
     // --- Metadata ---
     tags: [String],
     queries: [{ type: String, index: true }],
@@ -82,7 +100,7 @@ const jobSchema = new Schema(
   { timestamps: true, strict: true },
 );
 
-// --- Indexes for faster recommended/search queries ---
+// --- Indexes ---
 jobSchema.index({
   origin: 1,
   isActive: 1,
@@ -90,26 +108,11 @@ jobSchema.index({
   'location.state': 1,
   'location.city': 1,
 });
+jobSchema.index({ origin: 1, isActive: 1, jobTypes: 1 });
+jobSchema.index({ origin: 1, isActive: 1, tags: 1 });
+jobSchema.index({ origin: 1, isActive: 1, jobPostedAt: -1 });
 
-jobSchema.index({
-  origin: 1,
-  isActive: 1,
-  jobTypes: 1,
-});
-
-jobSchema.index({
-  origin: 1,
-  isActive: 1,
-  tags: 1,
-});
-
-jobSchema.index({
-  origin: 1,
-  isActive: 1,
-  jobPostedAt: -1,
-});
-
-// --- Middleware for Slug Generation ---
+// --- Slug Middleware ---
 jobSchema.pre('save', function (next) {
   if (this.isModified('title') || !this.slug) {
     const baseSlug = slugify(this.title || 'job', {

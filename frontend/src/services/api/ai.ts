@@ -25,3 +25,8 @@ export const savedStudentResume = async () => {
   const response = await apiInstance.get('/students/resume/saved');
   return response;
 };
+
+export const savedStudentCoverLetter = async () => {
+  const response = await apiInstance.get('/students/letter/saved');
+  return response;
+};

@@ -17,6 +17,7 @@ import {
 } from '../utils/jobHelpers.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { JobInteraction } from '../models/jobInteraction.model.js';
+import mongoose, { isObjectIdOrHexString } from 'mongoose';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -137,12 +138,16 @@ export const searchJobs = async (req, res) => {
       if (cachedRaw) {
         const cached = JSON.parse(cachedRaw);
 
+        // ✅ FIXED: Proper impression tracking
         await JobInteraction.insertMany(
           cached.jobs.map((job) => ({
-            jobId: job._id,
-            userId: req.user?._id || null,
-            query: q || null,
-            action: 'impression',
+            job: job._id,
+            user: req.user?._id || null,
+            type: 'IMPRESSION',
+            meta: {
+              query: q || null,
+              source: 'search',
+            },
           })),
           { ordered: false },
         );
@@ -290,28 +295,9 @@ export const searchJobs = async (req, res) => {
             updateOne: {
               filter: { jobId: job.jobId, origin: 'EXTERNAL' },
               update: {
-                $set: {
-                  title: job.title,
-                  description: job.description,
-                  responsibilities: job.responsibilities,
-                  qualifications: job.qualifications,
-                  company: job.company,
-                  country: job.country,
-                  logo: job.logo,
-                  location: job.location,
-                  applyMethod: job.applyMethod,
-                  isActive: true,
-                  jobTypes: job.jobTypes,
-                  experience: job.experience,
-                  salary: job.salary,
-                  remote: job.remote,
-                  jobPosted: job.jobPosted,
-                  jobPostedAt: job.jobPostedAt,
-                },
+                $set: job,
                 $addToSet: {
-                  queries: {
-                    $each: Array.isArray(job.queries) ? job.queries : [q],
-                  },
+                  queries: { $each: job.queries || [q] },
                 },
                 $setOnInsert: { slug: job.slug },
               },
@@ -329,6 +315,7 @@ export const searchJobs = async (req, res) => {
         })
           .limit(limitNum)
           .lean();
+
         totalJobs = jobs.length;
       } else {
         const locationString = [city, state, country]
@@ -343,16 +330,41 @@ export const searchJobs = async (req, res) => {
     /* ===================== 6) FINAL SORT ===================== */
     jobs = sortJobsByPostedDateDesc(jobs);
 
-    const payload = {
-      jobs,
-      totalJobs,
-      notification,
-    };
+    /* ===================== 7) AGGREGATE JOB VIEWS ===================== */
+    const jobIds = jobs.map((j) => j._id);
 
-    /* ===================== 7) CACHE WRITE ===================== */
+    const viewCounts = await JobInteraction.aggregate([
+      {
+        $match: {
+          job: { $in: jobIds },
+          type: 'VIEW',
+        },
+      },
+      {
+        $group: {
+          _id: '$job',
+          views: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const viewsMap = Object.fromEntries(
+      viewCounts.map((v) => [String(v._id), v.views]),
+    );
+
+    jobs = jobs.map((job) => ({
+      ...job,
+      jobViews: viewsMap[String(job._id)] || 0,
+    }));
+
+    /* ===================== 8) CACHE WRITE ===================== */
     try {
       if (lockAcquired) {
-        await redisClient.set(cacheKey, JSON.stringify(payload), SEARCH_TTL);
+        await redisClient.set(
+          cacheKey,
+          JSON.stringify({ jobs, totalJobs, notification }),
+          SEARCH_TTL,
+        );
       }
     } catch (e) {
       console.warn('searchJobs: cache write failed', e?.message);
@@ -360,18 +372,23 @@ export const searchJobs = async (req, res) => {
       if (lockAcquired) await redisClient.del(lockKey);
     }
 
+    /* ===================== 9) IMPRESSION TRACKING ===================== */
     await JobInteraction.insertMany(
       jobs.map((job) => ({
-        jobId: job._id,
-        userId: req.user?._id || null,
-        query: q || null,
-        action: 'impression',
+        job: job._id,
+        user: req.user?._id || null,
+        type: 'IMPRESSION',
+        meta: {
+          query: q || null,
+          source: 'search',
+        },
       })),
       { ordered: false },
     );
 
-    /* ===================== 8) RESPONSE ===================== */
+    /* ===================== 10) RESPONSE ===================== */
     const totalPages = Math.ceil((totalJobs || 0) / limitNum);
+
     return res.status(200).json({
       jobs,
       pagination: {
@@ -422,8 +439,12 @@ export const postManualJob = async (req, res) => {
       jobAddress,
       isActive,
       contractLength,
-      // NEW FLAG:
+      resumeRequired,
       isOnboarding,
+
+      // NEW FIELDS FROM FRONTEND:
+      screeningQuestions,
+      assignment,
     } = payload;
 
     // --- Validation ---
@@ -432,24 +453,23 @@ export const postManualJob = async (req, res) => {
         .status(400)
         .json({ success: false, message: 'Job title is required' });
     }
-
     if (!description || typeof description !== 'string') {
       return res
         .status(400)
         .json({ success: false, message: 'Job description is required' });
     }
-
     if (!company || typeof company !== 'string') {
       return res
         .status(400)
         .json({ success: false, message: 'Company name is required' });
     }
 
-    // --- Normalization ---
+    // --- Normalization: Job Types ---
     const normalizedJobTypes = Array.isArray(jobTypes)
       ? jobTypes.filter((t) => ALLOWED_JOB_TYPES.includes(t))
       : [];
 
+    // --- Normalization: Apply Method ---
     let normalizedApplyMethod = undefined;
     if (applyMethod && typeof applyMethod === 'object') {
       const method = applyMethod.method;
@@ -478,6 +498,7 @@ export const postManualJob = async (req, res) => {
       }
     }
 
+    // --- Normalization: Salary ---
     let normalizedSalary = undefined;
     if (salary && typeof salary === 'object') {
       const min = salary.min !== undefined ? Number(salary.min) : undefined;
@@ -493,30 +514,50 @@ export const postManualJob = async (req, res) => {
       };
     }
 
+    // --- Normalization: Location ---
     let normalizedLocation = undefined;
     if (!remote && location && typeof location === 'object') {
       normalizedLocation = {
         city: location.city || '',
         state: location.state || '',
         postalCode: location.postalCode || '',
-        lat:
-          typeof location.lat === 'number'
-            ? location.lat
-            : location.lat
-            ? Number(location.lat)
-            : undefined,
-        lng:
-          typeof location.lng === 'number'
-            ? location.lng
-            : location.lng
-            ? Number(location.lng)
-            : undefined,
+        lat: location.lat ? Number(location.lat) : undefined,
+        lng: location.lng ? Number(location.lng) : undefined,
+      };
+    }
+
+    // --- Normalization: Screening Questions ---
+    const normalizedScreeningQuestions = Array.isArray(screeningQuestions)
+      ? screeningQuestions
+          .map((q) => ({
+            question: q.question,
+            type: ['text', 'boolean', 'number', 'date'].includes(q.type)
+              ? q.type
+              : 'text',
+            required: typeof q.required === 'boolean' ? q.required : true,
+          }))
+          .filter((q) => q.question) // Filter out empty questions
+      : [];
+
+    // --- Normalization: Assignment ---
+    let normalizedAssignment = { isEnabled: false };
+
+    // Check if the frontend sent assignment data
+    if (assignment && assignment.isEnabled) {
+      normalizedAssignment = {
+        isEnabled: true,
+        type: ['MANUAL', 'FILE'].includes(assignment.type)
+          ? assignment.type
+          : 'MANUAL',
+        instruction: assignment.content || assignment.assignmentQuestion || '',
+        fileUrl: assignment.fileUrl || null,
       };
     }
 
     const now = new Date();
     const humanPosted = 'Just now';
 
+    // Search Queries construction
     const queries = [
       title,
       company,
@@ -532,16 +573,13 @@ export const postManualJob = async (req, res) => {
       ? tags.map((t) => String(t).trim()).filter(Boolean)
       : [];
 
-    // --- LOGIC: Active Status Enforcement ---
-    // If coming from Onboarding, force isActive to FALSE.
-    // Otherwise use user input (defaulting to true if undefined)
-    let finalIsActive = isActive;
-
+    // --- Active Status ---
+    let finalIsActive = isActive !== undefined ? isActive : true;
     if (isOnboarding === true) {
       finalIsActive = false;
     }
 
-    // Build final document object
+    // --- Build Document ---
     const jobData = {
       jobId: uuidv4(),
       origin: 'HOSTED',
@@ -562,13 +600,20 @@ export const postManualJob = async (req, res) => {
       jobPosted: humanPosted,
       jobPostedAt: now,
       isActive: finalIsActive,
+      resumeRequired: resumeRequired !== undefined ? resumeRequired : true,
+      remote: !!remote,
+      contractLength: contractLength,
+      jobAddress: jobAddress,
+
+      // Attach new normalized fields
+      screeningQuestions: normalizedScreeningQuestions,
+      assignment: normalizedAssignment,
     };
 
     const newJob = await Job.create(jobData);
 
     // Cache invalidation
     if (global.redisClient) {
-      // Check if redisClient is available
       await Promise.all([
         global.redisClient.invalidateAllJobsCache().catch(() => {}),
         global.redisClient.del('jobs:employmentTypes').catch(() => {}),
@@ -686,13 +731,124 @@ export const getAllJobs = async (req, res) => {
 export const getMannualyJobs = async (req, res) => {
   try {
     const cacheKey = 'jobs:manual';
+
+    // 1. Fetch jobs (cached, static data only)
     const jobs = await redisClient.withCache(cacheKey, 3600, async () =>
-      Job.find({ origin: 'HOSTED' }).sort({ createdAt: -1 }),
+      Job.find({ origin: 'HOSTED' }).sort({ createdAt: -1 }).lean(),
     );
-    res.status(200).json({ success: true, jobs });
+
+    if (!jobs.length) {
+      return res.status(200).json({ success: true, jobs: [] });
+    }
+
+    // 2. Extract job IDs
+    const jobIds = jobs.map((job) => job._id);
+
+    // 3. Aggregate interactions by job + type
+    const interactionCounts = await JobInteraction.aggregate([
+      {
+        $match: {
+          job: { $in: jobIds },
+          type: { $in: ['IMPRESSION', 'VIEW', 'APPLIED'] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            job: '$job',
+            type: '$type',
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // 4. Build lookup map
+    const interactionMap = {};
+
+    for (const row of interactionCounts) {
+      const jobId = String(row._id.job);
+      const type = row._id.type;
+
+      if (!interactionMap[jobId]) {
+        interactionMap[jobId] = {
+          impressions: 0,
+          views: 0,
+          applied: 0,
+        };
+      }
+
+      if (type === 'IMPRESSION') interactionMap[jobId].impressions = row.count;
+      if (type === 'VIEW') interactionMap[jobId].views = row.count;
+      if (type === 'APPLIED') interactionMap[jobId].applied = row.count;
+    }
+
+    // 5. Attach analytics to jobs
+    const jobsWithAnalytics = jobs.map((job) => {
+      const stats = interactionMap[String(job._id)] || {
+        impressions: 0,
+        views: 0,
+        applied: 0,
+      };
+
+      return {
+        ...job,
+        impressions: stats.impressions,
+        jobViews: stats.views,
+        appliedCount: stats.applied,
+      };
+    });
+
+    // 6. Respond
+    res.status(200).json({
+      success: true,
+      jobs: jobsWithAnalytics,
+    });
   } catch (error) {
     console.error('Error fetching manual jobs:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const updateJobDescription = async (req, res) => {
+  const { jobId } = req.params;
+  const { description } = req.body;
+
+  try {
+    if (!description || typeof description !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Description is required',
+      });
+    }
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // 1. Update MongoDB
+    job.description = description;
+    await job.save();
+
+    // 2. 🔥 Invalidate ALL job-related caches (single + lists)
+    await redisClient.invalidateJobCache(job._id.toString());
+    await redisClient.invalidateAllJobsCache();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Job description updated successfully',
+      job,
+    });
+  } catch (error) {
+    console.error('Error updating job description:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
@@ -724,35 +880,83 @@ export const getJobFromJobId = async (req, res) => {
 
 export const getSingleJobDetail = async (req, res) => {
   const { jobId } = req.params;
+
   try {
     const cacheKey = `job:${jobId}`;
 
     const job = await redisClient.withCache(cacheKey, 3600, async () => {
-      // Support both Mongo _id and our jobId field
-      if (isObjectId(jobId)) return Job.findById(jobId).select('-queries');
-      return Job.findOne({ jobId }).select('-queries');
+      let foundJob = null;
+
+      if (mongoose.isValidObjectId(jobId)) {
+        foundJob = await Job.findById(jobId).select('-queries').lean();
+      }
+
+      if (!foundJob) {
+        foundJob = await Job.findOne({ jobId: jobId })
+          .select('-queries')
+          .lean();
+      }
+
+      if (!foundJob) {
+        foundJob = await Job.findOne({ slug: jobId }).select('-queries').lean();
+      }
+
+      return foundJob;
     });
 
-    if (!job)
+    if (!job) {
       return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+    const jobObjectId = new mongoose.Types.ObjectId(job._id);
 
-    res.status(200).json({ success: true, job });
+    const analytics = await JobInteraction.aggregate([
+      {
+        $match: {
+          job: jobObjectId,
+          type: { $in: ['IMPRESSION', 'VIEW', 'APPLIED'] },
+        },
+      },
+      {
+        $group: {
+          _id: '$type',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    let impressions = 0;
+    let jobViews = 0;
+    let appliedCount = 0;
+
+    for (const row of analytics) {
+      if (row._id === 'IMPRESSION') impressions = row.count;
+      if (row._id === 'VIEW') jobViews = row.count;
+      if (row._id === 'APPLIED') appliedCount = row.count;
+    }
+
+    res.status(200).json({
+      success: true,
+      job: {
+        ...job,
+        impressions,
+        jobViews,
+        appliedCount,
+      },
+    });
   } catch (error) {
     console.error('Error fetching job:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: config.nodeEnv === 'development' ? error.message : undefined,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
 
 export const getJobDetailBySlug = async (req, res) => {
   const { slug } = req.query || {};
-  console.log(slug);
   try {
     const singleJob = await Job.findOne({ slug });
-    console.log(singleJob);
     if (!singleJob) return res.status(404).json({ message: 'Job not found' });
     res.status(200).json({ singleJob });
   } catch (error) {
@@ -987,6 +1191,31 @@ export const getJobDescByJobId = async (req, res) => {
     res.status(200).json({ singleJob });
   } catch (error) {
     console.error('Error fetching job by slug:', error);
+    res.status(500).json({
+      message: 'Server Error',
+      error: config.nodeEnv === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+export const getJobStats = async (req, res) => {
+  try {
+    const stats = await JobInteraction.aggregate([
+      {
+        $match: {
+          type: 'VIEW',
+        },
+      },
+      {
+        $group: {
+          _id: '$job',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+    res.status(200).json({ stats });
+  } catch (error) {
+    console.error('Error fetching job stats:', error);
     res.status(500).json({
       message: 'Server Error',
       error: config.nodeEnv === 'development' ? error.message : undefined,

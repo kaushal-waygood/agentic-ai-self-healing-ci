@@ -609,6 +609,27 @@ export async function getCTRMap(jobIds) {
   return map;
 }
 
+export async function getJobViewsMap(jobIds = []) {
+  if (!jobIds.length) return {};
+
+  const stats = await JobInteraction.aggregate([
+    {
+      $match: {
+        job: { $in: jobIds },
+        type: 'VIEW',
+      },
+    },
+    {
+      $group: {
+        _id: '$job',
+        views: { $sum: 1 },
+      },
+    },
+  ]);
+
+  return Object.fromEntries(stats.map((s) => [s._id.toString(), s.views]));
+}
+
 export async function getLocalRecommendedJobs(profile) {
   const prefs = profile.jobPreferences || {};
 
@@ -737,6 +758,10 @@ Location: ${profile.location?.city || ''}
     return 0;
   };
 
+  // ---------- JOB VIEWS ----------
+  const jobIds = jobs.map((j) => j._id);
+  const jobViewsMap = await getJobViewsMap(jobIds);
+
   // ---------- FINAL SCORING ----------
   jobs = jobs.map((job) => {
     let geoBoost = 0;
@@ -755,6 +780,7 @@ Location: ${profile.location?.city || ''}
 
     return {
       ...job,
+      jobViews: jobViewsMap[job._id.toString()] || 0, // ✅ SAME AS searchJobs
       finalScore:
         job.finalScore +
         (ctrMap[job._id.toString()] || 0) +

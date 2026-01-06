@@ -67,6 +67,12 @@ const PlanDropdown = ({
   const manualDocsUsed = safeNum(usageData?.aiMannualApplication, 0);
   const manualDocsLimit = planLimits?.aiMannualApplication ?? 0;
 
+  const atsUsed = safeNum(usageData?.atsScore, 0);
+  const atsLimit = planLimits?.atsScore ?? 0;
+
+  const jobMatchingScore = safeNum(usageData?.jobMatching, 0);
+  const jobMatchingScoreLimit = planLimits?.jobMatching ?? 0;
+
   return (
     <div className="relative ">
       <button onClick={onToggle} className={config.buttonClasses}>
@@ -131,6 +137,16 @@ const PlanDropdown = ({
               label="AI Manual Application"
               used={manualDocsUsed}
               limit={manualDocsLimit ?? 0}
+            />
+            <UsageTracker
+              label="ATS Score"
+              used={atsUsed}
+              limit={atsLimit ?? 0}
+            />
+            <UsageTracker
+              label="Job Matching Score"
+              used={jobMatchingScore}
+              limit={jobMatchingScoreLimit ?? 0}
             />
           </div>
 

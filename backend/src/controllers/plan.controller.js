@@ -9,6 +9,7 @@ import { Coupon } from '../models/coupon.model.js';
 import { razorpay } from '../config/razorpay.js';
 import crypto from 'crypto';
 import { Payment } from '../models/Payment.route.js';
+import { computeDiscountedPriceForPriceObj } from './coupon.controller.js';
 
 const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
@@ -17,9 +18,11 @@ const USAGE_LIMIT_MAP = {
   'CV Creation': 'cvCreation',
   'Cover Letter': 'coverLetter',
   'AI Tailored Application': 'aiApplication',
-  'AI Auto-Apply Agent': 'aiAutoApply', // schema key
-  'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit', // schema key
-  'Manual Application': 'aiMannualApplication', // schema key (typo kept)
+  'AI Auto-Apply Agent': 'aiAutoApply',
+  'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit',
+  'Manual Application': 'aiMannualApplication',
+  'Job Matching': 'jobMatching',
+  'ATS Score': 'atsScore',
 };
 
 const PLAN_RANK = {
@@ -644,9 +647,11 @@ export const handleStripeWebhook = async (req, res) => {
       cvCreation: 0,
       coverLetter: 0,
       aiApplication: 0,
-      autoApply: 0,
+      aiAutoApply: 0,
       autoApplyDailyLimit: 0,
       manualApplication: 0,
+      jobMatching: 0,
+      atsScore: 0,
       lastReset: new Date(),
     };
 
@@ -676,7 +681,13 @@ export const handleStripeWebhook = async (req, res) => {
 export const createRazorpayOrder = async (req, res) => {
   try {
     const userId = req.user && req.user._id;
-    const { planId, period, currency = 'inr', couponCode } = req.body;
+    const {
+      planId,
+      period,
+      currency = 'inr',
+      couponCode,
+      isStudentDiscountApplied,
+    } = req.body;
 
     /* ---------------- AUTH ---------------- */
     if (!userId) {
@@ -851,6 +862,23 @@ export const createRazorpayOrder = async (req, res) => {
       pricingResponse.discountAmount = { [currencyLower]: 0 };
     }
 
+    /* ---------------- STUDENT DISCOUNT (50%) ---------------- */
+    if (isStudentDiscountApplied === true) {
+      const studentDiscountPercent = 50;
+      const studentDiscountAmount = finalPrice * (studentDiscountPercent / 100);
+
+      finalPrice = finalPrice - studentDiscountAmount;
+
+      pricingResponse.studentDiscountApplied = true;
+      pricingResponse.studentDiscountPercent = studentDiscountPercent;
+      pricingResponse.studentDiscountAmount = {
+        [currencyLower]: +studentDiscountAmount.toFixed(2),
+      };
+      pricingResponse.discounted = {
+        [currencyLower]: +finalPrice.toFixed(2),
+      };
+    }
+
     /* ---------------- AMOUNT CHECK ---------------- */
     const amountInPaise = Math.round(finalPrice * 100);
     if (amountInPaise <= 0) {
@@ -1004,9 +1032,11 @@ export const verifyRazorpayPayment = async (req, res) => {
       cvCreation: 0,
       coverLetter: 0,
       aiApplication: 0,
-      autoApply: 0,
       autoApplyDailyLimit: 0,
       manualApplication: 0,
+      aiAutoApply: 0,
+      jobMatching: 0,
+      atsScore: 0,
       lastReset: new Date(),
     };
 
@@ -1231,10 +1261,11 @@ export const createSimplePurchaseDev = async (req, res) => {
         cvCreation: 0,
         coverLetter: 0,
         aiApplication: 0,
-        autoApply: 0,
         aiAutoApply: 0,
         aiAutoApplyDailyLimit: 0,
         aiMannualApplication: 0,
+        jobMatching: 0,
+        atsScore: 0,
         lastReset: new Date(),
       };
 

@@ -1930,8 +1930,6 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
 
     const profile = await buildUserProfileFromStudent(userId);
 
-    logPromptToFile(profile);
-
     let jobs = await getLocalRecommendedJobs(profile);
 
     const MIN_RESULTS = 1000;
