@@ -29,6 +29,7 @@ import { Input } from '../ui/input';
 import EditorToolbar from './EditorToolbar';
 
 interface EditableMaterialProps {
+  template: any;
   content: string;
   setContent: (value: string) => void;
   title: string;
@@ -45,6 +46,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   title,
   isHtml = false,
   className = '',
+  template,
   type = 'resume', // Default to resume
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -239,6 +241,28 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     }
   };
 
+  const getFullHtmlWithStyles = () => {
+    if (!editorRef.current) return '';
+
+    const rawHtml = editorRef.current.innerHTML;
+    const styleTag = template?.style ? template.style : '';
+
+    // We explicitly wrap the content to ensure Puppeteer renders it correctly
+    // The <style> tag comes from the template object
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          ${styleTag} 
+        </head>
+        <body>
+          ${rawHtml}
+        </body>
+      </html>
+    `;
+  };
+
   const downloadFile = (blob: Blob, filename: string) => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -254,15 +278,20 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     if (!editorRef.current) return;
     setIsLoading(true);
     toast({ title: 'Generating PDF...' });
+
     try {
+      // USE THE HELPER FUNCTION HERE
+      const fullContent = getFullHtmlWithStyles();
+
       const response = await apiInstance.post(
         '/students/pdf/generate-pdf',
         {
-          html: editorRef.current.innerHTML,
+          html: fullContent, // Send HTML + CSS combined
           title: title || 'document',
         },
         { responseType: 'blob' },
       );
+
       if (response.status !== 200)
         throw new Error('PDF generation failed on the server.');
 
@@ -287,10 +316,12 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     setIsLoading(true);
     toast({ title: 'Generating DOCX...' });
     try {
+      const fullContent = getFullHtmlWithStyles();
+
       const response = await apiInstance.post(
         '/students/docx/generate-docx',
         {
-          html: editorRef.current.innerHTML,
+          html: fullContent,
           title: title || 'document',
         },
         { responseType: 'blob' },
@@ -504,6 +535,10 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             </button>
           </div>
         )}
+
+        {template?.style && (
+          <div dangerouslySetInnerHTML={{ __html: template.style }} />
+        )}
         <div className="flex items-center space-x-2">
           <button
             className={`p-2 rounded-lg border border-gray-200 flex items-center space-x-2 transition-all ${
@@ -545,11 +580,15 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           contentEditable={isEditing}
           onInput={handleInput}
           suppressContentEditableWarning={true}
-          className={`prose max-w-none focus:outline-none transition-all ${
-            isEditing
-              ? 'bg-gray-50/50 p-4 rounded-md ring-2 ring-indigo-300'
-              : ''
+          // REMOVED 'prose' class to prevent Tailwind typography from conflicting with Template CSS
+          className={`max-w-none focus:outline-none transition-all mx-auto bg-white ${
+            isEditing ? 'p-4 rounded-md ring-2 ring-indigo-300' : ''
           }`}
+          // Ensure the style attribute doesn't conflict
+          style={{
+            minHeight: '297mm', // A4 height visual simulation
+            width: '100%',
+          }}
           dangerouslySetInnerHTML={
             !isEditing ? { __html: localContent } : undefined
           }

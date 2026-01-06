@@ -1,19 +1,22 @@
 import { genAIRequest as genAI } from '../config/gemini.js';
 import { generateCVPrompt } from '../prompt/generateCVPrompt.js';
-import { StudentCV } from '../models/students/studentCV.model.js'; // Import the separate model
+import { renderResumeHtml } from '../utils/cv/cvRenderer.js'; // <--- NEW IMPORT
+import { wrapCVHtml } from '../utils/cvTemplate.js';
+import { StudentCV } from '../models/students/studentCV.model.js';
 import { User } from '../models/User.model.js';
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
 } from './notification.utils.js';
-import { wrapCVHtml } from '../utils/cvTemplate.js';
-import { condenseExperience } from '../utils/cvCondense.js';
 import { calculateATSScore } from '../utils/atsScore.js';
+import { logToFile } from './logFile.js';
 
+// Constants for retry logic
 const MAX_RETRIES = 5;
-const INITIAL_BACKOFF_MS = 1000; // 1s
-const MAX_BACKOFF_MS = 60 * 1000; // 60s
+const INITIAL_BACKOFF_MS = 1000;
+const MAX_BACKOFF_MS = 60 * 1000;
 
+// Helper: Parse retry delay from Google Generative AI error
 function parseRetryDelayFromError(err) {
   try {
     if (err && Array.isArray(err.errorDetails)) {
@@ -35,10 +38,14 @@ function parseRetryDelayFromError(err) {
   return null;
 }
 
+// Helper: Sleep function
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Main CV Generation Controller Function
+ */
 export const processCVGeneration = async (
   userId,
   jobId,
@@ -47,11 +54,13 @@ export const processCVGeneration = async (
   finalTouch,
   io,
   endpoint,
+  templateId = 'classic', // <--- Accept Template ID (Default: classic)
 ) => {
   let cvId = null;
   let jobTitle = 'your recent job';
 
   try {
+    // 1. Fetch the existing placeholder CV document
     const cvDoc = await StudentCV.findOne({
       student: userId,
       jobId: jobId,
@@ -66,54 +75,82 @@ export const processCVGeneration = async (
     cvId = cvDoc._id;
     jobTitle = cvDoc.cvTitle || jobTitle;
 
-    // 2. Prepare Prompt
+    // 2. Prepare Prompt (Note: Ensure this prompt asks for JSON output now)
     const prompt = generateCVPrompt(jobContextString, studentData, finalTouch);
 
     let attempt = 0;
-    let parsedJson = null;
+    let finalCvData = null; // Will hold the final structure to save
     let lastErr = null;
 
     // 3. AI Generation Loop (Retries)
     while (attempt < MAX_RETRIES) {
       attempt += 1;
       try {
+        // A. Call AI
         const rawJsonResponse = await genAI(prompt, {
           userId,
           endpoint,
         });
 
+        // B. Clean and Parse JSON
         const cleanedJsonString = rawJsonResponse
           .replace(/```json|```/g, '')
           .trim();
-        parsedJson = JSON.parse(cleanedJsonString);
+        const parsedData = JSON.parse(cleanedJsonString);
 
-        // Security check
-        if (
-          /<(style|html|head|body|script|link)|style\s*=/i.test(parsedJson.cv)
-        ) {
-          throw new Error('Invalid CV HTML: forbidden tags detected');
-        }
+        console.log(
+          studentData.profileImage,
+          studentData.fullName,
+          studentData.email,
+          studentData.phoneNumber,
+          studentData.location,
+        );
 
-        // Post-processing
-        parsedJson.cv = condenseExperience(parsedJson.cv);
-        parsedJson.cv = wrapCVHtml(parsedJson.cv, jobTitle);
+        const { student } = JSON.parse(studentData);
+        console.log(student);
 
-        // ATS Score
-        const atsScore = calculateATSScore(parsedJson.cv, jobContextString);
-        parsedJson.atsScore = atsScore;
-        parsedJson.atsScoreReasoning =
-          parsedJson.atsScoreReasoning ||
-          'Score calculated based on keyword overlap.';
+        const innerHtmlBody = renderResumeHtml(
+          parsedData,
+          student.profileImage,
+          student.fullName,
+          student.email,
+          student.phone,
+          student.location,
+        );
 
-        break; // Success
+        // D. Apply Styling / Template Wrapper
+        // This wraps the body with <head><style>...</style></head> based on templateId
+        const fullHtmlDocument = wrapCVHtml(
+          innerHtmlBody,
+          jobTitle,
+          templateId,
+        );
+
+        // E. Calculate ATS Score
+        // We can use the raw JSON text or the HTML. Using JSON summary/bullets is often cleaner.
+        const atsScore =
+          parsedData.atsScore ||
+          calculateATSScore(JSON.stringify(parsedData), jobContextString);
+
+        // F. Construct Final Data Object
+        // We maintain the 'cv' key as the HTML string for frontend compatibility.
+        finalCvData = {
+          ...parsedData, // Save raw JSON data (experience, skills arrays) for future editing
+          cv: fullHtmlDocument, // The rendered HTML string (Critical for frontend iframe)
+          atsScore: atsScore,
+          atsScoreReasoning:
+            parsedData.atsScoreReasoning ||
+            'Score calculated based on keyword match strength.',
+        };
+
+        break; // Success! Exit loop.
       } catch (err) {
         lastErr = err;
+        // logic for exponential backoff
         const retryDelayFromService = parseRetryDelayFromError(err);
         let backoff =
           retryDelayFromService ??
           Math.min(INITIAL_BACKOFF_MS * 2 ** (attempt - 1), MAX_BACKOFF_MS);
-
-        // Jitter
         const jitter = Math.floor(backoff * 0.25);
         backoff = Math.max(
           200,
@@ -127,7 +164,6 @@ export const processCVGeneration = async (
           );
           break;
         }
-
         console.warn(
           `genAI attempt ${attempt} failed. Retrying in ${backoff}ms.`,
         );
@@ -136,7 +172,7 @@ export const processCVGeneration = async (
     }
 
     // 4. Handle Failure (Retries Exhausted)
-    if (!parsedJson) {
+    if (!finalCvData) {
       const errMessage = lastErr
         ? lastErr.message || JSON.stringify(lastErr)
         : 'Unknown generation error';
@@ -148,17 +184,13 @@ export const processCVGeneration = async (
           )
         : null;
 
-      // Update StudentCV status to failed/queued
-      const updateData = {
-        status: isQuota ? 'queued' : 'failed',
-        error: errMessage,
-        completedAt: new Date(),
-      };
-
-      // Note: 'nextRetryAt' isn't in standard schema, but we can log it or
-      // rely on an external scheduler picking up 'queued' items.
-
-      await StudentCV.findByIdAndUpdate(cvId, { $set: updateData });
+      await StudentCV.findByIdAndUpdate(cvId, {
+        $set: {
+          status: isQuota ? 'queued' : 'failed',
+          error: errMessage,
+          completedAt: new Date(),
+        },
+      });
 
       await sendRealTimeUserNotification(
         io,
@@ -176,18 +208,15 @@ export const processCVGeneration = async (
       return; // Stop processing
     }
 
-    // 5. Handle Success
-    const atsScore = parsedJson.atsScore ?? 0;
-
-    // Update StudentCV with results
+    // 5. Handle Success: Database Update
     const updateResult = await StudentCV.findByIdAndUpdate(cvId, {
       $set: {
         status: 'completed',
-        cvData: parsedJson, // Stores HTML, ATS score, and reasoning
+        cvData: finalCvData, // Contains 'cv' (HTML) and raw JSON fields
         completedAt: new Date(),
-        // Update context fields in case they changed during processing logic
         jobContextString: jobContextString,
         finalTouch: finalTouch,
+        selectedTemplate: templateId, // Save which template was used
       },
     });
 
@@ -195,7 +224,7 @@ export const processCVGeneration = async (
       throw new Error(`Failed to update StudentCV with ID: ${cvId}`);
     }
 
-    // Increment Usage Stats on User model
+    // 6. Increment Usage Stats
     try {
       await User.updateOne(
         { _id: userId },
@@ -205,11 +234,15 @@ export const processCVGeneration = async (
       console.error(`Failed to increment usage for user ${userId}:`, incErr);
     }
 
-    // Send Notification
+    // 7. Send Success Notification
     await sendRealTimeUserNotification(
       io,
       userId,
-      notificationTemplates.CV_GENERATED_SUCCESS(jobTitle, cvId, atsScore),
+      notificationTemplates.CV_GENERATED_SUCCESS(
+        jobTitle,
+        cvId,
+        finalCvData.atsScore,
+      ),
     );
   } catch (error) {
     console.error(
@@ -220,7 +253,7 @@ export const processCVGeneration = async (
     const errorMessage =
       error?.message || 'An unknown error occurred during generation.';
 
-    // Fallback failure update
+    // Fallback: Try to save error state
     if (cvId) {
       try {
         await StudentCV.findByIdAndUpdate(cvId, {
