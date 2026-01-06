@@ -9,6 +9,7 @@ import { Coupon } from '../models/coupon.model.js';
 import { razorpay } from '../config/razorpay.js';
 import crypto from 'crypto';
 import { Payment } from '../models/Payment.route.js';
+import { computeDiscountedPriceForPriceObj } from './coupon.controller.js';
 
 const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
@@ -680,7 +681,13 @@ export const handleStripeWebhook = async (req, res) => {
 export const createRazorpayOrder = async (req, res) => {
   try {
     const userId = req.user && req.user._id;
-    const { planId, period, currency = 'inr', couponCode } = req.body;
+    const {
+      planId,
+      period,
+      currency = 'inr',
+      couponCode,
+      isStudentDiscountApplied,
+    } = req.body;
 
     /* ---------------- AUTH ---------------- */
     if (!userId) {
@@ -853,6 +860,23 @@ export const createRazorpayOrder = async (req, res) => {
         [currencyLower]: +finalPrice.toFixed(2),
       };
       pricingResponse.discountAmount = { [currencyLower]: 0 };
+    }
+
+    /* ---------------- STUDENT DISCOUNT (50%) ---------------- */
+    if (isStudentDiscountApplied === true) {
+      const studentDiscountPercent = 50;
+      const studentDiscountAmount = finalPrice * (studentDiscountPercent / 100);
+
+      finalPrice = finalPrice - studentDiscountAmount;
+
+      pricingResponse.studentDiscountApplied = true;
+      pricingResponse.studentDiscountPercent = studentDiscountPercent;
+      pricingResponse.studentDiscountAmount = {
+        [currencyLower]: +studentDiscountAmount.toFixed(2),
+      };
+      pricingResponse.discounted = {
+        [currencyLower]: +finalPrice.toFixed(2),
+      };
     }
 
     /* ---------------- AMOUNT CHECK ---------------- */
