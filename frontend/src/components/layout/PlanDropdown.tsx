@@ -73,16 +73,6 @@ const PlanDropdown = ({
   const jobMatchingScore = safeNum(usageData?.jobMatching, 0);
   const jobMatchingScoreLimit = planLimits?.jobMatching ?? 0;
 
-  console.log(usageData, planLimits);
-
-  console.log('atsUsed', atsUsed, 'atsLimit', atsLimit);
-  console.log(
-    'jobMatchingScore',
-    jobMatchingScore,
-    'jobMatchingScoreLimit',
-    jobMatchingScoreLimit,
-  );
-
   return (
     <div className="relative ">
       <button onClick={onToggle} className={config.buttonClasses}>
