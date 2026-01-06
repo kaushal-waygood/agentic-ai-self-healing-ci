@@ -32,7 +32,7 @@ import FinalResultView from './components/FinalResultView';
 
 import { mockUserProfile, SavedCoverLetter } from '@/lib/data/user';
 import { Console } from 'console';
-import { savedStudentLetterRequest } from '@/redux/reducers/aiReducer';
+import { savedStudentCoverLetterRequest } from '@/redux/reducers/aiReducer';
 
 /* ---------------- helpers ---------------- */
 
@@ -118,7 +118,7 @@ export function CoverLetterGeneratorClient() {
   const { letter } = useSelector((state: RootState) => state.ai);
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
-    dispatch(savedStudentLetterRequest());
+    dispatch(savedStudentCoverLetterRequest());
   }, [dispatch]);
 
   /* ---------------- job ---------------- */
