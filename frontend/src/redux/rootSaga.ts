@@ -6,6 +6,7 @@ import { studentWatcher } from './sagas/studentSaga';
 import { watchAI } from './sagas/aiSaga';
 import { autopilotWatcher } from './sagas/autopilotSaga';
 import { creditSaga } from './sagas/creditSaga';
+import checkoutSaga from './sagas/checkoutSaga';
 
 export function* rootSaga() {
   try {
@@ -17,6 +18,7 @@ export function* rootSaga() {
       watchAI(),
       autopilotWatcher(),
       creditSaga(),
+      checkoutSaga(),
     ]);
   } catch (error) {
     console.error('Saga error:', error);
