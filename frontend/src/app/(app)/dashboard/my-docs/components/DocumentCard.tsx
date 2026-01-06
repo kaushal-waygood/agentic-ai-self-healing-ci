@@ -391,14 +391,14 @@ export const DocumentCard = ({
               isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
             }`}
           >
-            <h1 className="break-all line-clamp-1">
+            <span className="break-all line-clamp-1">
               <span className="text-xs md:text-sm text-gray-500   ">
                 {index}
                 {'. '}
               </span>
               {(item.cvTitle || getTitle()).slice(0, 30) +
                 ((item.cvTitle || getTitle()).length > 40 ? '...' : '')}
-            </h1>
+            </span>
 
             <div className="hidden md:flex  items-end flex-col">
               {/* <button

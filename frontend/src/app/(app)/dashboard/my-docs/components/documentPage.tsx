@@ -18,7 +18,7 @@ import { DocumentCard } from './DocumentCard';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import {
-  savedStudentLetterRequest,
+  savedStudentCoverLetterRequest,
   savedStudentResumeRequest,
 } from '@/redux/reducers/aiReducer';
 import { useDispatch } from 'react-redux';
@@ -637,16 +637,13 @@ const DocumentSection = ({
   // actual search used for filtering
   const [finalSearchTerm, setFinalSearchTerm] = useState('');
 
-  const { resume } = useSelector((state: RootState) => state.ai);
+  const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
 
   /* ---------- effects ---------- */
 
   useEffect(() => {
     dispatch(savedStudentResumeRequest());
-  }, [dispatch]);
-  const { letter } = useSelector((state: RootState) => state.ai);
-  useEffect(() => {
-    dispatch(savedStudentLetterRequest());
+    dispatch(savedStudentCoverLetterRequest());
   }, [dispatch]);
 
   // Auto reset when input becomes empty
@@ -678,7 +675,7 @@ const DocumentSection = ({
       }
 
       if (type === 'coverLetter') {
-        return Array.isArray(letter?.html) ? letter.html : [];
+        return Array.isArray(coverLetter?.html) ? coverLetter.html : [];
       }
 
       return [];
@@ -753,7 +750,7 @@ const DocumentSection = ({
       if (docState === 'saved') {
         type === 'cv'
           ? dispatch(savedStudentResumeRequest())
-          : dispatch(savedStudentLetterRequest());
+          : dispatch(savedStudentCoverLetterRequest());
       } else {
         refreshGeneratedDocs(type);
       }
