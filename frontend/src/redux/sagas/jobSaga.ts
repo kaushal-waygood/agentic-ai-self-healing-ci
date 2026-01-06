@@ -6,6 +6,7 @@ import {
   updateJobStatus,
   searchJobs,
   getRecommendJobs,
+  findSingleJob,
 } from '@/services/api/job';
 import { call, put, take, takeLatest } from 'redux-saga/effects';
 import {
@@ -33,6 +34,9 @@ import {
   getRecommendJobsRequest,
   getRecommendJobsSuccess,
   getRecommendJobsFailure,
+  findSingleJobRequest,
+  findSingleJobSuccess,
+  findSingleJobFailure,
 } from '../reducers/jobReducer';
 import { AxiosResponse } from 'axios';
 import { PayloadAction } from '@reduxjs/toolkit';
@@ -205,6 +209,15 @@ function* getRecommendJobsSaga() {
   }
 }
 
+function* findSingleJobSaga(action: PayloadAction<string>) {
+  try {
+    const response: AxiosResponse = yield call(findSingleJob, action.payload);
+    yield put(findSingleJobSuccess(response.data.job));
+  } catch (error: unknown | Error) {
+    yield put(findSingleJobFailure((error as Error).message));
+  }
+}
+
 export function* jobsWatcher() {
   // yield takeLatest(fetchJobsStream.type, handleJobStreamSaga);
   yield takeLatest(getAllJobsRequest.type, getAllJobsSaga);
@@ -221,4 +234,5 @@ export function* jobsWatcher() {
   yield takeLatest(getJobPreferenceRequest.type, preferedJobs);
   yield takeLatest(searchJobRequest.type, searchJobsSaga);
   yield takeLatest(getRecommendJobsRequest.type, getRecommendJobsSaga);
+  yield takeLatest(findSingleJobRequest.type, findSingleJobSaga);
 }
