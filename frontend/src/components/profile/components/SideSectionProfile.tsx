@@ -30,30 +30,25 @@ import apiInstance from '@/services/api';
 import { useDispatch } from 'react-redux';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 
-// const dummyAvatar =
-//   'https://www.citypng.com/public/uploads/preview/png-round-blue-contact-user-profile-icon-701751694975293fcgzulxp2k.png';
-
 const SideSectionProfile = () => {
   const {
     profile,
     setProfile,
     file,
     setFile,
-    // uploadCV,
-    // isUploading,
-    // handleUpload,
     fileInputRef,
     updateProfile,
+    setProfileImageFile,
   } = useProfile();
 
   const [isDragging, setIsDragging] = useState(false);
-  // const [isUploadingCV, setIsUploadingCV] = useState(false);
 
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [preview, setPreview] = useState<string>('');
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
 
   /* -----------------------------
      Sync avatar preview
@@ -72,14 +67,21 @@ const SideSectionProfile = () => {
     setProfile((p) => ({ ...p, [name]: value }));
   };
 
-  const onAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const img = e.target.files?.[0];
-    if (!img) return;
+  const onAvatarChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const img = e.target.files?.[0];
+      if (!img) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => setPreview(reader.result as string);
-    reader.readAsDataURL(img);
-  };
+      // store file for upload
+      setProfileImageFile(img);
+
+      // preview only
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result as string);
+      reader.readAsDataURL(img);
+    },
+    [],
+  );
 
   const dispatch = useDispatch();
 
@@ -205,16 +207,17 @@ const SideSectionProfile = () => {
     <aside className="w-full lg:w-80 space-y-4 p-3 max-h-[80vh] overflow-y-auto">
       {/* ================= Profile Card ================= */}
       <div className="border rounded-lg p-3 text-center bg-white">
-        {/* <img
-          src={preview}
-          alt="Avatar"
-          className="w-24 h-24 rounded-full mx-auto object-cover"
-        /> */}
-        <div className="w-24 h-24 rounded-full mx-auto flex items-center justify-center bg-blue-500 text-white text-5xl font-semibold">
+        <div
+          className="w-24 h-24 rounded-full mx-auto flex items-center justify-center bg-blue-500 text-white text-5xl font-semibold cursor-pointer group relative"
+          onClick={() => profile.avatar && setIsImageViewerOpen(true)}
+        >
+          {' '}
           {profile.avatar ? (
-            <img
+            <Image
               src={profile.avatar}
               alt="Avatar"
+              width={96}
+              height={96}
               className="w-full h-full rounded-full object-cover"
             />
           ) : (
@@ -317,32 +320,6 @@ const SideSectionProfile = () => {
         </div>
       </div>
 
-      {/* <Button
-        variant="outline"
-        onClick={() => fileInputRef.current?.click()}
-        className="w-full"
-      >
-        <UploadCloud size={16} /> Select CV
-      </Button> */}
-
-      {/* {file && (
-        <div className="border rounded-lg p-3 bg-white space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-              <span className="text-sm truncate">{file.name}</span>
-            </div>
-            <button onClick={() => setFile(null)}>
-              <X className="w-4 h-4 text-red-500" />
-            </button>
-          </div>
-
-          <Button onClick={uploadCV} disabled={isUploading} className="w-full">
-            {isUploading ? 'Uploading...' : 'Upload CV'}
-          </Button>
-        </div>
-      )} */}
-
       {file && (
         <div className="mt-6 flex flex-col items-center gap-4">
           <div className="flex items-center gap-3 p-3 bg-white rounded-lg  border border-gray-200 w-full max-w-md">
@@ -416,7 +393,7 @@ const SideSectionProfile = () => {
 
               {/* upload pictures  */}
 
-              {/* <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer">
+              <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer">
                 <Camera className="w-4 h-4 text-white" />
                 <input
                   type="file"
@@ -424,7 +401,7 @@ const SideSectionProfile = () => {
                   className="hidden"
                   onChange={onAvatarChange}
                 />
-              </label> */}
+              </label>
             </div>
           </div>
 
@@ -509,6 +486,30 @@ const SideSectionProfile = () => {
               Save Changes
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImageViewerOpen} onOpenChange={setIsImageViewerOpen}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] bg-black border-none p-0">
+          <div className="relative w-full h-[80vh] flex items-center justify-center">
+            <button
+              onClick={() => setIsImageViewerOpen(false)}
+              className="absolute top-4 right-4 text-white hover:opacity-80 z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {profile.avatar && (
+              <Image
+                src={profile.avatar}
+                alt="Profile Image"
+                fill
+                className="object-contain"
+                sizes="90vw"
+                priority
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </aside>

@@ -19,6 +19,7 @@ import { JobInteraction } from '../models/jobInteraction.model.js';
 
 // import calculateExperience from '../utils/calculateExperience.js';
 import redisClient from '../config/redis.js';
+import { uploadBufferToCloudinary } from '../middlewares/multer.js';
 
 export const updateJobPreferences = async (req, res) => {
   try {
@@ -155,19 +156,29 @@ export const updateStudentCoreProfile = async (req, res) => {
   const studentId = req.user._id;
   const { fullName, phone, jobRole, location } = req.body;
 
-  console.log(req.body);
-
   const update = {};
+
   if (fullName !== undefined) update.fullName = fullName;
   if (phone !== undefined) update.phone = phone;
   if (jobRole !== undefined) update.jobRole = jobRole;
   if (location !== undefined) update.location = location;
 
+  // ✅ Handle profile image upload
+  if (req.file) {
+    const uploadResult = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: 'students/profile-images',
+      resource_type: 'image',
+      transformation: [
+        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+      ],
+    });
+
+    update.profileImage = uploadResult.secure_url;
+  }
+
   if (!Object.keys(update).length) {
     return res.status(400).json({ message: 'No valid fields to update' });
   }
-
-  console.log(update);
 
   try {
     const student = await Student.findByIdAndUpdate(
@@ -193,9 +204,6 @@ export const updateStudentCoreProfile = async (req, res) => {
     });
   } catch (err) {
     console.error('updateStudentCoreProfile error:', err);
-    if (err.code === 11000) {
-      return res.status(409).json({ message: 'Email already in use' });
-    }
     return res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -680,6 +680,9 @@ import {
   claimDailyStreak,
   getDailyStreak,
 } from '../controllers/credit.controller.js';
+import { upload } from '../middlewares/multer.js';
+import multer from 'multer';
+import { logToFile } from '../utils/logFile.js';
 
 const router = Router();
 
@@ -690,12 +693,23 @@ router.post(
   updateJobPreferences,
 );
 
+export const profileImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!['image/jpeg', 'image/png'].includes(file.mimetype)) {
+      return cb(new Error('Only JPG and PNG allowed'));
+    }
+    cb(null, true);
+  },
+});
 /* Student */
 router.get('/details', authMiddleware, isUserOrUniStudent, getStudentDetails);
 router.patch(
   '/profile/update',
   authMiddleware,
   isUserOrUniStudent,
+  profileImageUpload.single('profileImage'),
   updateStudentCoreProfile,
 );
 router.post(
@@ -856,10 +870,12 @@ router.get(
 
 router.post(
   '/pdf/generate-pdf',
-  authMiddleware,
-  isUserOrUniStudent,
+  authMiddleware, // assuming you have this
+  isUserOrUniStudent, // assuming you have this
   async (req, res) => {
     const { html, title } = req.body;
+
+    logToFile(html, { title }, 'logs', 'pdf.txt');
 
     if (!html) {
       return res.status(400).json({ message: 'HTML content is required.' });
@@ -881,13 +897,25 @@ router.post(
       const page = await browser.newPage();
       page.setDefaultTimeout(60000);
 
-      // Use 'load' instead of 'networkidle0' for better reliability
+      // FIX 1: Ensure PDF captures styles exactly as they appear on screen
+      await page.emulateMediaType('screen');
+
+      // FIX 2: Better wait strategy
       await page.setContent(html, {
-        waitUntil: 'load',
-        timeout: 30000,
+        waitUntil: ['load', 'networkidle0'], // Waits for fonts and external CSS
+        timeout: 60000, // Increased timeout just in case
       });
 
-      // Removed the waitForTimeout call - 'load' should be sufficient
+      // FIX 3: Inject CSS to prevent content clipping
+      await page.addStyleTag({
+        content: `
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+          }
+        `,
+      });
 
       const pdfBuffer = await page.pdf({
         format: 'A4',
@@ -898,15 +926,17 @@ router.post(
           bottom: '15mm',
           left: '15mm',
         },
-        timeout: 30000,
+        timeout: 60000,
       });
 
       await browser.close();
 
       res.setHeader('Content-Type', 'application/pdf');
+      // Sanitize filename to remove characters that might break headers
+      const safeTitle = title.replace(/[^a-zA-Z0-9-_]/g, '_');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="zobsai_${title.replace(/ /g, '_')}.pdf"`,
+        `attachment; filename="zobsai_${safeTitle}.pdf"`,
       );
 
       res.send(pdfBuffer);

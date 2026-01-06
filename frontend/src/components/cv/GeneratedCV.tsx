@@ -80,6 +80,8 @@ const GeneratedCV = ({
   const atsScore = cvData?.atsScore ?? 0;
   const cvContent = cvData?.cv;
 
+  console.log('cvData', selectedTemplate);
+
   return (
     <div className="min-h-screen p-3">
       <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
@@ -126,6 +128,7 @@ const GeneratedCV = ({
                 content={
                   typeof cvContent === 'object' ? cvContent.cv : cvContent
                 }
+                template={selectedTemplate}
                 title="CV Content"
                 isHtml
                 setContent={setEditableContent}
