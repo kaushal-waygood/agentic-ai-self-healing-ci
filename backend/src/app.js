@@ -23,6 +23,7 @@ import socialRouter from './routes/social.js';
 import bringZobsRoutes from './routes/bringzobs.route.js';
 import notificationRoutes from './routes/notification.route.js';
 import sitemapRoutes from './routes/sitemap.js';
+import jobApplicationRoutes from './routes/jobApplication.route.js';
 
 import {
   handleStripeWebhook,
@@ -75,7 +76,8 @@ app.use(
       'http://127.0.0.1:3001',
       'http://localhost:5000',
       'http://127.0.0.1:5000',
-      'http://localhost:3003',
+      'http://localhost:3002',
+      'http://127.0.0.1:3002',
       'https://dev.zobsai.com',
       'https://www.zobsai.com',
       'https://zobsai.com',
@@ -115,6 +117,7 @@ app.use('/api/v1/autofill', autofillRoutes);
 app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/v1', sitemapRoutes);
 app.use('/api/v1/social', socialRouter);
+app.use('/api/v1/job-application', jobApplicationRoutes);
 
 /* ---------------- ERRORS ---------------- */
 

@@ -39,6 +39,11 @@ export const postJobMannalByOrgAdmin = async (data: any) => {
   return response;
 };
 
+export const findSingleJob = async (id: string) => {
+  const response = await apiInstance.get(`/jobs/find/${id}`);
+  return response;
+};
+
 export const getAllJobsByOrgAdmin = async () => {
   const response = await apiInstance.get(`/organization/get-job`);
   return response;

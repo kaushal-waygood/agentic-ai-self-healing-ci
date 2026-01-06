@@ -5,17 +5,21 @@ import { useParams } from 'next/navigation';
 import apiInstance from '@/services/api';
 import JobDetail from '@/components/jobs/JobDetail';
 import Image from 'next/image';
+import { findSingleJobRequest } from '@/redux/reducers/jobReducer';
+import { RootState } from '@/redux/rootReducer';
+import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
 export default function JobDetailPage() {
   const { jobId } = useParams();
 
-  const [job, setJob] = useState<any>(null);
+  const { job, error, loading } = useSelector((state: RootState) => state.jobs);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {
-        const response = await apiInstance.get(`/jobs/find?slug=${jobId}`);
-        setJob(response.data.singleJob);
+        dispatch(findSingleJobRequest(jobId));
       } catch (error) {
         console.error('Error fetching job details:', error);
       }

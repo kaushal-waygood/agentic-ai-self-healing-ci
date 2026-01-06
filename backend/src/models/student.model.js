@@ -238,8 +238,11 @@ const studentSchema = new Schema(
     appliedJobs: [
       {
         job: { type: Schema.Types.ObjectId, ref: 'Job' },
-        status: { type: String, default: 'applied' },
-        appliedAt: { type: Date, default: Date.now },
+        application: {
+          type: Schema.Types.ObjectId,
+          ref: 'JobApplication',
+        },
+        appliedAt: Date,
       },
     ],
     savedJobs: [

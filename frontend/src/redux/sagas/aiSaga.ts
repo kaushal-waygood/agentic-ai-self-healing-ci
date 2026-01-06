@@ -8,14 +8,14 @@ import {
   savedStudentResumeRequest,
   savedStudentResumeSuccess,
   savedStudentResumeFailure,
-  savedStudentLetterRequest,
-  savedStudentLetterSuccess,
-  savedStudentLetterFailure,
+  savedStudentCoverLetterRequest,
+  savedStudentCoverLetterSuccess,
+  savedStudentCoverLetterFailure,
 } from '../reducers/aiReducer';
 import {
   generateCVByJobDescription,
   savedStudentResume,
-  savedStudentLetter,
+  savedStudentCoverLetter,
 } from '@/services/api/ai';
 import { AxiosResponse } from 'axios';
 
@@ -43,14 +43,14 @@ function* savedStudentResumeSaga(action: PayloadAction<any>) {
   }
 }
 
-function* savedStudentLetterSaga(action: PayloadAction<any>) {
+function* savedStudentCoverLetterSaga(action: PayloadAction<any>) {
   try {
-    const response: AxiosResponse = yield call(savedStudentLetter);
-    yield put(savedStudentLetterSuccess(response.data));
+    const response: AxiosResponse = yield call(savedStudentCoverLetter);
+    yield put(savedStudentCoverLetterSuccess(response.data));
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Login failed';
-    yield put(savedStudentLetterFailure(errorMessage));
+    yield put(savedStudentCoverLetterFailure(errorMessage));
   }
 }
 
@@ -60,5 +60,8 @@ export function* watchAI() {
     generateCVByJobDescriptionSaga,
   );
   yield takeLatest(savedStudentResumeRequest.type, savedStudentResumeSaga);
-  yield takeLatest(savedStudentLetterRequest.type, savedStudentLetterSaga);
+  yield takeLatest(
+    savedStudentCoverLetterRequest.type,
+    savedStudentCoverLetterSaga,
+  );
 }
