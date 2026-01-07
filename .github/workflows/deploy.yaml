@@ -67,7 +67,6 @@ jobs:
         working-directory: ./backend
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
-          RAPID_API_KEY: ${{ secrets.RAPID_API_KEY }}
         run: npm test
 
       # -------------------------------
