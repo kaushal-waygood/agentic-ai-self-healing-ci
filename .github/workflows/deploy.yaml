@@ -30,7 +30,15 @@ jobs:
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
       # -------------------------------
-      # Backend: Cache, Setup Node
+      # Setup Node
+      # -------------------------------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # -------------------------------
+      # Backend: Cache & Install
       # -------------------------------
       - name: Cache backend npm and node_modules
         uses: actions/cache@v4
@@ -42,34 +50,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-backend-node-
 
-      - name: Setup Node for backend
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      # -------------------------------
-      # Backend Install (Mongo Added)
-      # -------------------------------
-      - name: Install backend dependencies
+      - name: Install backend dependencies (including core-js)
         working-directory: ./backend
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+          # Clean install to avoid missing modules
+          npm install
+          # Ensure core-js is installed for mongodb driver
+          npm install core-js
 
       # -------------------------------
-      # Backend Tests (Mongo Added)
+      # Backend Tests
       # -------------------------------
       - name: Run backend tests
         working-directory: ./backend
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
           RAPID_API_KEY: ${{ secrets.RAPID_API_KEY }}
-        run: npm install && npm test
+        run: npm test
 
       # -------------------------------
       # Log in to GHCR
@@ -105,7 +104,7 @@ jobs:
           echo "NEXT_PUBLIC_NODE_ENV=production" >> $GITHUB_ENV
 
       # -------------------------------
-      # Frontend Install
+      # Frontend: Cache & Install
       # -------------------------------
       - name: Cache frontend npm and node_modules
         uses: actions/cache@v4
@@ -117,19 +116,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-frontend-node-
 
-      - name: Setup Node for frontend
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+        run: npm install
 
       - name: Run frontend tests
         working-directory: ./frontend
