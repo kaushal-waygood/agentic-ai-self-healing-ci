@@ -18,6 +18,10 @@ import { DocumentCard } from './DocumentCard';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import {
+  deleteSavedCoverLetterRequest,
+  deleteSavedResumeRequest,
+  renameSavedCoverLetterRequest,
+  renameSavedResumeRequest,
   savedStudentCoverLetterRequest,
   savedStudentResumeRequest,
 } from '@/redux/reducers/aiReducer';
@@ -89,6 +93,7 @@ export default function DocumentsPage() {
     coverLettersCount: 0,
     tailoredApplicationsCount: 0,
   });
+
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -101,6 +106,7 @@ export default function DocumentsPage() {
   } | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
+  const dispatch = useDispatch();
 
   // Update the URL whenever tab changes
   useEffect(() => {
@@ -269,6 +275,74 @@ export default function DocumentsPage() {
         title: 'Error',
         description: 'Failed to delete cover letter',
       });
+    }
+  };
+
+  const deleteSavedCV = async (cvId: string) => {
+    try {
+      dispatch(deleteSavedResumeRequest(cvId));
+      toast({ title: 'Success', description: 'CV deleted successfully' });
+      dispatch(savedStudentResumeRequest());
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete CV',
+      });
+    }
+  };
+
+  const deleteSavedCoverLetter = async (clId: string) => {
+    try {
+      dispatch(deleteSavedCoverLetterRequest(clId));
+      toast({ title: 'Success', description: 'Cover letter deleted' });
+      dispatch(savedStudentCoverLetterRequest());
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete cover letter',
+      });
+    }
+  };
+
+  const renameSavedCoverLetter = async (clId: string, newTitle: string) => {
+    try {
+      dispatch(renameSavedCoverLetterRequest({ clId, newTitle }));
+      toast({ title: 'Success', description: 'Cover letter renamed' });
+      dispatch(savedStudentCoverLetterRequest());
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to rename cover letter',
+      });
+    }
+  };
+
+  const renameSavedCV = async (documentId: string, newTitle: string) => {
+    try {
+      dispatch(
+        renameSavedResumeRequest({
+          cvId: documentId,
+          newTitle,
+        }),
+      );
+
+      toast({
+        title: 'Document Renamed',
+        description: 'Updated name fetched successfully.',
+      });
+
+      dispatch(savedStudentResumeRequest());
+    } catch (error) {
+      console.error('Rename failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Rename Failed',
+        description: 'Could not update the document name.',
+      });
+      throw error;
     }
   };
 
@@ -453,9 +527,11 @@ export default function DocumentsPage() {
                   items={cvs}
                   refreshGeneratedDocs={refreshGeneratedDocs}
                   onDelete={deleteCV}
+                  onDeleteSaved={deleteSavedCV}
                   onCopy={copyToClipboard}
                   onDownload={downloadAsFile}
                   onRename={handleRename}
+                  onRenameSaved={renameSavedCV}
                   copiedId={copiedId}
                   getStatusIcon={getStatusIcon}
                   getStatusColor={getStatusColor}
@@ -470,9 +546,11 @@ export default function DocumentsPage() {
                   refreshGeneratedDocs={refreshGeneratedDocs}
                   items={coverLetters}
                   onDelete={deleteCoverLetter}
+                  onDeleteSaved={deleteSavedCoverLetter}
+                  onRename={handleRename}
+                  onRenameSaved={renameSavedCoverLetter}
                   onCopy={copyToClipboard}
                   onDownload={downloadAsFile}
-                  onRename={handleRename}
                   copiedId={copiedId}
                   getStatusIcon={getStatusIcon}
                   getStatusColor={getStatusColor}
@@ -609,6 +687,8 @@ const DocumentSection = ({
   title,
   items,
   onDelete,
+  onDeleteSaved,
+  onRenameSaved,
   onCopy,
   onDownload,
   copiedId,
@@ -639,8 +719,6 @@ const DocumentSection = ({
 
   const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
 
-  /* ---------- effects ---------- */
-
   useEffect(() => {
     dispatch(savedStudentResumeRequest());
     dispatch(savedStudentCoverLetterRequest());
@@ -652,15 +730,6 @@ const DocumentSection = ({
       setFinalSearchTerm('');
     }
   }, [searchTerm]);
-
-  // const listToRender = (() => {
-  //   if (docState !== 'saved') return items;
-
-  //   if (type === 'cv') return resume?.html;
-  //   if (type === 'coverLetter') return letter?.html;
-
-  //   return [];
-  // })();
 
   useEffect(() => {
     if (type === 'application') {
@@ -705,34 +774,6 @@ const DocumentSection = ({
     setFinalSearchTerm(searchTerm); // 🔥 Search only when triggered
   };
 
-  // const handleRenameDocument = async (documentId: string, newTitle: string) => {
-  //   try {
-  //     await apiInstance.patch(`/students/cv/${documentId}/rename`, {
-  //       title: newTitle,
-  //     });
-
-  //     // 2. Update the state locally to show the change immediately
-  //     setDocuments((currentDocs) =>
-  //       currentDocs.map((doc) =>
-  //         doc._id === documentId ? { ...doc, title: newTitle } : doc,
-  //       ),
-  //     );
-
-  //     toast({
-  //       title: 'Document Renamed',
-  //       description: 'Your document has a new name.',
-  //     });
-  //   } catch (error) {
-  //     console.error('Rename failed:', error);
-  //     toast({
-  //       variant: 'destructive',
-  //       title: 'Rename Failed',
-  //       description: 'Could not update the document name.',
-  //     });
-  //     // Re-throw the error so the DocumentCard's loading state can stop
-  //     throw error;
-  //   }
-  // };
   const handleRenameDocument = async (documentId: string, newTitle: string) => {
     try {
       const endpoint =
@@ -913,7 +954,7 @@ const DocumentSection = ({
         </div>
       ) : (
         // This shows the filtered results
-        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
           {/* 5. Map over the filtered list */}
           {filteredItems
             .slice(0, visibleCount)
@@ -924,13 +965,16 @@ const DocumentSection = ({
                 item={item}
                 type={type}
                 onDelete={onDelete}
+                onDeleteSaved={onDeleteSaved}
+                onRenameSaved={onRenameSaved}
+                onRename={handleRenameDocument}
                 onCopy={onCopy}
                 onDownload={onDownload}
                 copiedId={copiedId}
                 getStatusIcon={getStatusIcon}
                 getStatusColor={getStatusColor}
                 formatDate={formatDate}
-                onRename={handleRenameDocument}
+                // onRenameSavedCv={handleRenameSavedCV}
                 docState={docState}
               />
             ))}
