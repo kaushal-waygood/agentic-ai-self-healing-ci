@@ -21,17 +21,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # ensures all files and history are available
+          fetch-depth: 0
 
       # -------------------------------
       # Set Repository Owner
       # -------------------------------
       - name: Set lowercase repo owner
-        id: vars
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
       # -------------------------------
-      # Backend: Cache, Setup Node, Install, Test
+      # Backend: Cache, Setup Node
       # -------------------------------
       - name: Cache backend npm and node_modules
         uses: actions/cache@v4
@@ -39,7 +38,6 @@ jobs:
           path: |
             ~/.npm
             backend/node_modules
-          # include package.json as a fallback so the key resolves even when package-lock.json is absent
           key: ${{ runner.os }}-backend-node-${{ hashFiles('backend/package-lock.json','backend/package.json') }}
           restore-keys: |
             ${{ runner.os }}-backend-node-
@@ -49,29 +47,32 @@ jobs:
         with:
           node-version: 18
 
-      - name: Show backend lockfile presence
+      # -------------------------------
+      # Backend Install (Mongo Added)
+      # -------------------------------
+      - name: Install backend dependencies
         working-directory: ./backend
-        run: |
-          if [ -f package-lock.json ]; then echo "backend/package-lock.json: present"; else echo "backend/package-lock.json: missing"; fi
-          ls -la
-
-      - name: Install backend dependencies (conditional)
-        working-directory: ./backend
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
         run: |
           if [ -f package-lock.json ]; then
-            echo "Found package-lock.json — running npm ci"
             npm ci
           else
-            echo "No package-lock.json — running npm install"
             npm install
           fi
 
+      # -------------------------------
+      # Backend Tests (Mongo Added)
+      # -------------------------------
       - name: Run backend tests
         working-directory: ./backend
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          RAPID_API_KEY: ${{ secrets.RAPID_API_KEY }}
         run: npm test
 
       # -------------------------------
-      # Log in to GitHub Container Registry
+      # Log in to GHCR
       # -------------------------------
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -94,7 +95,7 @@ jobs:
             ghcr.io/${{ env.repo_owner }}/zobsai-backend:${{ github.sha }}
 
       # -------------------------------
-      # Set Frontend Build Args
+      # Frontend Build Args
       # -------------------------------
       - name: Set Frontend Build Args
         run: |
@@ -104,7 +105,7 @@ jobs:
           echo "NEXT_PUBLIC_NODE_ENV=production" >> $GITHUB_ENV
 
       # -------------------------------
-      # Frontend: Cache, Setup Node, Install, Test
+      # Frontend Install
       # -------------------------------
       - name: Cache frontend npm and node_modules
         uses: actions/cache@v4
@@ -121,20 +122,12 @@ jobs:
         with:
           node-version: 18
 
-      - name: Show frontend lockfile presence
-        working-directory: ./frontend
-        run: |
-          if [ -f package-lock.json ]; then echo "frontend/package-lock.json: present"; else echo "frontend/package-lock.json: missing"; fi
-          ls -la
-
-      - name: Install frontend dependencies (conditional)
+      - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
           if [ -f package-lock.json ]; then
-            echo "Found package-lock.json — running npm ci"
             npm ci
           else
-            echo "No package-lock.json — running npm install"
             npm install
           fi
 
@@ -163,35 +156,23 @@ jobs:
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}
 
       # -------------------------------
-      # Update Deployment Manifests
+      # Update Manifests
       # -------------------------------
       - name: Update Backend Deployment Manifest
         run: |
-          MANIFEST="manifests/zobsai-backend-deployment.yaml"
-          if [ -f "$MANIFEST" ]; then
-            sed -i'' -e "s#^\(\s*image:\s*ghcr.io/${{ env.repo_owner }}/zobsai-backend:\).*#\1${{ github.sha }}#g" "$MANIFEST"
-            echo "Backend deployment manifest updated."
-          else
-            echo "Backend manifest not found at $MANIFEST, skipping."
-          fi
+          sed -i'' -e "s#zobsai-backend:.*#zobsai-backend:${{ github.sha }}#g" manifests/zobsai-backend-deployment.yaml || true
 
       - name: Update Frontend Deployment Manifest
         run: |
-          MANIFEST="manifests/zobsai-frontend-deployment.yaml"
-          if [ -f "$MANIFEST" ]; then
-            sed -i'' -e "s#^\(\s*image:\s*ghcr.io/${{ env.repo_owner }}/zobsai-frontend:\).*#\1${{ github.sha }}#g" "$MANIFEST"
-            echo "Frontend deployment manifest updated."
-          else
-            echo "Frontend manifest not found at $MANIFEST, skipping."
-          fi
+          sed -i'' -e "s#zobsai-frontend:.*#zobsai-frontend:${{ github.sha }}#g" manifests/zobsai-frontend-deployment.yaml || true
 
       # -------------------------------
-      # Commit & Push Manifest Changes
+      # Commit & Push
       # -------------------------------
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add manifests/
-          git commit -m "Update backend/frontend images to ${{ github.sha }}" || echo "No changes to commit"
+          git commit -m "Update images to ${{ github.sha }}" || echo "No changes"
           git push origin main
