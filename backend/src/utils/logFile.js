@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-export function logToFile(data, meta = {}, logFile = 'prompt.txt') {
+export function logToFile(data, logFile) {
   const LOG_DIR = path.resolve(process.cwd(), 'logs');
   const LOG_FILE = path.join(LOG_DIR, logFile);
   try {
@@ -12,8 +12,6 @@ export function logToFile(data, meta = {}, logFile = 'prompt.txt') {
     const entry = `
 ==============================
 TIMESTAMP: ${new Date().toISOString()}
-USER_ID: ${meta.userId || 'N/A'}
-ENDPOINT: ${meta.endpoint || 'N/A'}
 ==============================
 ${data}
 
@@ -21,6 +19,6 @@ ${data}
 
     fs.appendFile(LOG_FILE, entry, () => {});
   } catch {
-    // Silent failure. Logging must never break generation.
+    console.log('Failed to log to file');
   }
 }

@@ -1,6 +1,6 @@
 export const CV_TEMPLATES = {
   classic: `
-        .container {
+        .resume-container {
             font-family: "Times New Roman", Times, serif;
             line-height: 1.25;
             color: #000;
@@ -183,7 +183,7 @@ export const CV_TEMPLATES = {
         /* Print Override to remove browser margins */
         @media print {
             body { background-color: white; }
-            .container { 
+            .resume-container { 
                 margin: 0; 
                 padding: 0; 
                 box-shadow: none; 
@@ -195,7 +195,7 @@ export const CV_TEMPLATES = {
 
   sales: `
 <style>
-.container {
+.resume-container {
             font-family: 'Roboto', Helvetica, Arial, sans-serif;
             line-height: 1.4;
             color: #333;
@@ -415,7 +415,7 @@ export const CV_TEMPLATES = {
 
         /* Print adjustments */
         @media print {
-            .container { padding: 0; margin: 0; width: 100%; max-width: 100%; }
+            .resume-container { padding: 0; margin: 0; width: 100%; max-width: 100%; }
             .section-title { border-bottom: 3px solid #000 !important; }
             .company, .university { color: #FA7C6D !important; -webkit-print-color-adjust: exact; }
         }
@@ -424,7 +424,12 @@ export const CV_TEMPLATES = {
 
   tech: `
 <style>
-.container {
+.resume-container{
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+.resume-container {
             font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.4;
             color: #333;
@@ -618,7 +623,7 @@ export const CV_TEMPLATES = {
         /* Print Media Query */
         @media print {
             body { background-color: white; }
-            .container { 
+            .resume-container { 
                 margin: 0; 
                 padding: 0; 
                 box-shadow: none; 
@@ -635,255 +640,183 @@ export const CV_TEMPLATES = {
 `,
 
   modern: `<style>
-.container {
-    max-width: 850px;
-    margin: 40px auto;
-    background-color: #fff;
-    color: #333;
-    position: relative; /* CRITICAL: Anchors the absolute profile image */
-    overflow: hidden;   /* Keeps the layout contained */
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
+      .resume-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
 
-/* Fix for the nested container in your HTML */
-.container .container {
-    margin: 0;
-    padding: 0;
-    max-width: none;
-    box-shadow: none;
-}
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        margin-bottom: 5px;
+        padding-bottom: 20px;
+      }
 
-/* --- 2. HEADER SECTION (Dark Gray Box) --- */
-.header{
-    display: flex;
-    align-items: center;
-    margin-bottom:10px;
-    gap: 10px;
+      .header .profile-image img {
+        width: 120px;
+        height: 120px;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 2px solid #2c3e50;
+      }
 
-}
+      .header .profile-info {
+        flex: 1;
+      }
 
-.header .profile-image img{
-    width:100px;
-    height: 100px;
-    border-radius: 5%;
-}
+      .resume-container .header .name h1 {
+        font-size: 28pt;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+      }
 
+      .contact-info {
+        font-size: 10pt;
+        color: #666;
+        margin-top: 5px;
+        font-weight: 600;
+      }
 
-.header .profile-info {
-    color: #000;
-    width: 50%;
-    text-align: left;
-    margin-bottom: 0; /* Connects directly to the Summary section below */
-}
+      /* --- Summary Section (Section 1) --- */
+      /* Repurposed to act as a professional bio block */
+      .section:nth-of-type(1) {
+        background: #2c3e50;
+        color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+      }
 
-.name {
-    font-size: 32pt;
-    font-weight: 700;
-    margin-bottom: 10px;
-    color: #000; /* Ensure name is white on dark background */
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    line-height: 1;
-}
+      .section:nth-of-type(1) .section-title {
+        font-size: 14pt;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: #6cc5d6;
+      }
 
-.contact-info {
-    font-size: 10pt;
-    color: #000; /* Light grey text */
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    font-weight: 500;
-}
+      .section:nth-of-type(1) .summary-text {
+        font-size: 10.5pt;
+        line-height: 2;
+        text-align: justify;
+      }
 
-/* --- 3. PROFILE IMAGE (The Sidebar Magic) --- */
-/* Target the image inside the FIRST section (Summary) */
-.section:nth-of-type(1) .profile-image {
-    position: absolute; /* Take it out of the normal text flow */
-    top: 0;
-    left: 0;
-    width: 320px; /* Width of the sidebar */
-    height: 450px; /* Height covers both Header and Summary areas */
-    z-index: 10;
-    overflow: hidden;
-    background-color: #ddd; /* Fallback color */
-}
+      .section:nth-of-type(1) .additional {
+        display: block;
+        margin-top: 15px;
+        font-size: 9pt;
+        opacity: 0.9;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 10px;
+      }
 
-.section:nth-of-type(1) .profile-image img {
-    width: 100%; /* Changed from 100px to fill container */
-    height: 100%; /* Changed from 100px to fill container */
-    object-fit: cover; /* Ensures the photo fills the box perfectly */
-    border-radius: 0;  /* Remove any circles, we want a square block */
-    border: none;
-    padding: 0;
-}
+      /* --- General Section Layout --- */
+      .section:not(:nth-of-type(1)) {
+        margin-bottom: 15px;
+      }
 
-/* --- 4. SUMMARY SECTION (Teal Box) --- */
-/* Target the FIRST section */
-.section:nth-of-type(1) {
-    /* Push content right to align with Header */
-    margin-left: 320px; 
-    
-    background-color: #6CC5D6; /* Teal Background */
-    color: #fff;
-    padding: 30px 40px;
-    margin-bottom: 40px; /* Space before Experience starts */
-    min-height: 150px; /* Ensure it looks like a solid block */
-}
+      .section:not(:nth-of-type(1)) .section-title {
+        font-size: 14pt;
+        font-weight: 700;
+        color: #2c3e50;
+        text-transform: uppercase;
+        display: block;
+        border-bottom: 2px solid #6cc5d6;
+        padding-bottom: 5px;
+        margin-bottom: 8px;
+      }
 
-/* Hide the default black divider in the teal box */
-.section:nth-of-type(1) .section-divider {
-    display: none;
-}
+      /* --- Experience & Job Styling --- */
+      .job {
+        margin-bottom: 20px;
+      }
 
-/* Style the "SUMMARY" title to look like "Profile Summary" */
-.section:nth-of-type(1) .section-title {
-    color: #fff;
-    font-size: 16pt;
-    font-weight: 700;
-    text-transform: capitalize;
-    margin-bottom: 15px;
-    border: none;
-}
+      .company-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-.section:nth-of-type(1) .summary-text {
-    font-size: 11pt;
-    line-height: 1.6;
-    text-align: left;
-    color: #fff;
-}
+      .company {
+        font-size: 13pt;
+        font-weight: 700;
+        color: #000;
+      }
 
-.section:nth-of-type(1) .additional {
-    margin-top: 10px;
-    display: block;
-    color: #e0f7fa; /* Lighter teal for contrast */
-    font-size: 10pt;
-}
+      .location {
+        font-size: 9.5pt;
+        color: #666;
+      }
 
-/* --- 5. STANDARD SECTIONS (Experience, Projects, Education) --- */
-/* Target all sections EXCEPT the first one */
-.section:not(:nth-of-type(1)) {
-    clear: both;
-}
+      .role-line {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
 
-.section:not(:nth-of-type(1)) .section-title {
-    font-size: 14pt;
-    font-weight: 700;
-    color: #4a4a4a;
-    text-transform: uppercase;
-    border-bottom: 3px solid #6CC5D6; /* Teal underline */
-    display: inline-block;
-    padding-bottom: 5px;
-    margin-bottom: 20px;
-    width: 100%; /* Full width underline */
-}
+      .role {
+        font-size: 11pt;
+        font-weight: 700;
+        color: #6cc5d6;
+      }
 
-.section:not(:nth-of-type(1)) .section-divider {
-    display: none; /* We use the border-bottom above instead */
-}
+      .dates {
+        font-size: 9.5pt;
+        color: #666;
+        font-style: italic;
+      }
 
-/* --- 6. JOB / CONTENT STYLING --- */
-.job, .education-item {
-    margin-bottom: 25px;
-}
+      /* --- Lists (ATS Friendly) --- */
+      ul {
+        padding-left: 18px;
+        margin: 5px 0;
+      }
 
-.company-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 5px;
-}
+      li {
+        font-size: 10.5pt;
+        color: #444;
+        margin-bottom: 3px;
+      }
 
-.company, .university {
-    font-size: 13pt;
-    font-weight: 700;
-    color: #333;
-}
+      /* --- Skills Section --- */
+      .skills-section {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
 
-.location {
-    font-size: 10pt;
-    color: #999;
-    font-weight: normal;
-}
+      .skills-section div {
+        font-size: 10pt;
+        border-bottom: 1px border #eee;
+      }
 
-.role-line, .degree-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
+      .skills-section strong {
+        color: #2c3e50;
+      }
 
-.role, .degree {
-    font-size: 11pt;
-    font-weight: 600;
-    color: #6CC5D6; /* Teal accent for roles */
-    font-style: normal;
-    text-transform: uppercase;
-}
+      /* --- Education Styling --- */
+      .education-item ul li {
+        list-style: none;
+        padding-left: 0;
+        font-weight: 600;
+        color: #333;
+      }
 
-.dates {
-    font-size: 10pt;
-    color: #666;
-    font-style: italic;
-}
+      /* Hide Dividers as we use borders now */
+      .section-divider {
+        display: none;
+      }
 
-/* List Styling */
-ul {
-    list-style: none; /* Remove default bullets */
-    padding-left: 0;
-    margin: 0;
-}
-
-li {
-    position: relative;
-    padding-left: 20px;
-    margin-bottom: 8px;
-    line-height: 1.5;
-    color: #555;
-    text-align: left;
-}
-
-li:before {
-    content: "•"; /* Custom colored bullet */
-    color: #6CC5D6; /* Teal Bullet */
-    font-weight: bold;
-    position: absolute;
-    left: 0;
-    font-size: 1.2em;
-    line-height: 1.2em;
-}
-
-/* Skills Grid */
-.skills-section {
-    line-height: 1.8;
-}
-.skills-section strong {
-    color: #333;
-    font-weight: 700;
-}</style>`,
-
-  minimal: `
-<style>
-.container {
-  max-width: 760px;
-  margin: 0 auto;
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 11pt;
-  line-height: 1.4;
-}
-
-.header { text-align: center; margin-bottom: 12px; }
-.name { font-size: 18pt; font-weight: 600; }
-
-.section-title { font-size: 11pt; font-weight: 600; }
-.section-divider { display: none; }
-
-ul { list-style: "- "; padding-left: 12px; }
-li { margin-bottom: 4px; }
-</style>
-`,
+      /* Removal of the old absolute positioning that broke the flow */
+      .section:nth-of-type(1) .profile-image {
+        display: none;
+      }
+    </style>`,
 
   executive: `
 <style>
-.container {
+.resume-container {
   max-width: 820px;
   margin: 0 auto;
   font-family: Georgia, serif;
@@ -904,7 +837,7 @@ li { margin-bottom: 4px; }
 
   compact: `
 <style>
-.container {
+.resume-container {
   max-width: 740px;
   margin: 0 auto;
   font-family: Arial, sans-serif;
@@ -920,7 +853,7 @@ li { margin-bottom: 2px; }
 
   academic: `
 <style>
-.container {
+.resume-container {
   max-width: 850px;
   margin: 0 auto;
   font-family: "Times New Roman", serif;
@@ -936,7 +869,7 @@ li { margin-bottom: 2px; }
 
   government: `
 <style>
-.container {
+.resume-container {
   max-width: 800px;
   margin: 0 auto;
   font-family: Arial, sans-serif;
@@ -956,7 +889,7 @@ ul { list-style: square; }
 
   legal: `
 <style>
-.container {
+.resume-container {
   max-width: 800px;
   margin: 0 auto;
   font-family: Garamond, "Times New Roman", serif;
@@ -976,7 +909,7 @@ ul { list-style: square; }
 
   student: `
 <style>
-.container {
+.resume-container {
   max-width: 760px;
   margin: 0 auto;
   font-family: Arial, sans-serif;

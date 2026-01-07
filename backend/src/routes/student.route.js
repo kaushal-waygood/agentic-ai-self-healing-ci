@@ -875,8 +875,6 @@ router.post(
   async (req, res) => {
     const { html, title } = req.body;
 
-    logToFile(html, { title }, 'logs', 'pdf.txt');
-
     if (!html) {
       return res.status(400).json({ message: 'HTML content is required.' });
     }
@@ -897,18 +895,22 @@ router.post(
       const page = await browser.newPage();
       page.setDefaultTimeout(60000);
 
-      // FIX 1: Ensure PDF captures styles exactly as they appear on screen
       await page.emulateMediaType('screen');
 
       // FIX 2: Better wait strategy
       await page.setContent(html, {
-        waitUntil: ['load', 'networkidle0'], // Waits for fonts and external CSS
-        timeout: 60000, // Increased timeout just in case
+        waitUntil: ['load', 'networkidle0'],
+        timeout: 60000,
       });
 
       // FIX 3: Inject CSS to prevent content clipping
       await page.addStyleTag({
         content: `
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
           html, body {
             height: auto !important;
             overflow: visible !important;
@@ -938,6 +940,10 @@ router.post(
         'Content-Disposition',
         `attachment; filename="zobsai_${safeTitle}.pdf"`,
       );
+
+      logToFile(html, 'pdf.txt');
+
+      console.log('PDF generated successfully');
 
       res.send(pdfBuffer);
     } catch (error) {
@@ -1082,9 +1088,7 @@ router.post(
         </style>
       </head>
       <body>
-        <div class="container">
           ${html}
-        </div>
       </body>
       </html>
     `;

@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { MockApplication } from "@/lib/data/applications";
-import { SavedCv, SavedCoverLetter, mockUserProfile } from "@/lib/data/user";
-import { EditableMaterial } from "@/components/application/editable-material";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save } from "lucide-react";
-import { mockApplications } from "@/lib/data/applications";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { MockApplication } from '@/lib/data/applications';
+import { SavedCv, SavedCoverLetter, mockUserProfile } from '@/lib/data/user';
+import { EditableMaterial } from '@/components/application/editable-material';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Save } from 'lucide-react';
+import { mockApplications } from '@/lib/data/applications';
 
 interface EditApplicationClientProps {
   application: MockApplication;
@@ -26,9 +26,11 @@ export function EditApplicationClient({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const [cvContent, setCvContent] = useState(cv?.htmlContent || "");
-  const [clContent, setClContent] = useState(coverLetter?.htmlContent || "");
-  const [emailContent, setEmailContent] = useState(application.emailDraft || "");
+  const [cvContent, setCvContent] = useState(cv?.htmlContent || '');
+  const [clContent, setClContent] = useState(coverLetter?.htmlContent || '');
+  const [emailContent, setEmailContent] = useState(
+    application.emailDraft || '',
+  );
 
   const handleSaveChanges = () => {
     setIsLoading(true);
@@ -36,7 +38,9 @@ export function EditApplicationClient({
     setTimeout(() => {
       // Update CV if it exists
       if (cv) {
-        const cvIndex = mockUserProfile.savedCvs.findIndex(c => c.id === cv.id);
+        const cvIndex = mockUserProfile.savedCvs.findIndex(
+          (c) => c.id === cv.id,
+        );
         if (cvIndex > -1) {
           mockUserProfile.savedCvs[cvIndex].htmlContent = cvContent;
         }
@@ -44,25 +48,28 @@ export function EditApplicationClient({
 
       // Update Cover Letter if it exists
       if (coverLetter) {
-        const clIndex = mockUserProfile.savedCoverLetters.findIndex(cl => cl.id === coverLetter.id);
+        const clIndex = mockUserProfile.savedCoverLetters.findIndex(
+          (cl) => cl.id === coverLetter.id,
+        );
         if (clIndex > -1) {
           mockUserProfile.savedCoverLetters[clIndex].htmlContent = clContent;
         }
       }
 
       // Update Application email draft
-      const appIndex = mockApplications.findIndex(a => a.id === application.id);
+      const appIndex = mockApplications.findIndex(
+        (a) => a.id === application.id,
+      );
       if (appIndex > -1) {
         mockApplications[appIndex].emailDraft = emailContent;
       }
-      
+
       setIsLoading(false);
       toast({
-        title: "Changes Saved!",
-        description: "Your application documents have been updated.",
+        title: 'Changes Saved!',
+        description: 'Your application documents have been updated.',
       });
-      router.push("/applications");
-
+      router.push('/applications');
     }, 1000); // Simulate network delay
   };
 
@@ -84,7 +91,16 @@ export function EditApplicationClient({
           </CardContent>
         </Card>
       ) : (
-         <Card><CardHeader><CardTitle>CV</CardTitle></CardHeader><CardContent><p className="text-muted-foreground">No CV was saved with this application.</p></CardContent></Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>CV</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              No CV was saved with this application.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {coverLetter ? (
@@ -103,7 +119,16 @@ export function EditApplicationClient({
           </CardContent>
         </Card>
       ) : (
-         <Card><CardHeader><CardTitle>Cover Letter</CardTitle></CardHeader><CardContent><p className="text-muted-foreground">No Cover Letter was saved with this application.</p></CardContent></Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Cover Letter</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              No Cover Letter was saved with this application.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       <Card>
@@ -123,9 +148,13 @@ export function EditApplicationClient({
       <div className="flex justify-end">
         <Button onClick={handleSaveChanges} disabled={isLoading} size="lg">
           {isLoading ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+            </>
           ) : (
-            <><Save className="mr-2 h-4 w-4" /> Save Changes</>
+            <>
+              <Save className="mr-2 h-4 w-4" /> Save Changes
+            </>
           )}
         </Button>
       </div>

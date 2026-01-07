@@ -14,9 +14,7 @@ export function wrapCVHtml(
 <style>${css}</style>
 </head>
 <body>
-<div class="container">
 ${bodyHtml}
-</div>
 </body>
 </html>`;
 }

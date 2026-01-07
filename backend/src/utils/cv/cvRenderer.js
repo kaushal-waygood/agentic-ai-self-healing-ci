@@ -80,16 +80,15 @@ export const renderResumeHtml = (
     skillsContent = data.skills.join(', ');
   }
 
-  // 5. Build Final HTML
-  // Note: We include the profile image logic here.
-  // CSS controls if it is shown (Samuel Julian) or hidden (Classic).
   return `
-    <div class="container">
+    <div class="resume-container">
       <div class="header">
 
-      <div class="profile-image">
-        <img src="${profileImage}" alt="Profile Image" />
-      </div>
+      ${
+        profileImage
+          ? `<div class="profile-image"><img src="${profileImage}" alt="Profile Image" /></div>`
+          : ''
+      }
         <div class="profile-info">
           <div class="name">
             <h1>${fullName}</h1>
