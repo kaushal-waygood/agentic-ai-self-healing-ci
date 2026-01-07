@@ -314,5 +314,5 @@ h6 {
 }
 
 .input-search {
-  @apply w-full p-2 outline-none text-gray-700 bg-white/15 hover:bg-white backdrop-blur-sm transition-all duration-300 rounded-lg;
+  @apply w-full  outline-none text-gray-700 bg-white/15 hover:bg-white backdrop-blur-sm transition-all duration-300 rounded-lg;
 }

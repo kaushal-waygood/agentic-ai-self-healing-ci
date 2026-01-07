@@ -299,6 +299,11 @@ export default function CheckoutPage() {
           ? activeVariant.price.effective.usd
           : activeVariant.price.effective.inr;
       const preview = computeLocalPricing(basePrice, currency, coupon);
+
+      
+
+      console.log('Preview', preview);
+
       dispatch(
         setCheckoutRequest({
           ...checkout,
