@@ -102,6 +102,15 @@ jobs:
           else
             echo "Frontend manifest not found at $MANIFEST, skipping."
           fi
+      - name: Update Jobs for Test Manifest
+        run: |
+          MANIFEST="manifests/zobsai-frontend-tests-job.yaml"
+          if [ -f "$MANIFEST" ]; then
+            sed -i'' -e "s#^\(\s*image:\s*ghcr.io/${{ env.repo_owner }}/zobsai-frontend:\).*#\1${{ github.sha }}#g" "$MANIFEST"
+            echo "Frontend deployment manifest updated."
+          else
+            echo "Frontend manifest not found at $MANIFEST, skipping."
+          fi
 
       # -------------------------------
       # Commit & Push Manifest Changes
