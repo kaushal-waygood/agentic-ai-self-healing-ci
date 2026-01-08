@@ -15,4 +15,3 @@ data:
 
   BACKEND_URL: 'https://api.dev.zobsai.com'
   FRONTEND_URL: 'https://dev.zobsai.com'
-  LLM_PROVIDER: 'deepseek'
