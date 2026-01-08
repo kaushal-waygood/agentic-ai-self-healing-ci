@@ -3,21 +3,13 @@
 import React, { useState } from 'react';
 
 import {
-  ArrowLeft,
   Save,
   Briefcase,
   FileText,
   FileCheck2,
   Mail,
   PlusCircle,
-  Award,
-  Send,
-  Copy,
-  Edit3,
   Download,
-  Loader2,
-  ShieldCheck,
-  Sparkles,
   CheckCircle,
   Eye,
 } from 'lucide-react';
@@ -32,14 +24,12 @@ const cn = (...classes: string[]) => classes.filter(Boolean).join(' ');
 
 const InternalEditableMaterialButton = ({
   variant,
-  size,
   onClick,
   disabled,
   children,
   className,
 }: {
   variant: string;
-  size: string;
   onClick: () => void;
   disabled?: boolean;
   children: React.ReactNode;
@@ -104,7 +94,6 @@ export const resumeTemplates = [
 
 // --- MAIN ResultStep COMPONENT ---
 const ResultStep = ({
-  defaultTab,
   jobContext,
   refinedCv,
   setRefinedCv,
@@ -112,10 +101,7 @@ const ResultStep = ({
   setTailoredCl,
   emailDraft,
   setEmailDraft,
-  setWizardStep,
   handleSendEmail,
-  handleStartNew,
-  handleSaveAndFinish,
 }: ResultStepProps) => {
   const [activeSection, setActiveSection] = useState('job');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -135,7 +121,7 @@ const ResultStep = ({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none',
+        'flex justify-center items-center border-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none',
         'px-6 py-3',
         variant === 'ghost'
           ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -204,7 +190,7 @@ const ResultStep = ({
     <div className="max-w-6xl mx-auto sm:p-6 p-1 space-y-4 font-sans">
       {/* Navigation Tabs */}
 
-      <div className="flex flex-wrap gap-2 mb-4 justify-center p-2 bg-slate-100 rounded-lg shadow-inner">
+      <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-2 mb-4 justify-center p-2 bg-slate-100 rounded-lg">
         {sections.map((section, index) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -217,7 +203,7 @@ const ResultStep = ({
               className={`flex-col sm:flex-row items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-300 transform ${
                 isActive
                   ? `bg-${section.color} text-white scale-105 `
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white hover:shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white '
               }`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -239,7 +225,7 @@ const ResultStep = ({
       <div className="space-y-6 ">
         {/* Job Details Section */}
         {activeSection === 'job' && jobContext && (
-          <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden animate-fadeIn">
             <div className="bg-header-gradient-primary p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 justify-center text-white">
@@ -264,16 +250,6 @@ const ResultStep = ({
                 </p>
               </div>
 
-              {/* <div className="h-64 overflow-y-auto p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
-                <div
-                  className="prose max-w-none text-slate-700"
-                  // dangerouslySetInnerHTML={{
-                  //   __html: jobContext.jobDescription,
-                  // }}
-                />
-                <p>{jobContext.jobDescription}</p>
-              </div> */}
-
               <p className="text-sm leading-relaxed">
                 {jobContext.jobDescription.split('\n').map((line, i) => (
                   <span key={i}>
@@ -288,7 +264,7 @@ const ResultStep = ({
 
         {/* Tailored CV Section */}
         {activeSection === 'cv' && (
-          <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden animate-fadeIn">
             <div className="bg-header-gradient-primary p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 justify-center text-white">
@@ -318,6 +294,8 @@ const ResultStep = ({
                   content={refinedCv}
                   setContent={setRefinedCv}
                   isHtml={true}
+                  // ADD THIS LINE BELOW:
+                  template={selectedTemplate}
                 />
               </div>
             </div>
@@ -326,7 +304,7 @@ const ResultStep = ({
 
         {/* Tailored Cover Letter Section */}
         {activeSection === 'cover' && (
-          <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden animate-fadeIn">
             <div className="bg-header-gradient-primary p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 justify-center text-white">
@@ -334,24 +312,6 @@ const ResultStep = ({
                   <h2 className="text-2xl font-bold bg-transparent text-white">
                     Tailored Cover Letter
                   </h2>
-                </div>
-
-                <div className="flex space-x-2">
-                  <InternalEditableMaterialButton
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                  >
-                    <Download className="w-5 h-5" />
-                  </InternalEditableMaterialButton>
-                  <InternalEditableMaterialButton
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                    onClick={() => handleSaveSectionVisual('cover')}
-                  >
-                    <Save className="w-5 h-5" />
-                  </InternalEditableMaterialButton>
                 </div>
               </div>
               <p className="text-purple-100">
@@ -373,7 +333,7 @@ const ResultStep = ({
 
         {/* Application Email Draft Section */}
         {activeSection === 'email' && (
-          <div className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-fadeIn">
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden animate-fadeIn">
             <div className="bg-header-gradient-primary p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 justify-center text-white">
@@ -381,24 +341,6 @@ const ResultStep = ({
                   <h2 className="text-2xl font-bold bg-transparent text-white">
                     Application Email Draft
                   </h2>
-                </div>
-
-                <div className="flex space-x-2">
-                  <InternalEditableMaterialButton
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                  >
-                    <Eye className="w-5 h-5" />
-                  </InternalEditableMaterialButton>
-                  <InternalEditableMaterialButton
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                    onClick={() => handleSaveSectionVisual('email')}
-                  >
-                    <Save className="w-5 h-5" />
-                  </InternalEditableMaterialButton>
                 </div>
               </div>
               <p className="text-purple-100">
@@ -421,34 +363,7 @@ const ResultStep = ({
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white rounded-lg shadow-lg border border-slate-200">
-        {/* <CustomButton
-          variant="ghost"
-          onClick={() => setWizardStep('generate')}
-          className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-lg hover:bg-slate-100"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="font-medium">Back to Generate</span>
-        </CustomButton> */}
-
         <div className="flex items-center flex-wrap justify-end gap-3">
-          {/* {user?.googleAuth ? (
-            <CustomButton
-              onClick={handleStartNew}
-              className="flex items-center space-x-2 px-4 py-2 bg-white text-black rounded-lg font-medium shadow-md hover:bg-slate-700 transition-all duration-300 hover:scale-105"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Send Application</span>
-            </CustomButton>
-          ) : (
-            <CustomButton
-              onClick={() => router.push('/dashboard/settings')}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-700 text-white rounded-lg font-medium"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Connect Google</span>
-            </CustomButton>
-          )} */}
-
           <Button
             onClick={() => router.push('/dashboard/apply')}
             className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium "

@@ -1,6 +1,8 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
 
 interface UseEditableProps {
   content: string;
@@ -21,6 +23,7 @@ export const useEditableMaterial = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [showImages, setShowImages] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<'pdf' | 'docx' | null>(null);
@@ -29,6 +32,8 @@ export const useEditableMaterial = ({
   const [wordCount, setWordCount] = useState(0);
   const [isNamingDialogDisplayed, setIsNamingDialogDisplayed] = useState(false);
   const [cvNameInput, setCvNameInput] = useState('');
+
+  const { students } = useSelector((state: RootState) => state.student);
 
   const hasChanges = localContent !== content;
 
@@ -88,14 +93,18 @@ export const useEditableMaterial = ({
     setLoadingType(format);
     try {
       const cleanBody = purgeInternalStyles(localContent);
-      // Ensure template style is not double wrapped in <style> tags
+
       const rawStyle = template?.style?.replace(/<style>|<\/style>/g, '') || '';
+
+      const { fullName, jobRole } = students[0]?.student;
 
       const fullHtml = `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${`${fullName} | ${jobRole}`}</title>
             <style>${rawStyle}</style>
           </head>
           <body>
@@ -105,7 +114,7 @@ export const useEditableMaterial = ({
 
       const response = await apiInstance.post(
         `/students/${format}/generate-${format}`,
-        { html: fullHtml, title },
+        { html: fullHtml, title, isShowImage: showImages },
         { responseType: 'blob' },
       );
 
@@ -159,8 +168,10 @@ export const useEditableMaterial = ({
       hasChanges,
       isNamingDialogDisplayed,
       cvNameInput,
+      showImages,
     },
     actions: {
+      toggleImages: () => setShowImages((prev) => !prev),
       toggleEdit,
       handleInput,
       exportFile,
