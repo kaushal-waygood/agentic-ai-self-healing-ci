@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zobsai-frontend-tests
+  namespace: zobsai
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: frontend-tests
+          image: ghcr.io/zobsai-com/zobsai-frontend:latest
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Running frontend tests..."
+              npm ci
+              npm test
+          env:
+            - name: REACT_APP_API_URL
+              value: "http://zobsai-backend.zobsai.svc.cluster.local:8080"
+          envFrom:
+            - configMapRef:
+                name: zobsai-frontend-config
+            - secretRef:
+                name: zobsai-frontend-secrets
