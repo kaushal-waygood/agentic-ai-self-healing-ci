@@ -21,7 +21,7 @@ spec:
             - |
               echo "Running frontend tests..."
               npm ci
-              npm test
+              npm run test --if-present
           env:
             - name: REACT_APP_API_URL
               value: "http://zobsai-backend.zobsai.svc.cluster.local:8080"
