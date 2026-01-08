@@ -66,7 +66,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       } ${className}`}
     >
       {/* Header Toolbar */}
-      <header className="flex items-center justify-between border-b p-3 bg-white rounded-t-xl sticky top-0 z-20">
+      <header className="flex flex-wrap items-center justify-between border-b p-3 bg-white rounded-t-xl sticky top-0 z-20">
         <div className="flex items-center gap-3">
           {state.isEditing ? (
             <Edit3 className="w-5 text-blue-500" />
@@ -76,7 +76,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <h3 className="font-bold text-gray-700">{title}</h3>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {state.isEditing && (
             <div className="hidden xl:block border-r pr-2 mr-2">
               <EditorToolbar
@@ -172,7 +172,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <button
             onClick={actions.toggleEdit}
             className={`px-6 py-2 rounded-lg font-bold text-sm transition-all active:scale-95 ${

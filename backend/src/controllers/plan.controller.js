@@ -1078,6 +1078,8 @@ export const getPaymentStatus = async (req, res) => {
       paymentId: paymentIntentId,
     }).lean();
 
+    console.log('purchase', purchase);
+
     if (!purchase) {
       return res.status(202).json({ success: true, status: 'processing' });
     }

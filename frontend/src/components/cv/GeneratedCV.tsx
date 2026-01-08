@@ -43,12 +43,18 @@ const GeneratedCV = ({
     <div className="min-h-screen p-3">
       <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
         {/* Header Section */}
-        <div className="flex items-center gap-3 bg-header-gradient-primary text-white p-3">
-          <FileText />
-          <h2 className="text-xl font-bold flex-1">AI Generated CV</h2>
-          <div className="text-right">
-            <div className="text-3xl font-bold">{atsScore}</div>
-            <div className="text-xs">ATS Score</div>
+        <div className="flex items-center justify-between  bg-header-gradient-primary text-white ">
+          <div className="flex flex-row gap-2 p-4">
+            <FileText className=" w-6 h-6 " />
+            <h2 className="text-xl font-bold flex-1 ">AI Generated CV</h2>
+          </div>
+          <div>
+            {atsScore > 0 && (
+              <div className="text-right px-2">
+                <div className="text-3xl  font-bold"> {atsScore}</div>
+                <div className="text-xs">ATS Score</div>
+              </div>
+            )}
           </div>
         </div>
 
