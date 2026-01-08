@@ -152,7 +152,7 @@ const NewJobPost: React.FC<NewJobPostProps> = ({
   const onSubmit = async (data: JobFormType) => {
     setIsSubmitting(true);
     const beingId = searchParams.get('bringId');
-\
+
     try {
       const finalPayload = {
         title: data.title,
