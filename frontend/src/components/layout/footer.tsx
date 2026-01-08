@@ -11,6 +11,7 @@ import {
   Send,
   ChevronUp,
   Rocket,
+  MessageCircle,
 } from 'lucide-react';
 import './styles/footer.css'; // Import the new CSS file
 import { footerLinks, socialLinks } from '@/services/dummy/Footer';
@@ -250,7 +251,7 @@ export function Footer() {
         </div>
 
         {/* States and Newsletter section parent div */}
-        <div className="grid grid-cols-2 lg:grid-cols-2 lg:max-w-4xl mx-auto gap-4 mt-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-5">
           {/* Stats Section */}
           {/* <div
             className="grid  items-center grid-cols-3 gap-6 p-3 bg-white/5 rounded-2xl border border-white/10 shadow-lg"
@@ -274,9 +275,27 @@ export function Footer() {
             ))}
           </div> */}
 
+          <div className=" rounded-xl p-4 mb-6 backdrop-blur-sm border border-white/10 transition-colors duration-300">
+            <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-emerald-400" />
+              Contact Us
+            </h4>
+            <a
+              href="mailto:zobaai@gmail.com"
+              className="flex items-center gap-3 group"
+            >
+              <div className="p-2 bg-blue-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                <Mail className="w-4 h-4 text-blue-400" />
+              </div>
+              <span className="text-gray-300 font-medium group-hover:text-white transition-colors">
+                hello@zobsai.com
+              </span>
+            </a>
+          </div>
+
           {/* Newsletter Section */}
           <div
-            className="flex col-span-2 flex-col justify-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-lg hover:bg-white/10 transition-all duration-500"
+            className="flex flex-col justify-center gap-4 backdrop-blur-xl border border-white/10 rounded-lg p-3 shadow-lg  transition-all duration-500"
             style={{
               transform: `translateY(${isVisible ? 0 : 30}px)`,
               opacity: isVisible ? 1 : 0,
@@ -284,8 +303,8 @@ export function Footer() {
             }}
           >
             <div className="flex items-center gap-5">
-              <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
-                <Mail className="w-6 h-6 text-white" />
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+                <Mail className="w-4 h-4 text-white" />
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-white">
@@ -303,7 +322,7 @@ export function Footer() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                className="flex-1 w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
               />
               <button
                 onClick={handleNewsletterSubmit}

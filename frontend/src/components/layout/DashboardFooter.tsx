@@ -41,6 +41,12 @@ const DashboardFooter = () => {
             Privacy
           </Link>
           <Link
+            href="/dashboard/cancellation-refundpolicy"
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+          >
+            Cancellation-Refund
+          </Link>
+          <Link
             href="/dashboard/support"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
           >

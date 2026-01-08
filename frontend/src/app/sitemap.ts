@@ -51,6 +51,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date().toISOString(),
     },
     {
+      url: `${SITE_URL}/cancellation-refundpolicy`,
+      lastModified: new Date().toISOString(),
+    },
+    {
       url: `${SITE_URL}/cookie-policy`,
       lastModified: new Date().toISOString(),
     },
