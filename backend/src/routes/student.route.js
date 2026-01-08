@@ -873,7 +873,7 @@ router.post(
   authMiddleware, // assuming you have this
   isUserOrUniStudent, // assuming you have this
   async (req, res) => {
-    const { html, title } = req.body;
+    const { html, title, isShowImage } = req.body;
 
     if (!html) {
       return res.status(400).json({ message: 'HTML content is required.' });
@@ -915,6 +915,12 @@ router.post(
             height: auto !important;
             overflow: visible !important;
             display: block !important;
+          }
+
+          ${
+            isShowImage
+              ? ''
+              : '.resume-container .profile-image { display: none; }'
           }
         `,
       });

@@ -62,9 +62,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     <div
       ref={containerRef}
       className={`bg-gray-100 flex flex-col transition-all border ${
-        state.isFullscreen
-          ? 'fixed inset-0 z-50'
-          : 'relative rounded-xl shadow-xl'
+        state.isFullscreen ? 'fixed inset-0 z-50' : 'relative rounded-xl '
       } ${className}`}
     >
       {/* Header Toolbar */}
@@ -105,7 +103,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
             disabled={!state.hasChanges || state.isLoading}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
               state.hasChanges
-                ? 'bg-indigo-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white '
                 : 'bg-gray-200 text-gray-400'
             }`}
           >
@@ -113,7 +111,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           </button>
 
           <button
-            // onClick={actions.actions.toggleFullscreen}
+            onClick={actions.toggleFullscreen}
             className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg"
           >
             {state.isFullscreen ? (
@@ -125,8 +123,27 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </div>
       </header>
 
+      <div className="flex items-center gap-2 justify-end">
+        <button
+          onClick={actions.toggleImages}
+          className={`p-2 rounded-lg transition-colors flex items-center gap-2 my-1 ${
+            state.showImages
+              ? 'text-white bg-blue-600'
+              : 'text-gray-400 hover:bg-gray-100'
+          }`}
+          title={state.showImages ? 'Hide Images' : 'Show Images'}
+        >
+          {/* Using Lucide Eye icon or Image icon */}
+          <Eye
+            size={20}
+            className={state.showImages ? 'opacity-100' : 'opacity-40'}
+          />{' '}
+          Show Profile Image
+        </button>
+      </div>
+
       {/* Editor Main Canvas */}
-      <main className="flex-grow overflow-y-auto bg-gray-200/40 custom-scrollbar">
+      <main className="flex-grow overflow-y-auto p-4 md:p-10 bg-gray-200/40 custom-scrollbar">
         {template?.style && (
           <style dangerouslySetInnerHTML={{ __html: template.style }} />
         )}
@@ -136,11 +153,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           contentEditable={state.isEditing}
           onInput={actions.handleInput}
           suppressContentEditableWarning
-          className={`bg-white transition-all w-full p-2 duration-300 ${
-            state.isEditing
-              ? 'ring-4 ring-blue-100 min-h-[297mm]'
-              : 'min-h-[297mm]'
-          }  focus:outline-none `}
+          className={`mx-auto bg-white transition-all duration-300 ${
+            state.isEditing ? 'ring-4 ring-blue-100' : ''
+          } 
+          ${!state.showImages ? 'hide-editor-images' : ''} 
+          w-full max-w-[210mm] focus:outline-none p-[15mm] md:p-[20mm]`}
         />
       </main>
 

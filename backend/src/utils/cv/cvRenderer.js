@@ -93,7 +93,7 @@ export const renderResumeHtml = (
           <div class="name">
             <h1>${fullName}</h1>
           </div>
-          <div class="contact-info">
+          <div class="contact-info" >
             <p>${email} | ${phoneNumber} | ${location}</p>
           </div>
         </div>
@@ -106,12 +106,13 @@ export const renderResumeHtml = (
         
 
         <div class="summary-text">
-          ${data.summary}
+          <p>${data.summary}
           ${
             data.additionalInfo
-              ? `<span class="additional"><br><strong>Additional:</strong> ${data.additionalInfo}</span>`
+              ? `<span class="additional"><strong>Additional:</strong> ${data.additionalInfo}</span>`
               : ''
           }
+          </p>
         </div>
       </div>
 

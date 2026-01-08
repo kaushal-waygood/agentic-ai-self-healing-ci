@@ -24,7 +24,6 @@ const GeneratedCV = ({
   setCvNameForSavingInput,
   confirmSaveNamedCv,
 }: any) => {
-  // 1. Initial Content State
   const [editableContent, setEditableContent] = useState('');
   const [selectedTemplate, setSelectedTemplate] =
     useState<ResumeTemplate | null>(null);
@@ -33,10 +32,8 @@ const GeneratedCV = ({
   const cvData = generatedCvOutput;
   const atsScore = cvData?.atsScore ?? 0;
 
-  // 2. Sync incoming AI data to our local editable state
   useEffect(() => {
     if (cvData?.cv) {
-      // Handle both object and string formats
       const content = typeof cvData.cv === 'object' ? cvData.cv.cv : cvData.cv;
       setEditableContent(content);
     }
@@ -85,9 +82,7 @@ const GeneratedCV = ({
 
               {/* 3. The Editable Material Component */}
               <EditableMaterial
-                // Pass the current draft state, NOT the original AI output
                 content={editableContent}
-                // This function is called by toggleEdit in the hook
                 setContent={setEditableContent}
                 template={selectedTemplate}
                 title="CV Content"
