@@ -9,6 +9,7 @@ resources:
   - zobsai-frontend-configs.yaml
   - zobsai-frontend-secrets.yaml
   - zobsai-redis.yaml
+  - zobsai-frontend-tests-job.yaml
   # optionally: add ingress if you have one
   # - zobsai-ingress.yaml
 
