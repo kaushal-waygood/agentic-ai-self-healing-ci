@@ -15,7 +15,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: frontend-tests
-          image: ghcr.io/zobsai-com/zobsai-frontend:latest
+          image: ghcr.io/zobsai-com/zobsai-frontend:dad82dc878dc662d0eb3f40b425067e6ede2b904
           command: ["sh", "-c"]
           args:
             - |
