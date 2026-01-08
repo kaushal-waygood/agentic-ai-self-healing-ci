@@ -120,6 +120,10 @@ export default function DocumentsPage() {
     fetchAllData();
   }, []);
 
+  useEffect(() => {
+    dispatch(savedStudentResumeRequest());
+    dispatch(savedStudentCoverLetterRequest());
+  }, [dispatch]);
   const fetchAllData = async () => {
     setIsLoading(true);
     try {
@@ -276,11 +280,11 @@ export default function DocumentsPage() {
     }
   };
 
-  const deleteSavedCV = async (cvId: string) => {
+  const deleteSavedCV = async (documentId: string) => {
     try {
-      dispatch(deleteSavedResumeRequest(cvId));
+      await dispatch(deleteSavedResumeRequest({ cvId: documentId }));
       toast({ title: 'Success', description: 'CV deleted successfully' });
-      dispatch(savedStudentResumeRequest());
+      await dispatch(savedStudentResumeRequest());
     } catch {
       toast({
         variant: 'destructive',
@@ -290,11 +294,10 @@ export default function DocumentsPage() {
     }
   };
 
-  const deleteSavedCoverLetter = async (clId: string) => {
+  const deleteSavedCoverLetter = async (documentId: string) => {
     try {
-      dispatch(deleteSavedCoverLetterRequest(clId));
+      await dispatch(deleteSavedCoverLetterRequest({ clId: documentId }));
       toast({ title: 'Success', description: 'Cover letter deleted' });
-      dispatch(savedStudentCoverLetterRequest());
     } catch {
       toast({
         variant: 'destructive',
@@ -304,11 +307,15 @@ export default function DocumentsPage() {
     }
   };
 
-  const renameSavedCoverLetter = async (clId: string, newTitle: string) => {
+  const renameSavedCoverLetter = async (
+    documentId: string,
+    newTitle: string,
+  ) => {
     try {
-      dispatch(renameSavedCoverLetterRequest({ clId, newTitle }));
+      await dispatch(
+        renameSavedCoverLetterRequest({ clId: documentId, newTitle }) as any,
+      );
       toast({ title: 'Success', description: 'Cover letter renamed' });
-      dispatch(savedStudentCoverLetterRequest());
     } catch {
       toast({
         variant: 'destructive',
@@ -320,19 +327,17 @@ export default function DocumentsPage() {
 
   const renameSavedCV = async (documentId: string, newTitle: string) => {
     try {
-      dispatch(
+      await dispatch(
         renameSavedResumeRequest({
           cvId: documentId,
           newTitle,
-        }),
+        }) as any,
       );
 
       toast({
         title: 'Document Renamed',
         description: 'Updated name fetched successfully.',
       });
-
-      dispatch(savedStudentResumeRequest());
     } catch (error) {
       console.error('Rename failed:', error);
       toast({
@@ -714,13 +719,6 @@ const DocumentSection = ({
   // actual search used for filtering
   const [finalSearchTerm, setFinalSearchTerm] = useState('');
 
-  const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
-
-  useEffect(() => {
-    dispatch(savedStudentResumeRequest());
-    dispatch(savedStudentCoverLetterRequest());
-  }, [dispatch]);
-
   // Auto reset when input becomes empty
   useEffect(() => {
     if (searchTerm === '') {
@@ -733,6 +731,10 @@ const DocumentSection = ({
       setDocState('generated');
     }
   }, [type]);
+
+  const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
+
+  console.log('resume', resume.html);
 
   const listToRender = (() => {
     if (docState === 'saved') {
@@ -750,21 +752,29 @@ const DocumentSection = ({
     return Array.isArray(items) ? items : [];
   })();
 
-  //  the filtering logic
-  // const filteredItems = items.filter((item: any) => {
   const filteredItems = listToRender.filter((item: any) => {
-    if (!finalSearchTerm) return true;
+    if (!finalSearchTerm.trim()) return true;
+
     const searchLower = finalSearchTerm.toLowerCase();
 
-    const title = (item.jobTitle || '').toLowerCase();
-    const company = (item.companyName || '').toLowerCase();
-    const context = (item.jobContextString || '').toLowerCase();
+    // Collect all searchable text safely
+    const searchableText = [
+      // item.title,
+      // item.jobTitle,
+      // item.companyName,
+      // item.jobContextString,
+      // item.name,
+      // item.description,
+      item.clTitle,
+      item.coverLetterTitle,
+      item.cvTitle,
+      item.htmlCVTitle,
+    ]
+      .filter(Boolean) // remove undefined/null
+      .join(' ')
+      .toLowerCase();
 
-    return (
-      title.includes(searchLower) ||
-      company.includes(searchLower) ||
-      context.includes(searchLower)
-    );
+    return searchableText.includes(searchLower);
   });
 
   const handleSearch = () => {
