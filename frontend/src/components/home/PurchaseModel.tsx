@@ -589,7 +589,7 @@ export default function CheckoutPage() {
 
           {/* ORDER SUMMARY */}
           <div className="mb-8">
-            <div className="rounded-xl p-5 bg-white/5 border border-white/10">
+            <div className="rounded-lg p-5 bg-white/5 border border-white/10">
               <div className="flex justify-between mb-2 text-sm">
                 <span>Original Price</span>
                 <span>
@@ -635,7 +635,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handleRazorpayPayment}
                 disabled={!razorpayLoaded || razorpayLoading}
-                className={`w-full py-4 rounded-lg text-lg text-white font-semibold bg-buttonPrimary transition hover:opacity-90 ${
+                className={`w-full py-4 rounded-lg text-lg text-white font-semibold bg-buttonPrimary transition hover:bg-blue-700 ${
                   (!razorpayLoaded || razorpayLoading) && 'opacity-50'
                 }`}
               >
@@ -842,12 +842,12 @@ function PlanDetails(props: any) {
 
       {!checkout.studentDiscountApplied && (
         <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <input
               value={couponCode}
               onChange={(e) => setCouponCode?.(e.target.value)}
               placeholder="Coupon code"
-              className="flex-1 h-10 px-3 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 h-10 py-2 px-3 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
             {pricing?.appliedCoupon ? (
@@ -860,7 +860,7 @@ function PlanDetails(props: any) {
             ) : (
               <button
                 onClick={onApplyCoupon}
-                className="h-10 px-4 rounded-lg text-sm font-medium bg-buttonPrimary text-white hover:bg-purple-700"
+                className="h-10 px-4 rounded-lg text-sm font-medium bg-buttonPrimary text-white hover:bg-blue-700"
               >
                 Apply
               </button>

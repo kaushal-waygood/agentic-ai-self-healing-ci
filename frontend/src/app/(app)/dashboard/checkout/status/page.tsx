@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useState, Suspense } from 'react';
 
 // Mock API instance for demo
@@ -89,23 +90,22 @@ function StatusComponent() {
   const [message, setMessage] = useState(
     'Verifying your payment, please wait...',
   );
-  const [searchParams, setSearchParams] = useState(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    setSearchParams(new URLSearchParams(window.location.search));
-  }, []);
-
-  useEffect(() => {
-    if (!searchParams) {
-      return;
-    }
+    // searchParams is now available immediately on client render
     const paymentIntentId = searchParams.get('payment_intent');
     const redirectStatus = searchParams.get('redirect_status');
+    const pid = searchParams.get('pid');
 
-    if (!paymentIntentId) {
+    console.log('Debug Values:', { pid, paymentIntentId, redirectStatus });
+
+    // 3. FIXED LOGIC: Changed || to &&
+    // Check if we are missing BOTH. If we have at least one, we can proceed.
+    if (!paymentIntentId && !pid) {
       setStatus('error');
       setMessage(
-        'Payment details are missing. Please return to the dashboard.',
+        'Payment details are missing (ID not found). Please return to the dashboard.',
       );
       return;
     }
@@ -119,11 +119,16 @@ function StatusComponent() {
     let attempts = 0;
     const maxAttempts = 15;
 
+    // Use whichever ID is available
+    const targetId = paymentIntentId || pid;
+
     const intervalId = setInterval(async () => {
       try {
         attempts++;
+        console.log(`Polling attempt ${attempts} for ID: ${targetId}`);
+
         const response = await apiInstance.get(
-          `/plan/payment/status/${paymentIntentId}`,
+          `/plan/payment/status/${targetId}`,
         );
         const backendStatus = response.data.status;
 
@@ -141,23 +146,21 @@ function StatusComponent() {
       } catch (error) {
         console.error('Error polling payment status:', error);
         setStatus('error');
-        setMessage(
-          'An error occurred while verifying your payment. Please contact support.',
-        );
+        setMessage('An error occurred while verifying your payment.');
         clearInterval(intervalId);
       }
 
       if (attempts >= maxAttempts) {
         setStatus('timeout');
         setMessage(
-          "We're still confirming your payment. Your plan will be updated shortly. Please check your dashboard in a moment.",
+          "We're still confirming your payment. Your plan will be updated shortly.",
         );
         clearInterval(intervalId);
       }
     }, 2000);
 
     return () => clearInterval(intervalId);
-  }, [searchParams]);
+  }, [searchParams]); // Depend on searchParams hook
 
   const renderIcon = () => {
     switch (status) {

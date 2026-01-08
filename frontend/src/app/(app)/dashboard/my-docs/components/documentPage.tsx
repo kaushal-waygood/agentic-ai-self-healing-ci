@@ -523,7 +523,7 @@ export default function DocumentsPage() {
             <>
               {activeTab === 'cvs' && (
                 <DocumentSection
-                  title="Generated CVs"
+                  title="CVs"
                   items={cvs}
                   refreshGeneratedDocs={refreshGeneratedDocs}
                   onDelete={deleteCV}
@@ -542,7 +542,7 @@ export default function DocumentsPage() {
 
               {activeTab === 'cover-letters' && (
                 <DocumentSection
-                  title="Generated Cover Letters"
+                  title="Cover Letters"
                   refreshGeneratedDocs={refreshGeneratedDocs}
                   items={coverLetters}
                   onDelete={deleteCoverLetter}
@@ -811,16 +811,34 @@ const DocumentSection = ({
     }
   };
 
+  // ... existing hooks
+
+  // 1. Calculate Generated Count
+  const generatedCount = Array.isArray(items) ? items.length : 0;
+
+  // 2. Calculate Saved Count based on type
+  const savedCount =
+    type === 'cv'
+      ? Array.isArray(resume?.html)
+        ? resume.html.length
+        : 0
+      : type === 'coverLetter'
+      ? Array.isArray(coverLetter?.html)
+        ? coverLetter.html.length
+        : 0
+      : 0;
+
   return (
     <div className="p-6">
       <div className="flex items-center flex-wrap justify-between mb-6">
-        {/* <h2 className="text-lg md:text-2xl font-semibold text-gray-900 dark:text-white ">
+        <h2 className="text-lg md:text-2xl font-semibold text-gray-900 dark:text-white ">
           {title}
-        </h2> */}
+        </h2>
 
         <div className="flex gap-2">
           {type !== 'application' ? (
             <div className="flex gap-2">
+              {/* GENERATED BUTTON */}
               <button
                 onClick={() => {
                   setDocState('generated');
@@ -832,15 +850,25 @@ const DocumentSection = ({
                     `?${params.toString()}`,
                   );
                 }}
-                className={`px-4 py-2 rounded-md ${
+                className={`px-4 py-2 rounded-md flex items-center gap-2 ${
                   docState === 'generated'
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-200 dark:bg-gray-700'
                 }`}
               >
                 Generated
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    docState === 'generated'
+                      ? 'bg-white text-blue-600'
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  {generatedCount}
+                </span>
               </button>
 
+              {/* SAVED BUTTON */}
               <button
                 onClick={() => {
                   setDocState('saved');
@@ -852,16 +880,26 @@ const DocumentSection = ({
                     `?${params.toString()}`,
                   );
                 }}
-                className={`px-4 py-2 rounded-md ${
+                className={`px-4 py-2 rounded-md flex items-center gap-2 ${
                   docState === 'saved'
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-200 dark:bg-gray-700'
                 }`}
               >
                 Saved
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    docState === 'saved'
+                      ? 'bg-white text-blue-600'
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  {savedCount}
+                </span>
               </button>
             </div>
           ) : (
+            // APPLICATION BUTTON (Only Generated exists here)
             <button
               onClick={() => {
                 setDocState('generated');
@@ -869,17 +907,25 @@ const DocumentSection = ({
                 params.delete('q');
                 window.history.replaceState(null, '', `?${params.toString()}`);
               }}
-              className={`px-4 py-2 rounded-md ${
+              className={`px-4 py-2 rounded-md flex items-center gap-2 ${
                 docState === 'generated'
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-200 dark:bg-gray-700'
               }`}
             >
               Generated
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  docState === 'generated'
+                    ? 'bg-white text-blue-600'
+                    : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              >
+                {generatedCount}
+              </span>
             </button>
           )}
         </div>
-
         <div className="flex items-center">
           {/* Input + X inside */}
           <div className="relative">

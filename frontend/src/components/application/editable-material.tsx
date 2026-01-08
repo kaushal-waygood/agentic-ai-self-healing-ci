@@ -68,7 +68,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       } ${className}`}
     >
       {/* Header Toolbar */}
-      <header className="flex items-center justify-between border-b p-3 bg-white rounded-t-xl sticky top-0 z-20">
+      <header className="flex flex-wrap items-center justify-between border-b p-3 bg-white rounded-t-xl sticky top-0 z-20">
         <div className="flex items-center gap-3">
           {state.isEditing ? (
             <Edit3 className="w-5 text-blue-500" />
@@ -78,7 +78,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           <h3 className="font-bold text-gray-700">{title}</h3>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {state.isEditing && (
             <div className="hidden xl:block border-r pr-2 mr-2">
               <EditorToolbar
@@ -126,8 +126,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       </header>
 
       {/* Editor Main Canvas */}
-      <main className="flex-grow overflow-y-auto p-4 md:p-10 bg-gray-200/40 custom-scrollbar">
-        {/* TEMPLATE STYLE INJECTION - This clears older styles because it's re-rendered on template change */}
+      <main className="flex-grow overflow-y-auto bg-gray-200/40 custom-scrollbar">
         {template?.style && (
           <style dangerouslySetInnerHTML={{ __html: template.style }} />
         )}
@@ -137,12 +136,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           contentEditable={state.isEditing}
           onInput={actions.handleInput}
           suppressContentEditableWarning
-          className={`mx-auto bg-white shadow-2xl transition-all duration-300 ${
+          className={`bg-white transition-all w-full p-2 duration-300 ${
             state.isEditing
               ? 'ring-4 ring-blue-100 min-h-[297mm]'
               : 'min-h-[297mm]'
-          } w-full max-w-[210mm] focus:outline-none p-[15mm] md:p-[20mm]`}
-          // We let the useEffect in the hook handle initial injection to prevent style-clashing
+          }  focus:outline-none `}
         />
       </main>
 
@@ -157,7 +155,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <button
             onClick={actions.toggleEdit}
             className={`px-6 py-2 rounded-lg font-bold text-sm transition-all active:scale-95 ${
