@@ -314,7 +314,7 @@ export const DocumentCard = ({
                 View Doc
               </button> */}
               {item.flag && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 mt-1">
+                <p className="text-xs rounded-lg text-gray-600 bg-gray-300 uppercase px-2 py-1 dark:text-gray-200 mb-2 mt-1">
                   from: {item.flag}
                 </p>
               )}

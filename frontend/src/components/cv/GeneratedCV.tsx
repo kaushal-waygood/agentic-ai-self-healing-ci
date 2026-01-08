@@ -1,18 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { FileText, Sparkles, Loader2, X } from 'lucide-react';
-
 import EditableMaterial from '../application/editable-material';
 import TemplateSidebar, {
   ResumeTemplate,
 } from '../application/applications/TemplateSidebar';
-
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-} from '@radix-ui/react-alert-dialog';
-import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -23,68 +18,34 @@ import { Input } from '../ui/input';
 
 const GeneratedCV = ({
   generatedCvOutput = null,
-  handleInitiateSave,
   isNamingDialogDisplayed,
   setIsNamingDialogDisplayed,
   cvNameForSavingInput,
   setCvNameForSavingInput,
   confirmSaveNamedCv,
 }: any) => {
-  const [isEditing, setIsEditing] = useState(false);
+  // 1. Initial Content State
   const [editableContent, setEditableContent] = useState('');
-  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-  const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
-  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] =
     useState<ResumeTemplate | null>(null);
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
 
   const cvData = generatedCvOutput;
+  const atsScore = cvData?.atsScore ?? 0;
 
+  // 2. Sync incoming AI data to our local editable state
   useEffect(() => {
     if (cvData?.cv) {
-      setEditableContent(cvData.cv);
+      // Handle both object and string formats
+      const content = typeof cvData.cv === 'object' ? cvData.cv.cv : cvData.cv;
+      setEditableContent(content);
     }
   }, [cvData]);
-
-  const handleDownload = async (format: 'pdf' | 'docx') => {
-    const setLoading =
-      format === 'pdf' ? setIsDownloadingPdf : setIsDownloadingDocx;
-    setLoading(true);
-
-    try {
-      const endpoint =
-        format === 'pdf'
-          ? '/students/pdf/generate-pdf'
-          : '/students/docx/generate-docx';
-
-      const response = await axios.post(
-        endpoint,
-        {
-          html: editableContent,
-          title: 'Generated_CV',
-        },
-        { responseType: 'blob' },
-      );
-
-      const url = URL.createObjectURL(response.data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `CareerPilot_CV.${format}`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const atsScore = cvData?.atsScore ?? 0;
-  const cvContent = cvData?.cv;
-
-  console.log('cvData', selectedTemplate);
 
   return (
     <div className="min-h-screen p-3">
       <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
+        {/* Header Section */}
         <div className="flex items-center gap-3 bg-header-gradient-primary text-white p-3">
           <FileText />
           <h2 className="text-xl font-bold flex-1">AI Generated CV</h2>
@@ -95,7 +56,8 @@ const GeneratedCV = ({
         </div>
 
         {cvData ? (
-          <div className="flex ">
+          <div className="flex">
+            {/* Desktop Sidebar */}
             <div className="hidden h-[calc(100vh-100px)] lg:flex lg:flex-shrink-0">
               <TemplateSidebar
                 activeTemplate={selectedTemplate}
@@ -104,15 +66,7 @@ const GeneratedCV = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              {/* Inject template CSS */}
-              {selectedTemplate?.style && (
-                <style
-                  dangerouslySetInnerHTML={{
-                    __html: selectedTemplate.style,
-                  }}
-                />
-              )}
-
+              {/* Mobile Template Trigger */}
               <div className="lg:hidden flex justify-end mb-2">
                 <button
                   onClick={() => setIsTemplateOpen(true)}
@@ -123,39 +77,36 @@ const GeneratedCV = ({
                 </button>
               </div>
 
+              {/* 3. The Editable Material Component */}
               <EditableMaterial
-                isEditing={isEditing}
-                content={
-                  typeof cvContent === 'object' ? cvContent.cv : cvContent
-                }
+                // Pass the current draft state, NOT the original AI output
+                content={editableContent}
+                // This function is called by toggleEdit in the hook
+                setContent={setEditableContent}
                 template={selectedTemplate}
                 title="CV Content"
-                isHtml
-                setContent={setEditableContent}
-                handleDownload={handleDownload}
-                isDownloadingPdf={isDownloadingPdf}
-                isDownloadingDocx={isDownloadingDocx}
                 type="resume"
+                isHtml={true}
               />
             </div>
           </div>
         ) : (
-          <div className="p-8 flex justify-center">
-            <Loader2 className="animate-spin" />
+          <div className="p-8 flex justify-center w-full">
+            <Loader2 className="animate-spin text-indigo-500" size={40} />
           </div>
         )}
       </div>
 
+      {/* Mobile Template Drawer */}
       {isTemplateOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 lg:hidden">
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-xl p-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between mb-2">
+            <div className="flex justify-between mb-4">
               <h3 className="font-semibold">Choose Template</h3>
               <button onClick={() => setIsTemplateOpen(false)}>
                 <X />
               </button>
             </div>
-
             <TemplateSidebar
               activeTemplate={selectedTemplate}
               onSelect={(t) => {
@@ -167,6 +118,7 @@ const GeneratedCV = ({
         </div>
       )}
 
+      {/* 4. Naming Dialog (If managed by Parent) */}
       {isNamingDialogDisplayed && (
         <AlertDialog
           open={isNamingDialogDisplayed}
@@ -176,15 +128,15 @@ const GeneratedCV = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Name Your CV</AlertDialogTitle>
               <AlertDialogDescription>
-                Give this version a unique name
+                Give this version a unique name (e.g., "Google Application").
               </AlertDialogDescription>
             </AlertDialogHeader>
-
             <Input
               value={cvNameForSavingInput}
               onChange={(e) => setCvNameForSavingInput(e.target.value)}
+              placeholder="Enter CV name..."
+              className="my-4"
             />
-
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmSaveNamedCv}>
