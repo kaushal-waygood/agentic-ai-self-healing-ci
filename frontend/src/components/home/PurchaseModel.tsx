@@ -300,8 +300,6 @@ export default function CheckoutPage() {
           : activeVariant.price.effective.inr;
       const preview = computeLocalPricing(basePrice, currency, coupon);
 
-      
-
       console.log('Preview', preview);
 
       dispatch(
@@ -521,7 +519,7 @@ export default function CheckoutPage() {
   if (error || !plan) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-xl border border-red-100 max-w-md text-center">
+        <div className="bg-white p-8 rounded-lg shadow-xl border border-red-100 max-w-md text-center">
           <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
           <p className="mb-6">{error || 'Plan not found'}</p>
@@ -561,7 +559,7 @@ export default function CheckoutPage() {
   const currencySymbol = getCurrencySymbol(checkout.currency);
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-10 ">
+    <div className="p-4 sm:p-6 lg:p-10 ">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* LEFT: PLAN DETAILS */}
         <div className="lg:col-span-1">
@@ -580,7 +578,7 @@ export default function CheckoutPage() {
         </div>
 
         {/* RIGHT: PAYMENT */}
-        <div className="lg:col-span-2 bg-white/5 rounded-lg p-8  border ">
+        <div className="lg:col-span-2 bg-white rounded-lg p-8  border ">
           <header className="mb-6">
             <h2 className="text-3xl font-semibold mb-1">Secure Checkout</h2>
             <p className="text-sm ">
@@ -591,30 +589,6 @@ export default function CheckoutPage() {
 
           {/* ORDER SUMMARY */}
           <div className="mb-8">
-            {/* <div className="rounded-xl p-5 bg-white/5 border border-white/10">
-              <div className="flex justify-between mb-2 text-sm ">
-                <span>Original Price</span>
-                <span>
-                  {getCurrencySymbol(currency)}
-                  {displayOriginal.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between mb-2 text-sm text-green-400">
-                <span>Discount Applied</span>
-                <span>
-                  -{getCurrencySymbol(currency)}
-                  {displayDiscount.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between pt-3 border-t border-white/10 text-lg font-bold">
-                <span>Total Payable</span>
-                <span className="text-purple-300">
-                  {getCurrencySymbol(currency)}
-                  {displayPrice.toFixed(2)}
-                </span>
-              </div>
-            </div> */}
-
             <div className="rounded-xl p-5 bg-white/5 border border-white/10">
               <div className="flex justify-between mb-2 text-sm">
                 <span>Original Price</span>
@@ -640,7 +614,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between pt-3 border-t border-white/10 text-lg font-bold">
                 <span>Total Payable</span>
-                <span className="text-purple-300">
+                <span className="text-blue-500">
                   {currencySymbol}
                   {displayPrice.toFixed(2)}
                 </span>
@@ -661,7 +635,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handleRazorpayPayment}
                 disabled={!razorpayLoaded || razorpayLoading}
-                className={`w-full py-4 rounded-xl text-lg font-semibold bg-gradient-to-r from-purple-500 to-indigo-600 shadow-lg transition hover:opacity-90 ${
+                className={`w-full py-4 rounded-lg text-lg text-white font-semibold bg-buttonPrimary transition hover:opacity-90 ${
                   (!razorpayLoaded || razorpayLoading) && 'opacity-50'
                 }`}
               >
@@ -784,10 +758,10 @@ function PlanDetails(props: any) {
   console.log('planes ', plan.studentDiscountApplied);
 
   return (
-    <div className="relative bg-white/5  border rounded-lg p-4 border ">
+    <div className="relative bg-white border rounded-lg p-4 border ">
       {/* LOADING OVERLAY */}
       {isLoading && (
-        <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-md rounded-2xl text-white">
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-md rounded-lg text-white">
           Updating...
         </div>
       )}
@@ -859,7 +833,7 @@ function PlanDetails(props: any) {
           <span className="text-base font-semibold text-gray-900">
             Total payable
           </span>
-          <span className="text-2xl font-bold text-purple-600">
+          <span className="text-2xl font-bold text-blue-600">
             {sym}
             {checkout.finalPrice.toFixed(2)}
           </span>
@@ -873,7 +847,7 @@ function PlanDetails(props: any) {
               value={couponCode}
               onChange={(e) => setCouponCode?.(e.target.value)}
               placeholder="Coupon code"
-              className="flex-1 h-10 px-3 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-1 h-10 px-3 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
             {pricing?.appliedCoupon ? (
@@ -886,7 +860,7 @@ function PlanDetails(props: any) {
             ) : (
               <button
                 onClick={onApplyCoupon}
-                className="h-10 px-4 rounded-lg text-sm font-medium bg-purple-600 text-white hover:bg-purple-700"
+                className="h-10 px-4 rounded-lg text-sm font-medium bg-buttonPrimary text-white hover:bg-purple-700"
               >
                 Apply
               </button>
