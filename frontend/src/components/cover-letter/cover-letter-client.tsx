@@ -362,7 +362,6 @@ export function CoverLetterGeneratorClient() {
 
       const res = await apiInstance.get('/students/letter/saved');
       setSavedLettersList(res.data.html);
-      console.log('Saved letters: ', res);
 
       toast({ title: 'Cover Letter Saved!' });
     } finally {

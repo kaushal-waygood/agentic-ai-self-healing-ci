@@ -6,7 +6,6 @@ const JobPreferencesStep = ({
   selectedOptions,
   toggleOption,
 }: any) => {
-  console.log('toggleOption', selectedOptions);
   return (
     <div className="space-y-5">
       <div>

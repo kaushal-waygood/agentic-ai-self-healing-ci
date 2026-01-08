@@ -204,18 +204,12 @@ export default function CheckoutPage() {
           if (mounted) setPlan(currentPlan);
         }
 
-        // 2. Decide Gateway (Routing)
-        // We use the route endpoint from your commented code
         const routeRes = await apiInstance.post('/plan/payments/route', {
-          currency: 'inr', // Default hint, backend should decide based on IP or User
-          country: 'IN', // Optional: pass if you have user location
+          currency: 'inr',
+          country: 'IN',
         });
 
-        console.log(routeRes.data);
-
-        const detectedGateway = routeRes.data.gateway || 'stripe'; // Default to stripe if undefined
-        console.log(detectedGateway);
-        // Determine currency based on gateway for now (or use response from route)
+        const detectedGateway = routeRes.data.gateway || 'stripe';
         const detectedCurrency = detectedGateway === 'razorpay' ? 'inr' : 'usd';
 
         if (mounted) {
@@ -299,8 +293,6 @@ export default function CheckoutPage() {
           ? activeVariant.price.effective.usd
           : activeVariant.price.effective.inr;
       const preview = computeLocalPricing(basePrice, currency, coupon);
-
-      console.log('Preview', preview);
 
       dispatch(
         setCheckoutRequest({
@@ -736,7 +728,6 @@ function PlanDetails(props: any) {
   const router = useRouter();
   const checkout = useSelector((state: RootState) => state.checkout.data);
 
-  console.log('checkout', checkout);
   useEffect(() => {
     if (!checkout) {
       router.replace('/dashboard/subscriptions');
@@ -754,8 +745,6 @@ function PlanDetails(props: any) {
   if (!v || !checkout) return null;
 
   const sym = getCurrencySymbols(checkout.currency);
-
-  console.log('planes ', plan.studentDiscountApplied);
 
   return (
     <div className="relative bg-white border rounded-lg p-4 border ">

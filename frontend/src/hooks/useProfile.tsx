@@ -70,7 +70,6 @@ export const useProfile = () => {
   const studentWrapper = useSelector(
     (state: RootState) => state.student.students?.[0],
   );
-  console.log('studentWrapper.student', studentWrapper);
 
   const studentData = studentWrapper?.student;
 
@@ -112,8 +111,6 @@ export const useProfile = () => {
 
     setPreview(studentData.profileImage || dummyAvatar);
   }, [studentData]);
-
-  console.log('profile', profile);
 
   /* -----------------------------
      Input handlers
@@ -326,7 +323,6 @@ export const useEducation = () => {
 export const useSkills = () => {
   const dispatch = useDispatch();
   const skills = useSelector((s: RootState) => s.student.skills?.skills || []);
-  console.log('skills', skills);
   useEffect(() => {
     dispatch(getStudentSkllsRequest());
   }, [dispatch]);

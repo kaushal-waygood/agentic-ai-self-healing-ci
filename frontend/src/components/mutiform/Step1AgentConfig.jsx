@@ -35,10 +35,6 @@ const Step1AgentConfig = ({
     }
   };
 
-  useEffect(() => {
-    console.log('Keywords:', values.keywords);
-  }, [values.keywords]);
-
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 animate-fade-in">
       {/* HEADER */}
@@ -208,4 +204,3 @@ const Step1AgentConfig = ({
 };
 
 export default Step1AgentConfig;
-

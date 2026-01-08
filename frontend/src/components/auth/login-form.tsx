@@ -11,16 +11,7 @@ import * as z from 'zod';
 import { useDispatch } from 'react-redux';
 
 // ICONS
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  Rocket,
-  ArrowRight,
-  Sparkles,
-  Shield,
-} from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 
 // YOUR UTILS AND SERVICES (ensure paths are correct)
 import { useToast } from '@/hooks/use-toast';
@@ -81,50 +72,11 @@ const LoginForm = () => {
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });
-  const EXTENSION_ID = 'mmmbijnmokcdpnabaahhbmioeobobcnb'; // e.g., 'eibpabggcnhbahdgeenoonimfmfajgka'
   async function onSubmit(data: LoginFormValues) {
     try {
       const response = await apiInstance.post('/user/signin', data);
       const { accessToken: token, user } = response.data;
 
-      if (token) {
-        // This condition is fine, but the error happens inside
-        if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
-          chrome.runtime.sendMessage(
-            EXTENSION_ID, // Use the variable here
-            {
-              type: 'SAVE_TOKEN',
-              token: token,
-            },
-            (response) => {
-              // The callback is crucial for debugging
-              if (chrome.runtime.lastError) {
-                // This will give a more specific error in the console!
-                console.error(
-                  'Extension communication error:',
-                  chrome.runtime.lastError.message,
-                );
-                return;
-              }
-
-              if (response && response.success) {
-                console.log(
-                  'Token successfully sent to and saved by extension.',
-                );
-              } else {
-                console.error(
-                  'Failed to send token to extension:',
-                  response ? response.message : 'No response or failure.',
-                );
-              }
-            },
-          );
-        } else {
-          console.log(
-            'ZobsAI Chrome extension not detected. Skipping token send.',
-          );
-        }
-      }
       dispatch(loginRequest(data));
 
       if (user) {

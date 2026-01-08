@@ -510,11 +510,8 @@ export const useApplicationWizard = () => {
 
   useEffect(() => {
     const slug = searchParams.get('slug');
-    console.log('slug', slug);
     const fetchJob = async () => {
       const response = await apiInstance.get(`/jobs/find/${slug}`);
-
-      console.log('response', response.data);
 
       setJobContext({
         mode: 'select',
@@ -522,17 +519,12 @@ export const useApplicationWizard = () => {
       });
     };
 
-      fetchJob();
+    fetchJob();
   }, [searchParams]);
-
-  console.log('jobContext', jobContext);
 
   const handleGenerate = useCallback(async () => {
     // 🔒 HARD GUARD (this is the fix)
 
-    console.log('jobContext', jobContext);
-    console.log('cvContext', cvContext);
-    console.log('clContext', clContext);
     if (!jobContext || !cvContext) {
       toast({
         variant: 'destructive',

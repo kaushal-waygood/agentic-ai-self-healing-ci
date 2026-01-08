@@ -141,7 +141,6 @@ const studentSlice = createSlice({
       state,
       _action: PayloadAction<Omit<Education, '_id'> | Education>,
     ) => {
-      console.log('addStudentEducationRequest');
       state.loading = true;
       state.error = null;
     },

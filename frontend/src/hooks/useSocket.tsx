@@ -26,8 +26,6 @@ export const useSocket = () => {
 
         // Use the correct URL format
         const baseURL = 'http://localhost:8080';
-        console.log('🔗 Connecting to:', baseURL);
-        console.log('Token', token);
 
         // Create socket connection
         socketRef.current = io(baseURL, {
@@ -43,10 +41,6 @@ export const useSocket = () => {
 
         // Connection events
         socketRef.current.on('connect', () => {
-          console.log(
-            '✅ useSocket: Connected to server, ID:',
-            socketRef.current?.id,
-          );
           if (isMounted) {
             setIsConnected(true);
             setConnectionError(null);
@@ -54,7 +48,6 @@ export const useSocket = () => {
         });
 
         socketRef.current.on('disconnect', (reason) => {
-          console.log('🔴 useSocket: Disconnected, reason:', reason);
           if (isMounted) {
             setIsConnected(false);
             setConnectionError(`Disconnected: ${reason}`);

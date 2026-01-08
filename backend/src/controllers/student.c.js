@@ -342,11 +342,9 @@ export const getProfileCompletion = async (req, res) => {
           skills: Boolean(skills?.length >= 5), // Assumes 5 is a good target
           projects: Boolean(projects?.length > 0),
           jobPreferences: Boolean(
-            student.jobPreferences?.preferredJobTypes?.length > 0 &&
-              student.jobPreferences?.preferredSalary?.min > 0 &&
-              (student.jobPreferences?.preferredCountries?.length > 0 ||
-                student.jobPreferences?.preferredCities?.length > 0 ||
-                student.jobPreferences?.isRemote === true),
+            (student.jobPreferences?.preferredCountries?.length > 0 ||
+              student.jobPreferences?.preferredCities?.length > 0) &&
+              student.jobPreferences?.mustHaveSkills?.length > 0,
           ),
         };
 

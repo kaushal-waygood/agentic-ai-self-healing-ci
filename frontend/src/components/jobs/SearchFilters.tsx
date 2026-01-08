@@ -114,7 +114,6 @@ export const SearchFilters = ({
   };
 
   const pushFiltersToUrl = (filters: FilterState) => {
-    console.log(filters);
     const params = new URLSearchParams();
 
     const stateName = getStateName(filters.countryCode, filters.state);

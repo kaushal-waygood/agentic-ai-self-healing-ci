@@ -247,7 +247,6 @@ const JobWizard = ({
                 {tabData.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.value;
-                  console.log('isActive:', tab.gradient, isActive);
                   return (
                     <TabsTrigger
                       key={tab.value}
