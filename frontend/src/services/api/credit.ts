@@ -17,7 +17,6 @@ export const getCredit = async () => {
 };
 
 export const earnSocialCredit = async (data: any, meta: any) => {
-  console.log('data', data, meta);
   const response = await apiInstance.get(`/students/credit/earn/${data}`, meta);
   return response;
 };

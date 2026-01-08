@@ -195,7 +195,7 @@ export async function parseCVData(text, userId) {
     );
     return mapAiResponseToSchema(userId, parsed);
   } catch (err) {
-    console.log(err);
+    console.error(err);
     console.warn('⚠ AI failed -> using fallback');
     return mapFallbackToSchema(userId, parseBasicFromText(text));
   }
@@ -249,14 +249,6 @@ export const extractStudentDataFromCV = async (req, res) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     if (!req.file?.buffer)
       return res.status(400).json({ error: 'No CV uploaded' });
-
-    console.log('=== Upload Debug ===');
-    console.log(
-      'Original:',
-      req.file.originalname,
-      '| Type:',
-      req.file.mimetype,
-    );
 
     const cvUrl = await uploadToCloudinary(req);
     const text = await extractTextFromCV(req.file);

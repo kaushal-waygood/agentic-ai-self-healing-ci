@@ -98,8 +98,6 @@ function StatusComponent() {
     const redirectStatus = searchParams.get('redirect_status');
     const pid = searchParams.get('pid');
 
-    console.log('Debug Values:', { pid, paymentIntentId, redirectStatus });
-
     // 3. FIXED LOGIC: Changed || to &&
     // Check if we are missing BOTH. If we have at least one, we can proceed.
     if (!paymentIntentId && !pid) {
@@ -125,7 +123,6 @@ function StatusComponent() {
     const intervalId = setInterval(async () => {
       try {
         attempts++;
-        console.log(`Polling attempt ${attempts} for ID: ${targetId}`);
 
         const response = await apiInstance.get(
           `/plan/payment/status/${targetId}`,

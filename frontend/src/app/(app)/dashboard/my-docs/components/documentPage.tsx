@@ -158,8 +158,6 @@ export default function DocumentsPage() {
         ...prev,
         coverLettersCount: response.data.cls?.length || 0,
       }));
-
-      console.log('response.data.cls', response.data.cls);
     } catch (error) {
       console.error('Failed to fetch cover letters:', error);
       throw error;
@@ -396,7 +394,6 @@ export default function DocumentsPage() {
     toast({ title: 'Generating PDF...' });
 
     const htmlContent = content.cv || content.html;
-    console.log('htmlContent', htmlContent);
     try {
       const response = await apiInstance.post(
         '/students/pdf/generate-pdf',
