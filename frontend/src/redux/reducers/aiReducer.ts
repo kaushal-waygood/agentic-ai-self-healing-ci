@@ -78,7 +78,10 @@ const AISlice = createSlice({
       state.error = action.payload;
     },
 
-    deleteSavedResumeRequest: (state, _action: PayloadAction<string>) => {
+    deleteSavedResumeRequest: (
+      state,
+      _action: PayloadAction<{ cvId: string }>,
+    ) => {
       state.loading = true;
       state.error = null;
     },
@@ -95,7 +98,10 @@ const AISlice = createSlice({
       state.error = action.payload;
     },
 
-    deleteSavedCoverLetterRequest: (state, _action: PayloadAction<string>) => {
+    deleteSavedCoverLetterRequest: (
+      state,
+      _action: PayloadAction<{ clId: string }>,
+    ) => {
       state.loading = true;
       state.error = null;
     },

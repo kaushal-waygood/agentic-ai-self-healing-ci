@@ -41,6 +41,8 @@ export const DocumentCard = ({
   const isProcessing = status === 'pending';
 
   const isClickable = status === 'completed' || docState === 'saved';
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
   const getContent = () => {
     if (docState === 'saved') {
@@ -168,15 +170,31 @@ export const DocumentCard = ({
 
   const supportsRename = type === 'cv' || type === 'coverLetter';
 
+  const handleRenameSubmit = async () => {
+    if (!renameTitle.trim()) return;
+
+    setIsSavingRename(true);
+    try {
+      if (docState === 'generated') {
+        await onRename(item._id, renameTitle.trim());
+      } else {
+        await onRenameSaved(item._id, renameTitle.trim());
+      }
+      setIsRenaming(false); // ✅ close dialog
+    } finally {
+      setIsSavingRename(false);
+    }
+  };
+
   return (
     <div
-      className={`p-4 border  border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 transition-shadow ${
+      className={`p-4 border  border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700  transition-shadow ${
         isClickable
           ? 'cursor-pointer hover:shadow-md'
           : 'cursor-not-allowed opacity-70'
       } ${isProcessing ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''}`}
     >
-      <div className="flex items-center flex-wrap justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center flex-wrap justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700 ">
         <div className="flex items-center space-x-3" onClick={openContent}>
           <div className="flex items-center gap-3">
             {!isSaved && (
@@ -263,9 +281,7 @@ export const DocumentCard = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              docState === 'generated'
-                ? onDelete(item._id)
-                : onDeleteSaved(item._id);
+              setIsDeleting(true);
             }}
             disabled={isProcessing || isRefreshing}
             className={`p-2 transition-colors ${
@@ -273,11 +289,7 @@ export const DocumentCard = ({
                 ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                 : 'text-gray-500 hover:text-red-600'
             }`}
-            title={
-              isProcessing || isRefreshing
-                ? 'Cannot delete while processing'
-                : 'Delete'
-            }
+            title="Delete"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -299,13 +311,13 @@ export const DocumentCard = ({
                 ((item.cvTitle || getTitle()).length > 40 ? '...' : '')}
             </span>
 
-            <div className="hidden md:flex  items-end flex-col">
-              {/* <button
+            <div className="hidden md:flex items-end flex-col gap-2">
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   openContent();
                 }}
-                className={`ml-3 px-3 py-1 border border-blue-600 text-blue-600 text-xs rounded hover:bg-blue-600 hover:text-white transition flex items-center gap-1 ${
+                className={`ml-3 px-3 py-2 border border-blue-600 text-blue-600 text-xs rounded hover:bg-blue-600 hover:text-white transition flex items-center gap-1 ${
                   isClickable
                     ? 'cursor-pointer'
                     : 'cursor-not-allowed opacity-50'
@@ -313,9 +325,9 @@ export const DocumentCard = ({
               >
                 <Eye className="w-3.5 h-3.5" />
                 View Doc
-              </button> */}
+              </button>
               {item.flag && (
-                <p className="text-xs rounded-lg text-gray-600 bg-gray-300 uppercase px-2 py-1 dark:text-gray-200 mb-2 mt-1">
+                <p className="text-xs rounded-lg text-gray-600 bg-gray-200 uppercase px-2 py-1 dark:text-gray-200 mb-2 mt-1">
                   from: {item.flag}
                 </p>
               )}
@@ -389,25 +401,59 @@ export const DocumentCard = ({
           />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
+
             <AlertDialogAction
-              // onClick={
-              //   docState === 'generated'
-              //     ? handleRenameSubmit
-              //     : onRenameSaved(item._id, renameTitle)
-              // }
-              onClick={(e) => {
-                e.stopPropagation();
-                docState === 'generated'
-                  ? onRename(item._id, renameTitle)
-                  : onRenameSaved(item._id, renameTitle);
-              }}
-              // onClick={handleRenameSubmit}
+              onClick={handleRenameSubmit}
               disabled={isSavingRename}
             >
               {isSavingRename ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 'Save'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* delete alert dialog */}
+      <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600">
+              Delete Document?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Are you sure you want to delete{' '}
+              <strong>{getTitle()}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleteLoading}>
+              Cancel
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={async () => {
+                setIsDeleteLoading(true);
+                try {
+                  docState === 'generated'
+                    ? await onDelete(item._id)
+                    : await onDeleteSaved(item._id);
+
+                  setIsDeleting(false);
+                } finally {
+                  setIsDeleteLoading(false);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleteLoading}
+            >
+              {isDeleteLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Delete'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
