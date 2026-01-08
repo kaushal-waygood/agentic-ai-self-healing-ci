@@ -183,8 +183,6 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
 
       const res = await apiInstance.post('/user/bring-zobs/student', payload);
 
-      console.log('Student bring response:', res.data);
-
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 1500);
     } catch (err: any) {

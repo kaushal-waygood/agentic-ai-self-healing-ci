@@ -31,7 +31,6 @@ const Experience = () => {
   const [editData, setEditData] = useState<any | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  console.log('edittdata', editData);
   return (
     <div>
       {/* Header */}

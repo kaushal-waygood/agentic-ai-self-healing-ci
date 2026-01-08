@@ -17,8 +17,6 @@ export default function OrganizationPage() {
     (state: RootState) => state.auth,
   );
 
-  console.log('User:', user);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -70,8 +68,6 @@ export default function OrganizationPage() {
       </div>
     );
   }
-
-  console.log('Organization:', organization);
 
   if (!organization) {
     return (

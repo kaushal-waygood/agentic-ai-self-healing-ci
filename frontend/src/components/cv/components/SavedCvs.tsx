@@ -27,7 +27,6 @@ const SavedCvs = ({ resume, loadSavedCv }: any) => {
   const [activeSearch, setActiveSearch] = useState('');
   const route = useRouter();
   const searchParams = useSearchParams();
-  console.log('resume', resume);
 
   useEffect(() => {
     setAnimateIn(true);

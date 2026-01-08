@@ -284,7 +284,6 @@ const jobSlice = createSlice({
     },
 
     viewedJobsRequest: (state) => {
-      console.log('viewedJobsRequest');
       state.loading = true;
       state.error = null;
     },

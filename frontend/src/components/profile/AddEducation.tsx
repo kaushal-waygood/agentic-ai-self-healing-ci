@@ -725,7 +725,6 @@ export const AddProject: React.FC<{
     link: string;
   }>;
 }> = ({ onCancel, data, isEdit }) => {
-  console.log('Form data:', data);
   const form = useForm({
     defaultValues: {
       _id: data?._id || '',
