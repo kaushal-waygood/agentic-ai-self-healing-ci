@@ -20,8 +20,10 @@ export const DocumentCard = ({
   index,
   type,
   onDelete,
+  onDeleteSaved,
   onDownload,
   onRename,
+  onRenameSaved,
   getStatusIcon,
   getStatusColor,
   formatDate,
@@ -32,31 +34,13 @@ export const DocumentCard = ({
 
   const [status, setStatus] = useState(normalizeStatus(item.status));
 
-  // const [status, setStatus] = useState(item.status);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isSavingRename, setIsSavingRename] = useState(false);
 
   const isProcessing = status === 'pending';
-  // const isClickable = status === 'completed';
-  const isClickable = status === 'completed' || docState === 'saved';
 
-  // const getContent = () => {
-  //   switch (type) {
-  //     case 'cv':
-  //       return item.cvData;
-  //     case 'coverLetter':
-  //       return item.clData;
-  //     case 'application':
-  //       return {
-  //         cv: item.tailoredCV,
-  //         coverLetter: item.tailoredCoverLetter,
-  //         email: item.applicationEmail,
-  //       };
-  //     default:
-  //       return null;
-  //   }
-  // };
+  const isClickable = status === 'completed' || docState === 'saved';
 
   const getContent = () => {
     if (docState === 'saved') {
@@ -79,28 +63,7 @@ export const DocumentCard = ({
     }
   };
 
-  // const getTitle = () => {
-  //   switch (type) {
-  //     case 'cv':
-  //       return (
-  //         item.jobContextString?.slice(0, 100) +
-  //           (item.jobContextString?.length > 100 ? '...' : '') || 'Generated CV'
-  //       );
-  //     case 'coverLetter':
-  //       return (
-  //         item.jobContextString?.slice(0, 100) +
-  //           (item.jobContextString?.length > 100 ? '...' : '') ||
-  //         'Generated Cover Letter'
-  //       );
-  //     case 'application':
-  //       return `${item.jobTitle} - ${item.companyName}`;
-  //     default:
-  //       return 'Document';
-  //   }
-  // };
-
   const getTitle = () => {
-    // ✅ SAVED DOCS (API shape)
     if (docState === 'saved') {
       if (type === 'cv') {
         return item.htmlCVTitle || item.title || 'Saved CV';
@@ -141,17 +104,6 @@ export const DocumentCard = ({
     }.txt`;
   };
 
-  // const openContent = () => {
-  //   if (!isClickable) return;
-
-  //   if (type === 'application') {
-  //     router.push(`/dashboard/my-docs/application/${item._id}`);
-  //   } else if (type === 'cv') {
-  //     router.push(`/dashboard/my-docs/cv/${item._id}`);
-  //   } else if (type === 'coverLetter') {
-  //     router.push(`/dashboard/my-docs/cl/${item._id}`);
-  //   }
-  // };
   const openContent = () => {
     if (!isClickable) return;
 
@@ -214,20 +166,6 @@ export const DocumentCard = ({
     setIsRenaming(true);
   };
 
-  const handleRenameSubmit = async () => {
-    if (!renameTitle || isSavingRename) return;
-
-    setIsSavingRename(true);
-    try {
-      await onRename(item._id, renameTitle);
-    } catch (error) {
-      console.error('Error during rename submission:', error);
-    } finally {
-      setIsSavingRename(false);
-      setIsRenaming(false);
-    }
-  };
-
   const supportsRename = type === 'cv' || type === 'coverLetter';
 
   return (
@@ -240,23 +178,6 @@ export const DocumentCard = ({
     >
       <div className="flex items-center flex-wrap justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3" onClick={openContent}>
-          {/* {isProcessing || isRefreshing ? (
-            <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
-          ) : (
-            getStatusIcon(status)
-          )}
-          <span
-            className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(
-              status,
-            )}`}
-          >
-            {isRefreshing
-              ? 'Refreshing...'
-              : status === 'pending'
-              ? 'processing...'
-              : status}
-          </span> */}
-
           <div className="flex items-center gap-3">
             {!isSaved && (
               <>
@@ -282,31 +203,6 @@ export const DocumentCard = ({
           </div>
         </div>
         <div className="flex items-center space-x-2 ">
-          {/* Refresh Button */}
-          {/* <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRefresh();
-            }}
-            disabled={isRefreshing || status === 'completed'}
-            className={`p-2 transition-colors ${
-              isRefreshing || status === 'completed'
-                ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                : 'text-gray-500 hover:text-green-600'
-            }`}
-            title={
-              isRefreshing
-                ? 'Refreshing...'
-                : status === 'completed'
-                ? 'Completed'
-                : 'Refresh status'
-            }
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
-            />
-          </button> */}
-
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -346,27 +242,30 @@ export const DocumentCard = ({
               <Edit3 className="h-4 w-4" />
             </button>
           )}
+          {!isSaved && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(getContent(), getFilename());
+              }}
+              disabled={!isClickable}
+              className={`p-2 transition-colors ${
+                isClickable
+                  ? 'text-gray-500 hover:text-green-600'
+                  : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+              }`}
+              title={isClickable ? 'Download' : 'Not available'}
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          )}
 
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onDownload(getContent(), getFilename());
-            }}
-            disabled={!isClickable}
-            className={`p-2 transition-colors ${
-              isClickable
-                ? 'text-gray-500 hover:text-green-600'
-                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-            }`}
-            title={isClickable ? 'Download' : 'Not available'}
-          >
-            <Download className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(item._id);
+              docState === 'generated'
+                ? onDelete(item._id)
+                : onDeleteSaved(item._id);
             }}
             disabled={isProcessing || isRefreshing}
             className={`p-2 transition-colors ${
@@ -416,7 +315,7 @@ export const DocumentCard = ({
                 View Doc
               </button> */}
               {item.flag && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 mt-1">
+                <p className="text-xs rounded-lg text-gray-600 bg-gray-300 uppercase px-2 py-1 dark:text-gray-200 mb-2 mt-1">
                   from: {item.flag}
                 </p>
               )}
@@ -491,7 +390,18 @@ export const DocumentCard = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleRenameSubmit}
+              // onClick={
+              //   docState === 'generated'
+              //     ? handleRenameSubmit
+              //     : onRenameSaved(item._id, renameTitle)
+              // }
+              onClick={(e) => {
+                e.stopPropagation();
+                docState === 'generated'
+                  ? onRename(item._id, renameTitle)
+                  : onRenameSaved(item._id, renameTitle);
+              }}
+              // onClick={handleRenameSubmit}
               disabled={isSavingRename}
             >
               {isSavingRename ? (

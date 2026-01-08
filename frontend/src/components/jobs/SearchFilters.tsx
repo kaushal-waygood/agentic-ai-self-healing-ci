@@ -230,7 +230,7 @@ export const SearchFilters = ({
   return (
     <div className="p-2 md:p-1 mb-2">
       {/* <div className="flex items-center justify-between gap-2 "> */}
-      <div className="flex flex-col lg:flex-row gap-2">
+      <div className="flex flex-col lg:flex-row gap-2 ">
         <div className="input-search-box-div w-full">
           <Search className="w-4 h-4 input-search-icon " />
           <input

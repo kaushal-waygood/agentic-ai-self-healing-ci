@@ -1,13 +1,12 @@
 export const CV_TEMPLATES = {
   classic: `
-        .container {
+        .resume-container {
             font-family: "Times New Roman", Times, serif;
             line-height: 1.25;
             color: #000;
             background-color: #fff;
             font-size: 11pt; /* Standard Harvard size is 10.5pt to 11pt */
             max-width: 800px;
-            margin: 40px auto;
         }
 
         /* --- HEADER SECTION --- */
@@ -16,13 +15,16 @@ export const CV_TEMPLATES = {
             margin-bottom: 20px;
         }
 
-        .name {
-            font-size: 20pt; /* Reduced slightly from 22pt for a more professional look */
-            font-weight: bold;
-            margin-bottom: 6px;
-            color: #000;
-            text-transform: uppercase; /* Common in Ivy League templates */
-            letter-spacing: 0.5px;
+        .header h1{
+            font-family: 'Times New Roman', Times, serif;
+              font-size: 20pt;
+              font-weight: bold;
+              margin-bottom: 6px;
+              color: #000;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin: 0;
+              height: 30px;
         }
 
         .contact-info {
@@ -50,6 +52,8 @@ export const CV_TEMPLATES = {
             margin-bottom: 10px;
             width: 100%;
         }
+
+        .resume-container .profile-image { display: none; }
 
         /* --- SUMMARY --- */
         .summary-text {
@@ -183,7 +187,7 @@ export const CV_TEMPLATES = {
         /* Print Override to remove browser margins */
         @media print {
             body { background-color: white; }
-            .container { 
+            .resume-container { 
                 margin: 0; 
                 padding: 0; 
                 box-shadow: none; 
@@ -193,697 +197,569 @@ export const CV_TEMPLATES = {
         }
 `,
 
-  sales: `
-<style>
-.container {
-            font-family: 'Roboto', Helvetica, Arial, sans-serif;
-            line-height: 1.4;
-            color: #333;
-            background-color: #fff;
-            font-size: 10.5pt;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 50px;
-        }
+  tech: `  <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono&display=swap');
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .resume-container {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.5;
+        color: #1a1a1a;
+        background-color: #fff;
+        font-size: 10pt;
+        max-width: 850px;
+      }
 
-        /* --- HEADER SECTION --- */
-        .header {
-            text-align: left; /* Screenshot is left-aligned */
-            margin-bottom: 30px;
-            border-bottom: none; /* Removed default border */
-        }
+      /* --- HEADER --- */
+      .header {
+        margin-bottom: 15px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 10px;
+      }
 
-        .name {
-            font-size: 32pt;
-            text-align: left;
-            font-weight: 900; /* Extra bold like screenshot */
-            text-transform: uppercase;
-            color: #222;
-            margin-bottom: 4px;
-            letter-spacing: 0.5px;
-            line-height: 1;
-        }
+      .header .profile-image {
+        display: none;
+      }
 
-        /* Simulating the "Sales Representative" subtitle from screenshot using pseudo-element 
-           (Optional: strictly strictly styling the existing contact info) */
-        .contact-info {
-            font-size: 10pt;
-            color: #666;
-            margin-top: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            font-weight: 500;
-        }
+      .name {
+        height: 45px;
+      }
 
-        /* --- SECTIONS --- */
-        .section {
-            margin-bottom: 24px;
-        }
+      .name h1 {
+        font-size: 28pt;
+        font-weight: 800;
+        letter-spacing: -1px;
+        margin: 0;
+        color: #000;
+        text-transform: uppercase;
+      }
 
+      .contact-info {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9pt;
+        color: #555;
+        margin-top: 5px;
+        display: flex;
+        gap: 15px;
+      }
+
+      /* --- SECTIONS --- */
+      .section {
+        margin-bottom: 20px;
+      }
+
+      .section-title {
+        font-size: 11pt;
+        font-weight: 800;
+        color: #2563eb; /* Tech Blue */
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      .section-divider {
+        height: 1px;
+      }
+
+      /* --- SUMMARY --- */
+      .summary-text {
+        font-size: 10pt;
+        color: #374151;
+        text-align: justify;
+      }
+
+      .additional {
+        display: flex;
+        flex-direction: column;
+        margin-top: 10px;
+        font-size: 9pt;
+        color: #6b7280;
+        border-left: 2px solid #e5e7eb;
+        padding-left: 10px;
+        margin-top: 10px;
+      }
+
+      /* --- EXPERIENCE --- */
+      .job {
+        margin-bottom: 18px;
+        page-break-inside: avoid;
+      }
+
+      /* Flex layout to keep Title left and Date right */
+      .role-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+        font-size: 11pt;
+        color: #000;
+      }
+
+      .company-line {
+        display: flex;
+        justify-content: space-between;
+        font-size: 9.5pt;
+      }
+
+      .company {
+        color: #2563eb;
+        font-weight: 600;
+      }
+
+      .location,
+      .dates {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 8.5pt;
+        color: #6b7280;
+      }
+
+      .job ul {
+        margin: 0;
+        padding-left: 1.2rem;
+        list-style-type: square;
+      }
+
+      .job li {
+        margin-bottom: 4px;
+        color: #4b5563;
+      }
+
+      .section > ul > li{
+        margin-bottom: 4px;
+        color: #4b5563;
+        list-style-type: square;
+      }
+
+      .job li strong {
+        color: #111827;
+      }
+
+      /* --- PROJECTS --- */
+      .section ul {
+        padding-left: 1.2rem;
+        margin: 0;
+      }
+
+      .section li {
+        margin-bottom: 5px;
+      }
+
+      /* --- EDUCATION --- */
+      .education-item ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .education-item li {
+        font-weight: 500;
+      }
+
+      .skills-section div {
+        font-size: 9pt;
+        color: #374151;
+      }
+
+      .skills-section strong {
+        color: #2563eb;
+        text-transform: uppercase;
+        font-size: 8pt;
+        margin-bottom: 2px;
+      }
+
+      /* --- PRINT OPTIMIZATION --- */
+      @media print {
+        .resume-container {
+          padding: 0;
+          max-width: 100%;
+        }
         .section-title {
-            font-size: 14pt;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #000;
-            margin-bottom: 12px;
-            padding-bottom: 4px;
-            letter-spacing: 0.5px;
+          color: #000 !important;
         }
-
-        .section-divider {
-            display: none; /* Hiding the thin divider in favor of the thick border above */
-        }
-
-        /* --- SUMMARY --- */
-        .summary-text {
-            font-size: 10.5pt;
-            text-align: left;
-            line-height: 1.5;
-            color: #444;
-        }
-
-        .additional {
-            margin-top: 8px;
-            font-size: 10pt;
-            color: #666;
-            font-style: italic;
-        }
-
-        /* --- EXPERIENCE / JOBS (The "Magic" Layout) --- */
-        
-        /* The screenshot shows: Role Name (Top) -> Company Name (Color) (Below).
-           Your HTML has: Company (Top) -> Role (Below).
-           We use Flexbox to visually swap them without changing HTML.
-        */
-        .job {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 20px;
-            border-bottom: 3px solid #FA7C6D;
-        }
-
-
-        /* Order 1: Role Line (Visual Top) */
-        .role-line {
-            order: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 2px;
-        }
-
-        .role {
-            font-size: 12pt;
-            font-weight: 700;
-            color: #000; /* Black Role Title */
-        }
-
-        .dates {
-            font-size: 10pt;
-            color: #666;
-            font-weight: 500;
-        }
-
-        /* Order 2: Company Line (Visual Middle) */
-        .company-line {
-            order: 2;
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 8px; /* Space before bullets */
-        }
-
         .company {
-            font-size: 11pt;
-            font-weight: 500;
-            color: #FA7C6D; /* THE SALES CORAL COLOR */
-            text-transform: uppercase; /* Makes it look like a distinct label */
+          color: #2563eb !important;
+          -webkit-print-color-adjust: exact;
         }
-
-        .location {
-            font-size: 10pt;
-            color: #888;
-            font-weight: 400;
-        }
-
-        /* Adding icons via CSS to mimic screenshot */
-        .location:before {
-            content: "📍 ";
-            font-size: 0.9em;
-        }
-        .dates:before {
-            content: "🗓 ";
-            font-size: 0.9em;
-        }
-
-        /* Order 3: Bullets (Visual Bottom) */
-        .responsibilities {
-            order: 3;
-            margin: 0;
-            padding-left: 18px;
-            list-style: none; /* Custom bullets */
-        }
-
-        .responsibilities li {
-            margin-bottom: 4px;
-            font-size: 10.5pt;
-            color: #444;
-            line-height: 1.4;
-            position: relative;
-        }
-
-        .responsibilities li:before {
-            content: "•";
-            color: #000;
-            font-weight: bold;
-            position: absolute;
-            left: -15px;
-        }
-
-        .highlight {
-            font-weight: 700;
-            color: #000;
-        }
-
-        /* --- EDUCATION --- */
-        /* Applying similar logic to Education if needed, or keeping standard */
-        .education-item {
-            margin-bottom: 12px;
-        }
-
-        .degree-line {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .university {
-            color: #FA7C6D; /* Coral color for University name (like Company) */
-            font-weight: 700;
-            font-size: 11pt;
-        }
-
-        .degree {
-            font-weight: 700;
-            color: #000;
-        }
-
-        /* --- SKILLS --- */
         .skills-section {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+          background: #f3f4f6 !important;
+          -webkit-print-color-adjust: exact;
         }
-        
-        .skill-category {
-            font-size: 10.5pt;
+      }
+    </style>`,
+
+  sales: `<style>
+      /* --- FONT IMPORT --- */
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+      .resume-container {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        line-height: 1.5;
+        color: #2d3748;
+        background-color: #fff;
+        font-size: 10.5pt;
+        max-width: 850px;
+      }
+
+      /* --- HEADER --- */
+      .header {
+        margin-bottom: 30px;
+        border-left: 6px solid #ff5a36; /* Bold Sales Accent */
+        padding-left: 20px;
+      }
+
+      .header .profile-image {
+        display: none;
+      }
+
+      .name h1 {
+        font-size: 26pt;
+        font-weight: 800;
+        margin: 0;
+        color: #1a202c;
+        letter-spacing: -1px;
+      }
+
+      .contact-info {
+        font-size: 10pt;
+        color: #718096;
+        margin-top: 5px;
+        font-weight: 500;
+      }
+
+      /* --- SECTIONS --- */
+      .section {
+        margin-bottom: 25px;
+      }
+
+      .section-title {
+        font-size: 11pt;
+        font-weight: 800;
+        color: #1a202c;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+
+      .section-divider {
+        height: 2px;
+        background-color: #ff5a36; /* Coral accent line */
+        width: 40px;
+        margin-bottom: 15px;
+      }
+
+      /* --- SUMMARY --- */
+      .summary-text {
+        font-size: 10.5pt;
+        color: #4a5568;
+      }
+
+      .additional {
+        display: block;
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #fff5f2;
+        border-radius: 4px;
+        font-size: 9pt;
+        color: #c53030;
+      }
+
+      /* --- EXPERIENCE --- */
+      .job {
+        margin-bottom: 20px;
+      }
+
+      .company-line {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10pt;
+        color: #718096;
+        font-weight: 600;
+      }
+
+      .role-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 8px;
+      }
+
+      .role {
+        font-size: 12pt;
+        font-weight: 700;
+        color: #ff5a36; /* High-energy color for the title */
+      }
+
+      .dates {
+        font-size: 9.5pt;
+        color: #1a202c;
+        font-weight: 600;
+      }
+
+      .job ul {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .job li {
+        position: relative;
+        padding-left: 25px;
+        margin-bottom: 6px;
+      }
+
+      /* Chart/Growth icon for Sales impact as seen in your reference */
+      .job li:before {
+        content: '📈';
+        position: absolute;
+        left: 0;
+        font-size: 10pt;
+      }
+
+      /* --- PROJECTS & EDUCATION --- */
+      /* Matching the list style from your reference image */
+      .section ul {
+        margin-top: 5px;
+        padding-left: 1.2rem;
+      }
+
+      .section li {
+        margin-bottom: 8px;
+        color: #4a5568;
+      }
+
+      .section li strong {
+        color: #1a202c;
+      }
+
+      .education-item ul {
+        list-style-type: disc;
+      }
+
+      /* --- SKILLS --- */
+      .skills-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        background: #f7fafc;
+        padding: 20px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .skills-section div {
+        font-size: 9.5pt;
+      }
+
+      .skills-section strong {
+        display: block;
+        color: #ff5a36;
+        margin-bottom: 2px;
+        font-size: 8.5pt;
+        text-transform: uppercase;
+      }
+
+      /* --- PRINT --- */
+      @media print {
+        .resume-container {
+          padding: 0;
+          margin: 0;
         }
-
-        .skill-title {
-            font-weight: 700;
-            color: #000;
-            text-decoration: none;
-            border-bottom: 2px solid #FA7C6D; /* Coral underline for skill headers */
-            padding-bottom: 1px;
-            margin-right: 5px;
+        .role,
+        .section-divider,
+        .skills-section strong {
+          color: #ff5a36 !important;
+          -webkit-print-color-adjust: exact;
         }
-
-
-        .job { display: flex; flex-direction: column;, border-bottom: 3px solid #FA7C6D; }
-        .company-line { order: 2; } /* Visually moves down */
-        .role-line { order: 1; }    /* Visually moves up */
-
-        /* Print adjustments */
-        @media print {
-            .container { padding: 0; margin: 0; width: 100%; max-width: 100%; }
-            .section-title { border-bottom: 3px solid #000 !important; }
-            .company, .university { color: #FA7C6D !important; -webkit-print-color-adjust: exact; }
-        }
-</style>
-`,
-
-  tech: `
-<style>
-.container {
-            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.4;
-            color: #333;
-            background-color: #fff;
-            font-size: 10.5pt; /* Tech resumes are often slightly smaller font to fit more data */
-            max-width: 850px;
-            margin: 40px auto;
-            padding: 40px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            border-top: 5px solid #2f6fed; /* Tech Accent Top Border */
-        }
-
-        /* --- HEADER SECTION --- */
-        .header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .name {
-            font-size: 24pt;
-            font-weight: 700;
-            margin-bottom: 6px;
-            color: #111;
-            letter-spacing: -0.5px; /* Modern tight tracking */
-        }
-
-        .contact-info {
-            font-size: 10pt;
-            color: #555;
-            margin-bottom: 0;
-        }
-
-        /* --- SECTIONS --- */
-        .section {
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-size: 11pt;
-            font-weight: 700;
-            margin-bottom: 4px;
-            color: #2f6fed; /* Tech Blue Accent */
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        .section-divider {
-            border-bottom: 1px solid #e0e0e0; /* Subtle light grey divider */
-            margin-bottom: 12px;
-        }
-
-        /* --- SUMMARY --- */
-        .summary-text {
-            font-size: 10.5pt;
-            text-align: left; /* Tech resumes prefer left-align over justify */
-            line-height: 1.5;
-            color: #444;
-            margin-bottom: 8px;
-        }
-
-        .additional {
-            font-size: 10pt;
-            color: #666;
-            background-color: #f8f9fa; /* Subtle highlight box for meta-data */
-            padding: 8px 12px;
-            border-radius: 4px;
-            border-left: 3px solid #2f6fed;
-            text-align: left;
-            margin-top: 8px;
-            font-weight: normal;
-        }
-
-        /* --- EXPERIENCE & JOBS --- */
-        .job {
-            margin-bottom: 18px;
-        }
-
-        .company-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 2px;
-        }
-
-        .company {
-            font-weight: 700;
-            font-size: 11.5pt;
-            color: #000;
-        }
-
-        .location {
-            font-size: 10pt;
-            color: #777;
-            font-weight: normal;
-        }
-
-        .role-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 6px;
-        }
-
-        .role {
-            font-style: normal; /* Tech style prefers normal over italic usually */
-            font-weight: 600;
-            font-size: 11pt;
-            color: #2f6fed; /* Accent color for role to make it pop */
-        }
-
-        .dates {
-            font-size: 10pt;
-            color: #555;
-            font-family: "Segoe UI", Roboto, monospace; /* Monospace numbers look techy */
-        }
-
-        /* --- BULLETS --- */
-        .responsibilities {
-            margin: 6px 0 0 0;
-            padding: 0;
-            list-style: none;
-        }
-
-        .responsibilities li {
-            font-size: 10.5pt;
-            line-height: 1.45;
-            margin-bottom: 4px;
-            text-align: left;
-            padding-left: 16px;
-            position: relative;
-            color: #333;
-        }
-
-        .responsibilities li:before {
-            content: "›"; /* Chevron bullet feels more modern/tech */
-            position: absolute;
-            left: 0;
-            font-weight: bold;
-            color: #2f6fed; /* Accent colored bullet */
-            font-size: 14px;
-            line-height: 18px;
-            top: -1px;
-        }
-
-        .highlight {
-            font-weight: 600;
-            color: #000;
-        }
-
-        /* --- EDUCATION --- */
-        .education-item {
-            margin-bottom: 12px;
-        }
-
-        .degree-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-        }
-
-        .university {
-            font-weight: 700;
-            font-size: 11pt;
-            color: #222;
-        }
-
-        .degree {
-            font-size: 10.5pt;
-            color: #444;
-            margin-top: 2px;
-        }
-
-        /* --- SKILLS --- */
-        .skills-section {
-            font-size: 10.5pt;
-            line-height: 1.6;
-        }
-
-        .skill-category {
-            margin-bottom: 8px;
-            text-align: left;
-        }
-
-        .skill-title {
-            font-weight: 700;
-            color: #2f6fed;
-            display: inline;
-            margin-right: 4px;
-        }
-
-        /* Print Media Query */
-        @media print {
-            body { background-color: white; }
-            .container { 
-                margin: 0; 
-                padding: 0; 
-                box-shadow: none; 
-                width: 100%; 
-                max-width: 100%;
-                border-top: none; 
-            }
-            .section-title { color: #000 !important; } /* Fallback for B&W printers */
-            .role { color: #333 !important; }
-            .responsibilities li:before { color: #333 !important; }
-            .additional { border-left-color: #333 !important; background-color: #eee !important; }
-        }
-</style>
-`,
+      }
+    </style>`,
 
   modern: `<style>
-.container {
-    max-width: 850px;
-    margin: 40px auto;
-    background-color: #fff;
-    color: #333;
-    position: relative; /* CRITICAL: Anchors the absolute profile image */
-    overflow: hidden;   /* Keeps the layout contained */
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
+      .resume-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
 
-/* Fix for the nested container in your HTML */
-.container .container {
-    margin: 0;
-    padding: 0;
-    max-width: none;
-    box-shadow: none;
-}
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        margin-bottom: 5px;
+        padding-bottom: 20px;
+      }
 
-/* --- 2. HEADER SECTION (Dark Gray Box) --- */
-.header{
-    display: flex;
-    align-items: center;
-    margin-bottom:10px;
-    gap: 10px;
+      .header .profile-image img {
+        width: 120px;
+        height: 120px;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 2px solid #2c3e50;
+      }
 
-}
+      .header .profile-info {
+        flex: 1;
+      }
 
-.header .profile-image img{
-    width:100px;
-    height: 100px;
-    border-radius: 5%;
-}
+      .resume-container .header .name h1 {
+        font-size: 28pt;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+      }
 
+      .contact-info p {
+        font-size: 14pt;
+        line-height: 1.4;
+        color: #666;
+        font-weight: 600;
+        margin:0;
+      }
 
-.header .profile-info {
-    color: #000;
-    width: 50%;
-    text-align: left;
-    margin-bottom: 0; /* Connects directly to the Summary section below */
-}
+      /* --- Summary Section (Section 1) --- */
+      /* Repurposed to act as a professional bio block */
+      .section:nth-of-type(1) {
+        background: #2c3e50;
+        color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+      }
 
-.name {
-    font-size: 32pt;
-    font-weight: 700;
-    margin-bottom: 10px;
-    color: #000; /* Ensure name is white on dark background */
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    line-height: 1;
-}
+      .section:nth-of-type(1) .section-title {
+        font-size: 14pt;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: #6cc5d6;
+      }
 
-.contact-info {
-    font-size: 10pt;
-    color: #000; /* Light grey text */
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    font-weight: 500;
-}
+      .summary-text {
+        line-height: 1.4;
+        font-size: 14pt;
+        text-align: justify;
+      }
 
-/* --- 3. PROFILE IMAGE (The Sidebar Magic) --- */
-/* Target the image inside the FIRST section (Summary) */
-.section:nth-of-type(1) .profile-image {
-    position: absolute; /* Take it out of the normal text flow */
-    top: 0;
-    left: 0;
-    width: 320px; /* Width of the sidebar */
-    height: 450px; /* Height covers both Header and Summary areas */
-    z-index: 10;
-    overflow: hidden;
-    background-color: #ddd; /* Fallback color */
-}
+      .section:nth-of-type(1) .summary-text {
+        line-height: 1.4;
+        font-size: 14pt;
+        text-align: justify;
+      }
 
-.section:nth-of-type(1) .profile-image img {
-    width: 100%; /* Changed from 100px to fill container */
-    height: 100%; /* Changed from 100px to fill container */
-    object-fit: cover; /* Ensures the photo fills the box perfectly */
-    border-radius: 0;  /* Remove any circles, we want a square block */
-    border: none;
-    padding: 0;
-}
+      .section:nth-of-type(1) .additional {
+        display: block;
+        margin-top: 15px;
+        font-size: 9pt;
+        opacity: 0.9;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 10px;
+      }
 
-/* --- 4. SUMMARY SECTION (Teal Box) --- */
-/* Target the FIRST section */
-.section:nth-of-type(1) {
-    /* Push content right to align with Header */
-    margin-left: 320px; 
-    
-    background-color: #6CC5D6; /* Teal Background */
-    color: #fff;
-    padding: 30px 40px;
-    margin-bottom: 40px; /* Space before Experience starts */
-    min-height: 150px; /* Ensure it looks like a solid block */
-}
+      /* --- General Section Layout --- */
+      .section:not(:nth-of-type(1)) {
+        margin-bottom: 15px;
+      }
 
-/* Hide the default black divider in the teal box */
-.section:nth-of-type(1) .section-divider {
-    display: none;
-}
+      .section:not(:nth-of-type(1)) .section-title {
+        font-size: 14pt;
+        font-weight: 700;
+        color: #2c3e50;
+        text-transform: uppercase;
+        display: block;
+        border-bottom: 2px solid #6cc5d6;
+        padding-bottom: 5px;
+        margin-bottom: 8px;
+      }
 
-/* Style the "SUMMARY" title to look like "Profile Summary" */
-.section:nth-of-type(1) .section-title {
-    color: #fff;
-    font-size: 16pt;
-    font-weight: 700;
-    text-transform: capitalize;
-    margin-bottom: 15px;
-    border: none;
-}
+      /* --- Experience & Job Styling --- */
+      .job {
+        margin-bottom: 20px;
+      }
 
-.section:nth-of-type(1) .summary-text {
-    font-size: 11pt;
-    line-height: 1.6;
-    text-align: left;
-    color: #fff;
-}
+      .company-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-.section:nth-of-type(1) .additional {
-    margin-top: 10px;
-    display: block;
-    color: #e0f7fa; /* Lighter teal for contrast */
-    font-size: 10pt;
-}
+      .company {
+        font-size: 13pt;
+        font-weight: 700;
+        color: #000;
+      }
 
-/* --- 5. STANDARD SECTIONS (Experience, Projects, Education) --- */
-/* Target all sections EXCEPT the first one */
-.section:not(:nth-of-type(1)) {
-    clear: both;
-}
+      .location {
+        font-size: 9.5pt;
+        color: #666;
+      }
 
-.section:not(:nth-of-type(1)) .section-title {
-    font-size: 14pt;
-    font-weight: 700;
-    color: #4a4a4a;
-    text-transform: uppercase;
-    border-bottom: 3px solid #6CC5D6; /* Teal underline */
-    display: inline-block;
-    padding-bottom: 5px;
-    margin-bottom: 20px;
-    width: 100%; /* Full width underline */
-}
+      .role-line {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
 
-.section:not(:nth-of-type(1)) .section-divider {
-    display: none; /* We use the border-bottom above instead */
-}
+      .role {
+        font-size: 11pt;
+        font-weight: 700;
+        color: #6cc5d6;
+      }
 
-/* --- 6. JOB / CONTENT STYLING --- */
-.job, .education-item {
-    margin-bottom: 25px;
-}
+      .dates {
+        font-size: 9.5pt;
+        color: #666;
+        font-style: italic;
+      }
 
-.company-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 5px;
-}
+      /* --- Lists (ATS Friendly) --- */
+      ul {
+        padding-left: 18px;
+        margin: 5px 0;
+      }
 
-.company, .university {
-    font-size: 13pt;
-    font-weight: 700;
-    color: #333;
-}
+      li {
+        font-size: 14pt;
+        color: #444;
+        margin-bottom: 3px;
+        line-height: 1.4;
+      }
 
-.location {
-    font-size: 10pt;
-    color: #999;
-    font-weight: normal;
-}
+      /* --- Skills Section --- */
+      .skills-section {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
 
-.role-line, .degree-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
+      .skills-section div {
+        font-size: 14pt;
+        border-bottom: 1px border #eee;
+        line-height: 1.4;
+      }
 
-.role, .degree {
-    font-size: 11pt;
-    font-weight: 600;
-    color: #6CC5D6; /* Teal accent for roles */
-    font-style: normal;
-    text-transform: uppercase;
-}
+      .skills-section strong {
+        color: #2c3e50;
+      }
 
-.dates {
-    font-size: 10pt;
-    color: #666;
-    font-style: italic;
-}
+      /* --- Education Styling --- */
+      .education-item ul li {
+        list-style: none;
+        padding-left: 0;
+        font-weight: 600;
+        color: #333;
+      }
 
-/* List Styling */
-ul {
-    list-style: none; /* Remove default bullets */
-    padding-left: 0;
-    margin: 0;
-}
+      /* Hide Dividers as we use borders now */
+      .section-divider {
+        display: none;
+      }
 
-li {
-    position: relative;
-    padding-left: 20px;
-    margin-bottom: 8px;
-    line-height: 1.5;
-    color: #555;
-    text-align: left;
-}
-
-li:before {
-    content: "•"; /* Custom colored bullet */
-    color: #6CC5D6; /* Teal Bullet */
-    font-weight: bold;
-    position: absolute;
-    left: 0;
-    font-size: 1.2em;
-    line-height: 1.2em;
-}
-
-/* Skills Grid */
-.skills-section {
-    line-height: 1.8;
-}
-.skills-section strong {
-    color: #333;
-    font-weight: 700;
-}</style>`,
-
-  minimal: `
-<style>
-.container {
-  max-width: 760px;
-  margin: 0 auto;
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 11pt;
-  line-height: 1.4;
-}
-
-.header { text-align: center; margin-bottom: 12px; }
-.name { font-size: 18pt; font-weight: 600; }
-
-.section-title { font-size: 11pt; font-weight: 600; }
-.section-divider { display: none; }
-
-ul { list-style: "- "; padding-left: 12px; }
-li { margin-bottom: 4px; }
-</style>
-`,
+      /* Removal of the old absolute positioning that broke the flow */
+      .section:nth-of-type(1) .profile-image {
+        display: none;
+      }
+    </style>`,
 
   executive: `
 <style>
-.container {
+.resume-container {
   max-width: 820px;
   margin: 0 auto;
   font-family: Georgia, serif;
@@ -904,7 +780,7 @@ li { margin-bottom: 4px; }
 
   compact: `
 <style>
-.container {
+.resume-container {
   max-width: 740px;
   margin: 0 auto;
   font-family: Arial, sans-serif;
@@ -920,7 +796,7 @@ li { margin-bottom: 2px; }
 
   academic: `
 <style>
-.container {
+.resume-container {
   max-width: 850px;
   margin: 0 auto;
   font-family: "Times New Roman", serif;
@@ -936,7 +812,7 @@ li { margin-bottom: 2px; }
 
   government: `
 <style>
-.container {
+.resume-container {
   max-width: 800px;
   margin: 0 auto;
   font-family: Arial, sans-serif;
@@ -956,7 +832,7 @@ ul { list-style: square; }
 
   legal: `
 <style>
-.container {
+.resume-container {
   max-width: 800px;
   margin: 0 auto;
   font-family: Garamond, "Times New Roman", serif;
@@ -976,7 +852,7 @@ ul { list-style: square; }
 
   student: `
 <style>
-.container {
+.resume-container {
   max-width: 760px;
   margin: 0 auto;
   font-family: Arial, sans-serif;

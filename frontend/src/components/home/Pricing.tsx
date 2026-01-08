@@ -293,7 +293,7 @@ interface Plan {
 }
 
 export function Pricing() {
-  const [currency, setCurrency] = useState('usd');
+  const [currency, setCurrency] = useState('inr');
   const [pricingData, setPricingData] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -375,7 +375,8 @@ export function Pricing() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleCurrencyChange('usd')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ${
+                  disabled={currency === 'inr'}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 cursor-not-allowed ${
                     currency === 'usd'
                       ? 'bg-purple-600 text-white shadow-md transform scale-105'
                       : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'

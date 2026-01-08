@@ -48,6 +48,13 @@ const TemplateSidebar: React.FC<Props> = ({ activeTemplate, onSelect }) => {
         );
 
         setTemplates(normalized);
+
+        if (!activeTemplate && normalized.length > 0) {
+          const classic =
+            normalized.find((t) => t.id.toLowerCase() === 'classic') ||
+            normalized[0];
+          onSelect(classic);
+        }
       } catch (err) {
         console.error('Failed to fetch templates', err);
       }

@@ -26,6 +26,7 @@ import axios from 'axios';
 import { CV_TEMPLATES } from '../utils/cv/cssTemplates.js';
 
 import pdf from 'pdf-parse';
+import redisClient from '../config/redis.js';
 
 /**
  * Extract plain text from an uploaded file (PDF, DOCX, TXT)
@@ -525,7 +526,7 @@ export const renameCoverLetter = async (req, res) => {
         _id: id,
       },
       {
-        coverLetterTitle: title.trim(),
+        clTitle: title.trim(),
       },
       { new: true },
     );
@@ -787,6 +788,35 @@ export const generateCoverLetterByJobId = async (req, res) => {
   await initiateCoverLetterGeneration(req, res, job.description);
 };
 
+export const deleteSingleStudentSavedCV = async (req, res) => {
+  const { studentId, cvId } = req.params;
+  try {
+    const cv = await StudentHtmlCV.findByIdAndDelete(cvId);
+    if (!cv) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+    return res.json({ success: true, message: 'CV deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting CV:', error);
+    return res.status(500).json({ error: 'Failed to delete CV' });
+  }
+};
+
+export const deleteSingleStudentSavedCL = async (req, res) => {
+  const { studentId, clId } = req.params;
+  try {
+    const cl = await StudentCoverLetter.findByIdAndDelete(clId);
+    if (!cl) {
+      return res.status(404).json({ error: 'CL not found' });
+    }
+
+    return res.json({ success: true, message: 'CL deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting CL:', error);
+    return res.status(500).json({ error: 'Failed to delete CL' });
+  }
+};
+
 export const saveStudentHTMLCV = async (req, res) => {
   const { _id: studentId } = req.user;
   const { html, title, ats } = req.body;
@@ -818,6 +848,88 @@ export const saveStudentHTMLCV = async (req, res) => {
     console.error('Error saving HTML CV:', error);
     return res.status(500).json({
       error: 'Failed to save HTML CV',
+      message: error.message,
+    });
+  }
+};
+
+export const renameSavedStudentCV = async (req, res) => {
+  const { _id: studentId } = req.user;
+  const { cvId } = req.params;
+  const { title } = req.body;
+
+  if (mongoose.Types.ObjectId.isValid(cvId) === false) {
+    return res.status(400).json({ error: 'Invalid CV ID' });
+  }
+
+  try {
+    const cv = await StudentHtmlCV.findOneAndUpdate(
+      {
+        _id: cvId,
+        student: studentId,
+      },
+      {
+        htmlCVTitle: title,
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!cv) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'HTML CV renamed successfully',
+      data: cv,
+    });
+  } catch (error) {
+    console.error('Error renaming HTML CV:', error);
+    return res.status(500).json({
+      error: 'Failed to rename HTML CV',
+      message: error.message,
+    });
+  }
+};
+
+export const renameSavedStudentCL = async (req, res) => {
+  const { _id: studentId } = req.user;
+  const { clId } = req.params;
+  const { title } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(clId)) {
+    return res.status(400).json({ error: 'Invalid CL ID' });
+  }
+
+  try {
+    const cl = await StudentCoverLetter.findOneAndUpdate(
+      {
+        _id: clId,
+        student: studentId,
+      },
+      {
+        coverLetterTitle: title,
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!cl) {
+      return res.status(404).json({ error: 'CL not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'HTML CL renamed successfully',
+      data: cl,
+    });
+  } catch (error) {
+    console.error('Error renaming HTML CL:', error);
+    return res.status(500).json({
+      error: 'Failed to rename HTML CL',
       message: error.message,
     });
   }
