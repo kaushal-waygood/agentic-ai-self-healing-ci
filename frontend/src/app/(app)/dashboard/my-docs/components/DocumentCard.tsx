@@ -242,22 +242,23 @@ export const DocumentCard = ({
               <Edit3 className="h-4 w-4" />
             </button>
           )}
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownload(getContent(), getFilename());
-            }}
-            disabled={!isClickable}
-            className={`p-2 transition-colors ${
-              isClickable
-                ? 'text-gray-500 hover:text-green-600'
-                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-            }`}
-            title={isClickable ? 'Download' : 'Not available'}
-          >
-            <Download className="h-4 w-4" />
-          </button>
+          {!isSaved && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(getContent(), getFilename());
+              }}
+              disabled={!isClickable}
+              className={`p-2 transition-colors ${
+                isClickable
+                  ? 'text-gray-500 hover:text-green-600'
+                  : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+              }`}
+              title={isClickable ? 'Download' : 'Not available'}
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          )}
 
           <button
             onClick={(e) => {

@@ -125,10 +125,10 @@ export default function SupportPage() {
         <div className="absolute inset-0"></div>
         <div className="relative max-w-7xl mx-auto ">
           <div className="text-center ">
-            <h1 className="text-5xl text-headingTextPrimary font-bold mb-2 ">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative mb-2">
               Support Center
             </h1>
-            <p className="text-xl  max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg max-w-2xl mx-auto leading-relaxed">
               Find answers to common questions and get personalized help with
               zobsai
             </p>
