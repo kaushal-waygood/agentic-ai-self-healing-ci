@@ -30,3 +30,36 @@ export const savedStudentCoverLetter = async () => {
   const response = await apiInstance.get('/students/letter/saved');
   return response;
 };
+
+export const deleteSavedResume = async (cvId: string) => {
+  const response = await apiInstance.delete(`/students/resume/saved/${cvId}`);
+  return response;
+};
+
+export const deleteSavedCoverLetter = async (clId: string) => {
+  const response = await apiInstance.delete(`/students/letter/saved/${clId}`);
+  return response;
+};
+
+export const renameSavedResume = async (cvId: string, newTitle: string) => {
+  const response = await apiInstance.patch(
+    `/students/resume/saved/${cvId}/rename`,
+    {
+      title: newTitle,
+    },
+  );
+  return response;
+};
+
+export const renameSavedCoverLetter = async (
+  clId: string,
+  newTitle: string,
+) => {
+  const response = await apiInstance.patch(
+    `/students/letter/saved/${clId}/rename`,
+    {
+      title: newTitle,
+    },
+  );
+  return response;
+};
