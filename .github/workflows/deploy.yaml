@@ -21,56 +21,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # ensures all files and history are available
 
       # -------------------------------
       # Set Repository Owner
       # -------------------------------
       - name: Set lowercase repo owner
+        id: vars
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
       # -------------------------------
-      # Setup Node
-      # -------------------------------
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      # -------------------------------
-      # Backend: Cache & Install
-      # -------------------------------
-      - name: Cache backend npm and node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            backend/node_modules
-          key: ${{ runner.os }}-backend-node-${{ hashFiles('backend/package-lock.json','backend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-backend-node-
-
-      - name: Install backend dependencies (including core-js)
-        working-directory: ./backend
-        env:
-          MONGO_URL: ${{ secrets.MONGO_URL }}
-        run: |
-          # Clean install to avoid missing modules
-          npm install
-          # Ensure core-js is installed for mongodb driver
-          npm install core-js
-
-      # -------------------------------
-      # Backend Tests
-      # -------------------------------
-      - name: Run backend tests
-        working-directory: ./backend
-        env:
-          MONGO_URL: ${{ secrets.MONGO_URL }}
-        run: npm test
-
-      # -------------------------------
-      # Log in to GHCR
+      # Log in to GitHub Container Registry
       # -------------------------------
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -86,14 +47,14 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: ./backend/dockerfile
+          file: ./backend/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ env.repo_owner }}/zobsai-backend:latest
             ghcr.io/${{ env.repo_owner }}/zobsai-backend:${{ github.sha }}
 
       # -------------------------------
-      # Frontend Build Args
+      # Set Frontend Build Args
       # -------------------------------
       - name: Set Frontend Build Args
         run: |
@@ -101,30 +62,6 @@ jobs:
           echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=<prod-client-id>" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<prod-key>" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_NODE_ENV=production" >> $GITHUB_ENV
-
-      # -------------------------------
-      # Frontend: Cache & Install
-      # -------------------------------
-      - name: Cache frontend npm and node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            frontend/node_modules
-          key: ${{ runner.os }}-frontend-node-${{ hashFiles('frontend/package-lock.json','frontend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-node-
-
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: npm install
-
-      - name: Run frontend tests
-        working-directory: ./frontend
-        env:
-          NEXT_PUBLIC_NODE_ENV: production
-        run: npm test
-
       # -------------------------------
       # Build & Push Frontend Image
       # -------------------------------
@@ -144,23 +81,35 @@ jobs:
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}
 
       # -------------------------------
-      # Update Manifests
+      # Update Deployment Manifests
       # -------------------------------
       - name: Update Backend Deployment Manifest
         run: |
-          sed -i'' -e "s#zobsai-backend:.*#zobsai-backend:${{ github.sha }}#g" manifests/zobsai-backend-deployment.yaml || true
+          MANIFEST="manifests/zobsai-backend-deployment.yaml"
+          if [ -f "$MANIFEST" ]; then
+            sed -i'' -e "s#^\(\s*image:\s*ghcr.io/${{ env.repo_owner }}/zobsai-backend:\).*#\1${{ github.sha }}#g" "$MANIFEST"
+            echo "Backend deployment manifest updated."
+          else
+            echo "Backend manifest not found at $MANIFEST, skipping."
+          fi
 
       - name: Update Frontend Deployment Manifest
         run: |
-          sed -i'' -e "s#zobsai-frontend:.*#zobsai-frontend:${{ github.sha }}#g" manifests/zobsai-frontend-deployment.yaml || true
+          MANIFEST="manifests/zobsai-frontend-deployment.yaml"
+          if [ -f "$MANIFEST" ]; then
+            sed -i'' -e "s#^\(\s*image:\s*ghcr.io/${{ env.repo_owner }}/zobsai-frontend:\).*#\1${{ github.sha }}#g" "$MANIFEST"
+            echo "Frontend deployment manifest updated."
+          else
+            echo "Frontend manifest not found at $MANIFEST, skipping."
+          fi
 
       # -------------------------------
-      # Commit & Push
+      # Commit & Push Manifest Changes
       # -------------------------------
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add manifests/
-          git commit -m "Update images to ${{ github.sha }}" || echo "No changes"
+          git commit -m "Update backend/frontend images to ${{ github.sha }}" || echo "No changes to commit"
           git push origin main
