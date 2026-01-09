@@ -15,12 +15,12 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend-tests
-          image: ghcr.io/zobsai-com/zobsai-backend:latest
+          image: ghcr.io/zobsai-com/zobsai-backend:<sha>
           command: ["sh", "-c"]
           args:
             - |
               echo "Running backend tests..."
-              npm ci
+              npm ci --include=dev
               npm test
           envFrom:
             - configMapRef:
