@@ -186,13 +186,10 @@ export const getUserPurchases = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    console.log('------');
-
     const purchases = await Purchase.find({ user: userId })
       .populate('plan', 'planType')
       .sort({ createdAt: -1 });
 
-    console.log('purchases', purchases);
     res.status(200).json({
       success: true,
       data: purchases,

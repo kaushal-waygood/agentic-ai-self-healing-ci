@@ -374,8 +374,6 @@ export const getSingleTailoredApplication = async (req, res) => {
       _id: applicationId,
     });
 
-    console.log(student);
-
     if (!student) {
       return res.status(404).json({ error: 'CV not found' });
     }
@@ -397,8 +395,6 @@ export const deleteSingleCV = async (req, res) => {
 
     // First find the CV to get file paths
     const student = await StudentCV.deleteOne({ student: userId, _id: cvId });
-
-    console.log(student);
 
     res.status(200).json({
       success: true,
@@ -633,7 +629,6 @@ export const refreshStatus = async (req, res) => {
   const { _id: userId } = req.user;
 
   const modelName = getModelForType(type);
-  console.log(modelName);
   if (!modelName) {
     return res.status(400).json({ error: 'Invalid type' });
   }
@@ -1113,8 +1108,6 @@ export const createTailoredApply = async (req, res) => {
       const jdFile = req.files.jobDescriptionFile[0];
       const extractedText = await extractTextFromFile(jdFile);
 
-      console.log(extractedText);
-
       jobDetails = {
         title: jobTitle || 'Untitled Role',
         company: companyName || 'Unknown Company',
@@ -1192,12 +1185,6 @@ export const createTailoredApply = async (req, res) => {
     };
 
     const io = req.app.get('io');
-
-    console.log(
-      'Tailored application generation has started. ',
-      newApplication._id,
-      applicationData,
-    );
 
     processTailoredApplication(
       _id,

@@ -527,7 +527,6 @@ export const redeemCouponByCode = async (req, res) => {
     if (!coupon) {
       return res.status(404).json({ message: 'Coupon not found.' });
     }
-    console.log('coupon', coupon);
 
     res.status(200).json({ success: true, data: coupon });
   } catch (error) {
