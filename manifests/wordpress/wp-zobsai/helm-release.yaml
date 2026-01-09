@@ -26,6 +26,9 @@ spec:
         livenessProbe:
           enabled: false
 
+        startupProbe:
+          enabled: false
+
         wordpressUsername: admin
         wordpressPassword: "admin1234!"
         wordpressEmail: admin@zobsai.com
