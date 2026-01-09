@@ -7,6 +7,7 @@ interface UserData {
   name?: string;
   [key: string]: any;
 }
+console.log('logRocketAnalytics');
 
 const logRocketAnalytics = {
   init: () => {
@@ -26,16 +27,30 @@ const logRocketAnalytics = {
     });
 
     // Integration for React-specific state logging
-    setupLogRocketReact(LogRocket);
+    setupLogRocketReact();
   },
 
   identify: (user: UserData) => {
     if (user?.id) {
-      LogRocket.identify(user.id, {
-        name: user.name,
-        email: user.email,
-        ...user,
+      const userData: Record<string, string | number | boolean> = {};
+
+      // Only include defined values
+      if (user.name !== undefined) userData.name = user.name;
+      if (user.email !== undefined) userData.email = user.email;
+
+      // Spread remaining user properties (filtering out undefined values)
+      Object.keys(user).forEach((key) => {
+        if (
+          key !== 'id' &&
+          key !== 'name' &&
+          key !== 'email' &&
+          user[key] !== undefined
+        ) {
+          userData[key] = user[key];
+        }
       });
+
+      LogRocket.identify(user.id, userData);
     }
   },
 
