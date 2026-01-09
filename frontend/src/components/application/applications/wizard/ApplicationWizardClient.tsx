@@ -774,7 +774,7 @@ export function ApplicationWizardClient() {
   const handleSendEmail = () => {
     const response = apiInstance.post('/user/send-email', {
       senderEmail: student?.email,
-      recieverEmail: 'thesiddiqui7@gmail.com',
+      recieverEmail: 'arsalan@helpstudyabroad.com',
       subject: jobContext?.title,
       bodyHtml: emailDraft,
       htmlResume: refinedCv,

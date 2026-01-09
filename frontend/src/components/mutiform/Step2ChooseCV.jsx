@@ -245,11 +245,16 @@ const Step2ChooseCV = ({
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
+
           <button
             onClick={nextStep}
-            className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all duration-200 
-             bg-buttonPrimary hover:to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105
-                "
+            disabled={!values?.cvFile}
+            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all
+    ${
+      values?.cvFile
+        ? 'bg-buttonPrimary text-white shadow-lg hover:scale-105'
+        : 'bg-gray-300 text-gray-500' 
+    }`}
           >
             Next <ArrowRight className="w-4 h-4" />
           </button>
