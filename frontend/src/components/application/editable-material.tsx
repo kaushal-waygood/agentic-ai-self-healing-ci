@@ -165,11 +165,11 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       <footer className="p-4 border-t bg-white flex flex-wrap items-center justify-between gap-4 rounded-b-xl">
         <div className="flex items-center gap-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
           <span>{state.wordCount} Words</span>
-          {state.hasChanges && (
+          {/* {state.hasChanges && (
             <span className="text-amber-500 flex items-center gap-1">
               <AlertCircle size={14} /> Draft Updated
             </span>
-          )}
+          )} */}
         </div>
 
         <div className="flex items-center flex-wrap gap-2">

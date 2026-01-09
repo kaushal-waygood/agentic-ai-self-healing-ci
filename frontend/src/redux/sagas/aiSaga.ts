@@ -70,30 +70,26 @@ function* savedStudentCoverLetterSaga(action: PayloadAction<any>) {
   }
 }
 
-function* deleteSavedResumeSaga(action: PayloadAction<any>) {
+function* deleteSavedResumeSaga(action: PayloadAction<{ cvId: string }>) {
   try {
-    const response: AxiosResponse = yield call(
-      deleteSavedResume,
-      action.payload,
-    );
-    yield put(deleteSavedResumeSuccess(response.data));
+    const { cvId } = action.payload;
+    yield call(deleteSavedResume, cvId);
+    yield put(savedStudentResumeRequest());
   } catch (error: unknown) {
     const errorMessage =
-      error instanceof Error ? error.message : 'Login failed';
+      error instanceof Error ? error.message : 'Delete failed';
     yield put(deleteSavedResumeFailure(errorMessage));
   }
 }
-
-function* deleteSavedCoverLetterSaga(action: PayloadAction<any>) {
+function* deleteSavedCoverLetterSaga(action: PayloadAction<{ clId: string }>) {
   try {
-    const response: AxiosResponse = yield call(
-      deleteSavedCoverLetter,
-      action.payload,
-    );
-    yield put(deleteSavedCoverLetterSuccess(response.data));
+    const { clId } = action.payload;
+    yield call(deleteSavedCoverLetter, clId);
+
+    yield put(savedStudentCoverLetterRequest());
   } catch (error: unknown) {
     const errorMessage =
-      error instanceof Error ? error.message : 'Login failed';
+      error instanceof Error ? error.message : 'Delete failed';
     yield put(deleteSavedCoverLetterFailure(errorMessage));
   }
 }
@@ -108,7 +104,7 @@ function* renameSavedResumeSaga(
       cvId,
       newTitle,
     );
-    yield put(renameSavedResumeSuccess(response.data));
+    yield put(savedStudentResumeRequest());
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Login failed';
@@ -121,15 +117,14 @@ function* renameSavedCoverLetterSaga(
 ) {
   try {
     const { clId, newTitle } = action.payload;
-    const response: AxiosResponse = yield call(
-      renameSavedCoverLetter,
-      clId,
-      newTitle,
-    );
-    yield put(renameSavedCoverLetterSuccess(response.data));
+
+    yield call(renameSavedCoverLetter, clId, newTitle);
+
+    // ✅ Re-fetch latest data
+    yield put(savedStudentCoverLetterRequest());
   } catch (error: unknown) {
     const errorMessage =
-      error instanceof Error ? error.message : 'Login failed';
+      error instanceof Error ? error.message : 'Rename failed';
     yield put(renameSavedCoverLetterFailure(errorMessage));
   }
 }
