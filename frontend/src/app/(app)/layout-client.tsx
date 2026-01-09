@@ -189,7 +189,10 @@ export default function DashboardLayoutClient({
   );
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_LOGROCKET_ID) {
+    if (
+      process.env.NEXT_PUBLIC_NODE_ENV === 'development' &&
+      process.env.NEXT_PUBLIC_LOGROCKET_ID
+    ) {
       LogRocket.init(process.env.NEXT_PUBLIC_LOGROCKET_ID);
     }
   }, []);

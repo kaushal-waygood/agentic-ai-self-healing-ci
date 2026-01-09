@@ -53,11 +53,6 @@ export const createOrganizationMember = async (req, res) => {
     const { email, role } = req.body;
     const { _id: organizationId } = req.user;
 
-    console.log('req.body', req.body, {
-      email,
-      role,
-    });
-
     // Basic Validation
     if (!email || !role) {
       return res.status(400).json({
@@ -103,8 +98,6 @@ export const createOrganizationMember = async (req, res) => {
       fullName: existingUser?.fullName || req.body.fullName,
       userId: existingUser?._id || null,
     });
-
-    console.log(member);
 
     if (!existingUser) {
       try {
@@ -194,8 +187,6 @@ export const sendOrganizationInvite = async (req, res) => {
       ? `${baseUrl}/accept-invite?token=${inviteToken}`
       : `${baseUrl}/register?token=${inviteToken}&email=${normalizedEmail}`;
 
-    console.log(actionUrl);
-
     await sendTemplatedEmail({
       to: normalizedEmail,
       templateName: existingUser ? 'org-invite-existing' : 'org-invite-new',
@@ -227,7 +218,6 @@ export const acceptInvite = async (req, res) => {
     const currentUser = req.user;
 
     if (!token) {
-      console.log('Token is Required');
       return res
         .status(400)
         .json({ success: false, message: 'Token is required' });
@@ -354,9 +344,7 @@ export const filterOrganizationMembers = async (req, res) => {
       organizationId: new mongoose.Types.ObjectId(organizationId),
     };
 
-    console.log(fullName);
     const membersrought = await OrganizationMember.find({ fullName });
-    console.log(membersrought);
 
     if (department) filter.department = department;
     if (role) filter.role = role;
