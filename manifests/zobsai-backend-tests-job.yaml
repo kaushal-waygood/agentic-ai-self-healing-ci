@@ -15,12 +15,18 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend-tests
-          image: ghcr.io/zobsai-com/zobsai-backend:1487bc339f73a21251ce3c400c661b59e3a43993
+          image: ghcr.io/zobsai-com/zobsai-backend:latest
           command: ["sh", "-c"]
           args:
             - |
-              echo "Running backend tests..."
+              set -e
+              echo "Installing backend dependencies (with dev)..."
               npm ci --include=dev
+
+              echo "Installing core-js polyfills..."
+              npm install core-js@3
+
+              echo "Running backend tests..."
               npm test
           envFrom:
             - configMapRef:
