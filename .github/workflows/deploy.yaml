@@ -114,3 +114,4 @@ jobs:
           git add manifests/
           git commit -m "Update backend/frontend images to ${{ github.sha }}" || echo "No changes to commit"
           git push origin main
+
