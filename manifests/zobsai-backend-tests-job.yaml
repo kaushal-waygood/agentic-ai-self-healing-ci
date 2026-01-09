@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zobsai-backend-tests
+  namespace: zobsai
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: backend-tests
+          image: ghcr.io/zobsai-com/zobsai-backend:latest
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Running backend tests..."
+              npm ci
+              npm test
+          envFrom:
+            - configMapRef:
+                name: zobsai-backend-config
+            - secretRef:
+                name: zobsai-backend-secrets
