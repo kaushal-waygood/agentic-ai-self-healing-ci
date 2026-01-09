@@ -16,8 +16,6 @@ export const requireCompleteProfile = async (req, res, next) => {
     // FIX: Add 'await' here
     const { complete, reasons } = await checkProfileCompletion(student);
 
-    console.log('Middleware Check:', { complete, reasons });
-
     if (!complete) {
       return res.status(403).json({
         message: 'Profile incomplete',

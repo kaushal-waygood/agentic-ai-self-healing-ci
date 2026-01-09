@@ -164,13 +164,10 @@ export const getCVGenerationStatus = async (req, res) => {
     const { jobId } = req.params;
     const { _id: userId } = req.user;
 
-    console.log('📡 GET Status request for job:', jobId);
-
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       return res.status(400).json({ error: 'Invalid job ID' });
     }
 
-    // FIX: Query by cvs._id instead of cvs.jobId
     const student = await Student.findOne(
       {
         _id: userId,
@@ -179,18 +176,14 @@ export const getCVGenerationStatus = async (req, res) => {
       { 'cvs.$': 1 },
     );
 
-    console.log('📋 GET Status - Student found:', !!student);
-    console.log('📋 GET Status - CVs found:', student?.cvs?.length);
-
     if (!student || !student.cvs.length) {
       return res.status(404).json({ error: 'CV job not found' });
     }
 
     const cvJob = student.cvs[0];
-    console.log('📋 GET Status - Current status:', cvJob.status);
 
     return res.json({
-      jobId: cvJob._id, // ✅ Use _id instead of jobId
+      jobId: cvJob._id,
       status: cvJob.status,
       cvData: cvJob.cvData,
       error: cvJob.error,
