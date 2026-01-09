@@ -11,29 +11,44 @@ const appliedJobSchema = new Schema(
     job: {
       type: Schema.Types.ObjectId,
       ref: 'Job',
-      // required: true,
+      required: true,
     },
+
     applicationDate: {
       type: Date,
       default: Date.now,
     },
+
     status: {
       type: String,
       enum: ['APPLIED', 'ACCEPTED', 'REJECTED', 'INTERVIEW', 'CANCELED'],
       default: 'APPLIED',
     },
+
     applicationMethod: {
       type: String,
       enum: ['AUTOPILOT', 'MANUAL'],
       required: true,
     },
-    coverLetterLink: String,
+
     cvLink: String,
+    coverLetterLink: String,
+
+    // ✅ NEW: Screening answers
+    screeningAnswers: [
+      {
+        questionId: {
+          type: Schema.Types.ObjectId,
+          required: true,
+        },
+        question: String,
+        answer: Schema.Types.Mixed,
+      },
+    ],
   },
   { timestamps: true },
 );
 
-// This ensures a student cannot apply to the same job twice
 appliedJobSchema.index({ student: 1, job: 1 }, { unique: true });
 
 export const AppliedJob = model('AppliedJob', appliedJobSchema);
