@@ -10,19 +10,13 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 import apiInstance from '@/services/api';
-import {
-  Check,
-  AlertTriangle,
-  Loader,
-  Crown,
-  Zap,
-  Building2,
-  Shield,
-  Lock,
-  CreditCard,
-} from 'lucide-react';
+import { Check, AlertTriangle, Zap, Building2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { setCheckoutRequest } from '@/redux/actions/checkoutAction';
+import { useDispatch } from 'react-redux';
 
 // --- Types ---
 
@@ -142,6 +136,13 @@ export default function CheckoutPage() {
   const planId = searchParams.get('planId');
   const initialPeriod = searchParams.get('period');
 
+  const checkout = useSelector((state: RootState) => state.checkout.data);
+  useEffect(() => {
+    if (!checkout) {
+      router.replace('/dashboard/subscriptions');
+    }
+  }, [checkout, router]);
+
   // Logic States
   const [gateway, setGateway] = useState<'stripe' | 'razorpay' | null>(null);
   const [currency, setCurrency] = useState<'usd' | 'inr'>('usd');
@@ -203,18 +204,12 @@ export default function CheckoutPage() {
           if (mounted) setPlan(currentPlan);
         }
 
-        // 2. Decide Gateway (Routing)
-        // We use the route endpoint from your commented code
         const routeRes = await apiInstance.post('/plan/payments/route', {
-          currency: 'inr', // Default hint, backend should decide based on IP or User
-          country: 'IN', // Optional: pass if you have user location
+          currency: 'inr',
+          country: 'IN',
         });
 
-        console.log(routeRes.data);
-
-        const detectedGateway = routeRes.data.gateway || 'stripe'; // Default to stripe if undefined
-        console.log(detectedGateway);
-        // Determine currency based on gateway for now (or use response from route)
+        const detectedGateway = routeRes.data.gateway || 'stripe';
         const detectedCurrency = detectedGateway === 'razorpay' ? 'inr' : 'usd';
 
         if (mounted) {
@@ -274,6 +269,7 @@ export default function CheckoutPage() {
 
   // --- Actions ---
 
+  const dispatch = useDispatch();
   const handleApplyCoupon = async () => {
     if (!couponCode || !plan || !selectedPeriod) return;
     setIsApplyingCoupon(true);
@@ -297,6 +293,16 @@ export default function CheckoutPage() {
           ? activeVariant.price.effective.usd
           : activeVariant.price.effective.inr;
       const preview = computeLocalPricing(basePrice, currency, coupon);
+
+      dispatch(
+        setCheckoutRequest({
+          ...checkout,
+          finalPrice: preview.discounted[currency],
+          discountAmount:
+            checkout.discountAmount + preview.discountAmount[currency],
+          couponCode: coupon.code,
+        }),
+      );
       preview.period = selectedPeriod;
       setAppliedPricing(preview);
 
@@ -332,40 +338,95 @@ export default function CheckoutPage() {
     }
   };
 
+  // const handleRemoveCoupon = async () => {
+  //   setCouponCode('');
+
+  //   // Reset pricing to base
+  //   if (plan && selectedPeriod) {
+  //     const activeVariant = plan.billingVariants.find(
+  //       (v) => v.period === selectedPeriod,
+  //     );
+  //     if (activeVariant) {
+  //       const base =
+  //         currency === 'usd'
+  //           ? activeVariant.price.effective.usd
+  //           : activeVariant.price.effective.inr;
+  //       setAppliedPricing(computeLocalPricing(base, currency, null));
+  //     }
+  //   }
+
+  //   // If Stripe, refresh intent without coupon
+  //   if (gateway === 'stripe') {
+  //     setIsUpdating(true);
+  //     const intentRes = await apiInstance.post('/plan/payment/create-intent', {
+  //       planId,
+  //       period: selectedPeriod,
+  //       currency,
+  //     });
+  //     setClientSecret(intentRes.data.clientSecret);
+  //     setAppliedPricing(intentRes.data.pricing);
+  //     setIsUpdating(false);
+  //   }
+
+  //   toast({ title: 'Removed', description: 'Coupon removed.' });
+  // };
+
+  // --- Razorpay Payment Trigger ---
   const handleRemoveCoupon = async () => {
     setCouponCode('');
 
-    // Reset pricing to base
-    if (plan && selectedPeriod) {
-      const activeVariant = plan.billingVariants.find(
-        (v) => v.period === selectedPeriod,
-      );
-      if (activeVariant) {
-        const base =
-          currency === 'usd'
-            ? activeVariant.price.effective.usd
-            : activeVariant.price.effective.inr;
-        setAppliedPricing(computeLocalPricing(base, currency, null));
-      }
-    }
+    if (!plan || !selectedPeriod || !checkout) return;
 
-    // If Stripe, refresh intent without coupon
+    const activeVariant = plan.billingVariants.find(
+      (v) => v.period === selectedPeriod,
+    );
+    if (!activeVariant) return;
+
+    // 🔹 Base price
+    const basePrice =
+      checkout.currency === 'usd'
+        ? activeVariant.price.effective.usd
+        : activeVariant.price.effective.inr;
+
+    // 🔹 Student discount only
+    const studentDiscountAmount = checkout.studentDiscountApplied
+      ? (basePrice * checkout.discountPercent) / 100
+      : 0;
+
+    const finalPrice = +(basePrice - studentDiscountAmount).toFixed(2);
+
+    // ✅ UPDATE REDUX (THIS WAS MISSING)
+    dispatch(
+      setCheckoutRequest({
+        ...checkout,
+        finalPrice,
+        discountAmount: studentDiscountAmount,
+        couponCode: null,
+      }),
+    );
+
+    // 🔹 Update local pricing (optional, for Stripe UI)
+    setAppliedPricing(computeLocalPricing(basePrice, checkout.currency, null));
+
+    // 🔹 Refresh Stripe intent (if needed)
     if (gateway === 'stripe') {
       setIsUpdating(true);
       const intentRes = await apiInstance.post('/plan/payment/create-intent', {
         planId,
         period: selectedPeriod,
-        currency,
+        currency: checkout.currency,
       });
       setClientSecret(intentRes.data.clientSecret);
       setAppliedPricing(intentRes.data.pricing);
       setIsUpdating(false);
     }
 
-    toast({ title: 'Removed', description: 'Coupon removed.' });
+    toast({
+      title: 'Coupon removed',
+      description: 'Coupon discount has been removed.',
+    });
   };
 
-  // --- Razorpay Payment Trigger ---
   const handleRazorpayPayment = async () => {
     if (!razorpayLoaded) {
       toast({
@@ -384,6 +445,7 @@ export default function CheckoutPage() {
         period: selectedPeriod,
         currency: 'inr',
         couponCode: couponCode || undefined,
+        isStudentDiscountApplied: checkout.studentDiscountApplied,
       });
 
       // 2. Open Gateway
@@ -449,7 +511,7 @@ export default function CheckoutPage() {
   if (error || !plan) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-xl border border-red-100 max-w-md text-center">
+        <div className="bg-white p-8 rounded-lg shadow-xl border border-red-100 max-w-md text-center">
           <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
           <p className="mb-6">{error || 'Plan not found'}</p>
@@ -468,24 +530,28 @@ export default function CheckoutPage() {
   const activeVariant = plan.billingVariants.find(
     (v) => v.period === selectedPeriod,
   );
-  const displayPrice =
-    appliedPricing?.discounted?.[currency] ??
-    (currency === 'usd'
-      ? activeVariant?.price.effective.usd
-      : activeVariant?.price.effective.inr) ??
-    0;
+  // const displayPrice =
+  //   appliedPricing?.discounted?.[currency] ??
+  //   (currency === 'usd'
+  //     ? activeVariant?.price.effective.usd
+  //     : activeVariant?.price.effective.inr) ??
+  //   0;
 
-  const displayOriginal =
-    appliedPricing?.original?.[currency] ??
-    (currency === 'usd'
-      ? activeVariant?.price.effective.usd
-      : activeVariant?.price.effective.inr) ??
-    0;
+  // const displayOriginal =
+  //   appliedPricing?.original?.[currency] ??
+  //   (currency === 'usd'
+  //     ? activeVariant?.price.effective.usd
+  //     : activeVariant?.price.effective.inr) ??
+  //   0;
 
-  const displayDiscount = appliedPricing?.discountAmount?.[currency] ?? 0;
+  // const displayDiscount = appliedPricing?.discountAmount?.[currency] ?? 0;
+  const displayOriginal = checkout.basePrice;
+  const displayDiscount = checkout.discountAmount;
+  const displayPrice = checkout.finalPrice;
+  const currencySymbol = getCurrencySymbol(checkout.currency);
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-10 ">
+    <div className="p-4 sm:p-6 lg:p-10 ">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* LEFT: PLAN DETAILS */}
         <div className="lg:col-span-1">
@@ -504,7 +570,7 @@ export default function CheckoutPage() {
         </div>
 
         {/* RIGHT: PAYMENT */}
-        <div className="lg:col-span-2 bg-white/5 rounded-2xl p-8 shadow-xl border border-white/10 backdrop-blur-xl">
+        <div className="lg:col-span-2 bg-white rounded-lg p-8  border ">
           <header className="mb-6">
             <h2 className="text-3xl font-semibold mb-1">Secure Checkout</h2>
             <p className="text-sm ">
@@ -515,25 +581,33 @@ export default function CheckoutPage() {
 
           {/* ORDER SUMMARY */}
           <div className="mb-8">
-            <div className="rounded-xl p-5 bg-white/5 border border-white/10">
-              <div className="flex justify-between mb-2 text-sm ">
+            <div className="rounded-lg p-5 bg-white/5 border border-white/10">
+              <div className="flex justify-between mb-2 text-sm">
                 <span>Original Price</span>
                 <span>
-                  {getCurrencySymbol(currency)}
+                  {currencySymbol}
                   {displayOriginal.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between mb-2 text-sm text-green-400">
-                <span>Discount Applied</span>
-                <span>
-                  -{getCurrencySymbol(currency)}
-                  {displayDiscount.toFixed(2)}
-                </span>
-              </div>
+
+              {checkout.discountAmount > 0 && (
+                <div className="flex justify-between mb-2 text-sm text-green-400">
+                  <span>
+                    {checkout.studentDiscountApplied
+                      ? `Student Discount (${checkout.discountPercent}%)`
+                      : 'Discount Applied'}
+                  </span>
+                  <span>
+                    -{currencySymbol}
+                    {displayDiscount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
               <div className="flex justify-between pt-3 border-t border-white/10 text-lg font-bold">
                 <span>Total Payable</span>
-                <span className="text-purple-300">
-                  {getCurrencySymbol(currency)}
+                <span className="text-blue-500">
+                  {currencySymbol}
                   {displayPrice.toFixed(2)}
                 </span>
               </div>
@@ -553,13 +627,14 @@ export default function CheckoutPage() {
               <button
                 onClick={handleRazorpayPayment}
                 disabled={!razorpayLoaded || razorpayLoading}
-                className={`w-full py-4 rounded-xl text-lg font-semibold bg-gradient-to-r from-purple-500 to-indigo-600 shadow-lg transition hover:opacity-90 ${
+                className={`w-full py-4 rounded-lg text-lg text-white font-semibold bg-buttonPrimary transition hover:bg-blue-700 ${
                   (!razorpayLoaded || razorpayLoading) && 'opacity-50'
                 }`}
               >
                 {razorpayLoading
                   ? 'Processing...'
-                  : `Pay ${getCurrencySymbol(currency)}${displayPrice}`}
+                  : // : `Pay ${getCurrencySymbol(currency)}${displayPrice}`}
+                    `Pay ${currencySymbol}${displayPrice.toFixed(2)}`}
               </button>
               <p className="text-xs text-center">
                 Transactions secured by Razorpay 🔐
@@ -617,17 +692,26 @@ function StripePaymentForm() {
 const planIcons: Record<string, React.ElementType> = {
   Free: Zap,
   Weekly: Zap,
-  Pro: Crown,
+  Monthly: Zap,
+
   Enterprise: Building2,
 };
+
 const planColors: Record<string, string> = {
   Free: 'from-green-500 to-emerald-600',
-  Weekly: 'from-blue-500 to-cyan-600',
-  Pro: 'from-purple-500 to-violet-600',
+  Weekly: 'from-green-500 to-green-600',
+  Monthly: 'from-purple-500 to-violet-600',
   Enterprise: 'from-gray-700 to-slate-800',
 };
 
-function PlanDetails({ ...props }) {
+// ---------------- CONFIG ----------------
+
+const getCurrencySymbols = (currency: string) =>
+  currency === 'usd' ? '$' : '₹';
+
+// ---------------- COMPONENT ----------------
+
+function PlanDetails(props: any) {
   const {
     plan,
     selectedPeriod,
@@ -641,72 +725,147 @@ function PlanDetails({ ...props }) {
     isLoading,
   } = props;
 
-  const v = plan.billingVariants.find((v) => v.period === selectedPeriod);
-  if (!v) return null;
+  const router = useRouter();
+  const checkout = useSelector((state: RootState) => state.checkout.data);
 
-  const sym = getCurrencySymbol(currency);
-  const base =
-    currency === 'usd' ? v.price.effective.usd : v.price.effective.inr;
-  const orig = pricing?.original?.[currency] ?? base;
-  const pay = pricing?.discounted?.[currency] ?? base;
+  useEffect(() => {
+    if (!checkout) {
+      router.replace('/dashboard/subscriptions');
+    }
+  }, [checkout, router]);
+
+  if (!checkout) return null;
+
+  const Icon = planIcons[plan.planType] ?? Building2;
+  const gradient = planColors[plan.planType];
+
+  // -------- READ SESSION STORAGE --------
+
+  const v = plan.billingVariants.find((v: any) => v.period === selectedPeriod);
+  if (!v || !checkout) return null;
+
+  const sym = getCurrencySymbols(checkout.currency);
 
   return (
-    <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-8 border border-white/10 shadow-lg relative">
+    <div className="relative bg-white border rounded-lg p-4 border ">
+      {/* LOADING OVERLAY */}
       {isLoading && (
-        <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-md">
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-md rounded-lg text-white">
           Updating...
         </div>
       )}
 
-      <h2 className="text-2xl font-semibold mb-2">{plan.planType} Plan</h2>
-      <p className="text-sm mb-6">Choose billing period</p>
+      {/* HEADER */}
+      <div className="flex items-start gap-4 mb-6">
+        <div
+          className={`shrink-0 p-3 rounded-xl bg-gradient-to-r ${gradient} text-white`}
+        >
+          <Icon className="w-6 h-6" />
+        </div>
+
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {plan.planType} Plan
+            </h2>
+
+            {checkout.studentDiscountApplied && (
+              <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                🎓 Student Discount
+              </span>
+            )}
+          </div>
+
+          <p className="text-sm text-gray-500 mt-1">
+            Choose billing period & review pricing
+          </p>
+        </div>
+      </div>
 
       {/* PERIOD SWITCH */}
-      <div className="flex gap-2 mb-6">
-        {plan.billingVariants.map((p) => (
+      {/* <div className="flex gap-2 mb-6">
+        {plan.billingVariants.map((p: any) => (
           <button
             key={p.period}
             onClick={() => onPeriodChange(p.period)}
-            className={`px-4 py-2 rounded-lg text-sm border ${
+            className={`px-4 py-2 rounded-lg text-sm border transition ${
               selectedPeriod === p.period
-                ? 'bg-purple-600 text-white'
-                : 'border-white/20'
+                ? 'bg-purple-600 text-white border-purple-600'
+                : 'border-white/20 hover:bg-white/10'
             }`}
           >
             {p.period}
           </button>
         ))}
-      </div>
+      </div> */}
 
-      {/* COUPON */}
-      <div className="bg-white/5 p-4 rounded-xl border border-white/10 mb-6">
-        <div className="flex gap-2">
-          <input
-            value={couponCode}
-            onChange={(e) => setCouponCode?.(e.target.value)}
-            placeholder="Coupon code"
-            className="flex-1 bg-transparent border-white/20 border rounded-lg px-3 py-2"
-          />
-          {pricing?.appliedCoupon ? (
-            <button onClick={onRemoveCoupon} className="text-red-400 text-sm">
-              Remove
-            </button>
-          ) : (
-            <button
-              onClick={onApplyCoupon}
-              className="bg-purple-600 px-4 rounded-lg text-white"
-            >
-              Apply
-            </button>
-          )}
+      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 space-y-3">
+        <div className="flex justify-between text-sm text-gray-600">
+          <span>Base price</span>
+          <span className="font-medium">
+            {sym}
+            {checkout.basePrice.toFixed(2)}
+          </span>
+        </div>
+
+        {checkout.studentDiscountApplied && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span>Student Discount ({checkout.discountPercent}%)</span>
+            <span className="font-medium">
+              -{sym}
+              {checkout.discountAmount.toFixed(2)}
+            </span>
+          </div>
+        )}
+
+        <div className="border-t pt-3 flex justify-between items-center">
+          <span className="text-base font-semibold text-gray-900">
+            Total payable
+          </span>
+          <span className="text-2xl font-bold text-blue-600">
+            {sym}
+            {checkout.finalPrice.toFixed(2)}
+          </span>
         </div>
       </div>
 
+      {!checkout.studentDiscountApplied && (
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
+          <div className="flex flex-col gap-2">
+            <input
+              value={couponCode}
+              onChange={(e) => setCouponCode?.(e.target.value)}
+              placeholder="Coupon code"
+              className="flex-1 h-10 py-2 px-3 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            {pricing?.appliedCoupon ? (
+              <button
+                onClick={onRemoveCoupon}
+                className="h-10 px-4 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100"
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                onClick={onApplyCoupon}
+                className="h-10 px-4 rounded-lg text-sm font-medium bg-buttonPrimary text-white hover:bg-blue-700"
+              >
+                Apply
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* FEATURES */}
       <p className="mb-2 text-lg font-semibold">Includes</p>
-      <ul className="space-y-2 ">
-        {v.features.map((f) => (
-          <li key={f.name} className="flex gap-2 items-center">
+      <ul className="space-y-2 mt-2">
+        {v.features.map((f: any) => (
+          <li
+            key={f.name}
+            className="flex gap-2 items-start text-sm text-gray-700"
+          >
             <Check className="text-green-400 w-4 h-4" />
             <span>
               {f.value == -1 ? 'Unlimited' : f.value} {f.name}

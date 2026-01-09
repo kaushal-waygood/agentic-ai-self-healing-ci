@@ -284,7 +284,6 @@ const jobSlice = createSlice({
     },
 
     viewedJobsRequest: (state) => {
-      console.log('viewedJobsRequest');
       state.loading = true;
       state.error = null;
     },
@@ -293,6 +292,19 @@ const jobSlice = createSlice({
       state.viewedJobs = action.payload;
     },
     viewedJobsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    findSingleJobRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    findSingleJobSuccess: (state, action: PayloadAction<Job>) => {
+      state.loading = false;
+      state.job = action.payload;
+    },
+    findSingleJobFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
@@ -334,6 +346,9 @@ export const {
   viewedJobsRequest,
   viewedJobsSuccess,
   viewedJobsFailure,
+  findSingleJobRequest,
+  findSingleJobSuccess,
+  findSingleJobFailure,
 } = jobSlice.actions;
 
 export default jobSlice.reducer;

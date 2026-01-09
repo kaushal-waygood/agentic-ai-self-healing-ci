@@ -8,10 +8,30 @@ import {
   savedStudentResumeRequest,
   savedStudentResumeSuccess,
   savedStudentResumeFailure,
+  savedStudentCoverLetterRequest,
+  savedStudentCoverLetterSuccess,
+  savedStudentCoverLetterFailure,
+  deleteSavedResumeRequest,
+  deleteSavedResumeSuccess,
+  deleteSavedResumeFailure,
+  deleteSavedCoverLetterRequest,
+  deleteSavedCoverLetterSuccess,
+  deleteSavedCoverLetterFailure,
+  renameSavedResumeRequest,
+  renameSavedResumeSuccess,
+  renameSavedResumeFailure,
+  renameSavedCoverLetterRequest,
+  renameSavedCoverLetterSuccess,
+  renameSavedCoverLetterFailure,
 } from '../reducers/aiReducer';
 import {
   generateCVByJobDescription,
   savedStudentResume,
+  savedStudentCoverLetter,
+  deleteSavedResume,
+  deleteSavedCoverLetter,
+  renameSavedResume,
+  renameSavedCoverLetter,
 } from '@/services/api/ai';
 import { AxiosResponse } from 'axios';
 
@@ -39,10 +59,98 @@ function* savedStudentResumeSaga(action: PayloadAction<any>) {
   }
 }
 
+function* savedStudentCoverLetterSaga(action: PayloadAction<any>) {
+  try {
+    const response: AxiosResponse = yield call(savedStudentCoverLetter);
+    yield put(savedStudentCoverLetterSuccess(response.data));
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Login failed';
+    yield put(savedStudentCoverLetterFailure(errorMessage));
+  }
+}
+
+function* deleteSavedResumeSaga(action: PayloadAction<{ cvId: string }>) {
+  try {
+    const { cvId } = action.payload;
+    yield call(deleteSavedResume, cvId);
+    yield put(savedStudentResumeRequest());
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Delete failed';
+    yield put(deleteSavedResumeFailure(errorMessage));
+  }
+}
+function* deleteSavedCoverLetterSaga(action: PayloadAction<{ clId: string }>) {
+  try {
+    const { clId } = action.payload;
+    yield call(deleteSavedCoverLetter, clId);
+
+    yield put(savedStudentCoverLetterRequest());
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Delete failed';
+    yield put(deleteSavedCoverLetterFailure(errorMessage));
+  }
+}
+
+function* renameSavedResumeSaga(
+  action: PayloadAction<{ cvId: string; newTitle: string }>,
+) {
+  try {
+    const { cvId, newTitle } = action.payload;
+    const response: AxiosResponse = yield call(
+      renameSavedResume,
+      cvId,
+      newTitle,
+    );
+    yield put(savedStudentResumeRequest());
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Login failed';
+    yield put(renameSavedResumeFailure(errorMessage));
+  }
+}
+
+function* renameSavedCoverLetterSaga(
+  action: PayloadAction<{ clId: string; newTitle: string }>,
+) {
+  try {
+    const { clId, newTitle } = action.payload;
+
+    yield call(renameSavedCoverLetter, clId, newTitle);
+
+    // ✅ Re-fetch latest data
+    yield put(savedStudentCoverLetterRequest());
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Rename failed';
+    yield put(renameSavedCoverLetterFailure(errorMessage));
+  }
+}
+
 export function* watchAI() {
   yield takeLatest(
     generateCVByJobDescriptionRequest.type,
     generateCVByJobDescriptionSaga,
   );
   yield takeLatest(savedStudentResumeRequest.type, savedStudentResumeSaga);
+  yield takeLatest(
+    savedStudentCoverLetterRequest.type,
+    savedStudentCoverLetterSaga,
+  );
+
+  yield takeLatest(deleteSavedResumeRequest.type, deleteSavedResumeSaga);
+
+  yield takeLatest(
+    deleteSavedCoverLetterRequest.type,
+    deleteSavedCoverLetterSaga,
+  );
+
+  yield takeLatest(renameSavedResumeRequest.type, renameSavedResumeSaga);
+
+  yield takeLatest(
+    renameSavedCoverLetterRequest.type,
+    renameSavedCoverLetterSaga,
+  );
 }

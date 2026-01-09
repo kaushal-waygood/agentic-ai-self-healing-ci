@@ -37,6 +37,12 @@ import {
   renameHtmlCV,
   renameCoverLetter,
   calculateATS,
+  changeTempateCV,
+  getAllTemplates,
+  deleteSingleStudentSavedCV,
+  deleteSingleStudentSavedCL,
+  renameSavedStudentCL,
+  renameSavedStudentCV,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 import {
@@ -55,6 +61,15 @@ router.post(
   isUserOrUniStudent,
   memoryUpload.single('cv'),
   extractStudentDataFromCV,
+);
+
+router.get('/templates', authMiddleware, isUserOrUniStudent, getAllTemplates);
+
+router.post(
+  '/change/template',
+  authMiddleware,
+  isUserOrUniStudent,
+  changeTempateCV,
 );
 
 router.get(
@@ -206,6 +221,34 @@ router.get(
   getSingleStudentHTMLCV,
 );
 
+router.delete(
+  '/resume/saved/:cvId',
+  authMiddleware,
+  isUserOrUniStudent,
+  deleteSingleStudentSavedCV,
+);
+
+router.delete(
+  '/letter/saved/:clId',
+  authMiddleware,
+  isUserOrUniStudent,
+  deleteSingleStudentSavedCL,
+);
+
+router.patch(
+  '/letter/saved/:clId/rename',
+  authMiddleware,
+  isUserOrUniStudent,
+  renameSavedStudentCL,
+);
+
+router.patch(
+  '/resume/saved/:cvId/rename',
+  authMiddleware,
+  isUserOrUniStudent,
+  renameSavedStudentCV,
+);
+
 router.post(
   '/letter/save/html',
   authMiddleware,
@@ -237,7 +280,10 @@ router.post(
   isUserOrUniStudent,
   checkCredits('TAILORED_APPLY'),
   requireCompleteProfile,
-  uploadToMemory.single('cv'),
+  uploadToMemory.fields([
+    { name: 'cv', maxCount: 1 },
+    { name: 'jobDescriptionFile', maxCount: 1 },
+  ]),
   createTailoredApply,
 );
 

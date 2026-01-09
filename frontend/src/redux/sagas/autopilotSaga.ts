@@ -22,7 +22,6 @@ function* getAutopilotSaga() {
 }
 
 function* createAutopilotSaga(action: PayloadAction<any>) {
-  console.log(action.payload);
   try {
     const response: AxiosResponse = yield call(createAutoPilot, action.payload);
     yield put(createAutopilotSuccess(response.data.data));

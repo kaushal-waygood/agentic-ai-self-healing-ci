@@ -15,7 +15,6 @@ import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import FinalResultView from '../cover-letter/components/FinalResultView';
 
-// Framer Motion Variants & Styled Components
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
@@ -46,7 +45,6 @@ export function ApplicationWizardClient() {
     generatedData,
     jobs,
     selectedCvId,
-    // these should be supplied by your hook
     rateLimited = false,
     rateLimitMessage = null,
   } = state;
@@ -87,7 +85,8 @@ export function ApplicationWizardClient() {
           <SleekCvStep
             mockUserProfile={mockUserProfile}
             handleCvContextSubmit={actions.handleCvContextSubmit}
-            setWizardState={navigateToStep}
+            // setWizardState={navigateToStep}
+            setWizardStep={navigateToStep}
             selectedCvId={selectedCvId}
             setSelectedCvId={actions.setSelectedCvId}
             isLoading={isLoading}
@@ -138,8 +137,6 @@ export function ApplicationWizardClient() {
         );
 
       case 'result':
-        // If the user was rate-limited, show the upgrade CTA instead of normal result UI
-        // if (rateLimited) {
         return (
           <FinalResultView
             cvlink={undefined}
@@ -150,31 +147,6 @@ export function ApplicationWizardClient() {
             targetLink={'/dashboard/my-docs?tab=applications'}
           />
         );
-      // }
-
-      // return (
-      //   <ResultStep
-      //     jobContext={state.jobContext}
-      //     refinedCv={generatedData.refinedCv}
-      //     setRefinedCv={(val) =>
-      //       setGeneratedData((d) => ({ ...d, refinedCv: val }))
-      //     }
-      //     tailoredCl={generatedData.tailoredCl}
-      //     setTailoredCl={(val) =>
-      //       setGeneratedData((d) => ({ ...d, tailoredCl: val }))
-      //     }
-      //     emailDraft={generatedData.emailDraft}
-      //     setEmailDraft={(val) =>
-      //       setGeneratedData((d) => ({ ...d, emailDraft: val }))
-      //     }
-      //     setWizardStep={navigateToStep}
-      //     handleSendEmail={actions.handleSendEmail}
-      //     handleSaveAndFinish={() => {
-      //       actions.handleSaveAndFinish();
-      //     }}
-      //     handleStartNew={actions.handleStartNew}
-      //   />
-      // );
 
       default:
         return (

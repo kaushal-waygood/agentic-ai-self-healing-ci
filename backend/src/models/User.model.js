@@ -211,20 +211,26 @@ const userSchema = new Schema(
       cvCreation: { type: Number, default: 0 },
       coverLetter: { type: Number, default: 0 },
       aiApplication: { type: Number, default: 0 },
-      autoApply: { type: Number, default: 0 },
       aiAutoApply: { type: Number, default: 0 },
       aiAutoApplyDailyLimit: { type: Number, default: 0 },
       aiMannualApplication: { type: Number, default: 0 },
+      // New additions
+      atsScore: { type: Number, default: 0 },
+      jobMatching: { type: Number, default: 0 },
     },
 
+    // 2. ADD NEW FIELDS TO COUNTERS
     usageCounters: {
       cvCreation: { type: Number, default: 0 },
       coverLetter: { type: Number, default: 0 },
       aiApplication: { type: Number, default: 0 },
-      autoApply: { type: Number, default: 0 },
       aiAutoApply: { type: Number, default: 0 },
       aiAutoApplyDailyLimit: { type: Number, default: 0 },
       aiMannualApplication: { type: Number, default: 0 },
+      // New additions
+      atsScore: { type: Number, default: 0 },
+      jobMatching: { type: Number, default: 0 },
+
       lastReset: { type: Date, default: Date.now },
     },
 

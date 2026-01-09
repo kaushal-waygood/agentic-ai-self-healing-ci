@@ -152,7 +152,6 @@ const NewJobPost: React.FC<NewJobPostProps> = ({
   const onSubmit = async (data: JobFormType) => {
     setIsSubmitting(true);
     const beingId = searchParams.get('bringId');
-    console.log('beingId', beingId);
 
     try {
       const finalPayload = {
@@ -194,7 +193,6 @@ const NewJobPost: React.FC<NewJobPostProps> = ({
       };
 
       const response = await apiInstance.post('/jobs/mannual', finalPayload);
-      console.log('Job posted:', response.data.job._id);
 
       const response2 = await apiInstance.post(
         '/user/bring-zobs/onboarding/mark-free-job',
@@ -203,7 +201,6 @@ const NewJobPost: React.FC<NewJobPostProps> = ({
           jobId: response.data.job._id,
         },
       );
-      console.log('Job posted:', response2.data);
 
       toast.success('Job posted successfully!');
       gotoNextStep();

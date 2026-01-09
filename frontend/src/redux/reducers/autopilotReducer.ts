@@ -18,12 +18,10 @@ const autopilotSlice = createSlice({
   initialState,
   reducers: {
     getAutopilotRequest: (state) => {
-      console.log('getAutopilotRequest');
       state.loading = true;
       state.error = null;
     },
     getAutopilotSuccess: (state, action: PayloadAction<any>) => {
-      console.log('getAutopilotSuccess', action.payload, state.autopilot);
       state.loading = false;
       state.autopilot = action.payload;
       state.error = null;
@@ -34,7 +32,6 @@ const autopilotSlice = createSlice({
     },
 
     createAutopilotRequest: (state) => {
-      console.log('createAutopilotRequest');
       state.loading = true;
       state.error = null;
     },

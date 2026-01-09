@@ -314,5 +314,9 @@ h6 {
 }
 
 .input-search {
-  @apply w-full outline-none bg-gray-50;
+  @apply w-full  outline-none text-gray-700 bg-white/15 hover:bg-white backdrop-blur-sm transition-all duration-300 rounded-lg;
+}
+
+.hide-editor-images .profile-image {
+  display: none !important;
 }

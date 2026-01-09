@@ -47,6 +47,7 @@ import { startDashboardTour } from './dashboardDriver';
 import { SpendCreditsSection } from '@/components/credits/SpendCreditsSection';
 import { useCredits } from '@/hooks/useCredits';
 import { Input } from '@/components/ui/input';
+import Image from 'next/image';
 
 export function StatCard({
   title,
@@ -586,12 +587,27 @@ function TopJobCard({ job }: { job: TopJob }) {
       className="group block bg-white border rounded-lg p-4 hover:shadow-md transition"
     >
       <div className="flex gap-4">
-        <img
-          src={job.logo || '/company-placeholder.png'}
-          alt={job.company}
-          className="w-12 h-12 rounded-md object-contain border"
-        />
-
+        {job.logo ? (
+          <div className="w-14 h-14 overflow-hidden ring-purple-100 group-hover:ring-purple-300 transition-all duration-300 shadow-md group-hover:shadow-lg group-hover:scale-110 transform">
+            <Image
+              src={job.logo}
+              alt={job.company || 'Company Logo'}
+              className="w-full h-full object-contain p-1"
+              width={100}
+              height={100}
+            />
+          </div>
+        ) : (
+          <div className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-purple-100 via-blue-100 to-cyan-100 ring-purple-100 group-hover:ring-purple-300 transition-all duration-300 shadow-md group-hover:shadow-lg group-hover:scale-110 transform">
+            <Image
+              src="/logo.png"
+              alt={job.company || 'Company Logo'}
+              className="w-full h-full object-contain bg-white p-1"
+              width={100}
+              height={100}
+            />
+          </div>
+        )}
         <div className="flex-1">
           <h4 className="font-semibold text-gray-900 group-hover:text-purple-700 line-clamp-1">
             {job.title}
@@ -615,7 +631,6 @@ function TopJobCard({ job }: { job: TopJob }) {
             </span>
           </div>
         </div>
-
         <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600" />
       </div>
     </Link>

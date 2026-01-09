@@ -4,14 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import PlanCard from './PlanCard';
-import {
-  DollarSign,
-  IndianRupee,
-  Sparkles,
-  Shield,
-  Zap,
-  TrendingUp,
-} from 'lucide-react';
+import { DollarSign, IndianRupee, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 interface Plan {
@@ -23,10 +16,10 @@ interface Plan {
 }
 
 export function Pricing() {
-  const [currency, setCurrency] = useState('usd');
+  const [currency, setCurrency] = useState('inr');
   const [pricingData, setPricingData] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
+
   const pathname = usePathname();
   const isSubscriptionPage = pathname.includes('/subscriptions');
 
@@ -53,12 +46,6 @@ export function Pricing() {
     fetchPlan();
   }, []);
 
-  // --- UPDATED: Navigates to the checkout page ---
-  const handlePlanSelect = (details: { plan: Plan; period: string }) => {
-    const { plan, period } = details;
-    router.push(`/dashboard/checkout?planId=${plan._id}&period=${period}`);
-  };
-
   // Currency toggle handler
   const handleCurrencyChange = (newCurrency: 'usd' | 'inr') => {
     setCurrency(newCurrency);
@@ -69,13 +56,6 @@ export function Pricing() {
       className="relative pt-16 md:pt-8 bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/40 overflow-hidden"
       id="pricing"
     >
-      {/* Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-indigo-400/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-violet-400/5 to-cyan-400/5 rounded-full blur-3xl"></div>
-      </div>
-
       {/* Animated Grid Pattern */}
       <div className="absolute inset-0 opacity-[0.02]">
         <div
@@ -107,9 +87,9 @@ export function Pricing() {
           <p className="text-sm md:text-lg text-gray-600 mb-4 leading-relaxed">
             Unlock your potential with a plan that grows with you.
             <br />
-            <span className="text-purple-600 font-semibold">
+            {/* <span className="text-purple-600 font-semibold">
               Simple, transparent, and powerful.
-            </span>
+            </span> */}
           </p>
 
           {/* Currency Selector */}
@@ -118,7 +98,8 @@ export function Pricing() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleCurrencyChange('usd')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ${
+                  disabled={currency === 'inr'}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 cursor-not-allowed ${
                     currency === 'usd'
                       ? 'bg-purple-600 text-white shadow-md transform scale-105'
                       : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
@@ -141,22 +122,6 @@ export function Pricing() {
               </div>
             </div>
           </div>
-
-          {/* Trust Indicators */}
-          {/* <div className="flex items-center justify-center gap-8 text-sm text-gray-600 mb-4">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-green-600" />
-              <span>30-day money back</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-blue-600" />
-              <span>Instant activation</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-purple-600" />
-              <span>Cancel anytime</span>
-            </div>
-          </div> */}
         </header>
 
         {/* Loading State */}
@@ -189,7 +154,7 @@ export function Pricing() {
                   <PlanCard
                     plan={plan}
                     currency={currency}
-                    handlePlanSelect={handlePlanSelect}
+                    // handlePlanSelect={handlePlanSelect}
                     isSubscriptionPage={isSubscriptionPage}
                   />
                 </div>
@@ -198,40 +163,19 @@ export function Pricing() {
 
             {isSubscriptionPage ? (
               <div>
-                {/* Bottom CTA Section */}
-                <div className="text-center">
-                  <div className="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 max-w-4xl mx-auto shadow-xl">
-                    <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                      Need a custom solution?
-                    </h3>
-                    <p className="text-gray-600 mb-6 text-lg">
-                      We offer tailored enterprise solutions with custom
-                      integrations, dedicated support, and volume discounts.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                      <button className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 transform hover:scale-105">
-                        Contact Sales
-                      </button>
-                      <button className="border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-xl font-semibold hover:border-purple-300 hover:text-purple-600 transition-all duration-300 hover:bg-purple-50">
-                        Schedule Demo
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
                 {/* FAQ Teaser */}
-                <div className="text-center mt-12">
+                <div className="text-center my-12">
                   <p className="text-gray-600">
                     Have questions? Check our{' '}
                     <Link
-                      href="/faq"
+                      href="support"
                       className="text-purple-600 font-semibold hover:text-purple-700 underline decoration-purple-300 underline-offset-2"
                     >
                       FAQ section
                     </Link>{' '}
                     or{' '}
                     <a
-                      href="#contact"
+                      href="/contact-us"
                       className="text-purple-600 font-semibold hover:text-purple-700 underline decoration-purple-300 underline-offset-2"
                     >
                       contact support

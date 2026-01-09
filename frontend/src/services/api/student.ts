@@ -89,7 +89,6 @@ export const removeSkill = async (data: any) => {
 };
 
 export const updateSkill = async (index: string, data: any) => {
-  console.log('data', data);
   const response = await apiInstance.patch(`/students/skills/${index}`, {
     level: data.level,
   });

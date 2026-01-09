@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Mail, XCircle } from 'lucide-react';
-import { Navigation } from '@/components/layout/site-header';
+import { Dot, Mail, XCircle } from 'lucide-react';
+
 import { termsData } from '@/services/dummy/terms-of-service';
-import { Footer } from '@/components/layout/footer';
+
 // This is the same reusable component from your original file
 const LegalSection = ({
   icon: Icon,
@@ -20,9 +20,9 @@ const LegalSection = ({
       >
         <Icon className={`w-6 h-6 ${iconTextColor}`} />
       </div>
-      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{title}</h2>
+      <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
     </div>
-    <div className="pl-0 sm:pl-16 space-y-4 text-gray-700 leading-relaxed">
+    <div className="pl-14 space-y-3 text-gray-700 leading-relaxed">
       {children}
     </div>
   </section>
@@ -39,8 +39,11 @@ const renderContent = (contentBlock) => {
         <ul className="space-y-3 mt-4">
           {contentBlock.items.map((item, index) => (
             <li key={index} className="flex items-start">
-              <XCircle className="w-5 h-5 text-rose-500 mr-3 mt-1 flex-shrink-0" />
-              <span>{item}</span>
+              {/* Replaced Dot icon with a number span */}
+              <span className="font-semibold  mr-3 flex-shrink-0">
+                {index + 1}.
+              </span>
+              <span className="text-gray-700">{item}</span>
             </li>
           ))}
         </ul>
@@ -53,27 +56,20 @@ const renderContent = (contentBlock) => {
 export default function TermsAndConditionsPage() {
   return (
     <div>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-hidden ">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 -z-0">
-          <div className="absolute -top-40 -left-40 w-80 h-80 bg-gradient-to-r from-amber-200 to-yellow-200 rounded-full filter blur-3xl opacity-40 animate-pulse"></div>
-          <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-gradient-to-r from-lime-200 to-green-200 rounded-full filter blur-3xl opacity-40 animate-pulse delay-1000"></div>
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 rounded-full filter blur-3xl opacity-30 animate-pulse delay-500"></div>
-        </div>
-
+      <div className="min-h-screen relative overflow-hidden ">
         <div className="relative z-10 container mx-auto px-4 py-10 md:py-5">
           {/* Header Section */}
           <header className="text-center mb-5">
-            <h1 className="text-5xl sm:text-6xl lg:text-6xl font-black text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-              Terms of Service{' '}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative mb-2">
+              Terms and Conditions
             </h1>
-            <p className="text-xl text-gray-600">
+            <p className="text-lg text-gray-600">
               Last Updated: {termsData.lastUpdated}
             </p>
           </header>
 
           {/* Main Content Card */}
-          <main className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-3xl p-6 md:p-12 border border-gray-200 shadow-xl">
+          <main className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-lg p-6 md:p-12 border border-gray-200 shadow-xl">
             {/* Loop through the sections from the data file and render them */}
             {termsData.sections.map((section) => (
               <LegalSection
@@ -103,13 +99,12 @@ export default function TermsAndConditionsPage() {
                     Contact Us
                   </h3>
                   <p className="text-gray-600">
-                    In order to resolve a complaint or to receive further
-                    information, please contact us at:{' '}
+                    For questions or complaints, contact us at:{' '}
                     <a
                       href="mailto:support@zobsai.com"
                       className="font-medium text-blue-600 hover:underline"
                     >
-                      support@zobsai.com
+                      info@zobsai.com
                     </a>
                     .
                   </p>

@@ -33,10 +33,13 @@ import {
   Building2,
   TrendingUp,
   Star,
+  Zap,
+  Send,
 } from 'lucide-react';
 
 import { JobListing } from '@/lib/data/jobs';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
+import { divide, set } from 'lodash';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -45,6 +48,12 @@ interface JobDetailClientProps {
 interface MatchScore {
   matchScore: number;
   recommendation: string;
+}
+
+interface AtsScore {
+  atsScore: number;
+  suggestions: string;
+  improvedResumeSummary: string;
 }
 
 function getCookie(name: string): string | undefined {
@@ -63,14 +72,23 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const { savedJobs } = useSelector((state: RootState) => state.jobs);
 
   const [matchScore, setMatchScore] = useState<MatchScore | null>(null);
+  const [atsScore, setAtsScore] = useState<AtsScore | null>(null);
   const [isLoadingScore, setIsLoadingScore] = useState(false);
+  const [isLoadingAtsScore, setIsLoadingAtsScore] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
+  const [activeView, setActiveView] = useState<'match' | 'ats'>('match');
+  const [openCard, setOpenCard] = useState<'match' | 'ats' | null>('match');
   const [token, setToken] = useState<string | undefined>(undefined);
+
+  const MATCH_SCORE_KEY = (jobId?: string) =>
+    jobId ? `matchScore_${jobId}` : '';
+
+  const ATS_SCORE_KEY = (jobId?: string) => (jobId ? `atsScore_${jobId}` : '');
 
   // token lookup (SSR-safe)
   useEffect(() => {
@@ -92,9 +110,42 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     const controller = new AbortController();
     const { signal } = controller;
 
-    const savedScore = localStorage.getItem(`matchScore_${job._id}`);
-    setMatchScore(savedScore ? (JSON.parse(savedScore) as MatchScore) : null);
+    try {
+      const rawMatch = localStorage.getItem(MATCH_SCORE_KEY(job._id));
+      const parsedMatch = rawMatch ? JSON.parse(rawMatch) : null;
+
+      if (parsedMatch && typeof parsedMatch.matchScore === 'number') {
+        setMatchScore(parsedMatch);
+      } else {
+        setMatchScore(null);
+        localStorage.removeItem(MATCH_SCORE_KEY(job._id));
+      }
+    } catch {
+      setMatchScore(null);
+      localStorage.removeItem(MATCH_SCORE_KEY(job._id));
+    }
+
     setIsLoadingScore(false);
+    setProgress(0);
+
+    // ----- ATS SCORE -----
+    try {
+      const rawAts = localStorage.getItem(ATS_SCORE_KEY(job._id));
+      const parsedAts = rawAts ? JSON.parse(rawAts) : null;
+
+      if (parsedAts && typeof parsedAts.atsScore === 'number') {
+        setAtsScore(parsedAts);
+      } else {
+        setAtsScore(null);
+        localStorage.removeItem(ATS_SCORE_KEY(job._id));
+      }
+    } catch {
+      setAtsScore(null);
+      localStorage.removeItem(ATS_SCORE_KEY(job._id));
+    }
+
+    setIsLoadingScore(false);
+    setIsLoadingAtsScore(false);
     setProgress(0);
 
     const checkJobStatus = async () => {
@@ -316,8 +367,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const handleGetATSScore = useCallback(async () => {
     if (!job?.description) return;
 
-    setIsLoadingScore(true);
-    setMatchScore(null);
+    setIsLoadingAtsScore(true);
+    setAtsScore(null);
     setScoreError(null);
     setProgress(0);
 
@@ -338,7 +389,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       if (signal.aborted) return;
 
       setProgress(100);
-      setMatchScore(response.data); // assuming same structure
+      setAtsScore(response.data); // assuming same structure
       if (job._id) {
         localStorage.setItem(
           `atsScore_${job._id}`,
@@ -353,70 +404,13 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       }
     } finally {
       clearInterval(interval);
-      setIsLoadingScore(false);
+      setIsLoadingAtsScore(false);
     }
   }, [job?._id, job?.description]);
 
-  // const renderJobDescription = (raw: string) => {
-  //   const lines = normalizeText(raw).split('\n');
-
-  //   return lines.map((line, i) => {
-  //     const trimmed = line.trim();
-
-  //     if (!trimmed) {
-  //       return <div key={i} className="h-2" />;
-  //     }
-
-  //     // 🔹 BULLET
-  //     if (trimmed.startsWith('-')) {
-  //       return (
-  //         <div
-  //           key={i}
-  //           className="ml-4 flex items-start gap-3 text-sm text-slate-600"
-  //         >
-  //           <span className="mt-2 w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0" />
-  //           <span className="leading-relaxed">
-  //             {trimmed.replace(/^-\s*/, '')}
-  //           </span>
-  //         </div>
-  //       );
-  //     }
-
-  //     // 🔹 KEY : VALUE
-  //     if (/^[A-Za-z][A-Za-z\s]{2,25}:\s+/.test(trimmed)) {
-  //       const [key, ...rest] = trimmed.split(':');
-  //       return (
-  //         <div key={i} className="text-sm text-slate-700">
-  //           <span className="font-semibold">{key}:</span>{' '}
-  //           <span className="text-slate-600">{rest.join(':').trim()}</span>
-  //         </div>
-  //       );
-  //     }
-
-  //     // 🔹 ALL CAPS / EMPHASIZED LINE → TITLE
-  //     if (
-  //       trimmed === trimmed.toUpperCase() &&
-  //       trimmed.length > 4 &&
-  //       trimmed.length < 60
-  //     ) {
-  //       return (
-  //         <div
-  //           key={i}
-  //           className="mt-5 mb-2 text-sm font-bold tracking-wide text-slate-800"
-  //         >
-  //           {trimmed}
-  //         </div>
-  //       );
-  //     }
-
-  //     // 🔹 NORMAL TEXT
-  //     return (
-  //       <p key={i} className="text-sm text-slate-600 leading-relaxed">
-  //         {trimmed}
-  //       </p>
-  //     );
-  //   });
-  // };
+  const handleApplyNow = () => {
+    router.replace(`/dashboard/jobs/${job._id}/apply`);
+  };
 
   return (
     <div className="min-h-screen space-y-2">
@@ -540,7 +534,9 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {/* Company Site */}
-              {job.applyMethod?.url && job.applyMethod.url !== 'email' && (
+              {job.origin === 'EXTERNAL' &&
+              job.applyMethod.url &&
+              job.applyMethod.url !== 'email' ? (
                 <Button
                   onClick={handleApplyOnSite}
                   asChild
@@ -557,40 +553,119 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     </div>
                   </Link>
                 </Button>
-              )}
-              {/* <Button
-                // onClick={handleGetATSScore}
-                className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
-              >
-                <div className="relative flex items-center justify-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  <span>AI ATS Score</span>
-                </div>
-              </Button> */}
-              <Button
-                disabled
-                className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold
-  bg-gradient-to-r from-blue-500 to-orange-500 text-white
-  opacity-90 cursor-not-allowed"
-              >
-                {/* Small badge */}
-                <span
-                  className="absolute -top-1.5 -right-1 
-    rounded-full bg-black/80 px-1.5 py-0.5
-    text-[9px] font-semibold uppee tracking-wide
-    text-white"
+              ) : (
+                <Button
+                  onClick={handleApplyNow}
+                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
-                  Soon
-                </span>
+                  <Link
+                    href={`/dashboard/jobs/${job._id}/apply`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="relative flex items-center justify-center gap-2">
+                      {/* <Send className="w-5 h-5" /> */}
+                      <span>Apply Now</span>
+                    </div>
+                  </Link>
+                </Button>
+              )}
 
-                <div className="relative flex items-center justify-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  <span>AI ATS Score</span>
+              {/* ATS Score */}
+              {!scoreError && !atsScore && !isLoadingAtsScore && (
+                <Button
+                  onClick={handleGetATSScore}
+                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
+                >
+                  <div className="relative flex items-center justify-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    <span>AI ATS Score</span>
+                  </div>
+                </Button>
+              )}
+
+              {isLoadingAtsScore && (
+                <div
+                  className="relative overflow-hidden px-6 py-2 rounded-lg
+      bg-gradient-to-r from-blue-500 to-green-500 text-white
+      w-[100px]" // 🔒 lock button width
+                >
+                  {/* Progress bar */}
+                  <div
+                    className="absolute inset-y-0 left-0
+        bg-gradient-to-r from-purple-400/50 to-blue-400/50
+        transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+
+                  {/* Content */}
+                  <div className="relative flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+
+                    {/* Fixed-width number */}
+                    <span className="font-semibold tabular-nums w-[3ch] text-center">
+                      {progress}%
+                    </span>
+                  </div>
                 </div>
-              </Button>
+              )}
+              {atsScore && !isLoadingAtsScore && (
+                <button
+                  onClick={handleGetATSScore}
+                  className="group relative overflow-hidden px-6  rounded-lg
+    bg-gradient-to-r from-blue-500 to-green-500 text-white
+      font-bold transition-all duration-300
+    
+      animate-in fade-in zoom-in"
+                >
+                  {/* Normal content */}
+                  <div className="flex items-center justify-center gap-2 py-1.5 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="text-lg">{atsScore?.atsScore}/100</span>
+                  </div>
 
+                  {/* Hover content */}
+                  <div
+                    className="absolute inset-0 flex items-center justify-center gap-2
+      opacity-0 scale-105
+      transition-all duration-200
+      group-hover:opacity-100 group-hover:scale-100"
+                  >
+                    {/* <Sparkles className="w-4 h-4" /> */}
+                    <span className="text-sm tracking-wide">
+                      Recalculate ATS Score
+                    </span>
+                  </div>
+                </button>
+              )}
+
+              {isLoadingScore && (
+                <div
+                  className="relative overflow-hidden px-6 py-2 rounded-lg
+      bg-gradient-to-r from-blue-500 to-green-500 text-white
+      w-[100px]" // 🔒 lock button width
+                >
+                  {/* Progress bar */}
+                  <div
+                    className="absolute inset-y-0 left-0
+        bg-gradient-to-r from-purple-400/50 to-blue-400/50
+        transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+
+                  {/* Content */}
+                  <div className="relative flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+
+                    {/* Fixed-width number */}
+                    <span className="font-semibold tabular-nums w-[3ch] text-center">
+                      {progress}%
+                    </span>
+                  </div>
+                </div>
+              )}
               {/* Match Score */}
-              {!matchScore && !isLoadingScore && (
+              {!scoreError && !matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-green-500  text-white border-0"
@@ -602,28 +677,47 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </Button>
               )}
 
-              {isLoadingScore && (
-                <div className="relative overflow-hidden px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-400/50 to-blue-400/50 transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                  <div className="relative flex items-center justify-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="font-semibold">{progress}%</span>
-                  </div>
-                </div>
-              )}
-
               {matchScore && !isLoadingScore && (
-                <div className="relative overflow-hidden px-6 py-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white  animate-in fade-in zoom-in duration-500">
-                  <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={handleGetMatchScore}
+                  className="group relative overflow-hidden px-6 rounded-lg
+    bg-gradient-to-r from-blue-500 to-green-500 text-white
+      font-bold transition-all duration-300
+    
+      animate-in fade-in zoom-in"
+                >
+                  {/* Normal content */}
+                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95 py-1.5">
                     <TrendingUp className="w-4 h-4" />
-                    <span className="font-bold text-lg">
-                      {matchScore.matchScore}/10
+                    <span className="text-lg">{matchScore.matchScore}/10</span>
+                  </div>
+
+                  {/* Hover content */}
+                  <div
+                    className="absolute inset-0 flex items-center justify-center gap-2
+      opacity-0 scale-105
+      transition-all duration-200
+      group-hover:opacity-100 group-hover:scale-100"
+                  >
+                    {/* <Sparkles className="w-4 h-4" /> */}
+                    <span className="text-sm tracking-wide">
+                      Recalculate Match Score
                     </span>
                   </div>
-                </div>
+                </button>
+              )}
+
+              {scoreError && !isLoadingScore && (
+                <Button
+                  onClick={handleGetMatchScore}
+                  variant="outline"
+                  className="border-red-300 text-red-600 hover:bg-red-500 hover:text-white"
+                >
+                  Retry Match Score
+                </Button>
+              )}
+              {scoreError && (
+                <p className="text-xs text-red-600 mt-1">{scoreError}</p>
               )}
             </div>
           ) : (
@@ -640,47 +734,136 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         </div>
       </div>
 
-      {/* AI Recommendation */}
-      {matchScore && !isLoadingScore && (
-        <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-cyan-50 rounded-lg border border-purple-200/50 overflow-hidden animate-in slide-in-from-top duration-500">
+      <div className="flex items-center gap-2 justify-end mb-3">
+        <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200 shadow-sm">
+          {atsScore?.atsScore && (
+            <button
+              onClick={() => {
+                setActiveView('ats');
+                setOpenCard(null);
+              }}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg
+          text-sm font-semibold transition-all duration-200
+          ${
+            activeView === 'ats'
+              ? 'bg-white text-purple-700 shadow'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+          }`}
+            >
+              <Zap className="w-4 h-4" />
+              <span>ATS Score :</span>
+              <span className="text-xs font-bold">{atsScore.atsScore}</span>
+            </button>
+          )}
+
+          {matchScore && !isLoadingScore && (
+            <button
+              onClick={() => {
+                setActiveView('match');
+                setOpenCard(null);
+              }}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg
+          text-sm font-semibold transition-all duration-200
+          ${
+            activeView === 'match'
+              ? 'bg-white text-purple-700 shadow'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+          }`}
+            >
+              <Star className="w-4 h-4" />
+              <span>Match Score :</span>
+              <span className="text-xs font-bold">{matchScore.matchScore}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {activeView === 'match' && matchScore && !isLoadingScore && (
+        <div className="rounded-lg border border-purple-200/50 overflow-hidden">
           <button
-            onClick={() => setIsOpen((v) => !v)}
-            className="w-full px-3 py-3 flex items-center justify-between gap-3 hover:bg-white/50 transition-all duration-200"
+            onClick={() => setOpenCard(openCard === 'match' ? null : 'match')}
+            className="w-full px-3 py-3 flex items-center justify-between hover:bg-white/50"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg shadow-purple-500/30">
-                <Star className="w-5 h-5 text-white" />
+              <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg">
+                <Star className="w-4 h-4 text-white" />
               </div>
-              <div className="text-left">
-                <div className="font-bold text-lg text-gray-900">
-                  AI Recommendation
-                </div>
-                <div className="text-sm text-gray-600 flex items-center gap-2">
-                  <span>Match Score:</span>
-                  <span className="font-semibold text-purple-700">
-                    {matchScore.matchScore}/10
-                  </span>
-                </div>
+              <div className="text-sm text-gray-600 flex gap-2">
+                <span>Match Score:</span>
+                <span className="font-semibold text-purple-700">
+                  {matchScore.matchScore}/10
+                </span>
               </div>
             </div>
-            <div className="p-2 hover:bg-white rounded-lg transition-colors">
-              {isOpen ? (
-                <ChevronUp className="w-6 h-6 text-purple-700" />
-              ) : (
-                <ChevronDown className="w-6 h-6 text-purple-700" />
-              )}
-            </div>
+
+            {/* {openCard === 'match' ? (
+              <ChevronUp className="w-5 h-5 text-purple-700" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-purple-700" />
+            )} */}
           </button>
 
-          {isOpen && (
-            <div className="px-3 pb-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 border border-purple-100 shadow-inner">
-                <p className="text-gray-700 leading-relaxed text-sm">
+          {/* {openCard === 'match' && (
+            <div className="px-3 pb-3">
+              <div className="bg-white/80 rounded-xl p-3 border">
+                <h2 className="font-semibold mb-1">AI Recommendation</h2>
+                <p className="text-sm text-gray-700">
                   {matchScore.recommendation}
                 </p>
               </div>
             </div>
-          )}
+          )} */}
+          <div className="px-3 pb-3">
+            <div className="bg-white/80 rounded-xl p-3 border">
+              <h2 className="font-semibold mb-1">AI Recommendation</h2>
+              <p className="text-sm text-gray-700">
+                {matchScore.recommendation}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeView === 'ats' && atsScore && !isLoadingAtsScore && (
+        <div className="rounded-lg border border-purple-200/50 overflow-hidden">
+          <button
+            onClick={() => setOpenCard(openCard === 'ats' ? null : 'ats')}
+            className="w-full px-3 py-3 flex items-center justify-between hover:bg-white/50"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg">
+                <Zap className="w-4 h-4 text-white" />
+              </div>
+              <div className="text-sm text-gray-600 flex gap-2">
+                <span>ATS Score:</span>
+                <span className="font-semibold text-purple-700">
+                  {atsScore.atsScore}/100
+                </span>
+              </div>
+            </div>
+
+            {/* {openCard === 'ats' ? (
+              <ChevronUp className="w-5 h-5 text-purple-700" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-purple-700" />
+            )} */}
+          </button>
+          {/* 
+          {openCard === 'ats' && (
+            <div className="px-3 pb-3">
+              <div className="bg-white/80 rounded-xl p-3 border">
+                <h2 className="font-semibold mb-1">ATS Suggestions</h2>
+                <p className="text-sm text-gray-700">{atsScore.suggestions}</p>
+              </div>
+            </div>
+          )} */}
+
+          <div className="px-3 pb-3">
+            <div className="bg-white/80 rounded-xl p-3 border">
+              <h2 className="font-semibold mb-1">ATS Suggestions</h2>
+              <p className="text-sm text-gray-700">{atsScore.suggestions}</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -694,41 +877,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         </div>
 
         <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
-          {/* <ReactMarkdown
-            // minimal custom renderers to keep perf decent
-            components={{
-              h3: (props: any) => (
-                <h3
-                  className="text-sm font-bold text-gray-900 mt-6 mb-2 flex items-center gap-2"
-                  {...props}
-                />
-              ),
-              ul: (props: any) => <ul className="space-y-2 ml-2" {...props} />,
-              li: (props: any) => (
-                <li
-                  className="flex items-start gap-3 leading-relaxed"
-                  {...props}
-                />
-              ),
-              p: (props: any) => (
-                <p className="text-gray-700 text-sm" {...props} />
-              ),
-            }}
-          >
-            {formattedDescription}
-          </ReactMarkdown> */}
-          {/* new  */}
-          {/* <details
-            open
-            className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-          >
-            <div className="px-1 pb-4">
-              <div className=" overflow-y-auto text-sm text-slate-600 whitespace-pre-line pr-2 border-l-2 border-blue-500 pl-3">
-                {job.description}
-              </div>
-            </div>
-          </details> */}
-
           <details
             open
             className="prose prose-sm max-w-none text-gray-700 leading-relaxed"

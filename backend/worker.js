@@ -2,6 +2,8 @@
 import mongoose from 'mongoose';
 import connectDb from './src/config/db.js';
 import { Student } from './src/models/student.model.js';
+import { User } from './src/models/User.model.js';
+import { StudentApplication } from './src/models/students/studentApplication.model.js';
 import { AppliedJob } from './src/models/AppliedJob.js';
 import { getRecommendedJobs } from './src/utils/getRecommendedJobs.js';
 import { buildEffectiveStudentProfile } from './src/utils/profileHydration.js';
@@ -10,9 +12,7 @@ import { processTailoredApplication } from './src/utils/tailored.autopilot.js';
 import { config } from './src/config/config.js';
 
 const toBool = (v) => v === true || String(v).toLowerCase() === 'true';
-
 const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
-
 const toInt = (v, fallback) => {
   const n = parseInt(v, 10);
   return Number.isFinite(n) ? n : fallback;
@@ -76,88 +76,76 @@ const runWithConcurrency = async (items, handler, concurrency = 3) => {
   await Promise.allSettled(runners);
 };
 
-// Count how many tailoredApplications were created today for a student
-const countTailoredAppsToday = async (studentId) => {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
-  const [{ todayCount } = { todayCount: 0 }] = await Student.aggregate([
-    { $match: { _id: new mongoose.Types.ObjectId(studentId) } },
-    {
-      $project: {
-        todayCount: {
-          $size: {
-            $filter: {
-              input: '$tailoredApplications',
-              as: 't',
-              cond: {
-                $and: [
-                  { $gte: ['$$t.createdAt', start] },
-                  { $lte: ['$$t.createdAt', end] },
-                ],
-              },
-            },
-          },
-        },
-      },
-    },
-  ]);
-
-  return todayCount || 0;
-};
-
 const findAndProcessJobs = async () => {
   console.log('🚀 [Worker] Starting a new job-finding cycle...');
 
-  const students = await Student.find({
+  const studentCursor = Student.find({
     'settings.autopilotEnabled': true,
     isActive: true,
     'autopilotAgent.0': { $exists: true },
   })
     .select(
-      'autopilotAgent settings isActive email fullName phone jobRole jobPreferences skills experience education tailoredApplications',
+      'autopilotAgent settings isActive email fullName phone jobRole jobPreferences skills experience education',
     )
-    .lean();
+    .cursor();
 
-  console.log(
-    `[Worker] Found ${students.length} students with autopilot enabled.`,
-  );
+  console.log(`[Worker] Cursor initialized. Iterating students...`);
 
-  for (const student of students) {
-    const agents = Array.isArray(student.autopilotAgent)
-      ? student.autopilotAgent
-      : [];
-    console.log(`[Worker] Student ${student._id} has ${agents.length} agents.`);
-    if (!agents.length) continue;
+  for (
+    let student = await studentCursor.next();
+    student != null;
+    student = await studentCursor.next()
+  ) {
+    // 1. Fetch User to check Plan Limits & Current Usage
+    const user = await User.findById(student._id)
+      .select('usageLimits usageCounters')
+      .lean();
 
-    // Enforce a per-student daily limit
-    const studentDailyLimit = normalizeLimit(
+    // 2. Extract Limits (Default to 0 for safety)
+    const userPlanLimit = user?.usageLimits?.aiAutoApplyDailyLimit || 0;
+    const userUsageCount = user?.usageCounters?.aiAutoApplyDailyLimit || 0;
+
+    // 3. Extract Student Preference
+    const studentPrefLimit = normalizeLimit(
       student?.settings?.autopilotLimit,
-      50,
+      5,
       { min: 0, max: 200 },
     );
-    const alreadyToday = await countTailoredAppsToday(student._id);
-    let remainingForStudent = Math.max(0, studentDailyLimit - alreadyToday);
 
-    if (remainingForStudent === 0) {
+    // 4. Calculate Effective Maximum (Lower of Plan vs Preference)
+    const effectiveMaxLimit = Math.min(userPlanLimit, studentPrefLimit);
+
+    // 5. Calculate Actual Remaining Capacity
+    let remainingForStudent = Math.max(0, effectiveMaxLimit - userUsageCount);
+
+    console.log(`[Worker Limits ${student._id}]`);
+    console.log(`   - Plan Limit: ${userPlanLimit}`);
+    console.log(`   - User Usage: ${userUsageCount}`);
+    console.log(`   - Student Pref: ${studentPrefLimit}`);
+    console.log(`   - Effective Remaining: ${remainingForStudent}`);
+
+    if (remainingForStudent <= 0) {
+      const reason =
+        userPlanLimit < studentPrefLimit
+          ? 'Plan Limit Reached'
+          : 'User Preference Reached';
       console.log(
-        `[Limit] Student ${student._id} is at daily limit (${studentDailyLimit}). Skipping all agents.`,
+        `[Limit] Skipping student ${student._id}. Reason: ${reason} (${userUsageCount}/${effectiveMaxLimit})`,
       );
       continue;
     }
 
+    const agents = Array.isArray(student.autopilotAgent)
+      ? student.autopilotAgent
+      : [];
+
+    if (!agents.length) continue;
+
     for (const agent of agents) {
+      if (remainingForStudent <= 0) break; // Stop if we ran out of credits mid-loop
+
       const enabled = toBool(agent?.autopilotEnabled ?? true);
-      if (!enabled) {
-        console.log(
-          `[Worker] Skipping agent "${
-            agent?.agentName || 'Unnamed'
-          }" (disabled).`,
-        );
-        continue;
-      }
+      if (!enabled) continue;
 
       try {
         console.log(
@@ -166,237 +154,95 @@ const findAndProcessJobs = async () => {
           }...`,
         );
 
-        // exclude already-applied jobs
+        // Exclude already-applied jobs
         const appliedJobs = await AppliedJob.find({ student: student._id })
           .select({ job: 1 })
           .lean();
+
         const appliedJobIds = appliedJobs
           .map((j) => j.job)
           .filter(Boolean)
           .map((id) => new mongoose.Types.ObjectId(id));
 
-        // sanitize agentConfig for downstream filter
-        const {
-          _id,
-          agentId,
-          agentName,
-          uploadedCVData,
-          autopilotEnabled,
-          autopilotLimit, // agent-level
-          createdAt,
-          updatedAt,
-          ...agentConfig
-        } = agent || {};
-
+        const { _id, autopilotLimit, ...agentConfig } = agent || {};
         const effectiveStudent = buildEffectiveStudentProfile(student, agent);
 
-        const hasSignals =
-          (effectiveStudent.jobRole && effectiveStudent.jobRole.trim()) ||
-          (effectiveStudent.skills && effectiveStudent.skills.length > 0) ||
-          (effectiveStudent.jobPreferences?.mustHaveSkills?.length ?? 0) > 0 ||
-          (effectiveStudent.jobPreferences?.preferredJobTitles?.length ?? 0) >
-            0;
+        // Agent-level cap
+        const agentCap = normalizeLimit(autopilotLimit, 3, { min: 0, max: 50 });
+        const batchSize = Math.min(remainingForStudent, agentCap);
 
-        if (!hasSignals) {
-          console.warn(
-            '[Scoring] Effective profile has weak signals (role/skills/titles empty). Expect low scores.',
-          );
-        }
+        if (batchSize <= 0) continue;
 
-        // Compute the hard cap for this agent this cycle
-        const agentCap = normalizeLimit(autopilotLimit, 3, {
-          min: 0,
-          max: 50,
-        });
-        // Remaining capacity for the student today
-        const remaining = Math.min(remainingForStudent, agentCap);
-        if (remaining <= 0) {
-          console.log(
-            `[Limit] No remaining capacity for agent "${
-              agent.agentName || 'Unnamed'
-            }" (student remaining ${remainingForStudent}, agent cap ${agentCap}).`,
-          );
-          continue;
-        }
-
-        // Fetch only as many as we could possibly process
-        const fetchLimit = remaining; // do not overfetch
         const recommendedJobs = await getRecommendedJobs({
           studentId: student._id,
           agentConfig,
           studentProfile: effectiveStudent,
           appliedJobIds,
-          limit: fetchLimit,
+          limit: batchSize,
         });
 
         if (!recommendedJobs.length) {
           console.log(
-            `[Worker] No new jobs found for agent "${
-              agent.agentName || 'Unnamed'
-            }".`,
+            `[Worker] No new jobs found for agent "${agent.agentName}".`,
           );
           continue;
         }
 
-        console.log(
-          `✅ Found ${recommendedJobs.length} new jobs for agent "${
-            agent.agentName || 'Unnamed'
-          }" (capacity ${remaining}).`,
-        );
-        console.log(
-          `[Worker] Titles (${Math.min(10, recommendedJobs.length)} shown):`,
-          recommendedJobs
-            .slice(0, 10)
-            .map((j) => `${j.title} @ ${j.company} [${j.origin || 'HOSTED'}]`),
-        );
-
-        // ------------------------------------------------------------
-        // Auto-generate TAILORED APPLICATIONS (CV + CL + Email)
-        // ------------------------------------------------------------
         if (toBool(process.env.AUTOGEN_TAILORED || 'false')) {
-          const finalTouch = ''; // optional hook for agent-specific fine-tuning
-
-          // Re-check today's count to avoid races if multiple agents run
-          const nowCount = await countTailoredAppsToday(student._id);
-          const nowRemainingForStudent = Math.max(
-            0,
-            studentDailyLimit - nowCount,
-          );
-          const topN = Math.min(
-            nowRemainingForStudent,
-            recommendedJobs.length,
-            remaining, // agent cap snapshot
-          );
-
-          if (topN <= 0) {
-            console.log(
-              `[Limit] Capacity exhausted while preparing queue for agent "${
-                agent.agentName || 'Unnamed'
-              }".`,
-            );
-            continue;
-          }
-
-          const jobsToProcess = recommendedJobs.slice(0, topN);
           const concurrency = Math.max(
             1,
             toInt(process.env.AUTOGEN_CONCURRENCY, 3) || 3,
           );
 
           await runWithConcurrency(
-            jobsToProcess,
+            recommendedJobs,
             async (job) => {
-              // Double-guard capacity just before writing
-              const beforePushCount = await countTailoredAppsToday(student._id);
-              if (beforePushCount >= studentDailyLimit) {
-                console.log(
-                  `[Limit] Hit daily limit (${studentDailyLimit}) prior to push for student ${
-                    student._id
-                  }. Skipping job ${String(job._id)}.`,
-                );
-                return;
-              }
+              // Double-check remaining capacity before processing
+              if (remainingForStudent <= 0) return;
 
-              // Create tailoredApplications subdoc with status=pending
-              const applicationId = new mongoose.Types.ObjectId();
-              const subdoc = {
-                _id: applicationId,
-                jobId: job._id,
+              // Create Draft Application
+              const application = await StudentApplication.create({
+                student: student._id,
                 jobTitle: job.title,
-                companyName: job.company,
+                jobCompany: job.company,
                 jobDescription: job.description,
-                useProfile: true,
-                status: 'pending',
-                finalTouch,
-                createdAt: new Date(),
-              };
-
-              const resPush = await Student.updateOne(
-                {
-                  _id: student._id,
-                  // Guard again in the write: only push if still under limit
-                  $expr: {
-                    $lt: [
-                      {
-                        $size: {
-                          $filter: {
-                            input: '$tailoredApplications',
-                            as: 't',
-                            cond: {
-                              $and: [
-                                {
-                                  $gte: [
-                                    '$$t.createdAt',
-                                    new Date(new Date().setHours(0, 0, 0, 0)),
-                                  ],
-                                },
-                                {
-                                  $lte: [
-                                    '$$t.createdAt',
-                                    new Date(
-                                      new Date().setHours(23, 59, 59, 999),
-                                    ),
-                                  ],
-                                },
-                              ],
-                            },
-                          },
-                        },
-                      },
-                      studentDailyLimit,
-                    ],
-                  },
-                },
-                {
-                  $push: {
-                    tailoredApplications: { $each: [subdoc], $position: 0 },
-                  },
-                },
-              );
-
-              if (resPush.matchedCount !== 1 || resPush.modifiedCount !== 1) {
-                console.error(
-                  '[Worker] FAILED to push tailoredApplications subdoc (limit or race); skipping this job.',
-                );
-                return;
-              }
+                status: 'Draft',
+              });
 
               const applicationData = buildApplicationData(
                 job,
                 effectiveStudent,
-                finalTouch,
+                '',
               );
 
-              const io = null; // No socket.io in worker context
-
+              // Process AI Generation
               await processTailoredApplication(
                 student._id,
-                applicationId,
+                application._id,
                 applicationData,
-                io,
+                null, // No socket in worker
               );
 
+              // ✅ IMPORTANT: Increment the Usage Counter
+              await User.updateOne(
+                { _id: student._id },
+                { $inc: { 'usageCounters.aiAutoApplyDailyLimit': 1 } },
+              );
+
+              // Decrement local counter
+              remainingForStudent--;
+
               console.log(
-                `[Worker] Tailored application completed for "${
-                  job.title
-                }" (${String(job._id)}), applicationId=${String(
-                  applicationId,
-                )}.`,
+                `[Worker] Tailored application created: ${application._id} for ${job.title}. Remaining: ${remainingForStudent}`,
               );
             },
             concurrency,
           );
-
-          // Decrease in-memory remaining for this student so later agents respect it
-          remainingForStudent = Math.max(
-            0,
-            studentDailyLimit - (await countTailoredAppsToday(student._id)),
-          );
         }
       } catch (error) {
         console.error(
-          `❌ Failed to process agent "${agent.agentName || 'Unnamed'}":`,
-          error?.stack || error?.message || error,
+          `❌ Failed agent "${agent.agentName}":`,
+          error?.message || error,
         );
       }
     }
@@ -408,7 +254,6 @@ const startWorker = async () => {
     await connectDb();
     logEnvOnce();
     console.log('✅ DB Worker connected.');
-
     await findAndProcessJobs();
   } catch (err) {
     console.error('❌ Fatal worker error:', err?.stack || err);
@@ -419,12 +264,8 @@ const startWorker = async () => {
       console.log('🔌 Mongo disconnected.');
     } catch {}
 
-    // If you truly want a daemon, keep alive. Otherwise exit cleanly after all awaited work.
     if (toBool(process.env.WORKER_KEEP_ALIVE || 'false')) {
-      console.log(
-        '\n✅ Cycle complete. Keeping process alive for background work...',
-      );
-      // Keep the event loop alive without hot-spinning
+      console.log('\n✅ Cycle complete. Keeping process alive...');
       setInterval(() => {}, 1 << 30);
     } else {
       console.log('\n✅ Cycle complete. Exiting.');

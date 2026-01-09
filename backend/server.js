@@ -38,8 +38,8 @@ async function startHttpServer() {
         'http://127.0.0.1:3000',
         'http://localhost:5000',
         'http://127.0.0.1:5000',
-        'http://127.0.0.1:3003',
-        'http://localhost:3003',
+        'http://127.0.0.1:3002',
+        'http://localhost:3002',
         'https://zobsai.com',
         'https://dev.zobsai.com',
       ],
@@ -56,11 +56,11 @@ async function startHttpServer() {
 
   const shutdown = async (signal) => {
     console.log(`${signal} received. Shutting down.`);
-    try {
-      // await stopWorkerSupervisor();
-    } catch (e) {
-      console.error('[WorkerSupervisor] stop failed:', e?.message || e);
-    }
+    // try {
+    //   await stopWorkerSupervisor();
+    // } catch (e) {
+    //   console.error('[WorkerSupervisor] stop failed:', e?.message || e);
+    // }
     io.close();
     server.close(() => process.exit(0));
   };

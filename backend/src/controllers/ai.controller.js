@@ -16,13 +16,105 @@ import Tesseract from 'tesseract.js';
 import mongoose from 'mongoose';
 import { processTailoredApplication } from '../utils/tailoredApply.background.js';
 import { StudentCV } from '../models/students/studentCV.model.js';
-import { StudentCL } from '../models/students/studentCL.model.js'; // NEW MODEL
+import { StudentCL } from '../models/students/studentCL.model.js';
 import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.js';
 import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
 import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
 import { computeATS } from '../utils/calculateATSScore.js';
 import axios from 'axios';
+import { CV_TEMPLATES } from '../utils/cv/cssTemplates.js';
+
+import pdf from 'pdf-parse';
+import redisClient from '../config/redis.js';
+
+/**
+ * Extract plain text from an uploaded file (PDF, DOCX, TXT)
+ * @param {Object} file - Multer file object (memory storage)
+ * @returns {Promise<string>}
+ */
+
+async function runOCR(buffer) {
+  const {
+    data: { text },
+  } = await Tesseract.recognize(buffer, 'eng', {
+    logger: () => {}, // silence logs
+  });
+
+  return text || '';
+}
+
+export async function extractTextFromFile(file) {
+  if (!file || !file.buffer) {
+    throw new Error('No file buffer provided');
+  }
+
+  const { mimetype, buffer, originalname } = file;
+
+  // ---------- PDF ----------
+  if (mimetype === 'application/pdf') {
+    const data = await pdf(buffer);
+
+    // ✅ Text-based PDF
+    if (data.text && data.text.trim().length > 50) {
+      return normalizeText(data.text);
+    }
+
+    // 🔥 Scanned PDF → OCR fallback
+    const ocrText = await runOCR(buffer);
+    if (!ocrText.trim()) {
+      throw new Error('Scanned PDF contains no readable text');
+    }
+    return normalizeText(ocrText);
+  }
+
+  // ---------- DOCX ----------
+  if (
+    mimetype ===
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) {
+    const result = await mammoth.extractRawText({ buffer });
+    if (!result.value?.trim()) {
+      throw new Error('DOCX contains no extractable text');
+    }
+    return normalizeText(result.value);
+  }
+
+  // ---------- TXT ----------
+  if (mimetype === 'text/plain') {
+    const text = buffer.toString('utf-8');
+    if (!text.trim()) {
+      throw new Error('Text file is empty');
+    }
+    return normalizeText(text);
+  }
+
+  // ---------- IMAGES (OCR) ----------
+  if (
+    mimetype === 'image/png' ||
+    mimetype === 'image/jpeg' ||
+    mimetype === 'image/jpg'
+  ) {
+    const ocrText = await runOCR(buffer);
+    if (!ocrText.trim()) {
+      throw new Error('Image contains no readable text');
+    }
+    return normalizeText(ocrText);
+  }
+
+  throw new Error(`Unsupported file type: ${originalname} (${mimetype})`);
+}
+
+/**
+ * Basic cleanup to avoid garbage input for AI
+ */
+function normalizeText(text) {
+  return text
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
 
 // --------Helper Functions---------
 
@@ -68,17 +160,13 @@ const extractTextFromBuffer = async (file) => {
 
 function stripHtmlToText(html = '') {
   if (typeof html !== 'string') return '';
-  // remove scripts/styles
   const withoutScripts = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '');
-  // replace breaks/paragraphs with newlines
   const withNewlines = withoutScripts
     .replace(/<\/p>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n');
-  // remove remaining tags
   const noTags = withNewlines.replace(/<[^>]+>/g, '');
-  // collapse whitespace
   return noTags.replace(/\r?\n\s*\r?\n/g, '\n\n').trim();
 }
 
@@ -286,8 +374,6 @@ export const getSingleTailoredApplication = async (req, res) => {
       _id: applicationId,
     });
 
-    console.log(student);
-
     if (!student) {
       return res.status(404).json({ error: 'CV not found' });
     }
@@ -308,21 +394,7 @@ export const deleteSingleCV = async (req, res) => {
     const { _id: userId } = req.user;
 
     // First find the CV to get file paths
-    const student = await Student.findOne({ _id: userId, 'cvs._id': cvId });
-
-    if (!student) {
-      return res.status(404).json({ error: 'CV not found' });
-    }
-
-    const cvToDelete = student.cvs.id(cvId);
-
-    // Delete associated file from storage if exists
-    if (cvToDelete.filePath) {
-      await deleteFileFromStorage(cvToDelete.filePath);
-    }
-
-    // Remove from database
-    await Student.updateOne({ _id: userId }, { $pull: { cvs: { _id: cvId } } });
+    const student = await StudentCV.deleteOne({ student: userId, _id: cvId });
 
     res.status(200).json({
       success: true,
@@ -340,21 +412,7 @@ export const deleteSingleCL = async (req, res) => {
     const { _id: userId } = req.user;
 
     // First find the CV to get file paths
-    const student = await Student.findOne({ _id: userId, 'cls._id': clId });
-
-    if (!student) {
-      return res.status(404).json({ error: 'CV not found' });
-    }
-
-    const clToDelete = student.cls.id(clId);
-
-    // Delete associated file from storage if exists
-    if (clToDelete.filePath) {
-      await deleteFileFromStorage(clToDelete.filePath);
-    }
-
-    // Remove from database
-    await Student.updateOne({ _id: userId }, { $pull: { cls: { _id: clId } } });
+    const student = await StudentCL.deleteOne({ student: userId, _id: clId });
 
     res.status(200).json({
       success: true,
@@ -372,31 +430,14 @@ export const deleteSingleTailoredApplication = async (req, res) => {
     const { _id: userId } = req.user;
 
     // First find the student to get the tailored application details
-    const student = await Student.findOne({
-      _id: userId,
-      'tailoredApplications._id': appId,
+    const student = await StudentTailoredApplication.deleteOne({
+      student: userId,
+      _id: appId,
     });
 
     if (!student) {
       return res.status(404).json({ error: 'Tailored application not found' });
     }
-
-    const tailoredApplicationToDelete = student.tailoredApplications.id(appId);
-
-    if (!tailoredApplicationToDelete) {
-      return res.status(404).json({ error: 'Tailored application not found' });
-    }
-
-    // Delete associated file from storage if exists
-    if (tailoredApplicationToDelete.filePath) {
-      await deleteFileFromStorage(tailoredApplicationToDelete.filePath);
-    }
-
-    // Remove from database - FIXED: pulling from tailoredApplications, not cls
-    await Student.updateOne(
-      { _id: userId },
-      { $pull: { tailoredApplications: { _id: appId } } },
-    );
 
     res.status(200).json({
       success: true,
@@ -426,16 +467,13 @@ export const renameHtmlCV = async (req, res) => {
       });
     }
 
-    const student = await Student.findOneAndUpdate(
+    const student = await StudentCV.findOneAndUpdate(
       {
-        _id,
-        'cvs._id': id,
+        student: _id,
+        _id: id,
       },
       {
-        $set: {
-          'cvs.$.cvTitle': title.trim(),
-          'cvs.$.updatedAt': new Date(),
-        },
+        cvTitle: title.trim(),
       },
       { new: true },
     );
@@ -478,16 +516,13 @@ export const renameCoverLetter = async (req, res) => {
       });
     }
 
-    const student = await Student.findOneAndUpdate(
+    const student = await StudentCL.findOneAndUpdate(
       {
-        _id,
-        'coverLetter._id': id, // <-- 4. Find using the ID from params
+        student: _id,
+        _id: id,
       },
       {
-        $set: {
-          'coverLetter.$.coverLetterTitle': title.trim(), // <-- 5. Set using 'title'
-          'coverLetter.$.updatedAt': new Date(),
-        },
+        clTitle: title.trim(),
       },
       { new: true },
     );
@@ -546,12 +581,54 @@ export const generateCVByJobId = async (req, res) => {
   await initiateCVGeneration(req, res, job.description, jobTitle);
 };
 
+export const getAllTemplates = async (req, res) => {
+  const templates = CV_TEMPLATES;
+  res.json(templates);
+};
+
+export const changeTempateCV = async (req, res) => {
+  const { _id } = req.user;
+  const { id } = req.params;
+  const { template } = req.body;
+
+  const templates = CV_TEMPLATES;
+
+  if (!id || !template) {
+    return res.status(400).json({ error: 'CV ID and template are required' });
+  }
+
+  if (!templates[template]) {
+    return res.status(400).json({ error: 'Invalid template' });
+  }
+
+  const student = await StudentCV.findOneAndUpdate(
+    {
+      student: _id,
+      _id: id,
+    },
+    {
+      template: template,
+      updatedAt: new Date(),
+    },
+    { new: true },
+  );
+
+  if (!student) {
+    return res.status(404).json({ error: 'CV not found or user unauthorized' });
+  }
+
+  res.json({
+    message: 'CV template changed successfully',
+    newTemplate: template,
+    cvId: id,
+  });
+};
+
 export const refreshStatus = async (req, res) => {
   const { type, id } = req.params;
   const { _id: userId } = req.user;
 
   const modelName = getModelForType(type);
-  console.log(modelName);
   if (!modelName) {
     return res.status(400).json({ error: 'Invalid type' });
   }
@@ -706,6 +783,35 @@ export const generateCoverLetterByJobId = async (req, res) => {
   await initiateCoverLetterGeneration(req, res, job.description);
 };
 
+export const deleteSingleStudentSavedCV = async (req, res) => {
+  const { studentId, cvId } = req.params;
+  try {
+    const cv = await StudentHtmlCV.findByIdAndDelete(cvId);
+    if (!cv) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+    return res.json({ success: true, message: 'CV deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting CV:', error);
+    return res.status(500).json({ error: 'Failed to delete CV' });
+  }
+};
+
+export const deleteSingleStudentSavedCL = async (req, res) => {
+  const { studentId, clId } = req.params;
+  try {
+    const cl = await StudentCoverLetter.findByIdAndDelete(clId);
+    if (!cl) {
+      return res.status(404).json({ error: 'CL not found' });
+    }
+
+    return res.json({ success: true, message: 'CL deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting CL:', error);
+    return res.status(500).json({ error: 'Failed to delete CL' });
+  }
+};
+
 export const saveStudentHTMLCV = async (req, res) => {
   const { _id: studentId } = req.user;
   const { html, title, ats } = req.body;
@@ -737,6 +843,88 @@ export const saveStudentHTMLCV = async (req, res) => {
     console.error('Error saving HTML CV:', error);
     return res.status(500).json({
       error: 'Failed to save HTML CV',
+      message: error.message,
+    });
+  }
+};
+
+export const renameSavedStudentCV = async (req, res) => {
+  const { _id: studentId } = req.user;
+  const { cvId } = req.params;
+  const { title } = req.body;
+
+  if (mongoose.Types.ObjectId.isValid(cvId) === false) {
+    return res.status(400).json({ error: 'Invalid CV ID' });
+  }
+
+  try {
+    const cv = await StudentHtmlCV.findOneAndUpdate(
+      {
+        _id: cvId,
+        student: studentId,
+      },
+      {
+        htmlCVTitle: title,
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!cv) {
+      return res.status(404).json({ error: 'CV not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'HTML CV renamed successfully',
+      data: cv,
+    });
+  } catch (error) {
+    console.error('Error renaming HTML CV:', error);
+    return res.status(500).json({
+      error: 'Failed to rename HTML CV',
+      message: error.message,
+    });
+  }
+};
+
+export const renameSavedStudentCL = async (req, res) => {
+  const { _id: studentId } = req.user;
+  const { clId } = req.params;
+  const { title } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(clId)) {
+    return res.status(400).json({ error: 'Invalid CL ID' });
+  }
+
+  try {
+    const cl = await StudentCoverLetter.findOneAndUpdate(
+      {
+        _id: clId,
+        student: studentId,
+      },
+      {
+        coverLetterTitle: title,
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!cl) {
+      return res.status(404).json({ error: 'CL not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'HTML CL renamed successfully',
+      data: cl,
+    });
+  } catch (error) {
+    console.error('Error renaming HTML CL:', error);
+    return res.status(500).json({
+      error: 'Failed to rename HTML CL',
       message: error.message,
     });
   }
@@ -894,6 +1082,7 @@ export const createTailoredApply = async (req, res) => {
 
   try {
     let jobDetails;
+
     if (jobId) {
       if (!mongoose.Types.ObjectId.isValid(jobId)) {
         return res.status(400).json({ error: 'Invalid Job ID format' });
@@ -903,10 +1092,11 @@ export const createTailoredApply = async (req, res) => {
       if (!jobFromDb) {
         return res.status(404).json({ error: 'Job not found in database' });
       }
+
       jobDetails = {
-        title: jobFromDb.title || jobFromDb.jobTitle || 'Untitled',
-        company: jobFromDb.company || jobFromDb.companyName || 'Unknown',
-        description: jobFromDb.description || jobFromDb.jobDescription || '',
+        title: jobFromDb.title || 'Untitled',
+        company: jobFromDb.company || 'Unknown',
+        description: jobFromDb.description || '',
       };
     } else if (jobTitle && companyName && jobDescription) {
       jobDetails = {
@@ -914,10 +1104,18 @@ export const createTailoredApply = async (req, res) => {
         company: companyName,
         description: jobDescription,
       };
+    } else if (req.files?.jobDescriptionFile?.[0]) {
+      const jdFile = req.files.jobDescriptionFile[0];
+      const extractedText = await extractTextFromFile(jdFile);
+
+      jobDetails = {
+        title: jobTitle || 'Untitled Role',
+        company: companyName || 'Unknown Company',
+        description: extractedText,
+      };
     } else {
       return res.status(400).json({
-        error:
-          'Job information is required. Provide either a jobId or the jobTitle, companyName, and jobDescription.',
+        error: 'Job info required: jobId, manual JD, or JD file upload',
       });
     }
 
@@ -946,9 +1144,12 @@ export const createTailoredApply = async (req, res) => {
         return res.status(422).json({ error: 'Saved CV has no content' });
       }
     } else if (req.file) {
-      return res
-        .status(400)
-        .json({ error: 'File upload not fully implemented in this snippet' });
+      const extractedText = await extractTextFromFile(jdFile); // PDF/DOC parser
+      jobDetails = {
+        title: jobTitle || 'Untitled Role',
+        company: companyName || 'Unknown Company',
+        description: extractedText,
+      };
     } else {
       return res.status(400).json({
         error:
@@ -984,12 +1185,6 @@ export const createTailoredApply = async (req, res) => {
     };
 
     const io = req.app.get('io');
-
-    console.log(
-      'Tailored application generation has started. ',
-      newApplication._id,
-      applicationData,
-    );
 
     processTailoredApplication(
       _id,

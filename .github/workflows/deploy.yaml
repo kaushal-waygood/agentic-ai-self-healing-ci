@@ -40,6 +40,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ======================================================
+      # NEW: Run Tests inside Docker (Dependencies from Dockerfile)
+      # ======================================================
+      # - name: Build Test Image
+      #   # We target the 'test-stage' we created in the Dockerfile
+      #   run: docker build --target test-stage -t backend-test ./backend
+
+      # - name: Run Backend Tests
+      #   # If this command fails (exit code 1), the workflow STOPS here.
+      #   run: docker run --rm backend-test npm test
+
       # -------------------------------
       # Build & Push Backend Image
       # -------------------------------

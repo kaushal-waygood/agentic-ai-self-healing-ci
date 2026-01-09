@@ -45,6 +45,11 @@ export const footerLinks = {
       badge: null,
       link: '/terms-of-service',
     },
+    {
+      name: 'Cancellation & Refund Policy',
+      badge: null,
+      link: '/cancellation-refundpolicy',
+    },
     { name: 'Cookie Policy', badge: null, link: '/cookie-policy' },
   ],
 };

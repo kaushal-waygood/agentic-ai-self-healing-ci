@@ -301,21 +301,6 @@ const JobWizard = ({
                       onFocus={() => setIsFocused(true)}
                       onBlur={() => setIsFocused(false)}
                     />
-                    <div
-                      className={`absolute top-6 right-6 transition-all duration-300 ${
-                        isFocused ? 'scale-110 rotate-12' : ''
-                      }`}
-                    >
-                      <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg">
-                        <FileSignature
-                          className={`h-6 w-6 ${
-                            charCount >= 200
-                              ? 'text-green-600'
-                              : 'text-gray-400'
-                          }`}
-                        />
-                      </div>
-                    </div>
 
                     {/* Progress indicator */}
                     {charCount > 0 && (
@@ -335,7 +320,7 @@ const JobWizard = ({
                   </div>
 
                   {/* Enhanced Character Counter */}
-                  <div className="flex justify-between items-center">
+                  <div className="flex  flex-wrap justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div
                         className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
@@ -359,11 +344,9 @@ const JobWizard = ({
                         {200 - charCount} more characters needed
                       </span>
                     )}
-                  </div>
 
-                  <div className="flex flex-col gap-4">
                     <Button
-                      className={`h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
+                      className={`h-16 text-lg  font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                         charCount >= 200 && !isLoading
                           ? 'hover:shadow-2xl hover:shadow-pink-500/50 text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -386,23 +369,6 @@ const JobWizard = ({
                         </>
                       )}
                     </Button>
-                    {/* 
-                    <div className="flex items-start gap-3  p-2 rounded-lg border-2 border-purple-100 shadow-sm">
-                      <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg flex-shrink-0">
-                        <Zap className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900 ">
-                          Pro Tips for Best Results:
-                        </p>
-                        <p className="text-sm text-gray-700 leading-relaxed">
-                          Include job requirements, key responsibilities,
-                          required skills, and company culture. The more
-                          detailed the job description, the better your cover
-                          letter will be optimized!
-                        </p>
-                      </div>
-                    </div> */}
                   </div>
                 </div>
               </TabsContent>

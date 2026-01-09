@@ -11,25 +11,61 @@ const studentSchema = new Schema(
     email: { type: String, required: true, unique: true },
     phone: String,
 
-    profileImage: String,
-    resumeUrl: String,
+    profileImage: {
+      type: String,
+      default: null,
+    },
+    resumeUrl: {
+      type: String,
+      default: null,
+    },
 
-    jobRole: String,
-    location: String,
+    jobRole: {
+      type: String,
+      default: null,
+    },
+    location: {
+      type: String,
+      default: null,
+    },
 
     hasCompletedOnboarding: { type: Boolean, default: false },
 
     jobPreferences: {
-      preferredJobTypes: [String],
-      preferredCities: [String],
-      preferredCountries: [String],
-      preferredSalary: {
-        min: Number,
-        currency: String,
-        period: String,
+      preferredJobTypes: {
+        type: [String],
+        default: [],
       },
-      immediateAvailability: Boolean,
-      isRemote: Boolean,
+      preferredCities: {
+        type: [String],
+        default: [],
+      },
+      preferredCountries: {
+        type: [String],
+        default: [],
+      },
+      preferredSalary: {
+        min: {
+          type: Number,
+          default: null,
+        },
+        currency: {
+          type: String,
+          default: null,
+        },
+        period: {
+          type: String,
+          default: null,
+        },
+      },
+      immediateAvailability: {
+        type: Boolean,
+        default: false,
+      },
+      isRemote: {
+        type: Boolean,
+        default: false,
+      },
     },
 
     settings: {

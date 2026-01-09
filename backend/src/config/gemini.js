@@ -53,17 +53,6 @@ const breaker = {
 const FAILURE_THRESHOLD = 5;
 const COOLDOWN_MS = 30_000;
 
-function canCallLLM() {
-  if (breaker.state === 'OPEN') {
-    if (Date.now() - breaker.lastFailureAt > COOLDOWN_MS) {
-      breaker.state = 'HALF_OPEN';
-      return true;
-    }
-    return false;
-  }
-  return true;
-}
-
 function onSuccess() {
   breaker.state = 'CLOSED';
   breaker.failures = 0;
@@ -88,10 +77,6 @@ export async function generateContent(
     mode = 'text',
   } = {},
 ) {
-  if (!canCallLLM()) {
-    throw new Error('LLM temporarily disabled (circuit breaker open)');
-  }
-
   // 🔥 LOG PROMPT HERE
   logPromptToFile(prompt, { userId, endpoint });
 

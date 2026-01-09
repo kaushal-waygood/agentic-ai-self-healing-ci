@@ -19,6 +19,7 @@ import { JobInteraction } from '../models/jobInteraction.model.js';
 
 // import calculateExperience from '../utils/calculateExperience.js';
 import redisClient from '../config/redis.js';
+import { uploadBufferToCloudinary } from '../middlewares/multer.js';
 
 export const updateJobPreferences = async (req, res) => {
   try {
@@ -156,10 +157,24 @@ export const updateStudentCoreProfile = async (req, res) => {
   const { fullName, phone, jobRole, location } = req.body;
 
   const update = {};
+
   if (fullName !== undefined) update.fullName = fullName;
   if (phone !== undefined) update.phone = phone;
   if (jobRole !== undefined) update.jobRole = jobRole;
   if (location !== undefined) update.location = location;
+
+  // ✅ Handle profile image upload
+  if (req.file) {
+    const uploadResult = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: 'students/profile-images',
+      resource_type: 'image',
+      transformation: [
+        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+      ],
+    });
+
+    update.profileImage = uploadResult.secure_url;
+  }
 
   if (!Object.keys(update).length) {
     return res.status(400).json({ message: 'No valid fields to update' });
@@ -189,9 +204,6 @@ export const updateStudentCoreProfile = async (req, res) => {
     });
   } catch (err) {
     console.error('updateStudentCoreProfile error:', err);
-    if (err.code === 11000) {
-      return res.status(409).json({ message: 'Email already in use' });
-    }
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -330,11 +342,9 @@ export const getProfileCompletion = async (req, res) => {
           skills: Boolean(skills?.length >= 5), // Assumes 5 is a good target
           projects: Boolean(projects?.length > 0),
           jobPreferences: Boolean(
-            student.jobPreferences?.preferredJobTypes?.length > 0 &&
-              student.jobPreferences?.preferredSalary?.min > 0 &&
-              (student.jobPreferences?.preferredCountries?.length > 0 ||
-                student.jobPreferences?.preferredCities?.length > 0 ||
-                student.jobPreferences?.isRemote === true),
+            (student.jobPreferences?.preferredCountries?.length > 0 ||
+              student.jobPreferences?.preferredCities?.length > 0) &&
+              student.jobPreferences?.mustHaveSkills?.length > 0,
           ),
         };
 
@@ -536,42 +546,58 @@ export const addEducation = async (req, res) => {
 };
 
 export const updateEducation = async (req, res) => {
-  const studentId = req.user._id;
-  const { educationId } = req.params;
+  try {
+    const studentId = req.user._id;
+    const { educationId } = req.params;
 
-  const allowed = [
-    'institute',
-    'degree',
-    'fieldOfStudy',
-    'startDate',
-    'endDate',
-    'grade',
-    'country',
-    'isCurrentlyStudying',
-    'order',
-  ];
-
-  const update = {};
-  for (const key of allowed) {
-    if (req.body[key] !== undefined) {
-      update[key] = req.body[key];
+    if (!educationId) {
+      return res.status(400).json({ message: 'Education ID is required' });
     }
+
+    const body = req.body?.data ?? req.body;
+    const update = {};
+
+    // 🔁 FIELD MAPPINGS (frontend → backend)
+    if (body.institution !== undefined) update.institute = body.institution;
+    if (body.degree !== undefined) update.degree = body.degree;
+    if (body.fieldOfStudy !== undefined)
+      update.fieldOfStudy = body.fieldOfStudy;
+    if (body.startDate !== undefined) update.startDate = body.startDate;
+    if (body.endDate !== undefined) update.endDate = body.endDate;
+    if (body.gpa !== undefined) update.grade = body.gpa;
+    if (body.country !== undefined) update.country = body.country;
+    if (body.isCurrentlyStudying !== undefined)
+      update.isCurrentlyStudying = body.isCurrentlyStudying;
+    if (body.order !== undefined) update.order = body.order;
+
+    // 🚫 Prevent empty update
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({
+        message: 'No valid fields provided for update',
+      });
+    }
+
+    const updated = await StudentEducation.findOneAndUpdate(
+      { _id: educationId, student: studentId },
+      { $set: update },
+      { new: true },
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Education not found' });
+    }
+
+    // 🧹 Invalidate cache
+    await redisClient.del(`student:${studentId}:educations`);
+
+    return res.json({
+      success: true,
+      education: updated,
+    });
+  } catch (error) {
+    console.error('Update education error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-
-  const updated = await StudentEducation.findOneAndUpdate(
-    { student: studentId, _id: educationId },
-    { $set: update },
-    { new: true },
-  );
-
-  if (!updated) {
-    return res.status(404).json({ message: 'Education not found' });
-  }
-
-  // Invalidate Cache
-  await redisClient.del(`student:${studentId}:educations`);
-
-  res.json({ success: true, education: updated });
 };
 
 export const deleteEducation = async (req, res) => {
@@ -693,62 +719,138 @@ export const addExperience = async (req, res) => {
   }
 };
 
+// export const updateExperience = async (req, res) => {
+//   const studentId = req.user._id;
+//   const { experienceId } = req.params;
+
+//   const existing = await StudentExperience.findOne({
+//     student: studentId,
+//     _id: experienceId,
+//   });
+
+//   if (!existing) {
+//     return res.status(404).json({ message: 'Experience not found' });
+//   }
+
+//   const allowed = [
+//     'company',
+//     'designation',
+//     'startDate',
+//     'endDate',
+//     'currentlyWorking',
+//     'employmentType',
+//     'location',
+//     'description',
+//     'order',
+//   ];
+
+//   const update = {};
+//   for (const key of allowed) {
+//     console.log('key', key);
+//     if (req.body[key] !== undefined) {
+//       update[key] = req.body[key];
+//     }
+//   }
+
+//   if (
+//     update.startDate !== undefined ||
+//     update.endDate !== undefined ||
+//     update.currentlyWorking !== undefined
+//   ) {
+//     update.experienceYrs = calculateExperience(
+//       update.startDate ?? existing.startDate,
+//       update.endDate ?? existing.endDate,
+//       update.currentlyWorking ?? existing.currentlyWorking,
+//     );
+//   }
+
+//   const updated = await StudentExperience.findOneAndUpdate(
+//     { student: studentId, _id: experienceId },
+//     { $set: update },
+//     { new: true },
+//   );
+
+//   // Invalidate Cache
+//   await redisClient.del(`student:${studentId}:experiences`);
+//   await redisClient.del(`student:${studentId}:profileCompletion`); // Yrs exp might change completion
+
+//   res.json({ success: true, experience: updated });
+// };
+
 export const updateExperience = async (req, res) => {
-  const studentId = req.user._id;
-  const { experienceId } = req.params;
+  try {
+    const studentId = req.user._id;
+    const { experienceId } = req.params;
 
-  const existing = await StudentExperience.findOne({
-    student: studentId,
-    _id: experienceId,
-  });
-
-  if (!existing) {
-    return res.status(404).json({ message: 'Experience not found' });
-  }
-
-  const allowed = [
-    'company',
-    'designation',
-    'startDate',
-    'endDate',
-    'currentlyWorking',
-    'employmentType',
-    'location',
-    'description',
-    'order',
-  ];
-
-  const update = {};
-  for (const key of allowed) {
-    console.log('key', key);
-    if (req.body[key] !== undefined) {
-      update[key] = req.body[key];
+    if (!experienceId) {
+      return res.status(400).json({ message: 'Experience ID is required' });
     }
-  }
 
-  if (
-    update.startDate !== undefined ||
-    update.endDate !== undefined ||
-    update.currentlyWorking !== undefined
-  ) {
-    update.experienceYrs = calculateExperience(
-      update.startDate ?? existing.startDate,
-      update.endDate ?? existing.endDate,
-      update.currentlyWorking ?? existing.currentlyWorking,
+    // ✅ Support both payload shapes
+    const body = req.body?.data ?? req.body;
+
+    const existing = await StudentExperience.findOne({
+      student: studentId,
+      _id: experienceId,
+    });
+
+    if (!existing) {
+      return res.status(404).json({ message: 'Experience not found' });
+    }
+
+    const update = {};
+
+    // ✅ Allowed + mapped fields
+    if (body.company !== undefined) update.company = body.company;
+    if (body.designation !== undefined) update.designation = body.designation;
+    if (body.startDate !== undefined) update.startDate = body.startDate;
+    if (body.endDate !== undefined) update.endDate = body.endDate;
+    if (body.currentlyWorking !== undefined)
+      update.currentlyWorking = body.currentlyWorking;
+    if (body.employmentType !== undefined)
+      update.employmentType = body.employmentType;
+    if (body.location !== undefined) update.location = body.location;
+    if (body.description !== undefined) update.description = body.description;
+    if (body.order !== undefined) update.order = body.order;
+
+    // 🚫 Prevent empty update
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({
+        message: 'No valid fields provided for update',
+      });
+    }
+
+    // 🧮 Recalculate experience years if needed
+    if (
+      update.startDate !== undefined ||
+      update.endDate !== undefined ||
+      update.currentlyWorking !== undefined
+    ) {
+      update.experienceYrs = calculateExperience(
+        update.startDate ?? existing.startDate,
+        update.endDate ?? existing.endDate,
+        update.currentlyWorking ?? existing.currentlyWorking,
+      );
+    }
+
+    const updated = await StudentExperience.findOneAndUpdate(
+      { student: studentId, _id: experienceId },
+      { $set: update },
+      { new: true },
     );
+
+    // 🧹 Invalidate cache
+    await redisClient.del(`student:${studentId}:experiences`);
+    await redisClient.del(`student:${studentId}:profileCompletion`);
+
+    return res.json({
+      success: true,
+      experience: updated,
+    });
+  } catch (error) {
+    console.error('Update experience error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-
-  const updated = await StudentExperience.findOneAndUpdate(
-    { student: studentId, _id: experienceId },
-    { $set: update },
-    { new: true },
-  );
-
-  // Invalidate Cache
-  await redisClient.del(`student:${studentId}:experiences`);
-  await redisClient.del(`student:${studentId}:profileCompletion`); // Yrs exp might change completion
-
-  res.json({ success: true, experience: updated });
 };
 
 export const deleteExperience = async (req, res) => {
@@ -1325,4 +1427,3 @@ export const getRecentAIActivity = async (req, res) => {
     });
   }
 };
-

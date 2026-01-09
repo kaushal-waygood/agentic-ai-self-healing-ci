@@ -161,16 +161,15 @@ export const Navigation = () => {
               <>
                 <Link
                   href={'/login'}
-                  className="px-5 py-3 rounded-xl text-gray-700 hover:text-violet-600 hover:bg-white/15 backdrop-blur-sm transition-all duration-300 hover:shadow-lg font-medium text-sm border border-transparent hover:border-white/20"
+                  className="px-5 py-2 rounded-lg text-gray-700 hover:text-violet-600 hover:bg-white/15 backdrop-blur-sm transition-all duration-300 hover:shadow-lg font-medium text-sm border border-transparent hover:border-white/20"
                 >
                   Sign In
                 </Link>
                 <Button
                   onClick={() => router.push('/signup')}
-                  className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm rounded-xl px-6 py-3 font-semibold text-sm border border-white/20"
+                  className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white transition-all duration-300 transform hover:scale-105 rounded-lg px-5 py-3 font-medium text-sm border border-white/20"
                 >
-                  <span className="relative z-10">Start Free Trial</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                  Start Free Trial
                 </Button>
               </>
             )}

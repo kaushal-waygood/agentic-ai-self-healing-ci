@@ -181,9 +181,8 @@ export function JobStep({
         {/* Header */}
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
-            <div className="absolute inset-0 "></div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative z-10 mb-3">
-              Application Wizard
+            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative z-10">
+              Tailored Application
             </h1>
           </div>
           <p className="text-gray-600 text-sm max-w-2xl mx-auto leading-relaxed">
@@ -271,7 +270,7 @@ export function JobStep({
                   </div>
 
                   {/* Character Counter */}
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-wrap justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div
                         className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
@@ -295,10 +294,6 @@ export function JobStep({
                         {200 - charCount} more characters needed
                       </span>
                     )}
-                  </div>
-
-                  {/* Generate Button */}
-                  <div className="flex flex-col gap-4">
                     <Button
                       className={`h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                         charCount >= 200 && !isLoading
@@ -319,12 +314,16 @@ export function JobStep({
                         </>
                       ) : (
                         <>
-                          <Sparkles className="mr-3 h-6 w-6 animate-pulse" />
+                          <Sparkles className=" h-6 w-6 animate-pulse" />
                           Generate My Cover Letter
-                          <ChevronsRight className="ml-3 h-6 w-6" />
+                          <ChevronsRight className=" h-6 w-6" />
                         </>
                       )}
                     </Button>
+                  </div>
+
+                  {/* Generate Button */}
+                  <div className="flex flex-col gap-4">
                     <div className="flex items-start gap-3  p-2 rounded-lg border-2 border-purple-100 shadow-sm">
                       <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg flex-shrink-0">
                         <Zap className="h-5 w-5 text-white" />

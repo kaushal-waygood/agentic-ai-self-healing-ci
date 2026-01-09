@@ -32,7 +32,7 @@ export type ProfileState = {
   fullName: string;
   email: string;
   phone: string;
-  jobPreference: string;
+  jobRole: string;
   location: string;
   avatar: string;
   uploadedCV?: string;
@@ -71,13 +71,13 @@ export const useProfile = () => {
     (state: RootState) => state.student.students?.[0],
   );
 
-  const studentData = studentWrapper?.student ?? studentWrapper;
+  const studentData = studentWrapper?.student;
 
   const [profile, setProfile] = useState<ProfileState>({
     fullName: '',
     email: '',
     phone: '',
-    jobPreference: '',
+    jobRole: '',
     location: '',
     avatar: '',
     uploadedCV: '',
@@ -89,6 +89,7 @@ export const useProfile = () => {
   const [progress, setProgress] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,13 +103,13 @@ export const useProfile = () => {
       fullName: studentData.fullName ?? '',
       email: studentData.email ?? '',
       phone: studentData.phone ?? '',
-      jobPreference: studentData.jobRole ?? '',
+      jobRole: studentData.jobRole ?? '',
       location: studentData.location ?? '',
-      avatar: studentData.avatar ?? '',
+      avatar: studentData.profileImage ?? '',
       uploadedCV: studentData.resumeUrl ?? '',
     });
 
-    setPreview(studentData.avatar || dummyAvatar);
+    setPreview(studentData.profileImage || dummyAvatar);
   }, [studentData]);
 
   /* -----------------------------
@@ -195,19 +196,30 @@ export const useProfile = () => {
   ------------------------------ */
   const updateProfile = useCallback(async () => {
     try {
-      await apiInstance.patch('/students/profile/update', {
-        fullName: profile.fullName,
-        phone: profile.phone,
-        jobPreference: profile.jobPreference,
-        location: profile.location,
+      const formData = new FormData();
+
+      formData.append('fullName', profile.fullName);
+      formData.append('phone', profile.phone);
+      formData.append('jobRole', profile.jobRole);
+      formData.append('location', profile.location);
+
+      if (profileImageFile) {
+        formData.append('profileImage', profileImageFile);
+      }
+
+      await apiInstance.patch('/students/profile/update', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       dispatch(getStudentDetailsRequest());
       toast({ title: 'Profile updated' });
+
+      // cleanup
+      setProfileImageFile(null);
     } catch {
       toast({ title: 'Profile update failed', variant: 'destructive' });
     }
-  }, [profile, dispatch, toast]);
+  }, [profile, profileImageFile, dispatch, toast]);
 
   return {
     profile,
@@ -232,6 +244,7 @@ export const useProfile = () => {
     handleRemoveFile,
     handleButtonClick,
 
+    setProfileImageFile,
     fileInputRef,
   };
 };
@@ -310,7 +323,6 @@ export const useEducation = () => {
 export const useSkills = () => {
   const dispatch = useDispatch();
   const skills = useSelector((s: RootState) => s.student.skills?.skills || []);
-
   useEffect(() => {
     dispatch(getStudentSkllsRequest());
   }, [dispatch]);

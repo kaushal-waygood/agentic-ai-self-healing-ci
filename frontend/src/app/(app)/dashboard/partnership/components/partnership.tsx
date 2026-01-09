@@ -81,7 +81,7 @@ export default function BringZobsAI() {
     <div className="p-6 max-w-6xl mx-auto">
       {/* HEADER */}
       <div className="text-center space-y-4 mb-8">
-        <h1 className="text-4xl md:text-5xl font-semibold bg-headingTextPrimary bg-clip-text py-1 text-transparent">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative mb-2">
           Bring ZobsAI
         </h1>
         <p className="text-gray-600 text-lg max-w-lg mx-auto">
@@ -182,8 +182,6 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
       };
 
       const res = await apiInstance.post('/user/bring-zobs/student', payload);
-
-      console.log('Student bring response:', res.data);
 
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 1500);

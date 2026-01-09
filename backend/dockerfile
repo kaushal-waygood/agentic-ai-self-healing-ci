@@ -34,3 +34,53 @@ EXPOSE 8080
 
 # Run with PM2
 CMD ["dumb-init", "pm2-runtime", "server.js"]
+<<<<<<< develop
+
+# # ---------------------------
+# # Base Stage (Shared System Deps)
+# # ---------------------------
+# FROM node:18-alpine AS base
+
+# # Install required packages for Chromium/Puppeteer
+# RUN apk add --no-cache \
+#     chromium \
+#     nss \
+#     freetype \
+#     harfbuzz \
+#     ca-certificates \
+#     ttf-freefont \
+#     dumb-init \
+#     pandoc \
+#     && rm -rf /var/cache/apk/*
+
+# ENV PUPPETEER_SKIP_DOWNLOAD=true \
+#     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# WORKDIR /app
+# COPY package*.json ./
+
+# # ---------------------------
+# # Test Stage (Installs ALL dependencies)
+# # ---------------------------
+# FROM base AS test-stage
+# # Install ALL dependencies (including Jest/devDependencies)
+# RUN npm install
+# COPY . .
+# # This image is now ready to run 'npm test'
+
+# # ---------------------------
+# # Production Stage (Installs ONLY Prod dependencies)
+# # ---------------------------
+# FROM base AS production
+# # Install production dependencies only
+# RUN npm install --production && \
+#     npm install pm2 -g && \
+#     npm cache clean --force
+
+# COPY . .
+
+# EXPOSE 8080
+
+# CMD ["dumb-init", "pm2-runtime", "server.js"]
+=======
+>>>>>>> main

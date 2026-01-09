@@ -31,6 +31,8 @@ import SavedCoverLetters from './components/SavedCl';
 import FinalResultView from './components/FinalResultView';
 
 import { mockUserProfile, SavedCoverLetter } from '@/lib/data/user';
+import { Console } from 'console';
+import { savedStudentCoverLetterRequest } from '@/redux/reducers/aiReducer';
 
 /* ---------------- helpers ---------------- */
 
@@ -113,8 +115,10 @@ export function CoverLetterGeneratorClient() {
     (state: RootState) => state.student,
   );
 
+  const { letter } = useSelector((state: RootState) => state.ai);
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
+    dispatch(savedStudentCoverLetterRequest());
   }, [dispatch]);
 
   /* ---------------- job ---------------- */
@@ -436,7 +440,7 @@ export function CoverLetterGeneratorClient() {
       </AnimatePresence>
 
       <SavedCoverLetters
-        savedLettersList={savedLettersList}
+        savedLettersList={letter?.html}
         loadSavedLetter={() => {}}
       />
 

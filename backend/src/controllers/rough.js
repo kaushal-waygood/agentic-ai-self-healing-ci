@@ -23,6 +23,30 @@ import { StudentProject } from '../models/students/studentProject.model.js';
 // Helpers / Utility Blocks
 // =======================================================
 
+function parseMonthYearToDate(value) {
+  if (!value || typeof value !== 'string') return null;
+
+  // Accept MM-YYYY or YYYY-MM
+  const match = value.match(/^(\d{2})-(\d{4})$|^(\d{4})-(\d{2})$/);
+  if (!match) return null;
+
+  let month, year;
+
+  if (match[1] && match[2]) {
+    // MM-YYYY
+    month = Number(match[1]) - 1;
+    year = Number(match[2]);
+  } else {
+    // YYYY-MM
+    year = Number(match[3]);
+    month = Number(match[4]) - 1;
+  }
+
+  const date = new Date(year, month, 1);
+
+  return isNaN(date.getTime()) ? null : date;
+}
+
 const normalizeEmploymentType = (type) => {
   if (!type) return 'FULL-TIME';
   const upper = type.toUpperCase().replace('_', '-').replace(' ', '-');
@@ -171,6 +195,7 @@ export async function parseCVData(text, userId) {
     );
     return mapAiResponseToSchema(userId, parsed);
   } catch (err) {
+    console.error(err);
     console.warn('⚠ AI failed -> using fallback');
     return mapFallbackToSchema(userId, parseBasicFromText(text));
   }
@@ -224,14 +249,6 @@ export const extractStudentDataFromCV = async (req, res) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     if (!req.file?.buffer)
       return res.status(400).json({ error: 'No CV uploaded' });
-
-    console.log('=== Upload Debug ===');
-    console.log(
-      'Original:',
-      req.file.originalname,
-      '| Type:',
-      req.file.mimetype,
-    );
 
     const cvUrl = await uploadToCloudinary(req);
     const text = await extractTextFromCV(req.file);

@@ -31,7 +31,6 @@ const Experience = () => {
   const [editData, setEditData] = useState<any | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  console.log('edittdata', editData);
   return (
     <div>
       {/* Header */}
@@ -59,17 +58,17 @@ const Experience = () => {
       <div className="p-2 max-h-[70vh] overflow-y-auto">
         <div className="space-y-4">
           {experiences.length > 0 ? (
-            experiences.map((exp) => (
-              <div
-                key={exp._id}
-                className="bg-white rounded-lg p-5 border border-purple-100"
-              >
+            experiences.map((exp, index) => (
+              <div key={exp._id} className="bg-white rounded-lg p-4 border ">
                 <div className="flex justify-between items-center">
-                  <div className="flex-1 pr-4">
+                  <div className="flex-1">
                     <h4 className="text-lg font-bold text-gray-800">
+                      <span className="text-sm font-semibold text-gray-500 shrink-0 mr-1">
+                        {index + 1}.
+                      </span>
                       {exp.company}
                     </h4>
-                    <p className="text-purple-600 font-medium mt-1">
+                    <p className="text-blue-600 font-medium ">
                       {exp.designation}
                     </p>
                   </div>
@@ -91,14 +90,14 @@ const Experience = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                <div className="mt-2 pt-4 border-t border-gray-100 space-y-2">
                   {exp.description && (
                     <p className="text-gray-600 leading-relaxed">
                       {exp.description}
                     </p>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="flex gap-4 text-sm">
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span>
@@ -106,6 +105,12 @@ const Experience = () => {
                         {formatDateForMonthInput(exp.endDate) || 'Present'}
                       </span>
                     </div>
+                    {exp.experienceYrs > 0 && (
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span>{exp.experienceYrs} years</span>
+                      </div>
+                    )}
 
                     {exp.location && (
                       <div className="flex items-center gap-2 text-gray-600">
@@ -117,7 +122,7 @@ const Experience = () => {
                     )}
                   </div>
 
-                  {exp.technologies?.length > 0 && (
+                  {/* {exp.technologies?.length > 0 && (
                     <div>
                       <p className="text-sm font-medium text-gray-700 mb-2">
                         Technologies:
@@ -133,7 +138,7 @@ const Experience = () => {
                         ))}
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
             ))

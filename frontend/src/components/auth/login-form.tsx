@@ -11,16 +11,7 @@ import * as z from 'zod';
 import { useDispatch } from 'react-redux';
 
 // ICONS
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  Rocket,
-  ArrowRight,
-  Sparkles,
-  Shield,
-} from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 
 // YOUR UTILS AND SERVICES (ensure paths are correct)
 import { useToast } from '@/hooks/use-toast';
@@ -81,50 +72,11 @@ const LoginForm = () => {
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });
-  const EXTENSION_ID = 'mmmbijnmokcdpnabaahhbmioeobobcnb'; // e.g., 'eibpabggcnhbahdgeenoonimfmfajgka'
   async function onSubmit(data: LoginFormValues) {
     try {
       const response = await apiInstance.post('/user/signin', data);
       const { accessToken: token, user } = response.data;
 
-      if (token) {
-        // This condition is fine, but the error happens inside
-        if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
-          chrome.runtime.sendMessage(
-            EXTENSION_ID, // Use the variable here
-            {
-              type: 'SAVE_TOKEN',
-              token: token,
-            },
-            (response) => {
-              // The callback is crucial for debugging
-              if (chrome.runtime.lastError) {
-                // This will give a more specific error in the console!
-                console.error(
-                  'Extension communication error:',
-                  chrome.runtime.lastError.message,
-                );
-                return;
-              }
-
-              if (response && response.success) {
-                console.log(
-                  'Token successfully sent to and saved by extension.',
-                );
-              } else {
-                console.error(
-                  'Failed to send token to extension:',
-                  response ? response.message : 'No response or failure.',
-                );
-              }
-            },
-          );
-        } else {
-          console.log(
-            'ZobsAI Chrome extension not detected. Skipping token send.',
-          );
-        }
-      }
       dispatch(loginRequest(data));
 
       if (user) {
@@ -344,7 +296,7 @@ const LoginForm = () => {
               </Form>
             </div>
 
-            <div className="w-full sm:w-1/2 flex flex-col gap-3 sm:gap-4">
+            <div className="w-full sm:w-1/2 flex flex-col justify-end gap-3 sm:gap-4 sm:border-l-2 border-gray-200 sm:pl-4 ">
               {/* DIVIDER */}
               <div className=" relative my-1 ">
                 <div className="absolute inset-0 flex items-center">
@@ -362,35 +314,6 @@ const LoginForm = () => {
                 <GoogleSignInButton form={loginForm} />
                 <LinkedInSignInButton form={loginForm} />
               </div>
-
-              {/* SIGN UP */}
-              {/* <div className="mt-4 text-center">
-                <p className="text-gray-600 text-xs sm:text-sm">
-                  Don't have an account?{' '}
-                  <Link
-                    href="/signup"
-                    className="text-blue-600 hover:underline"
-                  >
-                    Sign up
-                  </Link>
-                </p>
-              </div> */}
-              {/* SIGN UP – Highlighted CTA */}
-              {/* <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50/60 px-4 py-3 text-center">
-                <p className="text-gray-700 text-sm font-medium">
-                  Don’t have an account?
-                </p>
-
-                <Link
-                  href="/signup"
-                  className="mt-1 inline-flex items-center gap-1
-    text-sm font-semibold text-blue-700
-    hover:text-blue-800 underline underline-offset-4"
-                >
-                  Create an account
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div> */}
 
               {/* SIGN UP – Enhanced with animation */}
               <div className=" relative group">

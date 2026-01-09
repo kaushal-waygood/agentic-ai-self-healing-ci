@@ -39,7 +39,9 @@ const Education = () => {
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <GraduationCap className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">Education</h3>
+          <h3 className="text-xl font-bold text-gray-800">
+            Education ({educations.length})
+          </h3>
         </div>
 
         <button
@@ -53,21 +55,21 @@ const Education = () => {
       </div>
 
       {/* List */}
-      <div className="rounded-xl p-2 max-h-[70vh] overflow-y-auto">
-        <div className="space-y-4">
+      <div className="rounded-lg p-2 max-h-[70vh] overflow-y-auto">
+        <div className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2  gap-4">
           {educations.length > 0 ? (
-            educations.map((edu) => (
-              <div
-                key={edu._id}
-                className="bg-white rounded-lg p-5 border border-blue-100"
-              >
+            educations.map((edu, index) => (
+              <div key={edu._id} className="bg-white rounded-lg p-4 border ">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <h4 className="text-lg font-bold text-gray-800 mb-1">
+                      <span className="text-sm font-semibold text-gray-500 shrink-0 mr-1">
+                        {index + 1}.
+                      </span>
                       {edu.degree}
                     </h4>
-                    <p className="text-blue-600 font-medium">
-                      {edu.institution}
+                    <p className="text-blue-600 font-medium break-all line-clamp-1">
+                      {edu.institute}
                     </p>
                     {edu.fieldOfStudy && (
                       <p className="text-sm text-gray-500 mt-1">
@@ -93,7 +95,7 @@ const Education = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm pt-4 border-t border-gray-100">
+                <div className="flex gap-4 text-sm pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span>
@@ -113,6 +115,12 @@ const Education = () => {
                     <div className="flex items-center gap-2 text-gray-600">
                       <MapPin className="h-4 w-4 text-gray-400" />
                       <span>{edu.country}</span>
+                    </div>
+                  )}
+                  {edu.grade && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Award className="h-4 w-4 text-gray-400" />
+                      <span>grade: {edu.grade}</span>
                     </div>
                   )}
                 </div>
