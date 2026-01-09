@@ -18,6 +18,7 @@ import {
 import { generateEmbedding } from '../config/embedding.js';
 import { JobInteraction } from '../models/jobInteraction.model.js';
 import mongoose, { isObjectIdOrHexString } from 'mongoose';
+import { AppliedJob } from '../models/AppliedJob.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -1220,5 +1221,72 @@ export const getJobStats = async (req, res) => {
       message: 'Server Error',
       error: config.nodeEnv === 'development' ? error.message : undefined,
     });
+  }
+};
+
+export const applyJob = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const studentId = req.user._id;
+
+    const {
+      answers = {}, // { questionId: answer }
+      cvLink = null,
+      coverLetterLink = null,
+      applicationMethod = 'MANUAL',
+    } = req.body;
+    console.log(req.body);
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // 🔒 Validate required questions
+    for (const q of job.screeningQuestions) {
+      if (q.required) {
+        const value = answers[q._id.toString()];
+        if (value === undefined || value === '') {
+          return res.status(400).json({
+            message: `Missing answer for: ${q.question}`,
+          });
+        }
+      }
+    }
+
+    // 🔄 Normalize answers for storage
+    const screeningAnswers = job.screeningQuestions.map((q) => ({
+      questionId: q._id,
+      question: q.question,
+      answer: answers[q._id.toString()],
+    }));
+
+    const application = await AppliedJob.create({
+      student: studentId,
+      job: jobId,
+      applicationMethod,
+      cvLink,
+      coverLetterLink,
+      screeningAnswers,
+    });
+
+    return res.status(201).json({
+      message: 'Job applied successfully',
+      applicationId: application._id,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'You have already applied for this job',
+      });
+    }
+
+    console.error(error);
+    return res.status(500).json({ message: 'Failed to apply for job' });
   }
 };

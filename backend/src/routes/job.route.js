@@ -19,6 +19,7 @@ import {
   trackJobImpressions,
   getJobStats,
   updateJobDescription,
+  applyJob,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -75,4 +76,5 @@ router.get('/experience-levels', getAllExperiences);
 router.get('/:jobId', getSingleJobDetail);
 router.patch('/status/:jobId', authMiddleware, isAnyAdmin, toggleJobStatus);
 
+router.post('/:jobId/apply', authMiddleware, isGeneralUser, applyJob);
 export default router;
