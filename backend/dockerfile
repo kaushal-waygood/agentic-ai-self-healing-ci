@@ -34,6 +34,7 @@ EXPOSE 8080
 
 # Run with PM2
 CMD ["dumb-init", "pm2-runtime", "server.js"]
+<<<<<<< develop
 
 # # ---------------------------
 # # Base Stage (Shared System Deps)
@@ -81,3 +82,5 @@ CMD ["dumb-init", "pm2-runtime", "server.js"]
 # EXPOSE 8080
 
 # CMD ["dumb-init", "pm2-runtime", "server.js"]
+=======
+>>>>>>> main
