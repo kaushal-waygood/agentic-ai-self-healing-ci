@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: wp-zobsai
-  namespace: monitoring
+  namespace: argocd
 spec:
   project: default
 
@@ -18,6 +18,13 @@ spec:
           repository: bitnami/wordpress
           tag: "latest"
           pullPolicy: IfNotPresent
+
+        ## ❤️ Disable readiness probe entirely - will use TCP check instead
+        readinessProbe:
+          enabled: false
+
+        livenessProbe:
+          enabled: false
 
         wordpressUsername: admin
         wordpressPassword: "admin1234!"
@@ -48,6 +55,15 @@ spec:
               name: letsencrypt-prod
               kind: ClusterIssuer
 
+        ## ❤️ Increase memory for WordPress with plugins
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1024Mi"
+            cpu: "1000m"
+
         persistence:
           enabled: true
           storageClass: "local-path"
@@ -73,7 +89,7 @@ spec:
 
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
@@ -104,3 +120,46 @@ spec:
     regex: ^/resources/(.*)
     replacement: /$1
     permanent: true
+---
+# -------------------------------
+# Ingress for blog subdomain (admin access)
+# -------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wp-zobsai-blog
+  namespace: wordpress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: zobsai-blog-rewrite@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - blog.zobsai.com
+      secretName: wp-zobsai-blog-tls
+  rules:
+    - host: blog.zobsai.com
+      http:
+        paths:
+          - path: /wp-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: wp-zobsai
+                port:
+                  number: 80
+---
+# -------------------------------
+# Traefik Middleware for blog rewrite
+# -------------------------------
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: blog-rewrite
+  namespace: wordpress
+spec:
+  redirectRegex:
+    regex: ^/wp-admin/(.*)
+    replacement: /resources/wp-admin/$1
+    permanent: false
