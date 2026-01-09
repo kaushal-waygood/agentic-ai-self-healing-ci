@@ -1,3 +1,4 @@
+# -------------------------------
 name: Build & Deploy ZobsAI (Main)
 
 on:
@@ -21,7 +22,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # ensures all files and history are available
+          fetch-depth: 0 # ensures all files and history are available
 
       # -------------------------------
       # Set Repository Owner
@@ -39,17 +40,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # ======================================================
-      # NEW: Run Tests inside Docker (Dependencies from Dockerfile)
-      # ======================================================
-      # - name: Build Test Image
-      #   # We target the 'test-stage' we created in the Dockerfile
-      #   run: docker build --target test-stage -t backend-test ./backend
-
-      # - name: Run Backend Tests
-      #   # If this command fails (exit code 1), the workflow STOPS here.
-      #   run: docker run --rm backend-test npm test
 
       # -------------------------------
       # Build & Push Backend Image
@@ -113,7 +103,6 @@ jobs:
           else
             echo "Frontend manifest not found at $MANIFEST, skipping."
           fi
-
 
       # -------------------------------
       # Commit & Push Manifest Changes
