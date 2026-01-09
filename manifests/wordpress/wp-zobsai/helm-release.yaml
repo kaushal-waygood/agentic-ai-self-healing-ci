@@ -19,15 +19,30 @@ spec:
           tag: "latest"
           pullPolicy: IfNotPresent
 
-        ## ❤️ Disable readiness probe entirely - will use TCP check instead
+        ## ❤️ Pod annotations to control health checks
+        podAnnotations:
+          prometheus.io/scrape: "false"
+
+        ## ❤️ Override probes with custom config that won't timeout
         readinessProbe:
-          enabled: false
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 300
+          periodSeconds: 60
+          timeoutSeconds: 60
+          failureThreshold: 10
+          successThreshold: 1
 
         livenessProbe:
-          enabled: false
-
-        startupProbe:
-          enabled: false
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 600
+          periodSeconds: 60
+          timeoutSeconds: 60
+          failureThreshold: 5
+          successThreshold: 1
 
         wordpressUsername: admin
         wordpressPassword: "admin1234!"
@@ -109,6 +124,13 @@ spec:
         - /spec/template/spec/containers/0/image
         - /spec/volumeClaimTemplates
         - /spec/revisionHistoryLimit
+    - group: apps
+      kind: Deployment
+      name: wp-zobsai-wordpress
+      namespace: wordpress
+      jsonPointers:
+        - /spec/template/spec/containers/0/readinessProbe
+        - /spec/template/spec/containers/0/livenessProbe
 ---
 # -------------------------------
 # Traefik Middleware for path rewrite
