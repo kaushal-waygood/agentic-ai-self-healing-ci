@@ -206,7 +206,7 @@ export default function BillingPage() {
                 Total Paid
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {formatCurrency(totalPaid, 'usd')}
+                {formatCurrency(totalPaid, 'inr')}
               </p>
             </div>
           </div>
@@ -252,7 +252,7 @@ export default function BillingPage() {
               <p className="text-5xl font-extrabold text-blue-700">
                 {activeRecord
                   ? formatCurrency(
-                      activeRecord?.billingVariant.price.usd,
+                      activeRecord?.billingVariant.price.inr,
                       activeRecord.currency,
                     )
                   : '$0.00'}

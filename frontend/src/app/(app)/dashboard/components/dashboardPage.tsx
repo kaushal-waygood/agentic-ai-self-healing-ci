@@ -838,7 +838,7 @@ export default function DashboardPage() {
     const run = async () => {
       try {
         const res = await apiInstance.get('/students/details');
-        const hasCompleted = res.data.studentDetails.hasCompletedOnboarding;
+        const hasCompleted = res.data.studentDetails?.hasCompletedOnboarding;
 
         if (hasCompleted) {
           // Auto-start tour if onboarding already completed
