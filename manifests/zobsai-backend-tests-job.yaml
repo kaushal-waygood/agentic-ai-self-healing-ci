@@ -15,7 +15,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend-tests
-          image: ghcr.io/zobsai-com/zobsai-backend:<sha>
+          image: ghcr.io/zobsai-com/zobsai-backend:1487bc339f73a21251ce3c400c661b59e3a43993
           command: ["sh", "-c"]
           args:
             - |
