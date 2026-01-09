@@ -20,6 +20,8 @@ import FeedbackPopup from '@/components/ui/feedbackPopup';
 import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import { useRouter } from 'next/navigation';
+import logRocketAnalytics from '@/components/logrocket';
+import { RootState } from '@/redux/rootReducer';
 
 // 1. Define and Create Context
 interface SidebarContextType {
@@ -51,6 +53,30 @@ export default function DashboardLayoutClient({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    // Initialize
+    logRocketAnalytics.init();
+
+    // Global Error Listener for unhandled promise rejections
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      logRocketAnalytics.captureException(
+        new Error(`Unhandled Rejection: ${event.reason}`),
+        { reason: event.reason },
+      );
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener(
+        'unhandledrejection',
+        handleUnhandledRejection,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     const update = () => setIsDesktop(window.innerWidth >= 1024);
@@ -129,37 +155,6 @@ export default function DashboardLayoutClient({
 
   const toggle = () => setIsOpen(!isOpen);
 
-  // const handleMouseEnter = () => {
-  //   if (!isPinned) setIsOpen(true);
-  // };
-
-  // const handleMouseLeave = () => {
-  //   if (!isPinned) setIsOpen(false);
-  // };
-
-  // const handleMouseEnter = () => {
-  //   if (!isPinned && window.innerWidth >= 1024) {
-  //     setIsOpen(true);
-  //   }
-  // };
-
-  // const handleMouseLeave = () => {
-  //   if (!isPinned && window.innerWidth >= 1024) {
-  //     setIsOpen(false);
-  //   }
-  // };
-  // const handleMouseEnter = () => {
-  //   if (window.innerWidth >= 1024 && !isPinned) {
-  //     setIsHovered(true);
-  //   }
-  // };
-
-  // const handleMouseLeave = () => {
-  //   if (window.innerWidth >= 1024 && !isPinned) {
-  //     setIsHovered(false);
-  //   }
-  // };
-
   const handleMouseEnter = () => {
     if (isDesktop && !isPinned) {
       setIsHovered(true);
@@ -189,13 +184,14 @@ export default function DashboardLayoutClient({
   );
 
   useEffect(() => {
-    if (
-      process.env.NEXT_PUBLIC_NODE_ENV === 'development' &&
-      process.env.NEXT_PUBLIC_LOGROCKET_ID
-    ) {
-      LogRocket.init(process.env.NEXT_PUBLIC_LOGROCKET_ID);
+    if (user) {
+      logRocketAnalytics.identify({
+        id: user.id || user._id,
+        email: user.email,
+        name: user.fullName,
+      });
     }
-  }, []);
+  }, [user]);
 
   return (
     <ProtectedRoute>
