@@ -2,21 +2,133 @@ import dayjs from 'dayjs';
 import { User } from '../models/User.model.js';
 import {
   earnCreditsForAction,
-  CREDIT_COSTS,
+  // CREDIT_COSTS,
   spendCredits,
 } from '../utils/credits.js';
 
-const USAGE_LIMIT_INCREMENTS = {
-  CV_GENERATION: { field: 'cvCreation', perUnit: 1 },
-  COVER_LETTER: { field: 'coverLetter', perUnit: 1 },
-  AUTOPILOT_AGENT_CREATE: { field: 'aiAutoApply', perUnit: 1 },
-  TAILORED_APPLY: { field: 'aiMannualApplication', perUnit: 1 },
-  AI_MOCK_INTERVIEW: { field: 'aiApplication', perUnit: 1 },
+// const USAGE_LIMIT_MAP = {
+//   'AI CV Creation': 'cvCreation',
+//   'AI Cover Letter': 'coverLetter',
+//   'AI Tailored Application': 'aiApplication',
+//   'AI Auto Application': 'aiAutoApply',
+//   'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit',
+//   'AI Job Match Score': 'jobMatching',
+//   'AI ATS Score': 'atsScore',
+//   'Manual Application': 'aiMannualApplication',
+// };
 
-  JOB_MATCH_SCORE: { field: 'jobMatching', perUnit: 1 },
-  LINKEDIN_OPTIMISER: null,
-  CV_ATS_SCORE: { field: 'atsScore', perUnit: 1 },
-  CV_ATS_OPTIMISER: null,
+// const USAGE_LIMIT_INCREMENTS = {
+//   // AI CV Creation
+//   AI_CV_CREATION: {
+//     field: USAGE_LIMIT_MAP['AI CV Creation'], // cvCreation
+//     perUnit: 1,
+//   },
+
+//   // AI Cover Letter
+//   AI_COVER_LETTER: {
+//     field: USAGE_LIMIT_MAP['AI Cover Letter'], // coverLetter
+//     perUnit: 1,
+//   },
+
+//   // AI Tailored Application
+//   AI_TAILORED_APPLICATION: {
+//     field: USAGE_LIMIT_MAP['AI Tailored Application'], // aiApplication
+//     perUnit: 1,
+//   },
+
+//   // Manual Application
+//   MANUAL_APPLICATION: {
+//     field: USAGE_LIMIT_MAP['Manual Application'], // aiMannualApplication
+//     perUnit: 1,
+//   },
+
+//   // AI Auto Application
+//   AI_AUTO_APPLICATION: {
+//     field: USAGE_LIMIT_MAP['AI Auto Application'], // aiAutoApply
+//     perUnit: 1,
+//   },
+
+//   // Auto-Apply Daily Limit
+//   AUTO_APPLY_DAILY_LIMIT: {
+//     field: USAGE_LIMIT_MAP['Auto-Apply Daily limit'], // aiAutoApplyDailyLimit
+//     perUnit: 1,
+//   },
+
+//   // AI Job Match Score
+//   AI_JOB_MATCH_SCORE: {
+//     field: USAGE_LIMIT_MAP['AI Job Match Score'], // jobMatching
+//     perUnit: 1,
+//   },
+
+//   // AI ATS Score
+//   AI_ATS_SCORE: {
+//     field: USAGE_LIMIT_MAP['AI ATS Score'], // atsScore
+//     perUnit: 1,
+//   },
+// };
+
+const ITEM_IDS = {
+  CV_GENERATION: 'CV_GENERATION',
+  COVER_LETTER: 'COVER_LETTER',
+  JOB_MATCH_SCORE: 'JOB_MATCH_SCORE',
+  AUTO_APPLY: 'AUTO_APPLY',
+  CV_ATS_SCORE: 'CV_ATS_SCORE',
+  AUTO_APPLY_DAILY_LIMIT: 'AUTO_APPLY_DAILY_LIMIT',
+  AI_TAILORED_APPLICATION: 'AI_TAILORED_APPLICATION',
+};
+
+// --- 2. Define Costs (Must match Frontend UI) ---
+const CREDIT_COSTS = {
+  [ITEM_IDS.CV_GENERATION]: 10,
+  [ITEM_IDS.COVER_LETTER]: 10, // Gives +3 letters based on logic below
+  [ITEM_IDS.JOB_MATCH_SCORE]: 10,
+  [ITEM_IDS.AUTO_APPLY]: 10,
+  [ITEM_IDS.CV_ATS_SCORE]: 10,
+  [ITEM_IDS.AUTO_APPLY_DAILY_LIMIT]: 10,
+  [ITEM_IDS.AI_TAILORED_APPLICATION]: 10,
+};
+
+// --- 3. Define Database Fields ---
+const USAGE_LIMIT_MAP = {
+  'AI CV Creation': 'cvCreation',
+  'AI Cover Letter': 'coverLetter',
+  'AI Auto Application': 'aiAutoApply',
+  'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit',
+  'AI Job Match Score': 'jobMatching',
+  'AI ATS Score': 'atsScore',
+  'AI Tailored Application': 'aiApplication',
+};
+
+// --- 4. Define Logic: What happens when an item is bought? ---
+const USAGE_LIMIT_INCREMENTS = {
+  [ITEM_IDS.CV_GENERATION]: {
+    field: USAGE_LIMIT_MAP['AI CV Creation'], // 'cvCreation'
+    perUnit: 1,
+  },
+  [ITEM_IDS.COVER_LETTER]: {
+    field: USAGE_LIMIT_MAP['AI Cover Letter'], // 'coverLetter'
+    perUnit: 3, // Logic Update: Frontend says "+3 Cover Letters", so we increment by 3 here
+  },
+  [ITEM_IDS.JOB_MATCH_SCORE]: {
+    field: USAGE_LIMIT_MAP['AI Job Match Score'], // 'jobMatching'
+    perUnit: 1,
+  },
+  [ITEM_IDS.AUTO_APPLY]: {
+    field: USAGE_LIMIT_MAP['AI Auto Application'], // 'aiAutoApply'
+    perUnit: 1,
+  },
+  [ITEM_IDS.CV_ATS_SCORE]: {
+    field: USAGE_LIMIT_MAP['AI ATS Score'], // 'atsScore'
+    perUnit: 1,
+  },
+  [ITEM_IDS.AUTO_APPLY_DAILY_LIMIT]: {
+    field: USAGE_LIMIT_MAP['Auto-Apply Daily limit'], // 'aiAutoApplyDailyLimit'
+    perUnit: 1, // Increases daily limit by 1 per purchase (or adjust to 5 if that's the business rule)
+  },
+  [ITEM_IDS.AI_TAILORED_APPLICATION]: {
+    field: USAGE_LIMIT_MAP['AI Tailored Application'], // 'aiApplication'
+    perUnit: 1,
+  },
 };
 
 function computeDailyStreakUpdate(user, { allowRecovery = true } = {}) {
@@ -235,6 +347,7 @@ export const checkoutCredits = async (req, res) => {
   const { _id } = req.user || {};
   const { items } = req.body || {};
 
+
   if (!_id) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
@@ -259,7 +372,8 @@ export const checkoutCredits = async (req, res) => {
         message: 'Each item must have a valid id and quantity > 0',
       });
     }
-    if (!CREDIT_COSTS[item.id]) {
+    // Check against the updated CREDIT_COSTS map
+    if (CREDIT_COSTS[item.id] === undefined) {
       return res.status(400).json({
         success: false,
         message: `Unknown item id: ${item.id}`,
@@ -267,7 +381,7 @@ export const checkoutCredits = async (req, res) => {
     }
   }
 
-  // Compute total cost on the server (never trust client)
+  // Compute total cost on the server
   let totalCost = 0;
   for (const item of normalizedItems) {
     const unitCost = CREDIT_COSTS[item.id];
@@ -302,9 +416,22 @@ export const checkoutCredits = async (req, res) => {
     }
 
     // Spend credits and log transaction
-    await spendCredits(user, totalCost, 'CREDITS_CHECKOUT', {
-      items: normalizedItems,
-    });
+    // Ensure spendCredits function exists and works as expected
+    if (typeof spendCredits === 'function') {
+      await spendCredits(user, totalCost, 'CREDITS_CHECKOUT', {
+        items: normalizedItems,
+      });
+    } else {
+      // Fallback if helper not imported (Logic from original snippet implies it exists)
+      user.credits = currentBalance - totalCost;
+      if (!user.creditTransactions) user.creditTransactions = [];
+      user.creditTransactions.push({
+        amount: -totalCost,
+        type: 'CREDITS_CHECKOUT',
+        meta: { items: normalizedItems },
+        date: new Date(),
+      });
+    }
 
     // Ensure usageLimits exists
     if (!user.usageLimits) {
@@ -314,17 +441,20 @@ export const checkoutCredits = async (req, res) => {
     // Update usage limits according to what was purchased
     for (const item of normalizedItems) {
       const rule = USAGE_LIMIT_INCREMENTS[item.id];
+
+      // If no rule exists, we simply charge credits but don't increase limits (optional behavior)
       if (!rule || !rule.field) continue;
 
       const key = rule.field;
+      // Calculate increment: (Rule Per Unit * Qty Bought)
+      // Example: Buy 1 "Cover Letter" pack -> 3 * 1 = +3 limit
       const inc = (rule.perUnit || 1) * item.quantity;
 
       user.usageLimits[key] = Number(user.usageLimits[key] || 0) + inc;
     }
 
-    // Let Mongoose know nested object changed (to be safe)
-    user.markModified && user.markModified('usageLimits');
-
+    // Let Mongoose know nested object changed
+    user.markModified('usageLimits');
     await user.save();
 
     return res.status(200).json({

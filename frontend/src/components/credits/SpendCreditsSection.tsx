@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Check, Minus, Plus, Sparkles, Crown, Zap } from 'lucide-react'; // Added Crown/Zap
+import { useEffect, useMemo, useState } from 'react';
+import { Check, Minus, Plus, Sparkles, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import apiInstance from '@/services/api';
 
 export interface SpendItem {
   id: string;
@@ -34,7 +35,7 @@ const CATALOG: SpendItem[] = [
     badge: 'Popular',
   },
   {
-    id: 'Cover_GENERATION',
+    id: 'COVER_LETTER',
     name: 'Generate Cover Letter',
     description: 'Generate or enhance up to 3 cover letters.',
     cost: 10,
@@ -48,27 +49,42 @@ const CATALOG: SpendItem[] = [
     cost: 10,
     benefit: 'Job Match Score',
   },
-  // {
-  //   id: 'COVER_LETTER',
-  //   name: 'Featured Job Application',
-  //   description: 'Your applied job moves to top priority for recruiters.',
-  //   cost: 10,
-  //   benefit: 'Priority Placement',
-  // },
-  // {
-  //   id: 'AUTO_APPLY',
-  //   name: 'AI Resume Review',
-  //   description: 'Expert AI-driven resume feedback and improvement.',
-  //   cost: 10,
-  //   benefit: '+1 Resume Credit',
-  // },
-  // {
-  //   id: 'AUTOPILOT_AGENT_CREATE',
-  //   name: 'Cover Letter Pack (3)',
-  //   description: 'Generate or enhance up to 3 cover letters.',
-  //   cost: 10,
-  //   benefit: '+3 Cover Letters',
-  // },
+  {
+    id: 'AUTO_APPLY',
+    name: 'AI Auto Application',
+    description: 'Auto apply to jobs using AI.',
+    cost: 10,
+    benefit: 'Auto Apply',
+  },
+  {
+    id: 'CV_ATS_SCORE',
+    name: 'ATS Score',
+    description: 'Check ATS compatibility of CV.',
+    cost: 10,
+    benefit: 'ATS Score',
+  },
+  {
+    id: 'AUTO_APPLY_DAILY_LIMIT',
+    name: 'Auto Apply Daily Limit',
+    description: 'Increase daily auto apply limit.',
+    cost: 10,
+    benefit: 'Daily Limit Boost',
+  },
+  {
+    // ✅ FIXED: Changed 'AI_TAILOR_APPLICATION' to 'AI_TAILORED_APPLICATION' to match Backend
+    id: 'AI_TAILORED_APPLICATION',
+    name: 'AI Tailored Application',
+    description: 'AI Tailored Application',
+    cost: 10,
+    benefit: 'Tailored Application',
+  },
+];
+
+const WEEKLY_ALLOWED_IDS = [
+  'AUTO_APPLY',
+  'CV_ATS_SCORE',
+  'JOB_MATCH_SCORE',
+  'AUTO_APPLY_DAILY_LIMIT',
 ];
 
 export function SpendCreditsSection({
@@ -77,11 +93,47 @@ export function SpendCreditsSection({
   onCheckout,
 }: SpendCreditsSectionProps) {
   const [cart, setCart] = useState<Record<string, number>>({});
-
-  // FIXED: Typo 'rouer' changed to 'router'
   const router = useRouter();
   const [openHelp, setOpenHelp] = useState(false);
 
+  // Logic State: Plan Details
+  const [planDetails, setPlanDetails] = useState<any>(null);
+
+  // --- Logic: Fetch Plan Details ---
+  useEffect(() => {
+    const fetchPlanDetails = async () => {
+      try {
+        const planResponse = await apiInstance.get('/plan/get-user-plan-type');
+        if (planResponse.data.success) {
+          setPlanDetails(planResponse.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch plan details:', error);
+      }
+    };
+    fetchPlanDetails();
+  }, []);
+
+  // --- Logic: Filter Catalog based on Plan ---
+  const filteredCatalog = useMemo(() => {
+    if (!planDetails?.planType) return CATALOG;
+
+    if (planDetails.planType === 'Free') {
+      return CATALOG;
+    }
+
+    if (planDetails.planType === 'Weekly') {
+      return CATALOG.filter((item) => WEEKLY_ALLOWED_IDS.includes(item.id));
+    }
+
+    if (planDetails.planType === 'Monthly') {
+      return [];
+    }
+
+    return CATALOG;
+  }, [planDetails]);
+
+  // --- Logic: Calculate Costs ---
   const totalCost = useMemo(
     () =>
       Object.entries(cart).reduce((sum, [id, qty]) => {
@@ -96,6 +148,7 @@ export function SpendCreditsSection({
   const hasItems = totalCost > 0;
   const exceedsBalance = totalCost > balance;
 
+  // --- Handlers ---
   const handleAdd = (id: string) => {
     setCart((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
   };
@@ -125,20 +178,10 @@ export function SpendCreditsSection({
     router.push('/dashboard/subscriptions');
   };
 
+  // --- UI Render (Using the design from the second block) ---
   return (
     <div className="mb-8">
-      {/* <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-          <span className="p-2 rounded-lg bg-blue-100">
-            <Sparkles className="w-4 h-4 text-blue-500" />{' '}
-          </span>
-          Spend Credits
-        </h2>
-        <div className="text-xl font-semibold text-gray-600">
-          Balance:{' '}
-          <span className="font-bold text-2xl text-blue-700">{balance}</span>
-        </div>
-      </div> */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
           <span className="p-2 rounded-lg bg-blue-100">
@@ -153,7 +196,6 @@ export function SpendCreditsSection({
             <span className="font-bold text-2xl text-blue-700">{balance}</span>
           </div>
 
-          {/* Help Button */}
           <button
             onClick={() => setOpenHelp(true)}
             className="px-3 py-1.5 text-sm rounded-lg bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 transition"
@@ -163,8 +205,8 @@ export function SpendCreditsSection({
         </div>
       </div>
 
-      {/* Summary / Action Footer */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center  gap-4 mb-4">
+      {/* Summary / Action Footer (UI Block 2 Design) */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-4 mb-4">
         {/* Left: Totals */}
         <div className="text-sm text-gray-700 flex-shrink-0">
           Selected:{' '}
@@ -221,8 +263,10 @@ export function SpendCreditsSection({
         </div>
       </div>
 
+      {/* Catalog Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {CATALOG.map((item) => {
+        {/* LOGIC FIX: Using filteredCatalog instead of CATALOG */}
+        {filteredCatalog.map((item) => {
           const qty = cart[item.id] || 0;
           const lineTotal = item.cost * qty;
 
@@ -249,17 +293,17 @@ export function SpendCreditsSection({
                   🛠 {item.benefit}
                 </p>
 
-                <div className="text-md  font-semibold text-gray-800">
+                <div className="text-md font-semibold text-gray-800">
                   {item.cost} credits
                 </div>
               </div>
 
-              <div className=" flex items-center flex-col justify-between">
-                <div className="flex items-center justify-center ">
+              <div className="flex items-center flex-col justify-between">
+                <div className="flex items-center justify-center">
                   <button
                     onClick={() => handleRemove(item.id)}
                     disabled={qty === 0}
-                    className={`h-8 w-8 flex  items-center justify-center rounded-full border text-xs transition ${
+                    className={`h-8 w-8 flex items-center justify-center rounded-full border text-xs transition ${
                       qty === 0
                         ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -296,6 +340,7 @@ export function SpendCreditsSection({
         })}
       </div>
 
+      {/* Help Modal */}
       {openHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2">
           {/* Overlay */}
@@ -306,7 +351,6 @@ export function SpendCreditsSection({
 
           {/* Modal */}
           <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95">
-            {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
                 How to Spend Credits
@@ -319,7 +363,6 @@ export function SpendCreditsSection({
               </button>
             </div>
 
-            {/* Steps */}
             <div className="space-y-4">
               {[
                 'Select an item you want to redeem',
@@ -340,7 +383,6 @@ export function SpendCreditsSection({
               ))}
             </div>
 
-            {/* Footer */}
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setOpenHelp(false)}
