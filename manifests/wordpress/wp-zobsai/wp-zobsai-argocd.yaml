@@ -1,11 +1,13 @@
+# -------------------------------
+# ArgoCD Application for Zobsai WordPress
+# -------------------------------
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: wp-zobsai
-  namespace: wordpress
+  namespace: monitoring          # ArgoCD namespace
 spec:
   project: default
-
   source:
     repoURL: https://charts.bitnami.com/bitnami
     chart: wordpress
@@ -86,7 +88,7 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: wordpress
+    namespace: wordpress         # Deployment target namespace
 
   syncPolicy:
     automated:
@@ -98,7 +100,7 @@ spec:
 
 ---
 # -------------------------------
-# Middleware to rewrite /resources for public site
+# Middleware to strip /resources from public site
 # -------------------------------
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -137,10 +139,10 @@ metadata:
   namespace: wordpress
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    kubernetes.io/ingress.class: traefik
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: wordpress-resources-rewrite@kubernetescrd
 spec:
+  ingressClassName: traefik
   rules:
     - host: zobsai.com
       http:
@@ -168,10 +170,10 @@ metadata:
   namespace: wordpress
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    kubernetes.io/ingress.class: traefik
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: blog-rewrite@kubernetescrd
 spec:
+  ingressClassName: traefik
   rules:
     - host: blog.zobsai.com
       http:
