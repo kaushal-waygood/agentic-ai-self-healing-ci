@@ -68,7 +68,6 @@
     "jsonwebtoken": "^9.0.2",
     "k6": "^0.0.0",
     "k6-html-reporter": "^0.0.4",
-    "langchain": "^0.3.30",
     "mammoth": "^1.11.0",
     "mongoose": "^8.16.2",
     "morgan": "^1.10.0",

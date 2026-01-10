@@ -68,7 +68,7 @@
         "jspdf": "^2.5.1",
         "jwt-decode": "^4.0.0",
         "logrocket": "^10.1.0",
-        "logrocket-react": "^7.0.0",
+        "logrocket-react": "^6.0.3",
         "lucide-react": "^0.475.0",
         "next": "15.2.3",
         "next-themes": "^0.3.0",
@@ -1669,7 +1669,7 @@
 
     "logrocket": ["logrocket@10.1.0", "", {}, "sha512-wcVb+fkM7V6+nhUkhpTdnY/b31C5xy0hlEEs8UOMZiHFUrv0/2kIV+NjtmOlksniIQmUawC5ozw6ZID4qbJmUg=="],
 
-    "logrocket-react": ["logrocket-react@7.0.0", "", { "peerDependencies": { "logrocket": ">=2.0", "react": ">=19" } }, "sha512-Z401yGYBeugdwl4mpM8ICz5HFNpTtG2eE0LX7q1FpCo1CxxO/GHM6B0/IyM9HzBBWzwnkyiMkcYKKXKV/7MLWw=="],
+    "logrocket-react": ["logrocket-react@6.0.3", "", { "peerDependencies": { "logrocket": ">=2.0", "react": ">=18", "react-dom": ">=18" } }, "sha512-mU2QMFy5lfogXeAb+djy5XcAL5lAxPovRiN62lb4EzeuvuYmXJJmArniK3K2P9Gu02auWTiSwKHISFS0JH+eyA=="],
 
     "long": ["long@2.4.0", "", {}, "sha512-ijUtjmO/n2A5PaosNG9ZGDsQ3vxJg7ZW8vsY8Kp0f2yIZWhSJvjmegV7t+9RPQKxKrvj8yKGehhS+po14hPLGQ=="],
 
