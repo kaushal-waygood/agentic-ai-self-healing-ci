@@ -62,7 +62,7 @@ const planSchema = new Schema(
       type: String,
       required: [true, 'PlanType is required.'],
       unique: true,
-      enum: ['Free', 'Weekly', 'Pro', 'Enterprise'],
+      enum: ['Free', 'Weekly', 'Monthly', 'Enterprise'],
     },
     popular: {
       type: Boolean,

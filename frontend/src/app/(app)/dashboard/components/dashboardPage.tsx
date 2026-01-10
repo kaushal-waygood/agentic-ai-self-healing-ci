@@ -30,6 +30,10 @@ import {
   ArrowUpRight,
   ArrowRightSquare,
   MoveRight,
+  Sparkles,
+  CalendarClock,
+  MousePointerClick,
+  ScanSearch,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -439,16 +443,22 @@ function UsageMeter({ label, used, limit }: any) {
   const getProgressColor = () => {
     if (percentage > 90) return 'bg-red-500';
     if (percentage > 70) return 'bg-yellow-500';
-    return 'bg-purple-500';
+    return 'bg-blue-500';
   };
 
   const formatUsageKey = (key) => {
     const map = {
-      cvCreation: 'CV Creations',
-      coverLetter: 'Cover Letters',
-      aiApplication: 'AI Applications',
-      autoApply: 'Auto-Apply Credits',
+      cvCreation: 'AI CV Creation',
+      coverLetter: 'AI Cover Letter',
+      aiApplication: 'AI Tailored Application',
+      aiAutoApply: 'AI Auto Application',
+      aiAutoApplyDailyLimit: 'Auto-Apply Daily limit',
+      atsScore: ' AI ATS Score',
+      jobMatching: 'AI Job Match Score',
+      aiMannualApplication: 'AI Manual Applications',
     };
+
+    console.log('key', map[key]);
     return map[key] || key;
   };
 
@@ -456,9 +466,23 @@ function UsageMeter({ label, used, limit }: any) {
   const getUsageIcon = (key: any) => {
     const iconMap: any = {
       cvCreation: <FileText className="w-5 h-5 text-blue-500" />,
+
       coverLetter: <Send className="w-5 h-5 text-cyan-500" />,
-      aiApplication: <Zap className="w-5 h-5 text-yellow-500" />,
-      autoApply: <Bot className="w-5 h-5 text-green-500" />,
+
+      aiApplication: <Sparkles className="w-5 h-5 text-purple-500" />,
+
+      aiAutoApply: <Bot className="w-5 h-5 text-yellow-500" />,
+
+      aiAutoApplyDailyLimit: (
+        <CalendarClock className="w-5 h-5 text-orange-500" />
+      ),
+
+      atsScore: <ScanSearch className="w-5 h-5 text-red-500" />,
+
+      jobMatching: <Briefcase className="w-5 h-5 text-indigo-500" />,
+      aiMannualApplication: (
+        <MousePointerClick className="w-5 h-5 text-green-500" />
+      ),
     };
     return iconMap[key] || <Zap className="w-5 h-5 text-gray-500" />;
   };
@@ -838,7 +862,7 @@ export default function DashboardPage() {
     const run = async () => {
       try {
         const res = await apiInstance.get('/students/details');
-        const hasCompleted = res.data.studentDetails.hasCompletedOnboarding;
+        const hasCompleted = res.data.studentDetails?.hasCompletedOnboarding;
 
         if (hasCompleted) {
           // Auto-start tour if onboarding already completed

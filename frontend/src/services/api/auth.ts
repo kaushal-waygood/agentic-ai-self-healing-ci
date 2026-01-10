@@ -40,7 +40,7 @@ export const changePassword = async (payload: {
 
 export const sendEmailPermit = async (payload: {
   email: String;
-  recieverEmail: 'thesiddiqui7@gmail.com';
+  recieverEmail: 'arsalan@helpstudyabroad.com';
   resume: String;
   coverLetter: String;
   jobTitle: String;

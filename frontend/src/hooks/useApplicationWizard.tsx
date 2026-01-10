@@ -614,11 +614,25 @@ export const useApplicationWizard = () => {
       navigateToStep('result');
     } catch (error: any) {
       console.error(error);
+      // toast({
+      //   variant: 'destructive',
+      //   title: 'Generation Failed',
+      //   description:
+      //     error?.response?.data?.message || 'Failed to generate application.',
+      // });
+
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description:
-          error?.response?.data?.message || 'Failed to generate application.',
+        description: (
+          <ul className="list-disc pl-4 space-y-1">
+            {error?.response?.data?.reasons?.map(
+              (reason: string, index: number) => (
+                <li key={index}>{reason}</li>
+              ),
+            )}
+          </ul>
+        ),
       });
       navigateToStep('cl');
     } finally {
@@ -667,7 +681,7 @@ export const useApplicationWizard = () => {
   const handleSendEmail = useCallback(() => {
     apiInstance.post('/user/send-email', {
       senderEmail: student?.email,
-      recieverEmail: 'thesiddiqui7@gmail.com', // This should likely be a variable
+      recieverEmail: 'arsalan@helpstudyabroad.com', // This should likely be a variable
       subject: jobContext?.jobTitle,
       bodyHtml: generatedData.emailDraft,
       htmlResume: generatedData.refinedCv,

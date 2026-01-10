@@ -215,6 +215,7 @@ const MultiStepForm = () => {
           formData={formData}
           onCancel={() => setIsPreviewOpen(false)}
           onConfirm={confirmSubmit}
+          nextStep={nextStep}
         />
       )}
     </div>

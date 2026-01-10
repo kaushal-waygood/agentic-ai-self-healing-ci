@@ -15,14 +15,14 @@ const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
 
 const USAGE_LIMIT_MAP = {
-  'CV Creation': 'cvCreation',
-  'Cover Letter': 'coverLetter',
+  'AI CV Creation': 'cvCreation',
+  'AI Cover Letter': 'coverLetter',
   'AI Tailored Application': 'aiApplication',
-  'AI Auto-Apply Agent': 'aiAutoApply',
+  'AI Auto Application': 'aiAutoApply',
   'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit',
+  'AI Job Match Score': 'jobMatching',
+  'AI ATS Score': 'atsScore',
   'Manual Application': 'aiMannualApplication',
-  'Job Matching': 'jobMatching',
-  'ATS Score': 'atsScore',
 };
 
 const PLAN_RANK = {
@@ -66,6 +66,8 @@ const buildUsageLimitsFromFeatures = (features = []) => {
     if (parsed === null) return; // don't set invalid values
     limits[key] = parsed;
   });
+
+  console.log(limits);
 
   return limits;
 };
@@ -643,9 +645,9 @@ export const handleStripeWebhook = async (req, res) => {
       aiApplication: 0,
       aiAutoApply: 0,
       autoApplyDailyLimit: 0,
-      manualApplication: 0,
       jobMatching: 0,
       atsScore: 0,
+      manualApplication: 0,
       lastReset: new Date(),
     };
 
@@ -975,6 +977,7 @@ export const verifyRazorpayPayment = async (req, res) => {
     }
 
     const variant = safeGetVariant(plan, billingPeriod);
+    console.log(variant);
     if (!variant) {
       throw new Error(`Billing variant '${billingPeriod}' not found.`);
     }
@@ -1026,11 +1029,11 @@ export const verifyRazorpayPayment = async (req, res) => {
       cvCreation: 0,
       coverLetter: 0,
       aiApplication: 0,
-      autoApplyDailyLimit: 0,
-      manualApplication: 0,
+      aiAutoApplyDailyLimit: 0,
       aiAutoApply: 0,
-      jobMatching: 0,
       atsScore: 0,
+      jobMatching: 0,
+      aiMannualApplication: 0,
       lastReset: new Date(),
     };
 
@@ -1253,9 +1256,9 @@ export const createSimplePurchaseDev = async (req, res) => {
         aiApplication: 0,
         aiAutoApply: 0,
         aiAutoApplyDailyLimit: 0,
-        aiMannualApplication: 0,
-        jobMatching: 0,
         atsScore: 0,
+        jobMatching: 0,
+        aiMannualApplication: 0,
         lastReset: new Date(),
       };
 
