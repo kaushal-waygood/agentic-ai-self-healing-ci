@@ -156,7 +156,7 @@ metadata:
   namespace: wordpress
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.middlewares: zobsai-blog-rewrite@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: blog-rewrite@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
@@ -167,13 +167,14 @@ spec:
     - host: blog.zobsai.com
       http:
         paths:
-          - path: /wp-admin
+          - path: /
             pathType: Prefix
             backend:
               service:
-                name: wp-zobsai
+                name: wp-zobsai-wordpress
                 port:
                   number: 80
+
 ---
 # -------------------------------
 # Traefik Middleware for blog rewrite
@@ -185,6 +186,7 @@ metadata:
   namespace: wordpress
 spec:
   redirectRegex:
-    regex: ^/wp-admin/(.*)
-    replacement: /resources/wp-admin/$1
+    regex: ^/(wp-login\.php|wp-admin/(.*))
+    replacement: /resources/$1
     permanent: false
+
