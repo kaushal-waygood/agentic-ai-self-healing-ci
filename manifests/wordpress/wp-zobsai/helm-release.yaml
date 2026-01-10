@@ -51,8 +51,14 @@ spec:
 
         ## ❤️ Make WordPress believe it runs inside /resources
         wordpressExtraConfigContent: |
-          define( 'WP_HOME', 'https://zobsai.com/resources' );
-          define( 'WP_SITEURL', 'https://zobsai.com/resources' );
+          $host = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : 'zobsai.com';
+          if ( $host === 'blog.zobsai.com' ) {
+            define( 'WP_HOME', 'https://blog.zobsai.com/resources' );
+            define( 'WP_SITEURL', 'https://blog.zobsai.com/resources' );
+          } else {
+            define( 'WP_HOME', 'https://zobsai.com/resources' );
+            define( 'WP_SITEURL', 'https://zobsai.com/resources' );
+          }
 
         service:
           type: ClusterIP

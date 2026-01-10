@@ -109,8 +109,14 @@ if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $_SERVER['HTTP_X_FORWARDED_P
 }
 
 // Force front-end and site URLs to the public resources path
-define( 'WP_HOME', 'https://zobsai.com/resources' );
-define( 'WP_SITEURL', 'https://zobsai.com/resources' );
+$host = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : 'zobsai.com';
+if ( $host === 'blog.zobsai.com' ) {
+	define( 'WP_HOME', 'https://blog.zobsai.com/resources' );
+	define( 'WP_SITEURL', 'https://blog.zobsai.com/resources' );
+} else {
+	define( 'WP_HOME', 'https://zobsai.com/resources' );
+	define( 'WP_SITEURL', 'https://zobsai.com/resources' );
+}
 
 // Ensure admin uses SSL
 define( 'FORCE_SSL_ADMIN', true );
