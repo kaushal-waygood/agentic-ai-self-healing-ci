@@ -15,14 +15,14 @@ const stripe = new Stripe(config.stripeSecretKey);
 const stripeWebhookSecret = config.stripeWebhookSecret;
 
 const USAGE_LIMIT_MAP = {
-  'CV Creation': 'cvCreation',
-  'Cover Letter': 'coverLetter',
+  'AI CV Creation': 'cvCreation',
+  'AI Cover Letter': 'coverLetter',
   'AI Tailored Application': 'aiApplication',
-  'AI Auto-Apply Agent': 'aiAutoApply',
+  'AI Auto Application': 'aiAutoApply',
   'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit',
-  'Manual Application': 'aiMannualApplication',
   'AI Job Match Score': 'jobMatching',
   'AI ATS Score': 'atsScore',
+  'Manual Application': 'aiMannualApplication',
 };
 
 const PLAN_RANK = {
@@ -651,9 +651,9 @@ export const handleStripeWebhook = async (req, res) => {
       aiApplication: 0,
       aiAutoApply: 0,
       autoApplyDailyLimit: 0,
-      manualApplication: 0,
       jobMatching: 0,
       atsScore: 0,
+      manualApplication: 0,
       lastReset: new Date(),
     };
 
@@ -1036,10 +1036,10 @@ export const verifyRazorpayPayment = async (req, res) => {
       coverLetter: 0,
       aiApplication: 0,
       aiAutoApplyDailyLimit: 0,
-      aiMannualApplication: 0,
       aiAutoApply: 0,
-      jobMatching: 0,
       atsScore: 0,
+      jobMatching: 0,
+      aiMannualApplication: 0,
       lastReset: new Date(),
     };
 
@@ -1122,8 +1122,6 @@ export const getActivePlan = async (req, res) => {
         .status(404)
         .json({ success: false, message: 'User not found.' });
     }
-
-    console.log('user', user);
 
     const hasActivePlan =
       user.currentPurchase &&
@@ -1270,9 +1268,9 @@ export const createSimplePurchaseDev = async (req, res) => {
         aiApplication: 0,
         aiAutoApply: 0,
         aiAutoApplyDailyLimit: 0,
-        aiMannualApplication: 0,
-        jobMatching: 0,
         atsScore: 0,
+        jobMatching: 0,
+        aiMannualApplication: 0,
         lastReset: new Date(),
       };
 

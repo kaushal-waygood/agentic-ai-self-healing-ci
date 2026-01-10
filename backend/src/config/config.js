@@ -4,10 +4,9 @@ dotenv.config({ quiet: true, override: true, path: ['.env'] }); // No need for s
 // --- Function to get a required environment variable ---
 const getEnv = (key) => {
   const value = process.env[key];
-  // console.log(`[CONFIG] ${key} = ${value}`);
   if (!value) {
     console.error(`❌ Missing critical environment variable: ${key}`);
-    process.exit(1); // Exit the process with an error code
+    process.exit(1);
   }
   return value;
 };
@@ -18,9 +17,9 @@ export const config = {
   port: process.env.PORT || 8080,
   mongoUrl: getEnv('MONGO_URL'),
   nodeEnv: process.env.NODE_ENV,
-  accessTokenSecret: getEnv('ACCESS_TOKEN_SECRET'), // ✅ Longer-lived access token
+  accessTokenSecret: getEnv('ACCESS_TOKEN_SECRET'),
   accessTokenExpiry: '7d',
-  refreshTokenExpiry: '7d', // ✅ Longer-lived refresh token
+  refreshTokenExpiry: '7d',
 
   // External APIs
   rapidJobApi: 'https://jsearch.p.rapidapi.com/search',

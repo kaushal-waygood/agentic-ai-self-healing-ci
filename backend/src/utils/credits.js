@@ -12,7 +12,6 @@ export const CREDIT_COSTS = {
   JOB_MATCH_SCORE: 10,
   CV_ATS_SCORE: 10,
   CV_ATS_OPTIMISER: 20,
-  AI_MOCK_INTERVIEW: 10,
 };
 
 export const CREDIT_EARN = {

@@ -109,44 +109,45 @@ const PlanDropdown = ({
 
           <div className="p-4 space-y-4">
             <UsageTracker
-              label="AI CV Generations"
+              label="AI CV Creation"
               used={cvUsed}
               limit={cvLimit ?? 0}
             />
             <UsageTracker
-              label="AI Cover Letters"
+              label="AI Cover Letter"
               used={coverUsed}
               limit={coverLimit}
             />
             <UsageTracker
-              label="AI Applications"
+              label="AI Tailored Application"
               used={appUsed}
               limit={appLimit ?? 0}
             />
             <UsageTracker
-              label="AI Auto Docs"
+              label="AI Auto Application"
               used={autoDocsUsed}
               limit={autoDocsLimit ?? 0}
             />
             <UsageTracker
-              label="AI Auto Apply Daily limit"
+              label="Auto-Apply Daily limit"
               used={autoDocsDailyLimit}
               limit={autoDocsDailyLimitLimit ?? 0}
+            />
+
+            <UsageTracker
+              label="AI ATS Score"
+              used={atsUsed}
+              limit={atsLimit ?? 0}
+            />
+            <UsageTracker
+              label="AI Job Match Score"
+              used={jobMatchingScore}
+              limit={jobMatchingScoreLimit ?? 0}
             />
             <UsageTracker
               label="AI Manual Application"
               used={manualDocsUsed}
               limit={manualDocsLimit ?? 0}
-            />
-            <UsageTracker
-              label="ATS Score"
-              used={atsUsed}
-              limit={atsLimit ?? 0}
-            />
-            <UsageTracker
-              label="Job Matching Score"
-              used={jobMatchingScore}
-              limit={jobMatchingScoreLimit ?? 0}
             />
           </div>
 
