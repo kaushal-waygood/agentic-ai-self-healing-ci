@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: wp-zobsai
-  namespace: monitoring
+  namespace: argocd
 spec:
   project: default
 
@@ -18,6 +18,31 @@ spec:
           repository: bitnami/wordpress
           tag: "latest"
           pullPolicy: IfNotPresent
+
+        ## ❤️ Pod annotations to control health checks
+        podAnnotations:
+          prometheus.io/scrape: "false"
+
+        ## ❤️ Override probes with custom config that won't timeout
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 300
+          periodSeconds: 60
+          timeoutSeconds: 60
+          failureThreshold: 10
+          successThreshold: 1
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 600
+          periodSeconds: 60
+          timeoutSeconds: 60
+          failureThreshold: 5
+          successThreshold: 1
 
         wordpressUsername: admin
         wordpressPassword: "admin1234!"
@@ -48,6 +73,15 @@ spec:
               name: letsencrypt-prod
               kind: ClusterIssuer
 
+        ## ❤️ Increase memory for WordPress with plugins
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1024Mi"
+            cpu: "1000m"
+
         persistence:
           enabled: true
           storageClass: "local-path"
@@ -73,7 +107,7 @@ spec:
 
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
@@ -90,6 +124,13 @@ spec:
         - /spec/template/spec/containers/0/image
         - /spec/volumeClaimTemplates
         - /spec/revisionHistoryLimit
+    - group: apps
+      kind: Deployment
+      name: wp-zobsai-wordpress
+      namespace: wordpress
+      jsonPointers:
+        - /spec/template/spec/containers/0/readinessProbe
+        - /spec/template/spec/containers/0/livenessProbe
 ---
 # -------------------------------
 # Traefik Middleware for path rewrite
@@ -104,3 +145,48 @@ spec:
     regex: ^/resources/(.*)
     replacement: /$1
     permanent: true
+---
+# -------------------------------
+# Ingress for blog subdomain (admin access)
+# -------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wp-zobsai-blog
+  namespace: wordpress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: blog-rewrite@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - blog.zobsai.com
+      secretName: wp-zobsai-blog-tls
+  rules:
+    - host: blog.zobsai.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wp-zobsai-wordpress
+                port:
+                  number: 80
+
+---
+# -------------------------------
+# Traefik Middleware for blog rewrite
+# -------------------------------
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: blog-rewrite
+  namespace: wordpress
+spec:
+  redirectRegex:
+    regex: ^/(wp-login\.php|wp-admin/(.*))
+    replacement: /resources/$1
+    permanent: false
+

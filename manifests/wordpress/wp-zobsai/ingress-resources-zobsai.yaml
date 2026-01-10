@@ -1,18 +1,31 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: wp-zobsai-resources
+  name: wp-zobsai-rewrite
   namespace: wordpress
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: wordpress-wordpress-rewrite-resources@kubernetescrd
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: traefik
   tls:
     - hosts:
+        - blog.zobsai.com
         - zobsai.com
-      secretName: zobsai-main-tls
+      secretName: zobsai-wp-tls
   rules:
+    - host: blog.zobsai.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wp-zobsai-wordpress
+                port:
+                  number: 80
+
     - host: zobsai.com
       http:
         paths:
