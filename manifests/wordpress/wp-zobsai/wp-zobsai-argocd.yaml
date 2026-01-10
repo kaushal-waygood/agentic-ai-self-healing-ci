@@ -25,7 +25,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /resources
-            port: 8080
+            port: http
           initialDelaySeconds: 300
           periodSeconds: 60
           timeoutSeconds: 60
@@ -35,7 +35,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /resources
-            port: 8080
+            port: http
           initialDelaySeconds: 600
           periodSeconds: 60
           timeoutSeconds: 60
@@ -47,35 +47,9 @@ spec:
         wordpressEmail: admin@zobsai.com
         wordpressBlogName: "Zobsai Blog"
 
-        # Prefer X-Forwarded-Host and detect TLS so WP redirects keep the
-        # original host (blog.zobsai.com) when accessed via Traefik.
         wordpressExtraConfigContent: |
-          $host = '';
-          if ( !empty($_SERVER['HTTP_X_FORWARDED_HOST']) ) {
-            $host = $_SERVER['HTTP_X_FORWARDED_HOST'];
-          } elseif ( !empty($_SERVER['HTTP_HOST']) ) {
-            $host = $_SERVER['HTTP_HOST'];
-          } else {
-            $host = 'zobsai.com';
-          }
-          if ( $host === 'blog.zobsai.com' ) {
-            define( 'WP_HOME', 'https://blog.zobsai.com/resources' );
-            define( 'WP_SITEURL', 'https://blog.zobsai.com/resources' );
-          } else {
-            define( 'WP_HOME', 'https://zobsai.com/resources' );
-            define( 'WP_SITEURL', 'https://zobsai.com/resources' );
-          }
-
-          if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ) {
-            $_SERVER['HTTPS'] = 'on';
-          }
-
-          // Cookie and path settings so admin works under /resources or subdomain
-          define( 'COOKIE_DOMAIN', 'zobsai.com' );
-          define( 'COOKIEPATH', '/resources/' );
-          define( 'SITECOOKIEPATH', '/resources/' );
-
-          define( 'FORCE_SSL_ADMIN', true );
+          define( 'WP_HOME', 'https://zobsai.com/resources' );
+          define( 'WP_SITEURL', 'https://zobsai.com/resources' );
 
         service:
           type: ClusterIP
@@ -110,17 +84,6 @@ spec:
               storageClass: "local-path"
               size: 10Gi
 
-        ## Mount a custom wp-config.php so WP uses the correct URLs/cookies
-        extraVolumes:
-          - name: wp-custom-config
-            configMap:
-              name: wp-custom-config
-
-        extraVolumeMounts:
-          - name: wp-custom-config
-            mountPath: /bitnami/wordpress/wp-config.php
-            subPath: wp-config.php
-
   destination:
     server: https://kubernetes.default.svc
     namespace: wordpress
@@ -133,28 +96,9 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
 
-  ignoreDifferences:
-    - group: apps
-      kind: StatefulSet
-      name: wp-zobsai-mariadb
-      namespace: wordpress
-      jsonPointers:
-        - /spec/template/metadata/annotations
-        - /spec/template/spec/containers/0/env
-        - /spec/template/spec/containers/0/image
-        - /spec/volumeClaimTemplates
-        - /spec/revisionHistoryLimit
-    - group: apps
-      kind: Deployment
-      name: wp-zobsai-wordpress
-      namespace: wordpress
-      jsonPointers:
-        - /spec/template/spec/containers/0/readinessProbe
-        - /spec/template/spec/containers/0/livenessProbe
-
 ---
 # -------------------------------
-# Middleware to strip /resources from public site
+# Middleware to rewrite /resources for public site
 # -------------------------------
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -207,7 +151,7 @@ spec:
               service:
                 name: wp-zobsai-wordpress
                 port:
-                  number: 8080
+                  number: 80
   tls:
     - hosts:
         - zobsai.com
@@ -238,82 +182,8 @@ spec:
               service:
                 name: wp-zobsai-wordpress
                 port:
-                  number: 8080
+                  number: 80
   tls:
     - hosts:
         - blog.zobsai.com
       secretName: wp-zobsai-blog-tls
-
-  ---
-  # Middleware to set forwarded headers so WP sees the blog host/proto
-  apiVersion: traefik.io/v1alpha1
-  kind: Middleware
-  metadata:
-    name: blog-set-headers
-    namespace: wordpress
-  spec:
-    headers:
-      customRequestHeaders:
-        X-Forwarded-Host: "blog.zobsai.com"
-        X-Forwarded-Proto: "https"
-
-  ---
-  # Custom wp-config to force WP URLs/cookies behind Traefik (mounted into pod)
-  apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: wp-custom-config
-    namespace: wordpress
-  data:
-    wp-config.php: |
-      <?php
-      /** Custom wp-config.php for Zobsai blog behind Traefik */
-
-      /** Database settings */
-      define( 'DB_NAME', 'bitnami_wordpress' );
-      define( 'DB_USER', 'bn_wordpress' );
-      define( 'DB_PASSWORD', 'admin1234!' );
-      define( 'DB_HOST', 'wp-zobsai-mariadb:3306' );
-      define( 'DB_CHARSET', 'utf8' );
-      define( 'DB_COLLATE', '' );
-
-      /** Authentication Unique Keys and Salts */
-      define( 'AUTH_KEY',         '{replace-with-your-key}' );
-      define( 'SECURE_AUTH_KEY',  '{replace-with-your-key}' );
-      define( 'LOGGED_IN_KEY',    '{replace-with-your-key}' );
-      define( 'NONCE_KEY',        '{replace-with-your-key}' );
-      define( 'AUTH_SALT',        '{replace-with-your-key}' );
-      define( 'SECURE_AUTH_SALT', '{replace-with-your-key}' );
-      define( 'LOGGED_IN_SALT',   '{replace-with-your-key}' );
-      define( 'NONCE_SALT',       '{replace-with-your-key}' );
-
-      $blog_prefix = '/resources';
-
-      // Fix reverse proxy HTTPS detection
-      if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ) {
-        $_SERVER['HTTPS'] = 'on';
-      }
-
-      // Prefer X-Forwarded-Host when available so admin stays on subdomain
-      $host = !empty($_SERVER['HTTP_X_FORWARDED_HOST']) ? $_SERVER['HTTP_X_FORWARDED_HOST'] : ( !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'zobsai.com' );
-
-      if ( $host === 'blog.zobsai.com' ) {
-        define( 'WP_HOME', 'https://blog.zobsai.com/resources' );
-        define( 'WP_SITEURL', 'https://blog.zobsai.com/resources' );
-        define( 'COOKIE_DOMAIN', 'zobsai.com' );
-        define( 'COOKIEPATH', $blog_prefix . '/' );
-        define( 'SITECOOKIEPATH', $blog_prefix . '/' );
-      } else {
-        define( 'WP_HOME', 'https://zobsai.com/resources' );
-        define( 'WP_SITEURL', 'https://zobsai.com/resources' );
-        define( 'COOKIE_DOMAIN', 'zobsai.com' );
-        define( 'COOKIEPATH', $blog_prefix . '/' );
-        define( 'SITECOOKIEPATH', $blog_prefix . '/' );
-      }
-
-      define( 'FORCE_SSL_ADMIN', true );
-
-      if ( ! defined( 'ABSPATH' ) ) {
-        define( 'ABSPATH', __DIR__ . '/' );
-      }
-      require_once ABSPATH . 'wp-settings.php'
