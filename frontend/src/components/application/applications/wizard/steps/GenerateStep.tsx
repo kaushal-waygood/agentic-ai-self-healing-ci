@@ -91,7 +91,8 @@ export const GenerateStep = ({
     {
       icon: Briefcase,
       label: 'Job Position',
-      value: getJobPositionLabel(),
+      value: jobDetail?.title || 'Not specified',
+      sublabel: jobContext?.company || 'Company not specified',
       color: 'from-purple-500 to-purple-600',
     },
 
