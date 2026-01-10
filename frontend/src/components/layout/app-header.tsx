@@ -274,19 +274,23 @@ const AppHeader = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [usageLimits, setUsageLimits] = useState({
+    aiJobApply: 0,
     cvCreation: 0,
     coverLetter: 0,
-    aiApplication: 0,
     autoApply: 0,
+    atsScore: 0,
+    jobMatching: 0,
     aiAutoApply: 0,
     aiAutoApplyDailyLimit: 0,
     aiMannualApplication: 0,
   });
   const [usageData, setUsageData] = useState({
     aiJobApply: 0,
-    aiCvGenerator: 0,
-    aiCoverLetterGenerator: 0,
-    applications: 0,
+    cvCreation: 0,
+    coverLetter: 0,
+    autoApply: 0,
+    atsScore: 0,
+    jobMatching: 0,
     aiAutoApply: 0,
     aiAutoApplyDailyLimit: 0,
     aiMannualApplication: 0,
@@ -306,6 +310,8 @@ const AppHeader = ({
       applicationLimit: usageLimits.autoApply,
       aiAutoApply: usageLimits.aiAutoApply,
       aiAutoApplyDailyLimit: usageLimits.aiAutoApplyDailyLimit,
+      atsScore: usageLimits.atsScore,
+      jobMatching: usageLimits.jobMatching,
       aiMannualApplication: usageLimits.aiMannualApplication,
     }),
     [usageLimits],
@@ -518,9 +524,9 @@ const AppHeader = ({
             <div id="user-driver" className="relative" ref={userRef}>
               <button
                 onClick={() => handleMenuToggle('user')}
-                className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
+                className="flex items-center space-x-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
               >
-                <div className="w-8 h-8 bg-gradient-to-br  from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white  text-2xl">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl uppercase">
                   {(user?.fullName || ' ').charAt(0)}
                 </div>
                 {/* <ChevronDown className="w-4 h-4 text-slate-600 hidden sm:block" /> */}
@@ -529,7 +535,7 @@ const AppHeader = ({
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
                   <div className="p-4 border-b border-slate-100">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-4xl">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-4xl uppercase">
                         {(user?.fullName || ' ').charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">

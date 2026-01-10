@@ -298,13 +298,26 @@ export function CvGeneratorClient() {
         return;
       }
 
+      // toast({
+      //   variant: 'destructive',
+      //   title: 'Generation Failed',
+      //   description:
+      //     error?.response?.data?.reasons[0] ||
+      //     error?.message ||
+      //     'Something went wrong.',
+      // });
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description:
-          error?.response?.data?.message ||
-          error?.message ||
-          'Something went wrong.',
+        description: (
+          <ul className="list-disc pl-4 space-y-1">
+            {error?.response?.data?.reasons?.map(
+              (reason: string, index: number) => (
+                <li key={index}>{reason}</li>
+              ),
+            )}
+          </ul>
+        ),
       });
 
       setWizardStep('context');

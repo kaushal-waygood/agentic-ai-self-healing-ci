@@ -93,7 +93,7 @@ export function Pricing() {
           </p>
 
           {/* Currency Selector */}
-          <div className="flex items-center justify-center mb-4">
+          {/* <div className="flex items-center justify-center mb-4">
             <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-lg">
               <div className="flex items-center gap-1">
                 <button
@@ -121,7 +121,7 @@ export function Pricing() {
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
         </header>
 
         {/* Loading State */}

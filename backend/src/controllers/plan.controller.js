@@ -21,8 +21,8 @@ const USAGE_LIMIT_MAP = {
   'AI Auto-Apply Agent': 'aiAutoApply',
   'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit',
   'Manual Application': 'aiMannualApplication',
-  'Job Matching': 'jobMatching',
-  'ATS Score': 'atsScore',
+  'AI Job Match Score': 'jobMatching',
+  'AI ATS Score': 'atsScore',
 };
 
 const PLAN_RANK = {
@@ -66,6 +66,8 @@ const buildUsageLimitsFromFeatures = (features = []) => {
     if (parsed === null) return; // don't set invalid values
     limits[key] = parsed;
   });
+
+  console.log(limits);
 
   return limits;
 };
@@ -975,6 +977,7 @@ export const verifyRazorpayPayment = async (req, res) => {
     }
 
     const variant = safeGetVariant(plan, billingPeriod);
+    console.log(variant);
     if (!variant) {
       throw new Error(`Billing variant '${billingPeriod}' not found.`);
     }
@@ -1026,8 +1029,8 @@ export const verifyRazorpayPayment = async (req, res) => {
       cvCreation: 0,
       coverLetter: 0,
       aiApplication: 0,
-      autoApplyDailyLimit: 0,
-      manualApplication: 0,
+      aiAutoApplyDailyLimit: 0,
+      aiMannualApplication: 0,
       aiAutoApply: 0,
       jobMatching: 0,
       atsScore: 0,
@@ -1111,6 +1114,8 @@ export const getActivePlan = async (req, res) => {
         .status(404)
         .json({ success: false, message: 'User not found.' });
     }
+
+    console.log('user', user);
 
     const hasActivePlan =
       user.currentPurchase &&

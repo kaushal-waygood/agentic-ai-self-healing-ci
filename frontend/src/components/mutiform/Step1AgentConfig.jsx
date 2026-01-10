@@ -181,10 +181,10 @@ const Step1AgentConfig = ({
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between pt-6 border-t">
+        <div className="flex justify-between pt-6">
           <button
             onClick={prevStep}
-            className="px-6 py-3 bg-gray-200 rounded-lg"
+            className="px-6 py-3 bg-gray-200 rounded-lg transform hover:scale-105 transition-transform duration-300"
           >
             Back
           </button>
@@ -192,7 +192,9 @@ const Step1AgentConfig = ({
             onClick={nextStep}
             disabled={!canProceed}
             className={`px-6 py-3 rounded-lg ${
-              canProceed ? 'bg-purple-600 text-white' : 'bg-gray-300'
+              canProceed
+                ? 'bg-buttonPrimary text-white transform hover:scale-105 transition-transform duration-300'
+                : 'bg-gray-300'
             }`}
           >
             Next Step

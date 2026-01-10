@@ -194,7 +194,7 @@ export function Footer() {
               }}
             >
               {[
-                { icon: Mail, text: 'hello@zobsai.com', color: 'blue' },
+                { icon: Mail, text: 'info@zobsai.com', color: 'blue' },
                 { icon: MapPin, text: 'New York, NY', color: 'purple' },
               ].map((contact, index) => (
                 <div
@@ -288,7 +288,7 @@ export function Footer() {
                 <Mail className="w-4 h-4 text-blue-400" />
               </div>
               <span className="text-gray-300 font-medium group-hover:text-white transition-colors">
-                hello@zobsai.com
+                info@zobsai.com
               </span>
             </a>
           </div>
