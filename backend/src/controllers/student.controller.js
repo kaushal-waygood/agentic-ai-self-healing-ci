@@ -1907,8 +1907,6 @@ function logPromptToFile(profile, meta = {}) {
       fs.mkdirSync(PROMPT_LOG_DIR, { recursive: true });
     }
 
-    console.log(profile);
-
     const entry = `
 ==============================
 TIMESTAMP: ${new Date().toISOString()}

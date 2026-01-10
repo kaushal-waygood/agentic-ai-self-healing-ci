@@ -361,8 +361,6 @@ export const createPaymentIntent = async (req, res) => {
       const activePlan = userWithPurchase.currentPurchase.plan;
       const plan = await Plan.findById(planId).lean();
 
-      console.log(activePlan.planType === plan.planType);
-
       if (activePlan.planType === plan.planType) {
         return res.status(403).json({
           success: false,
@@ -378,7 +376,6 @@ export const createPaymentIntent = async (req, res) => {
 
       // Block downgrade
       if (newRank > currentRank) {
-        console.log('Downgrading plans before expiry is not allowed.');
         return res.status(403).json({
           success: false,
           message: 'Downgrading plans before expiry is not allowed.',
@@ -461,15 +458,12 @@ export const createPaymentIntent = async (req, res) => {
           .json({ success: false, message: 'Coupon usage limit reached.' });
       }
 
-      console.log('coupon', coupon);
-
       // plan applicability check (coupon.plansApplicable expects Plan _id list)
       if (coupon.plansApplicable && coupon.plansApplicable.length) {
         const allowed = coupon.plansApplicable.some(
           (p) => p.toString() === plan._id.toString(),
         );
 
-        console.log('allowed', allowed);
         if (!allowed) {
           return res.status(400).json({
             success: false,
@@ -1081,8 +1075,6 @@ export const getPaymentStatus = async (req, res) => {
       paymentId: paymentIntentId,
     }).lean();
 
-    console.log('purchase', purchase);
-
     if (!purchase) {
       return res.status(202).json({ success: true, status: 'processing' });
     }
@@ -1211,8 +1203,6 @@ export const createSimplePurchaseDev = async (req, res) => {
         throw new Error('Plan not found.');
       }
 
-      console.log('plan', plan);
-
       const variant = safeGetVariant(plan, period);
       if (!variant) {
         throw new Error('Invalid billing period for this plan.');
@@ -1257,8 +1247,6 @@ export const createSimplePurchaseDev = async (req, res) => {
         variant.features || [],
       );
 
-      console.log('newUsageLimits', newUsageLimits);
-
       user.currentPlan = planId;
       user.currentPurchase = newPurchase._id;
       user.usageLimits = newUsageLimits;
@@ -1273,9 +1261,6 @@ export const createSimplePurchaseDev = async (req, res) => {
         aiMannualApplication: 0,
         lastReset: new Date(),
       };
-
-      console.log(user.usageCounters);
-      console.log(user.usageLimits);
 
       await user.save({ session });
 

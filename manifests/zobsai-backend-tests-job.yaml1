@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zobsai-backend-tests
+  namespace: zobsai
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: backend-tests
+          image: ghcr.io/zobsai-com/zobsai-backend:latest
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "Installing backend dependencies (with dev)..."
+              npm ci --include=dev
+
+              echo "Installing core-js polyfills..."
+              npm install core-js@3
+
+              echo "Running backend tests..."
+              npm test
+          envFrom:
+            - configMapRef:
+                name: zobsai-backend-config
+            - secretRef:
+                name: zobsai-backend-secrets

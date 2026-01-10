@@ -545,51 +545,6 @@ export const addEducation = async (req, res) => {
   }
 };
 
-// export const updateEducation = async (req, res) => {
-//   const studentId = req.user._id;
-//   const { educationId } = req.params;
-
-//   const allowed = [
-//     'institute',
-//     'degree',
-//     'fieldOfStudy',
-//     'startDate',
-//     'endDate',
-//     'grade',
-//     'country',
-//     'isCurrentlyStudying',
-//     'order',
-//   ];
-
-//   console.log('req.body', req.body);
-//   const update = {};
-//   for (const key of allowed) {
-//     console.log('key', key);
-//     if (req.body[key] !== undefined) {
-//       update[key] = req.body[key];
-//     }
-//   }
-
-//   console.log('update', update);
-
-//   const updated = await StudentEducation.findOneAndUpdate(
-//     { student: studentId, _id: educationId },
-//     { $set: update },
-//     { new: true },
-//   );
-
-//   console.log('updated', updated);
-
-//   if (!updated) {
-//     return res.status(404).json({ message: 'Education not found' });
-//   }
-
-//   // Invalidate Cache
-//   await redisClient.del(`student:${studentId}:educations`);
-
-//   res.json({ success: true, education: updated });
-// };
-
 export const updateEducation = async (req, res) => {
   try {
     const studentId = req.user._id;
@@ -833,8 +788,6 @@ export const updateExperience = async (req, res) => {
 
     // ✅ Support both payload shapes
     const body = req.body?.data ?? req.body;
-
-    console.log('normalized body:', body);
 
     const existing = await StudentExperience.findOne({
       student: studentId,

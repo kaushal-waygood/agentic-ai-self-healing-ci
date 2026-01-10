@@ -305,6 +305,7 @@ router.post(
   '/calculate-match',
   authMiddleware,
   isUserOrUniStudent,
+  checkCredits('JOB_MATCHING'),
   calculateJobMatchScore,
 );
 
