@@ -216,6 +216,10 @@ export const updateTourProgress = async (req, res) => {
     const page = req.params.page; // e.g., 'cv-generate'
     const { currentStep, completed } = req.body;
 
+    console.log(req.body);
+
+    console.log(userId, page, currentStep, completed);
+
     if (typeof currentStep !== 'number' && typeof completed !== 'boolean') {
       return res
         .status(400)

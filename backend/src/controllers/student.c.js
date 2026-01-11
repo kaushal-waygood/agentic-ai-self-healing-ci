@@ -223,6 +223,7 @@ export const onboardingProfile = async (req, res) => {
     if (data.fullName) student.fullName = data.fullName;
     if (data.email) student.email = data.email;
     if (data.phone) student.phone = data.phone;
+    if (data.location) student.location = data.location;
     if (data.designation) student.jobRole = data.designation;
 
     // Job preferences
