@@ -86,6 +86,27 @@ const OnboardingPage = () => {
 
   const { students } = useSelector((state: RootState) => state.student);
   const dispatch = useDispatch();
+  const ANALYSIS_MESSAGES = [
+    'Reading your resume…',
+    'Extracting personal details…',
+    'Analyzing your skills…',
+    'Understanding your experience…',
+    'Mapping your education…',
+    'Detecting projects…',
+    'Optimizing your profile…',
+    'Almost done…',
+  ];
+
+  const [analysisMessageIndex, setAnalysisMessageIndex] = useState(0);
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const interval = setInterval(() => {
+      setAnalysisMessageIndex((prev) => (prev + 1) % ANALYSIS_MESSAGES.length);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const [formData, setFormData] = useState({
     // --- Personal Info ---
@@ -291,7 +312,7 @@ const OnboardingPage = () => {
   };
 
   const handleDashboardRedirect = () => {
-    router.push('/dashboard/search-jobs');
+    router.push('/dashboard');
   };
 
   // --- HELPER: Get Title and Icon for the current step ---
@@ -424,9 +445,13 @@ const OnboardingPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <Loader2 className="w-16 h-16 text-purple-600 mx-auto animate-spin" />
-          <h2 className="text-2xl font-bold text-gray-700">
+          {/* <h2 className="text-2xl font-bold text-gray-700">
             Analyzing your resume...
+          </h2> */}
+          <h2 className="text-2xl font-bold text-gray-700 transition-all duration-500">
+            {ANALYSIS_MESSAGES[analysisMessageIndex]}
           </h2>
+
           <p className="text-gray-500">
             Please wait while we extract your information.
           </p>
@@ -602,14 +627,14 @@ const OnboardingPage = () => {
                     <ArrowLeft className="w-5 h-5 mr-2" /> Back
                   </Button>
 
-                  <Button
+                  {/* <Button
                     onClick={handleSkip}
                     variant="outline"
                     className="h-14 px-6 rounded-lg border-2 border-blue-400 transition-all duration-300 text-base font-semibold hover:scale-105"
                   >
                     <SkipForward className="w-5 h-5 mr-2" />{' '}
                     {step === totalSteps ? 'Finish Later' : 'Skip'}
-                  </Button>
+                  </Button> */}
 
                   {step < totalSteps ? (
                     <Button

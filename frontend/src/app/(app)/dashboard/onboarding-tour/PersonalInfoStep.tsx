@@ -37,17 +37,17 @@ const PersonalInfoStep = ({
         />
 
         <Input
-          value={formData.location}
+          value={formData.location || 'India'}
           onChange={(e) => handleInputChange('location', e.target.value)}
           placeholder="Location (e.g., City, Country)"
           className="h-11 text-base bg-white/50  border rounded-lg px-4 "
         />
-        <Input
+        {/* <Input
           value={formData.website}
           onChange={(e) => handleInputChange('website', e.target.value)}
           placeholder="Website (e.g., https://www.example.com)"
           className="h-11 text-base bg-white/50  border rounded-lg px-4 "
-        />
+        /> */}
       </div>
     </div>
   );

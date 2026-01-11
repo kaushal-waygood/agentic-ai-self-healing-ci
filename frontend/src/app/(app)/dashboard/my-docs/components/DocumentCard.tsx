@@ -14,6 +14,7 @@ import apiInstance from '@/services/api';
 import { Download, Loader2, Trash2, RefreshCw, Edit3, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useEffect } from 'react';
 
 export const DocumentCard = ({
   item,
@@ -161,6 +162,20 @@ export const DocumentCard = ({
       setIsRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    if (status === 'completed' || status === 'failed' || docState === 'saved') {
+      return; // stop auto refresh
+    }
+
+    const interval = setInterval(() => {
+      if (!isRefreshing) {
+        handleRefresh();
+      }
+    }, 7000); // 7 seconds
+
+    return () => clearInterval(interval);
+  }, [status, docState, isRefreshing]);
 
   const handleRenameClick = (e: React.MouseEvent) => {
     e.stopPropagation();
