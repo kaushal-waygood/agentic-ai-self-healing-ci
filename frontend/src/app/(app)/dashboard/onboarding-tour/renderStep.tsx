@@ -17,7 +17,6 @@ import JobPreferencesStep from './JobPreferencesStep';
 import { AvailabilityStep } from './AvailabilityStep';
 
 const renderStep = () => {
-  // Pass all necessary state and handlers to each step component
   const stepProps = {
     formData,
     handleInputChange,
@@ -29,7 +28,7 @@ const renderStep = () => {
   const steps = [
     {
       title: 'Personal Information',
-      subtitle: "Let's get to know you better",
+      subtitle: "Let's get to know you better ello",
       icon: User,
       content: <PersonalInfoStep {...stepProps} />,
     },

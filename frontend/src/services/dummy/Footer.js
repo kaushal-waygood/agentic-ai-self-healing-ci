@@ -25,13 +25,23 @@ export const footerLinks = {
   company: [
     // { name: 'About Us', badge: null },
     { name: 'Careers', badge: 'Hiring Soon' },
-    // { name: 'Press', badge: null },
+    {
+      name: 'Blogs',
+      badge: null,
+      link: 'https://blog.zobsai.com/',
+      blank: true,
+    },
     { name: 'Contact', badge: null, link: '/contact-us' },
   ],
   support: [
     { name: 'Help Center', badge: null },
     { name: 'Getting Started', badge: null, link: '/signup' },
-    { name: 'Community', badge: null, link: 'https://wa.link/h30hgg' },
+    {
+      name: 'Community',
+      badge: null,
+      link: 'https://wa.link/h30hgg',
+      blank: true,
+    },
     { name: 'Report Bug', badge: null, link: '/bug-report' },
   ],
   legal: [

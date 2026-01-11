@@ -223,6 +223,7 @@ export const onboardingProfile = async (req, res) => {
     if (data.fullName) student.fullName = data.fullName;
     if (data.email) student.email = data.email;
     if (data.phone) student.phone = data.phone;
+    if (data.location) student.location = data.location;
     if (data.designation) student.jobRole = data.designation;
 
     // Job preferences
@@ -1424,6 +1425,176 @@ export const getRecentAIActivity = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch recent AI activity',
+    });
+  }
+};
+
+/* -------------------- CONTROLLER -------------------- */
+
+const normalizeSkills = (skills = []) =>
+  skills
+    .filter((s) => s?.skill && s.skill.trim() !== '')
+    .map((s, index) => ({
+      skillId: slugify(s.skill, { lower: true, strict: true }),
+      skill: s.skill.trim(),
+      level: s.level || 'BEGINNER',
+      order: index,
+    }));
+
+const normalizeEducation = (education = []) =>
+  education
+    .map((e, index) => {
+      const institute = e.institute?.trim() || e.institution?.trim() || '';
+
+      if (!institute || !e.degree) return null;
+
+      return {
+        educationId: slugify(`${institute}-${e.degree}-${index}`, {
+          lower: true,
+          strict: true,
+        }),
+        institute,
+        degree: e.degree,
+        fieldOfStudy: e.fieldOfStudy || '',
+        country: e.country || '',
+        startDate: e.startDate || '',
+        endDate: e.graduationYear || '',
+        grade: e.grade || '',
+        order: index,
+      };
+    })
+    .filter(Boolean);
+
+const normalizeExperience = (experience = []) =>
+  experience
+    .filter((e) => e?.company && e?.title)
+    .map((e, index) => ({
+      experienceId: slugify(e.company, { lower: true, strict: true }),
+      company: e.company,
+      title: e.title,
+      description: e.description || '',
+      startDate: e.startDate || '',
+      endDate: e.endDate || '',
+      currentlyWorking: false,
+      order: index,
+    }));
+
+const normalizeProjects = (projects = []) =>
+  projects
+    .filter((p) => p?.projectName)
+    .map((p, index) => ({
+      projectId: slugify(p.projectName, { lower: true, strict: true }),
+      projectName: p.projectName,
+      description: p.description || '',
+      technologies: p.technologies
+        ? p.technologies.split(',').map((t) => t.trim())
+        : [],
+      link: p.link || '',
+      order: index,
+    }));
+
+/* ---------------- CONTROLLER ---------------- */
+export const completeStudentOnboarding = async (req, res) => {
+  const session = await mongoose.startSession();
+  const userId = req.user?._id;
+
+  try {
+    await session.withTransaction(async () => {
+      if (!userId) throw new Error('Unauthorized');
+
+      const { data, selectedOptions } = req.body;
+
+      console.log(data);
+
+      if (!data?.fullName || !data?.email) {
+        throw new Error('Missing required fields');
+      }
+
+      // --- Student update ---
+      await Student.findByIdAndUpdate(
+        userId,
+        {
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone || null,
+          jobRole: data.designation || null,
+          location: data.currentLocation || null,
+          jobPreferences: {
+            preferredJobTypes: selectedOptions?.jobType || [],
+            preferredCities: data.preferredLocation
+              ? [data.preferredLocation]
+              : [],
+            preferredSalary: data.expectedSalary
+              ? {
+                  min: Number(data.expectedSalary),
+                  currency: 'INR',
+                  period: 'monthly',
+                }
+              : {},
+            immediateAvailability:
+              selectedOptions?.availability === 'IMMEDIATE',
+          },
+          hasCompletedOnboarding: true,
+        },
+        { session },
+      );
+
+      // --- Delete old profile data ---
+      await StudentSkill.deleteMany({ student: userId }, { session });
+      await StudentEducation.deleteMany({ student: userId }, { session });
+      await StudentExperience.deleteMany({ student: userId }, { session });
+      await StudentProject.deleteMany({ student: userId }, { session });
+
+      // --- Insert new profile data ---
+      const skills = normalizeSkills(data.skills);
+      if (skills.length) {
+        await StudentSkill.insertMany(
+          skills.map((s) => ({ ...s, student: userId })),
+          { session },
+        );
+      }
+
+      const education = normalizeEducation(data.education);
+      if (education.length) {
+        await StudentEducation.insertMany(
+          education.map((e) => ({ ...e, student: userId })),
+          { session },
+        );
+      }
+
+      const experience = normalizeExperience(data.experience);
+      if (experience.length) {
+        await StudentExperience.insertMany(
+          experience.map((e) => ({ ...e, student: userId })),
+          { session },
+        );
+      }
+
+      const projects = normalizeProjects(data.projects);
+      if (projects.length) {
+        await StudentProject.insertMany(
+          projects.map((p) => ({ ...p, student: userId })),
+          { session },
+        );
+      }
+    });
+
+    session.endSession();
+
+    // 🔥 IMPORTANT: invalidate Redis AFTER commit
+    await redisClient.invalidateStudentCache(userId.toString());
+
+    return res.status(200).json({
+      success: true,
+      message: 'Onboarding completed successfully',
+    });
+  } catch (error) {
+    session.endSession();
+    console.error('Onboarding error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to complete onboarding',
     });
   }
 };

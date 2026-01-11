@@ -1,104 +1,8 @@
-// 'use client';
-
-// import { useEffect, useState } from 'react';
-// import { MessageSquare, X, Send } from 'lucide-react';
-
-// interface FeedbackPopupProps {
-//   delay?: number;
-//   forceOpen?: boolean;
-//   onClose?: () => void;
-// }
-
-// export default function FeedbackPopup({
-//   delay = 30000,
-//   forceOpen = false,
-//   onClose,
-// }: FeedbackPopupProps) {
-//   const [open, setOpen] = useState(false);
-//   const [feedback, setFeedback] = useState('');
-
-//   // Auto-open after login
-//   useEffect(() => {
-//     if (sessionStorage.getItem('feedback_shown')) return;
-
-//     const timer = setTimeout(() => {
-//       setOpen(true);
-//       sessionStorage.setItem('feedback_shown', 'true');
-//     }, delay);
-
-//     return () => clearTimeout(timer);
-//   }, [delay]);
-
-//   // Manual open (logout click)
-//   useEffect(() => {
-//     if (forceOpen) {
-//       setOpen(true);
-//     }
-//   }, [forceOpen]);
-
-//   if (!open) return null;
-
-//   const handleClose = () => {
-//     setOpen(false);
-//     onClose?.();
-//   };
-
-//   return (
-//     <div
-//       className="fixed bottom-6 right-6 z-50 w-[340px] rounded-lg
-//                     bg-white shadow-2xl border border-slate-200"
-//     >
-//       {/* Header */}
-//       <div
-//         className="flex items-center justify-between px-4 py-3
-//                      bg-header-gradient-primary
-//                       text-white rounded-t-lg"
-//       >
-//         <div className="flex items-center gap-2">
-//           <MessageSquare className="w-5 h-5" />
-//           <span className="font-semibold text-sm">Quick Feedback</span>
-//         </div>
-//         <button onClick={handleClose}>
-//           <X className="w-4 h-4" />
-//         </button>
-//       </div>
-
-//       {/* Body */}
-//       <div className="p-4 space-y-3 ">
-//         <p className="text-sm text-slate-600">
-//           Before you go, how was your experience?
-//         </p>
-
-//         <textarea
-//           value={feedback}
-//           onChange={(e) => setFeedback(e.target.value)}
-//           placeholder="Your feedback helps us improve..."
-//           className="w-full bg-gray-200 min-h-[80px] resize-none rounded-lg
-//                      border px-3 py-2 text-sm"
-//         />
-
-//         <button
-//           onClick={handleClose}
-//           className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-2 rounded-lg"
-//         >
-//           Submit
-//         </button>
-
-//         <button
-//           onClick={handleClose}
-//           className="w-full text-sm text-slate-500 hover:underline"
-//         >
-//           Skip feedback
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { MessageSquare, X, Send, CheckCircle } from 'lucide-react';
+import apiInstance from '@/services/api';
 
 interface FeedbackPopupProps {
   delay?: number;
@@ -135,12 +39,11 @@ FeedbackPopupProps) {
   };
 
   const handleSubmit = () => {
-    // Optional: send `feedback` to API here
     setSubmitted(true);
 
-    setTimeout(() => {
-      handleClose();
-    }, 3000);
+    apiInstance.post('/user/feedback', {
+      feedback,
+    });
   };
 
   return (

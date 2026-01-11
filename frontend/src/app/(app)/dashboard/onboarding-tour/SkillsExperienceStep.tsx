@@ -40,6 +40,43 @@ interface SkillsExperienceStepProps {
   onAddExperience: () => void;
   onRemoveExperience: (index: number) => void;
 }
+const monthMap = {
+  Jan: '01',
+  Feb: '02',
+  Mar: '03',
+  Apr: '04',
+  May: '05',
+  Jun: '06',
+  Jul: '07',
+  Aug: '08',
+  Sep: '09',
+  Oct: '10',
+  Nov: '11',
+  Dec: '12',
+};
+
+const parseDuration = (value: string) => {
+  if (!value) return { start: '', end: '' };
+
+  const [start, end] = value.split(' - ');
+
+  const parse = (v: string) => {
+    if (!v || v === 'Present') return '';
+    const [mon, yr] = v.split(' ');
+    return `${yr}-${monthMap[mon as keyof typeof monthMap]}`;
+  };
+
+  return {
+    start: parse(start),
+    end: end === 'Present' ? '' : parse(end),
+  };
+};
+
+const formatMonth = (v: string) =>
+  new Date(v + '-01').toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  });
 
 const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
   skills,
@@ -140,7 +177,7 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
                 placeholder="Company Name"
                 className="h-11"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   value={exp.title}
                   onChange={(e) =>
@@ -149,14 +186,55 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
                   placeholder="Job Title"
                   className="h-11"
                 />
-                <Input
-                  value={exp.duration}
-                  onChange={(e) =>
-                    onExperienceChange(index, 'duration', e.target.value)
-                  }
-                  placeholder="e.g., Jan 2022 - Present"
-                  className="h-11"
-                />
+                {(() => {
+                  const { start, end } = parseDuration(exp.duration);
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Input
+                        type="month"
+                        value={start}
+                        onChange={(e) => {
+                          const newStart = e.target.value;
+                          const newEnd = end;
+
+                          const formatted =
+                            newStart && newEnd
+                              ? `${formatMonth(newStart)} - ${formatMonth(
+                                  newEnd,
+                                )}`
+                              : newStart
+                              ? `${formatMonth(newStart)} - Present`
+                              : '';
+
+                          onExperienceChange(index, 'duration', formatted);
+                        }}
+                        className="h-11 p-2"
+                      />
+
+                      <Input
+                        type="month"
+                        value={end}
+                        onChange={(e) => {
+                          const newEnd = e.target.value;
+                          const newStart = start;
+
+                          const formatted =
+                            newStart && newEnd
+                              ? `${formatMonth(newStart)} - ${formatMonth(
+                                  newEnd,
+                                )}`
+                              : newStart
+                              ? `${formatMonth(newStart)} - Present`
+                              : '';
+
+                          onExperienceChange(index, 'duration', formatted);
+                        }}
+                        className="h-11 p-2"
+                      />
+                    </div>
+                  );
+                })()}
               </div>
               <Textarea
                 value={exp.description}

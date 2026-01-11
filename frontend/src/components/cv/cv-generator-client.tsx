@@ -426,8 +426,6 @@ export function CvGeneratorClient() {
         </motion.div>
       </AnimatePresence>
 
-      <SavedCvs resume={resume} loadSavedCv={() => {}} />
-
       {isNamingDialogDisplayed && (
         <AlertDialog open onOpenChange={setIsNamingDialogDisplayed}>
           <AlertDialogContent>
