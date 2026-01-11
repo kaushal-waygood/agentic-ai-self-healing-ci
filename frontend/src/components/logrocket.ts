@@ -1,65 +1,32 @@
 import LogRocket from 'logrocket';
-import setupLogRocketReact from 'logrocket-react';
-
-interface UserData {
-  id: string;
-  email?: string;
-  name?: string;
-  [key: string]: any;
-}
-console.log('logRocketAnalytics');
 
 const logRocketAnalytics = {
   init: () => {
-    const logRocketId = process.env.NEXT_PUBLIC_LOGROCKET_ID;
+    if (typeof window === 'undefined') return;
 
-    // Safety check: Don't run on server or if ID is missing
-    if (typeof window === 'undefined' || !logRocketId) return;
+    const id = process.env.NEXT_PUBLIC_LOGROCKET_ID;
+    if (!id) return;
 
-    // Optional: Only run in production to save quota
-    // if (process.env.NODE_ENV !== 'production') return;
-
-    LogRocket.init(logRocketId, {
-      // Optional security: scrub sensitive input fields
+    LogRocket.init(id, {
       dom: {
         inputSanitizer: true,
       },
     });
-
-    // Integration for React-specific state logging
-    setupLogRocketReact();
   },
 
-  identify: (user: UserData) => {
-    if (user?.id) {
-      const userData: Record<string, string | number | boolean> = {};
+  identify: (user: { id: string; email?: string; name?: string }) => {
+    if (!user?.id) return;
 
-      // Only include defined values
-      if (user.name !== undefined) userData.name = user.name;
-      if (user.email !== undefined) userData.email = user.email;
+    LogRocket.identify(user.id, {
+      email: user.email,
+      name: user.name,
+    });
+  },
 
-      // Spread remaining user properties (filtering out undefined values)
-      Object.keys(user).forEach((key) => {
-        if (
-          key !== 'id' &&
-          key !== 'name' &&
-          key !== 'email' &&
-          user[key] !== undefined
-        ) {
-          userData[key] = user[key];
-        }
-      });
-
-      LogRocket.identify(user.id, userData);
+  captureException: (error: unknown) => {
+    if (error instanceof Error) {
+      LogRocket.captureException(error);
     }
-  },
-
-  captureException: (error: Error, extra?: object) => {
-    LogRocket.captureException(error, { extra });
-  },
-
-  log: (message: string) => {
-    LogRocket.log(message);
   },
 };
 
