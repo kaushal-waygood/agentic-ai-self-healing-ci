@@ -49,7 +49,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
             placeholder="College/University Name"
             className="h-11 text-base"
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2  gap-4">
             <Input
               value={edu.degree || ''}
               onChange={(e) => onchange(index, 'degree', e.target.value)}
@@ -57,12 +57,12 @@ const EducationStep: React.FC<EducationStepProps> = ({
               className="h-11 text-base"
             />
             <Input
-              type="number"
-              value={edu.graduationYear || ''}
-              onChange={(e) =>
-                onchange(index, 'graduationYear', e.target.value)
-              }
-              placeholder="Year"
+              type="month"
+              value={edu.graduationYear ? `${edu.graduationYear}-01` : ''}
+              onChange={(e) => {
+                const year = e.target.value.split('-')[0]; // extract year
+                onchange(index, 'graduationYear', year);
+              }}
               className="h-11 text-base"
             />
           </div>
