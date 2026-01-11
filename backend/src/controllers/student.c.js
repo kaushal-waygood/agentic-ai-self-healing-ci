@@ -1443,17 +1443,27 @@ const normalizeSkills = (skills = []) =>
 
 const normalizeEducation = (education = []) =>
   education
-    .filter((e) => e?.institute && e?.degree)
-    .map((e, index) => ({
-      educationId: slugify(e.institute, { lower: true, strict: true }),
-      institute: e.institute,
-      degree: e.degree,
-      fieldOfStudy: e.fieldOfStudy || '',
-      startDate: e.startDate || '',
-      endDate: e.graduationYear || '',
-      grade: e.grade || '',
-      order: index,
-    }));
+    .map((e, index) => {
+      const institute = e.institute?.trim() || e.institution?.trim() || '';
+
+      if (!institute || !e.degree) return null;
+
+      return {
+        educationId: slugify(`${institute}-${e.degree}-${index}`, {
+          lower: true,
+          strict: true,
+        }),
+        institute,
+        degree: e.degree,
+        fieldOfStudy: e.fieldOfStudy || '',
+        country: e.country || '',
+        startDate: e.startDate || '',
+        endDate: e.graduationYear || '',
+        grade: e.grade || '',
+        order: index,
+      };
+    })
+    .filter(Boolean);
 
 const normalizeExperience = (experience = []) =>
   experience
@@ -1484,22 +1494,23 @@ const normalizeProjects = (projects = []) =>
     }));
 
 /* ---------------- CONTROLLER ---------------- */
-
 export const completeStudentOnboarding = async (req, res) => {
   const session = await mongoose.startSession();
+  const userId = req.user?._id;
 
   try {
     await session.withTransaction(async () => {
-      const userId = req.user?._id;
       if (!userId) throw new Error('Unauthorized');
 
       const { data, selectedOptions } = req.body;
+
+      console.log(data);
+
       if (!data?.fullName || !data?.email) {
         throw new Error('Missing required fields');
       }
 
-      /* ---------- UPDATE STUDENT ---------- */
-
+      // --- Student update ---
       await Student.findByIdAndUpdate(
         userId,
         {
@@ -1528,15 +1539,13 @@ export const completeStudentOnboarding = async (req, res) => {
         { session },
       );
 
-      /* ---------- DELETE OLD DATA ---------- */
-
+      // --- Delete old profile data ---
       await StudentSkill.deleteMany({ student: userId }, { session });
       await StudentEducation.deleteMany({ student: userId }, { session });
       await StudentExperience.deleteMany({ student: userId }, { session });
       await StudentProject.deleteMany({ student: userId }, { session });
 
-      /* ---------- INSERT NEW DATA ---------- */
-
+      // --- Insert new profile data ---
       const skills = normalizeSkills(data.skills);
       if (skills.length) {
         await StudentSkill.insertMany(
@@ -1570,13 +1579,10 @@ export const completeStudentOnboarding = async (req, res) => {
       }
     });
 
-    redisClient.del(`student:${userId}`);
-    redisClient.del(`student:${userId}:skills`);
-    redisClient.del(`student:${userId}:education`);
-    redisClient.del(`student:${userId}:experience`);
-    redisClient.del(`student:${userId}:projects`);
-
     session.endSession();
+
+    // 🔥 IMPORTANT: invalidate Redis AFTER commit
+    await redisClient.invalidateStudentCache(userId.toString());
 
     return res.status(200).json({
       success: true,
