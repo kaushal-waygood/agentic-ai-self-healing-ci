@@ -667,6 +667,7 @@ import {
   StudentAnalytics,
   updateJobPreferences,
   getRecentAIActivity,
+  completeStudentOnboarding,
 } from '../controllers/student.c.js';
 import {
   getCreditsSummary,
@@ -716,9 +717,10 @@ router.post(
   '/profile/onboarding',
   authMiddleware,
   isUserOrUniStudent,
-  onboardingProfile,
+  completeStudentOnboarding,
 );
-router.patch(
+
+router.post(
   '/profile/complete',
   authMiddleware,
   isUserOrUniStudent,

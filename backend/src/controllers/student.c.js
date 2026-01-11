@@ -1428,3 +1428,167 @@ export const getRecentAIActivity = async (req, res) => {
     });
   }
 };
+
+/* -------------------- CONTROLLER -------------------- */
+
+const normalizeSkills = (skills = []) =>
+  skills
+    .filter((s) => s?.skill && s.skill.trim() !== '')
+    .map((s, index) => ({
+      skillId: slugify(s.skill, { lower: true, strict: true }),
+      skill: s.skill.trim(),
+      level: s.level || 'BEGINNER',
+      order: index,
+    }));
+
+const normalizeEducation = (education = []) =>
+  education
+    .filter((e) => e?.institute && e?.degree)
+    .map((e, index) => ({
+      educationId: slugify(e.institute, { lower: true, strict: true }),
+      institute: e.institute,
+      degree: e.degree,
+      fieldOfStudy: e.fieldOfStudy || '',
+      startDate: e.startDate || '',
+      endDate: e.graduationYear || '',
+      grade: e.grade || '',
+      order: index,
+    }));
+
+const normalizeExperience = (experience = []) =>
+  experience
+    .filter((e) => e?.company && e?.title)
+    .map((e, index) => ({
+      experienceId: slugify(e.company, { lower: true, strict: true }),
+      company: e.company,
+      title: e.title,
+      description: e.description || '',
+      startDate: e.startDate || '',
+      endDate: e.endDate || '',
+      currentlyWorking: false,
+      order: index,
+    }));
+
+const normalizeProjects = (projects = []) =>
+  projects
+    .filter((p) => p?.projectName)
+    .map((p, index) => ({
+      projectId: slugify(p.projectName, { lower: true, strict: true }),
+      projectName: p.projectName,
+      description: p.description || '',
+      technologies: p.technologies
+        ? p.technologies.split(',').map((t) => t.trim())
+        : [],
+      link: p.link || '',
+      order: index,
+    }));
+
+/* ---------------- CONTROLLER ---------------- */
+
+export const completeStudentOnboarding = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      const userId = req.user?._id;
+      if (!userId) throw new Error('Unauthorized');
+
+      const { data, selectedOptions } = req.body;
+      if (!data?.fullName || !data?.email) {
+        throw new Error('Missing required fields');
+      }
+
+      /* ---------- UPDATE STUDENT ---------- */
+
+      await Student.findByIdAndUpdate(
+        userId,
+        {
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone || null,
+          jobRole: data.designation || null,
+          location: data.currentLocation || null,
+          jobPreferences: {
+            preferredJobTypes: selectedOptions?.jobType || [],
+            preferredCities: data.preferredLocation
+              ? [data.preferredLocation]
+              : [],
+            preferredSalary: data.expectedSalary
+              ? {
+                  min: Number(data.expectedSalary),
+                  currency: 'INR',
+                  period: 'monthly',
+                }
+              : {},
+            immediateAvailability:
+              selectedOptions?.availability === 'IMMEDIATE',
+          },
+          hasCompletedOnboarding: true,
+        },
+        { session },
+      );
+
+      /* ---------- DELETE OLD DATA ---------- */
+
+      await StudentSkill.deleteMany({ student: userId }, { session });
+      await StudentEducation.deleteMany({ student: userId }, { session });
+      await StudentExperience.deleteMany({ student: userId }, { session });
+      await StudentProject.deleteMany({ student: userId }, { session });
+
+      /* ---------- INSERT NEW DATA ---------- */
+
+      const skills = normalizeSkills(data.skills);
+      if (skills.length) {
+        await StudentSkill.insertMany(
+          skills.map((s) => ({ ...s, student: userId })),
+          { session },
+        );
+      }
+
+      const education = normalizeEducation(data.education);
+      if (education.length) {
+        await StudentEducation.insertMany(
+          education.map((e) => ({ ...e, student: userId })),
+          { session },
+        );
+      }
+
+      const experience = normalizeExperience(data.experience);
+      if (experience.length) {
+        await StudentExperience.insertMany(
+          experience.map((e) => ({ ...e, student: userId })),
+          { session },
+        );
+      }
+
+      const projects = normalizeProjects(data.projects);
+      if (projects.length) {
+        await StudentProject.insertMany(
+          projects.map((p) => ({ ...p, student: userId })),
+          { session },
+        );
+      }
+    });
+
+    redisClient.del(`student:${userId}`);
+    redisClient.del(`student:${userId}:skills`);
+    redisClient.del(`student:${userId}:education`);
+    redisClient.del(`student:${userId}:experience`);
+    redisClient.del(`student:${userId}:projects`);
+
+    session.endSession();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Onboarding completed successfully',
+    });
+  } catch (error) {
+    session.endSession();
+    console.error('Onboarding error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to complete onboarding',
+    });
+  }
+};
