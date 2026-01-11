@@ -269,8 +269,7 @@ const OnboardingPage = () => {
         phone: apiData?.personalInfo?.phone || prev.phone,
         designation: apiData?.personalInfo?.jobRole || prev.designation,
         // FIXED: Map to currentLocation
-        currentLocation:
-          apiData?.personalInfo?.location || prev.currentLocation,
+        location: apiData?.personalInfo?.location || prev.location,
         resume: file,
 
         education:
