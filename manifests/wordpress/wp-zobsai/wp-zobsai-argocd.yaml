@@ -71,6 +71,7 @@ spec:
 
         persistence:
           enabled: true
+          mountPath: /bitnami/wordpress/wp-content
           storageClass: "local-path"
           accessMode: ReadWriteOnce
           size: 10Gi
