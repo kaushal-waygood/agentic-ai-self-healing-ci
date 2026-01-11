@@ -17,6 +17,7 @@ import './styles/footer.css'; // Import the new CSS file
 import { footerLinks, socialLinks } from '@/services/dummy/Footer';
 import Link from 'next/link';
 import Image from 'next/image';
+import apiInstance from '@/services/api';
 
 export function Footer() {
   const [isVisible, setIsVisible] = useState(false);
@@ -56,18 +57,16 @@ export function Footer() {
     }
   }, []);
 
-  const handleNewsletterSubmit = (e) => {
+  const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
     if (!email) return;
 
-    setNewsletterStatus('loading');
-
-    // Simulate API call
-    setTimeout(() => {
+    const res = await apiInstance.post('/user/newsletter', { email });
+    if (res.status === 200) {
       setNewsletterStatus('success');
       setEmail('');
       setTimeout(() => setNewsletterStatus('idle'), 3000);
-    }, 1500);
+    }
   };
 
   const scrollToTop = () => {
@@ -87,6 +86,7 @@ export function Footer() {
       >
         <Link
           href={item.link ? item.link : ''}
+          target={item.blank ? '_blank' : '_self'}
           className="group flex items-center gap-2 text-gray-400 hover:text-white transition-all duration-300 py-1 rounded-lg hover:bg-white/5 px-2 -mx-2"
           onMouseEnter={() => setHoveredLink(`${section}-${index}`)}
           onMouseLeave={() => setHoveredLink(null)}
@@ -230,8 +230,6 @@ export function Footer() {
                     }}
                   >
                     <div className="" />
-                    {/* dot will displayed if uncomment this */}
-                    {/* <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" /> */}
                     {section.charAt(0).toUpperCase() + section.slice(1)}
                   </h4>
                   <ul className="space-y-3">

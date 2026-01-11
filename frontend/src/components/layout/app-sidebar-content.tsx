@@ -690,11 +690,7 @@ export const AppSidebarContent = ({
         href: '/dashboard/partnership',
         icon: Rocket,
       },
-      {
-        title: 'Blogs',
-        href: 'https://zobsai.com/resources/',
-        icon: BookOpen,
-      },
+
       {
         title: 'Refer & Earn',
         href: '/dashboard/referrals',

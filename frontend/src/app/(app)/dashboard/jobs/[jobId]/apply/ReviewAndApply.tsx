@@ -48,8 +48,6 @@ export const ReviewAndApply = ({
         `/jobs/${job._id}/apply`,
         payload,
       );
-
-      console.log('Applied:', response.data);
     } catch (err) {
       console.error(err);
     }

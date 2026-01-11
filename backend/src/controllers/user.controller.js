@@ -18,6 +18,7 @@ import { __dirname } from '../utils/fileUploadingManaging.js';
 import axios from 'axios';
 import qs from 'querystring';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
+import { Feedback } from '../models/feedback.model.js';
 
 /* -------------------------
    Initialization
@@ -1377,5 +1378,31 @@ export const getVerifiedUser = async (req, res) => {
     return res.status(200).json(user);
   } catch (error) {
     return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const feedback = async (req, res) => {
+  const { feedback: message } = req.body;
+  const { _id: userId } = req.user;
+
+  try {
+    const userEmail = await User.findById(userId).select('email').lean();
+    if (!userEmail)
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
+    await Feedback.create({
+      user: userId,
+      message,
+      email: userEmail.email,
+    });
+    return res
+      .status(201)
+      .json({ success: true, message: 'Feedback submitted' });
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
   }
 };

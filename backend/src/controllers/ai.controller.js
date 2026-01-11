@@ -27,6 +27,8 @@ import { CV_TEMPLATES } from '../utils/cv/cssTemplates.js';
 
 import pdf from 'pdf-parse';
 import redisClient from '../config/redis.js';
+import { resolveUser } from '../utils/credits.js';
+import { User } from '../models/User.model.js';
 
 /**
  * Extract plain text from an uploaded file (PDF, DOCX, TXT)
@@ -1301,10 +1303,26 @@ export const calculateJobMatchScore = async (req, res) => {
     if (!jobDescription)
       return res.status(400).json({ error: 'Job description required' });
 
+    const user = await resolveUser(req.user._id);
+
     const student = await Student.findById(req.user._id).lean();
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const result = await calculateJobMatch(jobDescription, student);
+
+    if (result) {
+      try {
+        await User.updateOne(
+          { _id: student._id },
+          { $inc: { 'usageCounters.jobMatching': 1 } },
+        );
+      } catch (incErr) {
+        console.error(
+          `Failed to increment usage for user ${student._id}:`,
+          incErr,
+        );
+      }
+    }
 
     return res.json(result);
   } catch (err) {

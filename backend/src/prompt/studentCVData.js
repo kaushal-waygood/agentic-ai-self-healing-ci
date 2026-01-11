@@ -20,6 +20,7 @@ Example JSON format:
   "fullName": "John Doe",
   "email": "johndoe@example.com",
   "phone": "+91 1234567890",
+  "location": "New York, NY",
   "profileImage": "https://example.com/profile.jpg",
   "resumeUrl": "https://example.com/resume.pdf",
   "jobRole": "Full Stack Developer",

@@ -26,6 +26,7 @@ import {
   firebaseGoogleSignup,
   getVerifiedUser,
   firebaseGoogleLogin,
+  feedback,
 } from '../controllers/user.controller.js';
 import {
   authMiddleware,
@@ -43,6 +44,7 @@ import {
 } from '../controllers/bringZobs.controller.js';
 import { upload } from '../middlewares/multer.js';
 import { getVerifiedUsers } from '../controllers/student.controller.js';
+import { subscribeToNewsletter } from '../controllers/newsletter.controller.js';
 
 const router = Router();
 
@@ -93,5 +95,8 @@ router.post(
   upload.single('attachment'),
   initiateOnboarding,
 );
+
+router.post('/newsletter', subscribeToNewsletter);
+router.post('/feedback', authMiddleware, feedback);
 
 export default router;

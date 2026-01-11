@@ -247,6 +247,8 @@ const JobPreferencesForm = () => {
   const { jobPreferences, updateJobPreferences } = useJobPreferences();
   const [formData, setFormData] = useState(defaultFormData);
 
+  console.log('job prefrence', jobPreferences);
+
   // Only manage state for Advanced tab toggle
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -301,6 +303,7 @@ const JobPreferencesForm = () => {
     }));
   };
 
+  console.log('form dta ', formData);
   // --- Sub-Component for rendering section content ---
   const RenderSectionContent = (sectionId: string) => {
     switch (sectionId) {

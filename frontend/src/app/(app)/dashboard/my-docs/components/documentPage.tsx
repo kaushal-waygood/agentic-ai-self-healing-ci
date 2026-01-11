@@ -734,8 +734,6 @@ const DocumentSection = ({
 
   const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
 
-  console.log('resume', resume.html);
-
   const listToRender = (() => {
     if (docState === 'saved') {
       if (type === 'cv') {

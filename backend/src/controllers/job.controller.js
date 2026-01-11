@@ -1275,6 +1275,16 @@ export const applyJob = async (req, res) => {
       screeningAnswers,
     });
 
+    await JobInteraction.create({
+      jobId,
+      userId: studentId,
+      type: 'APPLIED',
+      meta: {
+        query: null,
+        source: 'job',
+      },
+    });
+
     return res.status(201).json({
       message: 'Job applied successfully',
       applicationId: application._id,

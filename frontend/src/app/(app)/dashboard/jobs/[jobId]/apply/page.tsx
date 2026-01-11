@@ -54,9 +54,6 @@ const JobDetailPage = () => {
     setStep(2);
   };
 
-  console.log('resume', resume);
-  console.log('coverLetter', coverLetter);
-
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     setFile: any,
