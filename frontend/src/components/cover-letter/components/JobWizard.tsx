@@ -203,7 +203,7 @@ const JobWizard = ({
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
             <div className="absolute inset-0 "></div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary text-foreground bg-clip-text text-transparent relative z-10">
+            <h1 className="text-2xl uppercase font-semibold sm:text-3xl md:text-4xl bg-headingTextPrimary text-foreground bg-clip-text text-transparent relative z-10">
               AI Cover Letter Generator
             </h1>
           </div>

@@ -42,6 +42,7 @@ import { Tooltip } from './tooltip';
 import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
 import ThemeToggle from '../ui/theme-toggle';
 import { useFeedback } from '../Feedback-context/feedbackContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -361,7 +362,16 @@ const AppHeader = ({
     setIsPlanOpen(false);
   };
 
+  const isMobile = useIsMobile();
+
   const handleMenuToggle = (menu) => {
+    // 1. Check if the action is for notifications AND if user is on mobile
+    if (menu === 'notification' && isMobile) {
+      router.push('/notifications'); // Redirect immediately
+      return; // Stop function execution here
+    }
+
+    // 2. Default behavior for Desktop (or other menus)
     setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
     setIsNotificationOpen(
       menu === 'notification' ? !isNotificationOpen : false,
@@ -418,7 +428,8 @@ const AppHeader = ({
   };
 
   const handleViewAllNotifications = () => {
-    router.push('/dashboard/notifications');
+    router.push('/notifications');
+    setIsNotificationOpen(false);
   };
 
   if (!user) {
@@ -441,8 +452,6 @@ const AppHeader = ({
         <div className="flex items-center justify-between px-4 lg:px-6 py-2">
           {/* LEFT SIDE */}
           <div className="flex items-center space-x-3">
-            {/* HAMBURGER — MOBILE ONLY */}
-
             <button
               onClick={onMenuClick}
               className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
@@ -480,8 +489,7 @@ const AppHeader = ({
               />
             </div>
 
-            <div id="bell-driver" className="relative " ref={notificationRef}>
-              {/* Notification Bell icon */}
+            <div id="bell-driver" className="relative" ref={notificationRef}>
               <button
                 onClick={() => handleMenuToggle('notification')}
                 className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-transparent hover:border-slate-300"
@@ -493,19 +501,14 @@ const AppHeader = ({
                   </div>
                 )}
               </button>
+
+              {/* Dropdown only renders if isNotificationOpen is true (which never happens on mobile now) */}
               {isNotificationOpen && (
-                <div className="absolute right-0 mt-2 w-96  bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
                   <div className="p-4 border-b border-slate-100 flex justify-between items-center">
                     <h3 className="font-semibold text-slate-900">
                       Notifications
                     </h3>
-                    {/* <button
-                      onClick={handleRefreshNotifications}
-                      disabled={isLoading}
-                      className="text-xs text-purple-600 hover:text-purple-700 font-medium"
-                    >
-                      {isLoading ? 'Refreshing...' : 'Refresh'}
-                    </button> */}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     <NotificationBell />

@@ -9,6 +9,7 @@ import 'driver.js/dist/driver.css';
 import './driver-custom.css';
 
 import { zobsAiHomeMetadata } from '@/metadata/metadata';
+import WhatsAppFloatingBtn from '@/components/WhatsAppFloatingBtn';
 
 export const metadata = {
   title: zobsAiHomeMetadata.title,
@@ -38,6 +39,7 @@ export default async function RootLayout({
           <StoreProvider>
             <div className="flex flex-col min-h-screen">
               <main className="flex-grow">{children}</main>
+              <WhatsAppFloatingBtn />
             </div>
             <Toaster />
             <Analytics />
