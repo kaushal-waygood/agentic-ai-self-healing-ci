@@ -8,7 +8,7 @@ export const requireCompleteProfile = async (req, res, next) => {
 
     // We only need basic details here because checkProfileCompletion queries the rest
     const student = await Student.findById(userId)
-      .select('fullName email jobRole location')
+      .select('fullName email jobRole location phone')
       .lean();
 
     if (!student) return res.status(404).json({ message: 'Student not found' });

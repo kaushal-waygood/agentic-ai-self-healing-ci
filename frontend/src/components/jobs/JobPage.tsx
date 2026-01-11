@@ -5,7 +5,7 @@ import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
 import { useJobs } from '@/hooks/jobs/useJobs';
 import { useMediaQuery } from '@/hooks/jobs/useMediaQuery';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
 import { FilterModal } from './FilterModal';
 import { SearchFilters } from './SearchFilters';
@@ -14,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
 import Image from 'next/image';
+import OnboardingExperienceFeedback from '@/app/(app)/dashboard/onboarding-tour/OnboardingExperienceFeedback';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
@@ -125,9 +126,28 @@ export default function JobsPage() {
     });
   }
 
+  const searchParams = useSearchParams();
+  const fromOnboarding = searchParams.get('from') === 'onboarding';
+
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  useEffect(() => {
+    if (!fromOnboarding) return;
+
+    const alreadyDone = localStorage.getItem('onboarding_feedback_done');
+    if (!alreadyDone) {
+      setShowFeedback(true);
+    }
+  }, [fromOnboarding]);
+
   return (
     <div className="bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       <div className="xl:container mx-auto px-1">
+        {showFeedback && (
+          <OnboardingExperienceFeedback
+            onClose={() => setShowFeedback(false)}
+          />
+        )}
         <SearchFilters
           initialFilters={filters}
           onSearchChange={handleFilterChange}

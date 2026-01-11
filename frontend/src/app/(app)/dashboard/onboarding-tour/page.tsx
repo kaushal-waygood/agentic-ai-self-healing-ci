@@ -85,6 +85,7 @@ const OnboardingPage = () => {
   const totalSteps = 6;
 
   const { students } = useSelector((state: RootState) => state.student);
+  const { user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
@@ -124,7 +125,18 @@ const OnboardingPage = () => {
 
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
+    dispatch(getStudentDetailsRequest());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      fullName: user.fullName || prev.fullName,
+      email: user.email || prev.email,
+    }));
+  }, [user]);
 
   const handleArrayChange = <T,>(
     arrayName: keyof typeof formData,
@@ -204,7 +216,6 @@ const OnboardingPage = () => {
         selectedOptions,
       });
 
-      console.log(response.data);
       setStep(totalSteps + 1);
     } catch (error) {
       console.error('Error submitting profile:', error);
@@ -232,8 +243,8 @@ const OnboardingPage = () => {
 
       setFormData((prev) => ({
         ...prev,
-        fullName: students[0]?.student?.fullName || prev.fullName,
-        email: students[0]?.student?.email || prev.email,
+        fullName: user?.fullName || prev.fullName,
+        email: user?.email || prev.email,
         phone: apiData?.personalInfo?.phone || prev.phone,
         designation: apiData?.personalInfo?.jobRole || prev.designation,
         // FIXED: Map to currentLocation

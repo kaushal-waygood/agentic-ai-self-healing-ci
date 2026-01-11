@@ -458,7 +458,6 @@ function UsageMeter({ label, used, limit }: any) {
       aiMannualApplication: 'AI Manual Applications',
     };
 
-    console.log('key', map[key]);
     return map[key] || key;
   };
 

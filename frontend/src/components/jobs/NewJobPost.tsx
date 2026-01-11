@@ -249,7 +249,7 @@ const NewJobPost = () => {
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit, (errors) => {
-                  console.log('❌ Validation errors:', errors);
+                  toast.error('Failed to post job. Please try again.');
                 })}
                 className="space-y-8"
               >

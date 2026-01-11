@@ -439,11 +439,6 @@ export function CoverLetterGeneratorClient() {
         </motion.div>
       </AnimatePresence>
 
-      <SavedCoverLetters
-        savedLettersList={letter?.html}
-        loadSavedLetter={() => {}}
-      />
-
       {isNamingDialogDisplayed && (
         <AlertDialog open onOpenChange={setIsNamingDialogDisplayed}>
           <AlertDialogContent>

@@ -1,22 +1,19 @@
 import { Input } from '@/components/ui/input';
 
-const PersonalInfoStep = ({
-  formData,
-  handleInputChange,
-  handleFileUpload,
-}: any) => {
-  console.log(formData);
+const PersonalInfoStep = ({ formData, handleInputChange }: any) => {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           value={formData.fullName}
+          disabled={true}
           onChange={(e) => handleInputChange('fullName', e.target.value)}
           placeholder="Full Name"
           className="h-11 text-base bg-white/50  border rounded-lg px-4 "
         />
         <Input
           type="email"
+          disabled={true}
           value={formData.email}
           onChange={(e) => handleInputChange('email', e.target.value)}
           placeholder="Email Address"
