@@ -52,11 +52,17 @@ const JobPreferencesStep = ({
       />
 
       <Input
+        value={formData.country}
+        onChange={(e) => handleInputChange('country', e.target.value)}
+        placeholder="Preferred Country"
+        className="h-11 text-base border-2 rounded-lg px-4 bg-white/50"
+      />
+      {/* <Input
         value={formData.expectedSalary}
         onChange={(e) => handleInputChange('expectedSalary', e.target.value)}
         placeholder="Expected Salary (Optional)"
         className="h-11 text-base border-2 rounded-lg px-4 bg-white/50"
-      />
+      /> */}
     </div>
   );
 };

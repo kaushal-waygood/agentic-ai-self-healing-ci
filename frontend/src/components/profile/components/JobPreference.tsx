@@ -301,6 +301,7 @@ const JobPreferencesForm = () => {
     }));
   };
 
+  console.log('form dta ', formData);
   // --- Sub-Component for rendering section content ---
   const RenderSectionContent = (sectionId: string) => {
     switch (sectionId) {
