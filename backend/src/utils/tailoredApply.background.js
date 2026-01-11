@@ -17,6 +17,7 @@ import { renderResumeHtml } from '../utils/cv/cvRenderer.js';
 import { wrapCVHtml } from '../utils/cvTemplate.js';
 import { wrapEmailHtml } from '../utils/emailTemplate.js';
 import { calculateATSScore } from '../utils/atsScore.js';
+import { Student } from '../models/student.model.js';
 
 const stripCodeFences = (s) =>
   String(s || '')
@@ -43,16 +44,23 @@ export const processTailoredApplication = async (
         ? JSON.parse(applicationData.candidate)
         : applicationData.candidate || {};
 
+    const user = await Student.findById(userId).select(
+      'fullName email phone location profileImage jobRole',
+    );
+    if (!user) throw new Error('User not found');
+    const { fullName, email, phone, location, profileImage, jobRole } = user;
     const slimCandidate = {
-      fullName: candidate.fullName || '',
-      email: candidate.email || '',
-      phone: candidate.phone || '',
-      location: candidate.location || '',
+      fullName,
+      email,
+      phone,
+      location,
       education: ensureArray(candidate.education),
       experience: ensureArray(candidate.experience),
       skills: ensureArray(candidate.skills),
       projects: ensureArray(candidate.projects),
     };
+
+    console.log('slimCandidate', slimCandidate);
 
     /* ---------------- A. CV JSON generation ---------------- */
     const cvPrompt = generateCVPrompt(
@@ -68,10 +76,10 @@ export const processTailoredApplication = async (
     const innerHtml = renderResumeHtml(
       parsedCv,
       candidate.profileImage,
-      candidate.fullName,
-      candidate.email,
-      candidate.phone,
-      candidate.location,
+      fullName,
+      email,
+      phone,
+      location,
     );
 
     const fullCvHtml = wrapCVHtml(innerHtml, applicationData.job.title);

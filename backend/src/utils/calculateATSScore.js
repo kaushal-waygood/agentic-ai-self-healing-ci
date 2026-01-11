@@ -1,4 +1,6 @@
 import { genAIRequest as genAI } from '../config/gemini.js';
+import { User } from '../models/User.model.js';
+import { CREDIT_COSTS, resolveUser, spendCredits } from './credits.js';
 
 // ------------------ Keyword Extraction ------------------
 export function extractKeywords(jobDescription) {
@@ -88,12 +90,22 @@ export async function computeATS(jobDescription, student) {
   const edu = evaluateEducation(student.education, jobDescription);
 
   const finalScore = Math.round(skills.score + exp.score + edu.score);
+  const user = await resolveUser(student._id);
 
   const suggestions = generateSuggestions(student, skills.missing);
   const improvedSummary = await generateTailoredResumeRewrite(
     student,
     jobDescription,
   );
+
+  try {
+    await User.updateOne(
+      { _id: student._id },
+      { $inc: { 'usageCounters.atsScore': 1 } },
+    );
+  } catch (incErr) {
+    console.error(`Failed to increment usage for user ${student._id}:`, incErr);
+  }
 
   return {
     atsScore: finalScore,

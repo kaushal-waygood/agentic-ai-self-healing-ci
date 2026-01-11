@@ -181,7 +181,7 @@ export function JobStep({
         {/* Header */}
         <div className="text-center mb-4 relative">
           <div className="inline-block relative ">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative z-10">
+            <h1 className="text-2xl uppercase font-semibold sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative z-10">
               Tailored Application
             </h1>
           </div>
@@ -320,26 +320,6 @@ export function JobStep({
                         </>
                       )}
                     </Button>
-                  </div>
-
-                  {/* Generate Button */}
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-start gap-3  p-2 rounded-lg border-2 border-purple-100 shadow-sm">
-                      <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg flex-shrink-0">
-                        <Zap className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900 ">
-                          Pro Tips for Best Results:
-                        </p>
-                        <p className="text-sm text-gray-700 leading-relaxed">
-                          Include job requirements, key responsibilities,
-                          required skills, and company culture. The more
-                          detailed the job description, the better your cover
-                          letter will be optimized!
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
