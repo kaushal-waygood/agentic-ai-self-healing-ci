@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlusCircle, XCircle } from 'lucide-react';
+import { title } from 'process';
 
 // Define Prop Types
 type SkillEntry = { skill: string; level: string };
@@ -39,6 +40,7 @@ interface SkillsExperienceStepProps {
   ) => void;
   onAddExperience: () => void;
   onRemoveExperience: (index: number) => void;
+  attemptedNext: boolean;
 }
 const monthMap = {
   Jan: '01',
@@ -87,7 +89,29 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
   onExperienceChange,
   onAddExperience,
   onRemoveExperience,
+  attemptedNext,
 }) => {
+  const safeTrim = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+
+  const isFilled = (obj?: Record<string, unknown>) => {
+    if (!obj || typeof obj !== 'object') return false;
+    return Object.values(obj).some((v) => safeTrim(v));
+  };
+
+  /**
+   * Validate if:
+   * - user clicked Next
+   * - AND (this row is filled OR it's the first row)
+   */
+  const shouldValidate = (obj?: Record<string, unknown>, index?: number) =>
+    attemptedNext && (isFilled(obj) || index === 0);
+
+  const showError = (
+    value?: string,
+    obj?: Record<string, unknown>,
+    index?: number,
+  ) => shouldValidate(obj, index) && !safeTrim(value);
+
   return (
     <div className="space-y-8">
       <div>
@@ -104,8 +128,15 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
                 value={skill.skill}
                 onChange={(e) => onSkillChange(index, 'skill', e.target.value)}
                 placeholder="e.g., JavaScript"
-                className="h-11 text-base "
+                className={`h-11 ${
+                  showError(skill.skill, skill, index) ? 'border-red-500 ' : ''
+                }`}
               />
+
+              {showError(skill.skill, skill, index) && (
+                <p className="text-xs text-red-500">Skill name is required</p>
+              )}
+
               <Select
                 value={skill.level}
                 onValueChange={(value) => onSkillChange(index, 'level', value)}
@@ -175,8 +206,15 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
                   onExperienceChange(index, 'company', e.target.value)
                 }
                 placeholder="Company Name"
-                className="h-11"
+                className={`h-11 ${
+                  showError(exp.company, exp, index) ? 'border-red-500 ' : ''
+                }`}
               />
+
+              {showError(exp.company, exp, index) && (
+                <p className="text-xs text-red-500">Company name is required</p>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   value={exp.title}
@@ -184,8 +222,14 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
                     onExperienceChange(index, 'title', e.target.value)
                   }
                   placeholder="Job Title"
-                  className="h-11"
+                  className={`h-11 ${
+                    showError(exp.title, exp, index) ? 'border-red-500 ' : ''
+                  }`}
                 />
+                {showError(exp.title, exp, index) && (
+                  <p className="text-xs text-red-500">title is required</p>
+                )}
+
                 {(() => {
                   const { start, end } = parseDuration(exp.duration);
 
@@ -209,8 +253,15 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
 
                           onExperienceChange(index, 'duration', formatted);
                         }}
-                        className="h-11 p-2"
+                        className={`h-11 ${
+                          showError(start, exp, index) ? 'border-red-500 ' : ''
+                        }`}
                       />
+                      {showError(start, exp, index) && (
+                        <p className="text-xs text-red-500">
+                          Start date is required
+                        </p>
+                      )}
 
                       <Input
                         type="month"
@@ -230,8 +281,15 @@ const SkillsExperienceStep: React.FC<SkillsExperienceStepProps> = ({
 
                           onExperienceChange(index, 'duration', formatted);
                         }}
-                        className="h-11 p-2"
+                        className={`h-11 ${
+                          showError(end, exp, index) ? 'border-red-500 ' : ''
+                        }`}
                       />
+                      {showError(end, exp, index) && (
+                        <p className="text-xs text-red-500">
+                          End date is required
+                        </p>
+                      )}
                     </div>
                   );
                 })()}

@@ -166,6 +166,7 @@ export function ToolkitButton({
 
 export function ProfileReadinessCard() {
   const { data, isLoading, error } = useProfileCompletion();
+
   const router = useRouter();
 
   if (isLoading || !data) {
@@ -200,6 +201,8 @@ export function ProfileReadinessCard() {
 
   const score = data.percentage;
   const checks = data.categories;
+
+  console.log('check', checks);
 
   /* =========================
      ✅ PROFILE COMPLETE STATE

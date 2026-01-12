@@ -23,6 +23,7 @@ interface EducationStepProps {
   onchange: (index: number, field: keyof EducationEntry, value: string) => void;
   onAdd: () => void;
   onRemove: (index: number) => void;
+  attemptedNext: boolean;
 }
 
 const EducationStep: React.FC<EducationStepProps> = ({
@@ -30,7 +31,27 @@ const EducationStep: React.FC<EducationStepProps> = ({
   onchange,
   onAdd,
   onRemove,
+  attemptedNext,
 }) => {
+  const safeTrim = (value: unknown) =>
+    typeof value === 'string' ? value.trim() : '';
+
+  const isFilled = (edu?: EducationEntry) => {
+    if (!edu || typeof edu !== 'object') return false;
+    return Object.values(edu).some((v) => safeTrim(v));
+  };
+
+  /**
+   * Validate if:
+   * - User clicked Next
+   * - AND (this card is filled OR it's the first card)
+   */
+  const shouldValidate = (edu?: EducationEntry, index?: number) =>
+    attemptedNext && (isFilled(edu) || index === 0);
+
+  const showError = (value?: string, edu?: EducationEntry, index?: number) =>
+    shouldValidate(edu, index) && !safeTrim(value);
+
   return (
     <div className="space-y-6">
       {education.map((edu, index) => (
@@ -56,12 +77,22 @@ const EducationStep: React.FC<EducationStepProps> = ({
             <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Institution
             </Label>
+
             <Input
-              value={edu.institution || ''}
+              value={edu?.institution || ''}
               onChange={(e) => onchange(index, 'institution', e.target.value)}
-              placeholder="e.g. University of Technology"
-              className="h-11 text-base bg-white"
+              className={`h-11 bg-white ${
+                showError(edu?.institution, edu, index)
+                  ? 'border-red-500 focus-visible:ring-red-500'
+                  : ''
+              }`}
             />
+
+            {showError(edu?.institution, edu, index) && (
+              <p className="text-xs text-red-500 mt-1">
+                Institution is required
+              </p>
+            )}
           </div>
 
           {/* Row 2: Degree & Field of Study */}
@@ -74,8 +105,14 @@ const EducationStep: React.FC<EducationStepProps> = ({
                 value={edu.degree || ''}
                 onChange={(e) => onchange(index, 'degree', e.target.value)}
                 placeholder="e.g. Bachelor's"
-                className="h-11 text-base bg-white"
+                className={`h-11 bg-white ${
+                  showError(edu?.degree, edu, index) ? 'border-red-500 ' : ''
+                }`}
               />
+
+              {showError(edu?.degree, edu, index) && (
+                <p className="text-xs text-red-500 mt-1">Degree is required</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -87,8 +124,17 @@ const EducationStep: React.FC<EducationStepProps> = ({
                   onchange(index, 'fieldOfStudy', e.target.value)
                 }
                 placeholder="e.g. Computer Science"
-                className="h-11 text-base bg-white"
+                className={`h-11 bg-white ${
+                  showError(edu?.fieldOfStudy, edu, index)
+                    ? 'border-red-500 '
+                    : ''
+                }`}
               />
+              {showError(edu?.fieldOfStudy, edu, index) && (
+                <p className="text-xs text-red-500 mt-1">
+                  Fields of study is required
+                </p>
+              )}
             </div>
           </div>
 
@@ -103,8 +149,15 @@ const EducationStep: React.FC<EducationStepProps> = ({
                   type="month"
                   value={edu.startDate || ''}
                   onChange={(e) => onchange(index, 'startDate', e.target.value)}
-                  className="h-11 text-base bg-white"
+                  className={`h-11 bg-white ${
+                    showError(edu?.startDate, edu, index)
+                      ? 'border-red-500 '
+                      : ''
+                  }`}
                 />
+                {showError(edu?.startDate, edu, index) && (
+                  <p className="text-xs text-red-500 mt-1">Date is required</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
@@ -117,8 +170,15 @@ const EducationStep: React.FC<EducationStepProps> = ({
                   type="month"
                   value={edu.endDate || ''}
                   onChange={(e) => onchange(index, 'endDate', e.target.value)}
-                  className="h-11 text-base bg-white"
+                  className={`h-11 bg-white ${
+                    showError(edu?.endDate, edu, index) ? 'border-red-500 ' : ''
+                  }`}
                 />
+                {showError(edu?.endDate, edu, index) && (
+                  <p className="text-xs text-red-500 mt-1">
+                    End date is required
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -134,8 +194,13 @@ const EducationStep: React.FC<EducationStepProps> = ({
                 value={edu.country || ''}
                 onChange={(e) => onchange(index, 'country', e.target.value)}
                 placeholder="e.g. United States"
-                className="h-11 text-base bg-white"
+                className={`h-11 bg-white ${
+                  showError(edu?.country, edu, index) ? 'border-red-500 ' : ''
+                }`}
               />
+              {showError(edu?.country, edu, index) && (
+                <p className="text-xs text-red-500 mt-1">Country is required</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -145,8 +210,13 @@ const EducationStep: React.FC<EducationStepProps> = ({
                 value={edu.grade || ''}
                 onChange={(e) => onchange(index, 'grade', e.target.value)}
                 placeholder="e.g. 3.8/4.0"
-                className="h-11 text-base bg-white"
+                className={`h-11 bg-white ${
+                  showError(edu?.grade, edu, index) ? 'border-red-500 ' : ''
+                }`}
               />
+              {showError(edu?.grade, edu, index) && (
+                <p className="text-xs text-red-500 mt-1">Grade is required</p>
+              )}
             </div>
           </div>
         </div>

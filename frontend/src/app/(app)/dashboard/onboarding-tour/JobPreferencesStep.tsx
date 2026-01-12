@@ -86,10 +86,12 @@ const JobPreferencesStep = ({
   handleInputChange,
   selectedOptions,
   toggleOption,
+  attemptedNext,
 }: any) => {
-  const [skillInput, setSkillInput] = useState('');
+  const safeTrim = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
-  const skills = formData.mustHaveSkills || [];
+  const showError = (value: unknown) => attemptedNext && !safeTrim(value);
+  const [skillInput, setSkillInput] = useState('');
 
   const addSkill = () => {
     const value = skillInput.trim();
@@ -105,6 +107,9 @@ const JobPreferencesStep = ({
       skills.filter((s: string) => s !== skill),
     );
   };
+
+  const skills = formData.mustHaveSkills || [];
+  const skillsError = attemptedNext && skills.length === 0;
 
   return (
     <div className="space-y-6">
@@ -149,16 +154,31 @@ const JobPreferencesStep = ({
         value={formData.location}
         onChange={(e) => handleInputChange('location', e.target.value)}
         placeholder="Preferred Location"
-        className="h-11 text-base border-2 rounded-lg px-4 bg-white/50"
+        className={`h-11 text-base border-2 rounded-lg px-4 bg-white/50 ${
+          showError(formData.location) ? 'border-red-500' : ''
+        }`}
       />
+
+      {showError(formData.location) && (
+        <p className="text-xs text-red-500 ">Preferred location is required</p>
+      )}
 
       {/* Preferred Country */}
       <Input
         value={formData.country}
         onChange={(e) => handleInputChange('country', e.target.value)}
         placeholder="Preferred Country"
-        className="h-11 text-base border-2 rounded-lg px-4 bg-white/50"
+        className={`h-11 text-base border-2 rounded-lg px-4 bg-white/50 ${
+          showError(formData.country)
+            ? 'border-red-500 focus-visible:ring-red-500'
+            : ''
+        }`}
       />
+      {showError(formData.country) && (
+        <p className="text-xs text-red-500 mt-1">
+          Preferred country is required
+        </p>
+      )}
 
       {/* Must-have Skills */}
       <div>
@@ -172,8 +192,16 @@ const JobPreferencesStep = ({
             onChange={(e) => setSkillInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addSkill()}
             placeholder="Type a skill and press Enter"
-            className="h-11 text-base border-2 rounded-lg px-4"
+            className={`h-11 text-base border-2 rounded-lg px-4 ${
+              skillsError ? 'border-red-500' : ''
+            }`}
           />
+          {skillsError && (
+            <p className="text-xs text-red-500 mt-1">
+              Add at least one must-have skill
+            </p>
+          )}
+
           <button
             type="button"
             onClick={addSkill}
@@ -210,7 +238,9 @@ const JobPreferencesStep = ({
         <select
           value={formData.educationLevel || ''}
           onChange={(e) => handleInputChange('educationLevel', e.target.value)}
-          className="w-full h-11 border-2 rounded-lg px-4 bg-white text-gray-700"
+          className={`w-full h-11 border-2 rounded-lg px-4 bg-white text-gray-700 ${
+            showError(formData.educationLevel) ? 'border-red-500' : ''
+          }`}
         >
           <option value="">Select education level</option>
           {EDUCATION_LEVELS.map((level) => (
@@ -219,6 +249,11 @@ const JobPreferencesStep = ({
             </option>
           ))}
         </select>
+        {showError(formData.educationLevel) && (
+          <p className="text-xs text-red-500 mt-1">
+            Education level is required
+          </p>
+        )}
       </div>
     </div>
   );
