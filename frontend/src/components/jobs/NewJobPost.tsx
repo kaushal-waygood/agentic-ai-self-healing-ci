@@ -153,6 +153,7 @@ const NewJobPost = () => {
       : [];
 
   const onSubmit = async (data: JobFormType) => {
+    console.log(data);
     setIsSubmitting(true);
     try {
       const finalPayload = {
@@ -205,6 +206,8 @@ const NewJobPost = () => {
         experience: splitLines(data.experience),
         tags: splitTags(data.tags),
       };
+
+      console.log('Final Payload:', finalPayload);
 
       dispatch(postJobMannalByOrgAdminRequest(finalPayload));
       toast.success('Job posted successfully!');

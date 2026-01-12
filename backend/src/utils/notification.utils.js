@@ -119,6 +119,21 @@ export const notificationTemplates = {
     category: 'application',
     actionUrl: '/dashboard/my-docs?tab=applications',
   }),
+  GENERAL_SUCCESS: (title, message, actionUrl = '/dashboard') => ({
+    title,
+    message,
+    type: 'success',
+    category: 'system',
+    actionUrl,
+  }),
+
+  GENERAL_ERROR: (title, message, actionUrl = '/dashboard') => ({
+    title,
+    message,
+    type: 'error',
+    category: 'system',
+    actionUrl,
+  }),
 };
 
 // Send notification to single user

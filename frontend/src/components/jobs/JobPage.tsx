@@ -38,6 +38,7 @@ export default function JobsPage() {
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isJobLoading, setIsJobLoading] = useState(false);
+  const searchParams = useSearchParams();
 
   /* ===================== JOB DETAILS (NO ANALYTICS HERE) ===================== */
   const fetchJobDetails = useCallback(async (slug: string) => {
@@ -68,6 +69,13 @@ export default function JobsPage() {
     }
   }
 
+  useEffect(() => {
+    const slug = searchParams.get('job');
+    if (slug) {
+      fetchJobDetails(slug);
+    }
+  }, [searchParams, fetchJobDetails]);
+
   const handleCardClick = (job: any) => {
     // 1️⃣ Track click immediately
     trackJobClick(job._id, filters?.q);
@@ -76,7 +84,7 @@ export default function JobsPage() {
     if (isMobile) {
       router.push(`/jobs/${job.slug}`);
     } else {
-      fetchJobDetails(job.slug);
+      fetchJobDetails(job.slug || querySlug);
     }
   };
 
@@ -126,7 +134,6 @@ export default function JobsPage() {
     });
   }
 
-  const searchParams = useSearchParams();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
 
   const [showFeedback, setShowFeedback] = useState(false);

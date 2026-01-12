@@ -42,7 +42,7 @@ const AccessRequestsPage = () => {
   useEffect(() => {
     const getAllAccessRequests = async () => {
       try {
-        const response = await apiInstance.get('/user/bring-zobs');
+        const response = await apiInstance.get('/bring-zobs');
         if (response.data && response.data.success) {
           setRequests(response.data.data);
         }
@@ -102,9 +102,7 @@ const AccessRequestsPage = () => {
   const handleAccepted = async (id: string) => {
     console.log(id);
     try {
-      const response = await apiInstance.post(
-        `/user/bring-zobs/accepted/${id}`,
-      );
+      const response = await apiInstance.post(`/bring-zobs/accepted/${id}`);
       console.log(response);
     } catch (error) {
       console.error('Error accepting access request:', error);
