@@ -122,6 +122,29 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
     },
 
+    verifyEmailRequest: (
+      state,
+      action: PayloadAction<{ email: string; otp: string }>,
+    ) => {
+      state.loading = true;
+      state.error = null;
+    },
+    verifyEmailSuccess: (
+      state,
+      action: PayloadAction<{ user: User; token: string }>,
+    ) => {
+      state.loading = false;
+      state.isAuthenticated = true;
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.error = null;
+    },
+    verifyEmailFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+      state.isAuthenticated = false;
+    },
+
     setUserGoogleAuth: (state, action) => {
       if (state.user) {
         state.user.googleAuth = action.payload;
@@ -155,6 +178,10 @@ export const {
   getGetMeRequest,
   getGetMeSuccess,
   getGetMeFailure,
+
+  verifyEmailRequest,
+  verifyEmailSuccess,
+  verifyEmailFailure,
 
   googleLoginSuccess,
 } = authSlice.actions;

@@ -49,7 +49,10 @@ import {
   cvGenerationSSE,
   getCVGenerationStatus,
 } from '../controllers/sse.controller.js';
-import { extractStudentDataFromCV } from '../controllers/rough.js';
+import {
+  extractStudentDataFromCV,
+  getStudentDataFromUploadedCV,
+} from '../controllers/rough.js';
 import { checkCredits } from '../middlewares/checkCredits.js';
 import { requireCompleteProfile } from '../middlewares/profileComplete.js';
 
@@ -307,6 +310,14 @@ router.post(
   isUserOrUniStudent,
   checkCredits('JOB_MATCHING'),
   calculateJobMatchScore,
+);
+
+router.post(
+  '/extract/onboarding',
+  authMiddleware,
+  isUserOrUniStudent,
+  memoryUpload.single('cv'),
+  getStudentDataFromUploadedCV,
 );
 
 router.post('/ats-score', authMiddleware, isUserOrUniStudent, calculateATS);

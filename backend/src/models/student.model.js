@@ -111,6 +111,12 @@ const autopilotAgentSchema = new Schema({
   jobDescription: String,
   jobLink: String,
   country: String,
+  city: String,
+  isProcessing: {
+    type: String,
+    enum: ['PENDING', 'PROCESSING', 'SUCCESS'],
+    default: 'INACTIVE',
+  },
   isRemote: { type: Boolean, default: false },
   isOnsite: { type: Boolean, default: false },
   employmentType: {

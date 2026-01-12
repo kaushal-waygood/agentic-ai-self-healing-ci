@@ -154,8 +154,8 @@ const OnboardingPage = () => {
 
     setFormData((prev) => ({
       ...prev,
-      fullName: user.fullName || prev.fullName,
-      email: user.email || prev.email,
+      fullName: user.fullName || prev.fullName || students[0].fullName,
+      email: user.email || prev.email || students[0].email,
     }));
   }, [user]);
 

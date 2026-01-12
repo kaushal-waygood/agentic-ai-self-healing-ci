@@ -57,6 +57,15 @@ export const sendEmailPermit = async (payload: {
   return response;
 };
 
+export const verifyEmail = async (data: any) => {
+  const { storedEmail, verificationCode } = data;
+  const response = await apiInstance.post('/user/verify', {
+    email: storedEmail,
+    otp: verificationCode,
+  });
+  return response;
+};
+
 export const getMe = async () => {
   const response = await apiInstance.get('/user/getme');
   return response;

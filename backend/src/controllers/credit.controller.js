@@ -347,7 +347,6 @@ export const checkoutCredits = async (req, res) => {
   const { _id } = req.user || {};
   const { items } = req.body || {};
 
-
   if (!_id) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }

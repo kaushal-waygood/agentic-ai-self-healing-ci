@@ -8,6 +8,8 @@ import { config } from '../config/config.js';
 import { User } from '../models/User.model.js';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 import { extractTextFromCV, parseCVData } from './rough.js';
+import { processAutopilotAgent } from '../utils/autopilot.background.js';
+import { StudentAgent } from '../models/students/studentAgent.model.js';
 
 // ----------------- helpers -----------------
 const toBool = (v) => {
@@ -50,26 +52,243 @@ const ensureStringId = () => uuidv4();
 
 // ----------------- controllers -----------------
 
+// export const createAutopilotAgent = async (req, res) => {
+//   try {
+//     const { _id: studentId } = req.user;
+
+//     // validate student id
+//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: 'Invalid student ID' });
+//     }
+
+//     // required fields present?
+//     const requiredFields = [
+//       'agentName',
+//       'jobTitle',
+//       'country',
+//       'employmentTypes',
+//     ];
+
+//     const missing = requiredFields.filter((f) => !req.body[f]);
+//     if (missing.length) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Missing required fields',
+//         missingFields: missing,
+//       });
+//     }
+
+//     // student exists?
+//     const studentBefore = await Student.findById(studentId)
+//       .select('cvs autopilotAgent')
+//       .lean();
+//     if (!studentBefore) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: 'Student not found' });
+//     }
+
+//     // read & sanitize inputs
+//     const agentName = String(req.body.agentName).trim();
+//     const jobTitle = String(req.body.jobTitle).trim();
+//     const employmentType = normalizeEmploymentType(req.body.employmentTypes);
+//     const isRemote = toBool(req.body.isRemote);
+//     const isOnsite = toBool(req.body.isOnsite);
+//     const cvOption =
+//       req.body.cvOption === 'uploaded_pdf' ? 'uploaded_pdf' : 'current_profile';
+//     const jobDescription = (req.body.jobDescription || '').toString();
+//     const autopilotLimit = Math.min(Number(req.body.autopilotLimit || 5), 20);
+//     const countryRaw = String(req.body.country || '').trim();
+//     const country = normalizeCountry(countryRaw);
+
+//     // if cvOption requires file, enforce it
+//     if (cvOption === 'uploaded_pdf' && !req.file) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'CV file is required for uploaded_pdf option',
+//       });
+//     }
+
+//     // employmentType sanity
+//     if (!employmentType) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Invalid employmentType',
+//         valid: [
+//           'FULL_TIME',
+//           'PART_TIME',
+//           'CONTRACT',
+//           'INTERNSHIP',
+//           'TEMPORARY',
+//         ],
+//       });
+//     }
+
+//     // country can be optional if remote; otherwise enforce
+//     if (!country && !isRemote) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Country is required unless isRemote is true',
+//       });
+//     }
+
+//     const agentId = `agent_${uuidv4()}`;
+//     const newAgent = {
+//       agentId,
+//       agentName,
+//       jobTitle,
+//       country,
+//       isRemote,
+//       isOnsite,
+//       employmentType,
+//       cvOption,
+//       autopilotEnabled: true,
+//       autopilotLimit,
+//       jobDescription,
+//       createdAt: new Date(),
+//       updatedAt: new Date(),
+//     };
+
+//     // process CV if present
+//     if (req.file) {
+//       const ext = path.extname(req.file.originalname).toLowerCase();
+//       if (ext !== '.pdf') {
+//         fs.unlinkSync(req.file.path);
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Only PDF files are allowed for CV upload',
+//         });
+//       }
+
+//       if (req.file.size > 5 * 1024 * 1024) {
+//         fs.unlinkSync(req.file.path);
+//         return res.status(400).json({
+//           success: false,
+//           message: 'CV file size must be less than 5MB',
+//         });
+//       }
+
+//       try {
+//         const fileBuffer = fs.readFileSync(req.file.path);
+
+//         const text = await extractTextFromCV({
+//           buffer: fileBuffer,
+//           mimetype: req.file.mimetype,
+//         });
+
+//         const extractedData = await parseCVData(text, studentId);
+//         console.log('extractedData', extractedData);
+
+//         newAgent.uploadedCVData = {
+//           skills:
+//             extractedData.skills?.map((s) => ({
+//               ...s,
+//               skillId: ensureStringId(),
+//             })) || [],
+//           experience:
+//             extractedData.experience?.map((e) => ({
+//               ...e,
+//               experienceId: ensureStringId(),
+//             })) || [],
+//           education:
+//             extractedData.education?.map((e) => ({
+//               ...e,
+//               educationId: ensureStringId(),
+//             })) || [],
+//           projects:
+//             extractedData.projects?.map((p) => ({
+//               ...p,
+//               projectId: ensureStringId(),
+//             })) || [],
+//           jobRole: extractedData.jobRole || '',
+//         };
+//       } catch (err) {
+//         if (req.file?.path && fs.existsSync(req.file.path))
+//           fs.unlinkSync(req.file.path);
+//         return res.status(400).json({
+//           success: false,
+//           message: 'CV extraction failed',
+//           error: err.message,
+//         });
+//       } finally {
+//         if (req.file?.path && fs.existsSync(req.file.path))
+//           fs.unlinkSync(req.file.path);
+//       }
+//     }
+
+//     const isFirstCV =
+//       !Array.isArray(studentBefore.autopilotAgent) ||
+//       studentBefore.autopilotAgent.length === 0;
+
+//     if (isFirstCV) {
+//       addCredits(studentId, CREDIT_EARN.FIRST_AUTO_AGENT_SETUP);
+//     }
+
+//     // create agent on student (push)
+//     const updated = await Student.findByIdAndUpdate(
+//       studentId,
+//       { $push: { autopilotAgent: newAgent } },
+//       { new: true, runValidators: true },
+//     );
+
+//     if (!updated) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: 'Student not found after update' });
+//     }
+
+//     // increment usage counter (user and student are same actor here)
+//     await User.findByIdAndUpdate(studentId, {
+//       $inc: { 'usageCounters.aiAutoApply': 1 },
+//     });
+
+//     const createdAgent = updated.autopilotAgent.find(
+//       (a) => a.agentId === agentId,
+//     );
+
+//     return res.status(201).json({
+//       success: true,
+//       message: 'Autopilot agent created successfully',
+//       agent: createdAgent,
+//     });
+//   } catch (error) {
+//     // cleanup file if still present
+//     if (req.file?.path && fs.existsSync(req.file.path)) {
+//       try {
+//         fs.unlinkSync(req.file.path);
+//       } catch (e) {
+//         console.error('Failed to remove uploaded file during error cleanup', e);
+//       }
+//     }
+//     console.error('Agent creation error:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Internal server error',
+//       error: config.nodeEnv === 'local' ? error.message : undefined,
+//     });
+//   }
+// };
+
 export const createAutopilotAgent = async (req, res) => {
   try {
     const { _id: studentId } = req.user;
 
-    // validate student id
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res
         .status(400)
         .json({ success: false, message: 'Invalid student ID' });
     }
 
-    // required fields present?
     const requiredFields = [
       'agentName',
       'jobTitle',
       'country',
       'employmentTypes',
     ];
-
     const missing = requiredFields.filter((f) => !req.body[f]);
+
     if (missing.length) {
       return res.status(400).json({
         success: false,
@@ -78,30 +297,20 @@ export const createAutopilotAgent = async (req, res) => {
       });
     }
 
-    // student exists?
-    const studentBefore = await Student.findById(studentId)
-      .select('cvs autopilotAgent')
-      .lean();
-    if (!studentBefore) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
-    }
+    console.log('req.body', req.body);
 
-    // read & sanitize inputs
     const agentName = String(req.body.agentName).trim();
     const jobTitle = String(req.body.jobTitle).trim();
-    const employmentType = normalizeEmploymentType(req.body.employmentTypes);
-    const isRemote = toBool(req.body.isRemote);
-    const isOnsite = toBool(req.body.isOnsite);
+    const employmentType = req.body.employmentTypes;
+    const isRemote = Boolean(req.body.isRemote);
+    const isOnsite = Boolean(req.body.isOnsite);
+    const keywords = String(req.body.keywords || '').trim();
     const cvOption =
       req.body.cvOption === 'uploaded_pdf' ? 'uploaded_pdf' : 'current_profile';
-    const jobDescription = (req.body.jobDescription || '').toString();
+    const jobDescription = String(req.body.jobDescription || '');
     const autopilotLimit = Math.min(Number(req.body.autopilotLimit || 5), 20);
-    const countryRaw = String(req.body.country || '').trim();
-    const country = normalizeCountry(countryRaw);
+    const country = String(req.body.country || '').trim();
 
-    // if cvOption requires file, enforce it
     if (cvOption === 'uploaded_pdf' && !req.file) {
       return res.status(400).json({
         success: false,
@@ -109,203 +318,79 @@ export const createAutopilotAgent = async (req, res) => {
       });
     }
 
-    // employmentType sanity
-    if (!employmentType) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid employmentType',
-        valid: [
-          'FULL_TIME',
-          'PART_TIME',
-          'CONTRACT',
-          'INTERNSHIP',
-          'TEMPORARY',
-        ],
-      });
-    }
-
-    // country can be optional if remote; otherwise enforce
-    if (!country && !isRemote) {
-      return res.status(400).json({
-        success: false,
-        message: 'Country is required unless isRemote is true',
-      });
+    if (req.file) {
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      if (ext !== '.pdf')
+        return res
+          .status(400)
+          .json({ success: false, message: 'Only PDF allowed' });
+      if (req.file.size > 5 * 1024 * 1024) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'File must be <5MB' });
+      }
     }
 
     const agentId = `agent_${uuidv4()}`;
-    const newAgent = {
+
+    const agent = await StudentAgent.create({
+      student: studentId,
       agentId,
       agentName,
       jobTitle,
       country,
       isRemote,
+      agentDailyLimit,
       isOnsite,
+      keywords,
       employmentType,
       cvOption,
       autopilotEnabled: true,
       autopilotLimit,
       jobDescription,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      status: 'processing',
+    });
 
-    // process CV if present
-    if (req.file) {
-      const ext = path.extname(req.file.originalname).toLowerCase();
-      if (ext !== '.pdf') {
-        fs.unlinkSync(req.file.path);
-        return res.status(400).json({
-          success: false,
-          message: 'Only PDF files are allowed for CV upload',
-        });
-      }
-
-      if (req.file.size > 5 * 1024 * 1024) {
-        fs.unlinkSync(req.file.path);
-        return res.status(400).json({
-          success: false,
-          message: 'CV file size must be less than 5MB',
-        });
-      }
-
-      try {
-        const fileBuffer = fs.readFileSync(req.file.path);
-
-        const text = await extractTextFromCV({
-          buffer: fileBuffer,
-          mimetype: req.file.mimetype,
-        });
-
-        const extractedData = await parseCVData(text, studentId);
-        console.log('extractedData', extractedData);
-
-        newAgent.uploadedCVData = {
-          skills:
-            extractedData.skills?.map((s) => ({
-              ...s,
-              skillId: ensureStringId(),
-            })) || [],
-          experience:
-            extractedData.experience?.map((e) => ({
-              ...e,
-              experienceId: ensureStringId(),
-            })) || [],
-          education:
-            extractedData.education?.map((e) => ({
-              ...e,
-              educationId: ensureStringId(),
-            })) || [],
-          projects:
-            extractedData.projects?.map((p) => ({
-              ...p,
-              projectId: ensureStringId(),
-            })) || [],
-          jobRole: extractedData.jobRole || '',
-        };
-      } catch (err) {
-        if (req.file?.path && fs.existsSync(req.file.path))
-          fs.unlinkSync(req.file.path);
-        return res.status(400).json({
-          success: false,
-          message: 'CV extraction failed',
-          error: err.message,
-        });
-      } finally {
-        if (req.file?.path && fs.existsSync(req.file.path))
-          fs.unlinkSync(req.file.path);
-      }
-    }
-
-    const isFirstCV =
-      !Array.isArray(studentBefore.autopilotAgent) ||
-      studentBefore.autopilotAgent.length === 0;
-
-    if (isFirstCV) {
-      addCredits(studentId, CREDIT_EARN.FIRST_AUTO_AGENT_SETUP);
-    }
-
-    // create agent on student (push)
-    const updated = await Student.findByIdAndUpdate(
-      studentId,
-      { $push: { autopilotAgent: newAgent } },
-      { new: true, runValidators: true },
-    );
-
-    if (!updated) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found after update' });
-    }
-
-    // increment usage counter (user and student are same actor here)
     await User.findByIdAndUpdate(studentId, {
       $inc: { 'usageCounters.aiAutoApply': 1 },
     });
 
-    const createdAgent = updated.autopilotAgent.find(
-      (a) => a.agentId === agentId,
+    const io = req.app.get('io');
+
+    processAutopilotAgent(studentId, agentId, req.file, io).catch(
+      console.error,
     );
 
-    return res.status(201).json({
+    return res.status(202).json({
       success: true,
-      message: 'Autopilot agent created successfully',
-      agent: createdAgent,
+      agentId,
+      status: 'processing',
+      message: 'Autopilot agent started',
     });
-  } catch (error) {
-    // cleanup file if still present
-    if (req.file?.path && fs.existsSync(req.file.path)) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (e) {
-        console.error('Failed to remove uploaded file during error cleanup', e);
-      }
-    }
-    console.error('Agent creation error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: config.nodeEnv === 'local' ? error.message : undefined,
-    });
+  } catch (err) {
+    if (req.file?.path && fs.existsSync(req.file.path))
+      fs.unlinkSync(req.file.path);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
 export const getAllPilotAgents = async (req, res) => {
-  if (!req.user?._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid student identification',
-      errorCode: 'INVALID_STUDENT_ID',
-    });
-  }
-
   const studentId = req.user._id;
 
   try {
-    const student = await Student.findById(studentId)
-      .select('autopilotAgent')
-      .lean();
+    const activeAgents = await StudentAgent.find({ student: studentId });
 
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found',
-        errorCode: 'STUDENT_NOT_FOUND',
+    if (activeAgents.length === 0) {
+      return res.status(200).json({
+        count: activeAgents.length,
+        data: activeAgents,
       });
     }
-
-    // filter by autopilotEnabled, not isActive
-    const activeAgents = (student.autopilotAgent || []).filter(
-      (a) => a.autopilotEnabled !== false,
-    );
 
     return res.status(200).json({
       success: true,
       count: activeAgents.length,
-      data: { autoPilot: activeAgents },
-      meta: {
-        timestamp: new Date().toISOString(),
-        studentId: studentId.toString(),
-      },
+      data: activeAgents,
     });
   } catch (error) {
     console.error(
@@ -337,34 +422,14 @@ export const getAllPilotAgents = async (req, res) => {
 };
 
 export const getSinglePilotAgent = async (req, res) => {
-  if (!req.user?._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid student identification',
-      errorCode: 'INVALID_STUDENT_ID',
-    });
-  }
-
   const studentId = req.user._id;
   const { id: agentId } = req.params;
 
   try {
-    const student = await Student.findById(studentId)
-      .select('autopilotAgent')
-      .lean();
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found',
-        errorCode: 'STUDENT_NOT_FOUND',
-      });
-    }
-
-    const activeAgents = (student.autopilotAgent || []).filter(
-      (a) => a.autopilotEnabled !== false,
-    );
-    const agent = activeAgents.find((a) => a.agentId === agentId);
+    const agent = await StudentAgent.find({
+      _id: agentId,
+      student: studentId,
+    }).lean();
 
     if (!agent) {
       return res.status(404).json({
@@ -424,35 +489,14 @@ export const removeAutoPilotAgent = async (req, res) => {
   const { id: agentId } = req.params;
 
   try {
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found',
-        errorCode: 'STUDENT_NOT_FOUND',
-      });
-    }
-
-    if (!Array.isArray(student.autopilotAgent)) student.autopilotAgent = [];
-
-    const idx = student.autopilotAgent.findIndex(
-      (a) => String(a.agentId) === String(agentId),
-    );
-    if (idx === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Agent not found',
-        errorCode: 'AGENT_NOT_FOUND',
-      });
-    }
-
-    const removedAgent = student.autopilotAgent[idx];
-    student.autopilotAgent.splice(idx, 1);
-    await student.save();
+    await StudentAgent.findOneAndDelete({
+      agentId,
+      student: studentId,
+    });
 
     return res.status(200).json({
       success: true,
-      data: { autoPilot: removedAgent },
+      message: 'Autopilot agent removed successfully',
       meta: {
         timestamp: new Date().toISOString(),
         studentId: studentId.toString(),

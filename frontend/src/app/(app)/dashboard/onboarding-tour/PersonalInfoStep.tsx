@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input';
 
 const PersonalInfoStep = ({ formData, handleInputChange }: any) => {
+  console.log('form data in personal info step', formData);
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

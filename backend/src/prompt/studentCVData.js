@@ -1,4 +1,5 @@
 export const CVDataPrompt = (pdfData) => {
+  console.log('pdfData', pdfData);
   return `
 Extract the following fields from the resume below. Return only raw JSON. Do NOT include triple backticks or markdown.
 
