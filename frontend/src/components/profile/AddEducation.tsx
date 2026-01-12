@@ -1192,6 +1192,7 @@ export const AddExperience: React.FC<{
                         <Input
                           type="month"
                           {...field}
+                          required
                           disabled={isCurrent}
                           value={isCurrent ? '' : field.value ?? ''}
                         />
@@ -1201,7 +1202,7 @@ export const AddExperience: React.FC<{
                   )}
                 />
               </div>
-              <FormField
+              {/* <FormField
                 control={control}
                 name="isCurrent"
                 render={({ field }) => (
@@ -1217,7 +1218,7 @@ export const AddExperience: React.FC<{
                     </FormLabel>
                   </FormItem>
                 )}
-              />
+              /> */}
               <FormField
                 control={control}
                 name="description"

@@ -18,6 +18,12 @@ FeedbackPopupProps) {
   const [open, setOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const handleClose = () => {
+    setOpen(false);
+    setSubmitted(false);
+    setFeedback('');
+    // onClose?.();
+  };
 
   // Auto-open after login
   useEffect(() => {
@@ -30,13 +36,6 @@ FeedbackPopupProps) {
 
     return () => clearTimeout(timer);
   }, [delay]);
-
-  const handleClose = () => {
-    setOpen(false);
-    setSubmitted(false);
-    setFeedback('');
-    // onClose?.();
-  };
 
   const handleSubmit = () => {
     setSubmitted(true);

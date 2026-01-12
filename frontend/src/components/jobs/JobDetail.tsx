@@ -225,12 +225,29 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       if (job._id) {
         localStorage.setItem(`matchScore_${job._id}`, JSON.stringify(data));
       }
-    } catch (error) {
-      if (!signal.aborted) {
-        console.error('Match score error:', error);
-        setProgress(0);
-        setScoreError('Could not calculate the AI match score.');
+
+      if (!response.success) {
+        toast({
+          title: 'failed',
+          description: 'Successfully calculated the AI match score.',
+        });
       }
+
+      if (response.status === 429) {
+        toast({
+          title: 'Rate limit exceeded',
+          description: 'Please Upgrade your plan to use AI Match Score.',
+        });
+      }
+    } catch (error) {
+      console.log(error.response.data.message);
+      toast({
+        title: 'Could not calculate the AI  score.',
+        description: error.response.data.message,
+      });
+      console.error('Match score error:', error);
+      setProgress(0);
+      setScoreError('Could not calculate the AI match score.');
     } finally {
       if (interval) window.clearInterval(interval);
       setIsLoadingScore(false);
@@ -572,7 +589,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {/* ATS Score */}
-              {!scoreError && !atsScore && !isLoadingAtsScore && (
+              {/* {!scoreError && !atsScore && !isLoadingAtsScore && (
                 <Button
                   onClick={handleGetATSScore}
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
@@ -582,7 +599,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     <span>AI ATS Score</span>
                   </div>
                 </Button>
-              )}
+              )} */}
 
               {isLoadingAtsScore && (
                 <div
@@ -715,9 +732,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   Retry Match Score
                 </Button>
-              )}
-              {scoreError && (
-                <p className="text-xs text-red-600 mt-1">{scoreError}</p>
               )}
             </div>
           ) : (
