@@ -91,6 +91,12 @@ export const resumeTemplates = [
     className: 'resume-professional',
   },
 ];
+export interface ResumeTemplate {
+  id: string;
+  name: string;
+  style: string;
+  thumbnail: string;
+}
 
 // --- MAIN ResultStep COMPONENT ---
 const ResultStep = ({
@@ -109,7 +115,14 @@ const ResultStep = ({
   const { user } = useSelector((state: RootState) => state.auth);
   const router = useRouter();
 
-  const [selectedTemplate, setSelectedTemplate] = useState(resumeTemplates[0]);
+  // const [selectedTemplate, setSelectedTemplate] = useState(resumeTemplates[0]);
+  interface Props {
+    activeTemplate: ResumeTemplate | null;
+    onSelect: (template: ResumeTemplate) => void;
+  }
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<ResumeTemplate | null>(null);
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const CustomButton = ({
     variant,
     onClick,
@@ -294,7 +307,6 @@ const ResultStep = ({
                   content={refinedCv}
                   setContent={setRefinedCv}
                   isHtml={true}
-                  // ADD THIS LINE BELOW:
                   template={selectedTemplate}
                 />
               </div>

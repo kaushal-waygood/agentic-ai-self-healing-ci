@@ -35,9 +35,6 @@ export const GenerateStep = ({
   handleGenerate,
   setWizardStep,
 }: GenerateStepProps) => {
-  // We build the context items array using the props, similar to the generated code's approach.
-  // This keeps the rendering logic clean.
-
   const searchParams = useSearchParams();
 
   const jobId = searchParams.get('slug');

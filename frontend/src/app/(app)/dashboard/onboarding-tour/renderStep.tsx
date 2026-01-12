@@ -16,6 +16,36 @@ import SkillsExperienceStep from './SkillsExperienceStep';
 import JobPreferencesStep from './JobPreferencesStep';
 import { AvailabilityStep } from './AvailabilityStep';
 
+const isStepValid = () => {
+  switch (step) {
+    case 1: // Personal Info
+      return (
+        formData.phone?.trim() &&
+        formData.designation?.trim() &&
+        formData.currentLocation?.trim() &&
+        formData.preferredLocation?.trim()
+      );
+
+    case 2: // Resume
+      return Boolean(formData.resume);
+
+    case 3: // Education
+      return formData.education?.degree && formData.education?.institution;
+
+    case 4: // Skills & Experience
+      return selectedOptions.skills?.length > 0;
+
+    case 5: // Job Preferences
+      return formData.jobType && formData.expectedSalary;
+
+    case 6: // Availability
+      return Boolean(formData.availability);
+
+    default:
+      return false;
+  }
+};
+
 const renderStep = () => {
   const stepProps = {
     formData,

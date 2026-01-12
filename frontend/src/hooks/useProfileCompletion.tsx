@@ -31,6 +31,7 @@ const useProfileCompletion = () => {
     const fetchCompletionData = async () => {
       try {
         const response = await apiInstance.get('/students/profile/status');
+        console.log('response.data', response.data);
         const result: ProfileCompletionData = response.data;
         setData(result);
       } catch (err: any) {

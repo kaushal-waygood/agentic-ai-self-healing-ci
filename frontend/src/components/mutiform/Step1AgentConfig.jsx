@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react'; // 1. Import useState
 import CountrySelector from '../common/CountrySelector';
 
 const Step1AgentConfig = ({
@@ -6,10 +6,13 @@ const Step1AgentConfig = ({
   prevStep,
   handleChange,
   handleCheckboxChange,
-  updateKeywords, // <<< receives from parent
+  updateKeywords,
   values,
   isEditing,
 }) => {
+  // 2. Create local state for the input box
+  const [localInput, setLocalInput] = useState('');
+
   const canProceed =
     values.agentName &&
     values.jobTitle &&
@@ -17,22 +20,34 @@ const Step1AgentConfig = ({
     values.employmentTypes.length > 0;
 
   // ===================== Keyword Logic ===================== //
+
   const pushKeyword = () => {
-    const text = values.keywordInput?.trim();
+    const text = localInput.trim();
     if (!text) return;
 
-    const updated = Array.from(new Set([...(values.keywords || []), text]));
-    updateKeywords(updated);
-    handleChange('keywordInput')({ target: { value: '' } });
+    // Check if keyword already exists to prevent duplicates
+    if (!values.keywords?.includes(text)) {
+      const updated = [...(values.keywords || []), text];
+      updateKeywords(updated); // Send list to Parent
+    }
+
+    setLocalInput(''); // Clear Local Input only
   };
 
-  const handleKeywordTyping = (e) => handleChange('keywordInput')(e);
+  const handleKeywordTyping = (e) => {
+    setLocalInput(e.target.value); // Update Local Input
+  };
 
   const handleKeywordKeyPress = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
+      e.preventDefault(); // Stop form submission or comma insertion
       pushKeyword();
     }
+  };
+
+  const removeKeyword = (keywordToRemove) => {
+    const updated = values.keywords.filter((k) => k !== keywordToRemove);
+    updateKeywords(updated);
   };
 
   return (
@@ -96,7 +111,7 @@ const Step1AgentConfig = ({
             placeholder="React, Node, Docker..."
             onChange={handleKeywordTyping}
             onKeyDown={handleKeywordKeyPress}
-            value={values.keywordInput || ''}
+            value={localInput}
             disabled={isEditing}
             className="w-full px-4 py-3 border-2 rounded-lg outline-none focus:ring-purple-500"
           />
@@ -105,10 +120,8 @@ const Step1AgentConfig = ({
             {values.keywords?.map((k, i) => (
               <span
                 key={i}
-                onClick={() =>
-                  updateKeywords(values.keywords.filter((x) => x !== k))
-                }
-                className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-md font-semibold cursor-pointer flex items-center gap-1"
+                onClick={() => removeKeyword(k)}
+                className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-md font-semibold cursor-pointer flex items-center gap-1 hover:bg-purple-200 transition-colors"
               >
                 {k} ✕
               </span>

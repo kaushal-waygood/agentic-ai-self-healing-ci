@@ -154,8 +154,8 @@ const OnboardingPage = () => {
 
     setFormData((prev) => ({
       ...prev,
-      fullName: user.fullName || prev.fullName,
-      email: user.email || prev.email,
+      fullName: user.fullName || prev.fullName || students[0].fullName,
+      email: user.email || prev.email || students[0].email,
     }));
   }, [user]);
 
@@ -213,12 +213,23 @@ const OnboardingPage = () => {
     }
   };
 
+  // const handleNext = () => {
+  //   if (step < totalSteps) {
+  //     setDirection('forward');
+  //     setTimeout(() => setStep(step + 1), 50);
+  //   }
+  // };
+
   const handleNext = () => {
-    if (step < totalSteps) {
-      setDirection('forward');
-      setTimeout(() => setStep(step + 1), 50);
-    }
+    setAttemptedNext(true);
+
+    if (!isStepValid()) return;
+
+    setAttemptedNext(false); // reset for next step
+    setDirection('forward');
+    setTimeout(() => setStep(step + 1), 50);
   };
+
   const handleBack = () => {
     if (step > 1) {
       setDirection('backward');
@@ -231,6 +242,7 @@ const OnboardingPage = () => {
   };
 
   const handleSubmit = async () => {
+    console.log('submitting form', formData);
     try {
       const response = await apiInstance.post('/students/profile/onboarding', {
         data: formData,
@@ -325,6 +337,8 @@ const OnboardingPage = () => {
     router.push('/dashboard');
   };
 
+  console.log('form data ', formData);
+
   // --- HELPER: Get Title and Icon for the current step ---
   const getStepHeader = (currentStep: number) => {
     switch (currentStep) {
@@ -369,6 +383,68 @@ const OnboardingPage = () => {
     }
   };
 
+  const [attemptedNext, setAttemptedNext] = useState(false);
+  const safeTrim = (value: unknown) =>
+    typeof value === 'string' ? value.trim() : '';
+
+  const isStepValid = () => {
+    switch (step) {
+      case 1:
+        return (
+          formData.fullName.trim() &&
+          formData.email.trim() &&
+          formData.phone.trim() &&
+          formData.designation.trim() &&
+          formData.currentLocation.trim()
+          // formData.preferredLocation.trim()
+        );
+
+      case 2: {
+        const filledEducations = formData.education.filter((edu) =>
+          Object.values(edu).some((v) => safeTrim(v)),
+        );
+
+        if (filledEducations.length === 0) return false;
+
+        return filledEducations.every(
+          (edu) =>
+            safeTrim(edu.institution) &&
+            safeTrim(edu.degree) &&
+            safeTrim(edu.fieldOfStudy) &&
+            safeTrim(edu.startDate) &&
+            safeTrim(edu.country) &&
+            safeTrim(edu.grade),
+        );
+      }
+
+      case 3:
+        return (
+          formData.skills.every((s) => s.skill) &&
+          formData.experience.every((e) => e.company && e.title && e.duration)
+        );
+
+      case 4:
+        return formData.projects.every(
+          (p) => p.projectName && p.description && p.technologies,
+        );
+
+      case 5:
+        return (
+          safeTrim(formData.location) &&
+          safeTrim(formData.country) &&
+          Array.isArray(formData.mustHaveSkills) &&
+          formData.mustHaveSkills.length > 0 &&
+          safeTrim(formData.educationLevel)
+        );
+
+      case 6:
+        return Boolean(selectedOptions.availability);
+
+      default:
+        return false;
+    }
+  };
+
   const renderStepContent = (currentStep: number) => {
     switch (currentStep) {
       case 1:
@@ -377,6 +453,7 @@ const OnboardingPage = () => {
             formData={formData}
             handleInputChange={handleInputChange}
             handleFileUpload={handleFileUpload}
+            attemptedNext={attemptedNext}
           />
         );
       case 2:
@@ -385,12 +462,17 @@ const OnboardingPage = () => {
             education={formData.education}
             onchange={handleArrayChange.bind(null, 'education')}
             onAdd={addArrayItem.bind(null, 'education', {
-              institute: '',
+              institution: '',
               degree: '',
+              fieldOfStudy: '',
               graduationYear: '',
               grade: '',
+              country: '',
+              startDate: '',
+              endDate: '',
             })}
             onRemove={removeArrayItem.bind(null, 'education')}
+            attemptedNext={attemptedNext}
           />
         );
       case 3:
@@ -412,6 +494,7 @@ const OnboardingPage = () => {
               description: '',
             })}
             onRemoveExperience={removeArrayItem.bind(null, 'experience')}
+            attemptedNext={attemptedNext}
           />
         );
       case 4:
@@ -426,6 +509,7 @@ const OnboardingPage = () => {
               link: '',
             })}
             onRemove={removeArrayItem.bind(null, 'projects')}
+            attemptedNext={attemptedNext}
           />
         );
       case 5:
@@ -435,6 +519,7 @@ const OnboardingPage = () => {
             handleInputChange={handleInputChange}
             selectedOptions={selectedOptions}
             toggleOption={toggleOption}
+            attemptedNext={attemptedNext}
           />
         );
       case 6:
@@ -647,9 +732,16 @@ const OnboardingPage = () => {
                   </Button> */}
 
                   {step < totalSteps ? (
+                    // <Button
+                    //   onClick={handleNext}
+                    //   className="flex-1 h-14 rounded-lg  transition-all duration-300 transform hover:scale-105 text-base font-semibold"
+                    // >
+                    //   Next <ArrowRight className="w-5 h-5 ml-2" />
+                    // </Button>
                     <Button
                       onClick={handleNext}
-                      className="flex-1 h-14 rounded-lg  transition-all duration-300 transform hover:scale-105 text-base font-semibold"
+                      className={`flex-1 h-14 rounded-lg text-base font-semibold
+    ${!isStepValid() ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                     >
                       Next <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>

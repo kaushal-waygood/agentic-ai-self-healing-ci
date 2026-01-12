@@ -22,8 +22,8 @@ import {
   Sparkles,
   KeyRound,
   FileText,
-  Eye, // Added
-  EyeOff, // Added
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 // UTILS AND SERVICES
@@ -44,6 +44,10 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { GoogleSignInButton, LinkedInSignInButton } from './GoogleSingupButton';
 import Image from 'next/image';
+import { verifyEmailRequest } from '@/redux/reducers/authReducer';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
 
 // Zod Schema
 const signupFormSchema = z
@@ -73,7 +77,7 @@ const SignupForm = () => {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [storedEmail, setStoredEmail] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
+  // We can use Redux loading state, but keeping local if specific UI needs it
   const [isRefCodeFromUrl, setIsRefCodeFromUrl] = useState(false);
   // State for password visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -81,6 +85,12 @@ const SignupForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [focusedField, setFocusedField] = useState('');
+  const dispatch = useDispatch();
+
+  // Added isAuthenticated to selector
+  const { user, loading, error, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth,
+  );
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
@@ -115,13 +125,33 @@ const SignupForm = () => {
       setSignupSuccess(true);
     }
     const token = Cookies.get('accessToken');
+    // If user is already logged in via cookie, redirect
     if (token) {
       router.push('/dashboard');
     }
   }, [router]);
 
+  // NEW: Effect to handle successful verification redirect
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      // Clean up local storage
+      localStorage.removeItem('pendingVerificationEmail');
+
+      // Only show toast and redirect if we are in the signup flow
+      if (signupSuccess) {
+        successToast('Your account has been verified successfully!');
+        router.push('/dashboard/onboarding-tour');
+      }
+    }
+
+    if (error) {
+      errorToast(error);
+    }
+  }, [isAuthenticated, loading, error, router, signupSuccess]);
+
   async function onSubmit(data: SignupFormValues) {
     try {
+      // NOTE: If you move signup to Redux/Saga, replace this with dispatch
       const response = await apiInstance.post('/user/signup', data);
       successToast(
         'Account created! Please check your email for a verification code.',
@@ -129,39 +159,20 @@ const SignupForm = () => {
       localStorage.setItem('pendingVerificationEmail', data.email);
       setStoredEmail(data.email);
       setSignupSuccess(true);
-    } catch (error) {
-      console.error('Error creating user:', error.response.data.message);
+    } catch (error: any) {
+      console.error('Error creating user:', error?.response?.data?.message);
       errorToast(
-        error.response.data.message || 'Signup failed. Please try again.',
+        error?.response?.data?.message || 'Signup failed. Please try again.',
       );
     }
   }
 
-  const handleVerification = async () => {
+  const handleVerification = () => {
     if (!verificationCode || !storedEmail) return;
-    setIsVerifying(true);
-    try {
-      const response = await apiInstance.post('/user/verify', {
-        email: storedEmail,
-        otp: verificationCode,
-      });
 
-      if (response.status === 200) {
-        localStorage.removeItem('pendingVerificationEmail');
-        localStorage.setItem('accessToken', response.data.accessToken);
-        setSignupSuccess(false);
-        setStoredEmail('');
-        setVerificationCode('');
-        successToast('Your account has been verified successfully!');
-        router.push('/dashboard/onboarding-tour');
-      } else {
-        router.push('/login');
-      }
-    } catch (error) {
-      errorToast('Invalid verification code. Please try again.');
-    } finally {
-      setIsVerifying(false);
-    }
+    // Dispatch the action. The useEffect above will handle the result.
+    // Mapping 'verificationCode' to 'otp' to match API expectation
+    dispatch(verifyEmailRequest({ storedEmail, verificationCode }));
   };
 
   const handleResendCode = async () => {
@@ -216,22 +227,22 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                     placeholder="Enter verification code"
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value)}
-                    disabled={isVerifying}
+                    disabled={loading}
                     className="w-full pl-12 pr-4 h-14 text-base bg-white/50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all duration-300"
                   />
                 </div>
                 <Button
                   onClick={handleVerification}
-                  disabled={!verificationCode || isVerifying}
+                  disabled={!verificationCode || loading}
                   className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-lg transition-all duration-300 "
                 >
-                  {isVerifying ? 'Verifying...' : 'Verify Account'}
+                  {loading ? 'Verifying...' : 'Verify Account'}
                 </Button>
                 <div className="text-center text-sm">
                   <button
                     onClick={handleResendCode}
                     className="text-blue-600 hover:text-blue-500 font-medium hover:underline"
-                    disabled={isVerifying}
+                    disabled={loading}
                   >
                     Didn't receive a code? Resend
                   </button>
@@ -281,59 +292,6 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-0.5"
               >
-                {/* <FormField
-                  control={form.control}
-                  name="accountType"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="block text-center text-gray-700 font-medium mb-3">
-                        I am signing up as...
-                      </FormLabel>
-
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="grid grid-cols-2 gap-4"
-                        >
-                          <FormItem>
-                            <FormControl>
-                              <RadioGroupItem
-                                value="individual"
-                                id="r1"
-                                className="peer sr-only"
-                              />
-                            </FormControl>
-                            <FormLabel
-                              htmlFor="r1"
-                              className="flex flex-row items-center gap-2 rounded-lg border-2 border-gray-200 bg-white/50 p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer transition-all duration-300"
-                            >
-                              <UserPlus className="mb-2 h-7 w-7" /> Individual
-                            </FormLabel>
-                          </FormItem>
-
-                          <FormItem>
-                            <FormControl>
-                              <RadioGroupItem
-                                value="institution"
-                                id="r2"
-                                className="peer sr-only"
-                              />
-                            </FormControl>
-                            <FormLabel
-                              htmlFor="r2"
-                              className="flex flex-row items-center gap-2 rounded-lg border-2 border-gray-200 bg-white/50 p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-700 [&:has([data-state=checked])]:border-purple-600 cursor-pointer transition-all duration-300"
-                            >
-                              <Building className="mb-2 h-7 w-7" /> Institution
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage className="text-red-500 text-xs" />
-                    </FormItem>
-                  )}
-                /> */}
-
                 {accountType === 'institution' && (
                   <FormField
                     control={form.control}
