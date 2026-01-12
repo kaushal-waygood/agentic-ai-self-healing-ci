@@ -378,7 +378,7 @@ const AppHeader = ({
   const handleMenuToggle = (menu) => {
     // 1. Check if the action is for notifications AND if user is on mobile
     if (menu === 'notification' && isMobile) {
-      router.push('/notifications'); // Redirect immediately
+      router.push('/dashboard/notifications'); // Redirect immediately
       return; // Stop function execution here
     }
 

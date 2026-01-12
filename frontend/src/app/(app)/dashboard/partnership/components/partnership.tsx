@@ -181,7 +181,7 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
         phone: tpoData.phone,
       };
 
-      const res = await apiInstance.post('/user/bring-zobs/student', payload);
+      const res = await apiInstance.post('/bring-zobs/student', payload);
 
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 1500);

@@ -18,6 +18,7 @@ interface ProjectsStepProps {
   onchange: (index: number, field: keyof ProjectEntry, value: string) => void;
   onAdd: () => void;
   onRemove: (index: number) => void;
+  attemptedNext: boolean;
 }
 
 const ProjectsStep: React.FC<ProjectsStepProps> = ({
@@ -25,7 +26,29 @@ const ProjectsStep: React.FC<ProjectsStepProps> = ({
   onchange,
   onAdd,
   onRemove,
+  attemptedNext,
 }) => {
+  const safeTrim = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+
+  const isFilled = (obj?: Record<string, unknown>) => {
+    if (!obj || typeof obj !== 'object') return false;
+    return Object.values(obj).some((v) => safeTrim(v));
+  };
+
+  /**
+   * Validate if:
+   * - user clicked Next
+   * - AND (this project is filled OR it's the first project)
+   */
+  const shouldValidate = (obj?: Record<string, unknown>, index?: number) =>
+    attemptedNext && (isFilled(obj) || index === 0);
+
+  const showError = (
+    value?: string,
+    obj?: Record<string, unknown>,
+    index?: number,
+  ) => shouldValidate(obj, index) && !safeTrim(value);
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -49,20 +72,47 @@ const ProjectsStep: React.FC<ProjectsStepProps> = ({
               value={proj.projectName}
               onChange={(e) => onchange(index, 'projectName', e.target.value)}
               placeholder="Project Name"
-              className="h-11 text-base"
+              className={`h-11 ${
+                showError(proj.projectName, proj, index)
+                  ? 'border-red-500 '
+                  : ''
+              }`}
             />
+
+            {showError(proj.projectName, proj, index) && (
+              <p className="text-xs text-red-500">Project name is required</p>
+            )}
+
             <Textarea
               value={proj.description}
               onChange={(e) => onchange(index, 'description', e.target.value)}
               placeholder="Project description..."
-              className="h-24 text-base"
+              className={`h-11 ${
+                showError(proj.description, proj, index)
+                  ? 'border-red-500 '
+                  : ''
+              }`}
             />
+            {showError(proj.description, proj, index) && (
+              <p className="text-xs text-red-500">
+                Project description is required
+              </p>
+            )}
             <Textarea
               value={proj.technologies}
               onChange={(e) => onchange(index, 'technologies', e.target.value)}
               placeholder="Technologies used (comma-separated), e.g., React, Node.js, AWS"
-              className="h-20 text-base"
+              className={`h-11 ${
+                showError(proj.technologies, proj, index)
+                  ? 'border-red-500 '
+                  : ''
+              }`}
             />
+            {showError(proj.technologies, proj, index) && (
+              <p className="text-xs text-red-500">
+                Project description is required
+              </p>
+            )}
             <Input
               value={proj.link}
               onChange={(e) => onchange(index, 'link', e.target.value)}

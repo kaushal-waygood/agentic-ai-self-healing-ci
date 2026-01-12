@@ -268,3 +268,27 @@ export const extractStudentDataFromCV = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const getStudentDataFromUploadedCV = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!req.file?.buffer)
+      return res.status(400).json({ error: 'No CV uploaded' });
+
+    const cvUrl = await uploadToCloudinary(req);
+    console.log(cvUrl);
+    const text = await extractTextFromCV(req.file);
+    console.log(text);
+    const extractedData = await parseCVData(text, userId);
+
+    return {
+      success: true,
+      resumeUrl: cvUrl,
+      data: extractedData,
+    };
+  } catch (err) {
+    console.error('❌ CV Extraction Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

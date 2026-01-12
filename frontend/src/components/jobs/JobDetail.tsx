@@ -148,30 +148,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     setIsLoadingAtsScore(false);
     setProgress(0);
 
-    const checkJobStatus = async () => {
-      try {
-        const [savedRes, appliedRes] = await Promise.all([
-          apiInstance.get('students/jobs/issaved', {
-            params: { jobId: job._id },
-            signal,
-          }),
-          apiInstance.get('/students/job/isapplied', {
-            params: { jobId: job._id },
-            signal,
-          }),
-        ]);
-        if (signal.aborted) return;
-        setIsSaved(Boolean(savedRes?.data?.isSaved));
-        setIsApplying(Boolean(appliedRes?.data?.isApplied));
-      } catch (error) {
-        if (!signal.aborted) {
-          // quiet log; don’t spam the UI
-          console.error('Failed to check job status:', error);
-        }
-      }
-    };
-
-    checkJobStatus();
     return () => controller.abort();
   }, [job?._id]);
 
@@ -225,12 +201,29 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       if (job._id) {
         localStorage.setItem(`matchScore_${job._id}`, JSON.stringify(data));
       }
-    } catch (error) {
-      if (!signal.aborted) {
-        console.error('Match score error:', error);
-        setProgress(0);
-        setScoreError('Could not calculate the AI match score.');
+
+      if (!response.success) {
+        toast({
+          title: 'failed',
+          description: 'Successfully calculated the AI match score.',
+        });
       }
+
+      if (response.status === 429) {
+        toast({
+          title: 'Rate limit exceeded',
+          description: 'Please Upgrade your plan to use AI Match Score.',
+        });
+      }
+    } catch (error) {
+      console.log(error.response.data.message);
+      toast({
+        title: 'Could not calculate the AI  score.',
+        description: error.response.data.message,
+      });
+      console.error('Match score error:', error);
+      setProgress(0);
+      setScoreError('Could not calculate the AI match score.');
     } finally {
       if (interval) window.clearInterval(interval);
       setIsLoadingScore(false);
@@ -381,7 +374,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
     try {
       const response = await apiInstance.post(
-        '/students/ats-score', // <-- new API endpoint for ATS
+        '/students/ats-score',
         { jobDescription: job.description },
         { signal },
       );
@@ -410,6 +403,29 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
   const handleApplyNow = () => {
     router.replace(`/dashboard/jobs/${job._id}/apply`);
+  };
+
+  // Helper to convert HTML-like strings to the plain text format your renderer expects
+  const cleanHtmlDescription = (content: string) => {
+    if (!content) return '';
+
+    return (
+      content
+        // 1. Convert block-ending tags to newlines to preserve layout
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<\/li>/gi, '\n')
+        // 2. Strip start tags and any other remaining tags
+        .replace(/<[^>]+>/g, '')
+        // 3. Decode common HTML entities
+        .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        // 4. Remove excessive multiple newlines (optional, but looks cleaner)
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+    );
   };
 
   return (
@@ -572,7 +588,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {/* ATS Score */}
-              {!scoreError && !atsScore && !isLoadingAtsScore && (
+              {/* {!scoreError && !atsScore && !isLoadingAtsScore && (
                 <Button
                   onClick={handleGetATSScore}
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
@@ -582,7 +598,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     <span>AI ATS Score</span>
                   </div>
                 </Button>
-              )}
+              )} */}
 
               {isLoadingAtsScore && (
                 <div
@@ -715,9 +731,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   Retry Match Score
                 </Button>
-              )}
-              {scoreError && (
-                <p className="text-xs text-red-600 mt-1">{scoreError}</p>
               )}
             </div>
           ) : (
@@ -883,7 +896,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           >
             <summary className="hidden" />
             <div className="px-1 pb-4">
-              {renderJobDescription(job.description)}
+              {renderJobDescription(cleanHtmlDescription(job.description))}{' '}
               {/* <div className=" overflow-y-auto pr-3  pl-3 space-y-1">
               </div> */}
             </div>

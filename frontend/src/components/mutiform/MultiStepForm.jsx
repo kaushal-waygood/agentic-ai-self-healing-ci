@@ -104,32 +104,48 @@ const MultiStepForm = () => {
     setIsPreviewOpen(true);
   };
 
-  // 🔸 The real submit logic happens after confirmation
   const confirmSubmit = async () => {
     setIsPreviewOpen(false);
+
     try {
       const submissionData = new FormData();
 
+      // 1. Basic Info
       submissionData.append('agentName', formData.agentName);
       submissionData.append('jobTitle', formData.jobTitle);
       submissionData.append('country', formData.country);
       submissionData.append('isRemote', String(formData.isRemote));
+
+      // 2. Cover Letter Strategy (This was likely the missing part)
+      submissionData.append(
+        'coverLetterStrategy',
+        formData.coverLetterStrategy || 'generate',
+      );
+      submissionData.append(
+        'coverLetterInstructions',
+        formData.coverLetterInstructions || '',
+      );
+
       submissionData.append(
         'employmentTypes',
         JSON.stringify(formData.employmentTypes),
-      );
-      submissionData.append(
-        'maxApplications',
-        String(formData.maxApplications),
       );
 
       submissionData.append(
         'keywords',
         JSON.stringify(formData.keywords || []),
-      ); // <-- fixed
+      );
 
-      if (formData.cvFile instanceof File)
+      // 4. Numbers
+      submissionData.append(
+        'maxApplications',
+        String(formData.maxApplications),
+      );
+
+      // 5. File
+      if (formData.cvFile instanceof File) {
         submissionData.append('cv', formData.cvFile);
+      }
 
       await apiInstance.post('/pilotagent/create', submissionData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -138,8 +154,19 @@ const MultiStepForm = () => {
       dispatch(getAutopilotRequest());
       setFormData(initialFormData);
       setStep(0);
+
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Agent created successfully!',
+      });
     } catch (err) {
       console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to create agent. Please try again.',
+      });
     }
   };
 

@@ -28,7 +28,14 @@ import Image from 'next/image';
 import { useProfile } from '@/hooks/useProfile';
 import apiInstance from '@/services/api';
 import { useDispatch } from 'react-redux';
-import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
+import {
+  getAllProjectsRequest,
+  getStudentDetailsRequest,
+  getStudentEducationRequest,
+  getStudentExperienceFailure,
+  getStudentExperienceRequest,
+  getStudentSkllsRequest,
+} from '@/redux/reducers/studentReducer';
 
 const SideSectionProfile = () => {
   const {
@@ -131,6 +138,12 @@ const SideSectionProfile = () => {
         clearInterval(rampTimer);
         rampTimer = null;
       }
+
+      dispatch(getStudentDetailsRequest());
+      dispatch(getStudentExperienceRequest());
+      dispatch(getStudentEducationRequest());
+      dispatch(getStudentSkllsRequest());
+      dispatch(getAllProjectsRequest());
 
       let finishTimer: ReturnType<typeof setInterval> | null = setInterval(
         () => {

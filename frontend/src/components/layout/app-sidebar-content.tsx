@@ -641,7 +641,7 @@ export const AppSidebarContent = ({
         comingSoon: false,
       },
       {
-        title: 'Tailored Application',
+        title: 'AI Tailored Application',
         href: '/dashboard/apply',
         icon: Wand2,
         allowedRoles: [ROLES.STUDENT],
