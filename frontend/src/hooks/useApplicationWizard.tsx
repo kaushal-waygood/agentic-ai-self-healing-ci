@@ -613,14 +613,10 @@ export const useApplicationWizard = () => {
 
       navigateToStep('result');
     } catch (error: any) {
-      console.error(error);
-      // toast({
-      //   variant: 'destructive',
-      //   title: 'Generation Failed',
-      //   description:
-      //     error?.response?.data?.message || 'Failed to generate application.',
-      // });
-
+      console.error(error?.status);
+      if (error?.status === 429) {
+        setWizardStep('result');
+      }
       toast({
         variant: 'destructive',
         title: 'Generation Failed',

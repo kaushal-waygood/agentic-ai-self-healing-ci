@@ -67,8 +67,6 @@ const buildUsageLimitsFromFeatures = (features = []) => {
     limits[key] = parsed;
   });
 
-  console.log(limits);
-
   return limits;
 };
 
@@ -977,7 +975,6 @@ export const verifyRazorpayPayment = async (req, res) => {
     }
 
     const variant = safeGetVariant(plan, billingPeriod);
-    console.log(variant);
     if (!variant) {
       throw new Error(`Billing variant '${billingPeriod}' not found.`);
     }

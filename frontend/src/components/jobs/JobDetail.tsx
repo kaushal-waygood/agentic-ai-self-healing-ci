@@ -148,30 +148,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     setIsLoadingAtsScore(false);
     setProgress(0);
 
-    const checkJobStatus = async () => {
-      try {
-        const [savedRes, appliedRes] = await Promise.all([
-          apiInstance.get('students/jobs/issaved', {
-            params: { jobId: job._id },
-            signal,
-          }),
-          apiInstance.get('/students/job/isapplied', {
-            params: { jobId: job._id },
-            signal,
-          }),
-        ]);
-        if (signal.aborted) return;
-        setIsSaved(Boolean(savedRes?.data?.isSaved));
-        setIsApplying(Boolean(appliedRes?.data?.isApplied));
-      } catch (error) {
-        if (!signal.aborted) {
-          // quiet log; don’t spam the UI
-          console.error('Failed to check job status:', error);
-        }
-      }
-    };
-
-    checkJobStatus();
     return () => controller.abort();
   }, [job?._id]);
 
@@ -381,7 +357,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
     try {
       const response = await apiInstance.post(
-        '/students/ats-score', // <-- new API endpoint for ATS
+        '/students/ats-score',
         { jobDescription: job.description },
         { signal },
       );
@@ -410,6 +386,29 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
   const handleApplyNow = () => {
     router.replace(`/dashboard/jobs/${job._id}/apply`);
+  };
+
+  // Helper to convert HTML-like strings to the plain text format your renderer expects
+  const cleanHtmlDescription = (content: string) => {
+    if (!content) return '';
+
+    return (
+      content
+        // 1. Convert block-ending tags to newlines to preserve layout
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<\/li>/gi, '\n')
+        // 2. Strip start tags and any other remaining tags
+        .replace(/<[^>]+>/g, '')
+        // 3. Decode common HTML entities
+        .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        // 4. Remove excessive multiple newlines (optional, but looks cleaner)
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+    );
   };
 
   return (
@@ -883,7 +882,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           >
             <summary className="hidden" />
             <div className="px-1 pb-4">
-              {renderJobDescription(job.description)}
+              {renderJobDescription(cleanHtmlDescription(job.description))}{' '}
               {/* <div className=" overflow-y-auto pr-3  pl-3 space-y-1">
               </div> */}
             </div>

@@ -69,7 +69,7 @@ const OnboardingPage = () => {
     try {
       setLoading(true);
       const { data } = await apiInstance.post(
-        `/user/onboard/org-info/${bringId}/organization`,
+        `/bring-zobs/onboard/org-info/${bringId}/organization`,
         orgForm,
       );
 
@@ -100,7 +100,7 @@ const OnboardingPage = () => {
       setLoading(true);
       // Link the new job to the onboarding session
       const { data } = await apiInstance.post(
-        `/user/bring-zobs/onboarding/mark-free-job`,
+        `/bring-zobs/onboarding/mark-free-job`,
         {
           bringId,
           jobId: newJobId,

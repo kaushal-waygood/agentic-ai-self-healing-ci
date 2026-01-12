@@ -60,7 +60,7 @@ const JobsPage = () => {
               </tr>
             )}
 
-            {jobs.map((job) => (
+            {jobs?.map((job) => (
               <tr
                 key={job._id}
                 className="border-t hover:bg-slate-50 transition"
