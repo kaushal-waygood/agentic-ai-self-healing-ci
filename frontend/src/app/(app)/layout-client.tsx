@@ -22,6 +22,7 @@ import { logoutRequest } from '@/redux/reducers/authReducer';
 import { useRouter } from 'next/navigation';
 import logRocketAnalytics from '@/components/logrocket';
 import { RootState } from '@/redux/rootReducer';
+import FeedbackButton from '@/components/Feedback-context/FeedbackButton';
 
 // 1. Define and Create Context
 interface SidebarContextType {
@@ -290,7 +291,7 @@ export default function DashboardLayoutClient({
 
                 {!isDashboardPage && <Footer />}
               </ScrollArea>
-
+              <FeedbackButton />
               {/* FOOTER */}
               {showDashboardUI && <DashboardFooter />}
             </div>
