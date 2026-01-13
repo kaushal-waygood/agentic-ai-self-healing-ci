@@ -15,7 +15,7 @@ function ApplyPageContent() {
 
 export default function ApplyPage() {
   return (
-    <Suspense fallback={<div>Loading Wizard...</div>}>
+    <Suspense fallback>
       <ApplyPageContent />
     </Suspense>
   );

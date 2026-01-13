@@ -1,11 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Code, PlusCircle, Trash2 } from 'lucide-react';
+import {
+  Code,
+  Loader,
+  Loader2,
+  Loader2Icon,
+  LoaderPinwheel,
+  LucideLoader,
+  PlusCircle,
+  Trash2,
+} from 'lucide-react';
 
 import { useSkills } from '@/hooks/useProfile';
 import { AddSkill } from '../AddEducation';
 import ModalPortal from '@/components/ui/modalPortal';
+import { ProfileGridSkeleton } from '@/components/ui/ProfileGridSkeleton';
 
 const getSkillBadgeColor = (level: string) => {
   switch (level) {
@@ -21,7 +31,8 @@ const getSkillBadgeColor = (level: string) => {
 };
 
 const Skills = () => {
-  const { skills, createSkill, updateSkill, deleteSkill } = useSkills();
+  const { skills, createSkill, updateSkill, deleteSkill, loading } =
+    useSkills();
 
   // local UI state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -35,8 +46,14 @@ const Skills = () => {
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <Code className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-extrabold text-gray-800">
-            Skills ({skills.length}){' '}
+          <h3 className="text-xl flex gap-2 font-extrabold text-gray-800">
+            Skills ({skills.length})
+            <span>
+              {' '}
+              {loading && (
+                <Loader2 className="animate-spin transition duration-500" />
+              )}
+            </span>
           </h3>
         </div>
 
@@ -46,61 +63,17 @@ const Skills = () => {
           className="flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg transition-all"
         >
           <PlusCircle className="mr-2 h-5 w-5" />
-          Add Skill
+          Add
         </button>
       </div>
 
       {/* Skills Grid */}
       <div className="p-2 max-h-[70vh]  overflow-y-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {skills.length > 0 ? (
+          {loading && skills.length === 0 ? (
+            <ProfileGridSkeleton count={6} />
+          ) : skills.length > 0 ? (
             skills.map((skill: any, index) => (
-              // <div
-              //   key={skill._id}
-              //   className="bg-white rounded-lg p-4  transition-all border border-gray-200 flex flex-col justify-between"
-              // >
-              //   <div className="flex flex-wrap justify-between items-start ">
-              //     <div className="">
-              //       <h4 className="text-base font-bold text-gray-800 break-all line-clamp-1">
-              //         <span className="text-sm font-semibold text-gray-500 shrink-0 mr-1">
-              //           {index + 1}.
-              //         </span>
-              //         {skill.skill}
-              //       </h4>
-              //     </div>
-
-              //     <div className="flex justify-between gap-2">
-              //       <span
-              //         className={`mt-1 inline-block  rounded-lg p-1 text-xs font-semibold ${getSkillBadgeColor(
-              //           skill.level,
-              //         )}`}
-              //       >
-              //         {skill.level}
-              //       </span>
-              //       <select
-              //         value={skill.level}
-              //         onChange={(e) =>
-              //           updateSkill(skill._id, {
-              //             level: e.target.value,
-              //           })
-              //         }
-              //         className="text-gray-600 border rounded border-gray-300   text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              //       >
-              //         <option value="BEGINNER">Beginner</option>
-              //         <option value="INTERMEDIATE">Intermediate</option>
-              //         <option value="EXPERT">Expert</option>
-              //       </select>
-
-              //       <button
-              //         onClick={() => setDeleteId(skill._id)}
-              //         className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 flex-shrink-0 p-2 rounded-full transition-colors duration-200"
-              //       >
-              //         <Trash2 className="h-4 w-4" />
-              //       </button>
-              //     </div>
-              //   </div>
-              // </div>
-
               <div
                 key={skill._id}
                 className="bg-white rounded-lg p-4 border border-gray-200 flex flex-col gap-3"

@@ -56,11 +56,11 @@ const PersonalInfoStep = ({
 
         {/* CURRENT LOCATION (FIXED) */}
         <Input
-          value={formData.currentLocation}
-          onChange={(e) => handleInputChange('currentLocation', e.target.value)}
-          placeholder="Current Location (e.g., New Delhi)"
+          value={formData.location}
+          onChange={(e) => handleInputChange('location', e.target.value)}
+          placeholder=" Location (e.g., New Delhi)"
           className={`h-11 text-base bg-white/50 border rounded-lg px-4 ${
-            showError(formData.currentLocation) ? 'border-red-500 ' : ''
+            showError(formData.location) ? 'border-red-500 ' : ''
           }`}
         />
 
@@ -88,7 +88,7 @@ const PersonalInfoStep = ({
           {showError(formData.email) && (
             <p className="text-sm text-red-500 mt-1">Email is required</p>
           )}
-          {showError(formData.currentLocation) && (
+          {showError(formData.location) && (
             <p className="text-sm text-red-500 mt-1">Location is required</p>
           )}
         </div>
