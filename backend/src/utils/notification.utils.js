@@ -74,7 +74,7 @@ export const notificationTemplates = {
     message: `Your tailored CV for ${jobTitle} is complete with a ${atsScore} match score. Download it now and apply with confidence.`,
     type: 'success',
     category: 'cv',
-    actionUrl: `/dashboard/cv/${cvId}`,
+    actionUrl: `/dashboard/my-docs/cv/${cvId}`,
   }),
   CV_GENERATED_FAILED: (jobTitle) => ({
     title: 'CV Generation Failed',
@@ -84,12 +84,12 @@ export const notificationTemplates = {
     actionUrl: `/dashboard/my-docs?tab=cvs`,
   }),
   COVER_LETTER_GENERATED_SUCCESS: (message, clId) => ({
-    title: 'Cover Letter Ready!',
+    title: 'Cover Letter Generated!',
     message: message || 'Your cover letter has been generated successfully.',
     type: 'success',
     priority: 'medium',
     category: 'coverletter',
-    actionUrl: `/dashboard/cl/${clId}`,
+    actionUrl: `/dashboard/my-docs/cl/${clId}`,
   }),
 
   COVER_LETTER_GENERATED_FAILED: (message, error) => ({
@@ -102,7 +102,7 @@ export const notificationTemplates = {
   }),
 
   TAILORED_APPLICATION_GENERATED_SUCCESS: (message, applicationId) => ({
-    title: 'Application Ready!',
+    title: 'Application Generated!',
     message:
       message || 'Your tailored application has been generated successfully.',
     type: 'success',

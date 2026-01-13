@@ -45,13 +45,14 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 import apiInstance from '@/services/api';
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import CompletionModal from './CompletionModel';
 import { startDashboardTour } from './dashboardDriver';
 import { SpendCreditsSection } from '@/components/credits/SpendCreditsSection';
 import { useCredits } from '@/hooks/useCredits';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
+import OnboardingExperienceFeedback from '../onboarding-tour/OnboardingExperienceFeedback';
 
 export function StatCard({
   title,
@@ -679,6 +680,17 @@ export default function DashboardPage() {
     jobsVisited: 0,
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
+  // const searchParams = useSearchParams();
+  // const fromOnboarding = searchParams.get('from') === 'onboarding';
+  // const [showFeedback, setShowFeedback] = useState(false);
+  // useEffect(() => {
+  //   if (!fromOnboarding) return;
+
+  //   const alreadyDone = localStorage.getItem('onboarding_feedback_done');
+  //   if (!alreadyDone) {
+  //     setShowFeedback(true);
+  //   }
+  // }, [fromOnboarding]);
 
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -981,6 +993,11 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
       <div id="dashboard-scroll" className="max-w-7xl mx-auto space-y-8">
+        {/* {showFeedback && (
+          <OnboardingExperienceFeedback
+            onClose={() => setShowFeedback(false)}
+          />
+        )} */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <LayoutDashboard className="w-8 h-8 mr-3 text-headingTextPrimary" />

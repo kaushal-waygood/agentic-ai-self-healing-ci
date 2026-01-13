@@ -204,7 +204,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
       if (!response.success) {
         toast({
-          title: 'failed',
+          title: 'Success',
           description: 'Successfully calculated the AI match score.',
         });
       }

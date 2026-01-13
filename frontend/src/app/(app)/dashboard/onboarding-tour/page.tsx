@@ -31,12 +31,15 @@ import AvailabilityStep from './AvailabilityStep';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useSelector, useDispatch } from 'react-redux';
+import { start } from 'repl';
 
 // --- START: TYPE DEFINITIONS ---
 type EducationEntry = {
   institute: string;
   degree: string;
   graduationYear: string;
+  startDate: string;
+  endDate: string;
   grade: string;
 };
 
@@ -44,6 +47,8 @@ type ExperienceEntry = {
   company: string;
   title: string;
   duration: string;
+  startDate: string;
+  endDate: string;
   description: string;
 };
 
@@ -56,6 +61,8 @@ type ProjectEntry = {
   projectName: string;
   description: string;
   technologies: string;
+  startDate: string;
+  endDate: string;
   link: string;
 };
 // --- END: TYPE DEFINITIONS ---
@@ -114,6 +121,7 @@ const OnboardingPage = () => {
     fullName: '',
     email: '',
     phone: '',
+    location: '',
     currentLocation: '', // FIXED: Renamed to avoid collision
     designation: '',
     website: '', // Added based on your UI component
@@ -122,14 +130,35 @@ const OnboardingPage = () => {
 
     // --- Arrays ---
     education: [
-      { institute: '', degree: '', graduationYear: '', grade: '' },
+      {
+        institute: '',
+        degree: '',
+        graduationYear: '',
+        grade: '',
+        startDate: '',
+        endDate: '',
+      },
     ] as EducationEntry[],
     experience: [
-      { company: '', title: '', duration: '', description: '' },
+      {
+        company: '',
+        title: '',
+        duration: '',
+        description: '',
+        startDate: '',
+        endDate: '',
+      },
     ] as ExperienceEntry[],
     skills: [{ skill: '', level: 'BEGINNER' }] as SkillEntry[],
     projects: [
-      { projectName: '', description: '', technologies: '', link: '' },
+      {
+        projectName: '',
+        description: '',
+        technologies: '',
+        link: '',
+        startDate: '',
+        endDate: '',
+      },
     ] as ProjectEntry[],
 
     // --- Job Preferences ---
@@ -248,7 +277,7 @@ const OnboardingPage = () => {
         data: formData,
         selectedOptions,
       });
-
+      console.log('respnse'.response.data);
       setStep(totalSteps + 1);
     } catch (error) {
       console.error('Error submitting profile:', error);
@@ -281,7 +310,7 @@ const OnboardingPage = () => {
         phone: apiData?.personalInfo?.phone || prev.phone,
         designation: apiData?.personalInfo?.jobRole || prev.designation,
         // FIXED: Map to currentLocation
-        location: apiData?.personalInfo?.location || prev.location,
+        location: apiData?.personalInfo?.location || prev?.location,
         resume: file,
 
         education:
@@ -293,6 +322,8 @@ const OnboardingPage = () => {
                   ? new Date(edu.endDate).getFullYear().toString()
                   : '',
                 grade: edu.grade || '',
+                startDate: edu.startDate || '',
+                endDate: edu.endDate || '',
               }))
             : prev.education,
 
@@ -303,6 +334,8 @@ const OnboardingPage = () => {
                 title: exp.title || '',
                 duration: formatDuration(exp.startDate, exp.endDate),
                 description: exp.description || '',
+                startDate: exp.startDate || '',
+                endDate: exp.endDate || '',
               }))
             : prev.experience,
 
@@ -321,6 +354,13 @@ const OnboardingPage = () => {
                 description: proj.description || '',
                 technologies: (proj.technologies || []).join(', '),
                 link: proj.link || '',
+                // startDate: proj.startDate || '',
+                // endDate: proj.endDate || '',
+                // FIX: Extract just the YYYY-MM-DD part
+                startDate: proj.startDate
+                  ? String(proj.startDate).split('T')[0]
+                  : '',
+                endDate: proj.endDate ? String(proj.endDate).split('T')[0] : '',
               }))
             : prev.projects,
       }));
@@ -336,7 +376,9 @@ const OnboardingPage = () => {
   const handleDashboardRedirect = () => {
     router.push('/dashboard');
   };
-
+  // const handleDashboardRedirect = () => {
+  //   router.push(`/dashboard?from=onboarding`);
+  // };
   console.log('form data ', formData);
 
   // --- HELPER: Get Title and Icon for the current step ---
@@ -395,7 +437,7 @@ const OnboardingPage = () => {
           formData.email.trim() &&
           formData.phone.trim() &&
           formData.designation.trim() &&
-          formData.currentLocation.trim()
+          formData.location.trim()
           // formData.preferredLocation.trim()
         );
 
@@ -408,10 +450,11 @@ const OnboardingPage = () => {
 
         return filledEducations.every(
           (edu) =>
-            safeTrim(edu.institution) &&
+            safeTrim(edu.institute) &&
             safeTrim(edu.degree) &&
             safeTrim(edu.fieldOfStudy) &&
             safeTrim(edu.startDate) &&
+            // safeTrim(edu.endDate) &&
             safeTrim(edu.country) &&
             safeTrim(edu.grade),
         );
@@ -491,6 +534,8 @@ const OnboardingPage = () => {
               company: '',
               title: '',
               duration: '',
+              startDate: '',
+              endDate: '',
               description: '',
             })}
             onRemoveExperience={removeArrayItem.bind(null, 'experience')}
@@ -506,6 +551,8 @@ const OnboardingPage = () => {
               projectName: '',
               description: '',
               technologies: '',
+              startDate: '',
+              endDate: '',
               link: '',
             })}
             onRemove={removeArrayItem.bind(null, 'projects')}
@@ -539,10 +586,8 @@ const OnboardingPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <Loader2 className="w-16 h-16 text-purple-600 mx-auto animate-spin" />
-          {/* <h2 className="text-2xl font-bold text-gray-700">
-            Analyzing your resume...
-          </h2> */}
+          <Loader2 className="w-16 h-16 text-blue-600 mx-auto animate-spin" />
+
           <h2 className="text-2xl font-bold text-gray-700 transition-all duration-500">
             {ANALYSIS_MESSAGES[analysisMessageIndex]}
           </h2>
