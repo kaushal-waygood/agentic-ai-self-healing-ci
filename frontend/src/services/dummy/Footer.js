@@ -93,13 +93,6 @@ export const socialLinks = [
     followers: '8.9K',
     url: 'https://www.facebook.com/zobsai.co/',
   },
-  // { name: 'Twitter', icon: Twitter, color: 'blue', followers: '12.5K' },
-  // {
-  //   name: 'GitHub',
-  //   icon: Github,
-  //   color: 'gray',
-  //   followers: '5.2K',
-  //   url: 'https://github.com/ResumeAI',
-  // },
-  // { name: 'Discord', icon: MessageSquare, color: 'purple', followers: '8.9K' },
+
+  
 ];

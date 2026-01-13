@@ -60,7 +60,7 @@ export default function ContactPage() {
         <div className="relative z-10 container mx-auto px-4 py-5">
           {/* Header Section */}
           <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-6xl font-semibold text-gray-900 mb-6 bg-clip-text text-transparent bg-headingTextPrimary">
+            <h1 className="text-4xl uppercase font-semibold md:text-6xl font-semibold text-gray-900 mb-6 bg-clip-text text-transparent bg-headingTextPrimary">
               Get In Touch
             </h1>
             {/* <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">

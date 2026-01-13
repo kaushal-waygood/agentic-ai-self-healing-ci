@@ -27,6 +27,8 @@ import { timeAgo } from '@/utils/TimeAgo';
 import QuillJs from '@/components/rich-text/QuillJs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
+import { FRONTEND_BASE_URL } from '@/services/api';
 
 const Page = () => {
   const { id } = useParams<{ id: string }>();
@@ -97,6 +99,10 @@ const Page = () => {
             <span className="text-sm">Posted {timeAgo(job.createdAt)}</span>
           </div>
         </div>
+
+        <Link href={`${FRONTEND_BASE_URL}/jobs/${job.slug}`} target="_blank">
+          {job.slug}
+        </Link>
 
         {/* KPI Stats */}
         <div className="flex gap-4">

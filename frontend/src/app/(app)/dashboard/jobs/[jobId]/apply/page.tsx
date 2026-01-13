@@ -20,19 +20,26 @@ const JobDetailPage = () => {
   const dispatch = useDispatch();
 
   const { students } = useSelector((state: RootState) => state.student);
-  const { job, loading, error } = useSelector((state: RootState) => state.jobs);
+  const { job, loading } = useSelector((state: RootState) => state.jobs);
   const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
 
   const [step, setStep] = useState(1);
+
+  // Resume state
   const [resumeChoice, setResumeChoice] = useState<'saved' | 'upload'>('saved');
   const [selectedSavedResumeId, setSelectedSavedResumeId] = useState<
     string | null
   >(null);
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvError, setCvError] = useState<string | null>(null);
+
+  // Cover letter state (✅ THIS WAS MISSING)
   const [coverLetterChoice, setCoverLetterChoice] = useState<
     'saved' | 'upload'
   >('saved');
+  const [selectedSavedClId, setSelectedSavedClId] = useState<string | null>(
+    null,
+  );
   const [clFile, setClFile] = useState<File | null>(null);
   const [clError, setClError] = useState<string | null>(null);
 
@@ -45,19 +52,22 @@ const JobDetailPage = () => {
 
   const validateAndProceed = () => {
     if (job?.resumeRequired) {
-      if (resumeChoice === 'upload' && !cvFile)
+      if (resumeChoice === 'upload' && !cvFile) {
         return setCvError('Please upload a resume.');
-      if (resumeChoice === 'saved' && !selectedSavedResumeId)
+      }
+      if (resumeChoice === 'saved' && !selectedSavedResumeId) {
         return setCvError('Please select a resume.');
+      }
     }
+
     setCvError(null);
     setStep(2);
   };
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    setFile: any,
-    setError: any,
+    setFile: React.Dispatch<React.SetStateAction<File | null>>,
+    setError: React.Dispatch<React.SetStateAction<string | null>>,
   ) => {
     const file = e.target.files?.[0];
     if (file && ['application/pdf', 'application/msword'].includes(file.type)) {
@@ -68,38 +78,37 @@ const JobDetailPage = () => {
     }
   };
 
-  if (loading || !job)
+  if (loading || !job) {
     return <div className="text-center py-24">Loading...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-10">
       <div className="h-1 w-full rounded-full bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600" />
 
-      {/* Job Header and Description omitted for brevity, same as your original code */}
-
       <section className="rounded-2xl bg-white border p-6">
         {step === 1 ? (
           <DocumentSelection
-            {...{
-              resume,
-              resumeChoice,
-              setResumeChoice,
-              selectedSavedResumeId,
-              setSelectedSavedResumeId,
-              cvFile,
-              cvError,
-              handleFileChange,
-              setCvFile,
-              setCvError,
-              job,
-              coverLetter,
-              coverLetterChoice,
-              setCoverLetterChoice,
-              clFile,
-              clError,
-              setClFile,
-              setClError,
-            }}
+            resume={resume}
+            resumeChoice={resumeChoice}
+            setResumeChoice={setResumeChoice}
+            selectedSavedResumeId={selectedSavedResumeId}
+            setSelectedSavedResumeId={setSelectedSavedResumeId}
+            cvFile={cvFile}
+            cvError={cvError}
+            handleFileChange={handleFileChange}
+            setCvFile={setCvFile}
+            setCvError={setCvError}
+            job={job}
+            coverLetter={coverLetter}
+            selectedSavedClId={selectedSavedClId} // ✅ FIX
+            setSelectedSavedClId={setSelectedSavedClId} // ✅ FIX
+            coverLetterChoice={coverLetterChoice}
+            setCoverLetterChoice={setCoverLetterChoice}
+            clFile={clFile}
+            clError={clError}
+            setClFile={setClFile}
+            setClError={setClError}
             savedCoverLetterUrl={students?.[0]?.student?.coverLetterUrl}
             onNext={validateAndProceed}
           />
@@ -113,6 +122,10 @@ const JobDetailPage = () => {
             cvFile={cvFile}
             coverLetterChoice={coverLetterChoice}
             clFile={clFile}
+            // FIX: Find the actual object instead of just passing the ID
+            selectedCoverLetter={coverLetter?.html?.find(
+              (c: any) => c._id === selectedSavedClId,
+            )}
             onBack={() => setStep(1)}
           />
         )}
