@@ -11,7 +11,7 @@ export const useJobStore = create((set) => ({
     try {
       set({ loading: true, error: null });
 
-      const response = await apiInstance.get('/jobs/hosted');
+      const response = await apiInstance.get('/jobs/hosted/jobs/job-admin');
 
       const data = response.data;
 

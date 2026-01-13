@@ -202,38 +202,6 @@ export function ProfileReadinessCard() {
   const score = data.percentage;
   const checks = data.categories;
 
-  console.log('check', checks);
-
-  /* =========================
-     ✅ PROFILE COMPLETE STATE
-     ========================= */
-  // if (score === 100) {
-  //   return (
-  //     <div className="bg-white border rounded-lg p-4 transition-shadow duration-300">
-  //       <div className="flex justify-between items-center text-center">
-  //         <div className="flex items-center gap-2">
-  //           <CheckCircle2 className="w-6 h-6 text-green-600" />
-  //           <h3 className="text-xl font-semibold text-gray-900">
-  //             Profile Complete 🎉
-  //           </h3>
-  //         </div>
-
-  //         <div>
-  //           <Button
-  //             asChild
-  //             className="bg-buttonPrimary hover:bg-blue-700 text-white"
-  //           >
-  //             <Link href="/dashboard/profile">
-  //               View Profile
-  //               <ArrowRight className="w-4 h-4" />
-  //             </Link>
-  //           </Button>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   if (score === 100) {
     return (
       <div className="bg-white relative overflow-hidden rounded-lg border border-gray-200 p-4 ">

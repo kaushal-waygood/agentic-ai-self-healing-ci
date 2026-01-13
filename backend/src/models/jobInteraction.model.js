@@ -19,7 +19,7 @@ const jobInteractionSchema = new Schema(
     // What kind of interaction this is
     type: {
       type: String,
-      enum: ['IMPRESSION', 'VIEW', 'CLICK', 'SAVED', 'APPLIED', 'VISIT'],
+      enum: ['IMPRESSION', 'VIEW', 'SAVED', 'APPLIED', 'VISIT'],
       required: true,
       index: true,
     },

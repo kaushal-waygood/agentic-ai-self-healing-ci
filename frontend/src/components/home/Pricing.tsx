@@ -6,6 +6,7 @@ import apiInstance from '@/services/api';
 import PlanCard from './PlanCard';
 import { DollarSign, IndianRupee, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '../ui/button';
 
 interface Plan {
   _id: string;
@@ -16,6 +17,7 @@ interface Plan {
 }
 
 export function Pricing() {
+  const router = useRouter();
   const [currency, setCurrency] = useState('inr');
   const [pricingData, setPricingData] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,43 +88,18 @@ export function Pricing() {
 
           <p className="text-sm md:text-lg text-gray-600 mb-4 leading-relaxed">
             Unlock your potential with a plan that grows with you.
-            <br />
-            {/* <span className="text-purple-600 font-semibold">
-              Simple, transparent, and powerful.
-            </span> */}
           </p>
-
-          {/* Currency Selector */}
-          {/* <div className="flex items-center justify-center mb-4">
-            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-lg">
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handleCurrencyChange('usd')}
-                  disabled={currency === 'inr'}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 cursor-not-allowed ${
-                    currency === 'usd'
-                      ? 'bg-purple-600 text-white shadow-md transform scale-105'
-                      : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
-                  }`}
-                >
-                  <DollarSign className="w-4 h-4" />
-                  USD
-                </button>
-                <button
-                  onClick={() => handleCurrencyChange('inr')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ${
-                    currency === 'inr'
-                      ? 'bg-purple-600 text-white shadow-md transform scale-105'
-                      : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
-                  }`}
-                >
-                  <IndianRupee className="w-4 h-4" />
-                  INR
-                </button>
-              </div>
-            </div>
-          </div> */}
         </header>
+
+        <div className="flex justify-center items-center mb-6">
+          <Button
+            className=""
+            variant="default"
+            onClick={() => router.push('/student-offer')}
+          >
+            Claim Your Student Offer
+          </Button>
+        </div>
 
         {/* Loading State */}
         {isLoading ? (
