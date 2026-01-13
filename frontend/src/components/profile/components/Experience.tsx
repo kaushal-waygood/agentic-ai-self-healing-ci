@@ -5,6 +5,7 @@ import {
   Briefcase,
   BriefcaseBusiness,
   Calendar,
+  Loader2,
   MapPin,
   Pencil,
   PlusCircle,
@@ -14,6 +15,7 @@ import {
 import { useExperience } from '@/hooks/useProfile';
 import { AddExperience } from '../AddEducation'; // adjust path
 import ModalPortal from '@/components/ui/modalPortal';
+import { ProfileGridSkeleton } from '@/components/ui/ProfileGridSkeleton';
 
 const formatDateForMonthInput = (date: string) => {
   if (!date) return '';
@@ -24,7 +26,7 @@ const formatDateForMonthInput = (date: string) => {
 };
 
 const Experience = () => {
-  const { experiences, deleteExperience } = useExperience();
+  const { experiences, deleteExperience, loading } = useExperience();
 
   // local UI state (correct place)
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -39,8 +41,14 @@ const Experience = () => {
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <Briefcase className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">
+          <h3 className="text-xl flex gap-2 font-bold text-gray-800">
             Experience ({experiences.length})
+            <span>
+              {' '}
+              {loading && (
+                <Loader2 className="animate-spin transition duration-500" />
+              )}
+            </span>
           </h3>
         </div>
 
@@ -57,7 +65,9 @@ const Experience = () => {
       {/* List */}
       <div className="p-2 max-h-[70vh] overflow-y-auto">
         <div className="space-y-4">
-          {experiences.length > 0 ? (
+          {loading && experiences.length === 0 ? (
+            <ProfileGridSkeleton count={3} />
+          ) : experiences.length > 0 ? (
             experiences.map((exp, index) => (
               <div key={exp._id} className="bg-white rounded-lg p-4 border ">
                 <div className="flex justify-between items-center">

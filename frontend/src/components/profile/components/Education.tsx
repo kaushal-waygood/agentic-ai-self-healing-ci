@@ -9,11 +9,13 @@ import {
   Pencil,
   PlusCircle,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 
 import { useEducation } from '@/hooks/useProfile';
-import { AddEducation } from '../AddEducation'; // adjust path if needed
+import { AddEducation } from '../AddEducation';
 import ModalPortal from '@/components/ui/modalPortal';
+import { ProfileGridSkeleton } from '@/components/ui/ProfileGridSkeleton';
 
 const formatDateForMonthInput = (date: string) => {
   if (!date) return '';
@@ -24,7 +26,7 @@ const formatDateForMonthInput = (date: string) => {
 };
 
 const Education = () => {
-  const { educations, deleteEducation } = useEducation();
+  const { educations, deleteEducation, loading } = useEducation();
 
   // modal state (LOCAL, correct place)
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -39,8 +41,14 @@ const Education = () => {
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <GraduationCap className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">
-            Education ({educations.length})
+          <h3 className="text-xl flex font-bold gap-2 text-gray-800">
+            Education ({educations.length}){' '}
+            <span>
+              {' '}
+              {loading && (
+                <Loader2 className="animate-spin transition duration-500" />
+              )}
+            </span>
           </h3>
         </div>
 
@@ -50,14 +58,16 @@ const Education = () => {
           className="flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg transition-all"
         >
           <PlusCircle className="mr-2 h-5 w-5" />
-          Add Education
+          Add
         </button>
       </div>
 
       {/* List */}
       <div className="rounded-lg p-2 max-h-[70vh] overflow-y-auto">
         <div className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2  gap-4">
-          {educations.length > 0 ? (
+          {loading && educations.length === 0 ? (
+            <ProfileGridSkeleton count={6} />
+          ) : educations.length > 0 ? (
             educations.map((edu, index) => (
               <div key={edu._id} className="bg-white rounded-lg p-4 border ">
                 <div className="flex justify-between items-start mb-4">
@@ -68,11 +78,11 @@ const Education = () => {
                       </span>
                       {edu.degree}
                     </h4>
-                    <p className="text-blue-600 font-medium break-all line-clamp-1">
+                    <p className="text-blue-600 font-medium break-all ">
                       {edu.institute}
                     </p>
                     {edu.fieldOfStudy && (
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-500 mt-1 break-all line-clamp-1">
                         Field: {edu.fieldOfStudy}
                       </p>
                     )}

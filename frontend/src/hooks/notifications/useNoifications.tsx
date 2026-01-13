@@ -12,7 +12,7 @@ type Notification = {
   actionUrl?: string;
 };
 
-export  function useNotifications() {
+export function useNotifications() {
   const socketRef = useRef<Socket | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);

@@ -22,7 +22,7 @@ const isStepValid = () => {
       return (
         formData.phone?.trim() &&
         formData.designation?.trim() &&
-        formData.currentLocation?.trim() &&
+        formData.location?.trim() &&
         formData.preferredLocation?.trim()
       );
 
