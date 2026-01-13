@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import {
   Calendar,
+  Loader2,
   MapPin,
   Package,
   Pencil,
@@ -13,6 +14,7 @@ import {
 import { useProjects } from '@/hooks/useProfile';
 import { AddProject } from '../AddEducation';
 import ModalPortal from '@/components/ui/modalPortal';
+import { ProfileGridSkeleton } from '@/components/ui/ProfileGridSkeleton';
 
 const formatDateForMonthInput = (date: string) => {
   if (!date) return '';
@@ -23,7 +25,7 @@ const formatDateForMonthInput = (date: string) => {
 };
 
 const Project = () => {
-  const { projects, deleteProject } = useProjects();
+  const { projects, deleteProject, loading } = useProjects();
 
   // local UI state (correct place)
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -38,8 +40,14 @@ const Project = () => {
           <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
             <Package className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">
-            Projects ({projects.length})
+          <h3 className="text-xl flex gap-2 font-bold text-gray-800">
+            Projects ({projects.length}){' '}
+            <span>
+              {' '}
+              {loading && (
+                <Loader2 className="animate-spin transition duration-500" />
+              )}
+            </span>
           </h3>
         </div>
 
@@ -49,14 +57,16 @@ const Project = () => {
           className="flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg transition-all"
         >
           <PlusCircle className="mr-2 h-5 w-5" />
-          Add Project
+          Add
         </button>
       </div>
 
       {/* List */}
       <div className="rounded-lg p-2 max-h-[70vh] overflow-y-auto">
         <div className="space-y-4">
-          {projects.length > 0 ? (
+          {loading && projects.length === 0 ? (
+            <ProfileGridSkeleton count={3} />
+          ) : projects.length > 0 ? (
             projects.map((proj, index) => (
               <div key={proj._id} className="bg-white rounded-lg p-4 border">
                 <div className="flex justify-between items-center">
@@ -64,7 +74,7 @@ const Project = () => {
                     {index + 1}.
                   </span>
                   <div className="flex-1 pr-4">
-                    <h4 className="text-lg font-bold text-gray-800">
+                    <h4 className="text-lg font-bold text-gray-800 break-all">
                       {proj.projectName}
                     </h4>
                   </div>
@@ -89,7 +99,7 @@ const Project = () => {
                   <p className="text-gray-600 leading-relaxed">
                     {proj.description}
                   </p>
-                  <p>{proj.link}</p>
+                  <p className="break-all">{proj.link}</p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2 text-gray-600">

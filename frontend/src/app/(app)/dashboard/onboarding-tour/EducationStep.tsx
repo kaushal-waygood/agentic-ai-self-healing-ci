@@ -8,7 +8,7 @@ import { PlusCircle, XCircle, CalendarIcon } from 'lucide-react';
 
 // 1. Updated Type Definitions to match the fuller form
 export type EducationEntry = {
-  institution: string;
+  institute: string;
   degree: string;
   fieldOfStudy: string;
   country: string;
@@ -40,7 +40,20 @@ const EducationStep: React.FC<EducationStepProps> = ({
     if (!edu || typeof edu !== 'object') return false;
     return Object.values(edu).some((v) => safeTrim(v));
   };
+  const getMonthValue = (dateVal: string | Date | undefined) => {
+    if (!dateVal) return '';
 
+    // Handle Date Object
+    if (dateVal instanceof Date) {
+      if (isNaN(dateVal.getTime())) return '';
+      const year = dateVal.getFullYear();
+      const month = String(dateVal.getMonth() + 1).padStart(2, '0');
+      return `${year}-${month}`;
+    }
+
+    // Handle String
+    return dateVal.slice(0, 7);
+  };
   /**
    * Validate if:
    * - User clicked Next
@@ -51,7 +64,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
 
   const showError = (value?: string, edu?: EducationEntry, index?: number) =>
     shouldValidate(edu, index) && !safeTrim(value);
-
+  // console.log('edu.'.edu.startDate);
   return (
     <div className="space-y-6">
       {education.map((edu, index) => (
@@ -79,16 +92,16 @@ const EducationStep: React.FC<EducationStepProps> = ({
             </Label>
 
             <Input
-              value={edu?.institution || ''}
-              onChange={(e) => onchange(index, 'institution', e.target.value)}
+              value={edu?.institute || ''}
+              onChange={(e) => onchange(index, 'institute', e.target.value)}
               className={`h-11 bg-white ${
-                showError(edu?.institution, edu, index)
+                showError(edu?.institute, edu, index)
                   ? 'border-red-500 focus-visible:ring-red-500'
                   : ''
               }`}
             />
 
-            {showError(edu?.institution, edu, index) && (
+            {showError(edu?.institute, edu, index) && (
               <p className="text-xs text-red-500 mt-1">
                 Institution is required
               </p>
@@ -147,7 +160,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
               <div className="relative">
                 <Input
                   type="month"
-                  value={edu.startDate || ''}
+                  value={getMonthValue(edu.startDate || '')}
                   onChange={(e) => onchange(index, 'startDate', e.target.value)}
                   className={`h-11 bg-white ${
                     showError(edu?.startDate, edu, index)
@@ -155,6 +168,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
                       : ''
                   }`}
                 />
+
                 {showError(edu?.startDate, edu, index) && (
                   <p className="text-xs text-red-500 mt-1">Date is required</p>
                 )}
@@ -168,7 +182,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
               <div className="relative">
                 <Input
                   type="month"
-                  value={edu.endDate || ''}
+                  value={getMonthValue(edu.endDate || '')}
                   onChange={(e) => onchange(index, 'endDate', e.target.value)}
                   className={`h-11 bg-white ${
                     showError(edu?.endDate, edu, index) ? 'border-red-500 ' : ''

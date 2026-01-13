@@ -254,6 +254,7 @@ export const useExperience = () => {
   const experiences = useSelector(
     (s: RootState) => s.student.experiences?.experiences || [],
   );
+  const loading = useSelector((s: RootState) => s.student.loading);
 
   useEffect(() => {
     dispatch(getStudentExperienceRequest());
@@ -280,6 +281,7 @@ export const useExperience = () => {
 
   return {
     experiences,
+    loading,
     createExperience,
     updateExperience,
     deleteExperience,
@@ -295,6 +297,8 @@ export const useEducation = () => {
   useEffect(() => {
     dispatch(getStudentEducationRequest());
   }, [dispatch]);
+
+  const loading = useSelector((s: RootState) => s.student.loading);
 
   const createEducation = useCallback(
     (data: any) => dispatch(addStudentEducationRequest(data)),
@@ -313,6 +317,7 @@ export const useEducation = () => {
   );
 
   return {
+    loading,
     educations,
     createEducation,
     updateEducation,
@@ -323,6 +328,7 @@ export const useEducation = () => {
 export const useSkills = () => {
   const dispatch = useDispatch();
   const skills = useSelector((s: RootState) => s.student.skills?.skills || []);
+  const loading = useSelector((s: RootState) => s.student.loading);
   useEffect(() => {
     dispatch(getStudentSkllsRequest());
   }, [dispatch]);
@@ -346,6 +352,7 @@ export const useSkills = () => {
 
   return {
     skills,
+    loading,
     createSkill,
     updateSkill,
     deleteSkill,
@@ -357,6 +364,8 @@ export const useProjects = () => {
   const projects = useSelector(
     (s: RootState) => s.student.projects?.projects || [],
   );
+
+  const loading = useSelector((s: RootState) => s.student.loading);
 
   useEffect(() => {
     dispatch(getAllProjectsRequest());
@@ -380,6 +389,7 @@ export const useProjects = () => {
 
   return {
     projects,
+    loading,
     createProject,
     updateProject,
     deleteProject,
