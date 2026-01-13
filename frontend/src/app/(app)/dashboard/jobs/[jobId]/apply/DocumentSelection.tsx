@@ -16,7 +16,6 @@ const Badge = ({ children, icon: Icon, color = 'gray' }: any) => (
   <span
     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-100 text-${color}-800 border border-${color}-200 mr-2 mb-2`}
   >
-    {Icon && <Icon className="w-3 h-3 mr-1" />}
     {children}
   </span>
 );
@@ -89,13 +88,10 @@ export const DocumentSelection = ({
     <div className="max-w-2xl mx-auto space-y-8 animate-fadeIn">
       {/* Header Section */}
       <div className="border-b border-gray-100 pb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          Step 1: Documents
-        </h2>
         <div className="space-y-2">
           <h3 className="text-xl font-bold text-purple-900">{job?.title}</h3>
-          <p className="text-gray-600 font-medium">{job?.company}</p>
-          <div className="flex flex-wrap pt-1">
+          <p className="text-gray-600 font-medium font-bold">{job?.company}</p>
+          {/* <div className="flex flex-wrap pt-1">
             {job?.location && (
               <Badge icon={MapPin} color="blue">
                 {job.location.city}, {job.location.country}
@@ -108,7 +104,7 @@ export const DocumentSelection = ({
                 {job.salary.max.toLocaleString()}
               </Badge>
             )}
-          </div>
+          </div> */}
         </div>
       </div>
 

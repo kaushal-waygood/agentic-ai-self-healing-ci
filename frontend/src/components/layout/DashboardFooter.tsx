@@ -1,58 +1,81 @@
 import { socialLinks } from '@/services/dummy/Footer';
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
+import WhatsAppIcon from '@/assets/whatsapp.png';
 
 const DashboardFooter = () => {
   const currentYear = new Date().getFullYear();
+  const communityLink = 'https://chat.whatsapp.com/DuXUurlksDoJ0jLG04zsm0';
 
   return (
-    <footer className="bg-white/80 backdrop-blur-md border-t border-gray-100 items-center  md:py-2 px-6">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="text-xs text-gray-500 font-medium">
-          © {currentYear} ZobsAI
-        </div>
+    <footer className="w-full bg-white/80 backdrop-blur-md border-t border-gray-100 py-2 px-6">
+      <div className="container mx-auto">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Left: Branding & Copyright */}
+          <div className="flex flex-col items-center md:items-start gap-1">
+            <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              ZobsAI
+            </span>
+            <p className="text-xs text-gray-500 font-medium">
+              © {currentYear} All rights reserved.
+            </p>
+          </div>
 
-        <div className="flex items-center gap-6">
-          {socialLinks.map((social, index) => (
+          {/* Center: Social Links - Fixed dynamic color issue */}
+          <div className="flex items-center gap-4">
+            {socialLinks.map((social, index) => (
+              <a
+                key={index}
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Follow us on ${social.platform || 'Social Media'}`}
+                className="p-2 rounded-full border border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all duration-300 group"
+              >
+                <social.icon className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+              </a>
+            ))}
+          </div>
+
+          {/* Right: Navigation & WhatsApp */}
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+              {[
+                { name: 'Terms', href: '/dashboard/terms-of-service' },
+                { name: 'Privacy', href: '/dashboard/privacy-policy' },
+                { name: 'Support', href: '/dashboard/support' },
+              ].map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="h-8 w-[1px] bg-gray-200 hidden md:block" />
+
+            {/* Compact WhatsApp Community Button */}
             <a
-              key={index}
-              href={social.url}
+              href={communityLink}
               target="_blank"
-              className="group relative bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-110"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white rounded-full text-xs font-bold hover:bg-[#20ba5a] transition-all hover:shadow-lg active:scale-95"
             >
-              <social.icon
-                className={`w-5 h-5 text-${social.color}-400 group-hover:scale-110 transition-transform duration-300`}
+              <Image
+                src={WhatsAppIcon}
+                alt=""
+                width={18}
+                height={18}
+                className="brightness-0 invert"
               />
+              Join Community
             </a>
-          ))}
+          </div>
         </div>
-
-        <nav className="hidden md:flex items-center gap-4">
-          <Link
-            href="/dashboard/terms-of-service"
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            Terms
-          </Link>
-          <Link
-            href="/dashboard/privacy-policy"
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            Privacy
-          </Link>
-          <Link
-            href="/dashboard/cancellation-refundpolicy"
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            Cancellation-Refund
-          </Link>
-          <Link
-            href="/dashboard/support"
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            Support
-          </Link>
-        </nav>
       </div>
     </footer>
   );

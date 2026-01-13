@@ -1,6 +1,10 @@
+'use client';
+
 import React, { useState } from 'react';
 import { FileText, ArrowLeft } from 'lucide-react';
 import apiInstance from '@/services/api';
+import { toast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 const FileSummary = ({ label, choice, savedItem, file, colorClass }: any) => (
   <div className={`p-3 rounded-lg border ${colorClass} flex items-center mb-3`}>
@@ -11,7 +15,7 @@ const FileSummary = ({ label, choice, savedItem, file, colorClass }: any) => (
       <p className="text-xs text-gray-500 uppercase font-semibold">{label}</p>
       <p className="text-sm font-medium text-gray-800 truncate">
         {choice === 'saved'
-          ? savedItem?.htmlCVTitle || 'Saved File'
+          ? savedItem?.htmlCVTitle || savedItem?.title || 'Saved File' // Added fallback for .title
           : file?.name || 'No file uploaded'}
       </p>
     </div>
@@ -24,10 +28,12 @@ export const ReviewAndApply = ({
   selectedResume,
   cvFile,
   coverLetterChoice,
+  selectedCoverLetter,
   clFile,
   onBack,
 }: any) => {
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const router = useRouter();
 
   const handleAnswerChange = (id: string, value: any) => {
     setAnswers((prev) => ({
@@ -48,17 +54,28 @@ export const ReviewAndApply = ({
         `/jobs/${job._id}/apply`,
         payload,
       );
+
+      toast({
+        title: 'Success',
+        description: 'Your application has been submitted successfully.',
+        variant: 'default',
+      });
+
+      router.push('/dashboard/search-jobs');
     } catch (err) {
+      if (err.status === 409) {
+        toast({
+          title: 'Error',
+          description: `${err.response.data.message}`,
+          variant: 'destructive',
+        });
+      }
       console.error(err);
     }
   };
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-xl font-semibold text-gray-900">
-        Step 2: Review & Apply
-      </h2>
-
       {/* Resume + Cover Letter */}
       <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
         <FileSummary
@@ -71,7 +88,7 @@ export const ReviewAndApply = ({
         <FileSummary
           label="Cover Letter"
           choice={coverLetterChoice}
-          savedItem={{ htmlCVTitle: 'Default Cover Letter' }}
+          savedItem={selectedCoverLetter}
           file={clFile}
           colorClass="border-blue-200 bg-blue-50"
         />

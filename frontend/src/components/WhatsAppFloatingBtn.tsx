@@ -1,9 +1,18 @@
+'use client';
+
 import React from 'react';
 import Image from 'next/image';
 import WhatsAppIcon from '@/assets/whatsapp.png'; // Ensure path is correct
+import { usePathname } from 'next/navigation';
 
 const WhatsAppFloatingBtn = () => {
   const communityLink = 'https://chat.whatsapp.com/DuXUurlksDoJ0jLG04zsm0';
+
+  const pathname = usePathname();
+
+  if (pathname.includes('/dashboard')) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-1">

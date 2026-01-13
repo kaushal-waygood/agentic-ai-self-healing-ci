@@ -20,6 +20,7 @@ import {
   getJobStats,
   updateJobDescription,
   applyJob,
+  getHostedJobsByAdmin,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -68,10 +69,11 @@ router.post('/:id/click', authMiddleware, isGeneralUser, trackJobClick);
 router.post('/impression', authMiddleware, isGeneralUser, trackJobImpressions);
 
 router.get('/', getAllJobs);
-router.get('/hosted', getMannualyJobs);
+router.get('/hosted', authMiddleware, isAnyAdmin, getMannualyJobs);
 router.get('/external', getRapidJobs);
 router.get('/employment-types', getAllEmploymentTypes);
 router.get('/experience-levels', getAllExperiences);
+router.get('/hosted/jobs/job-admin', authMiddleware, getHostedJobsByAdmin);
 
 router.get('/:jobId', getSingleJobDetail);
 router.patch('/status/:jobId', authMiddleware, isAnyAdmin, toggleJobStatus);

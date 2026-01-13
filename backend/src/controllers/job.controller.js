@@ -19,6 +19,10 @@ import { generateEmbedding } from '../config/embedding.js';
 import { JobInteraction } from '../models/jobInteraction.model.js';
 import mongoose, { isObjectIdOrHexString } from 'mongoose';
 import { AppliedJob } from '../models/AppliedJob.js';
+import TemplateManager from '../email-templates/lib/templateLoader.js';
+import path from 'path';
+import { __dirname } from '../utils/fileUploadingManaging.js';
+import { transporter } from '../utils/transporter.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -26,6 +30,38 @@ const LOCK_TTL = 10; // seconds for in-flight refresh lock
 
 const ALLOWED_JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'];
 const ALLOWED_SALARY_PERIODS = ['HOUR', 'DAY', 'MONTH', 'YEAR'];
+
+const tm = new TemplateManager({
+  baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
+});
+await tm.init();
+
+const sendTemplatedEmail = async ({
+  to,
+  templateName,
+  templateVars,
+  subjectOverride,
+}) => {
+  const { html, text } = await tm.compileWithTextFallback(
+    templateName,
+    templateVars,
+  );
+  await transporter.sendMail({
+    from: config.emailUser,
+    to,
+    subject: subjectOverride || templateVars.subject || 'ZobsAI Notification',
+    html,
+    text,
+  });
+};
+
+const sendRawEmail = async ({ to, subject, html }) =>
+  transporter.sendMail({
+    from: config.emailUser,
+    to,
+    subject,
+    html,
+  });
 
 // --- Functions ---
 
@@ -411,7 +447,9 @@ export const searchJobs = async (req, res) => {
 };
 
 export const postManualJob = async (req, res) => {
-  const { _id: organizationId } = req.user || {};
+  const { organization: organizationId } = req.user;
+
+  console.log('organization', organizationId);
 
   try {
     if (!organizationId) {
@@ -811,6 +849,83 @@ export const getMannualyJobs = async (req, res) => {
       success: false,
       message: 'Internal server error',
     });
+  }
+};
+
+export const getHostedJobsByAdmin = async (req, res) => {
+  const { organization } = req.user;
+
+  if (!organization) {
+    return res.status(400).json({
+      success: false,
+      message: 'Organization not found on user',
+    });
+  }
+
+  const organizationId = new mongoose.Types.ObjectId(organization);
+  const cacheKey = `jobs:hosted:v2:${organizationId}`;
+
+  try {
+    const jobs = await redisClient.withCache(cacheKey, 3600, async () => {
+      return Job.find({
+        organizationId,
+        origin: 'HOSTED',
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+    });
+
+    if (!jobs.length) {
+      return res.status(200).json({ success: true, jobs: [] });
+    }
+
+    const jobIds = jobs.map((j) => j._id);
+
+    const interactionCounts = await JobInteraction.aggregate([
+      {
+        $match: {
+          job: { $in: jobIds },
+          type: { $in: ['IMPRESSION', 'VIEW', 'APPLIED'] },
+        },
+      },
+      {
+        $group: {
+          _id: { job: '$job', type: '$type' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const interactionMap = {};
+
+    for (const row of interactionCounts) {
+      const jobId = String(row._id.job);
+      interactionMap[jobId] ??= {
+        impressions: 0,
+        views: 0,
+        applied: 0,
+      };
+
+      if (row._id.type === 'IMPRESSION')
+        interactionMap[jobId].impressions = row.count;
+      if (row._id.type === 'VIEW') interactionMap[jobId].views = row.count;
+      if (row._id.type === 'APPLIED') interactionMap[jobId].applied = row.count;
+    }
+
+    const jobsWithAnalytics = jobs.map((job) => ({
+      ...job,
+      impressions: interactionMap[String(job._id)]?.impressions ?? 0,
+      jobViews: interactionMap[String(job._id)]?.views ?? 0,
+      appliedCount: interactionMap[String(job._id)]?.applied ?? 0,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      jobs: jobsWithAnalytics,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false });
   }
 };
 
@@ -1235,19 +1350,20 @@ export const applyJob = async (req, res) => {
       coverLetterLink = null,
       applicationMethod = 'MANUAL',
     } = req.body;
-    console.log(req.body);
 
+    // 1️⃣ Fetch job
     const job = await Job.findById(jobId);
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
 
+    // 2️⃣ Fetch student
     const student = await Student.findById(studentId);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // 🔒 Validate required questions
+    // 3️⃣ Validate required screening questions
     for (const q of job.screeningQuestions) {
       if (q.required) {
         const value = answers[q._id.toString()];
@@ -1259,13 +1375,14 @@ export const applyJob = async (req, res) => {
       }
     }
 
-    // 🔄 Normalize answers for storage
+    // 4️⃣ Normalize screening answers
     const screeningAnswers = job.screeningQuestions.map((q) => ({
       questionId: q._id,
       question: q.question,
-      answer: answers[q._id.toString()],
+      answer: answers[q._id.toString()] ?? null,
     }));
 
+    // 5️⃣ Create applied job entry
     const application = await AppliedJob.create({
       student: studentId,
       job: jobId,
@@ -1275,9 +1392,10 @@ export const applyJob = async (req, res) => {
       screeningAnswers,
     });
 
+    // 6️⃣ Create job interaction (FIXED FIELD NAMES)
     await JobInteraction.create({
-      jobId,
-      userId: studentId,
+      job: jobId, // ✅ was jobId
+      user: studentId, // ✅ was userId
       type: 'APPLIED',
       meta: {
         query: null,
@@ -1285,11 +1403,28 @@ export const applyJob = async (req, res) => {
       },
     });
 
+    await sendTemplatedEmail({
+      to: student.email,
+      templateName: 'apply',
+      templateVars: {
+        name: student.fullName,
+        dashboardUrl: process.env.DASHBOARD_URL,
+        supportEmail: 'support@zobsai.com',
+        brandName: 'ZobsAI',
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+      },
+      subjectOverride: 'Application Submitted Successfully | ZobsAI',
+    });
+
+    // 7️⃣ Success response
     return res.status(201).json({
       message: 'Job applied successfully',
       applicationId: application._id,
     });
   } catch (error) {
+    // 8️⃣ Duplicate application protection
     if (error.code === 11000) {
       return res.status(409).json({
         message: 'You have already applied for this job',
