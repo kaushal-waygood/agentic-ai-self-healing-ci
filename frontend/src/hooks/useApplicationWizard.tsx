@@ -613,10 +613,18 @@ export const useApplicationWizard = () => {
 
       navigateToStep('result');
     } catch (error: any) {
-      console.error(error?.status);
-      if (error?.status === 429) {
-        setWizardStep('result');
+      const status = error?.response?.status;
+
+      if (status === 429) {
+        setRateLimitMessage(error?.response?.data?.message || null);
+        setRateLimited(true);
+
+        // 🔒 single source of truth
+        navigateToStep('result');
+        return;
       }
+
+      // Everything else is a real failure
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
@@ -630,7 +638,6 @@ export const useApplicationWizard = () => {
           </ul>
         ),
       });
-      navigateToStep('cl');
     } finally {
       setIsLoading(false);
       setLoadingMessage('');
@@ -734,6 +741,8 @@ export const useApplicationWizard = () => {
       rateLimitMessage,
     },
     actions: {
+      rateLimited,
+      rateLimitMessage,
       navigateToStep,
       handleJobContextSubmit,
       handleCvContextSubmit,

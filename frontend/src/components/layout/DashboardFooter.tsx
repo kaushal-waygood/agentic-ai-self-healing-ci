@@ -13,7 +13,7 @@ const DashboardFooter = () => {
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Left: Branding & Copyright */}
-          <div className="flex flex-col items-center md:items-start gap-1">
+          <div className="flex  items-center md:items-start gap-1">
             <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               ZobsAI
             </span>
@@ -23,7 +23,7 @@ const DashboardFooter = () => {
           </div>
 
           {/* Center: Social Links - Fixed dynamic color issue */}
-          <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4">
             {socialLinks.map((social, index) => (
               <a
                 key={index}
@@ -39,11 +39,15 @@ const DashboardFooter = () => {
           </div>
 
           {/* Right: Navigation & WhatsApp */}
-          <div className="flex flex-col md:flex-row items-center gap-6">
+          <div className="hidden md:flex flex-col md:flex-row items-center gap-6">
             <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
               {[
                 { name: 'Terms', href: '/dashboard/terms-of-service' },
                 { name: 'Privacy', href: '/dashboard/privacy-policy' },
+                {
+                  name: 'Cancellation-Refund',
+                  href: '/dashboard/cancellation-refundpolicy',
+                },
                 { name: 'Support', href: '/dashboard/support' },
               ].map((link) => (
                 <Link

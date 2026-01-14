@@ -40,10 +40,15 @@ const studentSchema = new Schema(
         type: [String],
         default: [],
       },
+
       preferredCountries: {
-        type: [String],
-        default: [],
+        type: String,
+        default: null,
       },
+      // mustHaveSkills: {
+      //   type: [String],
+      //   default: null,
+      // },
       preferredSalary: {
         min: {
           type: Number,

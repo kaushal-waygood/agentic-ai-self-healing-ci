@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 import PlanCard from './PlanCard';
-import { DollarSign, IndianRupee, Sparkles } from 'lucide-react';
+import { ArrowRight, DollarSign, IndianRupee, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 
@@ -91,13 +91,24 @@ export function Pricing() {
           </p>
         </header>
 
-        <div className="flex justify-center items-center mb-6">
+        <div className="flex flex-col justify-center items-center gap-4 mb-10">
+          {/* Optional: Floating Badge */}
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm animate-bounce">
+            Don't Miss Out
+          </span>
           <Button
-            className=""
-            variant="default"
+            size="lg"
             onClick={() => router.push('/student-offer')}
+            className="group relative h-14 px-8 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-none rounded-2xl shadow-xl shadow-blue-200/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-300/60 active:scale-95"
           >
-            Claim Your Student Offer
+            {/* Subtle inner glow effect */}
+            <span className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="relative flex items-center gap-3 text-lg   font-semibold tracking-tight">
+              <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+              <span>Claim Your Student Offer</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </div>
           </Button>
         </div>
 
