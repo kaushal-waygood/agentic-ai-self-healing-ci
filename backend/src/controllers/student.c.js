@@ -1519,27 +1519,31 @@ export const completeStudentOnboarding = async (req, res) => {
           phone: data.phone || null,
           jobRole: data.designation || null,
           location: data.location || null,
-          // country: data.country || null,
+
           jobPreferences: {
             preferredJobTypes: selectedOptions?.jobType || [],
-            // mustHaveSkills: selectedOptions?.mustHaveSkills || [],
+            preferredCountries: data?.country || null,
             preferredEducationLevel: data.educationLevel || null,
             preferredCities: data.preferredLocation
               ? [data.preferredLocation]
               : [],
+            // mustHaveSkills: Array.isArray(data.mustHaveSkills)
+            //   ? data.mustHaveSkills
+            //   : [],
             preferredSalary: data.expectedSalary
               ? {
                   min: Number(data.expectedSalary),
                   currency: 'INR',
                   period: 'monthly',
                 }
-              : {},
+              : undefined,
             immediateAvailability:
               selectedOptions?.availability === 'IMMEDIATE',
           },
+
           hasCompletedOnboarding: true,
         },
-        { session },
+        { session, runValidators: true },
       );
 
       // --- Delete old profile data ---

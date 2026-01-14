@@ -315,6 +315,16 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const renderJobDescription = (text: string) => {
     const lines = text.split('\n');
 
+    const isHtml = /<[a-z][\s\S]*>/i.test(text);
+    if (isHtml) {
+      // 2. If it is HTML, render it directly (bypass cleaning)
+      return (
+        <div
+          className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      );
+    }
     return lines.map((line, index) => {
       const trimmed = line.trim();
       const nextLine = lines[index + 1];
@@ -405,27 +415,47 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     router.replace(`/dashboard/jobs/${job._id}/apply`);
   };
 
+  // const cleanHtmlDescription = (content: string) => {
+  //   if (!content) return '';
+
+  //   return (
+  //     content
+  //       // 1. Convert block-ending tags to newlines to preserve layout
+  //       .replace(/<\/p>/gi, '\n')
+  //       .replace(/<br\s*\/?>/gi, '\n')
+  //       .replace(/<\/div>/gi, '\n')
+  //       .replace(/<\/li>/gi, '\n')
+  //       // 2. Strip start tags and any other remaining tags
+  //       .replace(/<[^>]+>/g, '')
+  //       // 3. Decode common HTML entities
+  //       .replace(/&amp;/g, '&')
+  //       .replace(/&nbsp;/g, ' ')
+  //       .replace(/&lt;/g, '<')
+  //       .replace(/&gt;/g, '>')
+  //       // 4. Remove excessive multiple newlines (optional, but looks cleaner)
+  //       .replace(/\n\s*\n\s*\n/g, '\n\n')
+  //   );
+  // };
+
   // Helper to convert HTML-like strings to the plain text format your renderer expects
   const cleanHtmlDescription = (content: string) => {
     if (!content) return '';
+    const isHtml = /<[a-z][\s\S]*>/i.test(content);
+    if (isHtml) {
+      return content;
+    }
+    return content
 
-    return (
-      content
-        // 1. Convert block-ending tags to newlines to preserve layout
-        .replace(/<\/p>/gi, '\n')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/div>/gi, '\n')
-        .replace(/<\/li>/gi, '\n')
-        // 2. Strip start tags and any other remaining tags
-        .replace(/<[^>]+>/g, '')
-        // 3. Decode common HTML entities
-        .replace(/&amp;/g, '&')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        // 4. Remove excessive multiple newlines (optional, but looks cleaner)
-        .replace(/\n\s*\n\s*\n/g, '\n\n')
-    );
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\n\s*\n\s*\n/g, '\n\n');
   };
 
   return (
@@ -896,9 +926,9 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           >
             <summary className="hidden" />
             <div className="px-1 pb-4">
-              {renderJobDescription(cleanHtmlDescription(job.description))}{' '}
-              {/* <div className=" overflow-y-auto pr-3  pl-3 space-y-1">
-              </div> */}
+              {renderJobDescription(cleanHtmlDescription(job.description))}
+
+              {/* {renderJobDescription(job.description)} */}
             </div>
           </details>
         </div>
