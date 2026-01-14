@@ -139,12 +139,11 @@ export function ApplicationWizardClient() {
       case 'result':
         return (
           <FinalResultView
-            cvlink={undefined}
-            rateLimited={rateLimited}
-            rateLimitMessage={rateLimitMessage}
+            rateLimited={actions.rateLimited}
+            rateLimitMessage={actions.rateLimitMessage}
             planPath="/dashboard/subscriptions"
             title="Application"
-            targetLink={'/dashboard/my-docs?tab=applications'}
+            targetLink="/dashboard/my-docs?tab=applications"
           />
         );
 
