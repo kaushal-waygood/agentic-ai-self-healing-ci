@@ -278,7 +278,7 @@ const OnboardingPage = () => {
         selectedOptions,
       });
       // console.log('respnse'.response.data);
-      setStep(totalSteps + 1);
+      // setStep(totalSteps + 1);
     } catch (error) {
       console.error('Error submitting profile:', error);
     }

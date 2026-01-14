@@ -282,7 +282,7 @@ const PlanCard = ({ plan, currency }: PlanCardProps) => {
           </div>
         </div>
 
-        {plan.planType !== 'Free' && !shouldFade && (
+        {/* {plan.planType !== 'Free' && !shouldFade && (
           <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
             <div className="flex flex-col">
               <p className="text-md font-semibold text-gray-800 flex items-center gap-1">
@@ -309,7 +309,7 @@ const PlanCard = ({ plan, currency }: PlanCardProps) => {
               />
             </button>
           </div>
-        )}
+        )} */}
 
         {isComplexCard && (
           <div className="mt-8 mb-4 bg-gray-100 p-1 rounded-lg">

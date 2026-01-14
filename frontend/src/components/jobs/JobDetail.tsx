@@ -588,7 +588,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {/* ATS Score */}
-              {/* {!scoreError && !atsScore && !isLoadingAtsScore && (
+              {!scoreError && !atsScore && !isLoadingAtsScore && (
                 <Button
                   onClick={handleGetATSScore}
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
@@ -598,7 +598,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     <span>AI ATS Score</span>
                   </div>
                 </Button>
-              )} */}
+              )}
 
               {isLoadingAtsScore && (
                 <div

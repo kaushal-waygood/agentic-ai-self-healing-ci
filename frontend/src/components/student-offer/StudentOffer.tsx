@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCheckoutRequest } from '@/redux/actions/checkoutAction'; // Ensure this path is correct
+import HeroSection from './HeroSection';
 
 // --- VERIFICATION MODAL COMPONENT ---
 const VerificationModal = ({
@@ -149,7 +150,7 @@ const VerificationModal = ({
                     <div className="flex p-1 bg-gray-100 rounded-2xl mb-8">
                       <button
                         onClick={() => setMethod('email')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${
                           method === 'email'
                             ? 'bg-white text-indigo-600 shadow-sm'
                             : 'text-gray-500'
@@ -159,7 +160,7 @@ const VerificationModal = ({
                       </button>
                       <button
                         onClick={() => setMethod('id')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${
                           method === 'id'
                             ? 'bg-white text-indigo-600 shadow-sm'
                             : 'text-gray-500'
@@ -243,34 +244,29 @@ export default function StudentOfferPage() {
         onClose={() => setIsModalOpen(false)}
         user={user}
       />
+      {/* hero section */}
+      <HeroSection />
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <Link
-          href="/pricing"
-          className="inline-flex items-center text-gray-500 hover:text-indigo-600 font-bold mb-10 group transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-          Back to Plans
-        </Link>
-
+      {/* offer details */}
+      <div id="offer-details" className=" max-w-6xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-12 items-center">
           {/* Left Column */}
           <div className="lg:col-span-5">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 border border-yellow-200 rounded-full text-yellow-800 text-xs font-black tracking-widest mb-6">
+            {/* <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 border border-yellow-200 rounded-full text-yellow-800 text-xs font-black tracking-widest mb-6">
               <Sparkles className="w-4 h-4" /> EXCLUSIVE STUDENT DEAL
-            </div>
-            <h1 className="text-6xl md:text-7xl font-black text-gray-900 leading-[0.95] mb-8">
+            </div> */}
+            <h1 className="text-2xl md:text-4xl font-black text-gray-900 leading-[0.95] mb-8">
               Start for <br />
               <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">
                 Free.
               </span>
             </h1>
-            <p className="text-xl text-gray-600 mb-10 leading-relaxed">
+            <p className="text-lg text-gray-600 mb-10 leading-relaxed">
               Unlock 12 months of Pro access to land your dream job. No credit
               card, no catch.
             </p>
 
-            <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-indigo-100/50 border border-indigo-50">
+            {/* <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-indigo-100/50 border border-indigo-50">
               <div className="flex justify-between items-end mb-4 text-sm font-bold">
                 <span className="text-gray-500 uppercase tracking-widest">
                   Seats Remaining
@@ -287,7 +283,7 @@ export default function StudentOfferPage() {
                   className="h-full bg-indigo-500 rounded-full"
                 />
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Right Column: Plan Details */}
@@ -296,21 +292,23 @@ export default function StudentOfferPage() {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-7"
           >
-            <div className="bg-white rounded-[3.5rem] shadow-2xl border border-gray-100 overflow-hidden">
-              <div className="bg-indigo-600 p-10 text-white">
-                <h3 className="text-4xl font-black mb-2">Student Plan</h3>
+            <div className="bg-white rounded-lg shadow-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-header-gradient-primary p-5 text-white">
+                <h3 className="text-3xl md:text-xl font-black ">
+                  Student Plan
+                </h3>
                 <p className="text-indigo-100 font-bold opacity-80 uppercase tracking-widest text-sm italic">
                   12 Months Free Access
                 </p>
               </div>
 
-              <div className="p-10 md:p-14">
-                <div className="grid md:grid-cols-2 gap-10">
+              <div className="p-6 md:p-4">
+                <div className="grid md:grid-cols-2 gap-10 md:gap-6">
                   <div>
                     <h4 className="flex items-center gap-2 font-black text-gray-900 mb-6 text-sm tracking-widest uppercase">
                       <Infinity className="w-5 h-5 text-indigo-500" /> Unlimited
                     </h4>
-                    <ul className="space-y-4 text-gray-700 font-semibold">
+                    <ul className="space-y-4  text-gray-700 font-semibold">
                       {unlimitedFeatures.map((item, i) => (
                         <li key={i} className="flex items-start gap-3">
                           <Check className="w-4 h-4 text-green-500 stroke-[3px]" />{' '}
@@ -327,7 +325,7 @@ export default function StudentOfferPage() {
                       {monthlyFeatures.map((item, i) => (
                         <li
                           key={i}
-                          className="flex justify-between items-center bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl text-sm font-bold text-gray-600"
+                          className="flex justify-between items-center bg-slate-50 border border-slate-100 px-4 py-2 rounded-lg text-sm font-bold text-gray-600"
                         >
                           <span>{item.title}</span>
                           <span className="text-indigo-600 font-black">
@@ -341,7 +339,7 @@ export default function StudentOfferPage() {
 
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="w-full mt-12 py-6 bg-gray-900 text-white rounded-3xl font-black text-2xl hover:bg-indigo-600 transition-all shadow-xl hover:shadow-indigo-200 transform hover:-translate-y-1"
+                  className="w-full mt-8 py-4 bg-gray-900 text-white rounded-lg font-black text-xl md:text-lg hover:bg-blue-800 transition-all shadow-xl hover:shadow-indigo-200 transform hover:-translate-y-1"
                 >
                   Claim My 12 Months Free
                 </button>
