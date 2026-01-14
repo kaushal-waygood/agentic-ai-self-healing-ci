@@ -277,7 +277,7 @@ const OnboardingPage = () => {
         data: formData,
         selectedOptions,
       });
-      console.log('respnse'.response.data);
+      // console.log('respnse'.response.data);
       setStep(totalSteps + 1);
     } catch (error) {
       console.error('Error submitting profile:', error);
@@ -373,12 +373,12 @@ const OnboardingPage = () => {
     }
   };
 
-  const handleDashboardRedirect = () => {
-    router.push('/dashboard');
-  };
   // const handleDashboardRedirect = () => {
-  //   router.push(`/dashboard?from=onboarding`);
+  //   router.push('/dashboard');
   // };
+  const handleDashboardRedirect = () => {
+    router.push(`/dashboard?from=onboarding`);
+  };
   console.log('form data ', formData);
 
   // --- HELPER: Get Title and Icon for the current step ---
