@@ -58,7 +58,7 @@ const Experience = () => {
           className="flex items-center justify-center py-2 px-4 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg transition-all"
         >
           <PlusCircle className="mr-2 h-5 w-5" />
-          Add Experience
+          Add
         </button>
       </div>
 

@@ -44,6 +44,17 @@ const studentSchema = new Schema(
         type: [String],
         default: [],
       },
+      // ✅ ADD THIS SECTION
+      // mustHaveSkills: {
+      //   type: [String], // Defines this as a simple array of strings
+      //   default: [],
+      // },
+
+      // ✅ ADD THIS IF MISSING (You used it in the controller)
+      preferredEducationLevel: {
+        type: String,
+        default: null,
+      },
       preferredSalary: {
         min: {
           type: Number,
