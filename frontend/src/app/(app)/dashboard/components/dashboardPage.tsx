@@ -648,17 +648,18 @@ export default function DashboardPage() {
     jobsVisited: 0,
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
-  // const searchParams = useSearchParams();
-  // const fromOnboarding = searchParams.get('from') === 'onboarding';
-  // const [showFeedback, setShowFeedback] = useState(false);
-  // useEffect(() => {
-  //   if (!fromOnboarding) return;
+  const searchParams = useSearchParams();
+  const fromOnboarding = searchParams.get('from') === 'onboarding';
+  const [showFeedback, setShowFeedback] = useState(false);
+  useEffect(() => {
+    if (!fromOnboarding) return;
 
-  //   const alreadyDone = localStorage.getItem('onboarding_feedback_done');
-  //   if (!alreadyDone) {
-  //     setShowFeedback(true);
-  //   }
-  // }, [fromOnboarding]);
+    // const alreadyDone = localStorage.getItem('onboarding_feedback_done');
+    // if (!alreadyDone) {
+    //   setShowFeedback(true);
+    // }
+    setShowFeedback(true);
+  }, [fromOnboarding]);
 
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -961,11 +962,23 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
       <div id="dashboard-scroll" className="max-w-7xl mx-auto space-y-8">
-        {/* {showFeedback && (
+        {showFeedback && (
+          // <OnboardingExperienceFeedback
+          //   onClose={() => setShowFeedback(false)}
+          // />
+
           <OnboardingExperienceFeedback
-            onClose={() => setShowFeedback(false)}
+            onClose={() => {
+              setShowFeedback(false);
+
+              // This replaces the current URL (with params) with just the path (without params)
+              // router.replace(pathname);
+
+              // OR if you want to be explicit:
+              router.replace('/dashboard');
+            }}
           />
-        )} */}
+        )}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <LayoutDashboard className="w-8 h-8 mr-3 text-headingTextPrimary" />
