@@ -15,12 +15,13 @@ import {
 
 export const footerLinks = {
   product: [
-    { name: 'Features', badge: null, link: '/#platforms' },
-    { name: 'Pricing', badge: 'Popular', link: '/#pricing' },
+    // { name: 'Features', badge: null, link: '/#platforms' },
+    // { name: 'Pricing', badge: 'Popular', link: '/#pricing' },
     { name: 'Resume Builder', badge: 'New', link: '/signup' },
     { name: 'ATS Scanner', badge: null, link: '/signup' },
     { name: 'Cover Letter AI', badge: null, link: '/signup' },
     { name: 'Job Matching', badge: null, link: '/signup' },
+    { name: 'Campus Ambassador', badge: null, link: '/campus-ambassador' },
   ],
   company: [
     // { name: 'About Us', badge: null },
@@ -93,6 +94,4 @@ export const socialLinks = [
     followers: '8.9K',
     url: 'https://www.facebook.com/zobsai.co/',
   },
-
-  
 ];
