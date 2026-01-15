@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCheckoutRequest } from '@/redux/actions/checkoutAction'; // Ensure this path is correct
 import HeroSection from './HeroSection';
+import apiInstance from '@/services/api';
 
 // --- VERIFICATION MODAL COMPONENT ---
 const VerificationModal = ({
@@ -38,42 +39,32 @@ const VerificationModal = ({
   user: any;
 }) => {
   const router = useRouter();
-  const dispatch = useDispatch();
   const [method, setMethod] = useState<'email' | 'id'>('email');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [data, setData] = useState({
+    method,
+    email: '',
+    id: '',
+  });
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsVerifying(true);
 
-    // 1. Prepare the data for Redux (matching your PlanCard logic)
-    // We set price to 0 since it's the 12-month free offer
-    const studentCheckoutData = {
-      planId: '6961eb3bf805a33f6861bfc5',
-      planType: 'Monthly',
-      period: 'Monthly',
-      currency: 'inr',
-      basePrice: 0,
-      discountPercent: 100,
-      discountAmount: 0,
-      finalPrice: 0,
-      studentDiscountApplied: true,
-    };
+    console.log(data);
 
-    // 2. Simulate verification delay
-    setTimeout(() => {
-      // 3. Update Redux state so PurchaseModel.tsx has data to read
-      dispatch(setCheckoutRequest(studentCheckoutData));
+    const response = await apiInstance.post('/students/verify-student', data);
 
-      setIsVerifying(false);
+    console.log(response);
 
-      // 4. Redirect with params
-      router.push(
-        '/dashboard/checkout?planId=6961eb3bf805a33f6861bfc5&period=Monthly&student=true',
+    if (response.status === 200) {
+      const response = await apiInstance.post(
+        '/students/activate-student-plan',
       );
-    }, 2000);
+      onClose();
+    }
   };
 
   return (
@@ -183,6 +174,9 @@ const VerificationModal = ({
                             type="email"
                             required
                             placeholder="you@university.edu"
+                            onChange={(e) =>
+                              setData({ ...data, email: e.target.value })
+                            }
                             className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none"
                           />
                         </motion.div>
@@ -202,6 +196,9 @@ const VerificationModal = ({
                             <input
                               type="file"
                               required
+                              onChange={(e) =>
+                                setData({ ...data, id: e.target.files?.[0] })
+                              }
                               className="absolute inset-0 opacity-0 cursor-pointer"
                             />
                           </div>

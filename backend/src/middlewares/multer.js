@@ -19,6 +19,8 @@ const storage = multer.diskStorage({
       cb(null, 'public/pdf'); // All CV types will go here
     else if (file.fieldname === 'attachment') {
       cb(null, formUploadDir);
+    } else if (file.fieldname === 'idCard') {
+      cb(null, 'public/idCard');
     } else {
       cb(new Error('Invalid field name for file upload'));
     }

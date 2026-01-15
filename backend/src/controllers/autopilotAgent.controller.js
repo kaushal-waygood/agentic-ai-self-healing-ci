@@ -1,4 +1,4 @@
-import { Student } from '../models/student.model.js';
+import { Student } from '../models/students/student.model.js';
 import mongoose from 'mongoose';
 import { extractDataFromCV } from '../utils/extractedCv.js';
 import fs from 'fs';

@@ -668,6 +668,8 @@ import {
   updateJobPreferences,
   getRecentAIActivity,
   completeStudentOnboarding,
+  verifyStudentViaIdCardOrUniEmail,
+  activateStudentPlan,
 } from '../controllers/student.c.js';
 import {
   getCreditsSummary,
@@ -868,6 +870,21 @@ router.get(
   authMiddleware,
   isUserOrUniStudent,
   getAutopilotStatus,
+);
+
+router.post(
+  '/verify-student',
+  authMiddleware,
+  isUserOrUniStudent,
+  // upload.single('idCard'),
+  verifyStudentViaIdCardOrUniEmail,
+);
+
+router.post(
+  '/activate-student-plan',
+  authMiddleware,
+  isUserOrUniStudent,
+  activateStudentPlan,
 );
 
 router.post(

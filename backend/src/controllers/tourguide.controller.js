@@ -1,4 +1,4 @@
-import { Student } from '../models/student.model.js';
+import { Student } from '../models/students/student.model.js';
 
 export const TOUR_CONFIG = {
   dashboard: [
