@@ -42,13 +42,13 @@ const studentSchema = new Schema(
       },
 
       preferredCountries: {
-        type: String,
+        type: [String],
         default: null,
       },
-      // mustHaveSkills: {
-      //   type: [String],
-      //   default: null,
-      // },
+      mustHaveSkills: {
+        type: [String],
+        default: null,
+      },
       preferredSalary: {
         min: {
           type: Number,
@@ -83,11 +83,18 @@ const studentSchema = new Schema(
       enum: ['public', 'private'],
       default: 'public',
     },
+    uniEmail: {
+      type: String,
+      default: null,
+    },
+    idCard: {
+      type: String,
+      default: null,
+    },
 
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true, strict: false },
 );
 
-export const Student =
-  mongoose.models.Student || mongoose.model('Students', studentSchema);
+export const Student = mongoose.model('Students', studentSchema);

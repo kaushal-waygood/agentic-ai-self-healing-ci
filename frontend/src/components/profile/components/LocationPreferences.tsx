@@ -49,6 +49,16 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
           }
           placeholder="Type and press Enter..."
         />
+
+        <TagInput
+          label="Must-have Skills"
+          icon={MapPin}
+          tags={formData.mustHaveSkills || []} // Ensure array exists
+          setTags={(newTags) =>
+            setFormData((prev) => ({ ...prev, mustHaveSkills: newTags }))
+          }
+          placeholder="Type skill (e.g. React, Java) and press Enter..."
+        />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

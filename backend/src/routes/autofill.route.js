@@ -1,7 +1,7 @@
 // routes/autofill-ai.js
 import { Router } from 'express';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
-import { Student } from '../models/student.model.js';
+import { Student } from '../models/students/student.model.js';
 import mongoose from 'mongoose';
 import { genAIRequest as genAI } from '../config/gemini.js';
 

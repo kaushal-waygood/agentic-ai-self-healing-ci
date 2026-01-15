@@ -1,6 +1,6 @@
 // src/config/autopilotCron.js
 import cron from 'node-cron';
-import { Student } from '../models/student.model.js';
+import { Student } from '../models/students/student.model.js';
 import { Job } from '../models/jobs.model.js'; // Import the new Job model
 
 export const runAutopilotTask = async () => {

@@ -3,7 +3,7 @@ import pdfParse from 'pdf-parse';
 import { genAIRequest as genAI } from '../config/gemini.js';
 import { convertToHTMLPrompt } from '../prompt/convertToHTML.js';
 import { Job } from '../models/jobs.model.js';
-import { Student } from '../models/student.model.js';
+import { Student } from '../models/students/student.model.js';
 import { initiateCVGeneration } from '../utils/generateCVCore.js';
 import { initiateCoverLetterGeneration } from '../utils/generateCoverLetterCore.js';
 import { calculateJobMatch } from '../utils/calculateJobMatch.js';
