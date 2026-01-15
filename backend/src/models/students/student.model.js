@@ -42,13 +42,13 @@ const studentSchema = new Schema(
       },
 
       preferredCountries: {
-        type: String,
+        type: [String],
         default: null,
       },
-      // mustHaveSkills: {
-      //   type: [String],
-      //   default: null,
-      // },
+      mustHaveSkills: {
+        type: [String],
+        default: null,
+      },
       preferredSalary: {
         min: {
           type: Number,
@@ -89,5 +89,4 @@ const studentSchema = new Schema(
   { timestamps: true, strict: false },
 );
 
-export const Student =
-  mongoose.models.Student || mongoose.model('Students', studentSchema);
+export const Student = mongoose.model('Students', studentSchema);

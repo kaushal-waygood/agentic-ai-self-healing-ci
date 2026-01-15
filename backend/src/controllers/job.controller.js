@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Job } from '../models/jobs.model.js';
-import { Student } from '../models/student.model.js';
+import { Student } from '../models/students/student.model.js';
 import redisClient from '../config/redis.js';
 import { config } from '../config/config.js';
 import { fetchAndSaveJobsService } from '../utils/fetchAndSaveJobsService.js';

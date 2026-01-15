@@ -1497,6 +1497,8 @@ const normalizeProjects = (projects = []) =>
 export const completeStudentOnboarding = async (req, res) => {
   console.log('completeStudentOnboarding');
   console.log('req.body', req.body);
+  console.log('country', req.body.data.preferredCountries);
+
   const session = await mongoose.startSession();
   const userId = req.user?._id;
 
@@ -1522,14 +1524,21 @@ export const completeStudentOnboarding = async (req, res) => {
 
           jobPreferences: {
             preferredJobTypes: selectedOptions?.jobType || [],
-            preferredCountries: data?.country || null,
-            preferredEducationLevel: data.educationLevel || null,
-            preferredCities: data.preferredLocation
-              ? [data.preferredLocation]
-              : [],
-            // mustHaveSkills: Array.isArray(data.mustHaveSkills)
-            //   ? data.mustHaveSkills
+            // preferredCountries: data?.preferredCountries
+            //   ? [data?.preferredCountries] || []
             //   : [],
+            // preferredCities: data.preferredCities ? [data.preferredCities] : [],
+            preferredCities: Array.isArray(data.preferredCities)
+              ? data.preferredCities
+              : [],
+            preferredCountries: Array.isArray(data.preferredCountries)
+              ? data.preferredCountries
+              : [],
+            preferredEducationLevel: data.educationLevel || null,
+
+            mustHaveSkills: Array.isArray(data.mustHaveSkills)
+              ? data.mustHaveSkills
+              : [],
             preferredSalary: data.expectedSalary
               ? {
                   min: Number(data.expectedSalary),
@@ -1543,6 +1552,7 @@ export const completeStudentOnboarding = async (req, res) => {
 
           hasCompletedOnboarding: true,
         },
+
         { session, runValidators: true },
       );
 
