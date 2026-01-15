@@ -61,10 +61,12 @@ type ProjectEntry = {
   projectName: string;
   description: string;
   technologies: string;
+
   startDate: string;
   endDate: string;
   link: string;
 };
+
 // --- END: TYPE DEFINITIONS ---
 
 // Helper function to format duration
@@ -277,7 +279,6 @@ const OnboardingPage = () => {
         data: formData,
         selectedOptions,
       });
-      // console.log('respnse'.response.data);
       setStep(totalSteps + 1);
     } catch (error) {
       console.error('Error submitting profile:', error);
@@ -473,8 +474,10 @@ const OnboardingPage = () => {
 
       case 5:
         return (
-          safeTrim(formData.location) &&
-          safeTrim(formData.country) &&
+          Array.isArray(formData.preferredCities) &&
+          formData.preferredCities.length > 0 &&
+          Array.isArray(formData.preferredCountries) &&
+          formData.preferredCountries.length > 0 &&
           Array.isArray(formData.mustHaveSkills) &&
           formData.mustHaveSkills.length > 0 &&
           safeTrim(formData.educationLevel)

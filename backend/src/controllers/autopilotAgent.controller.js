@@ -1,4 +1,4 @@
-import { Student } from '../models/student.model.js';
+import { Student } from '../models/students/student.model.js';
 import mongoose from 'mongoose';
 import { extractDataFromCV } from '../utils/extractedCv.js';
 import fs from 'fs';
@@ -305,6 +305,7 @@ export const createAutopilotAgent = async (req, res) => {
     const isRemote = Boolean(req.body.isRemote);
     const isOnsite = Boolean(req.body.isOnsite);
     const keywords = String(req.body.keywords || '').trim();
+    const agentDailyLimit = Math.min(Number(req.body.maxApplications || 5), 20);
     const cvOption =
       req.body.cvOption === 'uploaded_pdf' ? 'uploaded_pdf' : 'current_profile';
     const jobDescription = String(req.body.jobDescription || '');

@@ -25,6 +25,8 @@ import notificationRoutes from './routes/notification.route.js';
 import sitemapRoutes from './routes/sitemap.js';
 import jobApplicationRoutes from './routes/jobApplication.route.js';
 
+import { startCronsRenew } from './config/renew-cron/cron.js';
+
 import {
   handleStripeWebhook,
   razorpayWebhook,
@@ -99,6 +101,8 @@ app.get('/api', (req, res) => res.send('Hello from server'));
 app.get('/health-check', (req, res) => {
   res.status(200).json({ status: 'ok', time: new Date() });
 });
+
+startCronsRenew();
 
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/bring-zobs', bringZobsRoutes);
