@@ -250,8 +250,8 @@ export default function FeedbackPopup({
     <div
       className={`fixed bottom-8 right-8 z-[100] w-[350px] overflow-hidden rounded-2xl
       /* DARK THEME BACKGROUND */
-      bg-slate-900 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] 
-      border border-slate-700 transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)]
+     bg-white/95 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] 
+      border transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)]
       ${
         open
           ? 'opacity-100 translate-y-0 scale-100'
@@ -259,13 +259,13 @@ export default function FeedbackPopup({
       }`}
     >
       {/* Header with Blue Accent */}
-      <div className="relative px-5 py-5 border-b border-slate-800 bg-slate-900/50">
+      <div className="relative px-5 py-4 border-b border-slate-300 bg-blue-300/">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20">
             <MessageSquare className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">
+            <h3 className="text-sm font-bold text-blue-700">
               {submitted ? 'Feedback Received' : 'Quick Feedback'}
             </h3>
             {!submitted && (
@@ -294,8 +294,8 @@ export default function FeedbackPopup({
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="What can we improve?"
                 /* LIGHTER DARK TEXTAREA */
-                className="w-full bg-slate-800/50 min-h-[120px] resize-none rounded-xl
-                border border-slate-700 px-4 py-3 text-sm text-slate-100
+                className="w-full min-h-[120px] resize-none rounded-xl
+                border border-slate-700 px-4 py-3 text-sm 
                 placeholder:text-slate-500 focus:outline-none focus:ring-2 
                 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all"
               />
@@ -307,10 +307,10 @@ export default function FeedbackPopup({
             <button
               onClick={handleSubmit}
               disabled={!feedback.trim() || isSubmitting}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-200 
               disabled:text-slate-500 disabled:cursor-not-allowed text-white py-3 rounded-xl 
               flex items-center justify-center gap-2 transition-all duration-200 
-              font-bold text-sm active:scale-[0.97] shadow-lg shadow-blue-900/20"
+              font-bold text-sm active:scale-[0.97] "
             >
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin text-white" />

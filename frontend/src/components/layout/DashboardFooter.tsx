@@ -13,7 +13,7 @@ const DashboardFooter = () => {
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Left: Branding & Copyright */}
-          <div className="flex  items-center md:items-start gap-1">
+          <div className="flex md:items-start gap-1">
             <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               ZobsAI
             </span>
