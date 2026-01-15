@@ -297,10 +297,7 @@ export default function DashboardLayoutClient({
             </div>
           </div>
           {/* feedback popup in 1 second delay */}
-          <FeedbackPopup
-            delay={1000}
-            // forceOpen={showLogoutFeedback}
-          />
+          <FeedbackPopup delay={1000} enableAutoOpen={true} />
         </SidebarContext.Provider>
       </FeedbackProvider>
     </ProtectedRoute>
