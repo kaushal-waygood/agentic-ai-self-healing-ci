@@ -58,6 +58,18 @@ const purchaseSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    purchaseType: {
+      type: String,
+      enum: ['new', 'renewal', 'upgrade'],
+      required: true,
+    },
+    autoRenew: {
+      type: Boolean,
+      default: false,
+    },
+
+    renewalAttemptedAt: Date,
+    renewalFailedReason: String,
   },
   {
     timestamps: true,

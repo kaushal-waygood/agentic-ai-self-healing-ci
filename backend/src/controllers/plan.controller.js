@@ -351,6 +351,13 @@ export const createPaymentIntent = async (req, res) => {
       })
       .lean();
 
+    const activePurchase = userWithPurchase?.currentPurchase;
+
+    const isRenewal =
+      activePurchase &&
+      activePurchase.isActive &&
+      new Date(activePurchase.endDate) > new Date();
+
     if (
       userWithPurchase?.currentPurchase &&
       userWithPurchase.currentPurchase.isActive &&
@@ -706,7 +713,7 @@ export const createRazorpayOrder = async (req, res) => {
       });
     }
 
-    /* ---------------- ACTIVE PLAN CHECK ---------------- */
+    /* ---------------- LOAD USER + CURRENT PURCHASE ---------------- */
     const userWithPurchase = await User.findById(userId)
       .populate({
         path: 'currentPurchase',
@@ -714,42 +721,7 @@ export const createRazorpayOrder = async (req, res) => {
       })
       .lean();
 
-    if (
-      userWithPurchase?.currentPurchase &&
-      userWithPurchase.currentPurchase.isActive &&
-      new Date(userWithPurchase.currentPurchase.endDate) > new Date()
-    ) {
-      const activePlan = userWithPurchase.currentPurchase.plan;
-      const newPlan = await Plan.findById(planId).lean();
-
-      if (!newPlan) {
-        return res.status(404).json({
-          success: false,
-          error: 'Plan not found.',
-        });
-      }
-
-      if (activePlan.planType === newPlan.planType) {
-        return res.status(403).json({
-          success: false,
-          message: 'You already have this plan active.',
-          data: {
-            currentPlanEnds: userWithPurchase.currentPurchase.endDate,
-          },
-        });
-      }
-
-      const currentRank = PLAN_RANK[activePlan.planType] ?? 0;
-      const newRank = PLAN_RANK[newPlan.planType] ?? 0;
-
-      // block downgrade
-      if (newRank > currentRank) {
-        return res.status(403).json({
-          success: false,
-          message: 'Downgrading plans before expiry is not allowed.',
-        });
-      }
-    }
+    const activePurchase = userWithPurchase?.currentPurchase ?? null;
 
     /* ---------------- LOAD PLAN ---------------- */
     const plan = await Plan.findById(planId).lean();
@@ -760,6 +732,44 @@ export const createRazorpayOrder = async (req, res) => {
       });
     }
 
+    /* ---------------- DETERMINE RENEWAL (SERVER SIDE ONLY) ---------------- */
+    const isRenewal =
+      !!activePurchase &&
+      activePurchase.isActive === true &&
+      new Date(activePurchase.endDate) > new Date() &&
+      activePurchase.plan?._id?.toString() === planId &&
+      activePurchase.billingVariant?.period === period;
+
+    /* ---------------- ACTIVE PLAN CHECKS ---------------- */
+    if (
+      activePurchase &&
+      activePurchase.isActive &&
+      new Date(activePurchase.endDate) > new Date()
+    ) {
+      const activePlan = activePurchase.plan;
+
+      if (activePlan.planType === plan.planType && !isRenewal) {
+        return res.status(403).json({
+          success: false,
+          message: 'Same plan purchase allowed only as renewal.',
+          data: {
+            currentPlanEnds: activePurchase.endDate,
+          },
+        });
+      }
+
+      const currentRank = PLAN_RANK[activePlan.planType] ?? 0;
+      const newRank = PLAN_RANK[plan.planType] ?? 0;
+
+      if (newRank > currentRank) {
+        return res.status(403).json({
+          success: false,
+          message: 'Downgrading plans before expiry is not allowed.',
+        });
+      }
+    }
+
+    /* ---------------- BILLING VARIANT ---------------- */
     const variant = safeGetVariant(plan, period);
     if (!variant) {
       return res.status(400).json({
@@ -768,8 +778,7 @@ export const createRazorpayOrder = async (req, res) => {
       });
     }
 
-    const basePrice = variant?.price?.effective?.[currencyLower];
-
+    const basePrice = variant.price?.effective?.[currencyLower];
     if (typeof basePrice !== 'number') {
       return res.status(400).json({
         success: false,
@@ -856,17 +865,15 @@ export const createRazorpayOrder = async (req, res) => {
       pricingResponse.discountAmount = { [currencyLower]: 0 };
     }
 
-    /* ---------------- STUDENT DISCOUNT (50%) ---------------- */
+    /* ---------------- STUDENT DISCOUNT ---------------- */
     if (isStudentDiscountApplied === true) {
-      const studentDiscountPercent = 50;
-      const studentDiscountAmount = finalPrice * (studentDiscountPercent / 100);
-
-      finalPrice = finalPrice - studentDiscountAmount;
+      const discount = finalPrice * 0.5;
+      finalPrice -= discount;
 
       pricingResponse.studentDiscountApplied = true;
-      pricingResponse.studentDiscountPercent = studentDiscountPercent;
+      pricingResponse.studentDiscountPercent = 50;
       pricingResponse.studentDiscountAmount = {
-        [currencyLower]: +studentDiscountAmount.toFixed(2),
+        [currencyLower]: +discount.toFixed(2),
       };
       pricingResponse.discounted = {
         [currencyLower]: +finalPrice.toFixed(2),
@@ -893,6 +900,8 @@ export const createRazorpayOrder = async (req, res) => {
         planId: plan._id.toString(),
         planType: plan.planType,
         billingPeriod: period,
+        purchaseType: isRenewal ? 'renewal' : 'new',
+        previousPurchaseId: isRenewal ? activePurchase._id.toString() : null,
         couponCode: pricingResponse.appliedCoupon?.code || '',
       },
     });
@@ -907,9 +916,10 @@ export const createRazorpayOrder = async (req, res) => {
     });
   } catch (error) {
     console.error('createRazorpayOrder error:', error);
-    return res
-      .status(500)
-      .json({ success: false, error: 'Internal Server Error' });
+    return res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+    });
   }
 };
 
@@ -961,7 +971,14 @@ export const verifyRazorpayPayment = async (req, res) => {
       throw new Error('Razorpay order not found.');
     }
 
-    const { userId, planId, billingPeriod, couponCode } = order.notes || {};
+    const {
+      userId,
+      planId,
+      billingPeriod,
+      couponCode,
+      purchaseType = 'new',
+      previousPurchaseId,
+    } = order.notes || {};
 
     if (!userId || !planId || !billingPeriod) {
       throw new Error('Missing order metadata.');
@@ -980,18 +997,38 @@ export const verifyRazorpayPayment = async (req, res) => {
     }
 
     /* ---------------- DEACTIVATE OLD PURCHASES ---------------- */
-    await Purchase.updateMany(
-      { user: userId, isActive: true },
-      { $set: { isActive: false } },
-      { session },
-    );
+    if (purchaseType !== 'renewal') {
+      await Purchase.updateMany(
+        { user: userId, isActive: true },
+        { $set: { isActive: false } },
+        { session },
+      );
+    }
 
     /* ---------------- CREATE PURCHASE ---------------- */
     const amountPaid = order.amount / 100;
 
+    let startDate = new Date();
+
+    if (purchaseType === 'renewal' && previousPurchaseId) {
+      const previousPurchase = await Purchase.findById(
+        previousPurchaseId,
+      ).session(session);
+
+      if (!previousPurchase) {
+        throw new Error('Previous purchase not found for renewal');
+      }
+
+      startDate =
+        new Date(previousPurchase.endDate) > new Date()
+          ? previousPurchase.endDate
+          : new Date();
+    }
+
     const newPurchase = new Purchase({
       user: userId,
       plan: planId,
+      purchaseType,
       billingVariant: {
         period: billingPeriod,
         price: {
@@ -1006,9 +1043,10 @@ export const verifyRazorpayPayment = async (req, res) => {
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
       couponCode: couponCode || null,
-      startDate: new Date(),
-      endDate: calculateEndDate(billingPeriod),
-      isActive: true,
+
+      startDate,
+      endDate: calculateEndDate(billingPeriod, startDate),
+      isActive: purchaseType !== 'renewal',
     });
 
     await newPurchase.save({ session });
@@ -1020,19 +1058,25 @@ export const verifyRazorpayPayment = async (req, res) => {
     }
 
     user.currentPlan = planId;
-    user.currentPurchase = newPurchase._id;
+    // user.currentPurchase = newPurchase._id;
+    if (purchaseType !== 'renewal') {
+      user.currentPlan = planId;
+      user.currentPurchase = newPurchase._id;
+    }
+
     user.usageLimits = buildUsageLimitsFromFeatures(variant.features || []);
-    user.usageCounters = {
-      cvCreation: 0,
-      coverLetter: 0,
-      aiApplication: 0,
-      aiAutoApplyDailyLimit: 0,
-      aiAutoApply: 0,
-      atsScore: 0,
-      jobMatching: 0,
-      aiMannualApplication: 0,
-      lastReset: new Date(),
-    };
+    if (purchaseType !== 'renewal') {
+      user.usageCounters = {
+        cvCreation: 0,
+        coverLetter: 0,
+        aiApplication: 0,
+        aiAutoApplyDailyLimit: 0,
+        aiAutoApply: 0,
+        atsScore: 0,
+        jobMatching: 0,
+        lastReset: new Date(),
+      };
+    }
 
     await user.save({ session });
 
@@ -1205,39 +1249,40 @@ export const createSimplePurchaseDev = async (req, res) => {
         throw new Error('Invalid billing period for this plan.');
       }
 
-      await Purchase.updateMany(
-        { user: userId, isActive: true },
-        { $set: { isActive: false } },
-        { session },
-      );
+      if (purchaseType !== 'renewal') {
+        await Purchase.updateMany(
+          { user: userId, isActive: true },
+          { $set: { isActive: false } },
+          { session },
+        );
+      }
 
       const newPurchase = new Purchase({
         user: userId,
         plan: planId,
+        purchaseType, // 👈 ADD THIS
         billingVariant: {
-          period,
+          period: billingPeriod,
           price: {
-            usd:
-              (variant.price &&
-                variant.price.effective &&
-                variant.price.effective.usd) ||
-              0,
-            inr:
-              (variant.price &&
-                variant.price.effective &&
-                variant.price.effective.inr) ||
-              0,
+            inr: variant.price.effective.inr,
+            usd: variant.price.effective.usd ?? null,
           },
         },
-        amountPaid: 0,
-        currency: 'usd',
+        amountPaid,
+        currency: order.currency.toLowerCase(),
         paymentStatus: 'completed',
-        paymentGateway: 'none',
-        paymentId: `free-${userId}-${Date.now()}`,
-        startDate: new Date(),
-        endDate: calculateEndDate(period),
-        isActive: true,
+        paymentGateway: 'razorpay',
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id,
+        couponCode: couponCode || null,
+
+        // 👇 FIXED
+        startDate,
+        endDate: calculateEndDate(billingPeriod, startDate),
+
+        isActive: purchaseType !== 'renewal',
       });
+
       await newPurchase.save({ session });
 
       const newUsageLimits = buildUsageLimitsFromFeatures(
@@ -1247,17 +1292,18 @@ export const createSimplePurchaseDev = async (req, res) => {
       user.currentPlan = planId;
       user.currentPurchase = newPurchase._id;
       user.usageLimits = newUsageLimits;
-      user.usageCounters = {
-        cvCreation: 0,
-        coverLetter: 0,
-        aiApplication: 0,
-        aiAutoApply: 0,
-        aiAutoApplyDailyLimit: 0,
-        atsScore: 0,
-        jobMatching: 0,
-        aiMannualApplication: 0,
-        lastReset: new Date(),
-      };
+      if (purchaseType !== 'renewal') {
+        user.usageCounters = {
+          cvCreation: 0,
+          coverLetter: 0,
+          aiApplication: 0,
+          aiAutoApplyDailyLimit: 0,
+          aiAutoApply: 0,
+          atsScore: 0,
+          jobMatching: 0,
+          lastReset: new Date(),
+        };
+      }
 
       await user.save({ session });
 

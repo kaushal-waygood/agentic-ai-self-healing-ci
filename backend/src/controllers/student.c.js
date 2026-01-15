@@ -1605,3 +1605,128 @@ export const completeStudentOnboarding = async (req, res) => {
     });
   }
 };
+
+export const verifyStudentViaIdCardOrUniEmail = async (req, res) => {
+  const { _id } = req.user;
+  const { email: uniEmail } = req.body;
+
+  if (!uniEmail) {
+    return res.status(400).json({ message: 'Missing uniEmail' });
+  }
+
+  try {
+    const student = await Student.findOneAndUpdate(
+      { _id },
+      { uniEmail },
+      { new: true },
+    );
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    await User.updateOne(
+      { _id, role: { $ne: 'student' } },
+      { $set: { role: 'student', accountType: 'student' } },
+    );
+
+    return res.status(200).json({
+      message: 'Student verified successfully',
+      student,
+    });
+  } catch (error) {
+    console.error('Verification error:', error);
+    return res.status(500).json({ message: 'Failed to verify student' });
+  }
+};
+
+export const activateStudentPlan = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const userId = req.user._id;
+
+    const planId = '6961eb3bf805a33f6861bfc5';
+    const period = 'Monthly';
+
+    const user = await User.findById(userId).session(session);
+    if (!user || user.role !== 'student') {
+      throw new Error('Only verified students can activate this plan');
+    }
+
+    const plan = await Plan.findById(planId).lean();
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
+
+    const variant = safeGetVariant(plan, period);
+    if (!variant) {
+      throw new Error('Invalid billing period');
+    }
+
+    // deactivate previous purchases
+    await Purchase.updateMany(
+      { user: userId, isActive: true },
+      { $set: { isActive: false } },
+      { session },
+    );
+
+    const startDate = new Date();
+    const endDate = calculateEndDate(period, startDate);
+
+    const purchase = new Purchase({
+      user: userId,
+      plan: planId,
+      purchaseType: 'student_free',
+      billingVariant: {
+        period,
+        price: variant.price.effective,
+      },
+      amountPaid: 0,
+      currency: 'inr',
+      paymentStatus: 'free',
+      paymentGateway: 'internal',
+      paymentId: null,
+      orderId: null,
+      startDate,
+      endDate,
+      isActive: true,
+    });
+
+    await purchase.save({ session });
+
+    user.currentPlan = planId;
+    user.currentPurchase = purchase._id;
+    user.usageLimits = buildUsageLimitsFromFeatures(variant.features || []);
+    user.usageCounters = {
+      cvCreation: 0,
+      coverLetter: 0,
+      aiApplication: 0,
+      aiAutoApplyDailyLimit: 0,
+      aiAutoApply: 0,
+      atsScore: 0,
+      jobMatching: 0,
+      lastReset: new Date(),
+    };
+
+    await user.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Student plan activated successfully',
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error('Student activation error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to activate student plan',
+    });
+  }
+};
