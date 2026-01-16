@@ -19,7 +19,7 @@ import {
   personas,
   thumbs,
 } from '@dicebear/collection';
-import avatar1 from '@/assets/avatar-1.jpg';
+import avatar1 from 'avatars/avatar-1.png';
 import avatar2 from '@/assets/avatar-2.png';
 import avatar3 from '@/assets/avatar-3.png';
 import avatar4 from '@/assets/avatar-4.jpg';
@@ -57,8 +57,14 @@ export const Hero = () => {
   const router = useRouter();
 
   // avatar array
-  const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5];
-
+  // const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5];
+  const avatars = [
+    '/avatars/avatar-1.jpg',
+    '/avatars/avatar-2.png',
+    '/avatars/avatar-3.png',
+    '/avatars/avatar-4.jpg',
+    '/avatars/avatar-5.png',
+  ];
   const stats = [
     { number: '500K+', label: 'Applications Sent', icon: Target },
     { number: '15K+', label: 'Jobs Landed', icon: TrendingUp },
@@ -406,21 +412,12 @@ export const Hero = () => {
                       key={i}
                       src={src}
                       alt={`User avatar ${i + 1}`}
+                      width={48}
+                      height={48}
                       className="w-12 h-12 rounded-full border-4 border-white shadow-lg"
                     />
                   ))}
                 </div>
-
-                {/* <div className="flex -space-x-1">
-                  {avatar.map((src, i) => (
-                    <img
-                      key={i}
-                      src={src}
-                      alt={`User avatar ${i + 1}`}
-                      className="w-12 h-12 rounded-full border-2 border-white shadow-lg"
-                    />
-                  ))}
-                </div> */}
 
                 <div className="text-base text-gray-600">
                   <span className="font-bold text-xl text-gray-900">

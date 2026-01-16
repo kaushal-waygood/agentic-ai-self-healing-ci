@@ -19,7 +19,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import apiInstance from '@/services/api';
-import { Tabs, TabsContent } from '@radix-ui/react-tabs';
 
 interface Job {
   _id: string;
@@ -324,8 +323,7 @@ export function JobStep({
                 </div>
               )}
 
-              {/* ✅ Existing Select Tab (unchanged) */}
-              {activeTab === 'select' && (
+              {/* {activeTab === 'select' && (
                 <div
                   value="select"
                   className="space-y-6 animate-in fade-in duration-500"
@@ -362,8 +360,63 @@ export function JobStep({
                     </div>
                   )}
                 </div>
-              )}
+              )} */}
 
+              {activeTab === 'select' && (
+                <div
+                  value="select"
+                  className="space-y-6 animate-in fade-in duration-500"
+                >
+                  {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-slate-500">
+                      <div>
+                        <img
+                          src="/logo.png"
+                          alt=""
+                          className="w-10 h-10 animate-bounce"
+                        />
+                      </div>
+
+                      <p>Fetching saved Jobs...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {savedJobs?.length > 0 ? (
+                        <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+                          {savedJobs.map((job: any) => (
+                            <div
+                              key={job?.job?._id || job._id}
+                              onClick={() => {
+                                handleJobContextSubmit('select', job?.job?._id);
+                              }}
+                              className="cursor-pointer transition-transform hover:scale-[1.01]"
+                            >
+                              <JobCard job={job} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        /* 3. EMPTY STATE */
+                        <div className="text-center py-20">
+                          <div className="relative inline-block mb-6">
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 blur-2xl opacity-30 animate-pulse"></div>
+                            <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg mx-auto flex items-center justify-center shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-300">
+                              <Briefcase className="h-12 w-12 text-white" />
+                            </div>
+                          </div>
+                          <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                            No Saved Jobs Yet
+                          </h3>
+                          <p className="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">
+                            Start saving jobs you're interested in, and they'll
+                            appear here for quick cover letter generation!
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
               {/* ✅ Existing Upload Tab (unchanged) */}
               {activeTab === 'upload' && (
                 <div className="text-center p-10">

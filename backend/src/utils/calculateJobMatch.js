@@ -17,6 +17,7 @@ const top = (arr, n = 5) => array(arr).slice(0, n);
 ========================================================= */
 
 function evaluateSkills(studentSkills, keywords) {
+  console.log('studentSkills', studentSkills);
   const matched = studentSkills.filter((s) =>
     keywords.some((k) => s.skill.toLowerCase().includes(k)),
   );
@@ -135,6 +136,8 @@ Experience: ${JSON.stringify(student.experience)}
 ========================================================= */
 
 export async function calculateJobMatch(jobDescription, student) {
+  console.log('🔎 Calculating job match...');
+  console.log('student', student);
   const keywords = extractKeywords(jobDescription);
 
   const skills = evaluateSkills(student.skills, keywords);

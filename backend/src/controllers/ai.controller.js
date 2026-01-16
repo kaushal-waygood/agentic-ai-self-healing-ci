@@ -29,6 +29,10 @@ import pdf from 'pdf-parse';
 import redisClient from '../config/redis.js';
 import { resolveUser } from '../utils/credits.js';
 import { User } from '../models/User.model.js';
+import { StudentSkill } from '../models/students/studentSkill.model.js';
+import { StudentExperience } from '../models/students/studentExperience.model.js';
+import { StudentEducation } from '../models/students/studentEducation.model.js';
+import { StudentProject } from '../models/students/studentProject.model.js';
 
 /**
  * Extract plain text from an uploaded file (PDF, DOCX, TXT)
@@ -1305,7 +1309,25 @@ export const calculateJobMatchScore = async (req, res) => {
 
     const user = await resolveUser(req.user._id);
 
-    const student = await Student.findById(req.user._id).lean();
+    const studentDetails = await Student.findById(req.user._id).lean();
+    const skills = await StudentSkill.find({ student: req.user._id }).lean();
+    const experience = await StudentExperience.find({
+      student: req.user._id,
+    }).lean();
+    const education = await StudentEducation.find({
+      student: req.user._id,
+    }).lean();
+    const projects = await StudentProject.find({
+      student: req.user._id,
+    }).lean();
+
+    const student = {
+      ...studentDetails,
+      skills,
+      experience,
+      education,
+      projects,
+    };
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const result = await calculateJobMatch(jobDescription, student);
@@ -1337,7 +1359,26 @@ export const calculateATS = async (req, res) => {
     if (!jobDescription)
       return res.status(400).json({ error: 'Job Description required' });
 
-    const student = await Student.findById(req.user._id).lean();
+    const studentDetails = await Student.findById(req.user._id).lean();
+    const skills = await StudentSkill.find({ student: req.user._id }).lean();
+    const experience = await StudentExperience.find({
+      student: req.user._id,
+    }).lean();
+    const education = await StudentEducation.find({
+      student: req.user._id,
+    }).lean();
+    const projects = await StudentProject.find({
+      student: req.user._id,
+    }).lean();
+
+    const student = {
+      ...studentDetails,
+      skills,
+      experience,
+      education,
+      projects,
+    };
+
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const result = await computeATS(jobDescription, student);

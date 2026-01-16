@@ -187,7 +187,7 @@ export function StatsGrid({
         <div className="flex flex-row justify-between rounded-lg bg-gray-100 p-2 mb-2">
           {[
             { key: 'balance', label: 'All' },
-            { key: 'earned', label: 'Earned' },
+            // { key: 'earned', label: 'Earned' },
             { key: 'spent', label: 'Spent' },
             { key: 'transactions', label: 'Transactions' },
           ].map((item) => (

@@ -51,7 +51,7 @@ const NotificationsPage = () => {
     if (!notification.isRead) {
       markAsRead(notification._id);
     }
-    router.push(`/dashboard/my-docs/${notification.actionUrl}`);
+    router.push(`${notification.actionUrl}`);
   };
 
   if (isLoading) {
@@ -67,7 +67,7 @@ const NotificationsPage = () => {
           />
         </div>
 
-        <div className="text-lg">LOADING YOUR WALLET...</div>
+        <div className="text-lg">Loading Notifications...</div>
       </div>
     );
   }
