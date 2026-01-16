@@ -646,6 +646,7 @@ export const signUpUser = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
+
   try {
     const user = await User.findOne({ email }).select(
       '+otp +otpExpires +isEmailVerified',
@@ -654,7 +655,7 @@ export const verifyEmail = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (user.isEmailVerified)
       return res.status(400).json({ message: 'Email already verified' });
-    if (user.otp !== otp)
+    if (Number(user.otp) !== Number(otp))
       return res.status(400).json({ message: 'Invalid OTP' });
     if (user.otpExpires < new Date())
       return res.status(400).json({ message: 'OTP expired' });
@@ -1008,16 +1009,12 @@ export const getUserProfile = async (req, res) => {
     const { _id: userId } = req.user;
     const cacheKey = `user:profile:${userId}`;
 
-    const user = await redisClient.withCache(cacheKey, 3600, async () => {
-      const userData = await User.findById(userId).populate(
-        'organization',
-        '-__v -apiKey',
-      );
-      if (!userData) throw new Error('User not found');
-      return userData;
-    });
-
-    return res.status(200).json(user);
+    const userData = await User.findById(userId).populate(
+      'organization',
+      '-__v -apiKey',
+    );
+    if (!userData) throw new Error('User not found');
+    return res.status(200).json(userData);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return res.status(500).json({ message: error.message });
@@ -1262,6 +1259,8 @@ export const redirectToGoogle = async (req, res) => {
         'https://www.googleapis.com/auth/userinfo.email',
       ],
     });
+
+    console.log(url);
     return res.redirect(url);
   } catch (error) {
     return res
@@ -1315,6 +1314,8 @@ export const handleGoogleCallback = async (req, res) => {
       config.accessTokenSecret,
       { expiresIn: '7d' },
     );
+
+    console.log(token);
 
     return res.redirect(
       `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,

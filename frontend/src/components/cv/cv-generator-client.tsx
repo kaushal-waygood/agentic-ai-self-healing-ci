@@ -94,6 +94,9 @@ export function CvGeneratorClient() {
   /* limit ui */
   const [rateLimited, setRateLimited] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
+    null,
+  );
 
   const {
     students: student,
@@ -227,6 +230,84 @@ export function CvGeneratorClient() {
     });
   };
 
+  /* ---------- Navigation Guards ---------- */
+
+  // 1. Define when the user is "active" in the process
+  const isDeepInWizard = wizardStep !== 'job';
+
+  useEffect(() => {
+    const handleInternalNavigation = (e: MouseEvent) => {
+      if (!isDeepInWizard) return;
+
+      // 1. Find the closest anchor tag (<a>) from the click target
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+
+      // 2. If it's a link and it's internal
+      if (anchor && anchor.href && anchor.host === window.location.host) {
+        // Check if it's just a hash change (like #top), if not, block it
+        if (!anchor.href.includes('#')) {
+          const confirmLeave = window.confirm(
+            'You have an active session. If you leave, your progress will be lost. Do you want to leave?',
+          );
+
+          if (!confirmLeave) {
+            e.preventDefault();
+            e.stopImmediatePropagation(); // Prevents Next.js from seeing the click
+          }
+        }
+      }
+    };
+
+    // Use 'capture' phase to catch the event before Next.js handles it
+    window.addEventListener('click', handleInternalNavigation, true);
+
+    return () => {
+      window.removeEventListener('click', handleInternalNavigation, true);
+    };
+  }, [isDeepInWizard]);
+
+  // Handle Hard Refresh / Tab Close
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDeepInWizard) {
+        e.preventDefault();
+        e.returnValue = ''; // Standard browser prompt
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDeepInWizard]);
+
+  // Handle Browser Back Button
+  useEffect(() => {
+    if (!isDeepInWizard) return;
+
+    // Push a dummy state to the history stack to "trap" the back button
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = () => {
+      if (isDeepInWizard) {
+        // Re-push the state to stay on the page
+        window.history.pushState(null, '', window.location.href);
+
+        // Optional: replace alert with a toast or your custom AlertDialog
+        // toast({
+        //   title: 'Progress will be lost',
+        //   description:
+        //     "Are you sure you want to leave? Use the 'Back' buttons inside the wizard to navigate safely.",
+        //   variant: 'destructive',
+        // });
+
+        alert('Please wait until resume extraction is complete.');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isDeepInWizard, toast]);
+
   /* ---------- generation ---------- */
 
   const handleGenerate = async () => {
@@ -289,6 +370,26 @@ export function CvGeneratorClient() {
         description: 'Your new CV draft has been added to your saved list.',
       });
     } catch (error: any) {
+      if (
+        error?.response?.status === 403 &&
+        error?.response?.data?.message === 'Profile incomplete'
+      ) {
+        setIncompleteProfile(
+          error?.response?.data?.reasons?.join(', ') ||
+            'Please complete your profile to continue.',
+        );
+        setWizardStep('result');
+        return;
+      }
+
+      if (isUsageLimitError(error)) {
+        setRateLimited(true);
+        setRateLimitMessage(
+          error?.response?.data?.message ||
+            'You have exhausted your cover letter limit.',
+        );
+        return;
+      }
       if (isUsageLimitError(error)) {
         setRateLimited(true);
         setRateLimitMessage(
@@ -400,6 +501,7 @@ export function CvGeneratorClient() {
       case 'result':
         return (
           <FinalResultView
+            incompleteProfile={incompleteProfile}
             cvlink={undefined}
             rateLimited={rateLimited}
             rateLimitMessage={rateLimitMessage}

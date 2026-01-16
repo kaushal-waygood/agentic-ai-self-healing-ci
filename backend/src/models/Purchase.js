@@ -60,7 +60,7 @@ const purchaseSchema = new Schema(
     },
     purchaseType: {
       type: String,
-      enum: ['new', 'renewal', 'upgrade'],
+      enum: ['new', 'renewal', 'upgrade', 'student_free'],
       required: true,
     },
     autoRenew: {

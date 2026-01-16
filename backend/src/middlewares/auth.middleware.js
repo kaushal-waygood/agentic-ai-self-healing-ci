@@ -14,6 +14,7 @@ export const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
 
     const userId = decoded._id || decoded.id;
+
     if (!userId) {
       return res.status(401).json({ message: 'Invalid token payload.' });
     }
@@ -60,7 +61,6 @@ export const isAdmin = requireAnyRole('admin');
 export const isGuestOrg = requireAnyRole('guest-org');
 
 export const isGeneralUser = requireAnyRole('user', 'student', 'uni-student');
-
 export const isEmployerStaff = requireAnyRole(
   'employer-admin',
   'hr',
@@ -71,7 +71,11 @@ export const isEmployerStaff = requireAnyRole(
 
 export const isUniversityStaff = requireAnyRole('uni-admin', 'uni-tpo');
 
-export const isUserOrUniStudent = requireAnyRole('user', 'uni-student');
+export const isUserOrUniStudent = requireAnyRole(
+  'user',
+  'uni-student',
+  'student',
+);
 
 export const isAnyAdmin = requireAnyRole(
   'super-admin',

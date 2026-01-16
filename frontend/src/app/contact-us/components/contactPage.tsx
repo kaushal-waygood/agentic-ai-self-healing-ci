@@ -112,7 +112,10 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <p className="text-gray-600 text-sm">Location</p>
-                      <p className="text-gray-900 font-medium">New York, NY</p>
+                      <p className="text-gray-900 font-medium">
+                        2nd Floor, S-05, B 14-15, Udhyog Marg, Block B, Sector
+                        1, Noida, Uttar Pradesh 201301
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -196,7 +199,7 @@ export default function ContactPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-bold py-4 px-8 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    className="w-full bg-buttonPrimary text-white font-bold py-4 px-8 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
                     {isLoading ? (
                       <>
