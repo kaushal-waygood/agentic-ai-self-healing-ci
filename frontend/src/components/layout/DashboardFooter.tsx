@@ -70,7 +70,7 @@ const DashboardFooter = () => {
               className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white rounded-full text-xs font-bold hover:bg-[#20ba5a] transition-all hover:shadow-lg active:scale-95"
             >
               <Image
-                src={WhatsAppIcon}
+                src="/icons/whatsapp.png"
                 alt=""
                 width={18}
                 height={18}

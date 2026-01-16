@@ -377,7 +377,6 @@ const JobWizard = ({
 
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-10 text-slate-500">
-                  {/* <Loader2 className="w-6 h-6 animate-spin mb-2 text-purple-500" /> */}
                   <div>
                     <img
                       src="/logo.png"

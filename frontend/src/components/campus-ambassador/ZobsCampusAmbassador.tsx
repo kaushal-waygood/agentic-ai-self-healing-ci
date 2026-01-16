@@ -294,6 +294,7 @@
 
 // export default ZobsCampusAmbassador;
 import { Users, Target, Award, Gift, Rocket, TrendingUp } from 'lucide-react';
+import Image from 'next/image';
 
 function ZobsCampusAmbassador() {
   return (
@@ -341,7 +342,7 @@ function ZobsCampusAmbassador() {
               rel="noopener noreferrer"
               className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg px-12 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
             >
-              Apply Now on ZobsAI Platform 
+              Apply Now on ZobsAI Platform
             </a>
           </div>
 
@@ -647,34 +648,42 @@ function ZobsCampusAmbassador() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
-                <img
-                  src="/Gift/3.JPG"
+                <Image
+                  src="/Gift/3.jpg"
                   alt="Gift cards"
                   className="w-full h-32 object-cover rounded-lg mb-3"
+                  width={500}
+                  height={500}
                 />
                 <p className="font-semibold text-gray-800">Gift Cards</p>
               </div>
               <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
-                <img
-                  src="/Gift/1.JPG"
+                <Image
+                  src="/Gift/1.jpg"
                   alt="Hoodies"
                   className="w-full h-32 object-cover rounded-lg mb-3"
+                  width={500}
+                  height={500}
                 />
                 <p className="font-semibold text-gray-800">Branded Hoodies</p>
               </div>
               <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
-                <img
-                  src="/Gift/2.JPG"
+                <Image
+                  src="/Gift/2.jpg"
                   alt="Water bottles"
                   className="w-full h-32 object-cover rounded-lg mb-3"
+                  width={500}
+                  height={500}
                 />
                 <p className="font-semibold text-gray-800">Water Bottles</p>
               </div>
               <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
-                <img
-                  src="/Gift/4.JPG"
+                <Image
+                  src="/Gift/4.jpg"
                   alt="Tech products"
                   className="w-full h-32 object-cover rounded-lg mb-3"
+                  width={500}
+                  height={500}
                 />
                 <p className="font-semibold text-gray-800">Tech Products</p>
               </div>
