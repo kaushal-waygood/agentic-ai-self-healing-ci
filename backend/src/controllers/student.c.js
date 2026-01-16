@@ -20,6 +20,14 @@ import { JobInteraction } from '../models/jobInteraction.model.js';
 // import calculateExperience from '../utils/calculateExperience.js';
 import redisClient from '../config/redis.js';
 import { uploadBufferToCloudinary } from '../middlewares/multer.js';
+import { Plan } from '../models/Plans.model.js';
+import {
+  buildUsageLimitsFromFeatures,
+  calculateEndDate,
+  safeGetVariant,
+} from './plan.controller.js';
+import { Purchase } from '../models/Purchase.js';
+import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 
 export const updateJobPreferences = async (req, res) => {
   try {
@@ -348,6 +356,45 @@ export const getProfileCompletion = async (req, res) => {
               student.jobPreferences?.mustHaveSkills?.length > 0,
           ),
         };
+
+        if (completionStatus.coreProfile) {
+          await addCredits(
+            studentId,
+            CREDIT_EARN.PROFILE_COMPLETE_PERSONAL,
+            'profileCompleted',
+          );
+        }
+        if (completionStatus.education) {
+          await addCredits(
+            studentId,
+            CREDIT_EARN.PROFILE_COMPLETE_EDUCATION,
+            'profileCompleted',
+          );
+        }
+
+        if (completionStatus.workExperience) {
+          await addCredits(
+            studentId,
+            CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE,
+            'profileCompleted',
+          );
+        }
+
+        if (completionStatus.skills) {
+          await addCredits(
+            studentId,
+            CREDIT_EARN.PROFILE_COMPLETE_SKILL,
+            'profileCompleted',
+          );
+        }
+
+        if (completionStatus.projects) {
+          await addCredits(
+            studentId,
+            CREDIT_EARN.PROFILE_COMPLETE_PROJECT,
+            'profileCompleted',
+          );
+        }
 
         const completedCategories =
           Object.values(completionStatus).filter(Boolean).length;
@@ -1012,6 +1059,10 @@ export const trackJobEvent = async (req, res) => {
     return res.status(400).json({ message: 'Invalid event type' });
   }
 
+  if (type === 'VISIT') {
+    await addCredits(userId, CREDIT_EARN.VISITJOB_SITE, 'jobVisitedByStudent');
+  }
+
   await JobInteraction.create({
     user: userId,
     job: jobId,
@@ -1618,35 +1669,39 @@ export const completeStudentOnboarding = async (req, res) => {
 
 export const verifyStudentViaIdCardOrUniEmail = async (req, res) => {
   const { _id } = req.user;
-  const { email: uniEmail } = req.body;
+  const { email } = req.body;
+  const idCard = req.file;
 
-  if (!uniEmail) {
-    return res.status(400).json({ message: 'Missing uniEmail' });
+  if (!email && !idCard) {
+    return res.status(400).json({
+      message: 'Provide either university email or ID card',
+    });
   }
 
   try {
-    const student = await Student.findOneAndUpdate(
-      { _id },
-      { uniEmail },
-      { new: true },
-    );
+    const update = {};
+    if (email) update.uniEmail = email;
+    if (idCard) update.idCard = idCard.filename;
+
+    const student = await Student.findByIdAndUpdate(_id, update, { new: true });
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
     await User.updateOne(
-      { _id, role: { $ne: 'student' } },
-      { $set: { role: 'student', accountType: 'student' } },
+      { _id },
+      { $set: { role: 'uni-student', accountType: 'student' } },
     );
 
     return res.status(200).json({
+      success: true,
       message: 'Student verified successfully',
       student,
     });
-  } catch (error) {
-    console.error('Verification error:', error);
-    return res.status(500).json({ message: 'Failed to verify student' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Verification failed' });
   }
 };
 
@@ -1661,11 +1716,13 @@ export const activateStudentPlan = async (req, res) => {
     const period = 'Monthly';
 
     const user = await User.findById(userId).session(session);
-    if (!user || user.role !== 'student') {
+    if (!user || user.role !== 'uni-student') {
       throw new Error('Only verified students can activate this plan');
     }
 
     const plan = await Plan.findById(planId).lean();
+
+    console.log(plan);
     if (!plan) {
       throw new Error('Plan not found');
     }
@@ -1682,6 +1739,8 @@ export const activateStudentPlan = async (req, res) => {
       { session },
     );
 
+    const paymentId = `student_free_${userId}_${Date.now()}`;
+
     const startDate = new Date();
     const endDate = calculateEndDate(period, startDate);
 
@@ -1695,9 +1754,9 @@ export const activateStudentPlan = async (req, res) => {
       },
       amountPaid: 0,
       currency: 'inr',
-      paymentStatus: 'free',
-      paymentGateway: 'internal',
-      paymentId: null,
+      paymentStatus: 'completed',
+      paymentGateway: 'none',
+      paymentId,
       orderId: null,
       startDate,
       endDate,
@@ -1738,5 +1797,416 @@ export const activateStudentPlan = async (req, res) => {
       success: false,
       message: 'Failed to activate student plan',
     });
+  }
+};
+
+export const getTotalCredits = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).lean();
+    const totalCredits = user.credits || 0;
+    res.status(200).json({ success: true, credits: totalCredits });
+  } catch (error) {
+    console.error('Error in getTotalCredits:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const getCreditsSummary = async (req, res) => {
+  const { _id: userId } = req.user;
+
+  try {
+    if (!userId) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    const txs = Array.isArray(user.creditTransactions)
+      ? user.creditTransactions
+      : [];
+
+    let totalEarned = 0;
+    let totalSpent = 0;
+    txs.forEach((t) => {
+      if (!t || typeof t.amount !== 'number') return;
+      if (t.type === 'EARN') totalEarned += t.amount;
+      if (t.type === 'SPEND') totalSpent += t.amount;
+    });
+
+    const lastTxOfKind = (kind, metaFilter = {}) => {
+      const filtered = txs
+        .filter((t) => t.kind === kind)
+        .filter((t) => {
+          if (!metaFilter || Object.keys(metaFilter).length === 0) return true;
+          if (!t.meta) return false;
+          for (const k of Object.keys(metaFilter)) {
+            if (String(t.meta[k]) !== String(metaFilter[k])) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return filtered.length ? filtered[0] : null;
+    };
+
+    const hasClaimedKind = (kind, metaFilter = {}) =>
+      !!lastTxOfKind(kind, metaFilter);
+
+    // helper to infer URLs for actions (same mapping you used in earnCreditsForAction)
+    const redirectForAction = (act, m = {}) => {
+      if (m && m.redirectUrl) return m.redirectUrl;
+
+      switch (act) {
+        case 'FIRST_CV':
+        case 'CV_GENERATION':
+          return '/dashboard/cv-generator';
+
+        case 'FIRST_CL':
+          return '/dashboard/cover-letter-generator';
+
+        case 'DAILY_CHECKIN':
+          return '/rewards';
+
+        case 'FOLLOW_LINKEDIN':
+          return 'https://www.linkedin.com/company/zobsai-com/';
+        case 'FOLLOW_INSTAGRAM':
+          return 'https://www.instagram.com/zobsai.co';
+        case 'FOLLOW_FACEBOOK':
+          return 'https://www.facebook.com/zobsai.co';
+        case 'FOLLOW_YOUTUBE':
+          return 'https://www.youtube.com/@ZobsAI';
+        case 'FOLLOW_TIKTOK':
+          return '/social-follow';
+
+        case 'READ_BLOG':
+          return m.blogUrl || '/blogs';
+
+        case 'VISITJOB_SITE':
+        case 'APPLY_ON_COMPANY_SITE':
+          return '/dashboard/search-jobs';
+
+        case 'PROFILE_COMPLETE_PERSONAL':
+
+        case 'PROFILE_COMPLETE_EDUCATION':
+          return '/dashboard/profile?tab=education';
+
+        case 'PROFILE_COMPLETE_EXPERIENCE':
+          return '/dashboard/profile?tab=experience';
+
+        case 'PROFILE_COMPLETE_PROJECT':
+          return '/dashboard/profile?tab=project';
+
+        case 'PROFILE_COMPLETE_SKILL':
+          return '/dashboard/profile?tab=skills';
+
+        case 'ALLOW_BROWSER_NOTIF':
+          return '/settings/notifications';
+
+        case 'FIRST_AUTO_AGENT_SETUP':
+        case 'FIRST_AUTO_APPLICATION_SENT':
+          return '/dashboard/ai-auto-apply';
+
+        default:
+          return '/rewards';
+      }
+    };
+
+    const pending = [];
+
+    // FIRST_CV: keep your original logic but add url (client decides whether to show claim button)
+    if (
+      !hasClaimedKind('FIRST_CV') &&
+      !(Array.isArray(user.htmlCV) && user.htmlCV.length > 0)
+    ) {
+      pending.push({
+        action: 'FIRST_CV',
+        credits: CREDIT_EARN.FIRST_CV || 0,
+        reason: 'Generate your first CV to claim these credits.',
+        url: redirectForAction('FIRST_CV'),
+      });
+    }
+
+    if (
+      !hasClaimedKind('FIRST_CL') &&
+      !(Array.isArray(user.coverLetter) && user.coverLetter.length > 0)
+    ) {
+      pending.push({
+        action: 'FIRST_CL',
+        credits: CREDIT_EARN.FIRST_CL || 0,
+        reason: 'Generate your first cover letter to claim these credits.',
+        url: redirectForAction('FIRST_CL'),
+      });
+    }
+
+    if (
+      !hasClaimedKind('FIRST_AUTO_AGENT_SETUP') &&
+      (!Array.isArray(user.autopilotAgent) || user.autopilotAgent.length === 0)
+    ) {
+      pending.push({
+        action: 'FIRST_AUTO_AGENT_SETUP',
+        credits: CREDIT_EARN.FIRST_AUTO_AGENT_SETUP || 0,
+        reason: 'Set up your first Auto-Apply agent.',
+        url: redirectForAction('FIRST_AUTO_AGENT_SETUP'),
+      });
+    }
+
+    if (
+      !hasClaimedKind('FIRST_AUTO_APPLICATION_SENT') &&
+      Array.isArray(user.appliedJobs) &&
+      user.appliedJobs.length === 0
+    ) {
+      pending.push({
+        action: 'FIRST_AUTO_APPLICATION_SENT',
+        credits: CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 0,
+        reason: 'Send your first auto-application to claim credits.',
+        url: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
+      });
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_PERSONAL')) {
+      const hasPersonal = !!(user.phone || user.profileImage);
+      if (!hasPersonal) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PERSONAL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PERSONAL || 0,
+          reason:
+            'Add phone number or profile image to complete personal details.',
+          url: redirectForAction('PROFILE_COMPLETE_PERSONAL'),
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PERSONAL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PERSONAL || 0,
+          reason: 'Claim credits for completing personal details.',
+          url: redirectForAction('PROFILE_COMPLETE_PERSONAL'),
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_EDUCATION')) {
+      const hasEducation =
+        Array.isArray(user.education) && user.education.length > 0;
+      if (!hasEducation) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EDUCATION',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EDUCATION || 0,
+          reason: 'Add education details to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_EDUCATION'),
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EDUCATION',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EDUCATION || 0,
+          reason: 'Claim credits for your education details.',
+          url: redirectForAction('PROFILE_COMPLETE_EDUCATION'),
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_EXPERIENCE')) {
+      const hasExp =
+        Array.isArray(user.experience) && user.experience.length > 0;
+      if (!hasExp) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EXPERIENCE',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE || 0,
+          reason: 'Add work experience to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_EXPERIENCE'),
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EXPERIENCE',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE || 0,
+          reason: 'Claim credits for your experience details.',
+          url: redirectForAction('PROFILE_COMPLETE_EXPERIENCE'),
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_PROJECT')) {
+      const hasProj = Array.isArray(user.projects) && user.projects.length > 0;
+      if (!hasProj) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PROJECT',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PROJECT || 0,
+          reason: 'Add project details to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_PROJECT'),
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PROJECT',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PROJECT || 0,
+          reason: 'Claim credits for your project details.',
+          url: redirectForAction('PROFILE_COMPLETE_PROJECT'),
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_SKILL')) {
+      const hasSkill = Array.isArray(user.skills) && user.skills.length > 0;
+      if (!hasSkill) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_SKILL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_SKILL || 0,
+          reason: 'Add skills to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_SKILL'),
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_SKILL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_SKILL || 0,
+          reason: 'Claim credits for adding skills.',
+          url: redirectForAction('PROFILE_COMPLETE_SKILL'),
+        });
+      }
+    }
+
+    // Allow browser notifications (one-time)
+    if (!hasClaimedKind('ALLOW_BROWSER_NOTIF')) {
+      const allowedFlag =
+        user.settings && user.settings.allowBrowserNotifications;
+      if (!allowedFlag) {
+        pending.push({
+          action: 'ALLOW_BROWSER_NOTIF',
+          credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
+          reason: 'Enable browser notifications to claim credits.',
+          url: redirectForAction('ALLOW_BROWSER_NOTIF'),
+        });
+      } else {
+        pending.push({
+          action: 'ALLOW_BROWSER_NOTIF',
+          credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
+          reason: 'Claim credits for enabling browser notifications.',
+          url: redirectForAction('ALLOW_BROWSER_NOTIF'),
+        });
+      }
+    }
+
+    const socialPlatforms = [
+      { action: 'FOLLOW_LINKEDIN', label: 'LinkedIn' },
+      { action: 'FOLLOW_INSTAGRAM', label: 'Instagram' },
+      { action: 'FOLLOW_FACEBOOK', label: 'Facebook' },
+      { action: 'FOLLOW_YOUTUBE', label: 'YouTube' },
+      { action: 'FOLLOW_TIKTOK', label: 'TikTok' },
+    ];
+    socialPlatforms.forEach((p) => {
+      if (!hasClaimedKind(p.action)) {
+        pending.push({
+          action: p.action,
+          credits: CREDIT_EARN.FOLLOW_SOCIAL || 0,
+          reason: `Follow us on ${p.label} and then claim this credit (server verification recommended).`,
+          url: redirectForAction(p.action),
+        });
+      }
+    });
+
+    // generic job visit / apply pending items (no specific jobId available here)
+    pending.push({
+      action: 'VISITJOB_SITE',
+      credits: CREDIT_EARN.VISITJOB_SITE || 0,
+      reason:
+        'Visit a job detail page (per job) to claim credits. Each job can be claimed once.',
+      url: redirectForAction('VISITJOB_SITE'),
+    });
+
+    pending.push({
+      action: 'APPLY_ON_COMPANY_SITE',
+      credits: CREDIT_EARN.APPLY_ON_COMPANY_SITE || 1,
+      reason:
+        'Visit company career page via the job listing and apply to claim credit (per job).',
+      url: redirectForAction('APPLY_ON_COMPANY_SITE'),
+    });
+
+    const lastDaily = lastTxOfKind('DAILY_CHECKIN');
+    let dailyEligible = true;
+    let lastDailyAt = null;
+    if (lastDaily) {
+      lastDailyAt = lastDaily.createdAt;
+      const elapsed = Date.now() - new Date(lastDailyAt).getTime();
+      if (elapsed < 24 * 60 * 60 * 1000) dailyEligible = false;
+    }
+    pending.push({
+      action: 'DAILY_CHECKIN',
+      credits: CREDIT_EARN.DAILY_CHECKIN || 0,
+      reason: dailyEligible
+        ? 'You can claim daily check-in now.'
+        : `Already claimed. Next eligible after ${new Date(
+            Date.now() +
+              24 * 60 * 60 * 1000 -
+              (Date.now() - new Date(lastDailyAt).getTime()),
+          ).toISOString()}`,
+      eligible: dailyEligible,
+      lastClaimedAt: lastDailyAt || null,
+      url: redirectForAction('DAILY_CHECKIN'),
+    });
+
+    // Prepare response: include redirectUrl on each tx (if present in tx.meta)
+    const recentTxs = txs
+      .slice()
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 50)
+      .map((t) => {
+        const txCopy = Object.assign({}, t);
+        if (t && t.meta && t.meta.redirectUrl) {
+          txCopy.redirectUrl = t.meta.redirectUrl;
+        } else {
+          txCopy.redirectUrl = null;
+        }
+        return txCopy;
+      });
+
+    res.json({
+      success: true,
+      data: {
+        userId: user._id,
+        balance: Number(user.credits || 0),
+        totalEarned,
+        totalSpent,
+        transactionsCount: txs.length,
+        transactions: recentTxs,
+        pendingClaims: pending,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const earnCreditsViaSocialLinks = async (req, res) => {
+  try {
+    const { action } = req.params;
+    const user = req.user;
+    const meta = req.body || {};
+
+    if (!user)
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (!action)
+      return res
+        .status(400)
+        .json({ success: false, message: 'Missing action.' });
+    if (!ALLOWED_SOCIAL_ACTIONS.has(action)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid social action.' });
+    }
+
+    const result = await earnCreditsForAction(user, action);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Credits awarded (if rules allowed).',
+      tx: result.tx,
+      balance: result.balance,
+    });
+  } catch (err) {
+    console.error('claimSocialClick error', err);
+    const status = err.status || 500;
+    return res
+      .status(status)
+      .json({ success: false, message: err.message || 'Server error' });
   }
 };

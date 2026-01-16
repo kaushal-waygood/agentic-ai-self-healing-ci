@@ -4,7 +4,7 @@ metadata:
   name: zobsai-backend-config
   namespace: zobsai
 data:
-  NODE_ENV: 'development'
+  NODE_ENV: 'production'
   SAMPLE_KEY: 'dev-value'
   REDIS_HOST: 'zobsai-redis.dev-zobsai.svc.cluster.local'
   REDIS_PORT: '6379'

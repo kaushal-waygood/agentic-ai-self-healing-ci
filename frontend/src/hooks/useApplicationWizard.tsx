@@ -521,7 +521,9 @@ export const useApplicationWizard = () => {
 
     fetchJob();
   }, [searchParams]);
-
+  const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
+    null,
+  );
   const handleGenerate = useCallback(async () => {
     // 🔒 HARD GUARD (this is the fix)
 
@@ -613,6 +615,17 @@ export const useApplicationWizard = () => {
 
       navigateToStep('result');
     } catch (error: any) {
+      if (
+        error?.response?.status === 403 &&
+        error?.response?.data?.message === 'Profile incomplete'
+      ) {
+        setIncompleteProfile(
+          error?.response?.data?.reasons?.join(', ') ||
+            'Please complete your profile to continue.',
+        );
+        navigateToStep('result');
+        return;
+      }
       const status = error?.response?.status;
 
       if (status === 429) {
@@ -749,7 +762,7 @@ export const useApplicationWizard = () => {
       handleCreateCvFormSubmit,
       handleClContextSubmit,
       handleGenerate,
-
+      incompleteProfile,
       handleCVFileUpload,
       handleStartNew,
       handleSendEmail,

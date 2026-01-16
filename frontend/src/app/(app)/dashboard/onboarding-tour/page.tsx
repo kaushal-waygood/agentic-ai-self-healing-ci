@@ -374,13 +374,51 @@ const OnboardingPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (!isLoading) return;
+
+    // 1. Push a new state so the "Back" button has something to pop
+    // without actually leaving the current URL
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (isLoading) {
+        // 2. If they hit back, push the state again to "trap" them
+        // and show a warning if you wish
+        window.history.pushState(null, '', window.location.href);
+        alert('Please wait until resume extraction is complete.');
+      }
+    };
+
+    // Listen for the back button (popstate)
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isLoading]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isLoading) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isLoading]);
+
   // const handleDashboardRedirect = () => {
   //   router.push('/dashboard');
   // };
   const handleDashboardRedirect = () => {
     router.push(`/dashboard?from=onboarding`);
   };
-  console.log('form data ', formData);
 
   // --- HELPER: Get Title and Icon for the current step ---
   const getStepHeader = (currentStep: number) => {

@@ -22,13 +22,13 @@ export function CreditsFooterActions({
         <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
         Refresh
       </button>
-      <button
+      {/* <button
         onClick={onShare}
         className="px-4 py-2.5  hover:shadow-lg hover:bg-blue-500 hover:text-white hover:text-gray-700 rounded-lg transition-all duration-300 flex items-center gap-2"
       >
         <Copy className="w-4 h-4" />
         Share
-      </button>
+      </button> */}
     </div>
   );
 }

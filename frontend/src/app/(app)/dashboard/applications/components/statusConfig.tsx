@@ -75,7 +75,7 @@ export const ApplicationRow = ({ app, isSelected, onSelect, index }) => {
 
   return (
     <div
-      className={`relative flex items-center gap-4  md:p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 ${
+      className={`relative flex  items-center gap-4  md:p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700   ${
         isSelected
           ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400'
           : 'bg-white dark:bg-gray-900 border-transparent dark:border-gray-800'
@@ -88,7 +88,7 @@ export const ApplicationRow = ({ app, isSelected, onSelect, index }) => {
       {/* Job Title & Company */}
       <div className="flex-grow">
         <h3 className="font-semibold text-gray-900 dark:text-white">
-          {app.job.title}
+          {index + 1}. {app.job.title}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
           <Building2 className="h-3.5 w-3.5" />
@@ -97,12 +97,12 @@ export const ApplicationRow = ({ app, isSelected, onSelect, index }) => {
       </div>
 
       {/* Status Pill */}
-      <div
+      {/* <div
         className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 ${config.bgColor} ${config.textColor}`}
       >
         <span>{config.icon}</span>
         <span>{app.status}</span>
-      </div>
+      </div> */}
 
       {/* Date */}
       <div className="flex-shrink-0 hidden md:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -111,9 +111,9 @@ export const ApplicationRow = ({ app, isSelected, onSelect, index }) => {
       </div>
 
       {/* Actions */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 ">
         <Link href={`/dashboard/search-jobs?job=${app.job.slug}`}>
-          <button className="p-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-300">
+          <button className="p-2 border border-gray-200 dark:border-gray-700 hover:bg-blue-300 dark:hover:bg-gray-800 rounded-lg transition-all duration-300">
             <ArrowRight className="h-4 w-4" />
           </button>
         </Link>
