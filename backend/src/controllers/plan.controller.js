@@ -57,7 +57,7 @@ const parseFeatureLimitValue = (raw) => {
   return n;
 };
 
-const buildUsageLimitsFromFeatures = (features = []) => {
+export const buildUsageLimitsFromFeatures = (features = []) => {
   const limits = {};
   features.forEach((feature) => {
     const key = USAGE_LIMIT_MAP[feature.name];
@@ -96,7 +96,7 @@ export const calculateEndDate = (period) => {
   return date;
 };
 
-const safeGetVariant = (plan, period) =>
+export const safeGetVariant = (plan, period) =>
   (plan &&
     Array.isArray(plan.billingVariants) &&
     plan.billingVariants.find((v) => v.period === period)) ||

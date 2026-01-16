@@ -33,34 +33,35 @@ const storage = multer.diskStorage({
 // MODIFIED: Updated File filter
 const fileFilter = (req, file, cb) => {
   if (file.fieldname === 'profileImage') {
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+    if (['image/jpeg', 'image/png'].includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only .jpg, .jpeg, & .png are allowed for profile image'));
+      cb(new Error('Invalid profile image type'));
     }
   } else if (file.fieldname === 'cv') {
-    // Allow PDF, DOCX, and common image formats
     if (
-      file.mimetype === 'application/pdf' ||
-      file.mimetype ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || // .docx
-      file.mimetype === 'application/msword' || // .doc
-      file.mimetype === 'image/jpeg' ||
-      file.mimetype === 'image/png' ||
-      file.mimetype === 'application/docs' ||
-      file.mimetype === 'application/docx' ||
-      file.mimetype === 'application/doc'
+      [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+      ].includes(file.mimetype)
     ) {
       cb(null, true);
     } else {
-      cb(
-        new Error(
-          'Invalid file type. Only PDF, DOCX, and image files are allowed for CVs.',
-        ),
-      );
+      cb(new Error('Invalid CV file type'));
+    }
+  } else if (file.fieldname === 'idCard') {
+    if (
+      ['image/jpeg', 'image/png', 'application/pdf'].includes(file.mimetype)
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid ID card file type'));
     }
   } else if (file.fieldname === 'attachment') {
-    cb(null, true); // Allow any file type for attachments
+    cb(null, true);
   } else {
     cb(new Error('Unknown file field'));
   }
