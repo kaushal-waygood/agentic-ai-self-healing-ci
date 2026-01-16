@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import WhatsAppIcon from '@/assets/whatsapp.png'; // Ensure path is correct
+import WhatsAppIcon from 'icons/whatsapp.png'; // Ensure path is correct
 import { usePathname } from 'next/navigation';
 
 const WhatsAppFloatingBtn = () => {
@@ -40,7 +40,7 @@ const WhatsAppFloatingBtn = () => {
         className="group flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-[0_4px_12px_rgba(37,211,102,0.4)] transition-all duration-300 hover:scale-110 hover:shadow-[0_6px_16px_rgba(37,211,102,0.6)]"
       >
         <Image
-          src={WhatsAppIcon}
+          src="/icons/whatsapp.png"
           alt="WhatsApp"
           width={32}
           height={32}
