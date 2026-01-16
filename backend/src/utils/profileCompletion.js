@@ -24,14 +24,20 @@ export async function checkProfileCompletion(student) {
   if (!Array.isArray(educations) || educations.length === 0)
     reasons.push('Education details required');
 
-  const hasExperience = Array.isArray(experiences) && experiences.length > 0;
-  const hasProjects = Array.isArray(projects) && projects.length > 0;
+  if (!Array.isArray(experiences) || experiences.length === 0)
+    reasons.push('Work experience required');
 
-  if (!hasExperience && !hasProjects)
-    reasons.push('Experience or projects required');
+  if (!Array.isArray(projects) || projects.length === 0)
+    reasons.push('Projects required');
 
-  console.log(reasons);
-  console.log(reasons.length === 0);
+  if (
+    !student.jobPreferences?.preferredCountries?.length > 0 ||
+    !student.jobPreferences?.preferredCities?.length > 0 ||
+    !student.jobPreferences?.mustHaveSkills?.length > 0
+  )
+    reasons.push('Job preferences incomplete');
+
+  console.log('reasons', reasons);
 
   return {
     complete: reasons.length === 0,

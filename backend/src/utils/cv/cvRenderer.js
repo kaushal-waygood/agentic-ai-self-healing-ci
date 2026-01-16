@@ -85,9 +85,9 @@ export const renderResumeHtml = (
       <div class="header">
 
       ${
-        profileImage
-          ? `<div class="profile-image"><img src="${profileImage}" alt="Profile Image" /></div>`
-          : ''
+        profileImage == null || undefined || ''
+          ? ''
+          : `<div class="profile-image"><img src="${profileImage}" alt="Profile Image" /></div>`
       }
         <div class="profile-info">
           <div class="name">

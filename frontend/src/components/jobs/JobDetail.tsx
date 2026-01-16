@@ -399,8 +399,25 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           JSON.stringify(response.data),
         );
       }
+      if (!response.success) {
+        toast({
+          title: 'Success',
+          description: 'Successfully calculated the AI match score.',
+        });
+      }
+
+      if (response.status === 429) {
+        toast({
+          title: 'Rate limit exceeded',
+          description: 'Please Upgrade your plan to use AI Match Score.',
+        });
+      }
     } catch (error) {
       if (!signal.aborted) {
+        toast({
+          title: 'Could not calculate the AI  score.',
+          description: error.response.data.message,
+        });
         console.error('ATS score error:', error);
         setProgress(0);
         setScoreError('Failed to calculate ATS Score');
@@ -618,7 +635,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {/* ATS Score */}
-              {!scoreError && !atsScore && !isLoadingAtsScore && (
+              {!atsScore && !isLoadingAtsScore && (
                 <Button
                   onClick={handleGetATSScore}
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
@@ -711,7 +728,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </div>
               )}
               {/* Match Score */}
-              {!scoreError && !matchScore && !isLoadingScore && (
+              {!matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-green-500  text-white border-0"
@@ -753,7 +770,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </button>
               )}
 
-              {scoreError && !isLoadingScore && (
+              {/* {scoreError && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
                   variant="outline"
@@ -761,7 +778,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   Retry Match Score
                 </Button>
-              )}
+              )} */}
             </div>
           ) : (
             <div className="flex flex-col justify-end md:flex-row gap-2 items-center flex-1 md:gap-4">
