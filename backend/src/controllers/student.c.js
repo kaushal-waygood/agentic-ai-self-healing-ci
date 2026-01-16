@@ -20,6 +20,13 @@ import { JobInteraction } from '../models/jobInteraction.model.js';
 // import calculateExperience from '../utils/calculateExperience.js';
 import redisClient from '../config/redis.js';
 import { uploadBufferToCloudinary } from '../middlewares/multer.js';
+import { Plan } from '../models/Plans.model.js';
+import {
+  buildUsageLimitsFromFeatures,
+  calculateEndDate,
+  safeGetVariant,
+} from './plan.controller.js';
+import { Purchase } from '../models/Purchase.js';
 
 export const updateJobPreferences = async (req, res) => {
   try {
@@ -1608,35 +1615,39 @@ export const completeStudentOnboarding = async (req, res) => {
 
 export const verifyStudentViaIdCardOrUniEmail = async (req, res) => {
   const { _id } = req.user;
-  const { email: uniEmail } = req.body;
+  const { email } = req.body;
+  const idCard = req.file;
 
-  if (!uniEmail) {
-    return res.status(400).json({ message: 'Missing uniEmail' });
+  if (!email && !idCard) {
+    return res.status(400).json({
+      message: 'Provide either university email or ID card',
+    });
   }
 
   try {
-    const student = await Student.findOneAndUpdate(
-      { _id },
-      { uniEmail },
-      { new: true },
-    );
+    const update = {};
+    if (email) update.uniEmail = email;
+    if (idCard) update.idCard = idCard.filename;
+
+    const student = await Student.findByIdAndUpdate(_id, update, { new: true });
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
     await User.updateOne(
-      { _id, role: { $ne: 'student' } },
-      { $set: { role: 'student', accountType: 'student' } },
+      { _id },
+      { $set: { role: 'uni-student', accountType: 'student' } },
     );
 
     return res.status(200).json({
+      success: true,
       message: 'Student verified successfully',
       student,
     });
-  } catch (error) {
-    console.error('Verification error:', error);
-    return res.status(500).json({ message: 'Failed to verify student' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Verification failed' });
   }
 };
 
@@ -1651,11 +1662,13 @@ export const activateStudentPlan = async (req, res) => {
     const period = 'Monthly';
 
     const user = await User.findById(userId).session(session);
-    if (!user || user.role !== 'student') {
+    if (!user || user.role !== 'uni-student') {
       throw new Error('Only verified students can activate this plan');
     }
 
     const plan = await Plan.findById(planId).lean();
+
+    console.log(plan);
     if (!plan) {
       throw new Error('Plan not found');
     }
@@ -1672,6 +1685,8 @@ export const activateStudentPlan = async (req, res) => {
       { session },
     );
 
+    const paymentId = `student_free_${userId}_${Date.now()}`;
+
     const startDate = new Date();
     const endDate = calculateEndDate(period, startDate);
 
@@ -1685,9 +1700,9 @@ export const activateStudentPlan = async (req, res) => {
       },
       amountPaid: 0,
       currency: 'inr',
-      paymentStatus: 'free',
-      paymentGateway: 'internal',
-      paymentId: null,
+      paymentStatus: 'completed',
+      paymentGateway: 'none',
+      paymentId,
       orderId: null,
       startDate,
       endDate,

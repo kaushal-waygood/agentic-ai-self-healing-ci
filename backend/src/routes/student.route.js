@@ -876,7 +876,7 @@ router.post(
   '/verify-student',
   authMiddleware,
   isUserOrUniStudent,
-  // upload.single('idCard'),
+  upload.single('idCard'),
   verifyStudentViaIdCardOrUniEmail,
 );
 
