@@ -21,7 +21,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: frontend
-          image: ghcr.io/zobsai-com/zobsai-frontend:6f97572b884e5f2b6e308f4fbd192a8c2a24e6cc
+          image: ghcr.io/zobsai-com/zobsai-frontend:34fe6cab8b983a569ccd9fbbe1d0e936db964546
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
