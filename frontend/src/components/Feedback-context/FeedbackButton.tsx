@@ -47,7 +47,7 @@ const FeedbackButton = () => {
 
     // Simulate API call
     try {
-      console.log('Feedback Data:', { ...formData, path: pathname });
+      // console.log('Feedback Data:', { ...formData, path: pathname });
       await new Promise((resolve) => setTimeout(resolve, 1500)); // Mock delay
       setIsOpen(false);
       setFormData({ category: FEEDBACK_CATEGORIES[0], message: '' });

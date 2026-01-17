@@ -472,7 +472,7 @@ export default function DocumentsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className=" text-4xl font-semibold text-headingTextPrimary dark:text-white">
+          <h1 className="text-2xl uppercase font-semibold sm:text-3xl md:text-4xl bg-headingTextPrimary text-foreground bg-clip-text text-transparent relative z-10">
             My Documents
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
@@ -787,8 +787,8 @@ const DocumentSection = ({
             ? `/students/resume/${documentId}/rename`
             : `/students/cover-letter/${documentId}/rename`
           : type === 'cv'
-          ? `/students/cv/${documentId}/rename`
-          : `/students/cl/${documentId}/rename`;
+            ? `/students/cv/${documentId}/rename`
+            : `/students/cl/${documentId}/rename`;
 
       await apiInstance.patch(endpoint, { title: newTitle });
 
@@ -828,10 +828,10 @@ const DocumentSection = ({
         ? resume.html.length
         : 0
       : type === 'coverLetter'
-      ? Array.isArray(coverLetter?.html)
-        ? coverLetter.html.length
-        : 0
-      : 0;
+        ? Array.isArray(coverLetter?.html)
+          ? coverLetter.html.length
+          : 0
+        : 0;
 
   return (
     <div className="p-6">
@@ -980,16 +980,16 @@ const DocumentSection = ({
             {type === 'cv'
               ? 'CVs'
               : type === 'coverLetter'
-              ? 'Cover Letters'
-              : 'Applications'}{' '}
+                ? 'Cover Letters'
+                : 'Applications'}{' '}
             Found
           </h3>
           <p className="text-gray-600 dark:text-gray-400">
             {type === 'cv'
               ? 'Generate your first CV to get started'
               : type === 'coverLetter'
-              ? 'Create your first cover letter to see it here'
-              : 'Create your first tailored application to see it here'}
+                ? 'Create your first cover letter to see it here'
+                : 'Create your first tailored application to see it here'}
           </p>
         </div>
       ) : filteredItems?.length === 0 ? (
@@ -1029,17 +1029,18 @@ const DocumentSection = ({
                 docState={docState}
               />
             ))}
-          {/* Show "See More" only if not all items are visible */}
-          {visibleCount < filteredItems?.length && (
-            <div className="text-center mt-4">
-              <button
-                onClick={() => setVisibleCount(visibleCount + 10)}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-              >
-                See More
-              </button>
-            </div>
-          )}
+        </div>
+      )}
+
+      {/* Show "See More" only if not all items are visible */}
+      {visibleCount < filteredItems?.length && (
+        <div className="text-center mt-4">
+          <button
+            onClick={() => setVisibleCount(visibleCount + 10)}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            See More
+          </button>
         </div>
       )}
     </div>

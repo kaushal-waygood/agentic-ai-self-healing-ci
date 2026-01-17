@@ -363,7 +363,9 @@ const SleekCvStep = ({
           padding: 2px;
           background: linear-gradient(145deg, #9333ea, #3b82f6, #06b6d4);
           border-radius: inherit;
-          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask:
+            linear-gradient(#fff 0 0) content-box,
+            linear-gradient(#fff 0 0);
           -webkit-mask-composite: xor;
           mask-composite: xor;
           opacity: 0;

@@ -114,7 +114,7 @@ const autopilotAgentSchema = new Schema({
   city: String,
   isProcessing: {
     type: String,
-    enum: ['PENDING', 'PROCESSING', 'SUCCESS'],
+    enum: ['ACTIVE', 'INACTIVE'],
     default: 'INACTIVE',
   },
   isRemote: { type: Boolean, default: false },

@@ -259,7 +259,7 @@ export const useApplicationWizard = () => {
   const dispatch = useDispatch();
 
   //--- Primary State ---
-  const [wizardStep, setWizardStep] = useState<WizardStep>('loading');
+  const [wizardStep, setWizardStep] = useState<WizardStep>('job');
   const [jobContext, setJobContext] = useState<JobContext | null>(null);
   const [cvContext, setCvContext] = useState<CvContext | null>(null);
   const [clContext, setClContext] = useState<ClContext | null>(null);
@@ -519,6 +519,7 @@ export const useApplicationWizard = () => {
       });
     };
 
+    if (!slug) return;
     fetchJob();
   }, [searchParams]);
   const [incompleteProfile, setIncompleteProfile] = useState<string | null>(

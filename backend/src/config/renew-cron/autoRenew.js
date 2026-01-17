@@ -5,12 +5,12 @@ import { Plan } from '../../models/Plans.model.js';
 import { calculateEndDate } from '../../controllers/plan.controller.js';
 
 export async function autoRenewCron() {
-  console.log('[AUTO_RENEW] running at', new Date().toISOString());
+  // console.log('[AUTO_RENEW] running at', new Date().toISOString());
   const now = new Date();
   const renewBeforeMs = 24 * 60 * 60 * 1000; // 24h window
   const renewBefore = new Date(now.getTime() + renewBeforeMs);
 
-  console.log('[AUTO_RENEW] running at', now.toISOString());
+  // console.log('[AUTO_RENEW] running at', now.toISOString());
 
   const expiringPurchases = await Purchase.find({
     isActive: true,
@@ -75,15 +75,15 @@ export async function autoRenewCron() {
       await session.commitTransaction();
       session.endSession();
 
-      console.log(`[AUTO_RENEW] renewal created for user ${purchase.user}`);
+      // console.log(`[AUTO_RENEW] renewal created for user ${purchase.user}`);
     } catch (err) {
       await session.abortTransaction();
       session.endSession();
 
-      console.error(
-        `[AUTO_RENEW] failed for purchase ${purchase._id}:`,
-        err.message,
-      );
+      // console.error(
+      //   `[AUTO_RENEW] failed for purchase ${purchase._id}:`,
+      //   err.message,
+      // );
 
       await Purchase.updateOne(
         { _id: purchase._id },

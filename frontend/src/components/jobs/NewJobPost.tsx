@@ -207,8 +207,6 @@ const NewJobPost = () => {
         tags: splitTags(data.tags),
       };
 
-      console.log('Final Payload:', finalPayload);
-
       dispatch(postJobMannalByOrgAdminRequest(finalPayload));
       toast.success('Job posted successfully!');
       // router.push('/organization/jobs'); // uncomment if you want redirect

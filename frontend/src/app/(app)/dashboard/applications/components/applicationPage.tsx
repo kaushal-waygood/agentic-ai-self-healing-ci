@@ -173,7 +173,7 @@ export default function ApplicationsPage() {
       <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       <div className="relative z-10 p-4 sm:p-6 max-w-7xl mx-auto">
         <div className="mb-2 text-center">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative mb-2">
+          <h1 className="text-2xl uppercase font-semibold sm:text-3xl md:text-4xl bg-headingTextPrimary text-foreground bg-clip-text text-transparent relative z-10">
             My Applications
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
