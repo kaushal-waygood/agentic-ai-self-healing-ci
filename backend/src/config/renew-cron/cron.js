@@ -8,10 +8,10 @@ export function startCronsRenew() {
   // Runs every hour
   cron.schedule('0 * * * * *', async () => {
     // every second
-    console.log('[CRON] auto-renew + activate started');
+    // console.log('[CRON] auto-renew + activate started');
     await autoRenewCron();
     await activateRenewalsCron();
 
-    console.log('[CRON] auto-renew + activate finished');
+    // console.log('[CRON] auto-renew + activate finished');
   });
 }
