@@ -63,13 +63,13 @@ const Experience = () => {
       </div>
 
       {/* List */}
-      <div className="p-2 max-h-[70vh] overflow-y-auto">
-        <div className="space-y-4">
+      <div className=" p-2 max-h-[70vh] overflow-y-auto">
+        <div className=" space-y-4">
           {loading && experiences.length === 0 ? (
             <ProfileGridSkeleton count={3} />
           ) : experiences.length > 0 ? (
             experiences.map((exp, index) => (
-              <div key={exp._id} className="bg-white rounded-lg p-4 border ">
+              <div key={exp._id} className=" bg-white rounded-lg p-4 border ">
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
                     <h4 className="text-lg font-bold text-gray-800">
