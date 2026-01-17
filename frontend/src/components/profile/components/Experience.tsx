@@ -42,7 +42,7 @@ const Experience = () => {
             <Briefcase className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl flex gap-2 font-bold text-gray-800">
-            Experience ({experiences.length})
+            Experience : {experiences.length}
             <span>
               {' '}
               {loading && (
@@ -107,7 +107,25 @@ const Experience = () => {
                     </p>
                   )}
 
-                  <div className="flex gap-4 text-sm">
+                  <div className="flex flex-wrap justify-between gap-4 text-sm">
+                    {exp.location && (
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <MapPin className="h-4 w-4 text-gray-400" />
+                        <span>{exp.location}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2  text-gray-600">
+                      <BriefcaseBusiness className="h-4 w-4 text-gray-400 ml-2" />
+                      <span>{exp.employmentType}</span>
+                    </div>
+
+                    {exp.experienceYrs > 0 && (
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span>{exp.experienceYrs} years</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span>
@@ -115,21 +133,6 @@ const Experience = () => {
                         {formatDateForMonthInput(exp.endDate) || 'Present'}
                       </span>
                     </div>
-                    {exp.experienceYrs > 0 && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span>{exp.experienceYrs} years</span>
-                      </div>
-                    )}
-
-                    {exp.location && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span>{exp.location}</span>
-                        <BriefcaseBusiness className="h-4 w-4 text-gray-400 ml-2" />
-                        <span>{exp.employmentType}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* {exp.technologies?.length > 0 && (

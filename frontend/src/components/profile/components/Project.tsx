@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import {
   Calendar,
+  ExternalLink,
   Loader2,
   MapPin,
   Package,
@@ -41,7 +42,7 @@ const Project = () => {
             <Package className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl flex gap-2 font-bold text-gray-800">
-            Projects ({projects.length}){' '}
+            Projects : {projects.length}
             <span>
               {' '}
               {loading && (
@@ -99,42 +100,48 @@ const Project = () => {
                   <p className="text-gray-600 leading-relaxed">
                     {proj.description}
                   </p>
-                  <p className="break-all">{proj.link}</p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-gray-600">
+                  <a
+                    href={proj.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-600 hover:underline break-all"
+                  >
+                    {/* Assuming you are using Lucide or Heroicons like the Calendar icon */}
+                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                    {proj.link}
+                  </a>
+
+                  <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 text-sm">
+                    {/* Left Side: Technologies */}
+                    {proj.technologies?.length > 0 && (
+                      <div className="">
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          Technologies:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {proj.technologies.map((tech: string) => (
+                            <span
+                              key={tech}
+                              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-xs font-medium"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Right Side: Date */}
+                    {/* Added md:ml-auto to ensure it pushes right if tech is empty, or just rely on justify-between */}
+                    <div className="flex items-center gap-2 text-gray-600 shrink-0">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span>
                         {formatDateForMonthInput(proj.startDate)} to{' '}
                         {formatDateForMonthInput(proj.endDate) || 'Present'}
                       </span>
                     </div>
-
-                    {proj.country && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span>{proj.country}</span>
-                      </div>
-                    )}
                   </div>
-
-                  {proj.technologies?.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Technologies:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {proj.technologies.map((tech: string) => (
-                          <span
-                            key={tech}
-                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-xs font-medium"
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             ))
