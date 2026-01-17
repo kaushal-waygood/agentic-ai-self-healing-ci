@@ -203,11 +203,11 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
           <div className="bg-white/80 backdrop-blur-xl border border-gray-200/80 rounded-lg p-5 sm:p-6">
             <div className="text-center mb-10">
               <div className="relative inline-block mb-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg mx-auto flex items-center justify-center ">
+                <div className="w-20 h-20 bg-blue-500 rounded-lg mx-auto flex items-center justify-center ">
                   <MailCheck className="h-10 w-10 text-white" />
                 </div>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2 bg-headingTextPrimary bg-clip-text text-transparent">
                 Verify Your Email
               </h1>
               <p className="text-gray-500 text-base leading-relaxed">
@@ -234,7 +234,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                 <Button
                   onClick={handleVerification}
                   disabled={!verificationCode || loading}
-                  className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 text-lg rounded-lg transition-all duration-300 "
+                  className="w-full group bg-buttonPrimary text-white font-semibold py-4 px-6 text-lg rounded-lg transition-all duration-300 "
                 >
                   {loading ? 'Verifying...' : 'Verify Account'}
                 </Button>
