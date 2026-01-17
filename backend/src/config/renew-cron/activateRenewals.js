@@ -4,7 +4,7 @@ import { User } from '../../models/User.model.js';
 
 export async function activateRenewalsCron() {
   const now = new Date();
-  console.log('[ACTIVATE] running at', now.toISOString());
+  // console.log('[ACTIVATE] running at', now.toISOString());
 
   const renewalsToActivate = await Purchase.find({
     purchaseType: 'renewal',
@@ -21,9 +21,9 @@ export async function activateRenewalsCron() {
       if (!user) throw new Error('User not found');
 
       if (user.role !== 'student') {
-        console.log(
-          `[ACTIVATE] skipped renewal ${renewal._id} – user is not student`,
-        );
+        // console.log(
+        //   `[ACTIVATE] skipped renewal ${renewal._id} – user is not student`,
+        // );
 
         await session.abortTransaction();
         session.endSession();
@@ -53,17 +53,17 @@ export async function activateRenewalsCron() {
       await session.commitTransaction();
       session.endSession();
 
-      console.log(
-        `[ACTIVATE] student renewal activated for user ${renewal.user}`,
-      );
+      // console.log(
+      //   `[ACTIVATE] student renewal activated for user ${renewal.user}`,
+      // );
     } catch (err) {
       await session.abortTransaction();
       session.endSession();
 
-      console.error(
-        `[ACTIVATE] failed for renewal ${renewal._id}:`,
-        err.message,
-      );
+      // console.error(
+      //   `[ACTIVATE] failed for renewal ${renewal._id}:`,
+      //   err.message,
+      // );
     }
   }
 }
