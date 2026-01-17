@@ -44,7 +44,11 @@ export const checkCredits = (actionType) => {
         `[Credits Middleware] ${usageField} limit: ${limit}, usage: ${currentUsage}`,
       );
 
-      if (Number.isFinite(limit) && limit >= 0 && currentUsage >= limit) {
+      if (
+        Number.isFinite(limit) &&
+        limit >= 0 &&
+        (currentUsage >= limit || currentUsage < 0)
+      ) {
         return res.status(429).json({
           success: false,
           error: 'LIMIT_REACHED',

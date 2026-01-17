@@ -59,7 +59,7 @@ interface JobPreferencesFormData {
 
   preferredSalary: PreferredSalary;
 
-  mustHaveSkills: string;
+  mustHaveSkills: string[];
   niceToHaveSkills: string;
   preferredCertifications: string;
   preferredEducationLevel: string;
@@ -85,7 +85,7 @@ const defaultFormData: JobPreferencesFormData = {
   preferredIndustries: '',
   preferredExperienceLevel: '',
   preferredSalary: { min: '', max: '', currency: 'USD', period: 'YEAR' },
-  mustHaveSkills: '',
+  mustHaveSkills: [],
   niceToHaveSkills: '',
   preferredCertifications: '',
   preferredEducationLevel: '',
@@ -129,12 +129,12 @@ const companySizes = [
 ];
 
 const educationLevels = [
-  { id: 'high_school', label: 'High School', icon: '📚' },
-  { id: 'associate', label: 'Associate Degree', icon: '🎓' },
-  { id: 'bachelor', label: "Bachelor's Degree", icon: '🎓' },
-  { id: 'master', label: "Master's Degree", icon: '📜' },
-  { id: 'phd', label: 'PhD', icon: '🔬' },
-  { id: 'none', label: 'No Formal Education Required', icon: '💡' },
+  { id: 'High School', label: 'High School', icon: '📚' },
+  { id: 'Associate ', label: 'Associate Degree', icon: '🎓' },
+  { id: 'bachelor ', label: "Bachelor's Degree", icon: '🎓' },
+  { id: 'Master', label: "Master's Degree", icon: '📜' },
+  { id: 'Phd', label: 'PhD', icon: '🔬' },
+  { id: 'None', label: 'No Formal Education Required', icon: '💡' },
 ];
 
 const companyCultures = [
@@ -178,7 +178,7 @@ const hydrateForm = (jp: any): JobPreferencesFormData => ({
     currency: jp.preferredSalary?.currency ?? 'USD',
     period: jp.preferredSalary?.period ?? 'YEAR',
   },
-  mustHaveSkills: skillsToString(jp.mustHaveSkills),
+  mustHaveSkills: jp.mustHaveSkills ?? [],
   niceToHaveSkills: skillsToString(jp.niceToHaveSkills),
   preferredCertifications: arrayToString(jp.preferredCertifications),
   preferredEducationLevel: jp.preferredEducationLevel ?? '',
@@ -194,7 +194,11 @@ const buildPayload = (fd: JobPreferencesFormData) => ({
   preferredJobTitles: splitToArray(fd.preferredJobTitles),
   preferredIndustries: splitToArray(fd.preferredIndustries),
   preferredCertifications: splitToArray(fd.preferredCertifications),
-  mustHaveSkills: splitToArray(fd.mustHaveSkills).map((skill) => ({ skill })),
+
+  mustHaveSkills:
+    typeof fd.mustHaveSkills === 'string'
+      ? splitToArray(fd.mustHaveSkills)
+      : fd.mustHaveSkills,
   niceToHaveSkills: splitToArray(fd.niceToHaveSkills).map((skill) => ({
     skill,
   })),
@@ -257,7 +261,7 @@ const JobPreferencesForm = () => {
       setFormData(hydrateForm(jobPreferences));
     }
   }, [jobPreferences]);
-
+  console.log('hydrateForm(jobPreferences)', formData);
   const handleSavePreferences = (
     e: React.FormEvent,
     type: 'primary' | 'advanced',
@@ -277,7 +281,7 @@ const JobPreferencesForm = () => {
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
-
+  console.log('edu level ', formData.preferredEducationLevel);
   const toggleArrayValue = (
     field:
       | 'preferredJobTypes'
@@ -473,7 +477,7 @@ const JobPreferencesForm = () => {
         return (
           <div className="space-y-4">
             <div className="grid md:grid-cols-1 gap-4">
-              <div className="group">
+              {/* <div className="group">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   <Code className="inline w-4 h-4 mr-2" />
                   Must-have Skills
@@ -487,7 +491,7 @@ const JobPreferencesForm = () => {
                     handleInputChange('mustHaveSkills', e.target.value)
                   }
                 />
-              </div>
+              </div> */}
               {/* 
               <div className="group">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
@@ -668,12 +672,12 @@ const JobPreferencesForm = () => {
                 {index > 0 && (
                   <div className=" bg-slate-200 dark:bg-slate-700 " />
                 )}
-                <div className="mb-4 flex items-center gap-2">
+                {/* <div className="mb-4 flex items-center gap-2">
                   <section.icon className="w-5 h-5 text-blue-500" />
                   <h4 className="text-md font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-sm">
                     {section.label}
                   </h4>
-                </div>
+                </div> */}
                 {RenderSectionContent(section.id)}
               </div>
             ))}
@@ -681,9 +685,16 @@ const JobPreferencesForm = () => {
             <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700 mt-6">
               <button
                 onClick={(e) => handleSavePreferences(e, 'primary')}
-                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-lg shadow-blue-400/20 transition-all"
+                disabled={!hasChanges}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold transition-all duration-200
+      ${
+        hasChanges
+          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-400/20 transform hover:scale-[1.02] cursor-pointer'
+          : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
+      }
+    `}
               >
-                <Save className="w-4 h-4" />
+                <Save className={`w-4 h-4 ${!hasChanges && 'opacity-50'}`} />
                 Save Primary Changes
               </button>
             </div>

@@ -249,7 +249,7 @@ export default function ApplicationsPage() {
               <div className="text-lg">LOADING...</div>
             </div>
           ) : applications.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
               {applications.map((app, index) => (
                 <ApplicationRow
                   key={app.id}

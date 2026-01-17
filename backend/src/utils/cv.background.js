@@ -10,6 +10,7 @@ import {
 } from './notification.utils.js';
 import { calculateATSScore } from '../utils/atsScore.js';
 import { logToFile } from './logFile.js';
+import { Student } from '../models/student.model.js';
 
 // Constants for retry logic
 const MAX_RETRIES = 5;
@@ -82,6 +83,13 @@ export const processCVGeneration = async (
     let finalCvData = null; // Will hold the final structure to save
     let lastErr = null;
 
+    const { profileImage, fullName, email, phone, location } =
+      await Student.findById(userId)
+        .select('profileImage fullName email phone location')
+        .lean();
+
+    console.log(profileImage, fullName, email, phone, location);
+
     // 3. AI Generation Loop (Retries)
     while (attempt < MAX_RETRIES) {
       attempt += 1;
@@ -96,26 +104,18 @@ export const processCVGeneration = async (
         const cleanedJsonString = rawJsonResponse
           .replace(/```json|```/g, '')
           .trim();
+
         const parsedData = JSON.parse(cleanedJsonString);
 
-        console.log(
-          studentData.profileImage,
-          studentData.fullName,
-          studentData.email,
-          studentData.phoneNumber,
-          studentData.location,
-        );
-
         const { student } = JSON.parse(studentData);
-        console.log(student);
 
         const innerHtmlBody = renderResumeHtml(
           parsedData,
-          student.profileImage,
-          student.fullName,
-          student.email,
-          student.phone,
-          student.location,
+          profileImage,
+          fullName,
+          email,
+          phone,
+          location,
         );
 
         // D. Apply Styling / Template Wrapper

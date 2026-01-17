@@ -94,6 +94,9 @@ export function CvGeneratorClient() {
   /* limit ui */
   const [rateLimited, setRateLimited] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
+    null,
+  );
 
   const {
     students: student,
@@ -367,6 +370,26 @@ export function CvGeneratorClient() {
         description: 'Your new CV draft has been added to your saved list.',
       });
     } catch (error: any) {
+      if (
+        error?.response?.status === 403 &&
+        error?.response?.data?.message === 'Profile incomplete'
+      ) {
+        setIncompleteProfile(
+          error?.response?.data?.reasons?.join(', ') ||
+            'Please complete your profile to continue.',
+        );
+        setWizardStep('result');
+        return;
+      }
+
+      if (isUsageLimitError(error)) {
+        setRateLimited(true);
+        setRateLimitMessage(
+          error?.response?.data?.message ||
+            'You have exhausted your cover letter limit.',
+        );
+        return;
+      }
       if (isUsageLimitError(error)) {
         setRateLimited(true);
         setRateLimitMessage(
@@ -478,6 +501,7 @@ export function CvGeneratorClient() {
       case 'result':
         return (
           <FinalResultView
+            incompleteProfile={incompleteProfile}
             cvlink={undefined}
             rateLimited={rateLimited}
             rateLimitMessage={rateLimitMessage}

@@ -49,7 +49,6 @@ export function ApplicationWizardClient() {
     rateLimited = false,
     rateLimitMessage = null,
   } = state;
-
   const { navigateToStep, setGeneratedData } = actions;
 
   /* ---------- Navigation Guards ---------- */
@@ -216,6 +215,7 @@ export function ApplicationWizardClient() {
       case 'result':
         return (
           <FinalResultView
+            incompleteProfile={actions.incompleteProfile}
             rateLimited={actions.rateLimited}
             rateLimitMessage={actions.rateLimitMessage}
             planPath="/dashboard/subscriptions"

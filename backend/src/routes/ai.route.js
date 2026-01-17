@@ -320,6 +320,12 @@ router.post(
   getStudentDataFromUploadedCV,
 );
 
-router.post('/ats-score', authMiddleware, isUserOrUniStudent, calculateATS);
+router.post(
+  '/ats-score',
+  authMiddleware,
+  isUserOrUniStudent,
+  checkCredits('ATS_SCORE'),
+  calculateATS,
+);
 
 export default router;

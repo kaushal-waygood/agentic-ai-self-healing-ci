@@ -42,13 +42,13 @@ const studentSchema = new Schema(
       },
 
       preferredCountries: {
-        type: String,
+        type: [String],
         default: null,
       },
-      // mustHaveSkills: {
-      //   type: [String],
-      //   default: null,
-      // },
+      mustHaveSkills: {
+        type: [String],
+        default: null,
+      },
       preferredSalary: {
         min: {
           type: Number,

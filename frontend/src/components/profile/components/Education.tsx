@@ -42,7 +42,7 @@ const Education = () => {
             <GraduationCap className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl flex font-bold gap-2 text-gray-800">
-            Education ({educations.length}){' '}
+            Education : {educations.length}
             <span>
               {' '}
               {loading && (
@@ -105,7 +105,7 @@ const Education = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-4 text-sm pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span>
@@ -130,7 +130,7 @@ const Education = () => {
                   {edu.grade && (
                     <div className="flex items-center gap-2 text-gray-600">
                       <Award className="h-4 w-4 text-gray-400" />
-                      <span>grade: {edu.grade}</span>
+                      <span>Percentage/CGPA: {edu.grade}</span>
                     </div>
                   )}
                 </div>
