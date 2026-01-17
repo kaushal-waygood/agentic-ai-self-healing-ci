@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, MapPin, Check } from 'lucide-react';
+import { Globe, MapPin, Check, Code } from 'lucide-react';
 import TagInput from './TagInput';
 
 // Assuming CustomCheckbox is defined elsewhere and imported
@@ -28,6 +28,15 @@ const CustomCheckbox = ({ checked, onChange, children, color = 'purple' }) => (
 );
 
 const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
+  const isObjectData =
+    Array.isArray(formData.mustHaveSkills) &&
+    formData.mustHaveSkills.length > 0 &&
+    typeof formData.mustHaveSkills[0] === 'object';
+
+  const displayTags = isObjectData
+    ? formData.mustHaveSkills.map((item) => item.skill)
+    : formData.mustHaveSkills || [];
+  console.log('formData', formData);
   return (
     <div className="space-y-3">
       <div className="grid md:grid-cols-2 gap-6">
@@ -50,14 +59,77 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
           placeholder="Type and press Enter..."
         />
 
-        <TagInput
+        {/* for array  */}
+        {/* this is our corrent input tag which was used for array */}
+        {/* <TagInput
           label="Must-have Skills"
           icon={MapPin}
-          tags={formData.mustHaveSkills || []} // Ensure array exists
+          tags={formData.mustHaveSkills || []}
           setTags={(newTags) =>
             setFormData((prev) => ({ ...prev, mustHaveSkills: newTags }))
           }
           placeholder="Type skill (e.g. React, Java) and press Enter..."
+        /> */}
+
+        {/* for object  */}
+        {/* <div className="group">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <Code className="inline w-4 h-4 mr-2" />
+            Must-have Skills
+          </label>
+          <textarea
+            className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 outline-blue-400 transition-all resize-none"
+            rows={4}
+            placeholder="JavaScript, Python, React..."
+            value={formData.mustHaveSkills}
+            onChange={(e) =>
+              handleInputChange('mustHaveSkills', e.target.value)
+            }
+          />
+        </div> */}
+
+        {/* {!isObjectData ? (
+          <TagInput
+            label="Must-have Skills"
+            icon={Code}
+            tags={formData.mustHaveSkills || []}
+            setTags={(newTags) =>
+              setFormData((prev) => ({ ...prev, mustHaveSkills: newTags }))
+            }
+            placeholder="Type skill (e.g. React, Java) and press Enter..."
+          />
+        ) : (
+          <div className="group">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              <Code className="inline w-4 h-4 mr-2" />
+              Must-have Skills
+            </label>
+            <textarea
+              className="w-full p-3 rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 outline-blue-400 transition-all resize-none"
+              rows={4}
+              placeholder="JavaScript, Python, React..."
+              value={formData.mustHaveSkills
+                .map((item) => item.skill)
+                .join(', ')}
+              disabled
+              readOnly
+            />
+          </div>
+        )} */}
+
+        <TagInput
+          label="Must-have Skills"
+          icon={Code}
+          tags={displayTags} // Pass the normalized string array
+          setTags={(newTags) => {
+            // 4. When saving, you have to decide:
+            // Do you want to save as simple strings?
+            // Or do you need to convert back to objects?
+
+            // Option A: Just save as simple strings (Easiest if backend allows)
+            setFormData((prev) => ({ ...prev, mustHaveSkills: newTags }));
+          }}
+          placeholder="Type skill and press Enter..."
         />
       </div>
 

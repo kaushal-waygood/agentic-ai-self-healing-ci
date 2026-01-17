@@ -12,6 +12,7 @@ import {
   Phone,
   Mail,
   Briefcase,
+  Loader2,
 } from 'lucide-react';
 
 import {
@@ -213,6 +214,22 @@ const SideSectionProfile = () => {
     return parts[0][0].toUpperCase() + parts[parts.length - 1][0].toUpperCase();
   };
 
+  // Add this state
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Create a dedicated handler function
+  const handleSave = async () => {
+    try {
+      setIsLoading(true);
+      await updateProfile(); // Wait for the API call
+      setIsModalOpen(false); // Only close on success
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      // Optional: Add a toast notification here for error
+    } finally {
+      setIsLoading(false); // Stop loading regardless of success/failure
+    }
+  };
   /* -----------------------------
      Render
   ------------------------------ */
@@ -487,16 +504,26 @@ const SideSectionProfile = () => {
           </form>
 
           <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isLoading} // Disable cancel while saving
+            >
               Cancel
             </Button>
+
             <Button
-              onClick={async () => {
-                await updateProfile();
-                setIsModalOpen(false);
-              }}
+              onClick={handleSave}
+              disabled={isLoading} // Disable save to prevent double-clicks
             >
-              Save Changes
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -676,15 +676,15 @@ export const AddEducation: React.FC<{
                 name="gpa"
                 render={({ field }) => (
                   <FormItem className="mt-6">
-                    <FormLabel>Overall Grades (Optional)</FormLabel>
+                    <FormLabel>Percentage/CGPA (Optional)</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="e.g., 3.8"
+                        placeholder="e.g., 7.8"
                         type="number"
                         step="0.1"
                         min="0"
-                        max="4"
+                        max="100"
                       />
                     </FormControl>
                     <FormMessage />
