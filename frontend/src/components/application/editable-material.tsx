@@ -123,7 +123,7 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
         </div>
       </header>
 
-      <div className="flex items-center gap-2 justify-end">
+      <div className="flex items-center gap-2 justify-end p-2">
         <button
           onClick={actions.toggleImages}
           className={`p-2 rounded-lg transition-colors flex items-center gap-2 my-1 ${
