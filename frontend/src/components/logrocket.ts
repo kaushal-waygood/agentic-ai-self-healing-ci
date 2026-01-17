@@ -5,6 +5,7 @@ const logRocketAnalytics = {
     if (typeof window === 'undefined') return;
 
     const id = process.env.NEXT_PUBLIC_LOGROCKET_ID;
+    console.log('logRocketAnalytics', id);
     if (!id) return;
 
     LogRocket.init(id, {
