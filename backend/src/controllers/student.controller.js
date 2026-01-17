@@ -1829,9 +1829,8 @@ export const getJobPreferences = async (req, res) => {
       cacheKey,
       86400,
       async () => {
-        const student = await Student.findById(studentId).select(
-          'jobPreferences',
-        );
+        const student =
+          await Student.findById(studentId).select('jobPreferences');
         return student?.jobPreferences || {};
       },
     );
@@ -1870,10 +1869,10 @@ export const getProfileCompletion = async (req, res) => {
           projects: Boolean(student.projects?.length > 0),
           jobPreferences: Boolean(
             student.jobPreferences?.preferredJobTitles?.length > 0 &&
-              student.jobPreferences?.preferredSalary?.min > 0 &&
-              (student.jobPreferences?.preferredCountries?.length > 0 ||
-                student.jobPreferences?.preferredCities?.length > 0 ||
-                student.jobPreferences?.isRemote === true),
+            student.jobPreferences?.preferredSalary?.min > 0 &&
+            (student.jobPreferences?.preferredCountries?.length > 0 ||
+              student.jobPreferences?.preferredCities?.length > 0 ||
+              student.jobPreferences?.isRemote === true),
           ),
         };
 
@@ -2050,7 +2049,7 @@ export const toggleAutopilot = async (req, res, next) => {
 
     const student = await Student.findById(studentId);
     if (!student) {
-      return next(createHttpError(404, 'Student not found'));
+      return res.status(404).json({ message: 'Student not found' });
     }
 
     // Toggle the autopilot status
@@ -2065,7 +2064,10 @@ export const toggleAutopilot = async (req, res, next) => {
       autopilotStatus: student.settings.autopilotEnabled,
     });
   } catch (error) {
-    next(createHttpError(500, error.message));
+    console.error('Error toggling autopilot:', error);
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to toggle autopilot' });
   }
 };
 

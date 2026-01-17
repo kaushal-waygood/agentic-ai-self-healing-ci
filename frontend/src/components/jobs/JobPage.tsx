@@ -191,7 +191,7 @@ export default function JobsPage() {
               )} */}
 
               {loading && jobs.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full">
+                <div className="flex flex-col items-center justify-center min-h-[400px] ">
                   <div>
                     <Image
                       src="/logo.png"

@@ -298,15 +298,15 @@ Examples:
 
           <CardFooter className="bg-gray-50/80 backdrop-blur-xl border-t border-gray-100 p-6">
             <div className="flex items-center flex-wrap justify-between w-full">
-              <Button
-                variant="ghost"
+              <button
+                type="button"
                 onClick={() => setWizardStep('cv')}
-                className="h-12 px-6 rounded-lg hover:bg-white/80 transition-all duration-300"
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
                 disabled={isGenerating}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to CV Selection
-              </Button>
+              </button>
 
               <Button
                 size="lg"
