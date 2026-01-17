@@ -250,7 +250,21 @@ const JobPreferencesForm = () => {
   const { toast } = useToast();
   const { jobPreferences, updateJobPreferences } = useJobPreferences();
   const [formData, setFormData] = useState(defaultFormData);
-  console.log('job prefrence form data', jobPreferences);
+
+  // 2. SHORTCUT: Create a "stable" version of the server data
+  // We use useMemo so this only recalculates when the data actually changes from the server
+  const originalData = React.useMemo(() => {
+    return jobPreferences ? hydrateForm(jobPreferences) : defaultFormData;
+  }, [jobPreferences]);
+
+  // 3. Sync form with server data ONLY when the server data loads/changes
+  // (You still need this to populate the form initially)
+  useEffect(() => {
+    setFormData(originalData);
+  }, [originalData]);
+
+  // 4. THE MAGIC: Compare Current vs Original
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
 
   // Only manage state for Advanced tab toggle
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
@@ -684,9 +698,16 @@ const JobPreferencesForm = () => {
             <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700 mt-6">
               <button
                 onClick={(e) => handleSavePreferences(e, 'primary')}
-                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-lg shadow-blue-400/20 transition-all"
+                disabled={!hasChanges}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold transition-all duration-200
+      ${
+        hasChanges
+          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-400/20 transform hover:scale-[1.02] cursor-pointer'
+          : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
+      }
+    `}
               >
-                <Save className="w-4 h-4" />
+                <Save className={`w-4 h-4 ${!hasChanges && 'opacity-50'}`} />
                 Save Primary Changes
               </button>
             </div>

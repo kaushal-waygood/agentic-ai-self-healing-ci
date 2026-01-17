@@ -47,7 +47,7 @@ const Skills = () => {
             <Code className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-xl flex gap-2 font-extrabold text-gray-800">
-            Skills ({skills.length})
+            Skills : {skills.length}
             <span>
               {' '}
               {loading && (
