@@ -351,11 +351,13 @@ export const getProfileCompletion = async (req, res) => {
           skills: Boolean(skills?.length > 0), // Assumes 5 is a good target
           projects: Boolean(projects?.length > 0),
           jobPreferences: Boolean(
-            (student.jobPreferences?.preferredCountries?.length > 0 ||
-              student.jobPreferences?.preferredCities?.length > 0) &&
-              student.jobPreferences?.mustHaveSkills?.length > 0,
+            student.jobPreferences?.preferredCountries?.length > 0 ||
+            student.jobPreferences?.preferredCities?.length > 0 ||
+            student.jobPreferences?.mustHaveSkills?.length > 0,
           ),
         };
+
+        console.log(completionStatus);
 
         if (completionStatus.coreProfile) {
           await addCredits(
