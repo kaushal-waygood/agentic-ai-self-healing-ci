@@ -251,20 +251,7 @@ const JobPreferencesForm = () => {
   const { jobPreferences, updateJobPreferences } = useJobPreferences();
   const [formData, setFormData] = useState(defaultFormData);
 
-  // 2. SHORTCUT: Create a "stable" version of the server data
-  // We use useMemo so this only recalculates when the data actually changes from the server
-  const originalData = React.useMemo(() => {
-    return jobPreferences ? hydrateForm(jobPreferences) : defaultFormData;
-  }, [jobPreferences]);
-
-  // 3. Sync form with server data ONLY when the server data loads/changes
-  // (You still need this to populate the form initially)
-  useEffect(() => {
-    setFormData(originalData);
-  }, [originalData]);
-
-  // 4. THE MAGIC: Compare Current vs Original
-  const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
+  // console.log('job prefrence', jobPreferences);
 
   // Only manage state for Advanced tab toggle
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);

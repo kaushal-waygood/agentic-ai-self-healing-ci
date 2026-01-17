@@ -1,15 +1,10 @@
-import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
-import { Analytics } from '@vercel/analytics/react';
-import { ThemeProvider } from '@/components/layout/theme-provider';
-import StoreProvider from '../redux/storeProvider';
 import { poppins, pt_sans } from './fonts';
 import 'driver.js/dist/driver.css';
 import './driver-custom.css';
 
 import { zobsAiHomeMetadata } from '@/metadata/metadata';
-import WhatsAppFloatingBtn from '@/components/WhatsAppFloatingBtn';
+import LayoutPage from './LayoutPage';
 
 export const metadata = {
   title: zobsAiHomeMetadata.title,
@@ -20,31 +15,17 @@ export const metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body
         className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <StoreProvider>
-            <div className="flex flex-col min-h-screen">
-              <main className="flex-grow">{children}</main>
-              <WhatsAppFloatingBtn />
-            </div>
-            <Toaster />
-            <Analytics />
-          </StoreProvider>
-        </ThemeProvider>
+        <LayoutPage>{children}</LayoutPage>
       </body>
     </html>
   );

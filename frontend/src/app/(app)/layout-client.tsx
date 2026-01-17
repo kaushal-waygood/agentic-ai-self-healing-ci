@@ -13,18 +13,14 @@ import { AppSidebarContent } from '@/components/layout/app-sidebar-content';
 import DashboardFooter from '@/components/layout/DashboardFooter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Footer } from '@/components/layout/footer';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import ProtectedRoute from '@/components/protected/ProtectedRoute';
-import LogRocket from 'logrocket';
 import FeedbackPopup from '@/components/ui/feedbackPopup';
 import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext';
-import { logoutRequest } from '@/redux/reducers/authReducer';
-import { useRouter } from 'next/navigation';
-import logRocketAnalytics from '@/components/logrocket';
+import logRocketAnalytics from '@/components/logrocket/logrocket';
 import { RootState } from '@/redux/rootReducer';
 import FeedbackButton from '@/components/Feedback-context/FeedbackButton';
 
-// 1. Define and Create Context
 interface SidebarContextType {
   isOpen: boolean;
   isPinned: boolean;
@@ -39,10 +35,8 @@ const SidebarContext = createContext<SidebarContextType>({
   setPinned: () => {},
 });
 
-// 2. Create a custom hook for the context
 export const useSidebar = () => useContext(SidebarContext);
 
-// 3. The Client-Side Layout Component
 export default function DashboardLayoutClient({
   children,
 }: {
@@ -56,28 +50,6 @@ export default function DashboardLayoutClient({
   const [isDesktop, setIsDesktop] = useState(false);
 
   const { user } = useSelector((state: RootState) => state.auth);
-
-  useEffect(() => {
-    // Initialize
-    logRocketAnalytics.init();
-
-    // Global Error Listener for unhandled promise rejections
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      logRocketAnalytics.captureException(
-        new Error(`Unhandled Rejection: ${event.reason}`),
-        { reason: event.reason },
-      );
-    };
-
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    return () => {
-      window.removeEventListener(
-        'unhandledrejection',
-        handleUnhandledRejection,
-      );
-    };
-  }, []);
 
   useEffect(() => {
     const update = () => setIsDesktop(window.innerWidth >= 1024);
@@ -102,22 +74,13 @@ export default function DashboardLayoutClient({
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-  const dispatch = useDispatch();
-  const router = useRouter();
-  // --- START: MODIFIED LOGIC ---
-  // This will be true for any path starting with /dashboard
   const isDashboardPage = pathname.startsWith('/dashboard');
-  // This will be true only for the specific onboarding page
   const isOnboardingPage = pathname === '/dashboard/onboarding-tour';
-  // This new constant controls UI visibility
   const showDashboardUI = isDashboardPage && !isOnboardingPage;
-  const [showLogoutFeedback, setShowLogoutFeedback] = useState(false);
 
-  // --- END: MODIFIED LOGIC ---
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-state');
 
-    // Only apply saved state if found — otherwise stay open
     if (saved) {
       const parsed = JSON.parse(saved);
 
@@ -185,13 +148,13 @@ export default function DashboardLayoutClient({
   );
 
   useEffect(() => {
-    if (user) {
-      logRocketAnalytics.identify({
-        id: user.id || user._id,
-        email: user.email,
-        name: user.fullName,
-      });
-    }
+    if (!user) return;
+
+    logRocketAnalytics.identify({
+      id: user.id || user._id,
+      email: user.email,
+      name: user.fullName,
+    });
   }, [user]);
 
   return (
@@ -199,48 +162,8 @@ export default function DashboardLayoutClient({
       <FeedbackProvider>
         <SidebarContext.Provider value={contextValue}>
           {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
-          {/* <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
-          {showDashboardUI && (
-            <aside
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              className={`transition-all duration-300 ease-in-out flex-shrink-0 border-r bg-white dark:bg-gray-900 ${
-                isOpen ? 'w-64' : 'w-20'
-              }`}
-            >
-              <AppSidebarContent isCollapsed={!isOpen} />
-            </aside>
-          )}
-
-          <div className="flex flex-1 flex-col w-full">
-            {showDashboardUI && (
-              <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                <AppHeader setIsSearchOpen={setIsSearchOpen} />
-              </header>
-            )}
-
-            <ScrollArea className="flex-1">
-              <main>{children}</main>
-              {!isDashboardPage && <Footer />}
-            </ScrollArea>
-
-            {showDashboardUI && <DashboardFooter />}
-          </div>
-        </div> */}
 
           <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
-            {/* SIDEBAR */}
-            {/* {showDashboardUI && (
-            <aside
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              className={`transition-all duration-300 ease-in-out shrink-0 border-r bg-white dark:bg-gray-900 
-        ${isOpen ? 'w-64' : 'w-20'}
-      `}
-            >
-              <AppSidebarContent isCollapsed={!isOpen} />
-            </aside>
-          )} */}
             {showDashboardUI && (
               <>
                 {/* MOBILE OVERLAY */}
