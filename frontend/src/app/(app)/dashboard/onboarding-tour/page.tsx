@@ -271,7 +271,6 @@ const OnboardingPage = () => {
   };
 
   const handleSubmit = async () => {
-    console.log('submitting form', formData);
     try {
       const response = await apiInstance.post('/students/profile/onboarding', {
         data: formData,

@@ -247,7 +247,7 @@ const JobPreferencesForm = () => {
   const { jobPreferences, updateJobPreferences } = useJobPreferences();
   const [formData, setFormData] = useState(defaultFormData);
 
-  console.log('job prefrence', jobPreferences);
+  // console.log('job prefrence', jobPreferences);
 
   // Only manage state for Advanced tab toggle
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
