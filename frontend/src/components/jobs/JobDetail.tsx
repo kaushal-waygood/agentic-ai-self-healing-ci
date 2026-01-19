@@ -311,7 +311,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
     return false;
   };
-
+  console.log('job', job);
+  console.log(job.description);
   const renderJobDescription = (text: string) => {
     const lines = text.split('\n');
 
@@ -334,16 +335,16 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       }
 
       // ✅ Heading
-      if (isHeading(trimmed, nextLine)) {
-        return (
-          <div
-            key={index}
-            className="mt-5 mb-2 font-semibold text-slate-800 text-sm uppercase tracking-wide"
-          >
-            {trimmed.replace(/:$/, '')}
-          </div>
-        );
-      }
+      // if (isHeading(trimmed, nextLine)) {
+      //   return (
+      //     <div
+      //       key={index}
+      //       className="mt-5 mb-2 font-semibold text-slate-800 text-sm uppercase tracking-wide"
+      //     >
+      //       {trimmed.replace(/:$/, '')}
+      //     </div>
+      //   );
+      // }
 
       // ✅ Bullet point
       if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
@@ -943,7 +944,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
           >
             <summary className="hidden" />
             <div className="px-1 pb-4">
-              {renderJobDescription(cleanHtmlDescription(job.description))}
+              {/* {renderJobDescription(cleanHtmlDescription(job.description))} */}
+              {renderJobDescription(job.description)}
 
               {/* {renderJobDescription(job.description)} */}
             </div>

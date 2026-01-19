@@ -13,6 +13,8 @@ import { toast } from '@/hooks/use-toast';
 import { RootState } from '@/redux/rootReducer';
 import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { logoutRequest } from '@/redux/reducers/authReducer';
 
 const DocumentPage = () => {
   const { type, id } = useParams();
@@ -36,7 +38,32 @@ const DocumentPage = () => {
 
   const [cvNameForSavingInput, setCvNameForSavingInput] = useState('');
   const [letterNameForSavingInput, setLetterNameForSavingInput] = useState('');
+  const router = useRouter();
 
+  // --- NEW: Account Mismatch State ---
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const urlEmail = searchParams.get('email');
+
+  // --- NEW: Check Email Match ---
+  useEffect(() => {
+    if (user && user.email && urlEmail) {
+      if (user.email !== urlEmail) {
+        setShowLogoutModal(true);
+      }
+    }
+  }, [user, urlEmail]);
+
+  // --- NEW: Handle Logout ---
+  const handleLogoutConfirm = () => {
+    try {
+      // remove feedback session token
+      sessionStorage.removeItem('feedback_shown');
+      dispatch(logoutRequest());
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -218,6 +245,81 @@ const DocumentPage = () => {
       title: 'Email sent successfully',
     });
   };
+
+  // --- Modal UI ---
+  // if (showLogoutModal) {
+  //   return (
+  //     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  //       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+  //         <h2 className="text-xl font-semibold text-gray-900 mb-2">
+  //           Account Mismatch
+  //         </h2>
+  //         <p className="text-gray-600 mb-6">
+  //           You are currently logged in as <strong>{user?.email}</strong>, but
+  //           this link is intended for <strong>{urlEmail}</strong>.
+  //           <br />
+  //           <br />
+  //           Would you like to logout of your current account?
+  //         </p>
+  //         <div className="flex justify-end gap-3">
+  //           <button
+  // onClick={() => {
+  //   setShowLogoutModal(false);
+  //   router.replace('/dashboard/my-docs');
+  // }}
+  //             className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+  //           >
+  //             No, Stay here
+  //           </button>
+  //           <button
+  //             onClick={handleLogoutConfirm}
+  //             className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+  //           >
+  //             Yes, Logout
+  //           </button>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  // --- NEW: Modal UI (Production Ready) ---
+  if (showLogoutModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Switch Account Required
+          </h2>
+          <p className="text-gray-600 mb-6">
+            This document belongs to <strong>{urlEmail}</strong>, but you are
+            currently signed in as <strong>{user?.email}</strong>.
+            <br />
+            <br />
+            To access this document, you need to switch to the correct account.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setShowLogoutModal(false);
+                router.replace('/dashboard/my-docs');
+                setIsLoading(true);
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            >
+              No, Stay here
+            </button>
+            <button
+              onClick={handleLogoutConfirm}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 "
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

@@ -47,7 +47,6 @@ const FeedbackButton = () => {
 
     // Simulate API call
     try {
-      // console.log('Feedback Data:', { ...formData, path: pathname });
       await new Promise((resolve) => setTimeout(resolve, 1500)); // Mock delay
       setIsOpen(false);
       setFormData({ category: FEEDBACK_CATEGORIES[0], message: '' });
@@ -64,11 +63,11 @@ const FeedbackButton = () => {
       <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[99]">
         <button
           onClick={() => setIsOpen(true)}
-          className="group flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-6 rounded-l-2xl shadow-[-4px_0_20px_rgba(79,70,229,0.3)] transition-all duration-300 translate-x-1 hover:translate-x-0 active:scale-95"
+          className="group flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-1 py-3 sm:px-3 sm:py-6 rounded-l-2xl shadow-[-4px_0_20px_rgba(79,70,229,0.3)] transition-all duration-300 translate-x-1 hover:translate-x-0 active:scale-95"
           style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
         >
           <div className="flex flex-col items-center gap-3">
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em]">
+            <span className="text-xs sm:text-[11px] font-bold uppercase tracking-[0.2em]">
               Feedback
             </span>
           </div>

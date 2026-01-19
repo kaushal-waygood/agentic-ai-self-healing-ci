@@ -133,14 +133,14 @@ const ProfileInfo = () => {
             <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
           <div className="flex-1">
-            <div className=" mb-4 sticky top-7 z-10">
-              <div className="relative bg-white p-3 sm:p-4 md:p-2 rounded-lg shadow-sm ">
-                <nav className="flex flex-wrap justify-center  sm:justify-between gap-3">
+            <div className="mb-6 sm:mb-4 sticky top-7 z-10">
+              <div className="relative bg-white py-2 sm:p-3 sm:p-4 md:p-2 rounded-lg shadow-sm ">
+                <nav className="flex flex-wrap justify-center sm:justify-between gap-3">
                   {navItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => handleTabChange(item.id)}
-                      className={`group/btn flex items-center  gap-3 w-full sm:w-auto px-4 py-2 text-left rounded-lg transition-all duration-300 ${
+                      className={`group/btn grid grid-cols-1 sm:flex items-center gap-3  sm:w-auto px-4 py-2 text-left rounded-lg transition-all duration-300 ${
                         activeTab === item.id
                           ? `bg-${item.gradient} text-white shadow-lg scale-105`
                           : 'text-gray-600 hover:bg-gray-100'
@@ -155,7 +155,15 @@ const ProfileInfo = () => {
                               : 'group-hover/btn:scale-110 transition-transform'
                           }
                         />
-                        <span>{item.label}</span>
+                        <span
+                          className={
+                            activeTab === item.id
+                              ? ''
+                              : 'group-hover/btn:scale-110 transition-transform hidden sm:block'
+                          }
+                        >
+                          {item.label}
+                        </span>
                       </div>
                       {activeTab === item.id && (
                         <ChevronRight

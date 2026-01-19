@@ -34,7 +34,7 @@ const PersonalInfoStep = ({
 
         {/* Phone */}
         <Input
-          type="tel"
+          type="number"
           value={formData.phone}
           onChange={(e) => handleInputChange('phone', e.target.value)}
           placeholder="Phone Number"

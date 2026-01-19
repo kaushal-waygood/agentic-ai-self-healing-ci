@@ -835,12 +835,12 @@ const DocumentSection = ({
 
   return (
     <div className="p-6">
-      <div className="flex items-center flex-wrap justify-between mb-6">
+      <div className="flex items-center flex-wrap justify-between  mb-6">
         <h2 className="text-lg md:text-2xl font-semibold text-gray-900 dark:text-white ">
           {title}
         </h2>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-4 md:mb-0">
           {type !== 'application' ? (
             <div className="flex gap-2">
               {/* GENERATED BUTTON */}

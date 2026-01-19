@@ -43,6 +43,8 @@ import {
   deleteSingleStudentSavedCL,
   renameSavedStudentCL,
   renameSavedStudentCV,
+  getStudentCLsFromExtension,
+  getStudentCVsFromExtension,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 import {
@@ -67,6 +69,19 @@ router.post(
 );
 
 router.get('/templates', authMiddleware, isUserOrUniStudent, getAllTemplates);
+
+router.get(
+  '/cv/ext',
+  authMiddleware,
+  isUserOrUniStudent,
+  getStudentCVsFromExtension,
+);
+router.get(
+  '/coverletter/ext',
+  authMiddleware,
+  isUserOrUniStudent,
+  getStudentCLsFromExtension,
+);
 
 router.post(
   '/change/template',

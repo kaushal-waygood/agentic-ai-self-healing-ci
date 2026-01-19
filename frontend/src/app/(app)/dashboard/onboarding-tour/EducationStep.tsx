@@ -64,7 +64,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
 
   const showError = (value?: string, edu?: EducationEntry, index?: number) =>
     shouldValidate(edu, index) && !safeTrim(value);
-  // console.log('edu.'.edu.startDate);
+
   return (
     <div className="space-y-6">
       {education.map((edu, index) => (
