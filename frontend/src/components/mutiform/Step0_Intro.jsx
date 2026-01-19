@@ -80,7 +80,7 @@ const Step0_SimpleIntroSlim = ({
     <div className="w-full max-w-5xl mx-auto p-6 animate-fade-in">
       {/* Header */}
       <div className="bg-header-gradient-primary text-white px-6 py-4 rounded-lg shadow-lg mb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap gap-2 items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-wide">AI Job Agents</h1>
             <p className="text-sm opacity-90 ">

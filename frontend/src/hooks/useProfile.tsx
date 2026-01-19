@@ -405,7 +405,6 @@ export const useJobPreferences = () => {
   const jobPreferences =
     studentWrapper?.student?.jobPreferences ?? studentWrapper;
 
-  console.log('test jobPreferences', jobPreferences);
   // optional: fetch fresh data if missing
   useEffect(() => {
     if (!jobPreferences) {
