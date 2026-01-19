@@ -38,15 +38,15 @@ const BACKEND_API_BASE_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NODE_ENV === 'development'
-    ? 'https://api.dev.zobsai.com'
-    : 'http://127.0.0.1:8080';
+      ? 'https://api.dev.zobsai.com'
+      : 'http://127.0.0.1:8080';
 
 const FRONTEND_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NODE_ENV === 'development'
-    ? 'https://dev.zobsai.com'
-    : 'http://127.0.0.1:3000';
+      ? 'https://dev.zobsai.com'
+      : 'http://127.0.0.1:3000';
 
 /* -------------------------
    Helper Utilities
@@ -1260,7 +1260,6 @@ export const redirectToGoogle = async (req, res) => {
       ],
     });
 
-    console.log(url);
     return res.redirect(url);
   } catch (error) {
     return res
@@ -1295,6 +1294,17 @@ export const handleGoogleCallback = async (req, res) => {
         authMethod: 'google',
         isEmailVerified: true,
         referralCode: generateReferralCode(data.email),
+        usageLimits: {
+          cvCreation: 1,
+          coverLetter: 1,
+          aiApplication: 1,
+          aiAutoApply: 1,
+          aiAutoApplyDailyLimit: 5,
+          aiMannualApplication: -1,
+          atsScore: 1,
+          jobMatching: 1,
+        },
+        freeCreditsGranted: true,
       });
       await user.save();
 
@@ -1314,8 +1324,6 @@ export const handleGoogleCallback = async (req, res) => {
       config.accessTokenSecret,
       { expiresIn: '7d' },
     );
-
-    console.log(token);
 
     return res.redirect(
       `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,

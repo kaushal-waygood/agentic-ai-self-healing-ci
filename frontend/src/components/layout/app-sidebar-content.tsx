@@ -88,7 +88,7 @@ export const AppSidebarContent = ({
     { label: 'My Workspace', start: 6 },
     { label: 'More', start: 8 },
   ];
-
+  console.log('user detials', user);
   // --- 3. SITE CONFIGURATION WITH PERMISSIONS ---
   const siteConfig = {
     name: 'ZobsAI',
@@ -444,7 +444,11 @@ export const AppSidebarContent = ({
                 <p className="font-medium text-slate-900 truncate text-sm capitalize">
                   {user.fullName}
                 </p>
+                {/* Role Badge Component */}
                 <p className="text-xs text-slate-500">Welcome back!</p>
+                <span className=" py-0.5 text-xs font-semibold  text-indigo-700 rounded-full capitalize">
+                  Role : {user.role === 'uni-student' ? 'Student' : user.role}
+                </span>
               </div>
             </Link>
             {/* Show upgrade banner only if not Pro/Admin */}
