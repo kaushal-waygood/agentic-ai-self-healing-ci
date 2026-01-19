@@ -10,6 +10,22 @@ const feedbackSchema = new Schema(
       type: String,
       required: true,
     },
+    category: {
+      type: String,
+      required: true,
+    },
+    subCategory: {
+      type: String,
+      required: true,
+    },
+    rating: {
+      type: Number,
+      required: true,
+    },
+    feedback: {
+      type: String,
+      required: true,
+    },
     message: {
       type: String,
       required: true,

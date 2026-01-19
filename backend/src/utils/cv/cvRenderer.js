@@ -1,8 +1,5 @@
-// utils/cvRenderer.js
-
 /**
- * Converts the AI-generated JSON data into the HTML structure
- * required by your CSS templates.
+ * Renders HTML for both Professional and Fresher CVs.
  */
 export const renderResumeHtml = (
   data,
@@ -12,28 +9,53 @@ export const renderResumeHtml = (
   phoneNumber,
   location,
 ) => {
-  // 1. Render Experience Items
-  const experienceHtml = data.experience
-    .map(
-      (job) => `
-    <div class="job">
-      <div class="company-line">
-        <span class="company">${job.company}</span>
-        <span class="location">${job.location}</span>
+  // 1. Conditional Summary
+  const summaryHtml = data.summary
+    ? `
+    <div class="section">
+      <div class="section-title">SUMMARY</div>
+      <div class="section-divider"></div>
+      <div class="summary-text">
+        <p>${data.summary}</p>
+        ${data.additionalInfo ? `<p class="additional"><strong>Additional:</strong> ${data.additionalInfo}</p>` : ''}
       </div>
-      <div class="role-line">
-        <span class="role">${job.role}</span>
-        <span class="dates">${job.dates}</span>
-      </div>
-      <ul>
-        ${job.bullets.map((bullet) => `<li>${bullet}</li>`).join('')}
-      </ul>
     </div>
-  `,
-    )
-    .join('');
+  `
+    : '';
 
-  // 2. Render Projects
+  // 2. Experience Section (Only if items exist)
+  const experienceHtml =
+    data.experience && data.experience.length > 0
+      ? `
+    <div class="section">
+      <div class="section-title">EXPERIENCE</div>
+      <div class="section-divider"></div>
+      <ul>
+      ${data.experience
+        .map(
+          (job) => `
+        <li class="item-block">
+          <div class="header-line">
+            <span class="bold-text">${job.company}</span>
+            <span class="right-text">${job.location}</span>
+          </div>
+          <div class="sub-line">
+            <span class="italic-text">${job.role}</span>
+            <span class="right-text">${job.dates}</span>
+          </div>
+          <ul>
+            ${job.bullets.map((bullet) => `<li>${bullet}</li>`).join('')}
+          </ul>
+        </li>
+      `,
+        )
+        .join('')}
+        </ul>
+    </div>
+  `
+      : '';
+
+  // 3. Projects Section (Only if items exist)
   const projectsHtml =
     data.projects && data.projects.length > 0
       ? `
@@ -44,7 +66,14 @@ export const renderResumeHtml = (
         ${data.projects
           .map(
             (proj) => `
-          <li><strong>${proj.name}:</strong> ${proj.description}</li>
+          <li>
+            <p><strong>${proj.name}:</strong></p>
+            <p><strong>Tech Stack:</strong> ${proj.techStack}</p>
+            <p><strong>Achievements:</strong> </p>
+            <ul class="achievements">
+            ${proj.achievements.map((achievement) => `<li>${achievement}</li>`).join('')}
+            </ul>
+          </li>
         `,
           )
           .join('')}
@@ -53,90 +82,88 @@ export const renderResumeHtml = (
   `
       : '';
 
-  // 3. Render Education
-  const educationHtml = data.education
-    .map(
-      (edu) => `
-    <div class="education-item">
+  // 4. Education Section (Fresher Friendly: Includes Coursework and Details)
+  const educationHtml =
+    data.education && data.education.length > 0
+      ? `
+    <div class="section">
+      <div class="section-title">EDUCATION</div>
+      <div class="section-divider"></div>
       <ul>
-        <li><strong>${edu.degree}</strong>, ${edu.school} (${edu.year})</li>
+      ${data.education
+        .map(
+          (edu) => `
+        <li>
+          <div class="header-line">
+            <span class="bold-text">${edu.school}</span>
+            <span class="right-text">${edu.location || ''}</span>
+          </div>
+          <div class="sub-line">
+            <span class="italic-text">${edu.degree}</span>
+            <span class="right-text">${edu.year}</span>
+          </div>
+          ${edu.details ? `<p class="edu-details">${edu.details}</p>` : ''}
+          
+        </li>
+        <li>${
+          edu.coursework && edu.coursework.length > 0
+            ? `
+            <p class="coursework"><strong>Relevant Coursework:</strong> ${edu.coursework.join(', ')}</p>
+          `
+            : ''
+        }
+        </li>
+      `,
+        )
+        .join('')}
       </ul>
-    </div>
-  `,
-    )
-    .join('');
+        </div>
+  `
+      : '';
 
-  // 4. Render Skills
-  // Handle both array format or object format from AI
+  // 5. Skills Section (Handles Object categories)
   let skillsContent = '';
-  if (typeof data.skills === 'object' && !Array.isArray(data.skills)) {
+  if (
+    data.skills &&
+    typeof data.skills === 'object' &&
+    !Array.isArray(data.skills)
+  ) {
     skillsContent = Object.entries(data.skills)
       .map(
-        ([category, skillList]) =>
-          `<div><strong>${category}:</strong> ${skillList}</div>`,
+        ([category, list]) =>
+          `<div><strong>${category}:</strong> ${list}</div>`,
       )
       .join('');
   } else if (Array.isArray(data.skills)) {
-    skillsContent = data.skills.join(', ');
+    skillsContent = `<div>${data.skills.join(', ')}</div>`;
   }
 
+  const skillsHtml = skillsContent
+    ? `
+    <div class="section">
+      <div class="section-title">SKILLS</div>
+      <div class="section-divider"></div>
+      <div class="skills-grid">${skillsContent}</div>
+    </div>
+  `
+    : '';
+
+  // 6. Final Template Assembly
   return `
     <div class="resume-container">
       <div class="header">
-
-      ${
-        profileImage == null || undefined || ''
-          ? ''
-          : `<div class="profile-image"><img src="${profileImage}" alt="Profile Image" /></div>`
-      }
+        ${profileImage ? `<div class="profile-image"><img src="${profileImage}" /></div>` : ''}
         <div class="profile-info">
-          <div class="name">
-            <h1>${fullName}</h1>
-          </div>
-          <div class="contact-info" >
-            <p>${email} | ${phoneNumber} | ${location}</p>
-          </div>
+          <h1>${fullName}</h1>
+          <p><a href="mailto:${email}">${email}</a> ${phoneNumber ? `| <a href="tel:${phoneNumber}">${phoneNumber}</a>` : ''} ${location ? `| ${location}` : ''}</p>
         </div>
       </div>
 
-      <div class="section">
-        <div class="section-title">SUMMARY</div>
-        <div class="section-divider"></div>
-        
-        
-
-        <div class="summary-text">
-          <p>${data.summary}
-          ${
-            data.additionalInfo
-              ? `<span class="additional"><strong>Additional:</strong> ${data.additionalInfo}</span>`
-              : ''
-          }
-          </p>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">EXPERIENCE</div>
-        <div class="section-divider"></div>
-        ${experienceHtml}
-      </div>
-
+      ${summaryHtml}
+      ${experienceHtml}
       ${projectsHtml}
-
-      <div class="section">
-        <div class="section-title">EDUCATION</div>
-        <div class="section-divider"></div>
-        ${educationHtml}
-      </div>
-
-      <div class="section">
-        <div class="section-title">SKILLS</div>
-        <div class="section-divider"></div>
-        <div class="skills-section">
-          ${skillsContent}
-        </div>
-      </div>
+      ${educationHtml}
+      ${skillsHtml}
     </div>
   `;
 };
