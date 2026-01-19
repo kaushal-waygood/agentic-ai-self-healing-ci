@@ -1,201 +1,139 @@
 export const CV_TEMPLATES = {
-  classic: `
-        .resume-container {
-            font-family: "Times New Roman", Times, serif;
-            line-height: 1.25;
-            color: #000;
-            background-color: #fff;
-            font-size: 11pt; /* Standard Harvard size is 10.5pt to 11pt */
-            max-width: 800px;
-        }
+  classic: `/* --- GLOBAL CONTAINER --- */
+.resume-container {
+    font-family: "Times New Roman", Times, serif;
+    line-height: 1.25;
+    color: #000;
+    background-color: #fff;
+    font-size: 11pt;
+    max-width: 800px;
+}
 
-        /* --- HEADER SECTION --- */
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+/* --- HEADER SECTION --- */
+.header {
+    text-align: center;
+    margin-bottom: 18px;
+}
 
-        .header h1{
-            font-family: 'Times New Roman', Times, serif;
-              font-size: 20pt;
-              font-weight: bold;
-              margin-bottom: 6px;
-              color: #000;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-              margin: 0;
-              height: 30px;
-        }
+.header h1 {
+    font-size: 18pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin: 0 0 4px 0;
+    letter-spacing: 1px;
+}
 
-        .contact-info {
-            font-size: 10.5pt;
-            color: #000;
-            margin-bottom: 0;
-        }
+.profile-info p {
+    font-size: 10.5pt;
+    margin: 0;
+}
 
-        /* --- SECTIONS --- */
-        .section {
-            margin-bottom: 16px;
-        }
+/* Hidden by default in Classic style as per your requirement */
+.profile-image { display: none; }
 
-        .section-title {
-            font-size: 12pt;
-            font-weight: bold;
-            margin-bottom: 4px;
-            color: #000;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+/* --- SECTION HEADERS --- */
+.section {
+    margin-bottom: 14px;
+}
 
-        .section-divider {
-            border-bottom: 1px solid #000; /* Solid black line */
-            margin-bottom: 10px;
-            width: 100%;
-        }
+.section ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style-type: disc;
+}
 
-        .resume-container .profile-image { display: none; }
+.section-title {
+    font-size: 11pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
 
-        /* --- SUMMARY --- */
-        .summary-text {
-            font-size: 11pt;
-            text-align: justify;
-            line-height: 1.35;
-            margin-bottom: 10px;
-        }
+.section-divider {
+    border-bottom: 1px solid #000;
+    margin-bottom: 8px;
+}
 
-        .additional {
-            font-size: 11pt;
-            text-align: justify;
-            line-height: 1.35;
-            margin-top: 6px;
-            font-style: italic; /* Differentiates 'Additional' info */
-            font-weight: normal;
-        }
+/* --- TEXT BLOCKS --- */
+.summary-text, .edu-details, .coursework {
+    font-size: 10.5pt;
+    text-align: justify;
+    line-height: 1.3;
+    margin-bottom: 8px;
+}
 
-        /* --- EXPERIENCE & JOBS --- */
-        .job {
-            margin-bottom: 14px;
-        }
+.edu-details{
+    margin-left: 10px;
+}
 
-        .company-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 2px;
-        }
+.additional {
+    font-style: italic;
+    margin-top: 4px;
+    display: block;
+}
 
-        .company {
-            font-weight: bold;
-            font-size: 11.5pt;
-            text-transform: uppercase; /* Optional: makes companies stand out */
-        }
+/* --- ITEM BLOCKS (Experience, Projects, Education) --- */
+.item-block {
+    margin-bottom: 12px;
+}
 
-        .location {
-            font-size: 11pt;
-            font-weight: normal; /* Locations should not compete with Company name */
-            text-align: right;
-        }
+.header-line, .sub-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
 
-        .role-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 4px;
-        }
+.bold-text {
+    font-weight: bold;
+    font-size: 13pt;
+}
 
-        .role {
-            font-style: italic;
-            font-weight: bold; /* Harvard style often bolds the role title slightly */
-            font-size: 11pt;
-        }
+.italic-text {
+    font-style: italic;
+    font-size: 10.5pt;
+}
 
-        .dates {
-            font-size: 11pt;
-            font-style: normal;
-            text-align: right;
-        }
+.right-text {
+    font-size: 10.5pt;
+    text-align: right;
+    min-width: 120px;
+}
 
-        /* --- BULLETS --- */
-        .responsibilities {
-            margin: 4px 0 0 0;
-            padding: 0;
-            list-style: none;
-        }
+/* --- LISTS & BULLETS --- */
+.item-block ul {
+    margin: 4px 0 0 0;
+    padding-left: 1.2rem;
+    list-style-type: disc;
+}
 
-        .responsibilities li {
-            font-size: 11pt;
-            line-height: 1.4;
-            margin-bottom: 3px;
-            text-align: justify;
-            padding-left: 18px; /* Indent for the bullet */
-            position: relative;
-        }
+.item-block li {
+    font-size: 10.5pt;
+    line-height: 1.35;
+    margin-bottom: 2px;
+    text-align: justify;
+}
 
-        /* Clean, standard bullet points */
-        .responsibilities li:before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            font-size: 14px; /* Slightly larger bullet for visual anchor */
-            line-height: 16px;
-            top: 1px;
-        }
+/* --- SKILLS --- */
+.skills-grid {
+    font-size: 10.5pt;
+    line-height: 1.4;
+}
 
-        .highlight {
-            font-weight: bold;
-        }
+.skills-grid div {
+    margin-bottom: 3px;
+}
 
-        /* --- EDUCATION --- */
-        .education-item {
-            margin-bottom: 10px;
-        }
-
-        .degree-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 2px;
-        }
-
-        .university {
-            font-weight: bold;
-            font-size: 11.5pt;
-        }
-
-        .degree {
-            font-size: 11pt;
-            font-style: italic;
-            display: block; /* Ensures it sits on its own line if needed, or flows */
-        }
-
-        /* --- SKILLS --- */
-        .skills-section {
-            font-size: 11pt;
-            line-height: 1.4;
-        }
-
-        .skill-category {
-            margin-bottom: 4px;
-            text-align: justify;
-        }
-
-        .skill-title {
-            font-weight: bold;
-            display: inline;
-        }
-
-        /* Print Override to remove browser margins */
-        @media print {
-            body { background-color: white; }
-            .resume-container { 
-                margin: 0; 
-                padding: 0; 
-                box-shadow: none; 
-                max-width: 100%;
-                width: 100%;
-            }
-        }
-`,
+/* --- PRINT OPTIMIZATION --- */
+@media print {
+    body { background-color: white; }
+    .resume-container { 
+        margin: 0; 
+        padding: 0; 
+        width: 100%;
+        max-width: 100%;
+    }
+}`,
 
   tech: `  <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono&display=swap');
@@ -212,6 +150,17 @@ export const CV_TEMPLATES = {
         font-size: 10pt;
         max-width: 850px;
       }
+
+      .bold-text {
+    font-weight: bold;
+    font-size: 10pt;
+}
+
+      .section ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style-type: disc;
+}
 
       /* --- HEADER --- */
       .header {
@@ -318,7 +267,17 @@ export const CV_TEMPLATES = {
       .job ul {
         margin: 0;
         padding-left: 1.2rem;
-        list-style-type: square;
+        list-style-type: disc;
+      }
+
+
+      .header .profile-info h1{
+        font-size: 28pt;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: -1px;
       }
 
       .job li {
@@ -329,7 +288,7 @@ export const CV_TEMPLATES = {
       .section > ul > li{
         margin-bottom: 4px;
         color: #4b5563;
-        list-style-type: square;
+        list-style-type: disc;
       }
 
       .job li strong {
@@ -342,9 +301,6 @@ export const CV_TEMPLATES = {
         margin: 0;
       }
 
-      .section li {
-        margin-bottom: 5px;
-      }
 
       /* --- EDUCATION --- */
       .education-item ul {
@@ -400,6 +356,33 @@ export const CV_TEMPLATES = {
         font-size: 10.5pt;
         max-width: 850px;
       }
+
+      .profile-info h1{
+        font-size: 26pt;
+        font-weight: 800;
+        margin: 0;
+        color: #1a202c;
+        letter-spacing: -1px;
+        text-transform: uppercase;
+      }
+
+          .bold-text {
+    font-weight: bold;
+    font-size: 10pt;
+}
+
+.section .achievements{
+    font-size: 9pt;
+    color: #374151;
+    margin-bottom: 10px;
+    list-style-type: disc;
+}
+
+      .section ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style-type: disc;
+}
 
       /* --- HEADER --- */
       .header {
@@ -523,7 +506,6 @@ export const CV_TEMPLATES = {
       }
 
       .section li {
-        margin-bottom: 8px;
         color: #4a5568;
       }
 
@@ -578,6 +560,21 @@ export const CV_TEMPLATES = {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
 
+      .resume-container p {
+        text-align: justify;
+      }
+
+      .section ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style-type: disc;
+}
+
+    .bold-text {
+    font-weight: bold;
+    // font-size: 10pt;
+}
+
       .header {
         display: flex;
         align-items: center;
@@ -598,7 +595,16 @@ export const CV_TEMPLATES = {
         flex: 1;
       }
 
-      .resume-container .header .name h1 {
+      .header .profile-info h1{
+        font-size: 28pt;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+      }
+
+      .resume-container .header  h1 {
         font-size: 28pt;
         font-weight: 800;
         color: #2c3e50;
@@ -608,11 +614,15 @@ export const CV_TEMPLATES = {
       }
 
       .contact-info p {
-        font-size: 14pt;
+        font-size: 10pt;
         line-height: 1.4;
         color: #666;
         font-weight: 600;
         margin:0;
+      }
+
+      .skills-grid{
+      font-size: 10pt;
       }
 
       /* --- Summary Section (Section 1) --- */
@@ -625,8 +635,14 @@ export const CV_TEMPLATES = {
         margin-bottom: 30px;
       }
 
+      .item-block ul {
+    margin: 4px 0 0 0;
+    padding-left: 1.2rem;
+    list-style-type: disc;
+}
+
       .section:nth-of-type(1) .section-title {
-        font-size: 14pt;
+        font-size: 10pt;
         font-weight: 700;
         margin-bottom: 10px;
         color: #6cc5d6;
@@ -634,13 +650,13 @@ export const CV_TEMPLATES = {
 
       .summary-text {
         line-height: 1.4;
-        font-size: 14pt;
+        font-size: 10pt;
         text-align: justify;
       }
 
       .section:nth-of-type(1) .summary-text {
         line-height: 1.4;
-        font-size: 14pt;
+        font-size: 10pt;
         text-align: justify;
       }
 
@@ -659,7 +675,7 @@ export const CV_TEMPLATES = {
       }
 
       .section:not(:nth-of-type(1)) .section-title {
-        font-size: 14pt;
+        font-size: 10pt;
         font-weight: 700;
         color: #2c3e50;
         text-transform: uppercase;
@@ -681,7 +697,7 @@ export const CV_TEMPLATES = {
       }
 
       .company {
-        font-size: 13pt;
+        font-size: 10pt;
         font-weight: 700;
         color: #000;
       }
@@ -698,7 +714,7 @@ export const CV_TEMPLATES = {
       }
 
       .role {
-        font-size: 11pt;
+        font-size: 10pt;
         font-weight: 700;
         color: #6cc5d6;
       }
@@ -716,7 +732,7 @@ export const CV_TEMPLATES = {
       }
 
       li {
-        font-size: 14pt;
+        font-size: 10pt;
         color: #444;
         margin-bottom: 3px;
         line-height: 1.4;
@@ -826,7 +842,7 @@ export const CV_TEMPLATES = {
   //   text-transform: uppercase;
   // }
 
-  // ul { list-style: square; }
+  // ul { list-style: disc; }
   // </style>
   // `,
 

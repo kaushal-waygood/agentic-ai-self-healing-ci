@@ -36,7 +36,7 @@ const LocationPreferences = ({ formData, handleInputChange, setFormData }) => {
   const displayTags = isObjectData
     ? formData.mustHaveSkills.map((item) => item.skill)
     : formData.mustHaveSkills || [];
-  console.log('formData', formData);
+
   return (
     <div className="space-y-3">
       <div className="grid md:grid-cols-2 gap-6">

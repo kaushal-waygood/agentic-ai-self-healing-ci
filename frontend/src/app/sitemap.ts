@@ -1,93 +1,72 @@
 // app/sitemap.ts
-
 import axios from 'axios';
 import type { MetadataRoute } from 'next';
-import { Metadata } from 'next';
+
+// Recommendation: Use standard NODE_ENV unless you have a specific reason for NEXT_PUBLIC_NODE_ENV
+const env = process.env.NEXT_PUBLIC_NODE_ENV || process.env.NODE_ENV;
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_NODE_ENV === 'production'
+  env === 'production'
     ? 'https://zobsai.com'
-    : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
-    ? 'https://dev.zobsai.com'
-    : process.env.NEXT_PUBLIC_NODE_ENV === 'local'
-    ? 'http://127.0.0.1:3000'
-    : 'http://127.0.0.1:5000';
+    : env === 'development'
+      ? 'https://dev.zobsai.com'
+      : 'http://localhost:3000';
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_NODE_ENV === 'production'
+  env === 'production'
     ? 'https://api.zobsai.com'
-    : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
-    ? 'https://api.dev.zobsai.com'
-    : process.env.NEXT_PUBLIC_NODE_ENV === 'local'
-    ? 'http://127.0.0.1:8080'
-    : 'http://127.0.0.1:5000';
-
-export const metadata: Metadata = {
-  title: 'Zobsai - Sitemap.xml',
-  description: 'Zobsai - AI-powered job applications',
-};
+    : env === 'development'
+      ? 'https://api.dev.zobsai.com'
+      : 'http://127.0.0.1:8080';
 
 type Entry = { url: string; lastModified?: string };
 
 async function fetchDynamicUrls(): Promise<Entry[]> {
   try {
     const res = await axios.get(`${BACKEND_URL}/api/v1/sitemap-enteries`);
-    return res.status === 200 ? await res.data : [];
-  } catch {
+    // Axios handles the JSON parsing, just return res.data
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (error) {
+    console.error('Sitemap fetch error:', error);
     return [];
   }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticPages: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`, lastModified: new Date().toISOString() },
-    { url: `${SITE_URL}/search-jobs`, lastModified: new Date().toISOString() },
-    {
-      url: `${SITE_URL}/privacy-policy`,
-      lastModified: new Date().toISOString(),
-    },
-    {
-      url: `${SITE_URL}/terms-of-service`,
-      lastModified: new Date().toISOString(),
-    },
-    {
-      url: `${SITE_URL}/cancellation-refundpolicy`,
-      lastModified: new Date().toISOString(),
-    },
-    {
-      url: `${SITE_URL}/cookie-policy`,
-      lastModified: new Date().toISOString(),
-    },
-    { url: `${SITE_URL}/bug-report`, lastModified: new Date().toISOString() },
-    { url: `${SITE_URL}/dashboard`, lastModified: new Date().toISOString() },
-    {
-      url: `${SITE_URL}/dashboard/profile`,
-      lastModified: new Date().toISOString(),
-    },
-    {
-      url: `${SITE_URL}/dashboard/my-docs`,
-      lastModified: new Date().toISOString(),
-    },
+  const staticPaths = [
+    '',
+    '/search-jobs',
+    '/privacy-policy',
+    '/terms-of-service',
+    '/cancellation-refundpolicy',
+    '/cookie-policy',
+    '/bug-report',
+    '/dashboard',
+    '/dashboard/profile',
+    '/dashboard/my-docs',
   ];
+
+  const staticPages: MetadataRoute.Sitemap = staticPaths.map((path) => ({
+    url: `${SITE_URL}${path}`,
+    lastModified: new Date(),
+    changeFrequency: 'daily',
+    priority: path === '' ? 1 : 0.8,
+  }));
 
   const dynamic = await fetchDynamicUrls();
 
   const dynamicPages: MetadataRoute.Sitemap = dynamic.map((e) => {
-    // If backend sends full URL, keep it.
-    if (e.url.startsWith('http')) {
-      return {
-        url: encodeURI(e.url),
-        lastModified: e.lastModified || new Date().toISOString(),
-      };
-    }
-
-    // if backend sends "/jobs/slug"
-    const encodedPath = encodeURI(e.url);
+    const fullUrl = e.url.startsWith('http') ? e.url : `${SITE_URL}${e.url}`;
     return {
-      url: `${SITE_URL}${encodedPath}`,
-      lastModified: e.lastModified || new Date().toISOString(),
+      url: encodeURI(fullUrl),
+      lastModified: e.lastModified ? new Date(e.lastModified) : new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6,
     };
   });
+
+  console.log(dynamicPages);
+  console.log(staticPages);
 
   return [...staticPages, ...dynamicPages];
 }

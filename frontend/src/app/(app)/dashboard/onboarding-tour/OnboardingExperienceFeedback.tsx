@@ -73,13 +73,10 @@ export default function OnboardingExperienceFeedback({
           </div>
 
           <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Skip
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={rating === 0} // Submit is only enabled if a star is clicked
-            >
+            <Button onClick={handleSubmit} disabled={rating === 0}>
               Submit
             </Button>
           </div>
