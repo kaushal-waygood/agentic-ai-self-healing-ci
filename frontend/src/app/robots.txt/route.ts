@@ -5,6 +5,7 @@ import { API_BASE_URL } from '@/services/api';
 
 export function GET() {
   const sitemapUrl = `${API_BASE_URL}/sitemap.xml`;
+
   const body = `User-agent: *
 Allow: /
 Sitemap: ${sitemapUrl}

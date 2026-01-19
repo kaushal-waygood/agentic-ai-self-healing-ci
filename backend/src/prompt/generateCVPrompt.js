@@ -167,59 +167,71 @@ ${JSON.stringify(resumeData, null, 2)}
 
 ${finalTouch ? `Additional Instructions:\n${finalTouch}` : ''}
 
-You are a professional CV writer. 
+You are an expert CV Writer and Career Coach. 
 
 ====================
-GOAL
+CORE STRATEGY
 ====================
-Extract and rewrite the user's experience to match the Job Description. 
-Output STRICT JSON data.
+Analyze the User Resume Data to determine the candidate's level:
+
+1. **IF PROFESSIONAL (Has 1+ years of work exp):** - Focus the Summary on years of experience and key achievements.
+   - Use metrics (e.g., "Increased efficiency by 20%") in experience bullets.
+   - Keep Education concise.
+
+2. **IF FRESHER (No/Little work exp or No Projects):**
+   - **DO NOT LIE.** Do not invent fake projects or fake work experience.
+   - Focus the Summary on technical foundation and eagerness to learn.
+   - **DEEP DIVE EDUCATION:** Expand the Education section. Include specific "coursework" and "details" (honors, labs, or academic focus) to fill the space professionally.
+   - **EXPAND SKILLS:** Break skills into detailed categories (e.g., Core Tech, Soft Skills, Tools).
 
 ====================
-OUTPUT STRUCTURE (JSON ONLY)
+OUTPUT STRUCTURE (STRICT JSON ONLY)
 ====================
 {
-  "summary": "3-4 lines of professional summary...",
-  "additionalInfo": "Extra info like citizenship, languages...",
+  "summary": "Professional summary optimized for the JD...",
+  "additionalInfo": "Certifications, Awards, or Languages...",
   "experience": [
     {
       "company": "Company Name",
       "location": "City, Country",
       "role": "Job Title",
       "dates": "Month Year - Month Year",
-      "bullets": [
-        "<strong>Action Verb:</strong> Achievement 1 (with metrics)",
-        "<strong>Skill:</strong> Achievement 2"
-      ]
+      "bullets": ["<strong>Keyword:</strong> Achievement or task description..."]
     }
   ],
   "projects": [
     {
       "name": "Project Name",
-      "description": "Description of project..."
+      "description": "Description highlighting tech stack and results."
+      "techStack": "Tech stack used in the project."
+      "achievements": ["Achievement 1", "Achievement 2", "Achievement 3"]
     }
   ],
   "education": [
     {
       "degree": "Degree Name",
-      "school": "University Name",
-      "year": "2020 - 2024"
+      "school": "University/College Name",
+      "location": "City, Country",
+      "year": "2020 - 2024",
+      "coursework": ["Data Structures", "Algorithm Design", "Web Tech"],
+      "details": "Major achievements or specialized academic focus at this institution."
     }
   ],
   "skills": {
-    "Frontend": "React, Vue...",
-    "Backend": "Node, Python..."
+    "Technical": "React, Node, SQL...",
+    "Tools": "Git, Docker, VS Code...",
+    "Academic": "Optional: Only if fresher, include concepts like OS, DBMS..."
   },
   "atsScore": 85,
-  "atsScoreReasoning": "Explanation..."
+  "atsScoreReasoning": "Why this CV matches the JD..."
 }
 
 ====================
 RULES
 ====================
-1. Do NOT include HTML tags (<div>, <ul>) inside the JSON values, EXCEPT for <strong> tags within bullet points/summaries for emphasis.
-2. Optimize content for ATS based on the Job Description.
-3. Return ONLY valid JSON. No markdown formatting.
+- Use <strong> tags inside bullets for emphasis.
+- Return ONLY valid JSON. No markdown backticks.
+- If projects are missing in input data, leave "projects": [] and expand Education instead.
 `;
 };
 

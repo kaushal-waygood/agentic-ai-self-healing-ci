@@ -3,13 +3,7 @@
 'use client';
 
 import { useNotifications } from '@/hooks/notifications/useNoifications';
-import {
-  Loader2,
-  RefreshCcw,
-  Bell,
-  Sparkles,
-  CheckCircle2,
-} from 'lucide-react';
+import { RefreshCcw, Bell, Sparkles, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';

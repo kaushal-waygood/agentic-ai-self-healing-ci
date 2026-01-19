@@ -552,6 +552,46 @@ export const renameCoverLetter = async (req, res) => {
   }
 };
 
+export const getStudentCLsFromExtension = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    const studentCLs = await StudentCL.find({
+      student: _id,
+      flag: 'extension',
+    }).select('clTitle flag status completedAt');
+    res.status(200).json({
+      success: true,
+      studentCLs,
+    });
+  } catch (error) {
+    console.error('Error fetching student CLs:', error);
+    res.status(500).json({
+      error: 'Failed to fetch student CLs',
+    });
+  }
+};
+
+export const getStudentCVsFromExtension = async (req, res) => {
+  try {
+    const { _id } = req.user;
+
+    const studentCVs = await StudentCV.find({
+      student: _id,
+      flag: 'extension',
+    }).select('cvTitle flag status completedAt');
+
+    res.status(200).json({
+      success: true,
+      studentCVs,
+    });
+  } catch (error) {
+    console.error('Error fetching student CVs:', error);
+    res.status(500).json({
+      error: 'Failed to fetch student CVs',
+    });
+  }
+};
+
 // CV
 export const generateCVByTitle = async (req, res) => {
   const { title } = req.body;
@@ -644,14 +684,14 @@ export const refreshStatus = async (req, res) => {
     modelName === 'cvs'
       ? (student = await StudentCV.find({ student: userId, _id: id }).exec())
       : modelName === 'cls'
-      ? (student = await StudentCL.find({
-          student: userId,
-          _id: id,
-        }).exec())
-      : (student = await StudentTailoredApplication.find({
-          student: userId,
-          _id: id,
-        }).exec());
+        ? (student = await StudentCL.find({
+            student: userId,
+            _id: id,
+          }).exec())
+        : (student = await StudentTailoredApplication.find({
+            student: userId,
+            _id: id,
+          }).exec());
 
     if (!student || student.length === 0) {
       return res
