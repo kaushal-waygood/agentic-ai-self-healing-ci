@@ -267,9 +267,29 @@ const OnboardingPage = () => {
       setTimeout(() => setStep(step - 1), 50);
     }
   };
-  const handleSkip = () => {
-    if (step < totalSteps) handleNext();
-    else handleSubmit();
+  // const handleSkip = () => {
+  //   if (step < totalSteps) handleNext();
+  //   else handleSubmit();
+  // };
+
+  const handleSkip = (e) => {
+    // 1. Prevent default form submission behavior
+    if (e) e.preventDefault();
+
+    // 2. Set animation direction
+    setDirection('forward');
+
+    // 3. Logic
+    if (step < totalSteps) {
+      // DON'T call handleNext().
+      // DO update state directly to bypass validation.
+      setStep((prev) => prev + 1);
+    } else {
+      // If it's the last step, decide what "Skip" means.
+      // Usually, you don't want handleSubmit() because that might validate too.
+      // Instead, just redirect to the dashboard/success view.
+      // handleDashboardRedirect(); // Or setStep(step + 1) to show success screen
+    }
   };
 
   const handleSubmit = async () => {
@@ -807,7 +827,19 @@ const OnboardingPage = () => {
                     <ArrowLeft className="w-5 h-5 mr-2" /> Back
                   </Button>
 
+                  {step !== 1 && step !== totalSteps && (
+                    <Button
+                      type="button"
+                      onClick={handleSkip}
+                      variant="outline"
+                      className="h-14 px-6 rounded-lg border-2 border-blue-400 transition-all duration-300 text-base font-semibold hover:scale-105"
+                    >
+                      <SkipForward className="w-5 h-5 mr-2" />
+                      {step === totalSteps ? 'Finish Later' : 'Skip'}
+                    </Button>
+                  )}
                   {/* <Button
+                    type="button"
                     onClick={handleSkip}
                     variant="outline"
                     className="h-14 px-6 rounded-lg border-2 border-blue-400 transition-all duration-300 text-base font-semibold hover:scale-105"
@@ -817,12 +849,6 @@ const OnboardingPage = () => {
                   </Button> */}
 
                   {step < totalSteps ? (
-                    // <Button
-                    //   onClick={handleNext}
-                    //   className="flex-1 h-14 rounded-lg  transition-all duration-300 transform hover:scale-105 text-base font-semibold"
-                    // >
-                    //   Next <ArrowRight className="w-5 h-5 ml-2" />
-                    // </Button>
                     <Button
                       onClick={handleNext}
                       className={`flex-1 h-14 rounded-lg text-base font-semibold

@@ -16,7 +16,6 @@ export function PendingClaimsSection({
   onClaim,
   onOpenHowToClaim,
 }: PendingClaimsSectionProps) {
-  console.log(pendingClaims);
   return (
     <div className="">
       {/* Header */}

@@ -81,7 +81,7 @@ export default function BringZobsAI() {
     <div className="p-6 max-w-6xl mx-auto">
       {/* HEADER */}
       <div className="text-center space-y-4 mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl bg-headingTextPrimary bg-clip-text text-transparent relative mb-2">
+        <h1 className="text-2xl uppercase font-semibold sm:text-3xl md:text-4xl bg-headingTextPrimary text-foreground bg-clip-text text-transparent relative z-10">
           Bring ZobsAI
         </h1>
         <p className="text-gray-600 text-lg max-w-lg mx-auto">

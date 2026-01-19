@@ -153,7 +153,6 @@ const NewJobPost = () => {
       : [];
 
   const onSubmit = async (data: JobFormType) => {
-    console.log(data);
     setIsSubmitting(true);
     try {
       const finalPayload = {

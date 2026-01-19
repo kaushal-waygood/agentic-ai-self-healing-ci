@@ -150,7 +150,6 @@ const NewJobPost: React.FC<NewJobPostProps> = ({
       : [];
 
   const onSubmit = async (data: JobFormType) => {
-    console.log(data);
     setIsSubmitting(true);
     const beingId = searchParams.get('bringId');
 
@@ -192,8 +191,6 @@ const NewJobPost: React.FC<NewJobPostProps> = ({
         isOnboarding: isEmbedded,
         isActive: isEmbedded ? false : data.isActive,
       };
-
-      console.log(finalPayload);
 
       const response = await apiInstance.post('/jobs/mannual', finalPayload);
 

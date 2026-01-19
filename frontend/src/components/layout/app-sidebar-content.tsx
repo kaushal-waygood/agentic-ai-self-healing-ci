@@ -88,7 +88,7 @@ export const AppSidebarContent = ({
     { label: 'My Workspace', start: 6 },
     { label: 'More', start: 8 },
   ];
-  console.log('user detials', user);
+
   // --- 3. SITE CONFIGURATION WITH PERMISSIONS ---
   const siteConfig = {
     name: 'ZobsAI',
