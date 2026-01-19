@@ -2,7 +2,15 @@
 
 import { setCheckoutRequest } from '@/redux/actions/checkoutAction';
 import apiInstance from '@/services/api';
-import { ArrowRight, Building2, Check, Crown, Star, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  Building2,
+  Check,
+  Crown,
+  Infinity,
+  Star,
+  Zap,
+} from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation'; // ✅ Added usePathname
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
@@ -207,8 +215,8 @@ const PlanCard = ({ plan, currency }: PlanCardProps) => {
           isPopular
             ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
             : shouldFade
-            ? colorConfig.button['gray']
-            : colorConfig.button[planColor]
+              ? colorConfig.button['gray']
+              : colorConfig.button[planColor]
         }`}
       >
         <span>{children}</span>
@@ -358,7 +366,11 @@ const PlanCard = ({ plan, currency }: PlanCardProps) => {
               />
               <p className="text-sm text-gray-600">
                 <span className="font-bold text-gray-800">
-                  {feature.value == -1 ? '♾️' : feature.value}
+                  {feature.value == -1 ? (
+                    <Infinity className="w-4 h-4 text-indigo-600 inline-block align-middle" />
+                  ) : (
+                    feature.value
+                  )}
                 </span>{' '}
                 {feature.name}
               </p>
