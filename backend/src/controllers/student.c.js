@@ -19,6 +19,7 @@ import { JobInteraction } from '../models/jobInteraction.model.js';
 
 // import calculateExperience from '../utils/calculateExperience.js';
 import redisClient from '../config/redis.js';
+import { config } from '../config/config.js';
 import { uploadBufferToCloudinary } from '../middlewares/multer.js';
 import { Plan } from '../models/Plans.model.js';
 import {
@@ -28,6 +29,46 @@ import {
 } from './plan.controller.js';
 import { Purchase } from '../models/Purchase.js';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
+import {
+  notificationTemplates,
+  sendRealTimeUserNotification,
+} from '../utils/notification.utils.js';
+import TemplateManager from '../email-templates/lib/templateLoader.js';
+import path from 'path';
+import { __dirname } from '../utils/fileUploadingManaging.js';
+import { transporter } from '../utils/transporter.js';
+
+const tm = new TemplateManager({
+  baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
+});
+await tm.init();
+
+const sendTemplatedEmail = async ({
+  to,
+  templateName,
+  templateVars,
+  subjectOverride,
+}) => {
+  const { html, text } = await tm.compileWithTextFallback(
+    templateName,
+    templateVars,
+  );
+  await transporter.sendMail({
+    from: config.emailUser,
+    to,
+    subject: subjectOverride || templateVars.subject || 'ZobsAI Notification',
+    html,
+    text,
+  });
+};
+
+const sendRawEmail = async ({ to, subject, html }) =>
+  transporter.sendMail({
+    from: config.emailUser,
+    to,
+    subject,
+    html,
+  });
 
 export const updateJobPreferences = async (req, res) => {
   try {
@@ -357,20 +398,18 @@ export const getProfileCompletion = async (req, res) => {
           ),
         };
 
-        console.log(completionStatus);
-
         if (completionStatus.coreProfile) {
           await addCredits(
             studentId,
             CREDIT_EARN.PROFILE_COMPLETE_PERSONAL,
-            'profileCompleted',
+            'Core Profile Update',
           );
         }
         if (completionStatus.education) {
           await addCredits(
             studentId,
             CREDIT_EARN.PROFILE_COMPLETE_EDUCATION,
-            'profileCompleted',
+            'Education Completed',
           );
         }
 
@@ -378,7 +417,7 @@ export const getProfileCompletion = async (req, res) => {
           await addCredits(
             studentId,
             CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE,
-            'profileCompleted',
+            'Experience Completed',
           );
         }
 
@@ -386,7 +425,7 @@ export const getProfileCompletion = async (req, res) => {
           await addCredits(
             studentId,
             CREDIT_EARN.PROFILE_COMPLETE_SKILL,
-            'profileCompleted',
+            'Skills Completed',
           );
         }
 
@@ -394,7 +433,15 @@ export const getProfileCompletion = async (req, res) => {
           await addCredits(
             studentId,
             CREDIT_EARN.PROFILE_COMPLETE_PROJECT,
-            'profileCompleted',
+            'Project Completed',
+          );
+        }
+
+        if (completionStatus.jobPreferences) {
+          await addCredits(
+            studentId,
+            CREDIT_EARN.PROFILE_COMPLETE_JOB_PREFERENCES,
+            'Job Preferences Completed',
           );
         }
 
@@ -1548,10 +1595,6 @@ const normalizeProjects = (projects = []) =>
 
 /* ---------------- CONTROLLER ---------------- */
 export const completeStudentOnboarding = async (req, res) => {
-  console.log('completeStudentOnboarding');
-  console.log('req.body', req.body);
-  console.log('country', req.body.data.preferredCountries);
-
   const session = await mongoose.startSession();
   const userId = req.user?._id;
 
@@ -1691,10 +1734,40 @@ export const verifyStudentViaIdCardOrUniEmail = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
+    const savedUser = await User.findById(_id).select('email');
+
     await User.updateOne(
       { _id },
       { $set: { role: 'uni-student', accountType: 'student' } },
     );
+
+    await sendRealTimeUserNotification(
+      req.app.get('io'),
+      _id,
+      notificationTemplates.VERIFIED_STUDENT(student.fullName),
+    );
+
+    const normalizedEmail = String(savedUser.email).toLowerCase().trim();
+
+    // Send Verification Email
+    await sendTemplatedEmail({
+      to: normalizedEmail,
+      templateName: 'verified-student',
+      templateVars: {
+        name: savedUser.fullName,
+        dashboardUrl: process.env.DASHBOARD_URL,
+        supportEmail: 'support@zobsai.com',
+        brandName: 'ZobsAI',
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
+        uniEmail: student.uniEmail,
+      },
+      subjectOverride:
+        'Welcome to ZobsAI – Your AI Job Application Assistant is Here!',
+    });
+
+    redisClient.invalidateUserCache(_id.toString());
 
     return res.status(200).json({
       success: true,
@@ -1724,7 +1797,6 @@ export const activateStudentPlan = async (req, res) => {
 
     const plan = await Plan.findById(planId).lean();
 
-    console.log(plan);
     if (!plan) {
       throw new Error('Plan not found');
     }

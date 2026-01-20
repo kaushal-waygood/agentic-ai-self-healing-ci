@@ -439,7 +439,7 @@ const AppHeader = ({
   };
 
   const handleViewAllNotifications = () => {
-    router.push('/notifications');
+    router.push('/dashboard/notifications');
     setIsNotificationOpen(false);
   };
 

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea'; // Make sure to import Textarea
 import { useState } from 'react';
 import { Star } from 'lucide-react';
+import apiInstance from '@/services/api';
 
 export default function OnboardingExperienceFeedback({
   onClose,
@@ -16,8 +17,13 @@ export default function OnboardingExperienceFeedback({
   const [hover, setHover] = useState(0);
   const [feedback, setFeedback] = useState(''); // New state for text feedback
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     localStorage.setItem('onboarding_feedback_done', '1');
+    const response = await apiInstance.post('/user/feedback', {
+      rating,
+      message: feedback,
+    });
+    console.log(response);
     onClose();
   };
 

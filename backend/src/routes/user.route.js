@@ -26,7 +26,7 @@ import {
   firebaseGoogleSignup,
   getVerifiedUser,
   firebaseGoogleLogin,
-  feedback,
+  submitFeedback,
 } from '../controllers/user.controller.js';
 import {
   authMiddleware,
@@ -97,6 +97,11 @@ router.post(
 );
 
 router.post('/newsletter', subscribeToNewsletter);
-router.post('/feedback', authMiddleware, feedback);
+router.post(
+  '/feedback',
+  authMiddleware,
+  upload.single('attachment'),
+  submitFeedback,
+);
 
 export default router;

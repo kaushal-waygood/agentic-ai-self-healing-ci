@@ -3,7 +3,7 @@ import createHttpError from 'http-errors';
 import * as notificationService from '../services/notification.service.js';
 
 // Get user notifications
-export async function getUserNotifications(req, res, next) {
+export async function getUserNotifications(req, res) {
   try {
     const userId = req.user._id;
     const options = {
@@ -25,11 +25,14 @@ export async function getUserNotifications(req, res, next) {
       data: result,
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 }
 
-export async function markAsRead(req, res, next) {
+export async function markAsRead(req, res) {
   try {
     const { notificationId } = req.params;
     const userId = req.user._id;
@@ -48,12 +51,15 @@ export async function markAsRead(req, res, next) {
       data: notification,
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 }
 
 // Mark all notifications as read
-export async function markAllAsRead(req, res, next) {
+export async function markAllAsRead(req, res) {
   try {
     const userId = req.user._id;
 
@@ -64,12 +70,15 @@ export async function markAllAsRead(req, res, next) {
       message: 'All notifications marked as read',
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 }
 
 // Delete notification
-export async function deleteNotification(req, res, next) {
+export async function deleteNotification(req, res) {
   try {
     const { notificationId } = req.params;
     const userId = req.user._id;
@@ -88,12 +97,15 @@ export async function deleteNotification(req, res, next) {
       message: 'Notification deleted successfully',
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 }
 
 // Get unread count
-export async function getUnreadCount(req, res, next) {
+export async function getUnreadCount(req, res) {
   try {
     const userId = req.user._id;
 
@@ -104,6 +116,9 @@ export async function getUnreadCount(req, res, next) {
       data: { unreadCount: count },
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 }
