@@ -100,7 +100,6 @@ export const processCVGeneration = async (
           endpoint,
         });
 
-        // B. Clean and Parse JSON
         const cleanedJsonString = rawJsonResponse
           .replace(/```json|```/g, '')
           .trim();
@@ -118,25 +117,19 @@ export const processCVGeneration = async (
           location,
         );
 
-        // D. Apply Styling / Template Wrapper
-        // This wraps the body with <head><style>...</style></head> based on templateId
         const fullHtmlDocument = wrapCVHtml(
           innerHtmlBody,
           jobTitle,
           templateId,
         );
 
-        // E. Calculate ATS Score
-        // We can use the raw JSON text or the HTML. Using JSON summary/bullets is often cleaner.
         const atsScore =
           parsedData.atsScore ||
           calculateATSScore(JSON.stringify(parsedData), jobContextString);
 
-        // F. Construct Final Data Object
-        // We maintain the 'cv' key as the HTML string for frontend compatibility.
         finalCvData = {
-          ...parsedData, // Save raw JSON data (experience, skills arrays) for future editing
-          cv: fullHtmlDocument, // The rendered HTML string (Critical for frontend iframe)
+          ...parsedData,
+          cv: fullHtmlDocument,
           atsScore: atsScore,
           atsScoreReasoning:
             parsedData.atsScoreReasoning ||
@@ -205,7 +198,7 @@ export const processCVGeneration = async (
           : notificationTemplates.CV_GENERATED_FAILED(jobTitle),
       );
 
-      return; // Stop processing
+      return;
     }
 
     // 5. Handle Success: Database Update

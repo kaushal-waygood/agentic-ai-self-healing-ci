@@ -107,8 +107,8 @@ export function normalizeJobTypesForDb(apiJob) {
     apiJob.job_employment_types && Array.isArray(apiJob.job_employment_types)
       ? apiJob.job_employment_types
       : apiJob.job_employment_type
-      ? [apiJob.job_employment_type]
-      : [];
+        ? [apiJob.job_employment_type]
+        : [];
 
   return list
     .map((v) => v && v.toString().trim())
@@ -311,12 +311,7 @@ export async function fetchExternalJobs(
     });
 
     const headers = response.headers;
-    console.log('RapidAPI usage:', {
-      limit: headers['x-ratelimit-requests-limit'],
-      remaining: headers['x-ratelimit-requests-remaining'],
-      reset: headers['x-ratelimit-requests-reset'],
-      creditsRemaining: headers['x-rapidapi-billing-credits-remaining'],
-    });
+
     return response?.data?.data || [];
   } catch (e) {
     console.error(
@@ -446,7 +441,6 @@ Company: ${j.company}
 
   try {
     const result = await Job.bulkWrite(ops, { ordered: false });
-    console.log(result);
   } catch (e) {
     const dupesOnly = e?.writeErrors?.every((w) => w?.code === 11000);
     if (!dupesOnly) throw e;
@@ -805,8 +799,6 @@ export async function fetchAndUpsertMoreExternalJobs(profile) {
 
   const allExternalJobs = [];
 
-  console.log('profile.location', profile.location);
-
   for (const q of queries) {
     const apiJobs = await fetchExternalJobsCached(
       q,
@@ -829,8 +821,6 @@ export async function fetchAndUpsertMoreExternalJobs(profile) {
   }
 
   if (!allExternalJobs.length) return;
-
-  console.log('allExternalJobs', allExternalJobs.length);
 
   // IMPORTANT: no arbitrary slice here
   const deduped = dedupeByTitleCompany(allExternalJobs);

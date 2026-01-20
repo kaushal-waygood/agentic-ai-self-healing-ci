@@ -1936,6 +1936,10 @@ export const getProfileBasedRecommendedJobs = async (req, res) => {
       jobs = await getLocalRecommendedJobs(profile);
     }
 
+    jobs.sort((a, b) => {
+      return new Date(b.jobPostedAt) - new Date(a.jobPostedAt);
+    });
+
     return res.json({
       success: true,
       count: jobs.length,
