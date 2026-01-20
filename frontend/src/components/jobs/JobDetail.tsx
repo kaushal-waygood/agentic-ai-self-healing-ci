@@ -311,8 +311,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
     return false;
   };
-  console.log('job', job);
-  console.log(job.description);
+
   const renderJobDescription = (text: string) => {
     const lines = text.split('\n');
 
