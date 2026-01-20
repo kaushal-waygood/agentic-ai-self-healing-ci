@@ -184,6 +184,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import apiInstance from '@/services/api';
 
 // 1. Constants
 const FEEDBACK_CATEGORIES = [
@@ -263,13 +264,16 @@ const FeedbackButton = () => {
     dataToSend.append('message', formData.message);
     dataToSend.append('path', pathname);
     if (attachment) {
-      dataToSend.append('file', attachment);
+      dataToSend.append('attachment', attachment);
     }
     console.log('data to send', dataToSend);
     // Simulate API call
     try {
       console.log('Submitting:', Object.fromEntries(dataToSend)); // Debug log
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const res = await apiInstance.post('/user/feedback', dataToSend);
+      console.log('Response:', res.data);
 
       // Reset Form
       setIsOpen(false);
