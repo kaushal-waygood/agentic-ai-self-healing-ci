@@ -1129,15 +1129,13 @@ export const createTailoredApply = async (req, res) => {
   try {
     let jobDetails;
 
+    // 1. Resolve Job Details
     if (jobId) {
       if (!mongoose.Types.ObjectId.isValid(jobId)) {
         return res.status(400).json({ error: 'Invalid Job ID format' });
       }
-
       const jobFromDb = await Job.findById(jobId).lean();
-      if (!jobFromDb) {
-        return res.status(404).json({ error: 'Job not found in database' });
-      }
+      if (!jobFromDb) return res.status(404).json({ error: 'Job not found' });
 
       jobDetails = {
         title: jobFromDb.title || 'Untitled',
@@ -1153,78 +1151,70 @@ export const createTailoredApply = async (req, res) => {
     } else if (req.files?.jobDescriptionFile?.[0]) {
       const jdFile = req.files.jobDescriptionFile[0];
       const extractedText = await extractTextFromFile(jdFile);
-
       jobDetails = {
         title: jobTitle || 'Untitled Role',
-        company: companyName || 'Unknown Company',
+        company: companyName || 'Unknown',
         description: extractedText,
       };
     } else {
-      return res.status(400).json({
-        error: 'Job info required: jobId, manual JD, or JD file upload',
-      });
+      return res.status(400).json({ error: 'Job info required.' });
     }
 
+    // 2. Resolve Student Data
     let studentData = null;
     let cvContent = null;
-
     const wantsProfile = useProfile === 'true' || useProfile === true;
 
     if (wantsProfile) {
-      const student = await Student.findById(_id).lean();
+      // Fetch everything to prevent empty arrays
+      const [student, edu, exp, skills, proj] = await Promise.all([
+        Student.findById(_id).lean(),
+        StudentEducation.find({ student: _id }).lean(),
+        StudentExperience.find({ student: _id }).lean(),
+        StudentSkill.find({ student: _id }).lean(),
+        StudentProject.find({ student: _id }).lean(),
+      ]);
 
-      if (!student) {
-        return res.status(404).json({ error: 'Student not found' });
-      }
-      studentData = student;
+      if (!student) return res.status(404).json({ error: 'Student not found' });
+
+      studentData = {
+        ...student,
+        education: edu || [],
+        experience: exp || [],
+        skills: skills || [],
+        projects: proj || [],
+      };
     } else if (savedCVId) {
       const savedCV = await StudentHtmlCV.findOne({
         _id: savedCVId,
         student: _id,
       });
-      if (!savedCV) {
+      if (!savedCV)
         return res.status(404).json({ error: 'Saved CV not found' });
-      }
       cvContent = savedCV.html;
-      if (!cvContent) {
-        return res.status(422).json({ error: 'Saved CV has no content' });
-      }
-    } else if (req.file) {
-      const extractedText = await extractTextFromFile(jdFile); // PDF/DOC parser
-      jobDetails = {
-        title: jobTitle || 'Untitled Role',
-        company: companyName || 'Unknown Company',
-        description: extractedText,
-      };
-    } else {
-      return res.status(400).json({
-        error:
-          'A CV source is required (useProfile=true, savedCVId, or file upload).',
-      });
+    } else if (req.files?.cv?.[0]) {
+      cvContent = await extractTextFromFile(req.files.cv[0]);
     }
 
+    if (!studentData && !cvContent) {
+      return res.status(400).json({ error: 'A CV source is required.' });
+    }
+
+    // 3. Create Database Entry
     const newApplication = await StudentTailoredApplication.create({
       student: _id,
-      jobId: jobId || null, // Optional if applying to external job
+      jobId: jobId || null,
       jobTitle: jobDetails.title,
       companyName: jobDetails.company,
       jobDescription: jobDetails.description,
       useProfile: wantsProfile,
       savedCVId: savedCVId || null,
-      savedCoverLetterId: savedCoverLetterId || null,
-      coverLetterText: coverLetterText || null,
-      finalTouch: finalTouch || null,
       status: 'pending',
       flag,
-      createdAt: new Date(),
     });
 
     const applicationData = {
-      job: {
-        title: jobDetails.title,
-        company: jobDetails.company,
-        description: jobDetails.description,
-      },
+      job: jobDetails,
       candidate: studentData ?? { cv: cvContent },
       coverLetter: coverLetterText || '',
       preferences: finalTouch || '',
@@ -1232,24 +1222,21 @@ export const createTailoredApply = async (req, res) => {
 
     const io = req.app.get('io');
 
+    // Trigger background process
     processTailoredApplication(
       _id,
-      newApplication._id, // Pass the new document ID
+      newApplication._id,
       applicationData,
       io,
-    ).catch((err) => console.error('Background Job Failed to Start:', err));
+    ).catch((err) => console.error('Background Job Failed:', err));
 
     return res.status(202).json({
       success: true,
-      message: 'Tailored application generation has started.',
       applicationId: newApplication._id.toString(),
     });
   } catch (error) {
     console.error('Error initiating tailored application:', error);
-    return res.status(500).json({
-      error: 'Failed to start tailored application generation',
-      details: error.message,
-    });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 

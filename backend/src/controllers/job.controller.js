@@ -862,10 +862,11 @@ export const getHostedJobsByAdmin = async (req, res) => {
     });
   }
 
-  const organizationId = new mongoose.Types.ObjectId(organization);
-  const cacheKey = `jobs:hosted:v2:${organizationId}`;
-
   try {
+    const organizationId = new mongoose.Types.ObjectId(organization);
+    const cacheKey = `jobs:hosted:v2:${organizationId}`;
+
+    // 1. Fetch Jobs (from Cache or DB)
     const jobs = await redisClient.withCache(cacheKey, 3600, async () => {
       return Job.find({
         organizationId,
@@ -875,12 +876,12 @@ export const getHostedJobsByAdmin = async (req, res) => {
         .lean();
     });
 
-    if (!jobs.length) {
+    if (!jobs || !jobs.length) {
       return res.status(200).json({ success: true, jobs: [] });
     }
 
+    // 2. Aggregate Interactions
     const jobIds = jobs.map((j) => j._id);
-
     const interactionCounts = await JobInteraction.aggregate([
       {
         $match: {
@@ -896,36 +897,49 @@ export const getHostedJobsByAdmin = async (req, res) => {
       },
     ]);
 
+    // 3. Build Interaction Map
     const interactionMap = {};
 
     for (const row of interactionCounts) {
-      const jobId = String(row._id.job);
-      interactionMap[jobId] ??= {
-        impressions: 0,
-        views: 0,
-        applied: 0,
-      };
+      // Normalize ID to string to ensure keys match
+      const jobId = row._id.job.toString();
 
-      if (row._id.type === 'IMPRESSION')
+      if (!interactionMap[jobId]) {
+        interactionMap[jobId] = { impressions: 0, views: 0, applied: 0 };
+      }
+
+      // FIXED: Removed the 'return' keywords
+      if (row._id.type === 'IMPRESSION') {
         interactionMap[jobId].impressions = row.count;
-      if (row._id.type === 'VIEW') interactionMap[jobId].views = row.count;
-      if (row._id.type === 'APPLIED') interactionMap[jobId].applied = row.count;
+      } else if (row._id.type === 'VIEW') {
+        interactionMap[jobId].views = row.count;
+      } else if (row._id.type === 'APPLIED') {
+        interactionMap[jobId].applied = row.count;
+      }
     }
 
-    const jobsWithAnalytics = jobs.map((job) => ({
-      ...job,
-      impressions: interactionMap[String(job._id)]?.impressions ?? 0,
-      jobViews: interactionMap[String(job._id)]?.views ?? 0,
-      appliedCount: interactionMap[String(job._id)]?.applied ?? 0,
-    }));
+    // 4. Merge Analytics into Job Objects
+    const jobsWithAnalytics = jobs.map((job) => {
+      const idStr = job._id.toString();
+      const stats = interactionMap[idStr];
+
+      return {
+        ...job,
+        impressions: stats?.impressions ?? 0,
+        jobViews: stats?.views ?? 0,
+        appliedCount: stats?.applied ?? 0,
+      };
+    });
 
     return res.status(200).json({
       success: true,
       jobs: jobsWithAnalytics,
     });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+    console.error('Error in getHostedJobsByAdmin:', err);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal Server Error' });
   }
 };
 
