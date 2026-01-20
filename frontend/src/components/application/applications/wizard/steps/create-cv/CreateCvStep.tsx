@@ -81,6 +81,49 @@ const SleekCvStep = ({
     return 'Job Description';
   };
 
+  const renderJobDescription = (text: string) => {
+    const lines = text.split('\n');
+
+    const isHtml = /<[a-z][\s\S]*>/i.test(text);
+    if (isHtml) {
+      // 2. If it is HTML, render it directly (bypass cleaning)
+      return (
+        <div
+          className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      );
+    }
+    return lines.map((line, index) => {
+      const trimmed = line.trim();
+      const nextLine = lines[index + 1];
+
+      if (!trimmed) {
+        return <div key={index} className="h-2" />;
+      }
+
+      // ✅ Bullet point
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        return (
+          <div
+            key={index}
+            className="ml-4 flex items-start gap-2 text-sm text-slate-600"
+          >
+            <span className="mt-1.5 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0" />
+            <span>{trimmed.replace(/^[-•]/, '').trim()}</span>
+          </div>
+        );
+      }
+
+      // ✅ Normal paragraph
+      return (
+        <p key={index} className="text-sm text-slate-600 leading-relaxed">
+          {trimmed}
+        </p>
+      );
+    });
+  };
+
   return (
     <div className=" bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-4xl mx-auto">
@@ -141,7 +184,8 @@ const SleekCvStep = ({
                         {/* Description */}
                         <div className="px-1 pb-4">
                           <div className="max-h-[280px] overflow-y-auto text-sm text-slate-600 whitespace-pre-line pr-2 border-l-2 border-blue-500 pl-3">
-                            {jobDetail.description}
+                            {/* {jobDetail.description} */}
+                            {renderJobDescription(jobDetail.description)}
                           </div>
                         </div>
                       </details>

@@ -6,7 +6,7 @@ import { sendRealTimeNotification } from '../socket/notification.socket.js';
 const router = express.Router();
 
 // All routes require authentication
-router.use(authMiddleware, isStudent);
+router.use(authMiddleware);
 
 router.get('/', notificationController.getUserNotifications);
 router.get('/unread-count', notificationController.getUnreadCount);

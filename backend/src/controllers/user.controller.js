@@ -1390,28 +1390,72 @@ export const getVerifiedUser = async (req, res) => {
   }
 };
 
-export const feedback = async (req, res) => {
-  const { feedback: message } = req.body;
-  const { _id: userId } = req.user;
-
+export const submitFeedback = async (req, res) => {
+  console.log(req.body);
   try {
-    const userEmail = await User.findById(userId).select('email').lean();
-    if (!userEmail)
-      return res
-        .status(404)
-        .json({ success: false, message: 'User not found' });
+    const { category, message, path } = req.body;
+    const { _id: userId } = req.user;
+
+    const user = await User.findById(userId).select('email').lean();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    let attachment = null;
+
+    if (req.file) {
+      // Replace this with S3 / Cloudinary later
+      attachment = {
+        fileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        url: 'TEMP_URL_OR_UPLOAD_RESULT',
+      };
+    }
+
     await Feedback.create({
-      user: userId,
+      userId,
+      email: user.email,
+      category,
       message,
-      email: userEmail.email,
+      path,
+      attachment,
+      meta: {
+        userAgent: req.headers['user-agent'],
+        ip: req.ip,
+      },
     });
-    return res
-      .status(201)
-      .json({ success: true, message: 'Feedback submitted' });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Feedback submitted',
+    });
   } catch (error) {
-    console.error('Error submitting feedback:', error);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Internal server error' });
+    console.error('Feedback error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const getAllFeedbacks = async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find().lean();
+    return res.status(200).json(feedbacks);
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getRatings = async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find().select('rating');
+    return res.status(200).json(feedbacks);
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

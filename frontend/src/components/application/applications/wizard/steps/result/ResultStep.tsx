@@ -12,6 +12,8 @@ import {
   Download,
   CheckCircle,
   Eye,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import EditableMaterial from '@/components/application/editable-material';
 import { useSelector } from 'react-redux';
@@ -301,6 +303,16 @@ const ResultStep = ({
                 />
               </div>
               <div className="flex-1 overflow-y-auto p-2 md:p-4">
+                {/* Mobile Template Trigger */}
+                <div className="lg:hidden flex justify-end mb-2">
+                  <button
+                    onClick={() => setIsTemplateOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-sm"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Templates
+                  </button>
+                </div>
                 <EditableMaterial
                   editorId="cv-editor"
                   title="CV Content"
@@ -342,7 +354,26 @@ const ResultStep = ({
             </div>
           </div>
         )}
-
+        {/* Mobile Template Drawer */}
+        {isTemplateOpen && (
+          <div className="fixed inset-0 bg-black/40 z-50 lg:hidden">
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-xl p-4 max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between mb-4">
+                <h3 className="font-semibold">Choose Template</h3>
+                <button onClick={() => setIsTemplateOpen(false)}>
+                  <X />
+                </button>
+              </div>
+              <TemplateSidebar
+                activeTemplate={selectedTemplate}
+                onSelect={(t) => {
+                  setSelectedTemplate(t);
+                  setIsTemplateOpen(false);
+                }}
+              />
+            </div>
+          </div>
+        )}
         {/* Application Email Draft Section */}
         {activeSection === 'email' && (
           <div className="bg-white rounded-lg border border-slate-200 overflow-hidden animate-fadeIn">

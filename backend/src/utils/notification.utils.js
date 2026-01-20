@@ -134,6 +134,14 @@ export const notificationTemplates = {
     category: 'system',
     actionUrl,
   }),
+
+  VERIFIED_STUDENT: () => ({
+    title: 'Student Verified',
+    message: 'Your student account has been verified successfully.',
+    type: 'success',
+    category: 'system',
+    actionUrl: '/dashboard',
+  }),
 };
 
 // Send notification to single user

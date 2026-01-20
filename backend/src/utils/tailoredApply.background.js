@@ -18,6 +18,10 @@ import { wrapCVHtml } from '../utils/cvTemplate.js';
 import { wrapEmailHtml } from '../utils/emailTemplate.js';
 import { calculateATSScore } from '../utils/atsScore.js';
 import { Student } from '../models/student.model.js';
+import { StudentEducation } from '../models/students/studentEducation.model.js';
+import { StudentExperience } from '../models/students/studentExperience.model.js';
+import { StudentSkill } from '../models/students/studentSkill.model.js';
+import { StudentProject } from '../models/students/studentProject.model.js';
 
 const stripCodeFences = (s) =>
   String(s || '')
@@ -38,48 +42,76 @@ export const processTailoredApplication = async (
     const appDoc = await StudentTailoredApplication.findById(applicationId);
     if (!appDoc) throw new Error('Application not found');
 
-    /* ---------------- Candidate normalization ---------------- */
-    const candidate =
+    const candidateRaw =
       typeof applicationData.candidate === 'string'
         ? JSON.parse(applicationData.candidate)
         : applicationData.candidate || {};
 
     const user = await Student.findById(userId).select(
-      'fullName email phone location profileImage jobRole',
+      'fullName email phone location',
     );
     if (!user) throw new Error('User not found');
-    const { fullName, email, phone, location, profileImage, jobRole } = user;
-    const slimCandidate = {
-      fullName,
-      email,
-      phone,
-      location,
-      education: ensureArray(candidate.education),
-      experience: ensureArray(candidate.experience),
-      skills: ensureArray(candidate.skills),
-      projects: ensureArray(candidate.projects),
-    };
 
-    console.log('slimCandidate', slimCandidate);
+    /* --- STEP 0: ENSURE STRUCTURED DATA --- */
+    let structuredCandidate;
+
+    // If candidateRaw has education/experience arrays, it's already structured
+    if (
+      Array.isArray(candidateRaw.experience) &&
+      candidateRaw.experience.length > 0
+    ) {
+      structuredCandidate = {
+        ...candidateRaw,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        location: user.location,
+      };
+    } else {
+      // It's a raw CV string (file upload). We must parse it first.
+      console.log(`[TAILORED APPLY] Parsing raw CV text for ${applicationId}`);
+      const parsePrompt = `
+        Extract all professional information from the following CV text. 
+        Return ONLY a JSON object with these keys: 
+        "education" (array of objects), "experience" (array of objects), "skills" (array or object), "projects" (array).
+        
+        CV TEXT:
+        ${candidateRaw.cv || JSON.stringify(candidateRaw)}
+
+        Rules: Do NOT invent data. If a section is missing, return an empty array.
+      `;
+
+      const rawParsed = await genAI(parsePrompt);
+      const parsedData = JSON.parse(stripCodeFences(rawParsed));
+
+      structuredCandidate = {
+        ...parsedData,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        location: user.location,
+      };
+    }
 
     /* ---------------- A. CV JSON generation ---------------- */
+    // Now the prompt uses the REAL facts extracted above
     const cvPrompt = generateCVPrompt(
       applicationData.job.description,
-      slimCandidate,
+      structuredCandidate,
       applicationData.preferences,
     );
 
     const rawCv = await genAI(cvPrompt);
     const parsedCv = JSON.parse(stripCodeFences(rawCv));
 
-    /* ---------------- B. HTML rendering (YOU own this) ---------------- */
+    /* ---------------- B. HTML rendering ---------------- */
     const innerHtml = renderResumeHtml(
       parsedCv,
-      candidate.profileImage,
-      fullName,
-      email,
-      phone,
-      location,
+      candidateRaw.profileImage || null,
+      user.fullName,
+      user.email,
+      user.phone,
+      user.location,
     );
 
     const fullCvHtml = wrapCVHtml(innerHtml, applicationData.job.title);
@@ -96,33 +128,29 @@ export const processTailoredApplication = async (
       cv: fullCvHtml,
       atsScore,
       atsScoreReasoning:
-        parsedCv.atsScoreReasoning ||
-        'Calculated using keyword relevance and role alignment.',
+        parsedCv.atsScoreReasoning || 'Calculated based on role alignment.',
     };
 
-    /* ---------------- C. Cover Letter ---------------- */
+    /* ---------------- C. Cover Letter & Email ---------------- */
     const clPrompt = generateCoverLetterPrompts(
       applicationData.job.title,
-      JSON.stringify(slimCandidate),
+      JSON.stringify(structuredCandidate),
       applicationData.preferences,
     );
-
     const clRaw = await genAI(clPrompt);
     const coverLetterHtml = wrapCVHtml(stripCodeFences(clRaw), 'Cover Letter');
 
-    /* ---------------- D. Email ---------------- */
     const emailPrompt = generateEmailPrompt(applicationData);
     const emailRaw = await genAI(emailPrompt);
     const emailText = processEmailResponse(emailRaw);
 
+    // Regex for Email parsing
     const subject =
       emailText.match(/SUBJECT:\s*(.+)/i)?.[1] || 'Job Application';
-
     const body =
       emailText.match(/BODY:\s*([\s\S]*?)\nSIGNATURE:/i)?.[1] || emailText;
-
     const signature =
-      emailText.match(/SIGNATURE:\s*(.+)/i)?.[1] || candidate.fullName;
+      emailText.match(/SIGNATURE:\s*(.+)/i)?.[1] || user.fullName;
 
     const applicationEmail = {
       subject,
@@ -131,7 +159,7 @@ export const processTailoredApplication = async (
       html: wrapEmailHtml(subject, body, signature),
     };
 
-    /* ---------------- E. DB Update ---------------- */
+    /* ---------------- D. DB Update ---------------- */
     await StudentTailoredApplication.findByIdAndUpdate(applicationId, {
       $set: {
         status: 'completed',
@@ -152,7 +180,7 @@ export const processTailoredApplication = async (
       io,
       userId,
       notificationTemplates.TAILORED_APPLICATION_GENERATED_SUCCESS(
-        'Your tailored application is ready',
+        'Application tailored successfully',
         applicationId,
       ),
     );
@@ -160,20 +188,14 @@ export const processTailoredApplication = async (
     console.log(`[TAILORED APPLY] Success ${applicationId}`);
   } catch (err) {
     console.error(`[TAILORED APPLY FAILED]`, err);
-
     await StudentTailoredApplication.findByIdAndUpdate(applicationId, {
-      $set: {
-        status: 'failed',
-        error: err.message,
-        completedAt: new Date(),
-      },
+      $set: { status: 'failed', error: err.message, completedAt: new Date() },
     });
-
     await sendRealTimeUserNotification(
       io,
       userId,
       notificationTemplates.TAILORED_APPLICATION_GENERATED_FAILED(
-        'Tailored application failed',
+        'Application tailored failed',
         err.message,
       ),
     );
