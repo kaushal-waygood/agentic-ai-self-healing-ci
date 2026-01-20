@@ -115,7 +115,7 @@
 //                   onChange={(e) =>
 //                     setFormData({ ...formData, category: e.target.value })
 //                   }
-//                   className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
+//                   className="w-full p-4 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
 //                 >
 //                   {FEEDBACK_CATEGORIES.map((cat) => (
 //                     <option key={cat} value={cat}>
@@ -137,13 +137,13 @@
 //                     setFormData({ ...formData, message: e.target.value })
 //                   }
 //                   placeholder="Please describe the issue in detail..."
-//                   className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none resize-none transition-all"
+//                   className="w-full p-4 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none resize-none transition-all"
 //                 />
 //               </div>
 
 //               <Button
 //                 disabled={isSubmitting}
-//                 className="w-full py-7 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-md gap-3 shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]"
+//                 className="w-full py-7 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-md gap-3 shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]"
 //               >
 //                 {isSubmitting ? (
 //                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -265,7 +265,7 @@ const FeedbackButton = () => {
     if (attachment) {
       dataToSend.append('file', attachment);
     }
-    console.log('data to send', dataToSend);
+
     // Simulate API call
     try {
       console.log('Submitting:', Object.fromEntries(dataToSend)); // Debug log
@@ -288,7 +288,27 @@ const FeedbackButton = () => {
       <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[99]">
         <button
           onClick={() => setIsOpen(true)}
-          className="group flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-1 py-3 sm:px-3 sm:py-6 rounded-l-2xl shadow-[-4px_0_20px_rgba(79,70,229,0.3)] transition-all duration-300 translate-x-1 hover:translate-x-0 active:scale-95"
+          className="
+    group flex items-center 
+    /* BACKGROUND & GLASS EFFECT */
+    bg-blue-700/20 backdrop-blur-xs  
+    border-y border-l border-blue-500/30
+    
+    /* HOVER STATE */
+    hover:bg-blue-600 
+    
+    /* TEXT COLORS */
+    text-blue-900 hover:text-white
+    
+    /* SPACING & SHAPE */
+    px-1 py-3 sm:px-2 sm:py-4 
+    rounded-l-2xl 
+    
+    /* ANIMATION & SHADOW */
+    shadow-[-4px_0_20px_rgba(37,99,235,0.2)] 
+    transition-all duration-300 
+    translate-x-1 hover:translate-x-0 active:scale-95
+  "
           style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
         >
           <div className="flex flex-col items-center gap-3">
@@ -309,9 +329,9 @@ const FeedbackButton = () => {
           />
 
           {/* Modal Card */}
-          <div className="relative bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="relative bg-white w-full max-w-md rounded-lg overflow-hidden animate-in fade-in zoom-in duration-300">
             {/* Header */}
-            <div className="bg-indigo-600 p-8 text-white relative">
+            <div className="bg-header-gradient-primary p-4 text-white relative">
               <button
                 onClick={() => setIsOpen(false)}
                 className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -344,7 +364,7 @@ const FeedbackButton = () => {
                       category: e.target.value as any,
                     })
                   }
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
                 >
                   {FEEDBACK_CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
@@ -367,7 +387,7 @@ const FeedbackButton = () => {
                     setFormData({ ...formData, message: e.target.value })
                   }
                   placeholder="Please describe the issue in detail..."
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none resize-none transition-all"
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none resize-none transition-all"
                 />
               </div>
 
@@ -396,7 +416,7 @@ const FeedbackButton = () => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
+                    className="w-full py-3 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center gap-2 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
                   >
                     <Paperclip className="w-4 h-4 group-hover:scale-110 transition-transform" />
                     <span className="text-sm font-medium">
@@ -405,9 +425,9 @@ const FeedbackButton = () => {
                   </button>
                 ) : (
                   // File Preview State
-                  <div className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                  <div className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
                     <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="bg-white p-2 rounded-xl shadow-sm">
+                      <div className="bg-white p-2 rounded-lg shadow-sm">
                         {attachment.type === 'application/pdf' ? (
                           <FileText className="w-5 h-5 text-red-500" />
                         ) : (
@@ -438,7 +458,7 @@ const FeedbackButton = () => {
               {/* Submit Button */}
               <Button
                 disabled={isSubmitting}
-                className="w-full py-7 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-md gap-3 shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]"
+                className="w-full py-7 bg-buttonPrimary hover:bg-blue-700 text-white rounded-lg font-bold text-md gap-3  transition-all active:scale-[0.98]"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
