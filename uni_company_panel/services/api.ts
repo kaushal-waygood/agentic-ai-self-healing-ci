@@ -6,15 +6,15 @@ export const FRONTEND_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
-    ? 'https://dev.zobsai.com'
-    : 'http://127.0.0.1:3000';
+      ? 'https://dev.zobsai.com'
+      : 'http://127.0.0.1:3002';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
-    ? 'https://api.dev.zobsai.com'
-    : 'http://127.0.0.1:8080';
+      ? 'https://api.dev.zobsai.com'
+      : 'http://127.0.0.1:8080';
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
