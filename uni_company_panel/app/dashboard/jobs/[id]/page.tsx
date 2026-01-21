@@ -22,6 +22,8 @@ import {
   Banknote,
   Building2,
   CalendarDays,
+  ArrowBigLeft,
+  ArrowRight,
 } from 'lucide-react';
 import { timeAgo } from '@/utils/TimeAgo';
 import QuillJs from '@/components/rich-text/QuillJs';
@@ -54,7 +56,7 @@ const Page = () => {
   if (loading)
     return (
       <div className="p-8 flex justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>
+        <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
       </div>
     );
   if (!job)
@@ -99,12 +101,20 @@ const Page = () => {
             <span className="font-medium">{job.company}</span>
             <span>•</span>
             <span className="text-sm">Posted {timeAgo(job.createdAt)}</span>
+            <Button variant="link">
+              <Link
+                href={`https://zobsai.com/jobs/${job.slug}`}
+                // href={`/zobsai/jobs/${job.slug}`}
+                target="_blank"
+              >
+                View on Page
+              </Link>
+              <ArrowRight />
+            </Button>
           </div>
-        </div>
 
-        <Link href={`${FRONTEND_BASE_URL}/jobs/${job.slug}`} target="_blank">
-          {job.slug}
-        </Link>
+          <div className=""></div>
+        </div>
 
         {/* KPI Stats */}
         <div className="flex gap-4">
@@ -135,15 +145,15 @@ const Page = () => {
         {/* 2. LEFT COLUMN: MAIN CONTENT */}
         <div className="lg:col-span-2 space-y-8">
           {/* DESCRIPTION */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-lg overflow-hidden">
             <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-purple-500" /> Job Description
+                <FileText className="w-5 h-5 text-blue-500" /> Job Description
               </h2>
               {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-1.5 text-sm text-purple-600 hover:bg-purple-50 px-3 py-1.5 rounded-md transition-colors font-medium"
+                  className="flex items-center gap-1.5 text-sm text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-md transition-colors font-medium"
                 >
                   <Pencil size={14} /> Edit
                 </button>
@@ -170,14 +180,22 @@ const Page = () => {
             <div className="p-6">
               {!isEditing ? (
                 <div
-                  className="prose prose-purple max-w-none text-gray-600"
+                  className="prose prose-blue max-w-none text-gray-600"
                   dangerouslySetInnerHTML={{ __html: job.description }}
                 />
               ) : (
-                <QuillJs
-                  content={draftDescription}
-                  onContentChange={setDraftDescription}
-                />
+                <div
+                  className={
+                    isEditing
+                      ? 'min-h-[500px] [&_.ql-container]:min-h-[450px]'
+                      : ''
+                  }
+                >
+                  <QuillJs
+                    content={draftDescription}
+                    onContentChange={setDraftDescription}
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -187,7 +205,7 @@ const Page = () => {
             job.qualifications?.length > 0) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {job.responsibilities?.length > 0 && (
-                <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-6">
+                <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6">
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-blue-500" />{' '}
                     Responsibilities
@@ -207,7 +225,7 @@ const Page = () => {
               )}
 
               {job.qualifications?.length > 0 && (
-                <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-6">
+                <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6">
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-500" />{' '}
                     Qualifications
@@ -230,10 +248,10 @@ const Page = () => {
 
           {/* SCREENING QUESTIONS */}
           {job.screeningQuestions && job.screeningQuestions.length > 0 && (
-            <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
-              <div className="p-5 border-b border-gray-50 bg-purple-50/30">
+            <div className="bg-white border border-gray-100 shadow-sm rounded-lg overflow-hidden">
+              <div className="p-5 border-b border-gray-50 bg-blue-50/30">
                 <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5 text-purple-600" /> Screening
+                  <HelpCircle className="w-5 h-5 text-blue-600" /> Screening
                   Questions
                 </h2>
               </div>
@@ -243,7 +261,7 @@ const Page = () => {
                     key={i}
                     className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 border border-gray-100"
                   >
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-700 text-xs font-bold shrink-0">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
                       {i + 1}
                     </span>
                     <div className="space-y-1">
@@ -267,7 +285,7 @@ const Page = () => {
 
           {/* CANDIDATE ASSIGNMENT */}
           {job.assignment && job.assignment.isEnabled && (
-            <div className="bg-white border border-blue-100 shadow-sm rounded-xl overflow-hidden">
+            <div className="bg-white border border-blue-100 shadow-sm rounded-lg overflow-hidden">
               <div className="p-5 border-b border-blue-50 bg-blue-50/30">
                 <h2 className="font-semibold text-blue-900 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-blue-600" /> Candidate
@@ -314,7 +332,7 @@ const Page = () => {
         {/* 3. RIGHT COLUMN: META SIDEBAR */}
         <div className="space-y-6">
           {/* Info Card */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-6 space-y-6">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6 space-y-6">
             <h3 className="font-semibold text-gray-800 mb-4">Job Details</h3>
 
             <SidebarItem
@@ -368,7 +386,7 @@ const Page = () => {
               </h4>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 {job.applyMethod?.method === 'EMAIL' ? (
-                  <Mail className="w-5 h-5 text-purple-500" />
+                  <Mail className="w-5 h-5 text-blue-500" />
                 ) : (
                   <Globe className="w-5 h-5 text-blue-500" />
                 )}
@@ -396,7 +414,7 @@ const Page = () => {
 
           {/* Tags Card */}
           {job.tags && job.tags.length > 0 && (
-            <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-6">
+            <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6">
               <h3 className="font-semibold text-gray-800 mb-4">Tags</h3>
               <div className="flex flex-wrap gap-2">
                 {job.tags.map((tag: string, i: number) => (
@@ -427,8 +445,9 @@ const StatBadge = ({
   value: number;
   icon: React.ReactNode;
 }) => (
-  <div className="flex items-center gap-2 flex-col">
-    <span className="text-xl font-bold text-gray-800 leading-none">
+  <div className="flex flex-col items-center justify-center bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm min-w-[80px]">
+    <div className="text-blue-600 mb-1">{icon}</div>
+    <span className="text-lg font-bold text-gray-800 leading-none">
       {value ?? 0}
     </span>
     <span className="text-[12px] uppercase text-gray-400 font-semibold tracking-wide">

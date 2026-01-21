@@ -851,7 +851,6 @@ export const getMannualyJobs = async (req, res) => {
     });
   }
 };
-
 export const getHostedJobsByAdmin = async (req, res) => {
   const { organization } = req.user;
 
