@@ -124,6 +124,7 @@ export default function DocumentsPage() {
     dispatch(savedStudentResumeRequest());
     dispatch(savedStudentCoverLetterRequest());
   }, [dispatch]);
+
   const fetchAllData = async () => {
     setIsLoading(true);
     try {
