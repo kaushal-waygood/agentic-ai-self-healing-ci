@@ -2,7 +2,7 @@
 
 import { useJobStore } from '@/store/job.store';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Eye,
   MousePointerClick,
@@ -37,6 +37,7 @@ const Page = () => {
   const { id } = useParams<{ id: string }>();
   const { job, getSingleHostedJobs, updateJobDescription, loading } =
     useJobStore();
+  const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
   const [draftDescription, setDraftDescription] = useState('');
@@ -117,21 +118,26 @@ const Page = () => {
 
         {/* KPI Stats */}
         <div className="flex gap-4">
-          <StatBadge
-            label="Impressions"
-            value={job.impressions}
-            icon={<Eye className="w-4 h-4" />}
-          />
-          <StatBadge
-            label="Views"
-            value={job.jobViews}
-            icon={<MousePointerClick className="w-4 h-4" />}
-          />
-          <StatBadge
-            label="Applied"
-            value={job.appliedCount}
-            icon={<FileText className="w-4 h-4" />}
-          />
+          <Button variant="outline" className="h-full w-[100px] p-2">
+            <StatBadge
+              label="Views"
+              value={job.jobViews}
+              icon={<MousePointerClick className="w-4 h-4" />}
+            />
+          </Button>
+          <Button
+            variant="outline"
+            className="h-full w-[100px] p-2"
+            onClick={() => {
+              router.push(`/dashboard/jobs/${job.slug}/applications`);
+            }}
+          >
+            <StatBadge
+              label="Applied"
+              value={job.appliedCount}
+              icon={<FileText className="w-4 h-4" />}
+            />
+          </Button>
         </div>
       </div>
 
@@ -444,7 +450,7 @@ const StatBadge = ({
     <span className="text-lg font-bold text-gray-800 leading-none">
       {value ?? 0}
     </span>
-    <span className="text-[10px] uppercase text-gray-400 font-semibold tracking-wide">
+    <span className="text-[12px] uppercase text-gray-400 font-semibold tracking-wide">
       {label}
     </span>
   </div>
