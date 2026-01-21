@@ -124,7 +124,7 @@ const DashboardPage = () => {
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-blue-600">
             Dashboard Overview
           </h1>
           <p className="text-gray-600 mt-1">
@@ -143,7 +143,7 @@ const DashboardPage = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
         {stats.map((stat) => (
           <Card key={stat.title} className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6">

@@ -35,7 +35,6 @@ import {
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress'; // Ensure you have this or use a simple div
 import {
   Loader2,
   Building2,
@@ -68,8 +67,8 @@ const QuillJs = dynamic(() => import('@/components/rich-text/QuillJs'), {
 const jobSchema = z
   .object({
     // Step 1: Overview
-    title: z.string().min(1, 'Job title is required'),
-    company: z.string().min(1, 'Company name is required'),
+    title: z.string().min(1, 'Job title is requiblue'),
+    company: z.string().min(1, 'Company name is requiblue'),
     description: z
       .string()
       .min(10, 'Description must be at least 10 characters'),
@@ -99,14 +98,14 @@ const jobSchema = z
         z.object({
           question: z.string().min(1, 'Question cannot be empty'),
           type: z.enum(['text', 'number', 'boolean', 'date']),
-          required: z.boolean().default(true),
+          requiblue: z.boolean().default(true),
         }),
       )
       .optional(),
 
     // Step 4: Screening
     applyEmail: z.string().email('Please enter a valid email'),
-    resumeRequired: z.boolean(),
+    resumeRequiblue: z.boolean(),
     includeAssignment: z.boolean().default(false),
     assignmentType: z.enum(['MANUAL', 'FILE']).optional(),
     assignmentQuestion: z.string().optional(),
@@ -119,13 +118,13 @@ const jobSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['city'],
-          message: 'City is required for on-site jobs',
+          message: 'City is requiblue for on-site jobs',
         });
       if (!data.country)
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['country'],
-          message: 'Country is required for on-site jobs',
+          message: 'Country is requiblue for on-site jobs',
         });
     }
 
@@ -200,15 +199,15 @@ const NewJobPost = () => {
 
   const THEME = {
     glassCard:
-      'bg-white/90 backdrop-blur-xl border-0 shadow-2xl shadow-purple-500/10',
+      'bg-white/90 backdrop-blur-xl border-0 shadow-2xl shadow-blue-500/10',
     gradientText:
-      'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent',
+      'bg-gradient-to-r from-blue-600 via-blue-600 to-pink-600 bg-clip-text text-transparent',
     gradientBtn:
-      'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 transform hover:scale-[1.02]',
+      'bg-gradient-to-r from-blue-600 via-blue-600 to-pink-600 text-white hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 transform hover:scale-[1.02]',
     inputFocus:
-      'focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:border-transparent transition-all duration-300',
+      'focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:border-transparent transition-all duration-300',
     sectionIcon:
-      'p-2 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg text-purple-600 mr-3',
+      'p-2 bg-gradient-to-br from-blue-50 to-blue-50 rounded-lg text-blue-600 mr-3',
   };
 
   const form = useForm<JobFormType>({
@@ -233,7 +232,7 @@ const NewJobPost = () => {
       experience: '',
       tags: '',
       screeningQuestions: [],
-      resumeRequired: true,
+      resumeRequiblue: true,
       remote: false,
       includeAssignment: false,
       assignmentType: 'MANUAL',
@@ -307,7 +306,7 @@ const NewJobPost = () => {
             }`
           : null,
         country: data.country,
-        resumeRequired: data.resumeRequired,
+        resumeRequiblue: data.resumeRequiblue,
         remote: data.remote,
         location: data.remote
           ? null
@@ -374,35 +373,35 @@ const NewJobPost = () => {
   ];
 
   const addQuestion = (text: string, type: any) => {
-    append({ question: text, type: type, required: true });
+    append({ question: text, type: type, requiblue: true });
   };
 
   const CurrentIcon = STEPS[currentStep].icon;
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-blue-50/50 via-purple-50/50 to-pink-50/50 flex flex-col items-center">
+    <div className="min-h-screen p-4 md:px-8 flex flex-col ">
       {/* Header */}
-      <div className="mb-8 text-center space-y-2">
-        <h1 className={`text-4xl font-bold ${THEME.gradientText}`}>
+      <div className="mb-8  ">
+        <h1 className={`text-3xl font-bold text-blue-600`}>
           Create Job Posting
         </h1>
-        <p className="text-gray-500">
+        <p className="text-gray-600">
           Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].name}
         </p>
       </div>
 
-      <Card className={`w-full max-w-3xl ${THEME.glassCard} overflow-visible`}>
+      <Card className={`w-full  ${THEME.glassCard} overflow-visible`}>
         {/* Progress Bar */}
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-100 rounded-t-xl overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 transition-all duration-500 ease-out"
+            className="h-full bg-blue-600 transition-all duration-500 ease-out"
             style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
           />
         </div>
 
-        <CardHeader className="border-b border-gray-100 bg-white/50 pb-6 pt-8">
+        <CardHeader className="border-b border-gray-100 bg-white/50 ">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
               <CurrentIcon className="w-6 h-6" />
             </div>
             <div>
@@ -416,13 +415,13 @@ const NewJobPost = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="p-6 md:p-8 min-h-[400px]">
+        <CardContent className="p-6 md:p-4 ">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="">
               {/* --- STEP 0: JOB OVERVIEW --- */}
-              {currentStep === 0 && (
+              {/* {currentStep === 0 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <FormField
                       control={form.control}
                       name="title"
@@ -459,7 +458,6 @@ const NewJobPost = () => {
                     />
                   </div>
 
-                  {/* Description */}
                   <FormField
                     control={form.control}
                     name="description"
@@ -479,15 +477,14 @@ const NewJobPost = () => {
                     )}
                   />
 
-                  {/* Location Logic */}
-                  <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100 space-y-4">
+                  <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 space-y-4">
                     <FormField
                       control={form.control}
                       name="remote"
                       render={({ field }) => (
                         <FormItem className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <FormLabel className="text-base text-purple-900">
+                            <FormLabel className="text-base text-blue-900">
                               Remote Position?
                             </FormLabel>
                           </div>
@@ -495,7 +492,7 @@ const NewJobPost = () => {
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-purple-600"
+                              className="data-[state=checked]:bg-blue-600"
                             />
                           </FormControl>
                         </FormItem>
@@ -503,7 +500,7 @@ const NewJobPost = () => {
                     />
 
                     {!remote && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 animate-in fade-in">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 animate-in fade-in">
                         <FormField
                           control={form.control}
                           name="city"
@@ -542,11 +539,143 @@ const NewJobPost = () => {
                     )}
                   </div>
                 </div>
-              )}
+              )} */}
 
+              {currentStep === 0 && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                  {/* Main Two-Column Container */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    {/* LEFT COLUMN: Inputs & Location Logic */}
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Job Title *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="e.g. Senior Frontend Dev"
+                                  {...field}
+                                  className={THEME.inputFocus}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="company"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Company Name *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="e.g. Acme Inc."
+                                  {...field}
+                                  className={THEME.inputFocus}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {/* Location Logic Section */}
+                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="remote"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center justify-between">
+                              <FormLabel className="text-base text-blue-900">
+                                Remote Position?
+                              </FormLabel>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  className="data-[state=checked]:bg-blue-600"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        {!remote && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 animate-in fade-in">
+                            <FormField
+                              control={form.control}
+                              name="city"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>City *</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      className="bg-white"
+                                      placeholder="New York"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="country"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Country *</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      className="bg-white"
+                                      placeholder="USA"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: Description Editor */}
+                    <div className="h-full">
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col h-full">
+                            <FormLabel>Job Description *</FormLabel>
+                            <FormControl>
+                              {/* Set a specific min-height or height here. 
+                   The [&_.ql-editor]:min-h-[300px] targets the inner Quill area.
+                */}
+                              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex-grow [&_.ql-editor]:min-h-[320px]">
+                                <QuillJs
+                                  content={field.value}
+                                  onContentChange={field.onChange}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* --- STEP 1: REQUIREMENTS --- */}
               {currentStep === 1 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-6  animate-in fade-in slide-in-from-right-4 duration-300">
                   <FormField
                     control={form.control}
                     name="responsibilities"
@@ -770,7 +899,7 @@ const NewJobPost = () => {
 
                     <FormField
                       control={form.control}
-                      name="resumeRequired"
+                      name="resumeRequiblue"
                       render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3 bg-white h-[46px] mt-8">
                           <div className="space-y-0.5">
@@ -794,7 +923,7 @@ const NewJobPost = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                          <MessageSquare className="w-5 h-5 text-purple-600" />
+                          <MessageSquare className="w-5 h-5 text-blue-600" />
                           Applicant Questions
                         </h3>
                         <p className="text-sm text-gray-500">
@@ -813,7 +942,7 @@ const NewJobPost = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => addQuestion(q.text, q.type)}
-                          className="text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
                         >
                           <Plus className="w-3 h-3 mr-1" />{' '}
                           {q.text.length > 30
@@ -883,7 +1012,7 @@ const NewJobPost = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => remove(index)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -899,7 +1028,7 @@ const NewJobPost = () => {
                             type="button"
                             variant="link"
                             onClick={() => addQuestion('', 'text')}
-                            className="text-purple-600"
+                            className="text-blue-600"
                           >
                             Add Custom Question
                           </Button>
@@ -1039,7 +1168,7 @@ const NewJobPost = () => {
             <Button
               onClick={form.handleSubmit(onSubmit)}
               disabled={isSubmitting}
-              className={`px-8 ${THEME.gradientBtn}`}
+              className={`px-8 bg-blue-600 hover:bg-blue-700 cursor-pointer hover:scale-105  `}
             >
               {isSubmitting ? (
                 <>
@@ -1055,7 +1184,7 @@ const NewJobPost = () => {
           ) : (
             <Button
               onClick={handleNext}
-              className={`px-8 ${THEME.gradientBtn}`}
+              className={`px-8 bg-blue-600 hover:bg-blue-700 cursor-pointer hover:scale-105  `}
             >
               Next Step <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
