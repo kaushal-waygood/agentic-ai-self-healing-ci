@@ -21,6 +21,7 @@ import {
   updateJobDescription,
   applyJob,
   getHostedJobsByAdmin,
+  getHostedJobCandidates,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -74,6 +75,12 @@ router.get('/external', getRapidJobs);
 router.get('/employment-types', getAllEmploymentTypes);
 router.get('/experience-levels', getAllExperiences);
 router.get('/hosted/jobs/job-admin', authMiddleware, getHostedJobsByAdmin);
+router.get(
+  '/hosted/jobs/candidates/:jobId',
+  authMiddleware,
+  isAnyAdmin,
+  getHostedJobCandidates,
+);
 
 router.get('/:jobId', getSingleJobDetail);
 router.patch('/status/:jobId', authMiddleware, isAnyAdmin, toggleJobStatus);

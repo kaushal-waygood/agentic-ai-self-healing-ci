@@ -942,6 +942,62 @@ export const getHostedJobsByAdmin = async (req, res) => {
   }
 };
 
+export const getHostedJobCandidates = async (req, res) => {
+  const { jobId } = req.params;
+  const { organization } = req.user;
+
+  console.log(jobId, organization);
+
+  try {
+    // 1. Security Check: Ensure this job belongs to the admin's organization
+    const job = await Job.findOne({
+      slug: jobId,
+      organizationId: organization,
+    }).select('_id');
+
+    console.log(job);
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found or unauthorized access',
+      });
+    }
+
+    // 2. Fetch Applications
+    // We populate 'student' to get details like name, email, and profile picture
+    const applications = await AppliedJob.find({ job: job._id })
+      .populate({
+        path: 'student',
+        select: 'fullName email profilePicture university graduationYear phone',
+      })
+      .sort({ createdAt: -1 }) // Show most recent applications first
+      .lean();
+
+    // 3. Return candidates with their application details
+    return res.status(200).json({
+      success: true,
+      count: applications.length,
+      candidates: applications.map((app) => ({
+        applicationId: app._id,
+        status: app.status,
+        applicationMethod: app.applicationMethod,
+        appliedAt: app.createdAt,
+        cvLink: app.cvLink,
+        coverLetterLink: app.coverLetterLink,
+        screeningAnswers: app.screeningAnswers,
+        student: app.student, // This contains the populated student object
+      })),
+    });
+  } catch (error) {
+    console.error('Error in getHostedJobCandidates:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+};
+
 export const updateJobDescription = async (req, res) => {
   const { jobId } = req.params;
   const { description } = req.body;
