@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { FRONTEND_BASE_URL } from '@/services/api';
+import { Button } from '@/components/ui/button';
 
 const Page = () => {
   const { id } = useParams<{ id: string }>();
@@ -116,11 +117,16 @@ const Page = () => {
             value={job.jobViews}
             icon={<MousePointerClick className="w-4 h-4" />}
           />
-          <StatBadge
-            label="Applied"
-            value={job.appliedCount}
-            icon={<FileText className="w-4 h-4" />}
-          />
+          <Button
+            variant="outline"
+            className="w-full h-10 flex items-center gap-2"
+          >
+            <StatBadge
+              label="Applied"
+              value={job.appliedCount}
+              icon={<FileText className="w-4 h-4" />}
+            />
+          </Button>
         </div>
       </div>
 
