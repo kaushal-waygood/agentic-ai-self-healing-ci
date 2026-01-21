@@ -2,7 +2,7 @@
 
 import { useJobStore } from '@/store/job.store';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Eye,
   MousePointerClick,
@@ -35,6 +35,7 @@ const Page = () => {
   const { id } = useParams<{ id: string }>();
   const { job, getSingleHostedJobs, updateJobDescription, loading } =
     useJobStore();
+  const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
   const [draftDescription, setDraftDescription] = useState('');
@@ -107,19 +108,19 @@ const Page = () => {
 
         {/* KPI Stats */}
         <div className="flex gap-4">
-          <StatBadge
-            label="Impressions"
-            value={job.impressions}
-            icon={<Eye className="w-4 h-4" />}
-          />
-          <StatBadge
-            label="Views"
-            value={job.jobViews}
-            icon={<MousePointerClick className="w-4 h-4" />}
-          />
+          <Button variant="outline" className="h-full w-[100px] p-2">
+            <StatBadge
+              label="Views"
+              value={job.jobViews}
+              icon={<MousePointerClick className="w-4 h-4" />}
+            />
+          </Button>
           <Button
             variant="outline"
-            className="w-full h-10 flex items-center gap-2"
+            className="h-full w-[100px] p-2"
+            onClick={() => {
+              router.push(`/dashboard/jobs/${job.slug}/applications`);
+            }}
           >
             <StatBadge
               label="Applied"
@@ -426,12 +427,11 @@ const StatBadge = ({
   value: number;
   icon: React.ReactNode;
 }) => (
-  <div className="flex flex-col items-center justify-center bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm min-w-[80px]">
-    <div className="text-purple-600 mb-1">{icon}</div>
-    <span className="text-lg font-bold text-gray-800 leading-none">
+  <div className="flex items-center gap-2 flex-col">
+    <span className="text-xl font-bold text-gray-800 leading-none">
       {value ?? 0}
     </span>
-    <span className="text-[10px] uppercase text-gray-400 font-semibold tracking-wide">
+    <span className="text-[12px] uppercase text-gray-400 font-semibold tracking-wide">
       {label}
     </span>
   </div>

@@ -997,7 +997,7 @@ export const getHostedJobCandidates = async (req, res) => {
       message: 'Internal Server Error',
     });
   }
-};  
+};
 
 export const updateJobDescription = async (req, res) => {
   const { jobId } = req.params;
