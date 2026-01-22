@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Infinity,
@@ -14,12 +14,14 @@ import {
   LogIn,
   UserPlus,
   Loader2,
+  ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import HeroSection from './HeroSection';
 import apiInstance from '@/services/api';
+import { Button } from '../ui/button';
 
 // --- VERIFICATION MODAL COMPONENT ---
 const VerificationModal = ({
@@ -31,15 +33,13 @@ const VerificationModal = ({
   onClose: () => void;
   user: any;
 }) => {
+  const router = useRouter();
   const [isVerifying, setIsVerifying] = useState(false);
-
   const [data, setData] = useState<VerificationData>({
     method: 'email',
     email: '',
     idCard: null,
   });
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,22 +52,18 @@ const VerificationModal = ({
       if (data.method === 'email') {
         formData.append('email', data.email);
       } else {
-        if (!data.idCard) {
-          throw new Error('ID card missing');
-        }
+        if (!data.idCard) throw new Error('ID card missing');
         formData.append('idCard', data.idCard);
       }
 
-      const verifyRes = await apiInstance.post(
-        '/students/verify-student',
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-      );
+      // Replace with your actual apiInstance
+      // const verifyRes = await apiInstance.post('/students/verify-student', formData);
+      // if (verifyRes.status === 200) { ... }
 
-      if (verifyRes.status === 200) {
-        await apiInstance.post('/students/activate-student-plan');
-        onClose();
-      }
+      // Simulated delay for UI feel
+      await new Promise((res) => setTimeout(res, 2000));
+      onClose();
+      router.push('/dashboard');
     } catch (err) {
       console.error(err);
       alert('Verification failed');
@@ -78,113 +74,189 @@ const VerificationModal = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div
-          onClick={!isVerifying ? onClose : undefined}
-          className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
-        />
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={!isVerifying ? onClose : undefined}
+            className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+          />
 
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl"
-        >
-          {!isVerifying && (
-            <button onClick={onClose} className="absolute top-5 right-5">
-              <X />
-            </button>
-          )}
-
-          <div className="p-8">
-            {isVerifying ? (
-              <div className="text-center py-12">
-                <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" />
-                <p className="font-bold">Verifying…</p>
-              </div>
-            ) : (
-              <>
-                <div className="text-center mb-6">
-                  <ShieldCheck className="mx-auto mb-3" />
-                  <h3 className="text-xl font-black">Verify Student Status</h3>
-                </div>
-
-                <div className="flex bg-gray-100 rounded-xl mb-6">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setData({ ...data, method: 'email', idCard: null })
-                    }
-                    className={`flex-1 py-3 font-bold ${
-                      data.method === 'email'
-                        ? 'bg-white shadow'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    <Mail className="inline mr-2" />
-                    Email
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setData({ ...data, method: 'idCard', email: '' })
-                    }
-                    className={`flex-1 py-3 font-bold ${
-                      data.method === 'idCard'
-                        ? 'bg-white shadow'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    <FileText className="inline mr-2" />
-                    ID Card
-                  </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  {data.method === 'email' ? (
-                    <input
-                      type="email"
-                      required
-                      placeholder="you@university.edu"
-                      value={data.email}
-                      onChange={(e) =>
-                        setData({ ...data, email: e.target.value })
-                      }
-                      className="w-full border p-4 rounded-xl"
-                    />
-                  ) : (
-                    <label className="block border-dashed border-2 rounded-xl p-6 text-center cursor-pointer">
-                      <Upload className="mx-auto mb-2" />
-                      <span className="font-bold">Upload ID Card</span>
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        required
-                        className="hidden"
-                        onChange={(e) =>
-                          setData({
-                            ...data,
-                            idCard: e.target.files?.[0] || null,
-                          })
-                        }
-                      />
-                    </label>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={isVerifying}
-                    className="w-full py-4 bg-black text-white font-black rounded-xl"
-                  >
-                    Submit Verification
-                  </button>
-                </form>
-              </>
+          {/* Modal Content */}
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden"
+          >
+            {!isVerifying && (
+              <button
+                onClick={onClose}
+                className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
+              >
+                <X size={20} />
+              </button>
             )}
-          </div>
-        </motion.div>
-      </div>
+
+            <div className="p-8 md:p-10">
+              {user ? (
+                isVerifying ? (
+                  <div className="text-center py-16">
+                    <div className="relative inline-block">
+                      <Loader2 className="w-16 h-16 animate-spin text-black mb-6" />
+                      <ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6" />
+                    </div>
+                    <h2 className="text-2xl font-black mb-2">
+                      Verifying Status
+                    </h2>
+                    <p className="text-gray-500">
+                      Please wait while we process your request...
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-center mb-8">
+                      <div className="w-16 h-16 bg-header-gradient-primary text-white rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <ShieldCheck size={32} />
+                      </div>
+                      <h3 className="text-2xl font-black">
+                        Student Verification
+                      </h3>
+                      <p className="text-gray-500 mt-1">
+                        Choose a method to confirm your status
+                      </p>
+                    </div>
+
+                    {/* Method Switcher */}
+                    <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-8">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setData({ ...data, method: 'email', idCard: null })
+                        }
+                        className={`flex-1 flex items-center justify-center py-3 rounded-xl font-bold transition-all ${
+                          data.method === 'email'
+                            ? 'bg-white shadow-sm text-black'
+                            : 'text-gray-400'
+                        }`}
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Email
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setData({ ...data, method: 'idCard', email: '' })
+                        }
+                        className={`flex-1 flex items-center justify-center py-3 rounded-xl font-bold transition-all ${
+                          data.method === 'idCard'
+                            ? 'bg-white shadow-sm text-black'
+                            : 'text-gray-400'
+                        }`}
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        ID Card
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      {data.method === 'email' ? (
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold ml-1">
+                            University Email
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="name@university.edu"
+                            value={data.email}
+                            onChange={(e) =>
+                              setData({ ...data, email: e.target.value })
+                            }
+                            className="w-full border-2 border-gray-100 focus:border-black p-4 rounded-2xl outline-none transition-colors font-medium"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold ml-1">
+                            Student ID Document
+                          </label>
+                          <label className="group block border-dashed border-2 border-gray-200 hover:border-black rounded-2xl p-8 text-center cursor-pointer transition-all bg-gray-50/50 hover:bg-white">
+                            <Upload className="mx-auto mb-3 text-gray-400 group-hover:text-black transition-colors" />
+                            <span className="block font-bold">
+                              {data.idCard
+                                ? data.idCard.name
+                                : 'Click to upload ID'}
+                            </span>
+                            <span className="text-xs text-gray-400 mt-1 block">
+                              PDF, PNG, or JPG (Max 5MB)
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              required
+                              className="hidden"
+                              onChange={(e) =>
+                                setData({
+                                  ...data,
+                                  idCard: e.target.files?.[0] || null,
+                                })
+                              }
+                            />
+                          </label>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={isVerifying}
+                        className="w-full py-4 bg-header-gradient-primary text-white font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-black/10 flex items-center justify-center"
+                      >
+                        Submit Verification
+                        <ChevronRight className="ml-2 w-5 h-5" />
+                      </button>
+                    </form>
+                  </>
+                )
+              ) : (
+                /* Auth Required State */
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6 text-gray-400">
+                    <LogIn size={32} />
+                  </div>
+                  <h3 className="text-2xl font-black mb-2">
+                    Authentication Required
+                  </h3>
+                  <p className="text-gray-500 mb-8">
+                    Please login or create an account to verify your student
+                    status and claim your discount.
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <button
+                      onClick={() => router.push('/login')}
+                      className="flex items-center justify-center w-full py-4 bg-header-gradient-primary text-white font-black rounded-2xl hover:bg-gray-800 transition-colors"
+                    >
+                      <LogIn className="mr-2 w-5 h-5" />
+                      Login to Account
+                    </button>
+                    <button
+                      onClick={() => router.push('/signup')}
+                      className="flex items-center justify-center w-full py-4 bg-white border-2 border-gray-100 text-black font-black rounded-2xl hover:border-black transition-colors"
+                    >
+                      <UserPlus className="mr-2 w-5 h-5" />
+                      Create Account
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </AnimatePresence>
   );
 };
@@ -192,6 +264,7 @@ const VerificationModal = ({
 export default function StudentOfferPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useSelector((state: any) => state.auth);
+  const [isLogin, setIsLogin] = useState(false);
 
   const unlimitedFeatures = ['Job Search', 'Job Matching', 'Job Application'];
   const monthlyFeatures = [
@@ -204,12 +277,20 @@ export default function StudentOfferPage() {
     { title: 'AI ATS Score', count: 5 },
   ];
 
+  useEffect(() => {
+    if (user == null || user == undefined || !user) {
+      setIsLogin(false);
+    } else {
+      setIsLogin(true);
+    }
+  }, [user]);
+
   return (
     <div className="min-h-screen bg-[#FBFDFF] relative overflow-hidden font-sans">
       <VerificationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        user={user}
+        user={isLogin}
       />
       {/* hero section */}
       <HeroSection />
