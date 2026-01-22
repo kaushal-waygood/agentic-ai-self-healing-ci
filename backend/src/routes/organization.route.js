@@ -10,6 +10,8 @@ import {
   getJobsByOrgPosted,
   sendOrganizationInvite,
   acceptInvite,
+  updateOrganizationProfile,
+  getOrganisationProfile,
 } from '../controllers/organization.controller.js';
 import {
   authMiddleware,
@@ -18,6 +20,14 @@ import {
 } from '../middlewares/auth.middleware.js';
 
 const router = Router();
+
+router.patch(
+  '/update-profile',
+  authMiddleware,
+  isAnyAdmin,
+  updateOrganizationProfile,
+);
+router.get('/me', authMiddleware, isAnyAdmin, getOrganisationProfile);
 
 router.post(
   '/members/create',
