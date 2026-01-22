@@ -57,13 +57,14 @@ const VerificationModal = ({
       }
 
       // Replace with your actual apiInstance
-      // const verifyRes = await apiInstance.post('/students/verify-student', formData);
-      // if (verifyRes.status === 200) { ... }
-
-      // Simulated delay for UI feel
-      await new Promise((res) => setTimeout(res, 2000));
-      onClose();
-      router.push('/dashboard');
+      const verifyRes = await apiInstance.post(
+        '/students/verify-student',
+        formData,
+      );
+      if (verifyRes.status === 200) {
+        onClose();
+        router.push('/dashboard');
+      }
     } catch (err) {
       console.error(err);
       alert('Verification failed');
