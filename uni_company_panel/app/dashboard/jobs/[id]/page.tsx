@@ -79,12 +79,12 @@ const Page = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 bg-gray-50/30 min-h-screen">
+    <div className="p-6  mx-auto space-y-8 bg-gray-50/30 min-h-screen">
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
+          <div className="flex items-center gap-3 ">
+            <h1 className="text-3xl font-bold text-blue-500">{job.title}</h1>
             <Badge
               variant={job.isActive ? 'default' : 'destructive'}
               className={
@@ -101,7 +101,7 @@ const Page = () => {
             <span className="font-medium">{job.company}</span>
             <span>•</span>
             <span className="text-sm">Posted {timeAgo(job.createdAt)}</span>
-            <Button variant="link">
+            <Button variant="link" className="text-gray-500">
               <Link
                 href={`https://zobsai.com/jobs/${job.slug}`}
                 // href={`/zobsai/jobs/${job.slug}`}
@@ -112,8 +112,6 @@ const Page = () => {
               <ArrowRight />
             </Button>
           </div>
-
-          <div className=""></div>
         </div>
 
         {/* KPI Stats */}
@@ -145,7 +143,7 @@ const Page = () => {
         {/* 2. LEFT COLUMN: MAIN CONTENT */}
         <div className="lg:col-span-2 space-y-8">
           {/* DESCRIPTION */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-lg overflow-hidden">
+          <div className="bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
             <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-semibold text-gray-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-500" /> Job Description
@@ -307,7 +305,7 @@ const Page = () => {
                   </Badge>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-300">
                   <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
                     {job.assignment.instruction || 'No instructions provided.'}
                   </p>
@@ -332,7 +330,7 @@ const Page = () => {
         {/* 3. RIGHT COLUMN: META SIDEBAR */}
         <div className="space-y-6">
           {/* Info Card */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6 space-y-6">
+          <div className="bg-white border border-gray-300 shadow-sm rounded-lg p-6 space-y-6">
             <h3 className="font-semibold text-gray-800 mb-4">Job Details</h3>
 
             <SidebarItem
@@ -420,7 +418,7 @@ const Page = () => {
                 {job.tags.map((tag: string, i: number) => (
                   <span
                     key={i}
-                    className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-full border border-gray-200 font-medium"
+                    className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-full border border-gray-300 font-medium"
                   >
                     {tag}
                   </span>
@@ -445,7 +443,7 @@ const StatBadge = ({
   value: number;
   icon: React.ReactNode;
 }) => (
-  <div className="flex flex-col items-center justify-center bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm min-w-[80px]">
+  <div className="flex flex-col items-center justify-center bg-white px-4 py-2 rounded-lg border border-gray-300 shadow-sm min-w-[80px]">
     <div className="text-blue-600 mb-1">{icon}</div>
     <span className="text-lg font-bold text-gray-800 leading-none">
       {value ?? 0}
