@@ -866,14 +866,21 @@ export const getHostedJobsByAdmin = async (req, res) => {
     const cacheKey = `jobs:hosted:v2:${organizationId}`;
 
     // 1. Fetch Jobs (from Cache or DB)
-    const jobs = await redisClient.withCache(cacheKey, 3600, async () => {
-      return Job.find({
-        organizationId,
-        origin: 'HOSTED',
-      })
-        .sort({ createdAt: -1 })
-        .lean();
-    });
+    // const jobs = await redisClient.withCache(cacheKey, 3600, async () => {
+    //   return Job.find({
+    //     organizationId,
+    //     origin: 'HOSTED',
+    //   })
+    //     .sort({ createdAt: -1 })
+    //     .lean();
+    // });
+
+    const jobs = await Job.find({
+      organizationId,
+      origin: 'HOSTED',
+    })
+      .sort({ createdAt: -1 })
+      .lean();  
 
     if (!jobs || !jobs.length) {
       return res.status(200).json({ success: true, jobs: [] });

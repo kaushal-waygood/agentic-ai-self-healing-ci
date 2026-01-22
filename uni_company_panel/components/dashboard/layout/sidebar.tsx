@@ -185,7 +185,7 @@ export const AppSidebarContent = ({
         {!isCollapsed && (
           <button
             onClick={() => setPinned(!isPinned)}
-            className="p-2 rounded hover:bg-slate-100"
+            className="p-2 rounded text-blue-500 hover:bg-slate-100"
           >
             {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
           </button>

@@ -160,15 +160,10 @@ const STEPS = [
     icon: Building2,
     fields: ['title', 'company', 'description', 'remote', 'city', 'country'],
   },
+
   {
     id: 1,
-    name: 'Requirements',
-    icon: FileText,
-    fields: ['responsibilities', 'qualifications', 'experience', 'tags'],
-  },
-  {
-    id: 2,
-    name: 'Contract & Pay',
+    name: 'Contract & Pay & Screening',
     icon: Banknote,
     fields: [
       'jobType',
@@ -178,17 +173,17 @@ const STEPS = [
       'contractLengthValue',
     ],
   },
-  {
-    id: 3,
-    name: 'Screening',
-    icon: ClipboardList,
-    fields: [
-      'applyEmail',
-      'includeAssignment',
-      'assignmentQuestion',
-      'assignmentFile',
-    ],
-  },
+  // {
+  //   id: 2,
+  //   name: 'Screening',
+  //   icon: ClipboardList,
+  //   fields: [
+  //     'applyEmail',
+  //     'includeAssignment',
+  //     'assignmentQuestion',
+  //     'assignmentFile',
+  //   ],
+  // },
 ];
 
 const NewJobPost = () => {
@@ -207,7 +202,7 @@ const NewJobPost = () => {
     inputFocus:
       'focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:border-transparent transition-all duration-300',
     sectionIcon:
-      'p-2 bg-gradient-to-br from-blue-50 to-blue-50 rounded-lg text-blue-600 mr-3',
+      'p-2 bg-gradient-to-br from-blue-50 to-blue-50 rounded-lg text-blue-500 mr-3',
   };
 
   const form = useForm<JobFormType>({
@@ -382,7 +377,7 @@ const NewJobPost = () => {
     <div className="min-h-screen p-4 md:px-8 flex flex-col ">
       {/* Header */}
       <div className="mb-8  ">
-        <h1 className={`text-3xl font-bold text-blue-600`}>
+        <h1 className={`text-3xl font-bold text-blue-500`}>
           Create Job Posting
         </h1>
         <p className="text-gray-600">
@@ -394,14 +389,14 @@ const NewJobPost = () => {
         {/* Progress Bar */}
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-100 rounded-t-xl overflow-hidden">
           <div
-            className="h-full bg-blue-600 transition-all duration-500 ease-out"
+            className="h-full bg-blue-500 transition-all duration-500 ease-out"
             style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
           />
         </div>
 
         <CardHeader className="border-b border-gray-100 bg-white/50 ">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+            <div className="p-3 bg-blue-100 text-blue-500 rounded-xl">
               <CurrentIcon className="w-6 h-6" />
             </div>
             <div>
@@ -547,7 +542,7 @@ const NewJobPost = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                     {/* LEFT COLUMN: Inputs & Location Logic */}
                     <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <FormField
                           control={form.control}
                           name="title"
@@ -655,10 +650,7 @@ const NewJobPost = () => {
                           <FormItem className="flex flex-col h-full">
                             <FormLabel>Job Description *</FormLabel>
                             <FormControl>
-                              {/* Set a specific min-height or height here. 
-                   The [&_.ql-editor]:min-h-[300px] targets the inner Quill area.
-                */}
-                              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex-grow [&_.ql-editor]:min-h-[320px]">
+                              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex-grow">
                                 <QuillJs
                                   content={field.value}
                                   onContentChange={field.onChange}
@@ -671,75 +663,73 @@ const NewJobPost = () => {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 space-y-6  animate-in fade-in slide-in-from-right-4 duration-300">
+                    <FormField
+                      control={form.control}
+                      name="responsibilities"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Key Responsibilities</FormLabel>
+                          <FormDescription>
+                            What will they do day-to-day? (One per line)
+                          </FormDescription>
+                          <FormControl>
+                            <textarea
+                              {...field}
+                              rows={5}
+                              className={`w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
+                              placeholder="- Lead the design team..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="qualifications"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Qualifications / Skills</FormLabel>
+                          <FormDescription>
+                            What must they have? (One per line)
+                          </FormDescription>
+                          <FormControl>
+                            <textarea
+                              {...field}
+                              rows={5}
+                              className={`w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
+                              placeholder="- 5+ years React experience..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="tags"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tags (comma separated)</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="react, typescript, remote, senior"
+                              className={THEME.inputFocus}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               )}
               {/* --- STEP 1: REQUIREMENTS --- */}
-              {currentStep === 1 && (
-                <div className="space-y-6  animate-in fade-in slide-in-from-right-4 duration-300">
-                  <FormField
-                    control={form.control}
-                    name="responsibilities"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Key Responsibilities</FormLabel>
-                        <FormDescription>
-                          What will they do day-to-day? (One per line)
-                        </FormDescription>
-                        <FormControl>
-                          <textarea
-                            {...field}
-                            rows={5}
-                            className={`w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
-                            placeholder="- Lead the design team..."
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="qualifications"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Qualifications / Skills</FormLabel>
-                        <FormDescription>
-                          What must they have? (One per line)
-                        </FormDescription>
-                        <FormControl>
-                          <textarea
-                            {...field}
-                            rows={5}
-                            className={`w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
-                            placeholder="- 5+ years React experience..."
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="tags"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tags (comma separated)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="react, typescript, remote, senior"
-                            className={THEME.inputFocus}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
 
               {/* --- STEP 2: CONTRACT & PAY --- */}
-              {currentStep === 2 && (
+              {currentStep === 1 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <FormField
                     control={form.control}
@@ -868,13 +858,7 @@ const NewJobPost = () => {
                       )}
                     />
                   </div>
-                </div>
-              )}
 
-              {/* --- STEP 3: SCREENING & ASSIGNMENT --- */}
-              {/* --- STEP 3: SCREENING & ASSIGNMENT --- */}
-              {currentStep === 3 && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                   {/* 1. BASIC SETTINGS */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
@@ -923,7 +907,7 @@ const NewJobPost = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                          <MessageSquare className="w-5 h-5 text-blue-600" />
+                          <MessageSquare className="w-5 h-5 text-blue-500" />
                           Applicant Questions
                         </h3>
                         <p className="text-sm text-gray-500">
@@ -942,7 +926,7 @@ const NewJobPost = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => addQuestion(q.text, q.type)}
-                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-500 border-blue-200"
                         >
                           <Plus className="w-3 h-3 mr-1" />{' '}
                           {q.text.length > 30
@@ -1012,7 +996,7 @@ const NewJobPost = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => remove(index)}
-                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                            className="text-blue-500 hover:text-blue-500 hover:bg-blue-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -1028,7 +1012,7 @@ const NewJobPost = () => {
                             type="button"
                             variant="link"
                             onClick={() => addQuestion('', 'text')}
-                            className="text-blue-600"
+                            className="text-blue-500"
                           >
                             Add Custom Question
                           </Button>
@@ -1059,7 +1043,7 @@ const NewJobPost = () => {
                             <FormLabel className="text-base font-semibold text-blue-900">
                               Include Screening Assignment?
                             </FormLabel>
-                            <p className="text-xs text-blue-700/80">
+                            <p className="text-xs text-blue-500/80">
                               Candidates must complete a file upload or written
                               task.
                             </p>
@@ -1149,6 +1133,279 @@ const NewJobPost = () => {
                   </div>
                 </div>
               )}
+
+              {/* --- STEP 3: SCREENING & ASSIGNMENT --- */}
+              {/* {currentStep === 2 && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="applyEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Recruiter Email *</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                              <Input
+                                {...field}
+                                className={`pl-10 ${THEME.inputFocus}`}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="resumeRequiblue"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-3 bg-white h-[46px] mt-8">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm">
+                              Require Resume/CV
+                            </FormLabel>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                          <MessageSquare className="w-5 h-5 text-blue-500" />
+                          Applicant Questions
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Ask candidates specific questions to screen them
+                          faster.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {SUGGESTED_QUESTIONS.map((q, idx) => (
+                        <Button
+                          key={idx}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addQuestion(q.text, q.type)}
+                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-500 border-blue-200"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />{' '}
+                          {q.text.length > 30
+                            ? q.text.substring(0, 30) + '...'
+                            : q.text}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <div className="space-y-3">
+                      {fields.map((field, index) => (
+                        <div
+                          key={field.id}
+                          className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 animate-in fade-in zoom-in-95"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 w-full">
+                            <FormField
+                              control={form.control}
+                              name={`screeningQuestions.${index}.question`}
+                              render={({ field }) => (
+                                <FormItem className="col-span-1 md:col-span-3">
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      placeholder="Enter your question..."
+                                      className="bg-white"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`screeningQuestions.${index}.type`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <Select
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger className="bg-white">
+                                        <SelectValue placeholder="Type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="text">
+                                        Short Answer
+                                      </SelectItem>
+                                      <SelectItem value="boolean">
+                                        Yes / No
+                                      </SelectItem>
+                                      <SelectItem value="number">
+                                        Numeric
+                                      </SelectItem>
+                                      <SelectItem value="date">Date</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => remove(index)}
+                            className="text-blue-500 hover:text-blue-500 hover:bg-blue-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      {fields.length === 0 && (
+                        <div className="text-center p-6 border-2 border-dashed border-gray-200 rounded-lg">
+                          <p className="text-gray-400 text-sm">
+                            No screening questions added yet.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="link"
+                            onClick={() => addQuestion('', 'text')}
+                            className="text-blue-500"
+                          >
+                            Add Custom Question
+                          </Button>
+                        </div>
+                      )}
+
+                      {fields.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => addQuestion('', 'text')}
+                          className="w-full border-dashed text-gray-500"
+                        >
+                          <Plus className="w-4 h-4 mr-2" /> Add Another Question
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100">
+                    <FormField
+                      control={form.control}
+                      name="includeAssignment"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm mb-6">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base font-semibold text-blue-900">
+                              Include Screening Assignment?
+                            </FormLabel>
+                            <p className="text-xs text-blue-500/80">
+                              Candidates must complete a file upload or written
+                              task.
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="data-[state=checked]:bg-blue-600"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {includeAssignment && (
+                      <div className="p-4 border border-gray-200 rounded-xl bg-white space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="assignmentType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Submission Type</FormLabel>
+                              <Tabs
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="w-full"
+                              >
+                                <TabsList className="grid w-full grid-cols-2">
+                                  <TabsTrigger value="MANUAL">
+                                    <PenTool className="w-4 h-4 mr-2" />
+                                    Write Text
+                                  </TabsTrigger>
+                                  <TabsTrigger value="FILE">
+                                    <FileUp className="w-4 h-4 mr-2" />
+                                    Upload File
+                                  </TabsTrigger>
+                                </TabsList>
+                              </Tabs>
+                            </FormItem>
+                          )}
+                        />
+
+                        {assignmentType === 'MANUAL' ? (
+                          <FormField
+                            control={form.control}
+                            name="assignmentQuestion"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Assignment Instructions</FormLabel>
+                                <FormControl>
+                                  <textarea
+                                    {...field}
+                                    rows={4}
+                                    placeholder="e.g. Please analyze this dataset and..."
+                                    className={`w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        ) : (
+                          <FormField
+                            control={form.control}
+                            name="assignmentFile"
+                            render={({
+                              field: { value, onChange, ...fieldProps },
+                            }) => (
+                              <FormItem>
+                                <FormLabel>Upload Brief (PDF/DOC)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...fieldProps}
+                                    type="file"
+                                    onChange={(e) => onChange(e.target.files)}
+                                    className="cursor-pointer bg-gray-50"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )} */}
             </form>
           </Form>
         </CardContent>
@@ -1184,7 +1441,7 @@ const NewJobPost = () => {
           ) : (
             <Button
               onClick={handleNext}
-              className={`px-8 bg-blue-600 hover:bg-blue-700 cursor-pointer hover:scale-105  `}
+              className={`px-8 bg-blue-500 hover:bg-blue-700 cursor-pointer hover:scale-105  `}
             >
               Next Step <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
