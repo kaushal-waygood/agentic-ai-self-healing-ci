@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { useCandidateStore } from '@/store/candidates';
+import { useCandidateStore } from '@/store/candidates.store';
 import { ColumnDef } from '@tanstack/react-table';
 
 // UI Components

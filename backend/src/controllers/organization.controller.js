@@ -8,11 +8,67 @@ import { transporter } from '../utils/transporter.js';
 import { config } from '../config/config.js';
 import { User } from '../models/User.model.js';
 import crypto from 'crypto';
+import { Organization } from '../models/Organization.model.js';
+import { uploadBufferToCloudinary } from '../middlewares/multer.js';
+import { AppliedJob } from '../models/AppliedJob.js';
 
 const tm = new TemplateManager({
   baseDir: path.join(__dirname, '..', 'email-templates', 'templates'),
 });
 await tm.init();
+
+export const updateOrgLogo = async (req, res) => {
+  try {
+    const organizationId = req.user.organization;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No logo file provided',
+      });
+    }
+
+    const logoPath = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: 'students/logo-org',
+      resource_type: 'image',
+      transformation: [
+        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+      ],
+    });
+
+    const profileLogo = logoPath.secure_url;
+
+    console.log(profileLogo);
+
+    const organization = await Organization.findByIdAndUpdate(
+      organizationId,
+      { $set: { 'profile.logo': profileLogo } },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).lean();
+
+    if (!organization) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Logo updated successfully',
+      data: organization,
+    });
+  } catch (error) {
+    console.error('updateOrgLogo error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
 
 export const updateOrganizationProfile = async (req, res) => {
   try {
@@ -83,7 +139,7 @@ export const updateOrganizationProfile = async (req, res) => {
 
 export const getOrganisationProfile = async (req, res) => {
   try {
-    const { organizationId } = req.user;
+    const { organization: organizationId } = req.user;
     const organization = await Organization.findById(organizationId).lean();
     if (!organization) {
       return res.status(404).json({
@@ -299,6 +355,29 @@ export const sendOrganizationInvite = async (req, res) => {
   } catch (error) {
     console.error('Invite Error:', error);
     return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getOrganisationStats = async (req, res) => {
+  try {
+    const { organization: organizationId } = req.user;
+
+    const orgObjectId = new mongoose.Types.ObjectId(organizationId);
+
+    const stats = await AppliedJob.aggregate([
+      { $match: { organization: orgObjectId } },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      stats,
+    });
+  } catch (error) {
+    console.error('getOrganisationStats error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
