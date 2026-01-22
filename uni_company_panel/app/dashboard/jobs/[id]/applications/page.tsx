@@ -1,5 +1,4 @@
 import GetCandidates from '@/components/postJobs/GetCandidates';
-import React from 'react';
 
 const page = () => {
   return (

@@ -14,6 +14,96 @@ const tm = new TemplateManager({
 });
 await tm.init();
 
+export const updateOrganizationProfile = async (req, res) => {
+  try {
+    const organizationId = req.user.organization;
+
+    if (!organizationId || !mongoose.Types.ObjectId.isValid(organizationId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid organization reference',
+      });
+    }
+
+    const { name, profile, contactInfo, betaFeaturesEnabled } = req.body;
+
+    // Build update object dynamically
+    const updates = {};
+
+    if (name !== undefined) updates.name = name;
+    if (profile !== undefined) updates.profile = profile;
+    if (contactInfo !== undefined) updates.contactInfo = contactInfo;
+    if (betaFeaturesEnabled !== undefined)
+      updates.betaFeaturesEnabled = betaFeaturesEnabled;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid fields provided for update',
+      });
+    }
+
+    const organization = await Organization.findByIdAndUpdate(
+      organizationId,
+      { $set: updates },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).lean();
+
+    if (!organization) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Organization profile updated successfully',
+      data: {
+        id: organization._id,
+        name: organization.name,
+        type: organization.type,
+        profile: organization.profile,
+        contactInfo: organization.contactInfo,
+        betaFeaturesEnabled: organization.betaFeaturesEnabled,
+        updatedAt: organization.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error('updateOrganizationProfile error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const getOrganisationProfile = async (req, res) => {
+  try {
+    const { organizationId } = req.user;
+    const organization = await Organization.findById(organizationId).lean();
+    if (!organization) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found',
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: organization,
+    });
+  } catch (error) {
+    console.error('getOrganisationProfile error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 const sendTemplatedEmail = async ({
   to,
   templateName,

@@ -1,102 +1,57 @@
-import React from 'react';
-import { X } from 'lucide-react'; // Optional: Install lucide-react for icons
-import { Button } from '../ui/button';
+import { Mail, Phone, Calendar, Briefcase, FileText } from 'lucide-react';
+import { CommonDetailsModal } from '@/components/common/CommonDetailsModal';
+import { Button } from '@/components/ui/button';
 
-const CandidateModal = ({ candidate, onClose }) => {
+export function CandidateModal({ candidate, open, onOpenChange }: any) {
   if (!candidate) return null;
 
+  const candidateDetails = [
+    { icon: Mail, label: 'Email', value: candidate.student?.email },
+    { icon: Phone, label: 'Phone', value: candidate.student?.phone },
+    {
+      icon: Calendar,
+      label: 'Applied On',
+      value: new Date(candidate.appliedAt).toLocaleDateString('en-GB'),
+    },
+    { icon: Briefcase, label: 'Method', value: candidate.applicationMethod },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Candidate Details</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
+    <CommonDetailsModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={candidate.student?.fullName}
+      description={`Application ID: ${candidate.applicationId}`}
+      badgeContent={candidate.student?.fullName?.charAt(0)}
+      details={candidateDetails}
+      sections={
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+            <FileText size={16} className="text-indigo-600" /> Documents
+          </h4>
+          <div className="p-4 border rounded-xl bg-slate-50 flex items-center justify-between">
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase">
-                Full Name
-              </label>
-              <p className="text-gray-900 font-medium">
-                {candidate.student?.fullName}
-              </p>
+              <p className="text-sm font-medium text-slate-700">Resume / CV</p>
+              <p className="text-xs text-slate-400">PDF/Docx</p>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase">
-                Status
-              </label>
-              <p className="mt-1">
-                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
-                  {candidate.status}
-                </span>
-              </p>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase">
-                Email
-              </label>
-              <p className="text-gray-600">{candidate.student?.email}</p>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase">
-                Phone
-              </label>
-              <p className="text-gray-600">
-                {candidate.student?.phone || 'N/A'}
-              </p>
-            </div>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase">
-              Application Summary
-            </label>
-            <p className="mt-2 text-gray-700 text-sm leading-relaxed">
-              Applied via <strong>{candidate.applicationMethod}</strong> on{' '}
-              {new Date(candidate.appliedAt).toLocaleDateString()}.
-            </p>
-          </div>
-
-          {/* Add more fields here based on your candidate schema, e.g., experience, education */}
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase">
-              Resume/CV
-            </label>
-            <div className="mt-2">
-              <a
-                href={candidate.cvLink}
-                target="_blank"
-                className="inline-flex items-center text-sm text-indigo-600 hover:underline font-medium"
-              >
-                View Attachment &rarr;
+            <Button size="sm" variant="outline" asChild className="bg-white">
+              <a href={candidate.cvLink} target="_blank">
+                View File
               </a>
-            </div>
+            </Button>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
-            Close
+      }
+      footerActions={
+        <>
+          <Button variant="destructive" size="sm">
+            Reject
           </Button>
-          <Button className="bg-indigo-600 text-white">
-            Shortlist Candidate
+          <Button variant="outline" size="sm">
+            Shortlist
           </Button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    />
   );
-};
-
-export default CandidateModal;
+}
