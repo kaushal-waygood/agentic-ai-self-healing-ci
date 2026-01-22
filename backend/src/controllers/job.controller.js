@@ -851,7 +851,6 @@ export const getMannualyJobs = async (req, res) => {
     });
   }
 };
-
 export const getHostedJobsByAdmin = async (req, res) => {
   const { organization } = req.user;
 
@@ -997,7 +996,7 @@ export const getHostedJobCandidates = async (req, res) => {
       message: 'Internal Server Error',
     });
   }
-};  
+};
 
 export const updateJobDescription = async (req, res) => {
   const { jobId } = req.params;

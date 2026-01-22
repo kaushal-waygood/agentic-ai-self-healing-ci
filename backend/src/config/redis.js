@@ -252,6 +252,25 @@ class RedisClient {
     }
   }
 
+  async invalidateUserCache(userId) {
+    if (!userId) return;
+
+    const patterns = [`user:${userId}`, `user:${userId}:*`];
+
+    try {
+      await this.ensureConnected();
+
+      for (const pattern of patterns) {
+        const keys = await this.scanKeys(pattern);
+        if (keys.length) {
+          await this.client.del(keys);
+        }
+      }
+    } catch (err) {
+      console.error('invalidateUserCache error:', err);
+    }
+  }
+
   async invalidateJobCacheForStudent(studentId, jobId) {
     if (!studentId || !jobId) return;
 
