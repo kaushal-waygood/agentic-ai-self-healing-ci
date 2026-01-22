@@ -62,8 +62,10 @@ const VerificationModal = ({
         formData,
       );
       if (verifyRes.status === 200) {
+        await apiInstance.post('/students/activate-student-plan');
+
         onClose();
-        router.push('/dashboard');
+        // router.push('/dashboard');
       }
     } catch (err) {
       console.error(err);
