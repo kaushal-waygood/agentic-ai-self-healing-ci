@@ -195,12 +195,12 @@ const JobsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 ">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Posted Jobs</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-blue-600">Posted Jobs</h1>
+          <p className="text-gray-600">
             Manage and track all your job postings
           </p>
         </div>
@@ -217,7 +217,7 @@ const JobsPage = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-right-4 duration-300">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -284,8 +284,8 @@ const JobsPage = () => {
       </div>
 
       {/* Search and Filter Bar */}
-      {/* <Card>
-        <CardContent className="p-4">
+      <Card>
+        <CardContent className="">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -303,10 +303,10 @@ const JobsPage = () => {
             </Button>
           </div>
         </CardContent>
-      </Card> */}
+      </Card>
 
       {/* Jobs Cards/Table */}
-      <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2  gap-4 ">
+      <div className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2  gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
         {loading && (
           <Card>
             <CardContent className="p-12 text-center">
