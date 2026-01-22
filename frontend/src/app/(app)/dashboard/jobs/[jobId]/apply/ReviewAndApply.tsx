@@ -110,7 +110,6 @@ export const ReviewAndApply = ({
                 <p className="text-sm font-medium text-gray-800">
                   {index + 1}. {q.question}
                 </p>
-
                 {/* TEXT */}
                 {q.type === 'text' && (
                   <input
@@ -120,8 +119,16 @@ export const ReviewAndApply = ({
                     placeholder="Your answer"
                     className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                   />
+                )}{' '}
+                {q.type === 'number' && (
+                  <input
+                    type="number"
+                    value={answers[q._id] || ''}
+                    onChange={(e) => handleAnswerChange(q._id, e.target.value)}
+                    placeholder="Your answer"
+                    className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
                 )}
-
                 {/* BOOLEAN */}
                 {q.type === 'boolean' && (
                   <div className="mt-2 flex gap-4">
@@ -146,7 +153,6 @@ export const ReviewAndApply = ({
                     </label>
                   </div>
                 )}
-
                 {q.required && (
                   <p className="mt-1 text-xs text-red-500">Required</p>
                 )}

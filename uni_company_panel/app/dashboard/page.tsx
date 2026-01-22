@@ -124,7 +124,7 @@ const DashboardPage = () => {
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-blue-600">
+          <h1 className="text-3xl font-bold text-blue-500">
             Dashboard Overview
           </h1>
           <p className="text-gray-600 mt-1">
@@ -135,7 +135,7 @@ const DashboardPage = () => {
           onClick={() => {
             router.push('dashboard/post-job');
           }}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-500 hover:bg-blue-700 text-white"
         >
           <UserPlus className="w-4 h-4 mr-2" />
           Add New Job
