@@ -153,12 +153,21 @@ export const AppSidebarContent = ({
   return (
     <div className="h-full w-full flex flex-col bg-white border-r">
       {/* Header */}
-      <div className="p-3 border-b flex items-center justify-between">
+
+      <div
+        className={`p-3 border-b flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}
+      >
         <Link href="/dashboard" className="flex items-center gap-3">
-          <Image src="/logo.png" alt="logo" width={36} height={36} />
+          <Image
+            src="/logo.png"
+            className=""
+            alt="logo"
+            width={36}
+            height={36}
+          />
           {!isCollapsed && (
             <div>
-              <h1 className="font-bold text-lg">ZobsAI</h1>
+              <h1 className="font-bold text-lg">ZobsAI </h1>
               <div
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-white bg-gradient-to-r ${getPlanColor(
                   user.plan,
@@ -176,7 +185,7 @@ export const AppSidebarContent = ({
         {!isCollapsed && (
           <button
             onClick={() => setPinned(!isPinned)}
-            className="p-2 rounded hover:bg-slate-100"
+            className="p-2 rounded text-blue-500 hover:bg-slate-100"
           >
             {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
           </button>
@@ -184,11 +193,10 @@ export const AppSidebarContent = ({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2 px-4 space-y-1 overflow-y-auto">
         {sidebarNav.map((item, index) => {
           const Icon = item.icon;
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = pathname === item.href;
 
           return (
             <Link
@@ -196,9 +204,9 @@ export const AppSidebarContent = ({
               href={item.href}
               onMouseEnter={() => setHoveredItem(item.href)}
               onMouseLeave={() => setHoveredItem(null)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
+              className={`flex ${isCollapsed ? 'justify-center ' : 'justify-start'}  items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
                 isActive
-                  ? 'bg-purple-100 text-purple-700'
+                  ? 'bg-blue-100 text-blue-700'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >

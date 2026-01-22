@@ -10,14 +10,36 @@ import {
   getJobsByOrgPosted,
   sendOrganizationInvite,
   acceptInvite,
+  updateOrganizationProfile,
+  getOrganisationProfile,
+  updateOrgLogo,
+  getOrganisationStats,
 } from '../controllers/organization.controller.js';
 import {
   authMiddleware,
   isAnyAdmin,
   isHr,
 } from '../middlewares/auth.middleware.js';
+import { orgLogoUpload, upload } from '../middlewares/multer.js';
 
 const router = Router();
+
+router.patch(
+  '/update-profile',
+  authMiddleware,
+  isAnyAdmin,
+  updateOrganizationProfile,
+);
+router.get('/me', authMiddleware, isAnyAdmin, getOrganisationProfile);
+router.get('/stats', authMiddleware, isAnyAdmin, getOrganisationStats);
+
+router.patch(
+  '/profile/logo',
+  authMiddleware,
+  isAnyAdmin,
+  orgLogoUpload.single('org-logo'),
+  updateOrgLogo,
+);
 
 router.post(
   '/members/create',
@@ -25,6 +47,7 @@ router.post(
   isAnyAdmin,
   createOrganizationMember,
 );
+
 router.post(
   '/member/request',
   authMiddleware,
