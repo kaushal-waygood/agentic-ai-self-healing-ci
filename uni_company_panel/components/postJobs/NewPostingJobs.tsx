@@ -53,6 +53,8 @@ import {
   MessageSquare,
   Plus,
   Trash2,
+  Briefcase,
+  DollarSign,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -374,15 +376,46 @@ const NewJobPost = () => {
   const CurrentIcon = STEPS[currentStep].icon;
 
   return (
-    <div className="min-h-screen p-4 md:px-8 flex flex-col ">
+    <div className="min-h-screen p-4 md:p-6 flex flex-col ">
       {/* Header */}
-      <div className="mb-8  ">
-        <h1 className={`text-3xl font-bold text-blue-500`}>
-          Create Job Posting
-        </h1>
-        <p className="text-gray-600">
-          Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].name}
-        </p>
+      <div className="w-full  mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className={`text-3xl font-bold text-blue-500`}>
+            Create Job Posting
+          </h1>
+          <p className="text-gray-600">
+            Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].name}
+          </p>
+        </div>
+
+        {/* Visual Step Indicator */}
+        <div className="flex items-center gap-2 bg-white p-2 rounded-full border shadow-sm">
+          {STEPS.map((step, idx) => (
+            <div key={idx} className="flex items-center">
+              <div
+                className={`
+              w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all
+              ${
+                currentStep === idx
+                  ? 'bg-blue-500 text-white shadow-md scale-110'
+                  : currentStep > idx
+                    ? 'bg-green-100 text-green-500'
+                    : 'bg-slate-100 text-slate-400'
+              }
+            `}
+              >
+                {currentStep > idx ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : (
+                  idx + 1
+                )}
+              </div>
+              {idx < STEPS.length - 1 && (
+                <div className="w-6 h-0.5 bg-slate-100 mx-1" />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <Card className={`w-full  ${THEME.glassCard} overflow-visible`}>
@@ -394,9 +427,9 @@ const NewJobPost = () => {
           />
         </div>
 
-        <CardHeader className="border-b border-gray-100 bg-white/50 ">
+        <CardHeader className=" ">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 text-blue-500 rounded-xl">
+            <div className="p-3 bg-blue-100 text-blue-500 rounded-lg">
               <CurrentIcon className="w-6 h-6" />
             </div>
             <div>
@@ -472,7 +505,7 @@ const NewJobPost = () => {
                     )}
                   />
 
-                  <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 space-y-4">
+                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 space-y-4">
                     <FormField
                       control={form.control}
                       name="remote"
@@ -539,9 +572,9 @@ const NewJobPost = () => {
               {currentStep === 0 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                   {/* Main Two-Column Container */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-8">
                     {/* LEFT COLUMN: Inputs & Location Logic */}
-                    <div className="space-y-6">
+                    <div className="space-y-6 col-span-5">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <FormField
                           control={form.control}
@@ -580,7 +613,7 @@ const NewJobPost = () => {
                       </div>
 
                       {/* Location Logic Section */}
-                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 space-y-4">
+                      <div className="p-4 rounded-lg border border-blue-200 space-y-4">
                         <FormField
                           control={form.control}
                           name="remote"
@@ -593,7 +626,7 @@ const NewJobPost = () => {
                                 <Switch
                                   checked={field.value}
                                   onCheckedChange={field.onChange}
-                                  className="data-[state=checked]:bg-blue-600"
+                                  className="data-[state=checked]:bg-blue-500 "
                                 />
                               </FormControl>
                             </FormItem>
@@ -613,6 +646,7 @@ const NewJobPost = () => {
                                       {...field}
                                       className="bg-white"
                                       placeholder="New York"
+                                      className={THEME.inputFocus}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -630,6 +664,7 @@ const NewJobPost = () => {
                                       {...field}
                                       className="bg-white"
                                       placeholder="USA"
+                                      className={THEME.inputFocus}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -642,7 +677,7 @@ const NewJobPost = () => {
                     </div>
 
                     {/* RIGHT COLUMN: Description Editor */}
-                    <div className="h-full">
+                    <div className="h-full col-span-7">
                       <FormField
                         control={form.control}
                         name="description"
@@ -650,7 +685,7 @@ const NewJobPost = () => {
                           <FormItem className="flex flex-col h-full">
                             <FormLabel>Job Description *</FormLabel>
                             <FormControl>
-                              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex-grow">
+                              <div className="border rounded-lg overflow-hidden flex-grow">
                                 <QuillJs
                                   content={field.value}
                                   onContentChange={field.onChange}
@@ -670,14 +705,12 @@ const NewJobPost = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Key Responsibilities</FormLabel>
-                          <FormDescription>
-                            What will they do day-to-day? (One per line)
-                          </FormDescription>
+                          <FormDescription>(One per line)</FormDescription>
                           <FormControl>
                             <textarea
                               {...field}
                               rows={5}
-                              className={`w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
+                              className={`w-full rounded-lg border border-input p-3 ${THEME.inputFocus}`}
                               placeholder="- Lead the design team..."
                             />
                           </FormControl>
@@ -691,14 +724,12 @@ const NewJobPost = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Qualifications / Skills</FormLabel>
-                          <FormDescription>
-                            What must they have? (One per line)
-                          </FormDescription>
+                          <FormDescription>(One per line)</FormDescription>
                           <FormControl>
                             <textarea
                               {...field}
                               rows={5}
-                              className={`w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
+                              className={` w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
                               placeholder="- 5+ years React experience..."
                             />
                           </FormControl>
@@ -726,9 +757,8 @@ const NewJobPost = () => {
                   </div>
                 </div>
               )}
-              {/* --- STEP 1: REQUIREMENTS --- */}
 
-              {/* --- STEP 2: CONTRACT & PAY --- */}
+              {/* --- STEP 1: REQUIREMENTS --- */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <FormField
@@ -758,7 +788,7 @@ const NewJobPost = () => {
                   />
 
                   {jobType === 'CONTRACT' && (
-                    <div className="p-4 bg-orange-50 border border-orange-100 rounded-lg grid grid-cols-2 gap-4">
+                    <div className="flex flex-wrap justify-start gap-4">
                       <FormField
                         control={form.control}
                         name="contractLengthValue"
@@ -801,7 +831,7 @@ const NewJobPost = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-wrap justify-start gap-4">
                     <FormField
                       control={form.control}
                       name="salaryMin"
@@ -860,7 +890,7 @@ const NewJobPost = () => {
                   </div>
 
                   {/* 1. BASIC SETTINGS */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-wrap justify-start gap-4">
                     <FormField
                       control={form.control}
                       name="applyEmail"
@@ -869,10 +899,9 @@ const NewJobPost = () => {
                           <FormLabel>Recruiter Email *</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                               <Input
                                 {...field}
-                                className={`pl-10 ${THEME.inputFocus}`}
+                                className={` ${THEME.inputFocus}`}
                               />
                             </div>
                           </FormControl>
@@ -937,7 +966,7 @@ const NewJobPost = () => {
                     </div>
 
                     {/* Dynamic List */}
-                    <div className="space-y-3">
+                    {/* <div className="space-y-3">
                       {fields.map((field, index) => (
                         <div
                           key={field.id}
@@ -948,7 +977,7 @@ const NewJobPost = () => {
                               control={form.control}
                               name={`screeningQuestions.${index}.question`}
                               render={({ field }) => (
-                                <FormItem className="col-span-1 md:col-span-3">
+                                <FormItem className="">
                                   <FormControl>
                                     <Input
                                       {...field}
@@ -1029,6 +1058,132 @@ const NewJobPost = () => {
                           <Plus className="w-4 h-4 mr-2" /> Add Another Question
                         </Button>
                       )}
+                    </div> */}
+
+                    <div className="space-y-4">
+                      {fields.map((field, index) => (
+                        <div
+                          key={field.id}
+                          className="group relative flex flex-col md:flex-row items-start md:items-center gap-4 p-2 border border-gray-200 rounded-lg shadow-sm transition-all hover:border-blue-200 hover:shadow-md animate-in fade-in slide-in-from-top-2 duration-300"
+                        >
+                          {/* Index Badge */}
+                          <div className="hidden md:flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-[10px] font-bold text-gray-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                            {index + 1}
+                          </div>
+
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 w-full">
+                            {/* Question Input - Spans 8 columns on desktop */}
+                            <div className="md:col-span-8 ">
+                              <FormField
+                                control={form.control}
+                                name={`screeningQuestions.${index}.question`}
+                                render={({ field }) => (
+                                  <FormItem className="space-y-1">
+                                    <FormLabel className="text-xs font-semibold text-gray-500 md:hidden">
+                                      Question
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        placeholder="e.g. How many years of experience do you have in React?"
+                                        className="h-11 border-gray-200 focus-visible:ring-blue-500 transition-all bg-transparent"
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-[11px]" />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            {/* Type Select - Spans 4 columns on desktop */}
+                            <div className="md:col-span-4">
+                              <FormField
+                                control={form.control}
+                                name={`screeningQuestions.${index}.type`}
+                                render={({ field }) => (
+                                  <FormItem className="space-y-1">
+                                    <FormLabel className="text-xs font-semibold text-gray-500 md:hidden">
+                                      Response Type
+                                    </FormLabel>
+                                    <Select
+                                      onValueChange={field.onChange}
+                                      defaultValue={field.value}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger className="h-11 border-gray-200 focus:ring-blue-500 bg-gray-50/50">
+                                          <SelectValue placeholder="Response Type" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        <SelectItem value="text">
+                                          Short Answer
+                                        </SelectItem>
+                                        <SelectItem value="boolean">
+                                          Yes / No
+                                        </SelectItem>
+                                        <SelectItem value="number">
+                                          Numeric
+                                        </SelectItem>
+                                        <SelectItem value="date">
+                                          Date
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Delete Button */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => remove(index)}
+                            className="shrink-0 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors rounded-full"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      {/* Empty State */}
+                      {fields.length === 0 && (
+                        <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 transition-colors hover:bg-gray-50">
+                          <div className="p-3 bg-white rounded-full shadow-sm border border-gray-100 mb-3">
+                            <MessageSquare className="w-6 h-6 text-gray-400" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-gray-900">
+                            No screening questions
+                          </h3>
+                          <p className="text-xs text-gray-500 mb-4">
+                            Add questions to filter your candidates effectively.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => addQuestion('', 'text')}
+                            className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add your first question
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Add Another Button (Sticky-style bottom action) */}
+                      {fields.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => addQuestion('', 'text')}
+                          className="w-full h-12 border-2 border-dashed border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50/50 transition-all"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add another question
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -1038,7 +1193,7 @@ const NewJobPost = () => {
                       control={form.control}
                       name="includeAssignment"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm mb-6">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border border-blue-100 bg-blue-50/50 p-4 shadow-sm mb-6">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base font-semibold text-blue-900">
                               Include Screening Assignment?
@@ -1060,7 +1215,7 @@ const NewJobPost = () => {
                     />
 
                     {includeAssignment && (
-                      <div className="p-4 border border-gray-200 rounded-xl bg-white space-y-4">
+                      <div className="p-4 border border-gray-200 rounded-lg bg-white space-y-4">
                         <FormField
                           control={form.control}
                           name="assignmentType"
@@ -1311,7 +1466,7 @@ const NewJobPost = () => {
                       control={form.control}
                       name="includeAssignment"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm mb-6">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border border-blue-100 bg-blue-50/50 p-4 shadow-sm mb-6">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base font-semibold text-blue-900">
                               Include Screening Assignment?
@@ -1333,7 +1488,7 @@ const NewJobPost = () => {
                     />
 
                     {includeAssignment && (
-                      <div className="p-4 border border-gray-200 rounded-xl bg-white space-y-4">
+                      <div className="p-4 border border-gray-200 rounded-lg bg-white space-y-4">
                         <FormField
                           control={form.control}
                           name="assignmentType"
