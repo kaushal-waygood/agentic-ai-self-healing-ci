@@ -623,7 +623,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   <Link
                     href={`/dashboard/jobs/${job._id}/apply`}
-                    target="_blank"
+                    // target="_blank"
                     rel="noopener noreferrer"
                   >
                     <div className="relative flex items-center justify-center gap-2">
