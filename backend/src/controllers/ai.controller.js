@@ -558,7 +558,9 @@ export const getStudentCLsFromExtension = async (req, res) => {
     const studentCLs = await StudentCL.find({
       student: _id,
       flag: 'extension',
-    }).select('clTitle flag status completedAt');
+    })
+      .select('clTitle flag status completedAt')
+      .sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
       studentCLs,
@@ -578,7 +580,9 @@ export const getStudentCVsFromExtension = async (req, res) => {
     const studentCVs = await StudentCV.find({
       student: _id,
       flag: 'extension',
-    }).select('cvTitle flag status completedAt');
+    })
+      .select('cvTitle flag status completedAt')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
