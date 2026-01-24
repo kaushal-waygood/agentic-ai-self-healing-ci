@@ -12,11 +12,17 @@ import { Badge } from '@/components/ui/badge';
 import { CandidateModal } from './CandidateModal';
 
 // Icons
-import { ArrowUpDown, Download, ExternalLink, Eye } from 'lucide-react';
+import {
+  ArrowUpDown,
+  Download,
+  ExternalLink,
+  Eye,
+  Loader2,
+} from 'lucide-react';
 import Link from 'next/link';
 
 const GetCandidates = () => {
-  const { candidates, getCandidates } = useCandidateStore();
+  const { candidates, getCandidates, loading } = useCandidateStore();
   const { id } = useParams();
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
 
@@ -181,12 +187,18 @@ const GetCandidates = () => {
         </div>
 
         {/* The Reusable Table Component */}
-        <DataTable
-          columns={columns}
-          data={candidates.candidates || []}
-          searchKey="candidateName"
-          searchPlaceholder="Search by name..."
-        />
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className=" h-8 w-8 text-blue-500 animate-spin " />
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={candidates.candidates || []}
+            searchKey="candidateName"
+            searchPlaceholder="Search by name..."
+          />
+        )}
       </div>
 
       {/* Detail Modal */}
