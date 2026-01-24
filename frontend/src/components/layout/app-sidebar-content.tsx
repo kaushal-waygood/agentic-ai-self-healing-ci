@@ -447,7 +447,7 @@ export const AppSidebarContent = ({
                 {/* Role Badge Component */}
                 <p className="text-xs text-slate-500">Welcome back!</p>
                 <span className=" py-0.5 text-xs font-semibold  text-indigo-700 rounded-full capitalize">
-                  Role : {user.role === 'uni-student' ? 'Student' : user.role}
+                  {user.role === 'uni-student' ? 'Student' : user.role}
                 </span>
               </div>
             </Link>
