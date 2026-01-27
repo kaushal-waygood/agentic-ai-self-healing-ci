@@ -623,7 +623,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   <Link
                     href={`/dashboard/jobs/${job._id}/apply`}
-                    target="_blank"
+                    // target="_blank"
                     rel="noopener noreferrer"
                   >
                     <div className="relative flex items-center justify-center gap-2">
@@ -928,7 +928,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       )}
 
       {/* Description */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-lg shadow-xl border border-white/20 p-4">
+      <div
+        id="jobDescription"
+        className="bg-white/80 backdrop-blur-xl rounded-lg shadow-xl border border-white/20 p-4"
+      >
         <div className="flex items-center gap-3 mb-3">
           <div className="w-1.5 h-10 bg-gradient-to-b from-purple-600 via-blue-600 to-cyan-600 rounded-full shadow-lg" />
           <h2 className="text-lg md:text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">

@@ -40,7 +40,7 @@ export function CommonDetailsModal({
   details,
   sections,
   footerActions,
-  headerClassName = 'bg-indigo-600',
+  headerClassName = 'bg-slate-100',
 }: CommonDetailsModalProps) {
   const renderDetailItem = (icon: LucideIcon, label: string, value: any) => (
     <div className="flex items-start gap-3" key={label}>
@@ -62,20 +62,18 @@ export function CommonDetailsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] gap-0 p-0 overflow-hidden outline-none">
         {/* Header Section */}
-        <div className={`${headerClassName} p-6 text-white`}>
+        <div className={`${headerClassName} p-6 border-b `}>
           <DialogHeader>
             <div className="flex items-center gap-4 text-left">
               {badgeContent && (
-                <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold shrink-0">
+                <div className="h-12 w-12 rounded-full bg-white border border-slate-100 flex items-center justify-center text-xl font-bold shrink-0">
                   {badgeContent}
                 </div>
               )}
               <div className="min-w-0">
-                <DialogTitle className="text-2xl text-white truncate">
-                  {title}
-                </DialogTitle>
+                <DialogTitle className="text-2xl truncate">{title}</DialogTitle>
                 {description && (
-                  <DialogDescription className="text-white/80 line-clamp-1">
+                  <DialogDescription className=" line-clamp-1">
                     {description}
                   </DialogDescription>
                 )}

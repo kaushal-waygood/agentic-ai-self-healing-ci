@@ -62,6 +62,7 @@ export const AppSidebarContent = ({
   ---------------------------- */
 
   const sidebarConfig = {
+    name: 'ZobsAI',
     common: [
       {
         title: 'Dashboard',
@@ -155,9 +156,9 @@ export const AppSidebarContent = ({
       {/* Header */}
 
       <div
-        className={`p-3 border-b flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}
+        className={`p-2 border-b border-slate-200/50 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}
       >
-        <Link href="/dashboard" className="flex items-center gap-3">
+        {/* <Link href="/dashboard" className="flex items-center gap-4">
           <Image
             src="/logo.png"
             className=""
@@ -167,7 +168,9 @@ export const AppSidebarContent = ({
           />
           {!isCollapsed && (
             <div>
-              <h1 className="font-bold text-lg">ZobsAI </h1>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent animate-fadeIn">
+                {sidebarConfig.name}
+              </h1>
               <div
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-white bg-gradient-to-r ${getPlanColor(
                   user.plan,
@@ -177,6 +180,42 @@ export const AppSidebarContent = ({
                   size: 12,
                 })}
                 Admin
+              </div>
+            </div>
+          )}
+        </Link> */}
+
+        <Link href="/dashboard" className="flex items-center space-x-3 group">
+          <div className="relative p-3">
+            <div className="rounded-lg flex flex-col items-center justify-center">
+              <Image
+                width={100}
+                height={100}
+                src="/logo.png"
+                className="w-10 h-auto"
+                alt="ZobsAI Logo"
+              />
+            </div>
+          </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent animate-fadeIn">
+                {sidebarConfig.name}
+              </h1>
+              <div className="flex items-center space-x-1 mt-1">
+                {(() => {
+                  const PlanIcon = getPlanIcon(user.plan);
+                  return (
+                    <div
+                      className={`flex items-center space-x-1 px-2 py-1 rounded-full bg-gradient-to-r ${getPlanColor(
+                        user.plan,
+                      )} text-white text-xs font-medium`}
+                    >
+                      <PlanIcon className="w-3 h-3" />
+                      <span>{user.plan}</span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -193,7 +232,7 @@ export const AppSidebarContent = ({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 px-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {sidebarNav.map((item, index) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -204,9 +243,9 @@ export const AppSidebarContent = ({
               href={item.href}
               onMouseEnter={() => setHoveredItem(item.href)}
               onMouseLeave={() => setHoveredItem(null)}
-              className={`flex ${isCollapsed ? 'justify-center ' : 'justify-start'}  items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
+              className={`flex  ${isCollapsed ? 'justify-center ' : 'justify-start'}  items-center gap-3 px-4 py-2 rounded-lg text-sm transition ${
                 isActive
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-blue-500 text-blue-700 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >

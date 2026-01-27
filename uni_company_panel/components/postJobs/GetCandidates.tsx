@@ -12,11 +12,17 @@ import { Badge } from '@/components/ui/badge';
 import { CandidateModal } from './CandidateModal';
 
 // Icons
-import { ArrowUpDown, Download, ExternalLink, Eye } from 'lucide-react';
+import {
+  ArrowUpDown,
+  Download,
+  ExternalLink,
+  Eye,
+  Loader2,
+} from 'lucide-react';
 import Link from 'next/link';
 
 const GetCandidates = () => {
-  const { candidates, getCandidates } = useCandidateStore();
+  const { candidates, getCandidates, loading } = useCandidateStore();
   const { id } = useParams();
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
 
@@ -82,7 +88,7 @@ const GetCandidates = () => {
         ),
       },
       {
-        accessorKey: 'student.email',
+        accessorKey: 'student.contact',
         header: 'Contact',
         cell: ({ row }) => (
           <div className="text-sm">
@@ -158,12 +164,12 @@ const GetCandidates = () => {
   );
 
   return (
-    <div className="p-8 bg-slate-50/30 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 space-y-6  min-h-screen">
+      <div className="space-y-6">
         {/* Header with Export */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-3xl font-bold tracking-tight text-blue-500">
               Applications
             </h1>
             <p className="text-muted-foreground">
@@ -181,12 +187,18 @@ const GetCandidates = () => {
         </div>
 
         {/* The Reusable Table Component */}
-        <DataTable
-          columns={columns}
-          data={candidates.candidates || []}
-          searchKey="candidateName"
-          searchPlaceholder="Search by name..."
-        />
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className=" h-8 w-8 text-blue-500 animate-spin " />
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={candidates.candidates || []}
+            searchKey="candidateName"
+            searchPlaceholder="Search by name..."
+          />
+        )}
       </div>
 
       {/* Detail Modal */}

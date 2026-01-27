@@ -14,6 +14,8 @@ import {
   Briefcase,
   Users,
   ArrowUpDown,
+  Loader,
+  Loader2,
 } from 'lucide-react';
 
 const JobsPage = () => {
@@ -296,14 +298,18 @@ const JobsPage = () => {
         </Card>
       </div>
 
-      <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+      {loading ? (
+        <div className="flex items-center justify-center h-40">
+          <Loader2 className=" h-8 w-8 text-blue-500 animate-spin " />
+        </div>
+      ) : (
         <DataTable
           columns={columns}
           data={jobs}
           searchKey="jobTitle"
           searchPlaceholder="Search by Job Title..."
         />
-      </div>
+      )}
     </div>
   );
 };

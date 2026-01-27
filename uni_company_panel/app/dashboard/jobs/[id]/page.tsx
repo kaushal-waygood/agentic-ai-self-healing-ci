@@ -79,7 +79,7 @@ const Page = () => {
   };
 
   return (
-    <div className="p-6  mx-auto space-y-8 bg-gray-50/30 min-h-screen">
+    <div className="p-6 mx-auto space-y-8  min-h-screen">
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
@@ -143,7 +143,7 @@ const Page = () => {
         {/* 2. LEFT COLUMN: MAIN CONTENT */}
         <div className="lg:col-span-2 space-y-8">
           {/* DESCRIPTION */}
-          <div className="bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden">
+          <div className="bg-white border border-gray-300 shadow-sm rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-semibold text-gray-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-500" /> Job Description
@@ -203,7 +203,7 @@ const Page = () => {
             job.qualifications?.length > 0) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {job.responsibilities?.length > 0 && (
-                <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6">
+                <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6 animate-in fade-in slide-in-from-left-4 duration-300">
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-blue-500" />{' '}
                     Responsibilities
@@ -223,7 +223,7 @@ const Page = () => {
               )}
 
               {job.qualifications?.length > 0 && (
-                <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6">
+                <div className="bg-white border border-gray-100 shadow-sm rounded-lg p-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-500" />{' '}
                     Qualifications
@@ -328,7 +328,7 @@ const Page = () => {
         </div>
 
         {/* 3. RIGHT COLUMN: META SIDEBAR */}
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
           {/* Info Card */}
           <div className="bg-white border border-gray-300 shadow-sm rounded-lg p-6 space-y-6">
             <h3 className="font-semibold text-gray-800 mb-4">Job Details</h3>
