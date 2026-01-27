@@ -22,6 +22,7 @@ import {
   applyJob,
   getHostedJobsByAdmin,
   getHostedJobCandidates,
+  generateJobDescription,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -35,6 +36,7 @@ import { getDashboardTopJobs } from '../controllers/student.controller.js';
 const router = Router();
 
 router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
+router.post('/generate-jd', authMiddleware, isAnyAdmin, generateJobDescription);
 router.patch(
   '/mannual/:jobId',
   authMiddleware,

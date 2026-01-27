@@ -1,6 +1,6 @@
 // routes/autofill-ai.js
 import { Router } from 'express';
-import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
+import { authMiddleware, isGeneralUser, isStudent } from '../middlewares/auth.middleware.js';
 import { Student } from '../models/students/student.model.js';
 import mongoose from 'mongoose';
 import { genAIRequest as genAI } from '../config/gemini.js';
@@ -587,7 +587,7 @@ function buildGroupedOutputs(
 
 /* ---------- Route ---------- */
 
-router.post('/', authMiddleware, isStudent, async (req, res) => {
+router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
   const { _id: authId } = req.user || {};
   const studentId = authId || req.body.studentId;
   let { inputs } = req.body || {};
