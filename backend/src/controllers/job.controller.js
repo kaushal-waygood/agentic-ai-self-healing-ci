@@ -23,6 +23,8 @@ import TemplateManager from '../email-templates/lib/templateLoader.js';
 import path from 'path';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import { transporter } from '../utils/transporter.js';
+import { genAIRequest } from '../config/gemini.js';
+import { Organization } from '../models/Organization.model.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -135,6 +137,12 @@ async function vectorJobSearch({
   ];
 
   return Job.aggregate(pipeline);
+}
+
+async function generateJobDescriptionService(jd) {
+  const prompt = `Generate a job description for the following job: ${jd}`;
+  const response = await genAIRequest(prompt);
+  return response;
 }
 
 // -------Controllers-------
@@ -851,6 +859,45 @@ export const getMannualyJobs = async (req, res) => {
     });
   }
 };
+
+export const generateJobDescription = async (req, res) => {
+  const { jd } = req.body;
+  const { organization: organizationId } = req.user;
+
+  if (!organizationId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Organization not found on user',
+    });
+  }
+
+  try {
+    const org = await Organization.findById(organizationId);
+
+    console.log(org);
+
+    if (!org) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found in database',
+      });
+    }
+
+    const generatedJD = await generateJobDescriptionService(jd);
+
+    return res.status(200).json({
+      success: true,
+      jobDescription: generatedJD,
+    });
+  } catch (error) {
+    console.error('Error generating job description:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 export const getHostedJobsByAdmin = async (req, res) => {
   const { organization } = req.user;
 
@@ -880,7 +927,7 @@ export const getHostedJobsByAdmin = async (req, res) => {
       origin: 'HOSTED',
     })
       .sort({ createdAt: -1 })
-      .lean();  
+      .lean();
 
     if (!jobs || !jobs.length) {
       return res.status(200).json({ success: true, jobs: [] });
