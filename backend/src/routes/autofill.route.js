@@ -1,6 +1,10 @@
 // routes/autofill-ai.js
 import { Router } from 'express';
-import { authMiddleware, isGeneralUser, isStudent } from '../middlewares/auth.middleware.js';
+import {
+  authMiddleware,
+  isGeneralUser,
+  isStudent,
+} from '../middlewares/auth.middleware.js';
 import { Student } from '../models/students/student.model.js';
 import mongoose from 'mongoose';
 import { genAIRequest as genAI } from '../config/gemini.js';
@@ -700,10 +704,8 @@ router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
     // Call Gemini wrapper
     let aiResponseText = null;
     try {
-      const aiResult = await genAI(prompt, {
-        model: 'gemini-2.0-flash',
-        generationConfig: { temperature: 0.0, maxOutputTokens: 2048 },
-      });
+      const aiResult = await genAI(prompt);
+      console.log('Gemini raw response:', aiResult);
       aiResponseText =
         typeof aiResult === 'string' ? aiResult : String(aiResult);
       console.log('Gemini raw response length:', aiResponseText.length);
@@ -732,6 +734,8 @@ router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
         }
       }
     }
+
+    console.log(parsed);
 
     // Use grouped outputs if possible (handles radio groups)
     if (parsed && parsed.outputs && Array.isArray(parsed.outputs)) {
