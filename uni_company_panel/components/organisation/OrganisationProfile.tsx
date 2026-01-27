@@ -189,12 +189,12 @@ const OrganizationProfilePage = () => {
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 bg-[#FBFBFB] min-h-screen font-sans">
       {/* 1. TOP BRAND CARD */}
-      <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/60 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="bg-white rounded-lg p-6 md:p-8 shadow-sm border border-gray-200/60 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-6 w-full">
           {/* Logo Uploadable Avatar */}
           <div
             onClick={handleLogoClick}
-            className="group relative h-24 w-24 bg-white border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center text-gray-300 shadow-sm cursor-pointer overflow-hidden transition-all hover:border-blue-400"
+            className="group relative h-24 w-24 bg-white border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 shadow-sm cursor-pointer overflow-hidden transition-all hover:border-blue-400"
           >
             {organisation.profile?.logo ? (
               <Image
@@ -284,7 +284,7 @@ const OrganizationProfilePage = () => {
         <div className="lg:col-span-2 space-y-8">
           {/* PROFILE SECTION */}
           <div
-            className={`bg-white rounded-2xl p-6 border transition-all duration-300 shadow-sm ${activeSection === 'profile' ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200'}`}
+            className={`bg-white rounded-lg p-6 border transition-all duration-300 shadow-sm ${activeSection === 'profile' ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200'}`}
           >
             <SectionHeader title="Company Details" id="profile" />
 
@@ -449,7 +449,7 @@ const OrganizationProfilePage = () => {
 
           {/* CONTACT INFO */}
           <div
-            className={`bg-white rounded-2xl p-6 border transition-all duration-300 shadow-sm ${activeSection === 'contact' ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200'}`}
+            className={`bg-white rounded-lg p-6 border transition-all duration-300 shadow-sm ${activeSection === 'contact' ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200'}`}
           >
             <SectionHeader title="Contact Information" id="contact" />
 
@@ -505,7 +505,7 @@ const OrganizationProfilePage = () => {
         {/* RIGHT COLUMN: ANALYTICS & BETA */}
         <div className="space-y-6">
           {/* STATS CARD (Added to fill empty space) */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
               <TrendingUp size={16} className="text-blue-600" /> Performance
             </h3>
@@ -552,7 +552,7 @@ const OrganizationProfilePage = () => {
           </div>
 
           {/* BETA CARD (Restyled) */}
-          {/* <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+          {/* <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg p-6 text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-2">
