@@ -139,8 +139,39 @@ async function vectorJobSearch({
   return Job.aggregate(pipeline);
 }
 
-async function generateJobDescriptionService(jd) {
-  const prompt = `Generate a job description for the following job: ${jd}`;
+function buildPrompt(jd, orgContext) {
+  return `
+You are an experienced HR and technical recruitment specialist.
+
+Your task is to generate a professional, factual job description.
+
+STRICT RULES:
+- Use ONLY the information explicitly provided below.
+- Do NOT invent company size, email addresses, phone numbers, benefits, salary, location, or website unless provided.
+- Do NOT add a "How to Apply" section.
+- Do NOT use filler phrases or conversational language.
+- Keep the tone formal, concise, and suitable for a job portal.
+- Do NOT make assumptions about the organization or role.
+
+JOB DETAILS:
+${jd}
+
+ORGANIZATION DETAILS:
+${JSON.stringify(orgContext, null, 2)}
+
+OUTPUT FORMAT (Markdown only):
+About the Company
+Role Overview
+Key Responsibilities
+Required Skills & Qualifications
+Nice-to-Have Skills (if applicable)
+
+Only return the job description. No explanations. No prefaces.
+`;
+}
+
+async function generateJobDescriptionService(jd, org) {
+  const prompt = buildPrompt(jd, org);
   const response = await genAIRequest(prompt);
   return response;
 }
@@ -872,7 +903,9 @@ export const generateJobDescription = async (req, res) => {
   }
 
   try {
-    const org = await Organization.findById(organizationId);
+    const org = await Organization.findById(organizationId).select(
+      'profile contactInfo',
+    );
 
     console.log(org);
 
@@ -883,7 +916,7 @@ export const generateJobDescription = async (req, res) => {
       });
     }
 
-    const generatedJD = await generateJobDescriptionService(jd);
+    const generatedJD = await generateJobDescriptionService(jd, org);
 
     return res.status(200).json({
       success: true,
