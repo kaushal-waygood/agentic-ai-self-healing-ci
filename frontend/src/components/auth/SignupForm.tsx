@@ -153,12 +153,17 @@ const SignupForm = () => {
     try {
       // NOTE: If you move signup to Redux/Saga, replace this with dispatch
       const response = await apiInstance.post('/user/signup', data);
-      successToast(
-        'Account created! Please check your email for a verification code.',
-      );
-      localStorage.setItem('pendingVerificationEmail', data.email);
-      setStoredEmail(data.email);
-      setSignupSuccess(true);
+
+      if (response.status === 201) {
+        console.log('User created successfully:', response.data);
+        successToast(
+          'Account created! Please check your email for a verification code.',
+        );
+        localStorage.setItem('pendingVerificationEmail', data.email);
+        console.log(localStorage.getItem('pendingVerificationEmail'));
+        setStoredEmail(data.email);
+        setSignupSuccess(true);
+      }
     } catch (error: any) {
       console.error('Error creating user:', error?.response?.data?.message);
       errorToast(
