@@ -864,7 +864,7 @@ export const deleteSingleStudentSavedCL = async (req, res) => {
 
 export const saveStudentHTMLCV = async (req, res) => {
   const { _id: studentId } = req.user;
-  const { html, title, ats } = req.body;
+  const { html, title, ats, template } = req.body;
 
   try {
     const htmlString = typeof html === 'object' && html?.cv ? html.cv : html;
@@ -882,6 +882,7 @@ export const saveStudentHTMLCV = async (req, res) => {
       html: htmlString,
       htmlCVTitle: title,
       ats,
+      template,
     });
 
     return res.json({

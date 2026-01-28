@@ -25,6 +25,13 @@ import { __dirname } from '../utils/fileUploadingManaging.js';
 import { transporter } from '../utils/transporter.js';
 import { genAIRequest } from '../config/gemini.js';
 import { Organization } from '../models/Organization.model.js';
+import { StudentCV } from '../models/students/studentCV.model.js';
+import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
+import puppeteer from 'puppeteer';
+import { uploadBufferToCloudinary } from '../middlewares/multer.js';
+import { wrapCVHtml } from '../utils/cvTemplate.js';
+import { StudentCoverLetter } from '../models/students/studentCoverLetter.model.js';
+import fs from 'fs'; // Required to read the uploaded files
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -1035,16 +1042,11 @@ export const getHostedJobCandidates = async (req, res) => {
   const { jobId } = req.params;
   const { organization } = req.user;
 
-  console.log(jobId, organization);
-
   try {
-    // 1. Security Check: Ensure this job belongs to the admin's organization
     const job = await Job.findOne({
       slug: jobId,
       organizationId: organization,
     }).select('_id');
-
-    console.log(job);
 
     if (!job) {
       return res.status(404).json({
@@ -1053,17 +1055,14 @@ export const getHostedJobCandidates = async (req, res) => {
       });
     }
 
-    // 2. Fetch Applications
-    // We populate 'student' to get details like name, email, and profile picture
     const applications = await AppliedJob.find({ job: job._id })
       .populate({
         path: 'student',
         select: 'fullName email profilePicture university graduationYear phone',
       })
-      .sort({ createdAt: -1 }) // Show most recent applications first
+      .sort({ createdAt: -1 })
       .lean();
 
-    // 3. Return candidates with their application details
     return res.status(200).json({
       success: true,
       count: applications.length,
@@ -1075,7 +1074,7 @@ export const getHostedJobCandidates = async (req, res) => {
         cvLink: app.cvLink,
         coverLetterLink: app.coverLetterLink,
         screeningAnswers: app.screeningAnswers,
-        student: app.student, // This contains the populated student object
+        student: app.student,
       })),
     });
   } catch (error) {
@@ -1497,98 +1496,202 @@ export const getJobStats = async (req, res) => {
   }
 };
 
+export async function htmlToPdfBuffer(html, isShowImage = true) {
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
+    });
+
+    const page = await browser.newPage();
+    await page.emulateMediaType('screen');
+
+    await page.setContent(html, {
+      waitUntil: ['load', 'networkidle0'],
+      timeout: 60000,
+    });
+
+    await page.addStyleTag({
+      content: `
+        * { box-sizing: border-box; }
+        html, body {
+          height: auto !important;
+          overflow: visible !important;
+        }
+        ${
+          isShowImage
+            ? ''
+            : '.resume-container .profile-image { display: none; }'
+        }
+      `,
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '10mm',
+        right: '15mm',
+        bottom: '15mm',
+        left: '15mm',
+      },
+    });
+
+    return pdfBuffer;
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+export async function uploadPdfToCloudinary(buffer, filename) {
+  return uploadBufferToCloudinary(buffer, {
+    folder: 'resumes',
+    resource_type: 'raw',
+    public_id: filename,
+    format: 'pdf',
+  });
+}
+
 export const applyJob = async (req, res) => {
   try {
     const { jobId } = req.params;
     const studentId = req.user._id;
 
     const {
-      answers = {}, // { questionId: answer }
-      cvLink = null,
-      coverLetterLink = null,
+      answers = {},
       applicationMethod = 'MANUAL',
+      resumeId,
+      coverLetterId,
     } = req.body;
 
-    // 1️⃣ Fetch job
+    // 1. Basic Validations
     const job = await Job.findById(jobId);
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
+    if (!job) return res.status(404).json({ message: 'Job not found' });
 
-    // 2️⃣ Fetch student
     const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    if (!student) return res.status(404).json({ message: 'Student found' });
 
-    // 3️⃣ Validate required screening questions
+    // 2. Handle Screening Questions
     for (const q of job.screeningQuestions) {
       if (q.required) {
         const value = answers[q._id.toString()];
-        if (value === undefined || value === '') {
-          return res.status(400).json({
-            message: `Missing answer for: ${q.question}`,
-          });
-        }
+        if (!value)
+          return res
+            .status(400)
+            .json({ message: `Missing answer: ${q.question}` });
       }
     }
 
-    // 4️⃣ Normalize screening answers
     const screeningAnswers = job.screeningQuestions.map((q) => ({
       questionId: q._id,
       question: q.question,
       answer: answers[q._id.toString()] ?? null,
     }));
 
-    // 5️⃣ Create applied job entry
+    // --- 3. HANDLE CV (UPLOAD OR DATABASE) ---
+    let cvPdfUrl = null;
+    const uploadedCv = req.files?.cv?.[0];
+
+    if (uploadedCv) {
+      // User uploaded a new file
+      const fileBuffer = fs.readFileSync(uploadedCv.path);
+      const result = await uploadPdfToCloudinary(
+        fileBuffer,
+        `resume_${studentId}_${Date.now()}`,
+      );
+      cvPdfUrl = result.secure_url;
+    } else if (resumeId) {
+      // User picked a saved HTML CV
+      const studentCV = await StudentHtmlCV.findOne({
+        _id: resumeId,
+        student: studentId,
+      });
+      if (!studentCV)
+        return res.status(404).json({ message: 'Resume not found' });
+
+      const htmlCV = wrapCVHtml(
+        studentCV.html,
+        studentCV.title,
+        studentCV.template,
+      );
+      const pdfBufferCV = await htmlToPdfBuffer(htmlCV);
+      const result = await uploadPdfToCloudinary(
+        pdfBufferCV,
+        `resume_${studentId}_${jobId}`,
+      );
+      cvPdfUrl = result.secure_url;
+    } else {
+      return res
+        .status(400)
+        .json({ message: 'Please upload a CV or select a saved one' });
+    }
+
+    // --- 4. HANDLE COVER LETTER (UPLOAD OR DATABASE) ---
+    let letterPdfUrl = null;
+    const uploadedLetter = req.files?.coverLetter?.[0];
+
+    if (uploadedLetter) {
+      const fileBuffer = fs.readFileSync(uploadedLetter.path);
+      const result = await uploadPdfToCloudinary(
+        fileBuffer,
+        `letter_${studentId}_${Date.now()}`,
+      );
+      letterPdfUrl = result.secure_url;
+    } else if (coverLetterId) {
+      const studentLetter = await StudentCoverLetter.findOne({
+        _id: coverLetterId,
+        student: studentId,
+      });
+      if (studentLetter) {
+        const pdfBufferLetter = await htmlToPdfBuffer(
+          studentLetter.coverLetter,
+        );
+        const result = await uploadPdfToCloudinary(
+          pdfBufferLetter,
+          `letter_${studentId}_${jobId}`,
+        );
+        letterPdfUrl = result.secure_url;
+      }
+    }
+
+    // 5. Create Application
     const application = await AppliedJob.create({
       student: studentId,
       job: jobId,
       applicationMethod,
-      cvLink,
-      coverLetterLink,
+      cvLink: cvPdfUrl,
+      coverLetterLink: letterPdfUrl,
       screeningAnswers,
     });
 
-    // 6️⃣ Create job interaction (FIXED FIELD NAMES)
-    await JobInteraction.create({
-      job: jobId, // ✅ was jobId
-      user: studentId, // ✅ was userId
-      type: 'APPLIED',
-      meta: {
-        query: null,
-        source: 'job',
-      },
-    });
-
+    // 6. Send Confirmation Email
     await sendTemplatedEmail({
       to: student.email,
       templateName: 'apply',
       templateVars: {
         name: student.fullName,
         dashboardUrl: process.env.DASHBOARD_URL,
-        supportEmail: 'support@zobsai.com',
         brandName: 'ZobsAI',
-        companyUrl: 'https://zobsai.com',
-        companyAddress: 'ZobsAI Pvt Ltd',
-        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
       },
       subjectOverride: 'Application Submitted Successfully | ZobsAI',
     });
 
-    // 7️⃣ Success response
     return res.status(201).json({
       message: 'Job applied successfully',
       applicationId: application._id,
     });
   } catch (error) {
-    // 8️⃣ Duplicate application protection
     if (error.code === 11000) {
-      return res.status(409).json({
-        message: 'You have already applied for this job',
-      });
+      return res
+        .status(409)
+        .json({ message: 'You have already applied for this job' });
     }
-
     console.error(error);
     return res.status(500).json({ message: 'Failed to apply for job' });
   }
