@@ -113,13 +113,13 @@ function* getGetMeSaga(): SagaIterator {
 }
 
 function* logoutSaga(): SagaIterator {
+  const Router = require('next/router');
   try {
     yield call(logout);
 
     // 🔥 Clear all client-side auth traces
-    localStorage.removeItem('accessToken');
     localStorage.removeItem('persist:root');
-
+    localStorage.removeItem('accessToken');
     yield put(logoutSuccess());
   } catch (error: unknown) {
     const errorMessage =

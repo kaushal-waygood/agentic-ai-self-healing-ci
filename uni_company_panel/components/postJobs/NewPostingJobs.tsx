@@ -5,7 +5,6 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -59,6 +58,8 @@ import {
 import dynamic from 'next/dynamic';
 
 import { useJobStore } from '@/store/job.store';
+import PreviewModal from './PreviewModal';
+import { toast } from 'sonner';
 
 const QuillJs = dynamic(() => import('@/components/rich-text/QuillJs'), {
   ssr: false,
@@ -192,7 +193,10 @@ const NewJobPost = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { mannualPostJob } = useJobStore();
+  const { mannualPostJob, rewriteJobDescriptionWithAI, loading } =
+    useJobStore();
+
+  const [editorKey, setEditorKey] = useState(0);
 
   const THEME = {
     glassCard:
@@ -242,6 +246,8 @@ const NewJobPost = () => {
   const jobType = form.watch('jobType');
   const includeAssignment = form.watch('includeAssignment');
   const assignmentType = form.watch('assignmentType');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewPayload, setPreviewPayload] = useState<any>(null); // Store the final formatted data here
 
   // --- Navigation Logic ---
   const handleNext = async () => {
@@ -276,74 +282,160 @@ const NewJobPost = () => {
           .filter(Boolean)
       : [];
 
-  const onSubmit = async (data: JobFormType) => {
-    setIsSubmitting(true);
-    try {
-      const finalPayload: any = {
-        title: data.title,
-        description: data.description,
-        company: data.company,
-        applyMethod: { method: 'EMAIL', emails: [data.applyEmail] },
-        jobTypes: [data.jobType],
-        contractLength:
-          data.jobType === 'CONTRACT'
-            ? {
-                value: data.contractLengthValue,
-                type: data.contractLengthType,
-              }
-            : null,
-        salary: {
-          min: data.salaryMin,
-          max: data.salaryMax,
-          period: data.salaryPeriod,
-        },
-        jobAddress: !data.remote
-          ? `${data.city}${data.state ? ', ' + data.state : ''}, ${
-              data.country
-            }`
-          : null,
-        country: data.country,
-        resumeRequiblue: data.resumeRequiblue,
-        remote: data.remote,
-        location: data.remote
-          ? null
-          : {
-              city: data.city,
-              state: data.state || '',
-              postalCode: data.postalCode || '',
-            },
-        responsibilities: splitLines(data.responsibilities),
-        qualifications: splitLines(data.qualifications),
-        experience: splitLines(data.experience),
-        tags: splitTags(data.tags),
-        screeningQuestions: data.screeningQuestions,
-        assignment: data.includeAssignment
+  // const onSubmit = async (data: JobFormType) => {
+  //   setIsSubmitting(true);
+  //   try {
+  //     const finalPayload: any = {
+  //       title: data.title,
+  //       description: data.description,
+  //       company: data.company,
+  //       applyMethod: { method: 'EMAIL', emails: [data.applyEmail] },
+  //       jobTypes: [data.jobType],
+  //       contractLength:
+  //         data.jobType === 'CONTRACT'
+  //           ? {
+  //               value: data.contractLengthValue,
+  //               type: data.contractLengthType,
+  //             }
+  //           : null,
+  //       salary: {
+  //         min: data.salaryMin,
+  //         max: data.salaryMax,
+  //         period: data.salaryPeriod,
+  //       },
+  //       jobAddress: !data.remote
+  //         ? `${data.city}${data.state ? ', ' + data.state : ''}, ${
+  //             data.country
+  //           }`
+  //         : null,
+  //       country: data.country,
+  //       resumeRequiblue: data.resumeRequiblue,
+  //       remote: data.remote,
+  //       location: data.remote
+  //         ? null
+  //         : {
+  //             city: data.city,
+  //             state: data.state || '',
+  //             postalCode: data.postalCode || '',
+  //           },
+  //       responsibilities: splitLines(data.responsibilities),
+  //       qualifications: splitLines(data.qualifications),
+  //       experience: splitLines(data.experience),
+  //       tags: splitTags(data.tags),
+  //       screeningQuestions: data.screeningQuestions,
+  //       assignment: data.includeAssignment
+  //         ? {
+  //             isEnabled: true,
+  //             type: data.assignmentType,
+  //             content:
+  //               data.assignmentType === 'MANUAL'
+  //                 ? data.assignmentQuestion
+  //                 : 'File Attached',
+  //           }
+  //         : null,
+  //     };
+
+  // if (data.includeAssignment) {
+  //   finalPayload.assignment = {
+  //     isEnabled: true,
+  //     type: data.assignmentType,
+  //     content:
+  //       data.assignmentType === 'MANUAL'
+  //         ? data.assignmentQuestion
+  //         : 'File Attached',
+  //   };
+  //   // File upload logic here if needed
+  // }
+
+  //     console.log('Payload:', finalPayload);
+  //     // mannualPostJob(finalPayload);
+  //     toast.success('Job posted successfully!');
+  //   } catch (error) {
+  //     console.error(error);
+  //     toast.error('Failed to post job.');
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
+  // This replaces your current onSubmit
+  const handlePreview = (data: JobFormType) => {
+    // 1. Construct the payload exactly as you did before
+    const finalPayload: any = {
+      title: data.title,
+      description: data.description,
+      company: data.company,
+      applyMethod: { method: 'EMAIL', emails: [data.applyEmail] },
+      jobTypes: [data.jobType],
+      contractLength:
+        data.jobType === 'CONTRACT'
           ? {
-              isEnabled: true,
-              type: data.assignmentType,
-              content:
-                data.assignmentType === 'MANUAL'
-                  ? data.assignmentQuestion
-                  : 'File Attached',
+              value: data.contractLengthValue,
+              type: data.contractLengthType,
             }
           : null,
+      salary: {
+        min: data.salaryMin,
+        max: data.salaryMax,
+        period: data.salaryPeriod,
+      },
+      jobAddress: !data.remote
+        ? `${data.city}${data.state ? ', ' + data.state : ''}, ${data.country}`
+        : null,
+      country: data.country,
+      resumeRequiblue: data.resumeRequiblue, // Kept your variable name
+      remote: data.remote,
+      location: data.remote
+        ? null
+        : {
+            city: data.city,
+            state: data.state || '',
+            postalCode: data.postalCode || '',
+          },
+      responsibilities: splitLines(data.responsibilities),
+      qualifications: splitLines(data.qualifications),
+      experience: splitLines(data.experience),
+      tags: splitTags(data.tags),
+      screeningQuestions: data.screeningQuestions,
+      assignment: data.includeAssignment
+        ? {
+            isEnabled: true,
+            type: data.assignmentType,
+            content:
+              data.assignmentType === 'MANUAL'
+                ? data.assignmentQuestion
+                : 'File Attached',
+          }
+        : null,
+    };
+
+    if (data.includeAssignment) {
+      finalPayload.assignment = {
+        isEnabled: true,
+        type: data.assignmentType,
+        content:
+          data.assignmentType === 'MANUAL'
+            ? data.assignmentQuestion
+            : 'File Attached',
       };
+      // File upload logic here if needed
+    }
 
-      if (data.includeAssignment) {
-        finalPayload.assignment = {
-          isEnabled: true,
-          type: data.assignmentType,
-          content:
-            data.assignmentType === 'MANUAL'
-              ? data.assignmentQuestion
-              : 'File Attached',
-        };
-        // File upload logic here if needed
-      }
+    // 2. Save this payload to state and open the modal
+    setPreviewPayload(finalPayload);
+    setIsPreviewOpen(true);
+  };
 
-      console.log('Payload:', finalPayload);
-      mannualPostJob(finalPayload);
+  const handleFinalSubmit = async () => {
+    if (!previewPayload) return;
+
+    setIsSubmitting(true);
+    try {
+      console.log('Publishing Payload:', previewPayload);
+      // await mannualPostJob(previewPayload);
       toast.success('Job posted successfully!');
+      setIsPreviewOpen(false); // Close modal on success
+      // Optional: Redirect or reset form here
     } catch (error) {
       console.error(error);
       toast.error('Failed to post job.');
@@ -375,6 +467,40 @@ const NewJobPost = () => {
 
   const CurrentIcon = STEPS[currentStep].icon;
 
+  const handleAiRewrite = async () => {
+    const currentHtml = form.getValues('description');
+    const doc = new DOMParser().parseFromString(currentHtml, 'text/html');
+    const plainText = doc.body.textContent || '';
+
+    if (!plainText.trim()) {
+      toast.error('Please enter some description first');
+      return;
+    }
+
+    try {
+      const newText = await rewriteJobDescriptionWithAI(plainText);
+      if (newText) {
+        // Optional: Convert Markdown to HTML if your AI returns "**Bold**"
+        let formattedText = newText
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br />');
+
+        form.setValue('description', formattedText, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+
+        // 2. Increment key to force Quill to re-render with new content
+        setEditorKey((prev) => prev + 1);
+
+        toast.success('Description rewritten!');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to rewrite description.');
+    } finally {
+    }
+  };
   return (
     <div className="min-h-screen p-4 md:p-6 flex flex-col ">
       {/* Header */}
@@ -417,7 +543,6 @@ const NewJobPost = () => {
           ))}
         </div>
       </div>
-
       <Card className={`w-full  ${THEME.glassCard} overflow-visible`}>
         {/* Progress Bar */}
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-100 rounded-t-xl overflow-hidden">
@@ -445,134 +570,12 @@ const NewJobPost = () => {
 
         <CardContent className="p-6 md:p-4 ">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="">
+            <form onSubmit={form.handleSubmit(handlePreview)} className="">
               {/* --- STEP 0: JOB OVERVIEW --- */}
-              {/* {currentStep === 0 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Job Title *</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g. Senior Frontend Dev"
-                              {...field}
-                              className={THEME.inputFocus}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="company"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Company Name *</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g. Acme Inc."
-                              {...field}
-                              className={THEME.inputFocus}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Job Description *</FormLabel>
-                        <FormControl>
-                          <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                            <QuillJs
-                              content={field.value}
-                              onContentChange={field.onChange}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="remote"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base text-blue-900">
-                              Remote Position?
-                            </FormLabel>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-blue-600"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {!remote && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 animate-in fade-in">
-                        <FormField
-                          control={form.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>City *</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  className="bg-white"
-                                  placeholder="New York"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="country"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Country *</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  className="bg-white"
-                                  placeholder="USA"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )} */}
-
               {currentStep === 0 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                   {/* Main Two-Column Container */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-20">
                     {/* LEFT COLUMN: Inputs & Location Logic */}
                     <div className="space-y-6 col-span-5">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -684,18 +687,46 @@ const NewJobPost = () => {
                         render={({ field }) => (
                           <FormItem className="flex flex-col h-full">
                             <FormLabel>Job Description *</FormLabel>
+
                             <FormControl>
                               <div className="border rounded-lg overflow-hidden flex-grow">
                                 <QuillJs
                                   content={field.value}
                                   onContentChange={field.onChange}
+                                  key={editorKey}
                                 />
                               </div>
                             </FormControl>
+
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+
+                      <div>
+                        {/* AI Rewrite Button */}
+
+                        <Button
+                          type="button"
+                          onClick={handleAiRewrite}
+                          disabled={loading}
+                          className="m-1 transition-all duration-300 hover:scale-[1.02] "
+                        >
+                          {loading ? (
+                            <>
+                              <span className="animate-pulse">
+                                Rewriting...
+                              </span>
+                              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                            </>
+                          ) : (
+                            <>
+                              Rewrite with AI
+                              <Sparkles className="ml-2 h-4 w-4 " />
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 space-y-6  animate-in fade-in slide-in-from-right-4 duration-300">
@@ -1288,279 +1319,6 @@ const NewJobPost = () => {
                   </div>
                 </div>
               )}
-
-              {/* --- STEP 3: SCREENING & ASSIGNMENT --- */}
-              {/* {currentStep === 2 && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="applyEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Recruiter Email *</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                              <Input
-                                {...field}
-                                className={`pl-10 ${THEME.inputFocus}`}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="resumeRequiblue"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-3 bg-white h-[46px] mt-8">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-sm">
-                              Require Resume/CV
-                            </FormLabel>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="space-y-4 pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                          <MessageSquare className="w-5 h-5 text-blue-500" />
-                          Applicant Questions
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          Ask candidates specific questions to screen them
-                          faster.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {SUGGESTED_QUESTIONS.map((q, idx) => (
-                        <Button
-                          key={idx}
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => addQuestion(q.text, q.type)}
-                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-500 border-blue-200"
-                        >
-                          <Plus className="w-3 h-3 mr-1" />{' '}
-                          {q.text.length > 30
-                            ? q.text.substring(0, 30) + '...'
-                            : q.text}
-                        </Button>
-                      ))}
-                    </div>
-
-                    <div className="space-y-3">
-                      {fields.map((field, index) => (
-                        <div
-                          key={field.id}
-                          className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 animate-in fade-in zoom-in-95"
-                        >
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 w-full">
-                            <FormField
-                              control={form.control}
-                              name={`screeningQuestions.${index}.question`}
-                              render={({ field }) => (
-                                <FormItem className="col-span-1 md:col-span-3">
-                                  <FormControl>
-                                    <Input
-                                      {...field}
-                                      placeholder="Enter your question..."
-                                      className="bg-white"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`screeningQuestions.${index}.type`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Type" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="text">
-                                        Short Answer
-                                      </SelectItem>
-                                      <SelectItem value="boolean">
-                                        Yes / No
-                                      </SelectItem>
-                                      <SelectItem value="number">
-                                        Numeric
-                                      </SelectItem>
-                                      <SelectItem value="date">Date</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => remove(index)}
-                            className="text-blue-500 hover:text-blue-500 hover:bg-blue-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-
-                      {fields.length === 0 && (
-                        <div className="text-center p-6 border-2 border-dashed border-gray-200 rounded-lg">
-                          <p className="text-gray-400 text-sm">
-                            No screening questions added yet.
-                          </p>
-                          <Button
-                            type="button"
-                            variant="link"
-                            onClick={() => addQuestion('', 'text')}
-                            className="text-blue-500"
-                          >
-                            Add Custom Question
-                          </Button>
-                        </div>
-                      )}
-
-                      {fields.length > 0 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => addQuestion('', 'text')}
-                          className="w-full border-dashed text-gray-500"
-                        >
-                          <Plus className="w-4 h-4 mr-2" /> Add Another Question
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-gray-100">
-                    <FormField
-                      control={form.control}
-                      name="includeAssignment"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border border-blue-100 bg-blue-50/50 p-4 shadow-sm mb-6">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base font-semibold text-blue-900">
-                              Include Screening Assignment?
-                            </FormLabel>
-                            <p className="text-xs text-blue-500/80">
-                              Candidates must complete a file upload or written
-                              task.
-                            </p>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-blue-600"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {includeAssignment && (
-                      <div className="p-4 border border-gray-200 rounded-lg bg-white space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="assignmentType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Submission Type</FormLabel>
-                              <Tabs
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="w-full"
-                              >
-                                <TabsList className="grid w-full grid-cols-2">
-                                  <TabsTrigger value="MANUAL">
-                                    <PenTool className="w-4 h-4 mr-2" />
-                                    Write Text
-                                  </TabsTrigger>
-                                  <TabsTrigger value="FILE">
-                                    <FileUp className="w-4 h-4 mr-2" />
-                                    Upload File
-                                  </TabsTrigger>
-                                </TabsList>
-                              </Tabs>
-                            </FormItem>
-                          )}
-                        />
-
-                        {assignmentType === 'MANUAL' ? (
-                          <FormField
-                            control={form.control}
-                            name="assignmentQuestion"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Assignment Instructions</FormLabel>
-                                <FormControl>
-                                  <textarea
-                                    {...field}
-                                    rows={4}
-                                    placeholder="e.g. Please analyze this dataset and..."
-                                    className={`w-full rounded-md border border-input p-3 ${THEME.inputFocus}`}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        ) : (
-                          <FormField
-                            control={form.control}
-                            name="assignmentFile"
-                            render={({
-                              field: { value, onChange, ...fieldProps },
-                            }) => (
-                              <FormItem>
-                                <FormLabel>Upload Brief (PDF/DOC)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...fieldProps}
-                                    type="file"
-                                    onChange={(e) => onChange(e.target.files)}
-                                    className="cursor-pointer bg-gray-50"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )} */}
             </form>
           </Form>
         </CardContent>
@@ -1578,7 +1336,7 @@ const NewJobPost = () => {
 
           {currentStep === STEPS.length - 1 ? (
             <Button
-              onClick={form.handleSubmit(onSubmit)}
+              onClick={form.handleSubmit(handlePreview)}
               disabled={isSubmitting}
               className={`px-8 bg-blue-600 hover:bg-blue-700 cursor-pointer hover:scale-105  `}
             >
@@ -1603,6 +1361,16 @@ const NewJobPost = () => {
           )}
         </CardFooter>
       </Card>
+
+      {isPreviewOpen && previewPayload && (
+        <PreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          onConfirm={handleFinalSubmit}
+          isSubmitting={isSubmitting}
+          data={previewPayload}
+        />
+      )}
     </div>
   );
 };

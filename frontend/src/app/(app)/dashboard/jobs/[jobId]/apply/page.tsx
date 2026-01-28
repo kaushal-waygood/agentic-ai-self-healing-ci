@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { findSingleJobRequest } from '@/redux/reducers/jobReducer';
@@ -16,10 +16,12 @@ import { DocumentSelection } from './DocumentSelection';
 import { ReviewAndApply } from './ReviewAndApply';
 import { toast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
+import { set } from 'lodash';
 
 const JobDetailPage = () => {
   const { jobId } = useParams();
   const dispatch = useDispatch();
+  const router = useRouter();
 
   const { job, loading } = useSelector((state: RootState) => state.jobs);
   const { students } = useSelector((state: RootState) => state.student);
@@ -27,6 +29,7 @@ const JobDetailPage = () => {
 
   const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [isApplying, setIsApplying] = useState(false); // 1. Add this state
 
   /* ---------------- Resume state ---------------- */
   const [resumeChoice, setResumeChoice] = useState<'saved' | 'upload'>('saved');
@@ -100,18 +103,22 @@ const JobDetailPage = () => {
 
   /* ---------------- Screening answers ---------------- */
   const handleAnswerChange = (id: string, value: any) => {
-    setAnswers((prev) => ({ ...prev, [id]: value }));
+    setAnswers((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
   };
 
   /* ---------------- Apply ---------------- */
   const handleApply = async () => {
+    setIsApplying(true);
     try {
       const formData = new FormData();
+      const formattedAnswers = Object.entries(answers).map(([id, value]) => ({
+        [id]: value,
+      }));
 
-      // answers
-      formData.append('answers', JSON.stringify(answers));
-
-      // Resume
+      formData.append('answers', JSON.stringify(formattedAnswers));
       if (resumeChoice === 'saved' && selectedSavedResumeId) {
         formData.append('resumeId', selectedSavedResumeId);
       }
@@ -130,6 +137,8 @@ const JobDetailPage = () => {
       }
 
       await apiInstance.post(`/jobs/${job._id}/apply`, formData);
+      // router.push('/dashboard/search-jobs');
+      router.back();
 
       toast({
         title: 'Success',
@@ -141,6 +150,8 @@ const JobDetailPage = () => {
         description: err?.response?.data?.message || 'Application failed.',
         variant: 'destructive',
       });
+    } finally {
+      setIsApplying(false);
     }
   };
 
@@ -180,6 +191,7 @@ const JobDetailPage = () => {
           />
         ) : (
           <ReviewAndApply
+            isApplying={isApplying}
             job={job}
             answers={answers}
             handleAnswerChange={handleAnswerChange}

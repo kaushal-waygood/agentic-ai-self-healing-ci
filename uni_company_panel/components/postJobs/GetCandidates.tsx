@@ -23,8 +23,10 @@ import Link from 'next/link';
 
 const GetCandidates = () => {
   const { candidates, getCandidates, loading } = useCandidateStore();
+
   const { id } = useParams();
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+  console.log('selected candidates', selectedCandidate);
 
   useEffect(() => {
     if (id) {

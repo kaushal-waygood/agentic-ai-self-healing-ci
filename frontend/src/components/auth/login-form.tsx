@@ -32,7 +32,7 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import Image from 'next/image';
-
+import NProgress from 'nprogress';
 // --- ZOD SCHEMAS (Unchanged) ---
 const loginFormSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -72,21 +72,32 @@ const LoginForm = () => {
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });
+
   async function onSubmit(data: LoginFormValues) {
+    NProgress.start();
+
     try {
       const response = await apiInstance.post('/user/signin', data);
       const { accessToken: token, user } = response.data;
 
+      console.log('response`s data', response.data);
+
       dispatch(loginRequest(data));
+      // dispatch(loginRequest({ user, token }));
 
       if (user) {
-        router.push('/dashboard');
+        console.log('_______START_______');
+        console.log('token', token);
         successToast('Login successful! Redirecting to your dashboard...');
+        router.push('/dashboard');
+        console.log('_______END_______');
       } else {
         errorToast('Invalid email or password');
+        NProgress.done();
       }
     } catch (error) {
       console.error('Login error:', error);
+      NProgress.done();
 
       toast({
         title: 'Login Failed',
@@ -95,6 +106,35 @@ const LoginForm = () => {
       });
     }
   }
+
+  // async function onSubmit(data: LoginFormValues) {
+  //   // NProgress.start();
+
+  //   try {
+  //     const response = await apiInstance.post('/user/signin', data);
+  //     const { accessToken: token, user } = response.data;
+
+  //     dispatch(loginRequest({ ...user, token }));
+  //     if (user && token) {
+  //       successToast('Login successful! Redirecting...');
+  //       router.push('/dashboard');
+  //     } else {
+  //       errorToast('Invalid email or password');
+  //       // NProgress.done();
+  //     }
+  //   } catch (error: any) {
+  //     console.error('Login error:', error);
+  //     // NProgress.done();
+
+  //     toast({
+  //       title: 'Login Failed',
+  //       description:
+  //         error.response?.data?.message ||
+  //         'Invalid email or password. Please try again.',
+  //       variant: 'destructive',
+  //     });
+  //   }
+  // }
 
   async function onForgotPasswordSubmit(data: ForgotPasswordValues) {
     setIsForgotPasswordSubmitting(true);

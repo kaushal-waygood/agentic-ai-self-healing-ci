@@ -145,4 +145,35 @@ export const useJobStore = create<JobStore>((set) => ({
       });
     }
   },
+
+  // --- NEW AI ACTION ---
+  rewriteJobDescriptionWithAI: async (description: string) => {
+    try {
+      // 1. Set loading state (useful for showing spinners in UI)
+      set({ loading: true, error: null });
+
+      // 2. Call your Backend API
+      // Ensure this endpoint exists in your backend
+      const response = await apiInstance.post('/jobs/generate-jd', {
+        description: description,
+      });
+
+      const rewrittenText = response.data.jobDescription; // Adjust '.result' based on your actual API response
+      // console.log('store ', rewrittenText);
+      set({ loading: false });
+
+      // 3. Return the text so the Component can update the Form
+      return rewrittenText;
+    } catch (err: any) {
+      console.error('AI Rewrite error:', err);
+      set({
+        error:
+          err.response?.data?.message ||
+          err.message ||
+          'Failed to rewrite description',
+        loading: false,
+      });
+      return null;
+    }
+  },
 }));
