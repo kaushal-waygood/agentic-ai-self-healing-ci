@@ -14,22 +14,19 @@ const router = Router();
    ============================================================ */
 
 const IDENTITY_FIELD_REGEX =
-  /(name|email|phone|mobile|education|experience|skill|resume|cv|address|street|city|state|postal|zip|country|location)/i;
+  /(name|candidate|email|phone|mobile|education|experience|skill|resume|cv|address|street|city|state|postal|zip|country|location|gender|nationality|dob|birth)/i;
 
 const NARRATIVE_FIELD_REGEX =
-  /(summary|guidance|description|about|profile|objective|cover|why|statement|role)/i;
+  /(summary|guidance|description|about|profile|objective|cover|why|statement|role|background)/i;
 
 const SECURITY_FIELD_REGEX =
   /(captcha|csrf|token|otp|password|auth|verification)/i;
 
 function classifyField(descriptor) {
   const text = `${descriptor.inputKey} ${descriptor.label}`.toLowerCase();
-
   if (SECURITY_FIELD_REGEX.test(text)) return 'SECURITY';
   if (NARRATIVE_FIELD_REGEX.test(text)) return 'NARRATIVE';
   if (IDENTITY_FIELD_REGEX.test(text)) return 'IDENTITY';
-
-  // Safety bias
   return 'IDENTITY';
 }
 
@@ -55,7 +52,6 @@ function normalizeStudent(student) {
       .trim();
 
   const parts = fullName.split(/\s+/);
-
   return {
     id: String(student._id),
     fullName,
@@ -64,6 +60,7 @@ function normalizeStudent(student) {
     middleName: student.middleName || parts.slice(1, -1).join(' ') || '',
     email: student.email || '',
     phone: student.phone || '',
+    gender: student.gender || '',
     jobRole: student.jobRole || '',
     education: student.education || [],
     experience: student.experience || [],
@@ -75,7 +72,7 @@ function normalizeStudent(student) {
 }
 
 /* ============================================================
-   DETERMINISTIC (IDENTITY) RESOLVER
+   DETERMINISTIC RESOLVER (Identity)
    ============================================================ */
 
 function resolveIdentityValue(descriptor, student) {
@@ -83,62 +80,33 @@ function resolveIdentityValue(descriptor, student) {
 
   if (/email/.test(text)) return student.email;
   if (/phone|mobile/.test(text)) return student.phone;
-
   if (/first/.test(text)) return student.firstName;
   if (/middle/.test(text)) return student.middleName;
   if (/last|surname/.test(text)) return student.lastName;
-  if (/full.*name|^name$/.test(text)) return student.fullName;
 
+  // FIX: Broad name match to catch "name", "candidate name", "full name"
+  if (/name|candidate/.test(text)) return student.fullName;
+
+  if (/gender/.test(text)) return student.gender;
   if (/resume|cv/.test(text))
     return student.resumeUrl ? { url: student.resumeUrl } : '';
 
+  // Basic Location extraction (AI will refine formatting)
   if (/city|locality/.test(text))
     return student.jobPreferences?.preferredCities?.[0] || '';
-
   if (/country/.test(text))
     return student.jobPreferences?.preferredCountries?.[0] || '';
 
-  if (/education/.test(text)) return student.education;
-  if (/experience/.test(text)) return student.experience;
-  if (/skill/.test(text)) return student.skills;
-  if (/project/.test(text)) return student.projects;
-
   return '';
 }
 
 /* ============================================================
-   NARRATIVE (AI-ALLOWED) FALLBACK
-   ============================================================ */
-
-function generateNarrativeFallback(descriptor, student) {
-  const label = descriptor.label.toLowerCase();
-
-  if (/guidance|cv/i.test(label)) {
-    return `${student.jobRole} with experience in modern web technologies including React, Next.js, MongoDB, and PostgreSQL. Focused on building scalable, user-friendly applications.`;
-  }
-
-  if (/job description|role/i.test(label)) {
-    return student.experience
-      .map((e) => `${e.designation} at ${e.company} (${e.location})`)
-      .join('\n');
-  }
-
-  if (/summary|profile|about/i.test(label)) {
-    return `${student.fullName} is a ${student.jobRole} with hands-on experience across frontend and backend development, including React, Node.js, and database-driven applications.`;
-  }
-
-  return '';
-}
-
-/* ============================================================
-   OPTION MATCHER (SELECT/RADIO)
+   OPTION MATCHER
    ============================================================ */
 
 function pickOption(options = [], value) {
-  if (!options.length) return value;
-
+  if (!options.length || !value) return value;
   const v = String(value).toLowerCase();
-
   return (
     options.find((o) => String(o).toLowerCase() === v) ||
     options.find((o) => String(o).toLowerCase().includes(v)) ||
@@ -158,6 +126,7 @@ router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
     return res.status(400).json({ error: 'Invalid authenticated user' });
   }
 
+  // Handle JSON parsing for inputs
   if (typeof inputs === 'string') {
     try {
       inputs = JSON.parse(inputs);
@@ -166,46 +135,49 @@ router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
     }
   }
 
-  if (!Array.isArray(inputs)) {
-    return res.status(400).json({ error: 'inputs must be an array' });
-  }
-
   const studentRaw = await Student.findById(studentId).lean();
-  if (!studentRaw) {
-    return res.status(404).json({ error: 'Student not found' });
-  }
+  if (!studentRaw) return res.status(404).json({ error: 'Student not found' });
 
   const student = normalizeStudent(studentRaw);
   const normalizedInputs = normalizeInputs(inputs);
 
-  /* ---------------- AI CALL (NARRATIVE ONLY) ---------------- */
+  /* ---------------- ENHANCED AI CALL ---------------- */
 
   let aiMap = new Map();
-
   try {
-    const narrativeInputs = normalizedInputs.filter(
-      (d) => classifyField(d) === 'NARRATIVE',
+    // We send Narrative fields AND location/nationality fields to AI for formatting
+    const aiTargetInputs = normalizedInputs.filter(
+      (d) =>
+        classifyField(d) === 'NARRATIVE' ||
+        /city|country|state|nationality/i.test(d.inputKey),
     );
 
-    if (narrativeInputs.length) {
+    if (aiTargetInputs.length) {
       const prompt = `
-Return JSON only.
-Use ONLY the provided student data. Do NOT invent skills, companies, or dates.
+# ROLE
+You are a Professional Career Assistant. Extract and format data for a student's job application form.
 
-student:
-${JSON.stringify(student, null, 2)}
+# DATA
+Student Profile: ${JSON.stringify(student, null, 2)}
+Target Fields: ${JSON.stringify(aiTargetInputs, null, 2)}
 
-inputs:
-${JSON.stringify(narrativeInputs, null, 2)}
+# CONSTRAINTS
+1. ONLY use provided data. Do not hallucinate skills or dates.
+2. If data is missing for a field, return "".
+3. FORMATTING:
+   - "City", "Country", "State": Use Title Case (e.g., "new delhi" -> "New Delhi").
+   - "Nationality": Convert country to demonym (e.g., "India" -> "Indian").
+   - "Job Description": Provide a professional summary with bullet points.
+   - "CV Guidance": provide high-level instructions on what to highlight based on the student's skills.
+4. RESPONSE: Return ONLY valid JSON.
 
-Output format:
-{ "outputs": [{ "inputKey": "<string>", "value": "<string>" }] }
+# OUTPUT FORMAT
+{ "outputs": [{ "inputKey": "key", "value": "formatted value" }] }
 `;
 
       const raw = await genAI(prompt);
-      const parsed = JSON.parse(
-        raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1),
-      );
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
 
       if (Array.isArray(parsed?.outputs)) {
         aiMap = new Map(
@@ -216,41 +188,33 @@ Output format:
         );
       }
     }
-  } catch {
-    aiMap = new Map(); // silent fallback
+  } catch (err) {
+    console.error('AI Processing Error:', err);
   }
 
-  /* ---------------- FINAL RESOLUTION ---------------- */
+  /* ---------------- FINAL CONSOLIDATION ---------------- */
 
   const outputs = normalizedInputs.map((descriptor) => {
     const category = classifyField(descriptor);
+    const key = descriptor.inputKey.toLowerCase();
 
     let value = '';
 
     if (category === 'SECURITY') {
       value = '';
-    } else if (category === 'IDENTITY') {
-      value = resolveIdentityValue(descriptor, student);
-    } else if (category === 'NARRATIVE') {
-      value =
-        aiMap.get(descriptor.inputKey.toLowerCase()) ||
-        generateNarrativeFallback(descriptor, student);
+    } else {
+      // AI (Formatting/Narrative) takes priority, followed by Local Resolver
+      value = aiMap.get(key) || resolveIdentityValue(descriptor, student);
     }
 
     if (Array.isArray(descriptor.options) && descriptor.options.length) {
       value = pickOption(descriptor.options, value);
     }
 
-    return {
-      inputKey: descriptor.inputKey,
-      value: value ?? '',
-    };
+    return { inputKey: descriptor.inputKey, value: value ?? '' };
   });
 
-  return res.json({
-    studentId: student.id,
-    outputs,
-  });
+  return res.json({ studentId: student.id, outputs });
 });
 
 export default router;
