@@ -17,6 +17,7 @@ import {
   FileText,
   Users,
   Building2,
+  LayoutDashboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -120,25 +121,34 @@ const DashboardPage = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+    <div className="p-6 space-y-6  min-h-screen">
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-blue-500">
-            Dashboard Overview
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Welcome back! Here's what's happening on your platform today.
-          </p>
+          <div className="flex items-start gap-4">
+            {/* Icon Container */}
+            <div className="mt-1">
+              <LayoutDashboard className="w-15 h-15 text-blue-500" />
+            </div>
+
+            {/* Text Container */}
+            <div>
+              <h1 className="text-3xl font-bold text-blue-500 leading-tight">
+                Dashboard
+              </h1>
+              <p className="text-gray-600 ">
+                Welcome back! Here's what's happening on your platform today.
+              </p>
+            </div>
+          </div>
         </div>
         <Button
           onClick={() => {
-            router.push('dashboard/post-job');
+            router.push('/dashboard/post-job');
           }}
           className="bg-blue-500 hover:bg-blue-700 text-white"
         >
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add New Job
+          <Briefcase className="w-4 h-4" /> Add New Job
         </Button>
       </div>
 
@@ -146,7 +156,7 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
         {stats.map((stat) => (
           <Card key={stat.title} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+            <CardContent className="">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">
@@ -183,11 +193,11 @@ const DashboardPage = () => {
       </div>
 
       {/* Pending Actions */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {pendingActions.map((action, index) => (
           <div
             key={index}
-            className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+            className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer animate-in fade-in slide-in-from-left-4 duration-300"
           >
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
@@ -201,10 +211,10 @@ const DashboardPage = () => {
             </div>
           </div>
         ))}
-      </div> */}
+      </div>
 
       {/* Main Content Grid */}
-      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -285,12 +295,12 @@ const DashboardPage = () => {
             </div>
           </CardContent>
         </Card>
-      </div> */}
+      </div>
 
       {/* Quick Stats Cards */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm font-medium">
@@ -305,7 +315,7 @@ const DashboardPage = () => {
         </Card>
 
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">
@@ -320,7 +330,7 @@ const DashboardPage = () => {
         </Card>
 
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium">
@@ -335,10 +345,10 @@ const DashboardPage = () => {
             </div>
           </CardContent>
         </Card>
-      </div> */}
+      </div>
 
       {/* Quick Actions */}
-      {/* <Card>
+      <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
@@ -374,7 +384,7 @@ const DashboardPage = () => {
             </Button>
           </div>
         </CardContent>
-      </Card> */}
+      </Card>
     </div>
   );
 };

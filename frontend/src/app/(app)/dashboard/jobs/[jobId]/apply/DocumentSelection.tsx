@@ -38,10 +38,10 @@ const SelectionTabs = ({
         disabled={!hasSaved}
         className={`px-4 py-1.5 rounded-lg transition-all duration-200 ${
           choice === 'saved'
-            ? 'bg-white text-purple-700 shadow-sm'
+            ? 'bg-white text-blue-700 shadow-sm'
             : 'text-gray-500'
         } ${
-          !hasSaved ? 'opacity-40 cursor-not-allowed' : 'hover:text-purple-600'
+          !hasSaved ? 'opacity-40 cursor-not-allowed' : 'hover:text-blue-600'
         }`}
       >
         Use Saved
@@ -50,8 +50,8 @@ const SelectionTabs = ({
         onClick={() => setChoice('upload')}
         className={`px-4 py-1.5 rounded-lg transition-all duration-200 ${
           choice === 'upload'
-            ? 'bg-white text-purple-700 shadow-sm'
-            : 'text-gray-500 hover:text-purple-600'
+            ? 'bg-white text-blue-700 shadow-sm'
+            : 'text-gray-500 hover:text-blue-600'
         }`}
       >
         Upload New
@@ -87,9 +87,11 @@ export const DocumentSelection = ({
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-fadeIn">
       {/* Header Section */}
-      <div className="border-b border-gray-100 pb-6">
+      <div className="">
         <div className="space-y-2">
-          <h3 className="text-xl font-bold text-purple-900">{job?.title}</h3>
+          <h3 className="text-xl font-bold text-headingTextPrimary">
+            {job?.title}
+          </h3>
           <p className="text-gray-600 font-medium font-bold">{job?.company}</p>
           {/* <div className="flex flex-wrap pt-1">
             {job?.location && (
@@ -134,12 +136,12 @@ export const DocumentSelection = ({
                 }}
                 className={`flex items-center p-4 bg-white border-2 rounded-xl cursor-pointer transition-all ${
                   selectedSavedResumeId === item._id
-                    ? 'border-purple-500 bg-purple-50/30 ring-4 ring-purple-50'
-                    : 'border-gray-100 hover:border-purple-200'
+                    ? 'border-blue-500 bg-blue-50/30 ring-4 ring-blue-50'
+                    : 'border-gray-100 hover:border-blue-200'
                 }`}
               >
                 {selectedSavedResumeId === item._id ? (
-                  <CheckCircle className="w-5 h-5 text-purple-600" />
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
                 ) : (
                   <Circle className="w-5 h-5 text-gray-300" />
                 )}
@@ -147,7 +149,7 @@ export const DocumentSelection = ({
                   <p
                     className={`text-sm font-semibold ${
                       selectedSavedResumeId === item._id
-                        ? 'text-purple-900'
+                        ? 'text-blue-900'
                         : 'text-gray-700'
                     }`}
                   >
@@ -159,10 +161,10 @@ export const DocumentSelection = ({
           </div>
         ) : (
           <label
-            className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+            className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
               cvFile
                 ? 'border-green-400 bg-green-50/30'
-                : 'border-gray-300 hover:border-purple-400'
+                : 'border-gray-300 hover:border-blue-400'
             }`}
           >
             <input
@@ -264,7 +266,7 @@ export const DocumentSelection = ({
       {/* Submit Action */}
       <button
         onClick={onNext}
-        className="group w-full flex items-center justify-center rounded-2xl px-6 py-4 text-white font-bold bg-gray-900 hover:bg-purple-700 transition-all duration-300 shadow-xl shadow-gray-200 hover:shadow-purple-200"
+        className="group w-full flex items-center justify-center rounded-lg px-6 py-4 text-white font-bold bg-buttonPrimary hover:bg-blue-700 transition-all duration-300 shadow-xl shadow-gray-200 hover:shadow-blue-200"
       >
         Continue to Questions
         <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />

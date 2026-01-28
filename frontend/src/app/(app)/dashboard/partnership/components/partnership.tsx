@@ -274,7 +274,7 @@ function StaffSection() {
     <div className="space-y-4">
       <button
         type="button"
-        className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
+        className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
         onClick={handleSubmit}
       >
         {submitted ? (
@@ -308,6 +308,8 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
       setSubmitted(true);
 
       if (res.status === 200) {
+
+        
         toast({
           title: 'Registered!',
           description: 'Your company has been registered successfully.',
@@ -323,7 +325,7 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
     <div className="space-y-6">
       <button
         type="button"
-        className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
+        className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
         onClick={handleSubmit}
       >
         {submitted ? (

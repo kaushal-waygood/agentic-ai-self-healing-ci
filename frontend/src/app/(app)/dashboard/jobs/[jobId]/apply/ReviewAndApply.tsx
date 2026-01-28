@@ -83,7 +83,7 @@ export const ReviewAndApply = ({
           choice={resumeChoice}
           savedItem={selectedResume}
           file={cvFile}
-          colorClass="border-purple-200 bg-purple-50"
+          colorClass="border-blue-200 bg-blue-50"
         />
         <FileSummary
           label="Cover Letter"
@@ -117,7 +117,7 @@ export const ReviewAndApply = ({
                     value={answers[q._id] || ''}
                     onChange={(e) => handleAnswerChange(q._id, e.target.value)}
                     placeholder="Your answer"
-                    className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 )}{' '}
                 {q.type === 'number' && (
@@ -126,7 +126,7 @@ export const ReviewAndApply = ({
                     value={answers[q._id] || ''}
                     onChange={(e) => handleAnswerChange(q._id, e.target.value)}
                     placeholder="Your answer"
-                    className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 )}
                 {/* BOOLEAN */}
@@ -174,7 +174,7 @@ export const ReviewAndApply = ({
         {job.applyMethod?.method === 'EMAIL' ? (
           <button
             onClick={handleApply}
-            className="flex-[2] flex items-center justify-center rounded-xl px-6 py-3 text-white font-medium bg-purple-600"
+            className="flex-[2] flex items-center justify-center rounded-xl px-6 py-3 text-white font-medium bg-buttonPrimary hover:bg-blue-600"
           >
             Confirm & Apply
           </button>

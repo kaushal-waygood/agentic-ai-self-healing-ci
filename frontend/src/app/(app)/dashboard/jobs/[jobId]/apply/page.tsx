@@ -83,10 +83,10 @@ const JobDetailPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 space-y-10">
-      <div className="h-1 w-full rounded-full bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600" />
+    <div className="max-w-4xl mx-auto  py-12 ">
+      <div className="" />
 
-      <section className="rounded-2xl bg-white border p-6">
+      <section className="rounded-lg bg-white border p-2 md:p-6">
         {step === 1 ? (
           <DocumentSelection
             resume={resume}

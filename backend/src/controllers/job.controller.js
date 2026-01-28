@@ -23,6 +23,8 @@ import TemplateManager from '../email-templates/lib/templateLoader.js';
 import path from 'path';
 import { __dirname } from '../utils/fileUploadingManaging.js';
 import { transporter } from '../utils/transporter.js';
+import { genAIRequest } from '../config/gemini.js';
+import { Organization } from '../models/Organization.model.js';
 
 // --- Constants ---
 const SEARCH_TTL = 120; // seconds
@@ -135,6 +137,45 @@ async function vectorJobSearch({
   ];
 
   return Job.aggregate(pipeline);
+}
+
+function buildPrompt(jd, orgContext) {
+  return `
+You are an experienced HR and technical recruitment specialist.
+
+Your task is to generate a professional, factual job description.
+
+STRICT RULES:
+- Use ONLY the information explicitly provided below.
+- Do NOT invent company size, email addresses, phone numbers, benefits, salary, location, or website unless provided.
+- Do NOT add a "How to Apply" section.
+- Do NOT use filler phrases or conversational language.
+- Keep the tone formal, concise, and suitable for a job portal.
+- if ( Responsibilities,
+Required Skills & Qualifications
+Nice-to-Have Skills )
+- are not provided, then generate them according to the job description.
+JOB DETAILS:
+${jd}
+
+ORGANIZATION DETAILS:
+${JSON.stringify(orgContext, null, 2)}
+
+OUTPUT FORMAT (Markdown only):
+About the Company
+Role Overview
+Key Responsibilities
+Required Skills & Qualifications
+Nice-to-Have Skills (if applicable)
+
+Only return the job description. No explanations. No prefaces.
+`;
+}
+
+async function generateJobDescriptionService(jd, org) {
+  const prompt = buildPrompt(jd, org);
+  const response = await genAIRequest(prompt);
+  return response;
 }
 
 // -------Controllers-------
@@ -851,6 +892,47 @@ export const getMannualyJobs = async (req, res) => {
     });
   }
 };
+
+export const generateJobDescription = async (req, res) => {
+  const { jd } = req.body;
+  const { organization: organizationId } = req.user;
+
+  if (!organizationId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Organization not found on user',
+    });
+  }
+
+  try {
+    const org = await Organization.findById(organizationId).select(
+      'profile contactInfo',
+    );
+
+    console.log(org);
+
+    if (!org) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found in database',
+      });
+    }
+
+    const generatedJD = await generateJobDescriptionService(jd, org);
+
+    return res.status(200).json({
+      success: true,
+      jobDescription: generatedJD,
+    });
+  } catch (error) {
+    console.error('Error generating job description:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 export const getHostedJobsByAdmin = async (req, res) => {
   const { organization } = req.user;
 
@@ -880,7 +962,7 @@ export const getHostedJobsByAdmin = async (req, res) => {
       origin: 'HOSTED',
     })
       .sort({ createdAt: -1 })
-      .lean();  
+      .lean();
 
     if (!jobs || !jobs.length) {
       return res.status(200).json({ success: true, jobs: [] });

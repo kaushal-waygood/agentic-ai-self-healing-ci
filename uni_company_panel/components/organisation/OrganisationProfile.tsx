@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useOrganisationStore } from '@/store/organisation.store';
-import { useAuthStore } from '@/store/auth.store';
 import {
   Pencil,
   Check,
@@ -16,8 +15,62 @@ import {
   Users,
   Camera,
   Loader2,
+  TrendingUp,
+  Briefcase,
+  UserCheck,
+  Zap,
 } from 'lucide-react';
 import Image from 'next/image';
+
+// --- Types for better safety ---
+interface OrgProfile {
+  industry: string;
+  size: string;
+  website: string;
+  description: string;
+  address: string;
+  logo?: string;
+}
+
+interface ContactInfo {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+// Reusable Input Component for consistent styling
+const EditableInput = ({
+  value,
+  onChange,
+  className = '',
+  multiline = false,
+}: {
+  value: string;
+  onChange: (e: any) => void;
+  className?: string;
+  multiline?: boolean;
+}) => {
+  const baseClasses =
+    'w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all';
+
+  if (multiline) {
+    return (
+      <textarea
+        className={`${baseClasses} min-h-[120px] resize-none ${className}`}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+  return (
+    <input
+      type="text"
+      className={`${baseClasses} ${className}`}
+      value={value}
+      onChange={onChange}
+    />
+  );
+};
 
 const OrganizationProfilePage = () => {
   const {
@@ -40,8 +93,6 @@ const OrganizationProfilePage = () => {
     getOrgStats();
   }, []);
 
-  console.log(orgStats);
-
   // --- Actions ---
   const handleLogoClick = () => fileInputRef.current?.click();
 
@@ -56,7 +107,6 @@ const OrganizationProfilePage = () => {
   const startEditing = (section: string) => {
     setActiveSection(section);
     setTempData({
-      ...organisation,
       name: organisation?.name || '',
       profile: {
         industry: organisation?.profile?.industry || '',
@@ -70,6 +120,7 @@ const OrganizationProfilePage = () => {
         email: organisation?.contactInfo?.email || '',
         phone: organisation?.contactInfo?.phone || '',
       },
+      betaFeaturesEnabled: organisation?.betaFeaturesEnabled || false,
     });
   };
 
@@ -85,45 +136,50 @@ const OrganizationProfilePage = () => {
     if (success) setActiveSection(null);
   };
 
+  console.log('Organisation:', organisation);
+
   if (loading && !organisation)
     return (
-      <div className="p-10 text-center animate-pulse text-gray-500 font-medium font-mono">
-        SYNCING_WITH_ZOBS_DATABASE...
+      <div className="min-h-screen flex items-center justify-center bg-[#FBFBFB]">
+        <div className="flex flex-col items-center gap-3 text-gray-400">
+          <Loader2 className="animate-spin" size={32} />
+          <span className="text-xs font-mono uppercase tracking-widest">
+            Loading Profile...
+          </span>
+        </div>
       </div>
     );
 
   if (!organisation)
     return <div className="p-10 text-center">Organization not found.</div>;
 
-  // Reusable Section Header
+  // --- Components ---
   const SectionHeader = ({ title, id }: { title: string; id: string }) => (
-    <div className="flex justify-between items-center mb-6">
-      <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+    <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-50">
+      <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
         {title}
       </h2>
       {activeSection === id ? (
-        <div className="flex gap-3 flex-col">
+        <div className="flex gap-2">
           <button
             onClick={() => setActiveSection(null)}
-            className="text-gray-400 hover:text-red-500 transition"
+            className="p-1.5 rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
           <button
             onClick={handleSave}
-            className="text-gray-400 hover:text-green-600 transition"
+            className="p-1.5 rounded-full bg-black text-white hover:bg-green-600 transition"
           >
-            <Check size={18} />
+            <Check size={16} />
           </button>
         </div>
       ) : (
         <button
           onClick={() => startEditing(id)}
-          className="group flex items-center gap-2 text-gray-400 hover:text-black transition"
+          className="p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-black transition"
+          title="Edit Section"
         >
-          <span className="text-[10px] font-bold opacity-0 group-hover:opacity-100 uppercase transition-all">
-            Edit Section
-          </span>
           <Pencil size={14} />
         </button>
       )}
@@ -131,33 +187,34 @@ const OrganizationProfilePage = () => {
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-10 bg-[#FBFBFB] min-h-screen">
+    <div className=" mx-auto p-4 md:p-8 bg-[#FBFBFB] min-h-screen font-sans">
       {/* 1. TOP BRAND CARD */}
-      <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-6">
+      <div className="bg-white rounded-lg p-6 md:p-8 shadow-sm border border-gray-200/60 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="flex items-center gap-6 w-full animate-in fade-in slide-in-from-top-4 duration-300">
           {/* Logo Uploadable Avatar */}
           <div
             onClick={handleLogoClick}
-            className="group relative h-20 w-20 bg-black rounded-3xl flex items-center justify-center text-white text-3xl font-black shadow-xl cursor-pointer overflow-hidden transition-all hover:scale-105"
+            className="group relative h-24 w-24 bg-white border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 shadow-sm cursor-pointer overflow-hidden transition-all hover:border-blue-400"
           >
             {organisation.profile?.logo ? (
               <Image
                 src={organisation.profile.logo}
                 alt="Org Logo"
-                width={100}
-                height={100}
-                className="h-full w-full object-cover group-hover:opacity-30 transition-opacity"
+                fill
+                className="object-contain p-2 group-hover:opacity-50 transition-opacity"
               />
             ) : (
-              <span className="group-hover:opacity-20">
-                {organisation.name?.charAt(0)}
+              <span className="text-4xl font-black text-gray-100 group-hover:text-gray-200">
+                {organisation.name?.charAt(0).toUpperCase()}
               </span>
             )}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+
+            {/* Overlay Icon */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5">
               {isUploading ? (
-                <Loader2 className="animate-spin" />
+                <Loader2 className="animate-spin text-black" />
               ) : (
-                <Camera size={20} />
+                <Camera size={24} className="text-gray-600" />
               )}
             </div>
             <input
@@ -169,165 +226,203 @@ const OrganizationProfilePage = () => {
             />
           </div>
 
-          <div>
+          <div className="flex-1">
             {activeSection === 'header' ? (
-              <input
-                className="text-3xl font-black border-b-2 border-black focus:outline-none mb-2 bg-transparent"
-                value={tempData?.name}
-                onChange={(e) =>
-                  setTempData({ ...tempData, name: e.target.value })
-                }
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  className="text-2xl md:text-3xl font-black border-b-2 border-blue-500 focus:outline-none bg-transparent w-full md:w-auto"
+                  value={tempData?.name}
+                  autoFocus
+                  onChange={(e) =>
+                    setTempData({ ...tempData, name: e.target.value })
+                  }
+                />
+                <button
+                  onClick={handleSave}
+                  className="p-2 bg-black text-white rounded-full hover:bg-green-600"
+                >
+                  <Check size={16} />
+                </button>
+                <button
+                  onClick={() => setActiveSection(null)}
+                  className="p-2 bg-gray-100 rounded-full hover:bg-red-500 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             ) : (
-              <h1 className="text-3xl font-black text-gray-900 leading-tight">
-                {organisation.name || 'Untitled Organization'}
-              </h1>
+              <div className="group flex items-center gap-3">
+                <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+                  {organisation.name || 'Untitled Organization'}
+                </h1>
+                <button
+                  onClick={() => startEditing('header')}
+                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 transition-opacity"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
             )}
-            <div className="flex items-center gap-3 mt-1">
-              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[9px] font-black rounded uppercase">
-                {organisation.type}
+
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                {organisation.type || 'Company'}
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-green-600 font-bold uppercase tracking-tight">
-                <ShieldCheck size={12} /> {organisation.status}
+              <span
+                className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${organisation.status === 'VERIFIED' ? 'bg-green-50 text-green-700' : 'bg-green-50 text-green-700'}`}
+              >
+                <ShieldCheck size={12} />
+                {organisation.status}
               </span>
             </div>
           </div>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <SectionHeader title="" id="header" />
-          <p className="text-[9px] text-gray-300 font-mono tracking-widest uppercase bg-gray-50 px-2 py-1 rounded">
-            UID: {organisation._id}
-          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* LEFT COLUMN: INFORMATION */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-8 ">
           {/* PROFILE SECTION */}
           <div
-            className={`bg-white rounded-[2rem] p-8 border transition-all duration-300 ${activeSection === 'profile' ? 'border-black ring-4 ring-gray-50' : 'border-gray-100 shadow-sm'}`}
+            className={`bg-white rounded-lg p-6 border transition-all duration-300 shadow-sm animate-in fade-in slide-in-from-left-4 duration-300 ${activeSection === 'profile' ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200'}`}
           >
-            <SectionHeader title="Organization Profile" id="profile" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-              <div className="space-y-4">
-                {/* Industry */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                    Industry
-                  </label>
-                  {activeSection === 'profile' ? (
-                    <input
-                      className="w-full mt-1 p-3 bg-gray-50 border-none rounded-xl text-sm"
-                      value={tempData?.profile?.industry}
-                      onChange={(e) =>
-                        setTempData({
-                          ...tempData,
-                          profile: {
-                            ...tempData.profile,
-                            industry: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                  ) : (
-                    <p className="text-sm font-bold text-gray-800 flex items-center gap-2 mt-1">
-                      <Building2 size={16} className="text-gray-300" />{' '}
-                      {organisation.profile?.industry || '—'}
-                    </p>
-                  )}
-                </div>
-                {/* Website */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                    Website
-                  </label>
-                  {activeSection === 'profile' ? (
-                    <input
-                      className="w-full mt-1 p-3 bg-gray-50 border-none rounded-xl text-sm"
-                      value={tempData?.profile?.website}
-                      onChange={(e) =>
-                        setTempData({
-                          ...tempData,
-                          profile: {
-                            ...tempData.profile,
-                            website: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                  ) : (
-                    <p className="text-blue-600 text-sm font-bold flex items-center gap-2 mt-1 underline italic cursor-pointer">
-                      <Globe size={16} className="text-gray-300" />{' '}
-                      {organisation.profile?.website || '—'}
-                    </p>
-                  )}
-                </div>
+            <SectionHeader title="Company Details" id="profile" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Industry */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500">
+                  Industry
+                </label>
+                {activeSection === 'profile' ? (
+                  <EditableInput
+                    value={tempData?.profile?.industry}
+                    onChange={(e) =>
+                      setTempData({
+                        ...tempData,
+                        profile: {
+                          ...tempData.profile,
+                          industry: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg">
+                    <Building2 size={16} className="text-gray-400" />
+                    {organisation.profile?.industry || (
+                      <span className="text-gray-400 italic">
+                        Not specified
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-4">
-                {/* Size */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                    Org Size
-                  </label>
-                  {activeSection === 'profile' ? (
-                    <input
-                      className="w-full mt-1 p-3 bg-gray-50 border-none rounded-xl text-sm"
-                      value={tempData?.profile?.size}
-                      onChange={(e) =>
-                        setTempData({
-                          ...tempData,
-                          profile: {
-                            ...tempData.profile,
-                            size: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                  ) : (
-                    <p className="text-sm font-bold text-gray-800 flex items-center gap-2 mt-1">
-                      <Users size={16} className="text-gray-300" />{' '}
-                      {organisation.profile?.size || '—'}
-                    </p>
-                  )}
-                </div>
-                {/* Address */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                    Headquarters
-                  </label>
-                  {activeSection === 'profile' ? (
-                    <input
-                      className="w-full mt-1 p-3 bg-gray-50 border-none rounded-xl text-sm"
-                      value={tempData?.profile?.address}
-                      onChange={(e) =>
-                        setTempData({
-                          ...tempData,
-                          profile: {
-                            ...tempData.profile,
-                            address: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                  ) : (
-                    <p className="text-sm font-bold text-gray-800 flex items-center gap-2 mt-1">
-                      <MapPin size={16} className="text-gray-300" />{' '}
-                      {organisation.profile?.address || '—'}
-                    </p>
-                  )}
-                </div>
+              {/* Website */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500">
+                  Website
+                </label>
+                {activeSection === 'profile' ? (
+                  <EditableInput
+                    value={tempData?.profile?.website}
+                    onChange={(e) =>
+                      setTempData({
+                        ...tempData,
+                        profile: {
+                          ...tempData.profile,
+                          website: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg">
+                    <Globe size={16} className="text-gray-400" />
+                    {organisation.profile?.website ? (
+                      <a
+                        href={organisation.profile.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline truncate"
+                      >
+                        {organisation.profile.website}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400 italic">
+                        Not specified
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Size */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500">
+                  Company Size
+                </label>
+                {activeSection === 'profile' ? (
+                  <EditableInput
+                    value={tempData?.profile?.size}
+                    onChange={(e) =>
+                      setTempData({
+                        ...tempData,
+                        profile: { ...tempData.profile, size: e.target.value },
+                      })
+                    }
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg">
+                    <Users size={16} className="text-gray-400" />
+                    {organisation.profile?.size || (
+                      <span className="text-gray-400 italic">
+                        Not specified
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Address */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500">
+                  Headquarters
+                </label>
+                {activeSection === 'profile' ? (
+                  <EditableInput
+                    value={tempData?.profile?.address}
+                    onChange={(e) =>
+                      setTempData({
+                        ...tempData,
+                        profile: {
+                          ...tempData.profile,
+                          address: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg">
+                    <MapPin size={16} className="text-gray-400" />
+                    {organisation.profile?.address || (
+                      <span className="text-gray-400 italic">
+                        Not specified
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Description */}
-              <div className="md:col-span-2 border-t border-gray-50 pt-6">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                  Description
+              <div className="md:col-span-2 space-y-1.5 mt-2">
+                <label className="text-xs font-semibold text-gray-500">
+                  About
                 </label>
                 {activeSection === 'profile' ? (
-                  <textarea
-                    className="w-full mt-2 p-4 bg-gray-50 border-none rounded-2xl text-sm min-h-[120px]"
+                  <EditableInput
+                    multiline
                     value={tempData?.profile?.description}
                     onChange={(e) =>
                       setTempData({
@@ -340,10 +435,13 @@ const OrganizationProfilePage = () => {
                     }
                   />
                 ) : (
-                  <p className="text-sm text-gray-500 font-medium leading-relaxed mt-2">
-                    {organisation.profile?.description ||
-                      'No description provided. Click edit to add one.'}
-                  </p>
+                  <div className="text-sm text-gray-600 leading-relaxed p-4 bg-gray-50/50 rounded-lg">
+                    {organisation.profile?.description || (
+                      <span className="text-gray-400 italic">
+                        No description provided yet.
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -351,30 +449,34 @@ const OrganizationProfilePage = () => {
 
           {/* CONTACT INFO */}
           <div
-            className={`bg-white rounded-[2rem] p-8 border transition-all duration-300 ${activeSection === 'contact' ? 'border-black ring-4 ring-gray-50' : 'border-gray-100 shadow-sm'}`}
+            className={`bg-white rounded-lg p-6 border transition-all duration-300 shadow-sm ${activeSection === 'contact' ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200'}`}
           >
-            <SectionHeader title="Primary Contact Information" id="contact" />
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-8 ">
+            <SectionHeader title="Contact Information" id="contact" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
               {[
-                { label: 'Representative', key: 'name', icon: null },
+                {
+                  label: 'Point of Contact',
+                  key: 'name',
+                  icon: <UserCheck size={16} className="text-gray-400" />,
+                },
                 {
                   label: 'Official Email',
                   key: 'email',
-                  icon: <Mail size={14} className="text-gray-300" />,
+                  icon: <Mail size={16} className="text-gray-400" />,
                 },
                 {
-                  label: 'Phone Line',
+                  label: 'Phone Number',
                   key: 'phone',
-                  icon: <Phone size={14} className="text-gray-300" />,
+                  icon: <Phone size={16} className="text-gray-400" />,
                 },
               ].map((field) => (
-                <div key={field.label} className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
+                <div key={field.label} className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-500">
                     {field.label}
                   </label>
                   {activeSection === 'contact' ? (
-                    <input
-                      className="w-full mt-1 p-3 bg-gray-50 border-none rounded-xl text-sm"
+                    <EditableInput
                       value={tempData?.contactInfo?.[field.key]}
                       onChange={(e) =>
                         setTempData({
@@ -387,10 +489,12 @@ const OrganizationProfilePage = () => {
                       }
                     />
                   ) : (
-                    <p className="text-sm font-bold text-gray-900 flex items-center gap-2 mt-1">
-                      {field.icon}{' '}
-                      {organisation.contactInfo?.[field.key] || '—'}
-                    </p>
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg truncate">
+                      {field.icon}
+                      {organisation.contactInfo?.[
+                        field.key as keyof ContactInfo
+                      ] || <span className="text-gray-400 italic">—</span>}
+                    </div>
                   )}
                 </div>
               ))}
@@ -399,30 +503,97 @@ const OrganizationProfilePage = () => {
         </div>
 
         {/* RIGHT COLUMN: ANALYTICS & BETA */}
-        <div className="space-y-8">
-          <div className="bg-black rounded-[2.5rem] p-8 text-white shadow-2xl relative group overflow-hidden">
-            <div className="relative z-10">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-black italic tracking-tighter text-xl underline decoration-blue-500">
-                  BETA_ACCESS
-                </h3>
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 accent-blue-500 cursor-pointer"
-                  checked={organisation.betaFeaturesEnabled}
-                  onChange={async (e) =>
-                    await updateProfile({
-                      betaFeaturesEnabled: e.target.checked,
-                    })
-                  }
-                />
+        <div className="space-y-6">
+          {/* STATS CARD (Added to fill empty space) */}
+          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
+            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <TrendingUp size={16} className="text-blue-600" /> Performance
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                    <Briefcase size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">
+                      Active Jobs
+                    </p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {orgStats?.activeJobs || 0}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-gray-400 font-medium leading-relaxed">
-                Unlock experimental AI recruiting modules and advanced API
-                analytics.
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                    <Users size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">
+                      Total Candidates
+                    </p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {orgStats?.totalCandidates || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest">
+                Updated Today
               </p>
             </div>
-            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-600 rounded-full blur-[40px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
+          </div>
+
+          {/* BETA CARD (Restyled) */}
+          {/* <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg p-6 text-white shadow-xl relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-yellow-500/20 text-yellow-400 rounded-md">
+                    <Zap size={16} fill="currentColor" />
+                  </div>
+                  <h3 className="font-bold text-lg tracking-tight">
+                    Beta Features
+                  </h3>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={organisation.betaFeaturesEnabled}
+                    onChange={async (e) =>
+                      await updateProfile({
+                        betaFeaturesEnabled: e.target.checked,
+                      })
+                    }
+                  />
+                  <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              <p className="text-xs text-gray-300 leading-relaxed pr-4">
+                Opt-in to experimental recruiting AI modules and advanced
+                analytics dashboard.
+              </p>
+            </div>
+
+            <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl pointer-events-none"></div>
+          </div> */}
+
+          <div className="bg-gray-50 rounded-lg p-4 border border-dashed border-gray-200">
+            <p className="text-[10px] text-gray-400 font-mono text-center">
+              ORG_ID:{' '}
+              <span className="text-gray-600 select-all">
+                {organisation._id}
+              </span>
+            </p>
           </div>
         </div>
       </div>

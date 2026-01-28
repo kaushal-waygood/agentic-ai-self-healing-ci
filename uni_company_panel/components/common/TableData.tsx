@@ -82,7 +82,7 @@ export function DataTable<TData, TValue>({
       )}
 
       {/* Added 'border-separate border-spacing-0' to handle double borders correctly */}
-      <div className="rounded-lg border border-slate-200 bg-white  overflow-hidden">
+      <div className="rounded-lg border border-slate-200 bg-white  overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
         <Table className="border-collapse">
           <TableHeader className="bg-blue-100">
             {table.getHeaderGroups().map((headerGroup) => (
