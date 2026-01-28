@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { FileText, ArrowLeft } from 'lucide-react';
+import { FileText, ArrowLeft, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 const FileSummary = ({ label, choice, savedItem, file, colorClass }: any) => (
   <div className={`p-3 rounded-lg border ${colorClass} flex items-center mb-3`}>
@@ -23,6 +24,7 @@ export const ReviewAndApply = ({
   job,
   resumeChoice,
   selectedResume,
+  isApplying,
   cvFile,
   coverLetterChoice,
   selectedCoverLetter,
@@ -34,6 +36,34 @@ export const ReviewAndApply = ({
 }: any) => {
   return (
     <div className="space-y-6 animate-fadeIn">
+      {/* --- POPUP LOADER MODAL --- */}
+      {isApplying && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 animate-in zoom-in-95 duration-200">
+            <div className="relative">
+              <Loader2 className="w-20 h-20 text-blue-500 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                {/* <div className="w-2 h-2 bg-blue-600 rounded-full"></div> */}
+
+                <Image
+                  src="/logo.png"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 "
+                />
+              </div>
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">
+              Submitting Application
+            </h3>
+            <p className="mt-2 text-sm text-gray-500 text-center">
+              Please wait while we upload your documents and send your
+              application to the employer.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Resume + Cover Letter */}
       <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
         <FileSummary
@@ -134,7 +164,14 @@ export const ReviewAndApply = ({
             onClick={handleApply}
             className="flex-[2] flex items-center justify-center rounded-xl px-6 py-3 text-white font-medium bg-buttonPrimary hover:bg-blue-600"
           >
-            Confirm & Apply
+            {isApplying ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Confirm & Apply'
+            )}
           </button>
         ) : (
           <a
