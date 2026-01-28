@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useOrganisationStore } from '@/store/organisation.store';
-import { useAuthStore } from '@/store/auth.store';
 import {
   Pencil,
   Check,

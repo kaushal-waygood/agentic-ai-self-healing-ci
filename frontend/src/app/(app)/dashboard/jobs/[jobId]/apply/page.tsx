@@ -3,29 +3,32 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
+
 import { findSingleJobRequest } from '@/redux/reducers/jobReducer';
-import { RootState } from '@/redux/rootReducer';
+import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import {
   savedStudentCoverLetterRequest,
   savedStudentResumeRequest,
 } from '@/redux/reducers/aiReducer';
-import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 
-// Sub-components
+import { RootState } from '@/redux/rootReducer';
 import { DocumentSelection } from './DocumentSelection';
 import { ReviewAndApply } from './ReviewAndApply';
+import { toast } from '@/hooks/use-toast';
+import apiInstance from '@/services/api';
 
 const JobDetailPage = () => {
   const { jobId } = useParams();
   const dispatch = useDispatch();
 
-  const { students } = useSelector((state: RootState) => state.student);
   const { job, loading } = useSelector((state: RootState) => state.jobs);
+  const { students } = useSelector((state: RootState) => state.student);
   const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
 
   const [step, setStep] = useState(1);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
 
-  // Resume state
+  /* ---------------- Resume state ---------------- */
   const [resumeChoice, setResumeChoice] = useState<'saved' | 'upload'>('saved');
   const [selectedSavedResumeId, setSelectedSavedResumeId] = useState<
     string | null
@@ -33,7 +36,7 @@ const JobDetailPage = () => {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvError, setCvError] = useState<string | null>(null);
 
-  // Cover letter state (✅ THIS WAS MISSING)
+  /* -------------- Cover letter state ------------- */
   const [coverLetterChoice, setCoverLetterChoice] = useState<
     'saved' | 'upload'
   >('saved');
@@ -43,6 +46,7 @@ const JobDetailPage = () => {
   const [clFile, setClFile] = useState<File | null>(null);
   const [clError, setClError] = useState<string | null>(null);
 
+  /* ---------------- Load data ---------------- */
   useEffect(() => {
     if (jobId) dispatch(findSingleJobRequest(jobId as string));
     dispatch(getStudentDetailsRequest());
@@ -50,13 +54,17 @@ const JobDetailPage = () => {
     dispatch(savedStudentCoverLetterRequest());
   }, [jobId, dispatch]);
 
+  /* ---------------- Validation ---------------- */
   const validateAndProceed = () => {
     if (job?.resumeRequired) {
       if (resumeChoice === 'upload' && !cvFile) {
-        return setCvError('Please upload a resume.');
+        setCvError('Please upload a resume.');
+        return;
       }
+
       if (resumeChoice === 'saved' && !selectedSavedResumeId) {
-        return setCvError('Please select a resume.');
+        setCvError('Please select a resume.');
+        return;
       }
     }
 
@@ -64,31 +72,90 @@ const JobDetailPage = () => {
     setStep(2);
   };
 
+  /* ---------------- File handling ---------------- */
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     setFile: React.Dispatch<React.SetStateAction<File | null>>,
     setError: React.Dispatch<React.SetStateAction<string | null>>,
   ) => {
     const file = e.target.files?.[0];
-    if (file && ['application/pdf', 'application/msword'].includes(file.type)) {
-      setError(null);
-      setFile(file);
-    } else {
+    if (!file) return;
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
       setError('Invalid file type.');
+      return;
+    }
+
+    setError(null);
+    setFile(file);
+  };
+
+  /* ---------------- Screening answers ---------------- */
+  const handleAnswerChange = (id: string, value: any) => {
+    setAnswers((prev) => ({ ...prev, [id]: value }));
+  };
+
+  /* ---------------- Apply ---------------- */
+  const handleApply = async () => {
+    try {
+      const formData = new FormData();
+
+      // answers
+      formData.append('answers', JSON.stringify(answers));
+
+      // Resume
+      if (resumeChoice === 'saved' && selectedSavedResumeId) {
+        formData.append('resumeId', selectedSavedResumeId);
+      }
+
+      if (resumeChoice === 'upload' && cvFile) {
+        formData.append('cv', cvFile);
+      }
+
+      // Cover letter
+      if (coverLetterChoice === 'saved' && selectedSavedClId) {
+        formData.append('coverLetterId', selectedSavedClId);
+      }
+
+      if (coverLetterChoice === 'upload' && clFile) {
+        formData.append('coverLetter', clFile);
+      }
+
+      await apiInstance.post(`/jobs/${job._id}/apply`, formData);
+
+      toast({
+        title: 'Success',
+        description: 'Your application has been submitted successfully.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err?.response?.data?.message || 'Application failed.',
+        variant: 'destructive',
+      });
     }
   };
 
+  /* ---------------- Loading ---------------- */
   if (loading || !job) {
     return <div className="text-center py-24">Loading...</div>;
   }
 
+  /* ---------------- Render ---------------- */
   return (
-    <div className="max-w-4xl mx-auto  py-12 ">
-      <div className="" />
-
+    <div className="max-w-4xl mx-auto py-12">
       <section className="rounded-lg bg-white border p-2 md:p-6">
         {step === 1 ? (
           <DocumentSelection
+            job={job}
             resume={resume}
             resumeChoice={resumeChoice}
             setResumeChoice={setResumeChoice}
@@ -99,12 +166,11 @@ const JobDetailPage = () => {
             handleFileChange={handleFileChange}
             setCvFile={setCvFile}
             setCvError={setCvError}
-            job={job}
             coverLetter={coverLetter}
-            selectedSavedClId={selectedSavedClId} // ✅ FIX
-            setSelectedSavedClId={setSelectedSavedClId} // ✅ FIX
             coverLetterChoice={coverLetterChoice}
             setCoverLetterChoice={setCoverLetterChoice}
+            selectedSavedClId={selectedSavedClId}
+            setSelectedSavedClId={setSelectedSavedClId}
             clFile={clFile}
             clError={clError}
             setClFile={setClFile}
@@ -115,18 +181,20 @@ const JobDetailPage = () => {
         ) : (
           <ReviewAndApply
             job={job}
+            answers={answers}
+            handleAnswerChange={handleAnswerChange}
             resumeChoice={resumeChoice}
             selectedResume={resume?.html?.find(
               (r: any) => r._id === selectedSavedResumeId,
             )}
             cvFile={cvFile}
             coverLetterChoice={coverLetterChoice}
-            clFile={clFile}
-            // FIX: Find the actual object instead of just passing the ID
             selectedCoverLetter={coverLetter?.html?.find(
               (c: any) => c._id === selectedSavedClId,
             )}
+            clFile={clFile}
             onBack={() => setStep(1)}
+            handleApply={handleApply}
           />
         )}
       </section>

@@ -1,10 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { FileText, ArrowLeft } from 'lucide-react';
-import apiInstance from '@/services/api';
-import { toast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 
 const FileSummary = ({ label, choice, savedItem, file, colorClass }: any) => (
   <div className={`p-3 rounded-lg border ${colorClass} flex items-center mb-3`}>
@@ -31,49 +28,10 @@ export const ReviewAndApply = ({
   selectedCoverLetter,
   clFile,
   onBack,
+  handleApply,
+  answers,
+  handleAnswerChange,
 }: any) => {
-  const [answers, setAnswers] = useState<Record<string, any>>({});
-  const router = useRouter();
-
-  const handleAnswerChange = (id: string, value: any) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
-  };
-
-  const handleApply = async () => {
-    try {
-      const payload = {
-        answers,
-        cvLink: cvFile ? 'UPLOADED_RESUME_URL' : null,
-        coverLetterLink: clFile ? 'UPLOADED_CL_URL' : null,
-      };
-
-      const response = await apiInstance.post(
-        `/jobs/${job._id}/apply`,
-        payload,
-      );
-
-      toast({
-        title: 'Success',
-        description: 'Your application has been submitted successfully.',
-        variant: 'default',
-      });
-
-      router.push('/dashboard/search-jobs');
-    } catch (err) {
-      if (err.status === 409) {
-        toast({
-          title: 'Error',
-          description: `${err.response.data.message}`,
-          variant: 'destructive',
-        });
-      }
-      console.error(err);
-    }
-  };
-
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Resume + Cover Letter */}

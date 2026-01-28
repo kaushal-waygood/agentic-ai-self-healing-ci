@@ -8,7 +8,6 @@ import {
   Eye,
   Maximize2,
   Minimize2,
-  AlertCircle,
   FileText,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';

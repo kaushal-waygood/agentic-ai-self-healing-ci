@@ -3,7 +3,7 @@ import { Schema, model } from 'mongoose';
 
 const schema = new Schema(
   {
-    student: { type: Schema.Types.ObjectId, ref: 'Student', index: true },
+    student: { type: Schema.Types.ObjectId, ref: 'Students', index: true },
     skillId: { type: String, required: true },
 
     skill: { type: String, required: true },

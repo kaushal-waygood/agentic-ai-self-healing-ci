@@ -3,10 +3,11 @@ import { Schema, model } from 'mongoose';
 
 const schema = new Schema(
   {
-    student: { type: Schema.Types.ObjectId, ref: 'Student', index: true },
+    student: { type: Schema.Types.ObjectId, ref: 'Students', index: true },
     html: String,
     htmlCVTitle: String,
     ats: String,
+    template: String,
   },
   { timestamps: true },
 );
