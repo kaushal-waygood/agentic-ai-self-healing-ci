@@ -193,7 +193,10 @@ const NewJobPost = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { mannualPostJob } = useJobStore();
+  const { mannualPostJob, rewriteJobDescriptionWithAI, loading } =
+    useJobStore();
+
+  const [editorKey, setEditorKey] = useState(0);
 
   const THEME = {
     glassCard:
@@ -464,6 +467,40 @@ const NewJobPost = () => {
 
   const CurrentIcon = STEPS[currentStep].icon;
 
+  const handleAiRewrite = async () => {
+    const currentHtml = form.getValues('description');
+    const doc = new DOMParser().parseFromString(currentHtml, 'text/html');
+    const plainText = doc.body.textContent || '';
+
+    if (!plainText.trim()) {
+      toast.error('Please enter some description first');
+      return;
+    }
+
+    try {
+      const newText = await rewriteJobDescriptionWithAI(plainText);
+      if (newText) {
+        // Optional: Convert Markdown to HTML if your AI returns "**Bold**"
+        let formattedText = newText
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br />');
+
+        form.setValue('description', formattedText, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+
+        // 2. Increment key to force Quill to re-render with new content
+        setEditorKey((prev) => prev + 1);
+
+        toast.success('Description rewritten!');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to rewrite description.');
+    } finally {
+    }
+  };
   return (
     <div className="min-h-screen p-4 md:p-6 flex flex-col ">
       {/* Header */}
@@ -656,6 +693,7 @@ const NewJobPost = () => {
                                 <QuillJs
                                   content={field.value}
                                   onContentChange={field.onChange}
+                                  key={editorKey}
                                 />
                               </div>
                             </FormControl>
@@ -666,27 +704,27 @@ const NewJobPost = () => {
                       />
 
                       <div>
+                        {/* AI Rewrite Button */}
+
                         <Button
                           type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            const rawHtml = form.getValues('description');
-                            const doc = new DOMParser().parseFromString(
-                              rawHtml,
-                              'text/html',
-                            );
-                            const plainText = doc.body.textContent || '';
-                            toast.info('Description copied!', {
-                              description: plainText,
-                            });
-                            console.log('Plain Description:', plainText);
-
-                            // Example: generateAIResponse(plainText);
-                          }}
-                          className="m-1"
+                          onClick={handleAiRewrite}
+                          disabled={loading}
+                          className="m-1 transition-all duration-300 hover:scale-[1.02] "
                         >
-                          Rewrite with AI
-                          <Sparkles className="ml-2" />
+                          {loading ? (
+                            <>
+                              <span className="animate-pulse">
+                                Rewriting...
+                              </span>
+                              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                            </>
+                          ) : (
+                            <>
+                              Rewrite with AI
+                              <Sparkles className="ml-2 h-4 w-4 " />
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>

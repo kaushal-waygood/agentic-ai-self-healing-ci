@@ -151,8 +151,10 @@ STRICT RULES:
 - Do NOT add a "How to Apply" section.
 - Do NOT use filler phrases or conversational language.
 - Keep the tone formal, concise, and suitable for a job portal.
-- Do NOT make assumptions about the organization or role.
-
+- if ( Responsibilities,
+Required Skills & Qualifications
+Nice-to-Have Skills )
+- are not provided, then generate them according to the job description.
 JOB DETAILS:
 ${jd}
 
