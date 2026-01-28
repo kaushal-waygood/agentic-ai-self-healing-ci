@@ -3,7 +3,7 @@ import { Schema, model } from 'mongoose';
 
 const schema = new Schema(
   {
-    student: { type: Schema.Types.ObjectId, ref: 'Student', index: true },
+    student: { type: Schema.Types.ObjectId, ref: 'Students', index: true },
     jobId: { type: Schema.Types.ObjectId, ref: 'Job' },
 
     status: { type: String, enum: ['pending', 'completed', 'failed'] },
