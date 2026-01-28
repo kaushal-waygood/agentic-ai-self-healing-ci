@@ -1563,12 +1563,20 @@ export const applyJob = async (req, res) => {
     const { jobId } = req.params;
     const studentId = req.user._id;
 
-    const {
-      answers = {},
-      applicationMethod = 'MANUAL',
-      resumeId,
-      coverLetterId,
-    } = req.body;
+    let rawAnswers = req.body.answers;
+    let answers = {};
+
+    if (typeof rawAnswers === 'string') {
+      try {
+        const parsed = JSON.parse(rawAnswers);
+
+        answers = Array.isArray(parsed) ? parsed[0] : parsed;
+      } catch (e) {
+        answers = {};
+      }
+    }
+
+    const { applicationMethod = 'MANUAL', resumeId, coverLetterId } = req.body;
 
     // 1. Basic Validations
     const job = await Job.findById(jobId);
@@ -1579,12 +1587,14 @@ export const applyJob = async (req, res) => {
 
     // 2. Handle Screening Questions
     for (const q of job.screeningQuestions) {
-      if (q.required) {
-        const value = answers[q._id.toString()];
-        if (!value)
-          return res
-            .status(400)
-            .json({ message: `Missing answer: ${q.question}` });
+      const questionKey = q._id.toString();
+      console.log(questionKey);
+      const value = answers[questionKey]; // This now correctly looks up the ID in the object
+      console.log(value);
+      if (q.required && !value) {
+        return res
+          .status(400)
+          .json({ message: `Missing answer: ${q.question}` });
       }
     }
 

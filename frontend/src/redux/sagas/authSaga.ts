@@ -121,7 +121,6 @@ function* logoutSaga(): SagaIterator {
     localStorage.removeItem('persist:root');
     localStorage.removeItem('accessToken');
     yield put(logoutSuccess());
-    Router.push('/login');
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Logout failed';
