@@ -1,18 +1,66 @@
 import { create } from 'zustand';
 import apiInstance from '@/services/api';
+
+interface Job {
+  _id: string;
+  title: string;
+  description: string;
+  company: string;
+  isActive: boolean;
+  slug: string;
+  createdAt: string;
+  jobViews: number;
+  appliedCount: number;
+  responsibilities: string[];
+  qualifications: string[];
+  jobTypes: string[];
+  remote: boolean;
+  resumeRequired: boolean;
+  tags: string[];
+  salary?: {
+    min?: number;
+    max?: number;
+    period?: string;
+  };
+  location?: {
+    city?: string;
+    state?: string;
+  };
+  country?: string;
+  contractLength?: {
+    value: number;
+    type: string;
+  };
+  screeningQuestions?: Array<{
+    question: string;
+    type: string;
+    required: boolean;
+  }>;
+  assignment?: {
+    isEnabled: boolean;
+    type: 'MANUAL' | 'FILE';
+    instruction: string;
+    fileUrl?: string;
+  };
+  applyMethod?: {
+    method: 'EMAIL' | 'EXTERNAL';
+    email?: string;
+  };
+}
+
+// 2. Define the Store's State and Actions
 interface JobStore {
-  jobs: any[];
-  job: any | null;
+  jobs: Job[];
+  job: Job | null;
   loading: boolean;
   error: string | null;
   getJobs: () => Promise<void>;
   getSingleHostedJobs: (id: string) => Promise<void>;
   updateJobDescription: (id: string, description: string) => Promise<void>;
   mannualPostJob: (jobData: any) => Promise<void>;
-  // New Action Type
-  rewriteJobDescriptionWithAI: (description: string) => Promise<string | null>;
 }
-export const useJobStore = create((set) => ({
+
+export const useJobStore = create<JobStore>((set) => ({
   jobs: [],
   job: null,
   loading: false,
