@@ -50,28 +50,7 @@ export const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
             {dpProfile}
           </button>
 
-          {/* DROPDOWN */}
-          {/* {isDropdownOpen && (
-            <div
-              tabIndex={-1}
-              className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border"
-            >
-              <div className="p-4 border-b">
-                <p>{user.fullName}</p>
-                <p>{user.email}</p>
-                <p>{user.role}</p>
-                <p>{user.credits}</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="w-full px-4 py-3 text-left hover:bg-red-50 text-red-600 flex items-center gap-2"
-              >
-                <LogOut size={16} />
-                Logout
-              </button>
-            </div>
-          )} */}
-
+          {/* dropdown  */}
           {isDropdownOpen && (
             <div
               tabIndex={-1}

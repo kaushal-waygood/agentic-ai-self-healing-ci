@@ -223,11 +223,6 @@ const JobsPage = () => {
             <Download className="w-4 h-4" />
             Export
           </Button>
-
-          <Button className="bg-blue-500 hover:bg-blue-700 text-white gap-2">
-            <Briefcase className="w-4 h-4" />
-            Post New Job
-          </Button>
         </div>
       </div>
 
