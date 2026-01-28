@@ -418,7 +418,7 @@ const AppHeader = ({
       // remove feedback session token
       sessionStorage.removeItem('feedback_shown');
       dispatch(logoutRequest());
-      router.push('/');
+      router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }

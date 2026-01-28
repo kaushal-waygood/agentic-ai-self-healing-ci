@@ -43,9 +43,7 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 // --- UI Components ---
 const Card = ({ children, className = '', hover = true }) => (
   <div
-    className={`bg-white rounded-lg border border-slate-200  ${
-      hover ? 'hover:shadow-xl hover:-translate-y-1' : ''
-    } transition-all duration-300 ${className}`}
+    className={`bg-white rounded-lg border border-slate-200 transition-all duration-300 ${className}`}
   >
     {children}
   </div>
@@ -75,7 +73,7 @@ const Button = ({
 }) => {
   const variants = {
     default:
-      'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white  hover:shadow-xl',
+      'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white  ',
     outline:
       'border-2 border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400',
     success:
@@ -329,7 +327,7 @@ export default function ReferralsPage() {
                     variant="secondary"
                     size="default"
                     onClick={handleShare}
-                    className="w-full md:w-auto"
+                    className=" flex items-center"
                   >
                     <Share2 className="mr-2 h-4 w-4" /> Share via...
                   </Button>
