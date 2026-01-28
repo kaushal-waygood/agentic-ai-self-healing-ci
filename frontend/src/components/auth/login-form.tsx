@@ -80,8 +80,12 @@ const LoginForm = () => {
       dispatch(loginRequest(data));
 
       if (user) {
+        toast({
+          title: 'Login successful!',
+          description: 'Redirecting to your dashboard...',
+        });
+        // successToast('Login successful! Redirecting to your dashboard...');
         router.push('/dashboard');
-        successToast('Login successful! Redirecting to your dashboard...');
       } else {
         errorToast('Invalid email or password');
       }
