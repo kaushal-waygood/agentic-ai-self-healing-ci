@@ -7,6 +7,7 @@ import { zobsAiHomeMetadata } from '@/metadata/metadata';
 import LayoutPage from './LayoutPage';
 import Script from 'next/script';
 import { Metadata } from 'next';
+import NextTopLoader from 'nextjs-toploader';
 
 // 1. Fully Expanded Metadata
 export const metadata: Metadata = {
@@ -118,6 +119,17 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${pt_sans.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
+        <NextTopLoader
+          color="#2563eb" // Change this to your preferred color
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px #2563eb,0 0 5px #2563eb"
+        />
         <LayoutPage>{children}</LayoutPage>
       </body>
     </html>
