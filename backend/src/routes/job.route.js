@@ -32,6 +32,7 @@ import {
   isStudent,
 } from '../middlewares/auth.middleware.js';
 import { getDashboardTopJobs } from '../controllers/student.controller.js';
+import { upload } from '../middlewares/multer.js';
 
 const router = Router();
 
@@ -87,5 +88,14 @@ router.get(
 router.get('/:jobId', getSingleJobDetail);
 router.patch('/status/:jobId', authMiddleware, isAnyAdmin, toggleJobStatus);
 
-router.post('/:jobId/apply', authMiddleware, isGeneralUser, applyJob);
+router.post(
+  '/:jobId/apply',
+  authMiddleware,
+  isGeneralUser,
+  upload.fields([
+    { name: 'cv', maxCount: 1 },
+    { name: 'coverLetter', maxCount: 1 },
+  ]),
+  applyJob,
+);
 export default router;

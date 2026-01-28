@@ -129,6 +129,7 @@ export const useEditableMaterial = ({
       setLoadingType(null);
     }
   };
+  console.log(template);
 
   const saveToDatabase = async () => {
     setIsLoading(true);
@@ -144,6 +145,7 @@ export const useEditableMaterial = ({
       await apiInstance.post(endpoint, {
         html: htmlToSave,
         title: cvNameInput.trim() || `${title} - Final`,
+        template: template?.id,
       });
 
       toast({ title: 'Saved Successfully' });

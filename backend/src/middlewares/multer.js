@@ -10,22 +10,36 @@ if (!fs.existsSync(formUploadDir)) {
   fs.mkdirSync(formUploadDir, { recursive: true });
 }
 
+const tmpDir = 'public/tmp';
+if (!fs.existsSync(tmpDir)) {
+  fs.mkdirSync(tmpDir, { recursive: true });
+}
+
 // Storage config remains the same
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    if (file.fieldname === 'profileImage') cb(null, 'public/profileImage');
-    else if (file.fieldname === 'resume') cb(null, 'public/resume');
-    else if (file.fieldname === 'cv') cb(null, 'public/pdf');
-    else if (file.fieldname === 'attachment') cb(null, formUploadDir);
-    else if (file.fieldname === 'idCard') cb(null, 'public/idCard');
-    else if (file.fieldname === 'org-logo') cb(null, 'public/org-logo');
-    else cb(new Error('Invalid field name for file upload'));
+  destination(req, file, cb) {
+    if (file.fieldname === 'profileImage') {
+      cb(null, 'public/profileImage');
+    } else if (file.fieldname === 'cv') {
+      cb(null, 'public/pdf');
+    } else if (file.fieldname === 'coverLetter') {
+      cb(null, 'public/pdf');
+    } else if (file.fieldname === 'attachment') {
+      cb(null, formUploadDir);
+    } else if (file.fieldname === 'idCard') {
+      cb(null, 'public/idCard');
+    } else if (file.fieldname === 'org-logo') {
+      cb(null, 'public/org-logo');
+    } else {
+      // SAFE fallback, do not throw
+      cb(null, 'public/tmp');
+    }
   },
-  filename: function (req, file, cb) {
+  filename(req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
   },
 });
-
+  
 // File filter (UNCHANGED LOGIC)
 const fileFilter = (req, file, cb) => {
   if (file.fieldname === 'profileImage') {
@@ -47,6 +61,20 @@ const fileFilter = (req, file, cb) => {
       cb(null, true);
     } else {
       cb(new Error('Invalid CV file type'));
+    }
+  } else if (file.fieldname === 'coverLetter') {
+    if (
+      [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+      ].includes(file.mimetype)
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid cover letter file type'));
     }
   } else if (file.fieldname === 'idCard') {
     if (
