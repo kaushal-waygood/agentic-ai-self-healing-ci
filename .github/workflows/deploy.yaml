@@ -114,6 +114,16 @@ jobs:
             echo "Frontend manifest not found at $MANIFEST, skipping."
           fi
 
+      - name: Update Uni_comapny_admin Deployment Manifest
+        run: |
+          MANIFEST="manifests/dev/zobsai-uni-admin-deployment-dev.yaml"
+          if [ -f "$MANIFEST" ]; then
+            sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni-admin:.*#ghcr.io/${{ env.repo_owner }}/zobsai-uni-admin:${{ github.sha }}#g" "$MANIFEST"
+            echo "Uni_comapny_admin deployment manifest updated."
+          else
+            echo "Uni_comapny_admin manifest not found at $MANIFEST, skipping."
+          fi
+
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"
