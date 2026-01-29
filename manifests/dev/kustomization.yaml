@@ -9,9 +9,9 @@ resources:
   - zobsai-frontend-secrets-dev.yaml
   - zobsai-redis-dev.yaml
   - zobsai-ingress-dev.yaml
-  - zobsai-uni_company_panel-deployment-dev.yaml
-  - zobsai-uni_company_panel-config-dev.yaml
-  # - zobsai-uni_company_panel-secrets-dev.yaml
+  - zobsai-uni-company-panel-deployment-dev.yaml
+  - zobsai-uni-company-panel-config-dev.yaml
+  # - zobsai-uni-company-panel-secrets-dev.yaml
 
 namespace: dev-zobsai
 # refreshed overlay: 2025-09-28T23:46:00Z
