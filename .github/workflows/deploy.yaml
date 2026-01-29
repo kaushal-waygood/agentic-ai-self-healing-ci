@@ -71,12 +71,12 @@ jobs:
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:develop
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}
 
-      - name: Set Uni_comapny_admin Build Args
-        id: Uni_comapny_admin-args
+      - name: Set Uni_comapny_panel Build Args
+        id: Uni_comapny_panel-args
         run: |
           echo "NEXT_PUBLIC_NODE_ENV=development" >> $GITHUB_ENV
 
-      - name: Build & Push Uni_comapny_admin Image
+      - name: Build & Push uni_company_panel Image
         uses: docker/build-push-action@v6
         with:
           context: ./uni_company_panel
@@ -85,7 +85,6 @@ jobs:
           build-args: |
             NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
           tags: |
-            # Changed 'uni_company_admin' to 'uni_company_panel' to match your manifest
             ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:develop
             ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:${{ github.sha }}
 
@@ -121,9 +120,9 @@ jobs:
           if [ -f "$MANIFEST" ]; then
             # The [^ ]* part ensures it only replaces the tag and stops at the first space/newline
             sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:[^ ]*#ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:${{ github.sha }}#g" "$MANIFEST"
-            echo "Uni_comapny_admin deployment manifest updated."
+            echo "uni_company_panel deployment manifest updated."
           else
-            echo "Uni_comapny_admin manifest not found at $MANIFEST, skipping."
+            echo "uni_company_panel manifest not found at $MANIFEST, skipping."
           fi
 
       - name: Commit and Push Manifest Changes
