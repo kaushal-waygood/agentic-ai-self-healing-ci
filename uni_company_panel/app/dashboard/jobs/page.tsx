@@ -8,19 +8,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/common/TableData';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+
+import {
   Eye,
   TrendingUp,
   Download,
   Briefcase,
   Users,
   ArrowUpDown,
-  Loader,
   Loader2,
+  Trash2,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const JobsPage = () => {
   const router = useRouter();
   const { jobs, getJobs, loading } = useJobStore();
+  console.log('jobcount', jobs);
 
   useEffect(() => {
     getJobs();
@@ -28,6 +36,46 @@ const JobsPage = () => {
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <div className="flex justify-center px-1">
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
+              aria-label="Select all"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="flex justify-center px-1">
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },  
+
+      {
+        id: 'serialNumber',
+        header: 'S.No',
+        cell: ({ row }) => {
+          return (
+            <span className="font-medium text-slate-500">
+              {parseInt(row.id) + 1}
+            </span>
+          );
+        },
+      },
       {
         id: 'jobTitle',
         accessorFn: (row) => row.title,
@@ -130,23 +178,76 @@ const JobsPage = () => {
           );
         },
       },
+
       {
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                router.push(`/dashboard/jobs/${row.original._id}`);
-              }}
-              className="flex gap-2"
-            >
-              <Eye className="h-3.5 w-3.5" /> View
-            </Button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const [isOpen, setIsOpen] = useState(false);
+
+          return (
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  router.push(`/dashboard/jobs/${row.original._id}`)
+                }
+                className="hover:text-blue-500"
+              >
+                <Eye className="h-3.5 w-3.5" /> View
+              </Button>
+
+              <Popover open={isOpen} onOpenChange={setIsOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:text-red-500 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-60 p-4 shadow-lg border-slate-200"
+                >
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Delete this job?
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      This will permanently remove the posting for{' '}
+                      <span className="font-bold">"{row.original.title}"</span>.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsOpen(false)}
+                        className="h-8 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          // Your delete logic here
+                          console.log('Deleted', row.original._id);
+                          setIsOpen(false);
+                        }}
+                        className="h-8 text-xs bg-red-600 hover:bg-red-700"
+                      >
+                        Delete Job
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          );
+        },
       },
     ],
     [],
