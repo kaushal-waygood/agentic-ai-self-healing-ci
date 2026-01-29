@@ -85,7 +85,6 @@ jobs:
           build-args: |
             NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
           tags: |
-            # Using hyphens for image naming consistency
             ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:develop
             ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:${{ github.sha }}
 
