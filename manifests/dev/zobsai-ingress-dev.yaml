@@ -33,7 +33,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: zobsai-uni-admin
+                name: zobsai-uni_company_panel
                 port:
                   number: 3002
     - host: www.dev.zobsai.com
@@ -50,7 +50,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: zobsai-uni-admin
+                name: zobsai-uni_company_panel
                 port:
                   number: 3002
 
