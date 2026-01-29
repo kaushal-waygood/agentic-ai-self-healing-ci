@@ -21,7 +21,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: uni-admin
-          image: ghcr.io/zobsai-com/zobsai-uni-admin:345a0ba3c82a73ca2f0e1208777c076a62dc5566
+          image: ghcr.io/zobsai-com/zobsai-uni-admin:cc7efd762e5fe388b4f4fd1d2a89b998d44928cc
           imagePullPolicy: Always
           ports:
             - containerPort: 3002
