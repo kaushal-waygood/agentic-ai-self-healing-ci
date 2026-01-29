@@ -17,8 +17,6 @@ spec:
       labels:
         app: zobsai-uni-admin
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: uni-admin
           image: ghcr.io/zobsai-com/zobsai-uni-admin:345a0ba3c82a73ca2f0e1208777c076a62dc5566
