@@ -85,9 +85,9 @@ jobs:
           build-args: |
             NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
           tags: |
-            # Changed 'uni_company_admin' to 'uni-admin' to match your manifest
-            ghcr.io/${{ env.repo_owner }}/zobsai-uni-admin:develop
-            ghcr.io/${{ env.repo_owner }}/zobsai-uni-admin:${{ github.sha }}
+            # Changed 'uni_company_admin' to 'uni_company_panel' to match your manifest
+            ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:develop
+            ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:${{ github.sha }}
 
       # -------------------------------
       # Update manifests
@@ -115,12 +115,12 @@ jobs:
             echo "Frontend manifest not found at $MANIFEST, skipping."
           fi
 
-      - name: Update Uni_comapny_admin Deployment Manifest
+      - name: Update uni_company_panel Deployment Manifest
         run: |
-          MANIFEST="manifests/dev/zobsai-uni-admin-deployment-dev.yaml"
+          MANIFEST="manifests/dev/zobsai-uni_company_panel-deployment-dev.yaml"
           if [ -f "$MANIFEST" ]; then
             # The [^ ]* part ensures it only replaces the tag and stops at the first space/newline
-            sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni-admin:[^ ]*#ghcr.io/${{ env.repo_owner }}/zobsai-uni-admin:${{ github.sha }}#g" "$MANIFEST"
+            sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:[^ ]*#ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:${{ github.sha }}#g" "$MANIFEST"
             echo "Uni_comapny_admin deployment manifest updated."
           else
             echo "Uni_comapny_admin manifest not found at $MANIFEST, skipping."
