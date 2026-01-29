@@ -20,7 +20,6 @@ export const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
   if (!user) return null;
 
   const dpProfile = user.fullName?.charAt(0).toUpperCase();
-  console.log('user', user);
 
   const handleLogout = () => {
     logout();
