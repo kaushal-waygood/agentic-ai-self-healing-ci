@@ -21,7 +21,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: uni-company-panel
-          image: ghcr.io/zobsai-com/zobsai-uni-company-panel:345a0ba3c82a73ca2f0e1208777c076a62dc5566
+          image: ghcr.io/zobsai-com/zobsai-uni-company-panel:b81bbbb51c8f6aae328cb52d473e9ca9c240516e
           imagePullPolicy: Always
           ports:
             - containerPort: 3002
