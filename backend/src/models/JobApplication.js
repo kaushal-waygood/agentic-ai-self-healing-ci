@@ -11,7 +11,7 @@ const jobApplicationSchema = new Schema(
 
     applicant: {
       type: Schema.Types.ObjectId,
-      ref: 'Students',
+      ref: 'Student',
       required: true,
       index: true,
     },
