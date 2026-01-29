@@ -76,7 +76,7 @@ jobs:
         run: |
           echo "NEXT_PUBLIC_NODE_ENV=development" >> $GITHUB_ENV
 
-      - name: Build & Push uni_company_panel Image
+      - name: Build & Push uni-company-panel Image
         uses: docker/build-push-action@v6
         with:
           context: ./uni_company_panel
@@ -85,8 +85,9 @@ jobs:
           build-args: |
             NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
           tags: |
-            ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:develop
-            ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:${{ github.sha }}
+            # Using hyphens for image naming consistency
+            ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:develop
+            ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:${{ github.sha }}
 
       # -------------------------------
       # Update manifests
@@ -114,15 +115,18 @@ jobs:
             echo "Frontend manifest not found at $MANIFEST, skipping."
           fi
 
-      - name: Update uni_company_panel Deployment Manifest
+      - name: Update uni-company-panel Deployment Manifest
         run: |
-          MANIFEST="manifests/dev/zobsai-uni_company_panel-deployment-dev.yaml"
+          # UPDATED FILE PATH (Changed _ to -)
+          MANIFEST="manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml"
+
           if [ -f "$MANIFEST" ]; then
-            # The [^ ]* part ensures it only replaces the tag and stops at the first space/newline
-            sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:[^ ]*#ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_panel:${{ github.sha }}#g" "$MANIFEST"
-            echo "uni_company_panel deployment manifest updated."
+            # UPDATED SEARCH STRING (Changed _ to -)
+            sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:[^ ]*#ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:${{ github.sha }}#g" "$MANIFEST"
+            echo "uni-company-panel deployment manifest updated."
           else
-            echo "uni_company_panel manifest not found at $MANIFEST, skipping."
+            echo "uni-company-panel manifest not found at $MANIFEST, skipping."
+            exit 1 # Optional: Fail the job if the file is missing to catch errors early
           fi
 
       - name: Commit and Push Manifest Changes

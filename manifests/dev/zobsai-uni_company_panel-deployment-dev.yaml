@@ -1,44 +1,44 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: uni_company_panel
+  name: uni-company-panel # Changed _ to -
   namespace: dev-zobsai
   annotations:
     argocd.argoproj.io/compare-options: IgnoreExtraneous
   labels:
-    app: uni_company_panel
+    app: uni-company-panel
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: uni_company_panel
+      app: uni-company-panel
   template:
     metadata:
       labels:
-        app: uni_company_panel
+        app: uni-company-panel
     spec:
       containers:
-        - name: uni_company_panel
-          image: ghcr.io/zobsai-com/zobsai-uni_company_panel:297f4d2fb6d7a36bdf3910c4b38a0ef1e9006731
+        - name: uni-company-panel
+          image: ghcr.io/zobsai-com/zobsai-uni_company_panel:345a0ba3c82a73ca2f0e1208777c076a62dc5566
           imagePullPolicy: Always
           ports:
             - containerPort: 3002
           envFrom:
             - configMapRef:
-                name: uni_company_panel-config
+                name: uni-company-panel-config # Must match ConfigMap name above
             - secretRef:
-                name: uni_company_panel-secrets
+                name: uni-company-panel-secrets # Ensure your Secret is also renamed to use -
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: uni_company_panel
+  name: uni-company-panel
   namespace: dev-zobsai
 spec:
   type: NodePort
   selector:
-    app: uni_company_panel
+    app: uni-company-panel
   ports:
-    - port: 3002 # Service port
-      targetPort: 3002 # Container port
-      nodePort: 30032 # NodePort (optional, can be omitted)
+    - port: 3002
+      targetPort: 3002
+      nodePort: 30032
