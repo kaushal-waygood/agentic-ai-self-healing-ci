@@ -9,6 +9,8 @@ resources:
   - ../../dev/zobsai-frontend-secrets-dev.yaml
   - ../../zobsai-redis.yaml
   - ../../zobsai-ingress-dev.yaml
+  - ../../dev/zobsai-uni-admin-deployment-dev.yaml
+  - ../../dev/zobsai-uni-admin-config-dev.yaml
 
 namespace: dev-zobsai
 # Optionally add a nameSuffix or namePrefix to avoid name collisions across namespaces

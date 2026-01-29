@@ -18,7 +18,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # ensures all files and history are available
+          fetch-depth: 0 # ensures all files and history are available
 
       - name: Set lowercase repo owner
         id: vars
@@ -71,6 +71,23 @@ jobs:
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:develop
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}
 
+      - name: Set Uni_comapny_admin Build Args
+        id: Uni_comapny_admin-args
+        run: |
+          echo "NEXT_PUBLIC_NODE_ENV=development" >> $GITHUB_ENV
+
+      - name: Build & Push Uni_comapny_admin Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./uni_company_panel
+          file: ./uni_company_panel/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
+          tags: |
+            ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_admin:develop
+            ghcr.io/${{ env.repo_owner }}/zobsai-uni_company_admin:${{ github.sha }}
+
       # -------------------------------
       # Update manifests
       # -------------------------------
@@ -95,6 +112,16 @@ jobs:
             echo "Frontend deployment manifest updated."
           else
             echo "Frontend manifest not found at $MANIFEST, skipping."
+          fi
+
+      - name: Update Uni_comapny_admin Deployment Manifest
+        run: |
+          MANIFEST="manifests/dev/zobsai-uni-admin-deployment-dev.yaml"
+          if [ -f "$MANIFEST" ]; then
+            sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni-admin:.*#ghcr.io/${{ env.repo_owner }}/zobsai-uni-admin:${{ github.sha }}#g" "$MANIFEST"
+            echo "Uni_comapny_admin deployment manifest updated."
+          else
+            echo "Uni_comapny_admin manifest not found at $MANIFEST, skipping."
           fi
 
       - name: Commit and Push Manifest Changes
