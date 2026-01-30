@@ -1,7 +1,8 @@
+import CandidatePage from '@/components/candidates/CandidatePage';
 import React from 'react';
 
 const page = () => {
-  return <div>candidates</div>;
+  return <CandidatePage />;
 };
 
 export default page;

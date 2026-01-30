@@ -13,6 +13,7 @@ import { CommonDetailsModal } from '@/components/common/CommonDetailsModal';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
+import { toast } from 'sonner';
 export function CandidateModal({ candidate, open, onOpenChange }: any) {
   // State to handle the previewer
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -84,10 +85,22 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
         }
         footerActions={
           <>
-            <Button variant="destructive" size="sm">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                toast.error('Candidate Rejected');
+              }}
+            >
               Reject
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                toast.success('Candidate Shortlisted');
+              }}
+            >
               Shortlist
             </Button>
           </>

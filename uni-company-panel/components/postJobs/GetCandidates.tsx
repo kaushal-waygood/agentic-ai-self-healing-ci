@@ -13,10 +13,10 @@ import { CandidateModal } from './CandidateModal';
 
 import { ArrowUpDown, Download, Eye, Loader2, Trash2 } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 const GetCandidates = () => {
   const { candidates, getCandidates, loading } = useCandidateStore();
-  console.log('candidates', candidates);
 
   const { id } = useParams();
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
@@ -180,27 +180,73 @@ const GetCandidates = () => {
       {
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedCandidate(row.original)}
-              className="flex gap-2 hover:text-blue-500 hover:bg-blue-50"
-            >
-              <Eye className="h-3.5 w-3.5" /> View
-            </Button>
+        cell: ({ row }) => {
+          const [isOpen, setIsOpen] = useState(false);
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {}}
-              className="flex gap-2 hover:text-red-500 hover:bg-red-50"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ),
+          return (
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedCandidate(row.original)}
+                className="flex gap-2 hover:text-blue-500 hover:bg-blue-50"
+              >
+                <Eye className="h-3.5 w-3.5" /> View
+              </Button>
+
+              <Popover open={isOpen} onOpenChange={setIsOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:text-red-500 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-60 p-4 shadow-lg border-slate-200"
+                >
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Delete this Candidate?
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      This will permanently delete{' '}
+                      <span className="font-bold">
+                        "{row.original.student?.fullName}"
+                      </span>
+                      .
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsOpen(false)}
+                        className="h-8 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          // Your delete logic here
+                          console.log('Deleted', row.original.student._id);
+                          setIsOpen(false);
+                        }}
+                        className="h-8 text-xs bg-red-600 hover:bg-red-700"
+                      >
+                        Delete Candidate
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          );
+        },
       },
     ],
     [],
@@ -221,11 +267,8 @@ const GetCandidates = () => {
             </p>
           </div>
 
-          <Button
-            onClick={exportToCSV}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            <Download className="mr-2 h-4 w-4" /> Export CSV
+          <Button variant="outline" onClick={exportToCSV}>
+            <Download className="h-4 w-4" /> Export
           </Button>
         </div>
 
