@@ -41,6 +41,6 @@ spec:
   selector:
     app: uni-company-panel
   ports:
-    - port: 2002
+    - port: 3002
       targetPort: 3002
       nodePort: 30055
