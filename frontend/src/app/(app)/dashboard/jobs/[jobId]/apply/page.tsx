@@ -137,8 +137,7 @@ const JobDetailPage = () => {
       }
 
       await apiInstance.post(`/jobs/${job._id}/apply`, formData);
-      // router.push('/dashboard/search-jobs');
-      router.back();
+      router.replace('/dashboard/search-jobs');
 
       toast({
         title: 'Success',

@@ -63,7 +63,7 @@ const JobsPage = () => {
         ),
         enableSorting: false,
         enableHiding: false,
-      },  
+      },
 
       {
         id: 'serialNumber',
@@ -320,7 +320,7 @@ const JobsPage = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={exportToCSV} className="gap-2">
+          <Button variant="outline" onClick={exportToCSV} className="">
             <Download className="w-4 h-4" />
             Export
           </Button>
@@ -401,7 +401,7 @@ const JobsPage = () => {
       ) : (
         <DataTable
           columns={columns}
-          data={jobs}
+          data={jobs || []}
           searchKey="jobTitle"
           searchPlaceholder="Search by Job Title..."
         />

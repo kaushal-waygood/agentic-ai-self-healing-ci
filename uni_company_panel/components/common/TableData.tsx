@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -174,6 +175,8 @@ export function DataTable<TData, TValue>({
                         .getFilteredSelectedRowModel()
                         .rows.map((row) => (row.original as any)._id);
                       console.log('Executing Bulk Delete for:', selectedIds);
+                      toast.success('Selected Delete Executed!');
+
                       // Call your backend API here via useJobStore
                       table.resetRowSelection();
                     }}
