@@ -1,0 +1,11 @@
+{
+  "/dashboard/candidates/page": "app/dashboard/candidates/page.js",
+  "/dashboard/company/page": "app/dashboard/company/page.js",
+  "/dashboard/jobs/[id]/applications/page": "app/dashboard/jobs/[id]/applications/page.js",
+  "/dashboard/jobs/[id]/page": "app/dashboard/jobs/[id]/page.js",
+  "/dashboard/jobs/page": "app/dashboard/jobs/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/post-job/page": "app/dashboard/post-job/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js"
+}

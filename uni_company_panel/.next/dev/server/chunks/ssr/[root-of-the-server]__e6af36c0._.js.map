@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 22, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/HP/Desktop/Project/zobsai/uni_company_panel/app/dashboard/company/page.tsx"],"sourcesContent":["import React from 'react';\r\n\r\nconst page = () => {\r\n  return <div>Company Profile</div>;\r\n};\r\n\r\nexport default page;\r\n"],"names":[],"mappings":";;;;;;AAEA,MAAM,OAAO;IACX,qBAAO,8OAAC;kBAAI;;;;;;AACd;uCAEe"}}]
+}
