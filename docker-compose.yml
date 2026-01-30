@@ -49,11 +49,11 @@ services:
     networks:
       - hsa-network
 
-  uni_company_panel:
+  uni-company-panel:
     build:
-      context: ./uni_company_panel
+      context: ./uni-company-panel
       dockerfile: Dockerfile
-    container_name: hsa-uni_company_panel
+    container_name: hsa-uni-company-panel
     restart: unless-stopped
     environment:
       - NEXT_PUBLIC_NODE_ENV=production

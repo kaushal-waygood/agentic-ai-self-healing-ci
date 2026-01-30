@@ -29,13 +29,7 @@ spec:
                 name: zobsai-frontend
                 port:
                   number: 3000
-          - path: /uni-admin
-            pathType: Prefix
-            backend:
-              service:
-                name: zobsai-uni_company_panel
-                port:
-                  number: 3002
+
     - host: www.dev.zobsai.com
       http:
         paths:
@@ -46,13 +40,6 @@ spec:
                 name: zobsai-frontend
                 port:
                   number: 3000
-          - path: /uni-admin
-            pathType: Prefix
-            backend:
-              service:
-                name: zobsai-uni_company_panel
-                port:
-                  number: 3002
 
     # Backend (dev API)
     - host: api.dev.zobsai.com
@@ -65,3 +52,25 @@ spec:
                 name: zobsai-backend
                 port:
                   number: 8080
+
+    - host: dev.zobsai.com
+      http:
+        paths:
+          - path: /uni-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: zobsai-uni-company-panel
+                port:
+                  number: 3002
+
+    - host: www.dev.zobsai.com
+      http:
+        paths:
+          - path: /uni-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: zobsai-uni-company-panel
+                port:
+                  number: 3002

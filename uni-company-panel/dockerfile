@@ -22,6 +22,7 @@ WORKDIR /app
 # Copy only what’s needed for production
 COPY --from=builder /app/package*.json ./
 RUN npm install --only=production
+RUN npm install typescript
 
 # Copy built files and public assets
 COPY --from=builder /app/.next ./.next
