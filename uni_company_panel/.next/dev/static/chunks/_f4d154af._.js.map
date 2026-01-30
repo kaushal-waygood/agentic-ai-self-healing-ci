@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/HP/Desktop/Project/zobsai/uni_company_panel/app/page.tsx"],"sourcesContent":["'use client';\r\nimport { useRouter } from 'next/navigation';\r\nimport { useEffect } from 'react';\r\n\r\nconst page = () => {\r\n  const router = useRouter();\r\n\r\n  useEffect(() => {\r\n    router.push('/login');\r\n  });\r\n  return null;\r\n};\r\n\r\nexport default page;\r\n"],"names":[],"mappings":";;;;AACA;AACA;;AAFA;;;AAIA,MAAM,OAAO;;IACX,MAAM,SAAS,IAAA,kJAAS;IAExB,IAAA,0KAAS;0BAAC;YACR,OAAO,IAAI,CAAC;QACd;;IACA,OAAO;AACT;GAPM;;QACW,kJAAS;;;uCAQX"}},
-    {"offset": {"line": 36, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/HP/Desktop/Project/zobsai/uni_company_panel/node_modules/next/navigation.js"],"sourcesContent":["module.exports = require('./dist/client/components/navigation')\n"],"names":[],"mappings":"AAAA,OAAO,OAAO","ignoreList":[0]}}]
-}
