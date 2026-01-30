@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useCandidateStore } from '@/store/candidates.store';
 import { ColumnDef } from '@tanstack/react-table';
@@ -11,22 +11,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CandidateModal } from './CandidateModal';
 
-// Icons
-import {
-  ArrowUpDown,
-  Download,
-  ExternalLink,
-  Eye,
-  Loader2,
-} from 'lucide-react';
-import Link from 'next/link';
+import { ArrowUpDown, Download, Eye, Loader2, Trash2 } from 'lucide-react';
+import { Checkbox } from '../ui/checkbox';
 
 const GetCandidates = () => {
   const { candidates, getCandidates, loading } = useCandidateStore();
+  console.log('candidates', candidates);
 
   const { id } = useParams();
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
-  console.log('selected candidates', selectedCandidate);
 
   useEffect(() => {
     if (id) {
@@ -56,6 +49,45 @@ const GetCandidates = () => {
   // --- Column Definitions ---
   const columns: ColumnDef<any>[] = useMemo(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <div className="flex justify-center px-1">
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
+              aria-label="Select all"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="flex justify-center px-1">
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        id: 'serialNumber',
+        header: 'S.No',
+        cell: ({ row }) => {
+          return (
+            <span className="font-medium text-slate-500">
+              {parseInt(row.id) + 1}
+            </span>
+          );
+        },
+      },
       {
         // Custom ID for searching nested data
         id: 'candidateName',
@@ -134,17 +166,17 @@ const GetCandidates = () => {
           </span>
         ),
       },
-      {
-        accessorKey: 'cvLink',
-        header: () => <div className="text-center">CV</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-center">
-            <Link href="#" target="_blank" className=" ">
-              View Details
-            </Link>
-          </div>
-        ),
-      },
+      // {
+      //   accessorKey: 'cvLink',
+      //   header: () => <div className="text-center">CV</div>,
+      //   cell: ({ row }) => (
+      //     <div className="flex justify-center">
+      //       <Link href="#" target="_blank" className=" ">
+      //         View Details
+      //       </Link>
+      //     </div>
+      //   ),
+      // },
       {
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,
@@ -154,9 +186,18 @@ const GetCandidates = () => {
               variant="outline"
               size="sm"
               onClick={() => setSelectedCandidate(row.original)}
-              className="flex gap-2"
+              className="flex gap-2 hover:text-blue-500 hover:bg-blue-50"
             >
-              <Eye className="h-3.5 w-3.5" /> View Details
+              <Eye className="h-3.5 w-3.5" /> View
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {}}
+              className="flex gap-2 hover:text-red-500 hover:bg-red-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         ),
@@ -166,7 +207,7 @@ const GetCandidates = () => {
   );
 
   return (
-    <div className="p-4 md:p-6 space-y-6  min-h-screen">
+    <div className="p-4 md:p-6 space-y-6 ">
       <div className="space-y-6">
         {/* Header with Export */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -182,7 +223,7 @@ const GetCandidates = () => {
 
           <Button
             onClick={exportToCSV}
-            className="bg-indigo-600 hover:bg-indigo-700"
+            className="bg-blue-500 hover:bg-blue-600"
           >
             <Download className="mr-2 h-4 w-4" /> Export CSV
           </Button>

@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Rocket,
   Pin,
   PinOff,
   Users,
@@ -11,6 +10,9 @@ import {
   Building2,
   Layers,
   FileCheck2,
+  LayoutDashboard,
+  PlusSquare,
+  Search,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -67,7 +69,7 @@ export const AppSidebarContent = ({
       {
         title: 'Dashboard',
         href: '/dashboard',
-        icon: Rocket,
+        icon: LayoutDashboard,
       },
     ],
 
@@ -75,12 +77,12 @@ export const AppSidebarContent = ({
       {
         title: 'Post a Job',
         href: '/dashboard/post-job',
-        icon: Pin,
+        icon: PlusSquare,
       },
       {
         title: 'Get Jobs',
         href: '/dashboard/jobs',
-        icon: Pin,
+        icon: Search,
       },
       {
         title: 'Candidates',
@@ -243,7 +245,7 @@ export const AppSidebarContent = ({
               href={item.href}
               onMouseEnter={() => setHoveredItem(item.href)}
               onMouseLeave={() => setHoveredItem(null)}
-              className={`flex  ${isCollapsed ? 'justify-center ' : 'justify-start'}  items-center gap-3 px-4 py-2 rounded-lg text-sm transition ${
+              className={`flex  ${isCollapsed ? 'justify-center ' : 'justify-start'}  items-center gap-3 px-4 py-2 rounded-sm text-sm transition ${
                 isActive
                   ? 'bg-blue-500 text-blue-700 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
