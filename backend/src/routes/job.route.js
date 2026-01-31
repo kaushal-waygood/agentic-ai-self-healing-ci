@@ -23,6 +23,8 @@ import {
   getHostedJobsByAdmin,
   getHostedJobCandidates,
   generateJobDescription,
+  deleteJobByAdmin,
+  bulkDeleteJobsByAdmin,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -78,6 +80,15 @@ router.get('/external', getRapidJobs);
 router.get('/employment-types', getAllEmploymentTypes);
 router.get('/experience-levels', getAllExperiences);
 router.get('/hosted/jobs/job-admin', authMiddleware, getHostedJobsByAdmin);
+
+router.delete('/hosted/jobs/:id', authMiddleware, isAnyAdmin, deleteJobByAdmin);
+router.post(
+  '/hosted/jobs/bulk-delete',
+  authMiddleware,
+  isAnyAdmin,
+  bulkDeleteJobsByAdmin,
+);
+
 router.get(
   '/hosted/jobs/candidates/:jobId',
   authMiddleware,

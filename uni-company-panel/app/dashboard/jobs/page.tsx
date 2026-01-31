@@ -24,11 +24,13 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 const JobsPage = () => {
   const router = useRouter();
-  const { jobs, getJobs, loading } = useJobStore();
-  console.log('jobcount', jobs);
+  const { jobs, getJobs, deleteJob, bulkDeleteJobs, loading } = useJobStore();
+
+  console.log('jobs', jobs);
 
   useEffect(() => {
     getJobs();
@@ -184,6 +186,17 @@ const JobsPage = () => {
         header: () => <div className="text-center">Actions</div>,
         cell: ({ row }) => {
           const [isOpen, setIsOpen] = useState(false);
+          const [isDeleting, setIsDeleting] = useState(false);
+
+          const handleDelete = async () => {
+            setIsDeleting(true);
+            const success = await deleteJob(row.original._id);
+            if (success) {
+              toast.success('Job deleted successfully');
+              setIsOpen(false);
+            }
+            setIsDeleting(false);
+          };
 
           return (
             <div className="flex justify-center gap-2">
@@ -232,14 +245,17 @@ const JobsPage = () => {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => {
-                          // Your delete logic here
-                          console.log('Deleted', row.original._id);
-                          setIsOpen(false);
-                        }}
+                        onClick={handleDelete}
                         className="h-8 text-xs bg-red-600 hover:bg-red-700"
                       >
-                        Delete Job
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          'Delete'
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -351,7 +367,7 @@ const JobsPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Active Jobs</p>
                 <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                  {jobs.filter((j) => j.isActive).length}
+                  {jobs?.filter((j: any) => j.isActive).length}
                 </h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -367,7 +383,7 @@ const JobsPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Total Views</p>
                 <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                  {jobs.reduce((sum, j) => sum + (j.jobViews || 0), 0)}
+                  {jobs?.reduce((sum, j) => sum + (j.jobViews || 0), 0)}
                 </h3>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -383,7 +399,7 @@ const JobsPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Applications</p>
                 <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                  {jobs.reduce((sum, j) => sum + (j.appliedCount || 0), 0)}
+                  {jobs?.reduce((sum, j) => sum + (j.appliedCount || 0), 0)}
                 </h3>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -401,9 +417,10 @@ const JobsPage = () => {
       ) : (
         <DataTable
           columns={columns}
-          data={jobs || []}
+          data={jobs}
           searchKey="jobTitle"
           searchPlaceholder="Search by Job Title..."
+          bulkDelete={bulkDeleteJobs}
         />
       )}
     </div>
