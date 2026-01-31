@@ -1038,6 +1038,53 @@ export const getHostedJobsByAdmin = async (req, res) => {
   }
 };
 
+export const deleteJobByAdmin = async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const { organization } = req.user;
+
+    const deletedJob = await Job.findOneAndDelete({
+      _id: jobId,
+      organizationId: organization,
+    });
+
+    if (!deletedJob) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Job deleted successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting job',
+      error: error.message,
+    });
+  }
+};
+
+export const bulkDeleteJobsByAdmin = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const { organization } = req.user;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'No job IDs provided' });
+    }
+
+    await Job.deleteMany({ _id: { $in: ids }, organizationId: organization });
+
+    res.status(200).json({
+      success: true,
+      message: `${ids.length} jobs deleted successfully`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getHostedJobCandidates = async (req, res) => {
   const { jobId } = req.params;
   const { organization } = req.user;
@@ -1067,7 +1114,7 @@ export const getHostedJobCandidates = async (req, res) => {
       success: true,
       count: applications.length,
       candidates: applications.map((app) => ({
-        applicationId: app._id,
+        _id: app._id,
         status: app.status,
         applicationMethod: app.applicationMethod,
         appliedAt: app.createdAt,

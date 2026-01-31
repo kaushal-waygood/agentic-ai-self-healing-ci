@@ -49,34 +49,34 @@ const GetCandidates = () => {
   // --- Column Definitions ---
   const columns: ColumnDef<any>[] = useMemo(
     () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <div className="flex justify-center px-1">
-            <Checkbox
-              checked={
-                table.getIsAllPageRowsSelected() ||
-                (table.getIsSomePageRowsSelected() && 'indeterminate')
-              }
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-              aria-label="Select all"
-            />
-          </div>
-        ),
-        cell: ({ row }) => (
-          <div className="flex justify-center px-1">
-            <Checkbox
-              checked={row.getIsSelected()}
-              onCheckedChange={(value) => row.toggleSelected(!!value)}
-              aria-label="Select row"
-            />
-          </div>
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      },
+      // {
+      //   id: 'select',
+      //   header: ({ table }) => (
+      //     <div className="flex justify-center px-1">
+      //       <Checkbox
+      //         checked={
+      //           table.getIsAllPageRowsSelected() ||
+      //           (table.getIsSomePageRowsSelected() && 'indeterminate')
+      //         }
+      //         onCheckedChange={(value) =>
+      //           table.toggleAllPageRowsSelected(!!value)
+      //         }
+      //         aria-label="Select all"
+      //       />
+      //     </div>
+      //   ),
+      //   cell: ({ row }) => (
+      //     <div className="flex justify-center px-1">
+      //       <Checkbox
+      //         checked={row.getIsSelected()}
+      //         onCheckedChange={(value) => row.toggleSelected(!!value)}
+      //         aria-label="Select row"
+      //       />
+      //     </div>
+      //   ),
+      //   enableSorting: false,
+      //   enableHiding: false,
+      // },
       {
         id: 'serialNumber',
         header: 'S.No',
@@ -194,7 +194,7 @@ const GetCandidates = () => {
                 <Eye className="h-3.5 w-3.5" /> View
               </Button>
 
-              <Popover open={isOpen} onOpenChange={setIsOpen}>
+              {/* <Popover open={isOpen} onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
@@ -243,7 +243,7 @@ const GetCandidates = () => {
                     </div>
                   </div>
                 </PopoverContent>
-              </Popover>
+              </Popover> */}
             </div>
           );
         },

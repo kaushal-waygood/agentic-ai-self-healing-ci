@@ -136,7 +136,6 @@ const OrganizationProfilePage = () => {
     if (success) setActiveSection(null);
   };
 
-  console.log('Organisation:', organisation);
 
   if (loading && !organisation)
     return (
