@@ -92,7 +92,8 @@
     "stripe": "^18.5.0",
     "tesseract.js": "^6.0.1",
     "uuid": "^11.1.0",
-    "uuidv4": "^6.2.13"
+    "uuidv4": "^6.2.13",
+    "xlsx": "^0.18.5"
   },
   "jest": {
     "testEnvironment": "node",
