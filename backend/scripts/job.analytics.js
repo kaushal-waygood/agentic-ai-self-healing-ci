@@ -1,7 +1,8 @@
+console.log('CALLINGG');
+
 import mongoose from 'mongoose';
-import xlsx from 'xlsx';
-import { JobInteraction } from './src/models/jobInteraction.model.js';
-import { config } from './src/config/config.js';
+import { JobInteraction } from '../src/models/jobInteraction.model.js';
+import { config } from '../src/config/config.js';
 
 /* =========================
    HELPERS
@@ -31,7 +32,6 @@ async function connectDB() {
 
 async function runAnalytics() {
   const { start } = last7DaysRange();
-  const excelSheets = {};
 
   /* =========================
      LIFETIME INTERACTIONS
@@ -41,10 +41,6 @@ async function runAnalytics() {
 
   console.log('📌 JOB INTERACTIONS (LIFETIME)');
   console.table([{ Metric: 'Total Interactions', Value: totalInteractions }]);
-
-  excelSheets['Lifetime Overview'] = [
-    { Metric: 'Total Interactions', Value: totalInteractions },
-  ];
 
   /* =========================
      INTERACTION TYPE BREAKDOWN
@@ -63,11 +59,6 @@ async function runAnalytics() {
     })),
   );
 
-  excelSheets['Interaction Types'] = byType.map((i) => ({
-    Interaction: i._id,
-    Count: i.count,
-  }));
-
   /* =========================
      APPLICATION STATUS FUNNEL
   ========================= */
@@ -84,11 +75,6 @@ async function runAnalytics() {
       Applications: s.count,
     })),
   );
-
-  excelSheets['Application Status (All Time)'] = applicationStatus.map((s) => ({
-    Status: s._id,
-    Applications: s.count,
-  }));
 
   /* =========================
      TOP JOBS BY ENGAGEMENT
@@ -127,14 +113,6 @@ async function runAnalytics() {
     })),
   );
 
-  excelSheets['Top Jobs (Lifetime)'] = topJobs.map((j) => ({
-    JobId: j._id.toString(),
-    Impressions: j.impressions,
-    Views: j.views,
-    Saves: j.saves,
-    Applies: j.applies,
-  }));
-
   /* =========================
      LAST 7 DAYS – DAILY ACTIVITY
   ========================= */
@@ -164,19 +142,18 @@ async function runAnalytics() {
     })),
   );
 
-  excelSheets['Daily Activity (7 Days)'] = daily7Days.map((d) => ({
-    Date: `${d._id.year}-${d._id.month}-${d._id.day}`,
-    Interaction: d._id.type,
-    Count: d.count,
-  }));
-
   /* =========================
      LAST 7 DAYS – FUNNEL
   ========================= */
 
   const funnel7Days = await JobInteraction.aggregate([
     { $match: { createdAt: { $gte: start } } },
-    { $group: { _id: '$type', count: { $sum: 1 } } },
+    {
+      $group: {
+        _id: '$type',
+        count: { $sum: 1 },
+      },
+    },
   ]);
 
   console.log('\n🧮 LAST 7 DAYS – JOB FUNNEL');
@@ -186,11 +163,6 @@ async function runAnalytics() {
       Count: f.count,
     })),
   );
-
-  excelSheets['Job Funnel (7 Days)'] = funnel7Days.map((f) => ({
-    Stage: f._id,
-    Count: f.count,
-  }));
 
   /* =========================
      LAST 7 DAYS – APPLICATION STATUS
@@ -203,7 +175,12 @@ async function runAnalytics() {
         type: 'APPLIED',
       },
     },
-    { $group: { _id: '$status', count: { $sum: 1 } } },
+    {
+      $group: {
+        _id: '$status',
+        count: { $sum: 1 },
+      },
+    },
   ]);
 
   console.log('\n✅ LAST 7 DAYS – APPLICATION STATUS');
@@ -213,11 +190,6 @@ async function runAnalytics() {
       Count: s.count,
     })),
   );
-
-  excelSheets['Application Status (7 Days)'] = appStatus7Days.map((s) => ({
-    Status: s._id,
-    Count: s.count,
-  }));
 
   /* =========================
      LAST 7 DAYS – SOURCE PERFORMANCE
@@ -246,27 +218,6 @@ async function runAnalytics() {
       Interactions: s.interactions,
     })),
   );
-
-  excelSheets['Traffic Sources (7 Days)'] = source7Days.map((s) => ({
-    Source: s._id,
-    Interactions: s.interactions,
-  }));
-
-  /* =========================
-     EXPORT EXCEL
-  ========================= */
-
-  const workbook = xlsx.utils.book_new();
-
-  for (const [sheetName, data] of Object.entries(excelSheets)) {
-    const worksheet = xlsx.utils.json_to_sheet(data);
-    xlsx.utils.book_append_sheet(workbook, worksheet, sheetName);
-  }
-
-  const fileName = `job-interaction-analytics-${Date.now()}.xlsx`;
-  xlsx.writeFile(workbook, fileName);
-
-  console.log(`\n📊 Excel exported: ${fileName}`);
 }
 
 /* =========================
