@@ -137,9 +137,21 @@ const GetCandidates = () => {
           const status = row.getValue('status') as string;
           return (
             <div className="text-center">
-              <Badge variant={status === 'APPLIED' ? 'secondary' : 'outline'}>
-                {status}
-              </Badge>
+              {status === 'APPLIED' && (
+                <Badge variant="secondary">{status}</Badge>
+              )}
+              {status === 'SHORTLISTED' && (
+                <Badge variant="outline">{status}</Badge>
+              )}
+              {status === 'REJECTED' && (
+                <Badge variant="destructive">{status}</Badge>
+              )}
+
+              {status === 'INTERVIEW' && (
+                <Badge variant="outline">{status}</Badge>
+              )}
+
+              {status === 'HIRED' && <Badge variant="outline">{status}</Badge>}
             </div>
           );
         },

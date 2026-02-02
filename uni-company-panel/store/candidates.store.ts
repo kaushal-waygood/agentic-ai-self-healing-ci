@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import apiInstance from '@/services/api';
 
 interface CandidateStore {
-  candidates: any[];
-  getCandidates: () => Promise<void>;
+  candidates: any;
+  getCandidates: (jobId: string) => Promise<void>;
   loading: boolean;
 }
 

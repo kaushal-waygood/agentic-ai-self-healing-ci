@@ -61,6 +61,7 @@ interface JobStore {
   deleteJob: (id: string) => Promise<boolean>;
   rewriteJobDescriptionWithAI: (description: string) => Promise<string | null>;
   bulkDeleteJobs: (ids: string[]) => Promise<boolean>;
+  toggleJobStatus: (id: string) => Promise<boolean>;
 }
 
 export const useJobStore = create<JobStore>((set) => ({
@@ -69,6 +70,20 @@ export const useJobStore = create<JobStore>((set) => ({
   loading: false,
   error: null,
 
+  toggleJobStatus: async (jobId: string) => {
+    try {
+      await apiInstance.patch(`jobs/status/${jobId}`);
+      set((state) => ({
+        jobs: state.jobs.map((job) =>
+          job._id === jobId ? { ...job, isActive: !job.isActive } : job,
+        ),
+      }));
+      return true;
+    } catch (err: any) {
+      console.error('Toggle status error:', err);
+      return false;
+    }
+  },
   getJobs: async () => {
     try {
       set({ loading: true, error: null });
