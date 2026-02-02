@@ -176,17 +176,6 @@ const STEPS = [
       'contractLengthValue',
     ],
   },
-  // {
-  //   id: 2,
-  //   name: 'Screening',
-  //   icon: ClipboardList,
-  //   fields: [
-  //     'applyEmail',
-  //     'includeAssignment',
-  //     'assignmentQuestion',
-  //     'assignmentFile',
-  //   ],
-  // },
 ];
 
 const NewJobPost = () => {
@@ -281,82 +270,6 @@ const NewJobPost = () => {
           .map((s) => s.trim())
           .filter(Boolean)
       : [];
-
-  // const onSubmit = async (data: JobFormType) => {
-  //   setIsSubmitting(true);
-  //   try {
-  //     const finalPayload: any = {
-  //       title: data.title,
-  //       description: data.description,
-  //       company: data.company,
-  //       applyMethod: { method: 'EMAIL', emails: [data.applyEmail] },
-  //       jobTypes: [data.jobType],
-  //       contractLength:
-  //         data.jobType === 'CONTRACT'
-  //           ? {
-  //               value: data.contractLengthValue,
-  //               type: data.contractLengthType,
-  //             }
-  //           : null,
-  //       salary: {
-  //         min: data.salaryMin,
-  //         max: data.salaryMax,
-  //         period: data.salaryPeriod,
-  //       },
-  //       jobAddress: !data.remote
-  //         ? `${data.city}${data.state ? ', ' + data.state : ''}, ${
-  //             data.country
-  //           }`
-  //         : null,
-  //       country: data.country,
-  //       resumeRequiblue: data.resumeRequiblue,
-  //       remote: data.remote,
-  //       location: data.remote
-  //         ? null
-  //         : {
-  //             city: data.city,
-  //             state: data.state || '',
-  //             postalCode: data.postalCode || '',
-  //           },
-  //       responsibilities: splitLines(data.responsibilities),
-  //       qualifications: splitLines(data.qualifications),
-  //       experience: splitLines(data.experience),
-  //       tags: splitTags(data.tags),
-  //       screeningQuestions: data.screeningQuestions,
-  //       assignment: data.includeAssignment
-  //         ? {
-  //             isEnabled: true,
-  //             type: data.assignmentType,
-  //             content:
-  //               data.assignmentType === 'MANUAL'
-  //                 ? data.assignmentQuestion
-  //                 : 'File Attached',
-  //           }
-  //         : null,
-  //     };
-
-  // if (data.includeAssignment) {
-  //   finalPayload.assignment = {
-  //     isEnabled: true,
-  //     type: data.assignmentType,
-  //     content:
-  //       data.assignmentType === 'MANUAL'
-  //         ? data.assignmentQuestion
-  //         : 'File Attached',
-  //   };
-  //   // File upload logic here if needed
-  // }
-
-  //     console.log('Payload:', finalPayload);
-  //     // mannualPostJob(finalPayload);
-  //     toast.success('Job posted successfully!');
-  //   } catch (error) {
-  //     console.error(error);
-  //     toast.error('Failed to post job.');
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
 
   // This replaces your current onSubmit
   const handlePreview = (data: JobFormType) => {

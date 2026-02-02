@@ -5,7 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { findSingleJobRequest } from '@/redux/reducers/jobReducer';
-import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
+import {
+  getStudentDetailsRequest,
+  getStudentEventsRequest,
+} from '@/redux/reducers/studentReducer';
 import {
   savedStudentCoverLetterRequest,
   savedStudentResumeRequest,
@@ -137,6 +140,10 @@ const JobDetailPage = () => {
       }
 
       await apiInstance.post(`/jobs/${job._id}/apply`, formData);
+      const response = await apiInstance.get(
+        '/students/jobs/events?type=APPLIED',
+      );
+      console.log(response);
       router.replace('/dashboard/search-jobs');
 
       toast({

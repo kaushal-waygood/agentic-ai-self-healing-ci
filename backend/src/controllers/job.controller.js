@@ -1135,23 +1135,37 @@ export const getHostedJobCandidates = async (req, res) => {
 
 export const updateJobDescription = async (req, res) => {
   const { jobId } = req.params;
-  const { description } = req.body;
+  const {
+    description,
+    title,
+    salary,
+    remote,
+    location,
+    resumeRequired,
+    responsibilities,
+    qualifications,
+    screeningQuestions,
+  } = req.body;
+
+  console.log(screeningQuestions);
 
   try {
-    if (!description || typeof description !== 'string') {
-      return res.status(400).json({
-        success: false,
-        message: 'Description is required',
-      });
-    }
-
     const job = await Job.findById(jobId);
     if (!job) {
       return res.status(404).json({ success: false, message: 'Job not found' });
     }
 
     // 1. Update MongoDB
-    job.description = description;
+    job.description = description || job.description;
+    job.title = title || job.title;
+    job.salary = salary || job.salary;
+    job.remote = remote || job.remote;
+    job.location = location || job.location;
+    job.resumeRequired = resumeRequired || job.resumeRequired;
+    job.responsibilities = responsibilities || job.responsibilities;
+    job.qualifications = qualifications || job.qualifications;
+    job.screeningQuestions = screeningQuestions || job.screeningQuestions;
+
     await job.save();
 
     // 2. 🔥 Invalidate ALL job-related caches (single + lists)
@@ -1169,6 +1183,77 @@ export const updateJobDescription = async (req, res) => {
       success: false,
       message: 'Internal server error',
     });
+  }
+};
+
+export const jobStats = async (req, res) => {
+  const { organization } = req.user; // From your auth middleware
+  const { jobId } = req.params;
+
+  try {
+    // 1. Security Check: Ensure this job actually belongs to the user's organization
+    const jobExists = await Job.findOne({
+      _id: jobId,
+      organizationId: organization,
+    });
+
+    console.log(jobExists);
+
+    if (!jobExists) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied or job not found',
+      });
+    }
+
+    // 2. Aggregate interactions for this specific job
+    const stats = await JobInteraction.aggregate([
+      {
+        $match: {
+          job: jobExists._id, // Filter by this specific job ID
+        },
+      },
+      {
+        $group: {
+          totalViews: {
+            $sum: { $cond: [{ $eq: ['$type', 'VIEW'] }, 1, 0] },
+          },
+          totalApplications: {
+            $sum: { $cond: [{ $eq: ['$type', 'APPLIED'] }, 1, 0] },
+          },
+          totalImpressions: {
+            $sum: { $cond: [{ $eq: ['$type', 'IMPRESSION'] }, 1, 0] },
+          },
+          totalSaves: {
+            $sum: { $cond: [{ $eq: ['$type', 'SAVED'] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    console.log(stats);
+
+    // 3. Prepare the response
+    const result = stats[0] || {
+      totalViews: 0,
+      totalApplications: 0,
+      totalImpressions: 0,
+      totalSaves: 0,
+    };
+
+    res.status(200).json({
+      success: true,
+      jobTitle: jobExists.title, // Helpful for the frontend
+      stats: {
+        views: result.totalViews,
+        applications: result.totalApplications,
+        impressions: result.totalImpressions,
+        saves: result.totalSaves,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching job stats:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 

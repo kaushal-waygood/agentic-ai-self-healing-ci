@@ -211,6 +211,10 @@ const JobsPage = () => {
                 <Eye className="h-3.5 w-3.5" /> View
               </Button>
 
+              <Button size="sm" variant="default" className="h-8 text-xs">
+                Edit
+              </Button>
+
               <Popover open={isOpen} onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>
                   <Button
