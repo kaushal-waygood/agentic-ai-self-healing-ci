@@ -14,10 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useOrganisationStore } from '@/store/organisation.store';
+
 export function CandidateModal({ candidate, open, onOpenChange }: any) {
   // State to handle the previewer
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState('');
+  const { rejectCandidateApplication, acceptCandidateApplication } =
+    useOrganisationStore();
 
   if (!candidate) return null;
 
@@ -25,6 +29,7 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
     setPreviewUrl(url);
     setPreviewTitle(title);
   };
+
   const candidateDetails = [
     { icon: Mail, label: 'Email', value: candidate.student?.email },
     { icon: Phone, label: 'Phone', value: candidate.student?.phone },
@@ -36,13 +41,21 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
     { icon: Workflow, label: 'Method', value: candidate.applicationMethod },
   ];
 
+  const handleReject = () => {
+    rejectCandidateApplication(candidate._id);
+  };
+
+  const handleAccept = () => {
+    acceptCandidateApplication(candidate._id);
+  };
+
   return (
     <>
       <CommonDetailsModal
         open={open}
         onOpenChange={onOpenChange}
         title={candidate.student?.fullName}
-        description={`Application ID: ${candidate.applicationId}`}
+        description={`Application ID: ${candidate._id}`}
         badgeContent={candidate.student?.fullName?.charAt(0)}
         details={candidateDetails}
         sections={
@@ -85,22 +98,10 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
         }
         footerActions={
           <>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                toast.error('Candidate Rejected');
-              }}
-            >
+            <Button variant="destructive" size="sm" onClick={handleReject}>
               Reject
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                toast.success('Candidate Shortlisted');
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={handleAccept}>
               Shortlist
             </Button>
           </>
