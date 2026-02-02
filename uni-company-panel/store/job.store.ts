@@ -160,20 +160,24 @@ export const useJobStore = create<JobStore>((set) => ({
       return false; // Return failure
     }
   },
-  updateJobDescription: async (id: string, description: string) => {
+  // Rename updateJobDescription to something more generic like updateJob
+  updateJobDescription: async (
+    id: string,
+    updates: { title?: string; description?: string },
+  ) => {
     try {
       set({ loading: true, error: null });
 
-      const response = await apiInstance.patch(`/jobs/mannual/${id}`, {
-        description,
-      });
+      console.log(updates);
+
+      // We pass the 'updates' object directly as the request body
+      const response = await apiInstance.patch(`/jobs/mannual/${id}`, updates);
 
       const data = response.data;
 
-      console.log(data);
-
+      // Update the local state with the returned job data
       set({ job: data.job, loading: false });
-    } catch (err: any | string) {
+    } catch (err: any) {
       console.error('Job updating error:', err);
       set({
         error:

@@ -25,6 +25,7 @@ import {
   generateJobDescription,
   deleteJobByAdmin,
   bulkDeleteJobsByAdmin,
+  jobStats,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -73,6 +74,8 @@ router.get('/search', searchJobs);
 
 router.post('/:id/click', authMiddleware, isGeneralUser, trackJobClick);
 router.post('/impression', authMiddleware, isGeneralUser, trackJobImpressions);
+
+router.get('/stats/:jobId', authMiddleware, isAnyAdmin, jobStats);
 
 router.get('/', getAllJobs);
 router.get('/hosted', authMiddleware, isAnyAdmin, getMannualyJobs);

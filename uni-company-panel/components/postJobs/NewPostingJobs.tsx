@@ -170,17 +170,6 @@ const STEPS = [
       'contractLengthValue',
     ],
   },
-  // {
-  //   id: 2,
-  //   name: 'Screening',
-  //   icon: ClipboardList,
-  //   fields: [
-  //     'applyEmail',
-  //     'includeAssignment',
-  //     'assignmentQuestion',
-  //     'assignmentFile',
-  //   ],
-  // },
 ];
 
 const NewJobPost = () => {
