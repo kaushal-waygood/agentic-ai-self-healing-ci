@@ -25,9 +25,12 @@ import {
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { EditJobModal } from '@/components/getjobs/EditJobModal';
 
 const JobsPage = () => {
   const router = useRouter();
+  const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { jobs, getJobs, deleteJob, bulkDeleteJobs, toggleJobStatus, loading } =
     useJobStore();
 
@@ -254,7 +257,13 @@ const JobsPage = () => {
                 <Eye className="h-3.5 w-3.5" /> View
               </Button>
 
-              <Button size="sm" variant="default" className="h-8 text-xs">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSelectedJob(row.original);
+                  setIsEditModalOpen(true);
+                }}
+              >
                 Edit
               </Button>
 
@@ -468,6 +477,17 @@ const JobsPage = () => {
           searchKey="jobTitle"
           searchPlaceholder="Search by Job Title..."
           bulkDelete={bulkDeleteJobs}
+        />
+      )}
+
+      {selectedJob && (
+        <EditJobModal
+          job={selectedJob}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedJob(null);
+          }}
         />
       )}
     </div>
