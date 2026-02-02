@@ -1,7 +1,20 @@
 import { create } from 'zustand';
 import apiInstance from '@/services/api';
+import { useCandidateStore } from './candidates.store';
 
-const useOrganisationStore = create((set, get) => ({
+interface OrganisationStore {
+  organisation: any;
+  orgStats: any;
+  loading: boolean;
+  error: any;
+  getOrganisationProfile: () => Promise<void>;
+  updateProfile: (data: any) => Promise<void>;
+  getOrgStats: () => Promise<void>;
+  rejectCandidateApplication: (appliedJobId: string) => Promise<boolean>;
+  acceptCandidateApplication: (appliedJobId: string) => Promise<void>;
+}
+
+const useOrganisationStore = create<OrganisationStore>((set, get) => ({
   organisation: null,
   orgStats: null,
   loading: false,
@@ -31,7 +44,7 @@ const useOrganisationStore = create((set, get) => ({
     }
   },
 
-  uploadLogo: async (file) => {
+  uploadLogo: async (file: File) => {
     try {
       set({ loading: true });
       const formData = new FormData();
@@ -66,13 +79,27 @@ const useOrganisationStore = create((set, get) => ({
   rejectCandidateApplication: async (appliedJobId: string) => {
     try {
       set({ loading: true });
+
       const response = await apiInstance.patch(
         `/organization/reject-candidate/${appliedJobId}`,
       );
-      set({ organisation: response.data.data, loading: false });
+
+      const candidateStore = useCandidateStore.getState();
+      useCandidateStore.setState({
+        candidates: {
+          ...candidateStore.candidates,
+          candidates: candidateStore.candidates.candidates.map((c: any) =>
+            c._id === appliedJobId ? { ...c, status: 'REJECTED' } : c,
+          ),
+        },
+      });
+
+      set({ loading: false });
+      return true;
     } catch (error) {
       console.error('Error rejecting candidate application:', error);
       set({ loading: false });
+      return false;
     }
   },
 
@@ -82,7 +109,18 @@ const useOrganisationStore = create((set, get) => ({
       const response = await apiInstance.patch(
         `/organization/shortlist-candidate/${appliedJobId}`,
       );
-      set({ organisation: response.data.data, loading: false });
+
+      const candidateStore = useCandidateStore.getState();
+      useCandidateStore.setState({
+        candidates: {
+          ...candidateStore.candidates,
+          candidates: candidateStore.candidates.candidates.map((c: any) =>
+            c._id === appliedJobId ? { ...c, status: 'INTERVIEW' } : c,
+          ),
+        },
+      });
+
+      set({ loading: false });
     } catch (error) {
       console.error('Error accepting candidate application:', error);
       set({ loading: false });

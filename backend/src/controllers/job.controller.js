@@ -1320,6 +1320,7 @@ export const getAllExperiences = async (req, res) => {
 
 export const toggleJobStatus = async (req, res) => {
   const { jobId } = req.params;
+
   try {
     const job = await Job.findById(jobId);
     if (!job) return res.status(404).json({ message: 'Job not found' });

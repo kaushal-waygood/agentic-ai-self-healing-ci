@@ -28,7 +28,8 @@ import { toast } from 'sonner';
 
 const JobsPage = () => {
   const router = useRouter();
-  const { jobs, getJobs, deleteJob, bulkDeleteJobs, loading } = useJobStore();
+  const { jobs, getJobs, deleteJob, bulkDeleteJobs, toggleJobStatus, loading } =
+    useJobStore();
 
   console.log('jobs', jobs);
 
@@ -169,18 +170,60 @@ const JobsPage = () => {
 
       {
         accessorKey: 'isActive',
-        header: () => <div className="text-center">Status</div>,
+        // header: 'Status',
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="text-center"
+          >
+            Status <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
         cell: ({ row }) => {
+          const [isToggling, setIsToggling] = useState(false);
+          const isActive = row.original.isActive;
+
+          const handleToggle = async () => {
+            setIsToggling(true);
+            const success = await toggleJobStatus(row.original._id);
+
+            if (success) {
+              toast.success(`Job is now ${!isActive ? 'Active' : 'Inactive'}`);
+            } else {
+              toast.error('Failed to update status');
+            }
+            setIsToggling(false);
+          };
+
           return (
-            <div
-              className={`${row.original.isActive ? 'text-green-600' : 'text-red-600'}`}
-            >
-              {row.original.isActive ? 'Active' : 'Inactive'}
+            <div className="flex justify-center">
+              <button
+                onClick={handleToggle}
+                disabled={isToggling}
+                className={`
+            px-3 py-1 rounded-md text-xs font-medium border transition-all
+            flex items-center justify-center min-w-[70px]
+            ${
+              isActive
+                ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
+                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+            }
+            ${isToggling ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
+          `}
+              >
+                {isToggling ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : isActive ? (
+                  'Active'
+                ) : (
+                  'Inactive'
+                )}
+              </button>
             </div>
           );
         },
       },
-
       {
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,
@@ -206,7 +249,7 @@ const JobsPage = () => {
                 onClick={() =>
                   router.push(`/dashboard/jobs/${row.original._id}`)
                 }
-                className="hover:text-blue-500"
+                className="hover:text-blue-500 cursor-pointer"
               >
                 <Eye className="h-3.5 w-3.5" /> View
               </Button>
@@ -216,7 +259,7 @@ const JobsPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="hover:text-red-500 hover:bg-red-50"
+                    className="hover:text-red-500 hover:bg-red-50 cursor-pointer"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
