@@ -612,7 +612,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   >
                     <div className="relative flex items-center justify-center gap-2">
                       <ExternalLink className="w-5 h-5" />
-                      <span>Company Site</span>
+                      <span>Apply on Company Site</span>
                     </div>
                   </Link>
                 </Button>

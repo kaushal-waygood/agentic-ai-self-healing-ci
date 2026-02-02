@@ -294,13 +294,18 @@ const OnboardingPage = () => {
 
   const handleSubmit = async () => {
     try {
+      setIsLoading(true);
       const response = await apiInstance.post('/students/profile/onboarding', {
         data: formData,
         selectedOptions,
       });
+
       setStep(totalSteps + 1);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error submitting profile:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -81,6 +81,23 @@ jobs:
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:latest
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}
 
+      - name: Set Uni_comapny_panel Build Args
+        id: Uni_comapny_panel-args
+        run: |
+          echo "NEXT_PUBLIC_NODE_ENV=development" >> $GITHUB_ENV
+
+      - name: Build & Push uni-company-panel Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./uni-company-panel
+          file: ./uni-company-panel/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
+          tags: |
+            ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:develop
+            ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:${{ github.sha }}
+
       # -------------------------------
       # Update Deployment Manifests
       # -------------------------------
@@ -104,9 +121,6 @@ jobs:
             echo "Frontend manifest not found at $MANIFEST, skipping."
           fi
 
-      # -------------------------------
-      # Commit & Push Manifest Changes
-      # -------------------------------
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"

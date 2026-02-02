@@ -1,150 +1,285 @@
-// // import axios from 'axios';
+import mongoose from 'mongoose';
+import xlsx from 'xlsx';
+import { JobInteraction } from './src/models/jobInteraction.model.js';
+import { config } from './src/config/config.js';
 
-// // const countries = ['gb']; // UK
-// // const options = {
-// //   method: 'GET',
-// //   url: 'https://jsearch.p.rapidapi.com/search',
-// //   params: {
-// //     query: 'react in ireland',
-// //     page: '1',
-// //     num_pages: '1',
-// //     country: '',
-// //     date_posted: 'all',
-// //   },
-// //   headers: {
-// //     'x-rapidapi-key': 'b68b2dbc79mshe6eb5e027a616d6p1a5579jsn632805d91faa',
-// //     'x-rapidapi-host': 'jsearch.p.rapidapi.com',
-// //   },
-// // };
+/* =========================
+   HELPERS
+========================= */
 
-// // async function fetchJobsByCountry() {
-// //   // === 1. GLOBAL TEST (No country filter) ===
-// //   console.log('\n🌍 GLOBAL SEARCH (No country)');
-// //   try {
-// //     const globalRes = await axios.request({
-// //       ...options,
-// //       params: { ...options.params, country: '' },
-// //     });
-// //     const jobs = globalRes.data.data || [];
-// //     const total = globalRes.data.total || 0;
+function last7DaysRange() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 7);
+  return { start, end };
+}
 
-// //     console.log(`   Total jobs available: ${total}`);
-// //     console.log(`   Jobs returned: ${jobs.length}`);
-// //     if (jobs.length > 0) {
-// //       console.log(
-// //         `   Sample: "${jobs[0].job_title}" at ${jobs[0].employer_name}`,
-// //       );
-// //     } else {
-// //       console.log('   No jobs returned. Possible quota or API issue.');
-// //     }
-// //   } catch (err) {
-// //     console.log('   Error:', err.response?.data?.message || err.message);
-// //   }
+/* =========================
+   DB CONNECT
+========================= */
 
-// //   // === 2. PER COUNTRY ===
-// //   for (const country of countries) {
-// //     console.log(`\n🇬🇧 COUNTRY: ${country.toUpperCase()}`);
-// //     try {
-// //       const res = await axios.request({
-// //         ...options,
-// //         params: { ...options.params, country },
-// //       });
-// //       const jobs = res.data.data || [];
-// //       const total = res.data.total || 0;
+async function connectDB() {
+  await mongoose.connect(
+    'mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot',
+  );
+  console.log('MongoDB connected\n');
+}
 
-// //       console.log(`   Total available: ${total}`);
-// //       console.log(`   Jobs returned: ${jobs.length}`);
+/* =========================
+   ANALYTICS
+========================= */
 
-// //       if (jobs.length > 0) {
-// //         jobs.slice(0, 3).forEach((job, i) => {
-// //           console.log(`   ${i + 1}. ${job.job_title}`);
-// //           console.log(`      Company: ${job.employer_name}`);
-// //           console.log(
-// //             `      Location: ${job.job_city || 'N/A'}, ${job.job_country}`,
-// //           );
-// //         });
-// //       } else {
-// //         console.log('   No jobs found for this country.');
-// //       }
-// //     } catch (err) {
-// //       console.log('   Error:', err.response?.data?.message || err.message);
-// //     }
+async function runAnalytics() {
+  const { start } = last7DaysRange();
+  const excelSheets = {};
 
-// //     // Rate limit delay
-// //     await new Promise((r) => setTimeout(r, 1000));
-// //   }
-// // }
-// import 'dotenv/config';
-// import { GoogleGenAI } from '@google/genai';
+  /* =========================
+     LIFETIME INTERACTIONS
+  ========================= */
 
-// const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const totalInteractions = await JobInteraction.countDocuments();
 
-// function extractText(res) {
-//   // 1. SDK helper (sometimes present)
-//   if (res?.response && typeof res.response.text === 'function') {
-//     try {
-//       return res.response.text();
-//     } catch {}
-//   }
+  console.log('📌 JOB INTERACTIONS (LIFETIME)');
+  console.table([{ Metric: 'Total Interactions', Value: totalInteractions }]);
 
-//   // 2. Top-level "text" (unlikely, but safe)
-//   if (typeof res?.text === 'string') return res.text;
+  excelSheets['Lifetime Overview'] = [
+    { Metric: 'Total Interactions', Value: totalInteractions },
+  ];
 
-//   // 3. candidates -> content -> text (common)
-//   if (Array.isArray(res?.candidates) && res.candidates.length) {
-//     const cand = res.candidates[0];
-//     const content = cand?.content;
+  /* =========================
+     INTERACTION TYPE BREAKDOWN
+  ========================= */
 
-//     // content can be an array of parts or an object
-//     if (Array.isArray(content) && content.length) {
-//       for (const part of content) {
-//         if (typeof part === 'string') return part;
-//         if (part?.text) return part.text;
-//         if (part?.type === 'output_text' && part?.text) return part.text;
-//       }
-//     }
+  const byType = await JobInteraction.aggregate([
+    { $group: { _id: '$type', count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ]);
 
-//     // single object form
-//     if (content && typeof content === 'object') {
-//       if (content.text) return content.text;
-//       // sometimes content has "parts" or nested arrays
-//       if (Array.isArray(content.parts) && content.parts[0]?.text)
-//         return content.parts[0].text;
-//       if (Array.isArray(content.parts) && typeof content.parts[0] === 'string')
-//         return content.parts[0];
-//     }
-//   }
+  console.log('\n📊 INTERACTIONS BY TYPE (LIFETIME)');
+  console.table(
+    byType.map((i) => ({
+      Interaction: i._id,
+      Count: i.count,
+    })),
+  );
 
-//   // 4. fallback: search the object for any key named "text"
-//   try {
-//     const json = JSON.stringify(res);
-//     const match = json.match(/"text"\s*:\s*"([^"]{1,2000})"/);
-//     if (match) return JSON.parse(`"${match[1]}"`);
-//   } catch {}
+  excelSheets['Interaction Types'] = byType.map((i) => ({
+    Interaction: i._id,
+    Count: i.count,
+  }));
 
-//   // 5. absolute fallback
-//   return JSON.stringify(res, null, 2);
-// }
+  /* =========================
+     APPLICATION STATUS FUNNEL
+  ========================= */
 
-// async function main() {
-//   const res = await ai.models.generateContent({
-//     model: 'gemini-2.5-flash',
-//     contents: 'Explain how AI works in a few words',
-//   });
+  const applicationStatus = await JobInteraction.aggregate([
+    { $match: { type: 'APPLIED' } },
+    { $group: { _id: '$status', count: { $sum: 1 } } },
+  ]);
 
-//   const text = extractText(res);
-//   console.log('=== GENERATED TEXT ===\n', text);
+  console.log('\n🧾 APPLICATION STATUS (LIFETIME)');
+  console.table(
+    applicationStatus.map((s) => ({
+      Status: s._id,
+      Applications: s.count,
+    })),
+  );
 
-//   // optional: print compact usage info
-//   if (res?.usageMetadata) {
-//     console.log('\n=== USAGE ===');
-//     console.log('prompt tokens:', res.usageMetadata.promptTokenCount);
-//     console.log('candidate tokens:', res.usageMetadata.candidatesTokenCount);
-//     console.log('total tokens:', res.usageMetadata.totalTokenCount);
-//   }
-// }
+  excelSheets['Application Status (All Time)'] = applicationStatus.map((s) => ({
+    Status: s._id,
+    Applications: s.count,
+  }));
 
-// main().catch((err) => {
-//   console.error('Error:', err);
-// });
+  /* =========================
+     TOP JOBS BY ENGAGEMENT
+  ========================= */
 
+  const topJobs = await JobInteraction.aggregate([
+    {
+      $group: {
+        _id: '$job',
+        impressions: {
+          $sum: { $cond: [{ $eq: ['$type', 'IMPRESSION'] }, 1, 0] },
+        },
+        views: {
+          $sum: { $cond: [{ $eq: ['$type', 'VIEW'] }, 1, 0] },
+        },
+        saves: {
+          $sum: { $cond: [{ $eq: ['$type', 'SAVED'] }, 1, 0] },
+        },
+        applies: {
+          $sum: { $cond: [{ $eq: ['$type', 'APPLIED'] }, 1, 0] },
+        },
+      },
+    },
+    { $sort: { applies: -1, views: -1 } },
+    { $limit: 10 },
+  ]);
+
+  console.log('\n🔥 TOP JOBS BY ENGAGEMENT (LIFETIME)');
+  console.table(
+    topJobs.map((j) => ({
+      JobId: j._id.toString(),
+      Impressions: j.impressions,
+      Views: j.views,
+      Saves: j.saves,
+      Applies: j.applies,
+    })),
+  );
+
+  excelSheets['Top Jobs (Lifetime)'] = topJobs.map((j) => ({
+    JobId: j._id.toString(),
+    Impressions: j.impressions,
+    Views: j.views,
+    Saves: j.saves,
+    Applies: j.applies,
+  }));
+
+  /* =========================
+     LAST 7 DAYS – DAILY ACTIVITY
+  ========================= */
+
+  const daily7Days = await JobInteraction.aggregate([
+    { $match: { createdAt: { $gte: start } } },
+    {
+      $group: {
+        _id: {
+          year: { $year: '$createdAt' },
+          month: { $month: '$createdAt' },
+          day: { $dayOfMonth: '$createdAt' },
+          type: '$type',
+        },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } },
+  ]);
+
+  console.log('\n📅 LAST 7 DAYS – DAILY INTERACTIONS');
+  console.table(
+    daily7Days.map((d) => ({
+      Date: `${d._id.year}-${d._id.month}-${d._id.day}`,
+      Interaction: d._id.type,
+      Count: d.count,
+    })),
+  );
+
+  excelSheets['Daily Activity (7 Days)'] = daily7Days.map((d) => ({
+    Date: `${d._id.year}-${d._id.month}-${d._id.day}`,
+    Interaction: d._id.type,
+    Count: d.count,
+  }));
+
+  /* =========================
+     LAST 7 DAYS – FUNNEL
+  ========================= */
+
+  const funnel7Days = await JobInteraction.aggregate([
+    { $match: { createdAt: { $gte: start } } },
+    { $group: { _id: '$type', count: { $sum: 1 } } },
+  ]);
+
+  console.log('\n🧮 LAST 7 DAYS – JOB FUNNEL');
+  console.table(
+    funnel7Days.map((f) => ({
+      Stage: f._id,
+      Count: f.count,
+    })),
+  );
+
+  excelSheets['Job Funnel (7 Days)'] = funnel7Days.map((f) => ({
+    Stage: f._id,
+    Count: f.count,
+  }));
+
+  /* =========================
+     LAST 7 DAYS – APPLICATION STATUS
+  ========================= */
+
+  const appStatus7Days = await JobInteraction.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: start },
+        type: 'APPLIED',
+      },
+    },
+    { $group: { _id: '$status', count: { $sum: 1 } } },
+  ]);
+
+  console.log('\n✅ LAST 7 DAYS – APPLICATION STATUS');
+  console.table(
+    appStatus7Days.map((s) => ({
+      Status: s._id,
+      Count: s.count,
+    })),
+  );
+
+  excelSheets['Application Status (7 Days)'] = appStatus7Days.map((s) => ({
+    Status: s._id,
+    Count: s.count,
+  }));
+
+  /* =========================
+     LAST 7 DAYS – SOURCE PERFORMANCE
+  ========================= */
+
+  const source7Days = await JobInteraction.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: start },
+        'meta.source': { $exists: true },
+      },
+    },
+    {
+      $group: {
+        _id: '$meta.source',
+        interactions: { $sum: 1 },
+      },
+    },
+    { $sort: { interactions: -1 } },
+  ]);
+
+  console.log('\n🌐 LAST 7 DAYS – TRAFFIC SOURCES');
+  console.table(
+    source7Days.map((s) => ({
+      Source: s._id,
+      Interactions: s.interactions,
+    })),
+  );
+
+  excelSheets['Traffic Sources (7 Days)'] = source7Days.map((s) => ({
+    Source: s._id,
+    Interactions: s.interactions,
+  }));
+
+  /* =========================
+     EXPORT EXCEL
+  ========================= */
+
+  const workbook = xlsx.utils.book_new();
+
+  for (const [sheetName, data] of Object.entries(excelSheets)) {
+    const worksheet = xlsx.utils.json_to_sheet(data);
+    xlsx.utils.book_append_sheet(workbook, worksheet, sheetName);
+  }
+
+  const fileName = `job-interaction-analytics-${Date.now()}.xlsx`;
+  xlsx.writeFile(workbook, fileName);
+
+  console.log(`\n📊 Excel exported: ${fileName}`);
+}
+
+/* =========================
+   RUN
+========================= */
+
+(async () => {
+  try {
+    await connectDB();
+    await runAnalytics();
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ JobInteraction analytics failed:', err);
+    process.exit(1);
+  }
+})();

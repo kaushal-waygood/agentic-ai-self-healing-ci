@@ -40,10 +40,6 @@ export const checkCredits = (actionType) => {
       const limit = user.usageLimits?.[usageField];
       const currentUsage = user.usageCounters?.[usageField] ?? 0;
 
-      console.log(
-        `[Credits Middleware] ${usageField} limit: ${limit}, usage: ${currentUsage}`,
-      );
-
       if (
         Number.isFinite(limit) &&
         limit >= 0 &&
