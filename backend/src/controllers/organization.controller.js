@@ -381,6 +381,129 @@ export const getOrganisationStats = async (req, res) => {
   }
 };
 
+export const rejectCandidate = async (req, res) => {
+  try {
+    const { appliedJobId } = req.params;
+    const { organization: organizationId } = req.user;
+    console.log(appliedJobId, organizationId);
+
+    const appliedJob = await AppliedJob.findOne({
+      _id: appliedJobId,
+    });
+
+    if (!appliedJob) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Applied job not found' });
+    }
+
+    appliedJob.status = 'REJECTED';
+    await appliedJob.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Candidate rejected successfully',
+    });
+  } catch (error) {
+    console.error('rejectCandidate error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const shortListCandidate = async (req, res) => {
+  try {
+    const { appliedJobId } = req.params;
+    const { organization: organizationId } = req.user;
+
+    const appliedJob = await AppliedJob.findOne({
+      _id: appliedJobId,
+    });
+
+    if (!appliedJob) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Applied job not found' });
+    }
+
+    appliedJob.status = 'INTERVIEW';
+    await appliedJob.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Candidate shortlisted successfully',
+    });
+  } catch (error) {
+    console.error('shortListCandidate error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const updateJobTitle = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { organization: organizationId } = req.user;
+    const { jobTitle } = req.body;
+
+    const job = await Job.findOne({ _id: jobId, organization: organizationId });
+
+    console.log(job);
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    job.jobTitle = jobTitle;
+    await job.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Job title updated successfully',
+    });
+  } catch (error) {
+    console.error('updateJobTitle error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const updateJobDetails = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { organization: organizationId } = req.user;
+    const { jobDetails } = req.body;
+
+    const job = await Job.findOne({ _id: jobId, organization: organizationId });
+
+    console.log(job);
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    job.jobDetails = jobDetails;
+    await job.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Job details updated successfully',
+    });
+  } catch (error) {
+    console.error('updateJobDetails error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 export const acceptInvite = async (req, res) => {
   try {
     const { token } = req.body;

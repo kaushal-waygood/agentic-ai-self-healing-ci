@@ -81,6 +81,8 @@ const OrganizationProfilePage = () => {
     updateProfile,
     uploadLogo,
     getOrgStats,
+    rejectCandidateApplication,
+    acceptCandidateApplication,
   } = useOrganisationStore();
 
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -135,7 +137,6 @@ const OrganizationProfilePage = () => {
     const success = await updateProfile(payload);
     if (success) setActiveSection(null);
   };
-
 
   if (loading && !organisation)
     return (

@@ -62,6 +62,32 @@ const useOrganisationStore = create((set, get) => ({
       set({ loading: false });
     }
   },
+
+  rejectCandidateApplication: async (appliedJobId: string) => {
+    try {
+      set({ loading: true });
+      const response = await apiInstance.patch(
+        `/organization/reject-candidate/${appliedJobId}`,
+      );
+      set({ organisation: response.data.data, loading: false });
+    } catch (error) {
+      console.error('Error rejecting candidate application:', error);
+      set({ loading: false });
+    }
+  },
+
+  acceptCandidateApplication: async (appliedJobId: string) => {
+    try {
+      set({ loading: true });
+      const response = await apiInstance.patch(
+        `/organization/shortlist-candidate/${appliedJobId}`,
+      );
+      set({ organisation: response.data.data, loading: false });
+    } catch (error) {
+      console.error('Error accepting candidate application:', error);
+      set({ loading: false });
+    }
+  },
 }));
 
 export { useOrganisationStore };
