@@ -116,7 +116,7 @@ router.get(
 router.get('/:jobId', getSingleJobDetail);
 router.patch('/status/:jobId', authMiddleware, isAnyAdmin, toggleJobStatus);
 
-router.post(
+router.post(  
   '/:jobId/apply',
   authMiddleware,
   isGeneralUser,

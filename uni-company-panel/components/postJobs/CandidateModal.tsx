@@ -8,6 +8,7 @@ import {
   ExternalLink,
   Workflow,
   FileUser,
+  Loader2,
 } from 'lucide-react';
 import { CommonDetailsModal } from '@/components/common/CommonDetailsModal';
 import { Button } from '@/components/ui/button';
@@ -18,10 +19,12 @@ import { useOrganisationStore } from '@/store/organisation.store';
 
 export function CandidateModal({ candidate, open, onOpenChange }: any) {
   // State to handle the previewer
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewTitle, setPreviewTitle] = useState('');
   const { rejectCandidateApplication, acceptCandidateApplication } =
     useOrganisationStore();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   if (!candidate) return null;
 
@@ -29,6 +32,8 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
     setPreviewUrl(url);
     setPreviewTitle(title);
   };
+
+  console.log('candidate', candidate);
 
   const candidateDetails = [
     { icon: Mail, label: 'Email', value: candidate.student?.email },
@@ -40,14 +45,6 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
     },
     { icon: Workflow, label: 'Method', value: candidate.applicationMethod },
   ];
-
-  const handleReject = () => {
-    rejectCandidateApplication(candidate._id);
-  };
-
-  const handleAccept = () => {
-    acceptCandidateApplication(candidate._id);
-  };
 
   return (
     <>
@@ -98,10 +95,45 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
         }
         footerActions={
           <>
-            <Button variant="destructive" size="sm" onClick={handleReject}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                setLoadingAction('REJECT');
+                await rejectCandidateApplication(candidate._id);
+                toast.success(
+                  `Candidate Rejected ${candidate.student?.fullName}`,
+                );
+                setLoadingAction(null);
+              }}
+              disabled={
+                candidate.status === 'REJECTED' || loadingAction === 'REJECT'
+              }
+            >
+              {loadingAction === 'REJECT' && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Reject
             </Button>
-            <Button variant="outline" size="sm" onClick={handleAccept}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                setLoadingAction('SHORTLIST');
+                await acceptCandidateApplication(candidate._id);
+                toast.success(
+                  `Candidate Shortlisted ${candidate.student?.fullName}`,
+                );
+                setLoadingAction(null);
+              }}
+              disabled={
+                candidate.status === 'INTERVIEW' ||
+                loadingAction === 'SHORTLIST'
+              }
+            >
+              {loadingAction === 'SHORTLIST' && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Shortlist
             </Button>
           </>

@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -37,13 +36,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Loader2,
   Building2,
-  MapPin,
   Banknote,
-  FileText,
-  Globe,
-  Mail,
   Sparkles,
-  ClipboardList,
   FileUp,
   PenTool,
   ArrowRight,
@@ -52,14 +46,14 @@ import {
   MessageSquare,
   Plus,
   Trash2,
-  Briefcase,
-  DollarSign,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 import { useJobStore } from '@/store/job.store';
 import PreviewModal from './PreviewModal';
 import { toast } from 'sonner';
+import { useOrganisationStore } from '@/store/organisation.store';
+import { useAuthStore } from '@/store/auth.store';
 
 const QuillJs = dynamic(() => import('@/components/rich-text/QuillJs'), {
   ssr: false,
@@ -179,12 +173,14 @@ const STEPS = [
 ];
 
 const NewJobPost = () => {
-  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { mannualPostJob, rewriteJobDescriptionWithAI, loading } =
     useJobStore();
 
+  const { user } = useAuthStore();
+
+  console.log(user);
   const [editorKey, setEditorKey] = useState(0);
 
   const THEME = {
@@ -205,8 +201,8 @@ const NewJobPost = () => {
     defaultValues: {
       title: '',
       description: '',
-      company: '',
-      applyEmail: '',
+      company: user?.fullName,
+      applyEmail: user?.email,
       jobType: 'FULL_TIME',
       contractLengthValue: 0,
       contractLengthType: 'MONTHS',
@@ -237,6 +233,12 @@ const NewJobPost = () => {
   const assignmentType = form.watch('assignmentType');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewPayload, setPreviewPayload] = useState<any>(null); // Store the final formatted data here
+
+  useEffect(() => {
+    if (user?.fullName && !form.getValues('company')) {
+      form.setValue('company', user.fullName);
+    }
+  }, [user, form]);
 
   // --- Navigation Logic ---
   const handleNext = async () => {
@@ -296,7 +298,7 @@ const NewJobPost = () => {
         ? `${data.city}${data.state ? ', ' + data.state : ''}, ${data.country}`
         : null,
       country: data.country,
-      resumeRequiblue: data.resumeRequiblue, // Kept your variable name
+      resumeRequiblue: data.resumeRequiblue,
       remote: data.remote,
       location: data.remote
         ? null
@@ -519,8 +521,29 @@ const NewJobPost = () => {
                                 <Input
                                   placeholder="e.g. Acme Inc."
                                   {...field}
+                                  disabled
                                   className={THEME.inputFocus}
                                 />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="applyEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Recruiter Email *</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    {...field}
+                                    className={` ${THEME.inputFocus}`}
+                                    disabled
+                                  />
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -560,9 +583,8 @@ const NewJobPost = () => {
                                   <FormControl>
                                     <Input
                                       {...field}
-                                      className="bg-white"
+                                      className={`bg-white ${THEME.inputFocus}`}
                                       placeholder="New York"
-                                      className={THEME.inputFocus}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -578,9 +600,8 @@ const NewJobPost = () => {
                                   <FormControl>
                                     <Input
                                       {...field}
-                                      className="bg-white"
+                                      className={`bg-white ${THEME.inputFocus}`}
                                       placeholder="USA"
-                                      className={THEME.inputFocus}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -835,25 +856,6 @@ const NewJobPost = () => {
 
                   {/* 1. BASIC SETTINGS */}
                   <div className="flex flex-wrap justify-start gap-4">
-                    <FormField
-                      control={form.control}
-                      name="applyEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Recruiter Email *</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                className={` ${THEME.inputFocus}`}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                       control={form.control}
                       name="resumeRequiblue"

@@ -15,6 +15,8 @@ export const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
   const router = useRouter();
   const { user, logout } = useAuthStore();
 
+  
+
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;

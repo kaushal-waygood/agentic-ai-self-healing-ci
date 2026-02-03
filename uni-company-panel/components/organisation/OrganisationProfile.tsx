@@ -95,6 +95,7 @@ const OrganizationProfilePage = () => {
     getOrgStats();
   }, []);
 
+  console.log('organisation', organisation);
   // --- Actions ---
   const handleLogoClick = () => fileInputRef.current?.click();
 

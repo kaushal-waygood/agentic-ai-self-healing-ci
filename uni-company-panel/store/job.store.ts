@@ -56,11 +56,12 @@ interface JobStore {
   error: string | null;
   getJobs: () => Promise<void>;
   getSingleHostedJobs: (id: string) => Promise<void>;
-  updateJobDescription: (id: string, description: string) => Promise<void>;
+  updateJobDescription: (id: string, description: string) => Promise<boolean>;
   mannualPostJob: (jobData: any) => Promise<void>;
   deleteJob: (id: string) => Promise<boolean>;
   rewriteJobDescriptionWithAI: (description: string) => Promise<string | null>;
   bulkDeleteJobs: (ids: string[]) => Promise<boolean>;
+  toggleJobStatus: (id: string) => Promise<boolean>;
 }
 
 export const useJobStore = create<JobStore>((set) => ({
@@ -69,6 +70,20 @@ export const useJobStore = create<JobStore>((set) => ({
   loading: false,
   error: null,
 
+  toggleJobStatus: async (jobId: string) => {
+    try {
+      await apiInstance.patch(`jobs/status/${jobId}`);
+      set((state) => ({
+        jobs: state.jobs.map((job) =>
+          job._id === jobId ? { ...job, isActive: !job.isActive } : job,
+        ),
+      }));
+      return true;
+    } catch (err: any) {
+      console.error('Toggle status error:', err);
+      return false;
+    }
+  },
   getJobs: async () => {
     try {
       set({ loading: true, error: null });
@@ -134,7 +149,7 @@ export const useJobStore = create<JobStore>((set) => ({
         // loading: false,
       }));
 
-      return true; // Return success to the component
+      return true;
     } catch (err: any) {
       console.error('Job deletion error:', err);
       set({
@@ -142,7 +157,7 @@ export const useJobStore = create<JobStore>((set) => ({
           err.response?.data?.message || err.message || 'Failed to delete job',
         loading: false,
       });
-      return false; // Return failure
+      return false;
     }
   },
   // Rename updateJobDescription to something more generic like updateJob
@@ -159,9 +174,9 @@ export const useJobStore = create<JobStore>((set) => ({
       const response = await apiInstance.patch(`/jobs/mannual/${id}`, updates);
 
       const data = response.data;
-
-      // Update the local state with the returned job data
+      console.log('response', data);
       set({ job: data.job, loading: false });
+      return true;
     } catch (err: any) {
       console.error('Job updating error:', err);
       set({
@@ -169,6 +184,7 @@ export const useJobStore = create<JobStore>((set) => ({
           err.response?.data?.message || err.message || 'Failed to update job',
         loading: false,
       });
+      return false;
     }
   },
 
