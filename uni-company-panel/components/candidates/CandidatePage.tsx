@@ -7,11 +7,7 @@ import { DataTable } from '@/components/common/TableData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+
 import {
   Eye,
   UserCheck,
@@ -24,58 +20,23 @@ import {
   Trash2,
   Mail,
 } from 'lucide-react';
-
-// --- Dummy Data Array ---
-const DUMMY_CANDIDATES = [
-  {
-    _id: 'c1',
-    fullName: 'Arjun Sharma',
-    email: 'arjun.sharma@techmail.com',
-    role: 'Frontend Developer',
-    appliedAt: '2026-01-28T10:30:00Z',
-    status: 'Shortlisted',
-  },
-  {
-    _id: 'c2',
-    fullName: 'Priya Singh',
-    email: 'priya.design@portfolio.io',
-    role: 'UI/UX Designer',
-    appliedAt: '2026-01-29T14:20:00Z',
-    status: 'Pending',
-  },
-  {
-    _id: 'c3',
-    fullName: 'Rohan Verma',
-    email: 'rohan.v@backend.com',
-    role: 'Node.js Engineer',
-    appliedAt: '2026-01-25T09:00:00Z',
-    status: 'Rejected',
-  },
-  {
-    _id: 'c4',
-    fullName: 'Sneha Kapur',
-    email: 'sneha.k@zobsai.com',
-    role: 'Product Manager',
-    appliedAt: '2026-01-30T11:45:00Z',
-    status: 'Pending',
-  },
-];
+import { useCandidateStore } from '@/store/candidates.store';
 
 const CandidatesPage = () => {
-  const router = useRouter();
+  const {
+    candidates,
+    orgCandidates,
+    loading,
+    candidatesStats,
+    orgCandidatesStats,
+  } = useCandidateStore();
 
-  // Simulated Store State
-  const [candidates, setCandidates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Simulate API Fetch
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setCandidates(DUMMY_CANDIDATES);
-      setLoading(false);
-    }, 800); // 800ms delay to see the loader
-    return () => clearTimeout(timer);
+    orgCandidates();
+    orgCandidatesStats();
   }, []);
+
+  console.log(candidatesStats);
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
@@ -120,7 +81,7 @@ const CandidatesPage = () => {
           </Button>
         ),
         cell: ({ row }) => (
-          <div className="flex flex-col">
+          <div className="flex flex-col justify-center items-center">
             <div className="font-semibold text-slate-900">
               {row.original.fullName}
             </div>
@@ -131,8 +92,17 @@ const CandidatesPage = () => {
         ),
       },
       {
-        accessorKey: 'role',
+        accessorKey: 'jobTitle',
         header: 'Applied Role',
+        cell: ({ row }) => {
+          return (
+            <div className="flex flex-col justify-center items-center">
+              <div className="font-semibold text-slate-900">
+                {row.original.jobTitle}
+              </div>
+            </div>
+          );
+        },
       },
       {
         accessorKey: 'appliedAt',
@@ -206,28 +176,34 @@ const CandidatesPage = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <StatCard
           label="Total"
-          value={candidates.length}
+          value={candidatesStats?.data?.TOTAL || 0}
           icon={<Users className="text-blue-600" />}
           color="bg-blue-100"
         />
         <StatCard
+          label="Interviews"
+          value={candidatesStats?.data?.INTERVIEW || 0}
+          icon={<Clock className="text-purple-600" />}
+          color="bg-purple-100"
+        />
+        <StatCard
           label="Shortlisted"
-          value={candidates.filter((c) => c.status === 'Shortlisted').length}
+          value={candidatesStats?.data?.ACCEPTED || 0}
           icon={<UserCheck className="text-green-600" />}
           color="bg-green-100"
         />
         <StatCard
           label="Pending"
-          value={candidates.filter((c) => c.status === 'Pending').length}
+          value={candidatesStats?.data?.APPLIED || 0}
           icon={<Clock className="text-amber-600" />}
           color="bg-amber-100"
         />
         <StatCard
           label="Rejected"
-          value={candidates.filter((c) => c.status === 'Rejected').length}
+          value={candidatesStats?.data?.REJECTED || 0}
           icon={<UserMinus className="text-red-600" />}
           color="bg-red-100"
         />
