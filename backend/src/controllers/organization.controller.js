@@ -381,69 +381,77 @@ export const getOrganisationStats = async (req, res) => {
   }
 };
 
-export const rejectCandidate = async (req, res) => {
+// export const updateCandidateStatus = async (req, res) => {
+//   try {
+//     const { appliedJobId } = req.params;
+//     const { organization: organizationId } = req.user;
+//     const { status } = req.body;
+
+//     const appliedJob = await AppliedJob.findOne({
+//       _id: appliedJobId,
+//     });
+
+//     if (!appliedJob) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: 'Applied job not found' });
+//     }
+
+//     appliedJob.status = status;
+//     await appliedJob.save();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Candidate status updated successfully',
+//     });
+//   } catch (error) {
+//     console.error('updateCandidateStatus error:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Internal server error',
+//     });
+//   }
+// };
+export const updateCandidateStatus = async (req, res) => {
   try {
     const { appliedJobId } = req.params;
-    const { organization: organizationId } = req.user;
-    console.log(appliedJobId, organizationId);
+    const { status } = req.body;
 
-    const appliedJob = await AppliedJob.findOne({
-      _id: appliedJobId,
-    });
+    // Match your schema exactly
+    const allowedStatuses = [
+      'APPLIED',
+      'SELECTED',
+      'REJECTED',
+      'INTERVIEW',
+      'CANCELLED',
+      'SHORTLISTED',
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid status' });
+    }
+
+    const appliedJob = await AppliedJob.findByIdAndUpdate(
+      appliedJobId,
+      { $set: { status } },
+      { new: true },
+    );
 
     if (!appliedJob) {
       return res
         .status(404)
-        .json({ success: false, message: 'Applied job not found' });
+        .json({ success: false, message: 'Job application not found' });
     }
 
-    appliedJob.status = 'REJECTED';
-    await appliedJob.save();
-
-    return res.status(200).json({
-      success: true,
-      message: 'Candidate rejected successfully',
-    });
+    return res.status(200).json({ success: true, data: appliedJob });
   } catch (error) {
-    console.error('rejectCandidate error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
   }
 };
-
-export const shortListCandidate = async (req, res) => {
-  try {
-    const { appliedJobId } = req.params;
-    const { organization: organizationId } = req.user;
-
-    const appliedJob = await AppliedJob.findOne({
-      _id: appliedJobId,
-    });
-
-    if (!appliedJob) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Applied job not found' });
-    }
-
-    appliedJob.status = 'INTERVIEW';
-    await appliedJob.save();
-
-    return res.status(200).json({
-      success: true,
-      message: 'Candidate shortlisted successfully',
-    });
-  } catch (error) {
-    console.error('shortListCandidate error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
-  }
-};
-
 export const updateJobTitle = async (req, res) => {
   try {
     const { jobId } = req.params;

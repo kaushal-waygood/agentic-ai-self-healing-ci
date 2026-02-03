@@ -56,7 +56,7 @@ interface JobStore {
   error: string | null;
   getJobs: () => Promise<void>;
   getSingleHostedJobs: (id: string) => Promise<void>;
-  updateJobDescription: (id: string, description: string) => Promise<boolean>;
+  updateJobDescription: (id: string, updates: Partial<Job>) => Promise<boolean>;
   mannualPostJob: (jobData: any) => Promise<void>;
   deleteJob: (id: string) => Promise<boolean>;
   rewriteJobDescriptionWithAI: (description: string) => Promise<string | null>;
@@ -161,10 +161,7 @@ export const useJobStore = create<JobStore>((set) => ({
     }
   },
   // Rename updateJobDescription to something more generic like updateJob
-  updateJobDescription: async (
-    id: string,
-    updates: { title?: string; description?: string },
-  ) => {
+  updateJobDescription: async (id: string, updates: Partial<Job>) => {
     try {
       set({ loading: true, error: null });
 
