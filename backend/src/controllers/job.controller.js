@@ -1257,6 +1257,152 @@ export const jobStats = async (req, res) => {
   }
 };
 
+export const getCandidatesByOrganization = async (req, res) => {
+  try {
+    const { organization } = req.user;
+
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
+    const skip = (page - 1) * limit;
+
+    const result = await AppliedJob.aggregate([
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'job',
+          foreignField: '_id',
+          as: 'jobDetails',
+        },
+      },
+      { $unwind: '$jobDetails' },
+
+      {
+        $match: {
+          'jobDetails.organizationId': new mongoose.Types.ObjectId(
+            organization,
+          ),
+        },
+      },
+
+      {
+        $lookup: {
+          from: 'students',
+          localField: 'student',
+          foreignField: '_id',
+          as: 'studentDetails',
+        },
+      },
+      { $unwind: '$studentDetails' },
+
+      {
+        $sort: { applicationDate: -1 },
+      },
+
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 1,
+                fullName: '$studentDetails.fullName', // Ensure this matches your frontend expectation
+                email: '$studentDetails.email',
+                status: 1,
+                applicationDate: 1,
+                cvLink: 1,
+                screeningAnswers: 1,
+                jobTitle: '$jobDetails.title',
+                candidateName: '$studentDetails.name',
+                candidateEmail: '$studentDetails.email',
+                studentId: '$studentDetails._id',
+                appliedAt: '$createdAt',
+                jobTitle: '$jobDetails.title',
+                jobId: '$jobDetails._id',
+                jobSlug: '$jobDetails.slug',
+                jobType: '$jobDetails.type',
+              },
+            },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
+    ]);
+
+    const candidates = result[0].data;
+    const total = result[0].total[0]?.count || 0;
+
+    res.status(200).json({
+      success: true,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      count: candidates.length,
+      data: candidates,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getOrganizationCandidateStats = async (req, res) => {
+  try {
+    const { organization } = req.user;
+
+    const stats = await AppliedJob.aggregate([
+      // 1. Join with Jobs to filter by Organization
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'job',
+          foreignField: '_id',
+          as: 'jobInfo',
+        },
+      },
+      { $unwind: '$jobInfo' },
+      {
+        $match: {
+          'jobInfo.organizationId': new mongoose.Types.ObjectId(organization),
+        },
+      },
+
+      // 2. Group by status to get counts
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // 3. Format the data into a clean object for the frontend
+    const formattedStats = {
+      TOTAL: 0,
+      APPLIED: 0,
+      INTERVIEW: 0,
+      ACCEPTED: 0,
+      REJECTED: 0,
+      CANCELED: 0,
+    };
+
+    stats.forEach((item) => {
+      formattedStats[item._id] = item.count;
+      formattedStats.TOTAL += item.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: formattedStats,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getRapidJobs = async (req, res) => {
   try {
     const cacheKey = 'jobs:rapid';
