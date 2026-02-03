@@ -21,6 +21,7 @@ import {
   Zap,
 } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 // --- Types for better safety ---
 interface OrgProfile {
@@ -37,6 +38,16 @@ interface ContactInfo {
   email: string;
   phone: string;
 }
+
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePhone = (phone: string): boolean => {
+  const phoneRegex = /^[0-9]{10}$/;
+  return phoneRegex.test(phone);
+};
 
 // Reusable Input Component for consistent styling
 const EditableInput = ({
@@ -118,7 +129,7 @@ const OrganizationProfilePage = () => {
         address: organisation?.profile?.address || '',
       },
       contactInfo: {
-        name: organisation?.contactInfo?.name || '',
+        // name: organisation?.contactInfo?.name || '',
         email: organisation?.contactInfo?.email || '',
         phone: organisation?.contactInfo?.phone || '',
       },
@@ -127,10 +138,23 @@ const OrganizationProfilePage = () => {
   };
 
   const handleSave = async () => {
+    if (activeSection === 'contact') {
+      if (tempData?.contactInfo?.email && !validateEmail(tempData.contactInfo.email)) {
+        toast.error('Please enter a valid email address ');
+        return;
+      }
+
+      if (tempData?.contactInfo?.phone && !validatePhone(tempData.contactInfo.phone)) {
+        toast.error('Please enter a valid 10-digit phone number');
+        return;
+      }
+    }
     const payload = {
       name: tempData.name,
-      profile: tempData.profile,
-      contactInfo: tempData.contactInfo,
+      // profile: tempData.profile,
+      // contactInfo: tempData.contactInfo,
+      profile: activeSection === 'profile' ? tempData.profile : organisation?.profile || {},
+      contactInfo: activeSection === 'contact' ? tempData.contactInfo : organisation?.contactInfo || {},
       betaFeaturesEnabled: tempData.betaFeaturesEnabled,
     };
 
@@ -455,20 +479,24 @@ const OrganizationProfilePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
               {[
-                {
-                  label: 'Point of Contact',
-                  key: 'name',
-                  icon: <UserCheck size={16} className="text-gray-400" />,
-                },
+                // {
+                //   label: 'Point of Contact',
+                //   key: 'name',
+                //   icon: <UserCheck size={16} className="text-gray-400" />,
+                //   disabled: true,
+                //   validation: null,
+                // },
                 {
                   label: 'Official Email',
                   key: 'email',
                   icon: <Mail size={16} className="text-gray-400" />,
+                  validation: validateEmail,
                 },
                 {
                   label: 'Phone Number',
                   key: 'phone',
                   icon: <Phone size={16} className="text-gray-400" />,
+                  validation: validatePhone,
                 },
               ].map((field) => (
                 <div key={field.label} className="space-y-1.5">
@@ -476,18 +504,39 @@ const OrganizationProfilePage = () => {
                     {field.label}
                   </label>
                   {activeSection === 'contact' ? (
-                    <EditableInput
-                      value={tempData?.contactInfo?.[field.key]}
-                      onChange={(e) =>
-                        setTempData({
-                          ...tempData,
-                          contactInfo: {
-                            ...tempData.contactInfo,
-                            [field.key]: e.target.value,
-                          },
-                        })
-                      }
-                    />
+                    //   <EditableInput
+                    //   value={tempData?.contactInfo?.[field.key]}
+                    //   onChange={(e) =>
+                    //     setTempData({
+                    //       ...tempData,
+                    //       contactInfo: {
+                    //         ...tempData.contactInfo,
+                    //         [field.key]: e.target.value,
+                    //       },
+                    //     })
+                    //   }
+                    // />
+                    <>
+                      <EditableInput
+                        value={tempData?.contactInfo?.[field.key] || ''}
+                        onChange={(e) =>
+                          setTempData({
+                            ...tempData,
+                            contactInfo: {
+                              ...tempData.contactInfo,
+                              [field.key]: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                      {field.validation && tempData?.contactInfo?.[field.key] && !field.validation(tempData.contactInfo[field.key]) && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {field.key === 'email'
+                            ? 'Please enter a valid email address (e.g., name@company.com)'
+                            : 'Please enter a valid 10-digit phone number'}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg truncate">
                       {field.icon}

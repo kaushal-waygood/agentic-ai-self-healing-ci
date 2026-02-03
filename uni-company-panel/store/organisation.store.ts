@@ -24,10 +24,13 @@ const useOrganisationStore = create((set, get) => ({
         '/organization/update-profile',
         data,
       );
-      set({ organisation: response.data, loading: false });
+      // set({ organisation: response.data, loading: false });
+      set({ organisation: response.data.data, loading: false });
+       return true;
     } catch (error) {
       console.error('Error updating organisation profile:', error);
       set({ loading: false });
+       return false;
     }
   },
 
