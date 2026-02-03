@@ -21,7 +21,14 @@ const appliedJobSchema = new Schema(
 
     status: {
       type: String,
-      enum: ['APPLIED', 'ACCEPTED', 'REJECTED', 'INTERVIEW', 'CANCELED'],
+      enum: [
+        'APPLIED',
+        'SELECTED',
+        'REJECTED',
+        'INTERVIEW',
+        'CANCELLED',
+        'SHORTLISTED',
+      ],
       default: 'APPLIED',
     },
 

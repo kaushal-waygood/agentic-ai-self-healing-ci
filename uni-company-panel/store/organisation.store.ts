@@ -115,7 +115,7 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
         candidates: {
           ...candidateStore.candidates,
           candidates: candidateStore.candidates.candidates.map((c: any) =>
-            c._id === appliedJobId ? { ...c, status: 'INTERVIEW' } : c,
+            c._id === appliedJobId ? { ...c, status: 'SHORTLISTED' } : c,
           ),
         },
       });
@@ -124,6 +124,35 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
     } catch (error) {
       console.error('Error accepting candidate application:', error);
       set({ loading: false });
+    }
+  },
+
+  updateCandidateStatus: async (appliedJobId: string, status: string) => {
+    try {
+      set({ loading: true });
+
+      // Use a single generic endpoint
+      await apiInstance.patch(
+        `/organization/update-candidate-status/${appliedJobId}`,
+        { status }, // Send the status in the body
+      );
+
+      const candidateStore = useCandidateStore.getState();
+      useCandidateStore.setState({
+        candidates: {
+          ...candidateStore.candidates,
+          candidates: candidateStore.candidates.candidates.map((c) =>
+            c._id === appliedJobId ? { ...c, status: status } : c,
+          ),
+        },
+      });
+
+      set({ loading: false });
+      return true;
+    } catch (error) {
+      console.error(`Error updating status to ${status}:`, error);
+      set({ loading: false });
+      return false;
     }
   },
 }));

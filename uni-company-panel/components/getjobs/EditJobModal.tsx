@@ -21,8 +21,9 @@ import {
   Banknote,
   MapPin,
   FileText,
-  Save,
+  Briefcase,
   HelpCircle,
+  Save,
 } from 'lucide-react';
 import QuillJs from '@/components/rich-text/QuillJs';
 
@@ -46,6 +47,7 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
     remote: false,
     location: { city: '', state: '' },
     resumeRequired: false,
+    jobTypes: [] as string[], // Added missing jobTypes
   });
 
   useEffect(() => {
@@ -57,9 +59,10 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
         qualifications: job.qualifications?.join('\n') || '',
         screeningQuestions: job.screeningQuestions || [],
         salary: job.salary || { min: 0, max: 0, period: 'YEARLY' },
-        remote: job.remote || false,
+        remote: job.remote ?? false,
         location: job.location || { city: '', state: '' },
-        resumeRequired: job.resumeRequired || false,
+        resumeRequired: job.resumeRequired ?? false,
+        jobTypes: job.jobTypes || [],
       });
     }
   }, [job, isOpen]);
@@ -81,13 +84,13 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
         remote: draft.remote,
         location: draft.location,
         resumeRequired: draft.resumeRequired,
+        jobTypes: draft.jobTypes,
       };
 
-      console.log('payload', payload);
+      const result = await updateJobDescription(job._id, payload);
 
-      const success = await updateJobDescription(job._id, payload);
-      console.log('success', success);
-      if (success) {
+      // Check for successful return (handling the success = undefined issue)
+      if (result !== false) {
         toast.success('Job updated successfully');
         onClose();
       }
@@ -103,7 +106,7 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
       ...prev,
       screeningQuestions: [
         ...prev.screeningQuestions,
-        { question: '', type: 'SHORT_ANSWER', required: true },
+        { question: '', type: 'text', required: true },
       ],
     }));
   };
@@ -111,19 +114,18 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl  w-[90vw] sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] flex flex-col p-0">
+        {' '}
         <DialogHeader className="p-6 pb-2 border-b">
           <DialogTitle className="text-2xl font-bold text-blue-600">
             Edit Job Posting
           </DialogTitle>
         </DialogHeader>
-
         <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
           <div className="space-y-10 pb-6">
-            {/* 1. BASIC DETAILS & LOCATION */}
+            {/* 1. BASIC DETAILS & JOB TYPE */}
             <section className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                <MapPin className="w-5 h-5 text-blue-500" /> Basic Details &
-                Location
+                <Briefcase className="w-5 h-5 text-blue-500" /> Basic Details
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-xl bg-gray-50/30">
                 <div className="space-y-2">
@@ -139,10 +141,27 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs uppercase font-bold text-gray-500">
-                    Settings
+                    Job Type
                   </Label>
-                  <div className="flex gap-6 pt-2">
-                    {/* <div className="flex items-center gap-2">
+                  <select
+                    className="w-full h-10 px-3 border rounded-md bg-white text-sm outline-none focus:ring-2 ring-blue-500"
+                    value={draft.jobTypes[0] || ''}
+                    onChange={(e) =>
+                      setDraft({ ...draft, jobTypes: [e.target.value] })
+                    }
+                  >
+                    <option value="FULL_TIME">Full-time</option>
+                    <option value="PART_TIME">Part-time</option>
+                    <option value="CONTRACT">Contract</option>
+                    <option value="INTERNSHIP">Internship</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs uppercase font-bold text-gray-500">
+                    Requirements & Remote
+                  </Label>
+                  <div className="flex gap-6 pt-1">
+                    <div className="flex items-center gap-2">
                       <Checkbox
                         id="remote"
                         checked={draft.remote}
@@ -156,7 +175,7 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
                       >
                         Remote Work
                       </Label>
-                    </div> */}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="resume"
@@ -274,7 +293,6 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
                   >
                     <option value="YEARLY">Yearly</option>
                     <option value="MONTHLY">Monthly</option>
-                    <option value="HOURLY">Hourly</option>
                   </select>
                 </div>
               </div>
@@ -306,7 +324,7 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
                     Responsibilities (One per line)
                   </Label>
                   <textarea
-                    className="w-full h-48 p-3 border rounded-xl text-sm shadow-sm"
+                    className="w-full h-48 p-3 border rounded-xl text-sm shadow-sm focus:ring-2 ring-blue-500 outline-none"
                     value={draft.responsibilities}
                     onChange={(e) =>
                       setDraft({ ...draft, responsibilities: e.target.value })
@@ -318,7 +336,7 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
                     Qualifications (One per line)
                   </Label>
                   <textarea
-                    className="w-full h-48 p-3 border rounded-xl text-sm shadow-sm"
+                    className="w-full h-48 p-3 border rounded-xl text-sm shadow-sm focus:ring-2 ring-blue-500 outline-none"
                     value={draft.qualifications}
                     onChange={(e) =>
                       setDraft({ ...draft, qualifications: e.target.value })
@@ -383,9 +401,9 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
                             setDraft({ ...draft, screeningQuestions: updated });
                           }}
                         >
-                          <option value="SHORT_ANSWER">Short Answer</option>
-                          <option value="YES_NO">Yes/No</option>
-                          <option value="NUMBER">Number</option>
+                          <option value="text">Short Answer</option>
+                          <option value="boolean">Yes/No</option>
+                          <option value="number">Number</option>
                         </select>
                         <div className="flex items-center gap-2">
                           <Checkbox
@@ -415,7 +433,6 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
             </section>
           </div>
         </div>
-
         <DialogFooter className="p-6 border-t bg-gray-50/80">
           <Button variant="ghost" onClick={onClose} disabled={isSaving}>
             Cancel
