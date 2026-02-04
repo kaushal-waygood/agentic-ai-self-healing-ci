@@ -138,7 +138,7 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
       console.error('Error fetching organisation stats:', error);
       set({ loading: false });
     }
-  }
+  },
   updateCandidateStatus: async (appliedJobId: string, status: string) => {
     try {
       set({ loading: true });

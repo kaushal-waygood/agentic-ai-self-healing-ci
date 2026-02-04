@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/common/TableData';
 import { Button } from '@/components/ui/button';
@@ -25,42 +25,47 @@ import { Badge } from '../ui/badge';
 const CandidatesPage = () => {
   const {
     candidates,
+    pagination,
     orgCandidates,
     loading,
     candidatesStats,
     orgCandidatesStats,
   } = useCandidateStore();
 
-  useEffect(() => {
-    orgCandidates();
-    orgCandidatesStats();
-  }, []);
+  const [{ pageIndex, pageSize }, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
+  useEffect(() => {
+    orgCandidates(pageIndex + 1, pageSize);
+    orgCandidatesStats();
+  }, [pageIndex, pageSize]);
   console.log('candidatesStats', candidatesStats);
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <div className="flex justify-center px-1">
-            <Checkbox
-              checked={table.getIsAllPageRowsSelected()}
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-            />
-          </div>
-        ),
-        cell: ({ row }) => (
-          <div className="flex justify-center px-1">
-            <Checkbox
-              checked={row.getIsSelected()}
-              onCheckedChange={(value) => row.toggleSelected(!!value)}
-            />
-          </div>
-        ),
-      },
+      // {
+      //   id: 'select',
+      //   header: ({ table }) => (
+      //     <div className="flex justify-center px-1">
+      //       <Checkbox
+      //         checked={table.getIsAllPageRowsSelected()}
+      //         onCheckedChange={(value) =>
+      //           table.toggleAllPageRowsSelected(!!value)
+      //         }
+      //       />
+      //     </div>
+      //   ),
+      //   cell: ({ row }) => (
+      //     <div className="flex justify-center px-1">
+      //       <Checkbox
+      //         checked={row.getIsSelected()}
+      //         onCheckedChange={(value) => row.toggleSelected(!!value)}
+      //       />
+      //     </div>
+      //   ),
+      // },
       {
         id: 'serialNumber',
         header: 'S.No',
@@ -155,19 +160,62 @@ const CandidatesPage = () => {
             >
               <Eye className="h-3.5 w-3.5 mr-1" /> View
             </Button>
-            <Button
+            {/* <Button
               variant="ghost"
               size="sm"
               className="h-8 text-red-500 hover:bg-red-50"
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            </Button> */}
           </div>
         ),
       },
     ],
     [],
   );
+
+  const exportToCSV = () => {
+    const data = candidates || [];
+    if (data.length === 0) return;
+
+    // 1. Define headers for Candidate data
+    const headers = [
+      'Candidate Name',
+      'Email',
+      'Applied Role',
+      'Applied Date',
+      'Status',
+      'CV Link',
+    ];
+
+    // 2. Map candidate data to match headers
+    const rows = data.map((candidate: any) => {
+      const name = `"${candidate.fullName || 'N/A'}"`;
+      const email = `"${candidate.email || 'N/A'}"`;
+      const role = `"${candidate.jobTitle || 'N/A'}"`;
+      const appliedDate = candidate.appliedAt
+        ? new Date(candidate.appliedAt).toLocaleDateString('en-GB')
+        : 'N/A';
+      const status = `"${candidate.status || 'N/A'}"`;
+      const cv = `"${candidate.cvLink || 'N/A'}"`;
+
+      return [name, email, role, appliedDate, status, cv].join(',');
+    });
+
+    // 3. Create CSV content
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+
+    // 4. Trigger download
+    const link = document.createElement('a');
+    link.setAttribute('href', encodeURI(csvContent));
+    const fileName = `candidates_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.setAttribute('download', fileName);
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -179,7 +227,12 @@ const CandidatesPage = () => {
             Managing {candidates.length} total applicants
           </p>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={exportToCSV}
+          disabled={candidates.length === 0} // Disable if no data
+        >
           <Download className="w-4 h-4" /> Export
         </Button>
       </div>
@@ -230,6 +283,10 @@ const CandidatesPage = () => {
             data={candidates}
             searchKey="candidateName"
             searchPlaceholder="Search by Name..."
+            pageCount={pagination.totalPages}
+            totalResults={pagination.totalCount}
+            paginationState={{ pageIndex, pageSize }}
+            onPaginationChange={setPagination}
           />
         </div>
       )}
