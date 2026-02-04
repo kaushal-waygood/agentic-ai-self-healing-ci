@@ -110,18 +110,20 @@ const GetCandidates = () => {
               {status === 'APPLIED' && (
                 <Badge variant="secondary">{status}</Badge>
               )}
-              {status === 'SHORTLISTED' && (
-                <Badge variant="outline">{status}</Badge>
-              )}
+              {status === 'SHORTLISTED' && <Badge>{status}</Badge>}
               {status === 'REJECTED' && (
                 <Badge variant="destructive">{status}</Badge>
               )}
 
               {status === 'INTERVIEW' && (
-                <Badge variant="outline">{status}</Badge>
+                <Badge variant={'warning'}>{status}</Badge>
               )}
 
               {status === 'HIRED' && <Badge variant="outline">{status}</Badge>}
+
+              {status === 'SELECTED' && (
+                <Badge variant="success">{status}</Badge>
+              )}
             </div>
           );
         },

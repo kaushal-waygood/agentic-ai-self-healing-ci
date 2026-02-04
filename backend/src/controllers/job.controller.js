@@ -1163,10 +1163,11 @@ export const getHostedJobCandidates = async (req, res) => {
   }
 };
 
-export const updateJobDescription = async (req, res) => {
+export const  updateJobDescription = async (req, res) => {
   const { jobId } = req.params;
   const {
     description,
+    jobTypes,
     title,
     salary,
     remote,
@@ -1177,6 +1178,8 @@ export const updateJobDescription = async (req, res) => {
     screeningQuestions,
   } = req.body;
 
+  console.log('resumeRequired', resumeRequired);
+
   try {
     const job = await Job.findById(jobId);
     if (!job) {
@@ -1185,15 +1188,17 @@ export const updateJobDescription = async (req, res) => {
 
     // 1. Update MongoDB
     job.description = description || job.description;
+    job.jobTypes = jobTypes || job.jobTypes;
     job.title = title || job.title;
     job.salary = salary || job.salary;
-    job.remote = remote || job.remote;
+    job.remote = remote ?? job.remote;
     job.location = location || job.location;
-    job.resumeRequired = resumeRequired || job.resumeRequired;
+    job.resumeRequired = resumeRequired ?? job.resumeRequired;
     job.responsibilities = responsibilities || job.responsibilities;
     job.qualifications = qualifications || job.qualifications;
     job.screeningQuestions = screeningQuestions || job.screeningQuestions;
 
+    console.log('job', job);
     await job.save();
 
     // 2. 🔥 Invalidate ALL job-related caches (single + lists)

@@ -87,7 +87,7 @@ export function DataTable<TData, TValue>({
     },
 
     initialState: {
-      pagination: { pageSize: 8 },
+      pagination: { pageSize: 10 },
     },
   });
 
@@ -251,7 +251,7 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="hover:bg-slate-50/80 transition-colors"
+                  className="hover:bg-slate-200 transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

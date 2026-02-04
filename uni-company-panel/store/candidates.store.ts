@@ -5,6 +5,9 @@ interface CandidateStore {
   candidates: any[];
   getCandidates: () => Promise<void>;
   orgCandidates: () => Promise<void>;
+  orgCandidatesStats: () => Promise<void>;
+  candidatesStats: any;
+
   loading: boolean;
 }
 
@@ -15,8 +18,9 @@ const useCandidateStore = create<CandidateStore>((set, get) => ({
   getCandidates: async (jobId: string) => {
     try {
       set({ loading: true });
+      // const response = await apiInstance.get(`/jobs/candidates-organization`);
       const response = await apiInstance.get(
-        `/jobs/candidates-organization/${jobId}`,
+        `/jobs/hosted/jobs/candidates/${jobId}`,
       );
       set({ candidates: response.data });
     } catch (error) {

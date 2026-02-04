@@ -20,6 +20,7 @@ import {
   Mail,
 } from 'lucide-react';
 import { useCandidateStore } from '@/store/candidates.store';
+import { Badge } from '../ui/badge';
 
 const CandidatesPage = () => {
   const {
@@ -34,6 +35,8 @@ const CandidatesPage = () => {
     orgCandidates();
     orgCandidatesStats();
   }, []);
+
+  console.log('candidatesStats', candidatesStats);
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
@@ -113,24 +116,33 @@ const CandidatesPage = () => {
       {
         accessorKey: 'status',
         header: () => <div className="text-center">Status</div>,
+
         cell: ({ row }) => {
           const status = row.original.status;
-          const statusStyles: any = {
-            Shortlisted: 'text-green-600 bg-green-50 border-green-200',
-            Pending: 'text-amber-600 bg-amber-50 border-amber-200',
-            Rejected: 'text-red-600 bg-red-50 border-red-200',
-          };
           return (
-            <div className="flex justify-center">
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusStyles[status]}`}
-              >
-                {status}
-              </span>
+            <div className="text-center">
+              {status === 'APPLIED' && (
+                <Badge variant="secondary">{status}</Badge>
+              )}
+              {status === 'SHORTLISTED' && <Badge>{status}</Badge>}
+              {status === 'REJECTED' && (
+                <Badge variant="destructive">{status}</Badge>
+              )}
+
+              {status === 'INTERVIEW' && (
+                <Badge variant={'warning'}>{status}</Badge>
+              )}
+
+              {status === 'HIRED' && <Badge variant="outline">{status}</Badge>}
+
+              {status === 'SELECTED' && (
+                <Badge variant="success">{status}</Badge>
+              )}
             </div>
           );
         },
       },
+
       {
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,

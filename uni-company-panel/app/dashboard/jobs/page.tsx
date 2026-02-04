@@ -22,6 +22,7 @@ import {
   ArrowUpDown,
   Loader2,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
@@ -258,12 +259,15 @@ const JobsPage = () => {
               </Button>
 
               <Button
+                variant="outline"
+                className="hover:text-blue-500 cursor-pointer"
                 size="sm"
                 onClick={() => {
                   setSelectedJob(row.original);
                   setIsEditModalOpen(true);
                 }}
               >
+                <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Button>
 
@@ -275,6 +279,7 @@ const JobsPage = () => {
                     className="hover:text-red-500 hover:bg-red-50 cursor-pointer"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
+                    Delete
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent

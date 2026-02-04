@@ -14,10 +14,9 @@ import {
   getOrganisationProfile,
   updateOrgLogo,
   getOrganisationStats,
-  rejectCandidate,
-  shortListCandidate,
   updateJobTitle,
   updateJobDetails,
+  updateCandidateStatus,
 } from '../controllers/organization.controller.js';
 import {
   authMiddleware,
@@ -36,18 +35,12 @@ router.patch(
 );
 router.get('/me', authMiddleware, isAnyAdmin, getOrganisationProfile);
 router.get('/stats', authMiddleware, isAnyAdmin, getOrganisationStats);
-router.patch(
-  '/reject-candidate/:appliedJobId',
-  authMiddleware,
-  isAnyAdmin,
-  rejectCandidate,
-);
 
 router.patch(
-  '/shortlist-candidate/:appliedJobId',
+  '/update-candidate-status/:appliedJobId',
   authMiddleware,
   isAnyAdmin,
-  shortListCandidate,
+  updateCandidateStatus,
 );
 
 router.patch(

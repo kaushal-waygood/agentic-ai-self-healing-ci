@@ -19,15 +19,32 @@ import { useOrganisationStore } from '@/store/organisation.store';
 
 export function CandidateModal({ candidate, open, onOpenChange }: any) {
   // State to handle the previewer
-  const { rejectCandidateApplication, acceptCandidateApplication } =
-    useOrganisationStore();
+  const {
+    rejectCandidateApplication,
+    acceptCandidateApplication,
+    updateCandidateStatus,
+  } = useOrganisationStore();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState('');
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   if (!candidate) return null;
+  // 2. Create a generic handler for status updates
+  const handleStatusUpdate = async (
+    newStatus: 'REJECTED' | 'SHORTLISTED' | 'INTERVIEW' | 'SELECTED',
+  ) => {
+    setLoadingAction(newStatus);
+    const success = await updateCandidateStatus(candidate._id, newStatus);
 
+    if (success) {
+      toast.success(`Candidate ${newStatus}: ${candidate.student?.fullName}`);
+      onOpenChange(false);
+    } else {
+      toast.error('Failed to update candidate status');
+    }
+    setLoadingAction(null);
+  };
   const handlePreview = (url: string, title: string) => {
     setPreviewUrl(url);
     setPreviewTitle(title);
@@ -93,47 +110,50 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
         }
         footerActions={
           <>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={async () => {
-                setLoadingAction('REJECT');
-                await rejectCandidateApplication(candidate._id);
-                toast.success(
-                  `Candidate Rejected ${candidate.student?.fullName}`,
-                );
-                setLoadingAction(null);
-              }}
-              disabled={
-                candidate.status === 'REJECTED' || loadingAction === 'REJECT'
-              }
-            >
-              {loadingAction === 'REJECT' && (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              )}
-              Reject
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                setLoadingAction('SHORTLIST');
-                await acceptCandidateApplication(candidate._id);
-                toast.success(
-                  `Candidate Shortlisted ${candidate.student?.fullName}`,
-                );
-                setLoadingAction(null);
-              }}
-              disabled={
-                candidate.status === 'INTERVIEW' ||
-                loadingAction === 'SHORTLIST'
-              }
-            >
-              {loadingAction === 'SHORTLIST' && (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              )}
-              Shortlist
-            </Button>
+            {/* Always show Reject if not already rejected */}
+
+            {candidate.status !== 'REJECTED' && (
+              <Button
+                variant="destructive"
+                onClick={() => handleStatusUpdate('REJECTED')}
+              >
+                Reject
+              </Button>
+            )}
+
+            {candidate.status === 'REJECTED' && (
+              <Button
+                variant="default"
+                onClick={() => handleStatusUpdate('SHORTLISTED')}
+              >
+                Shortlist
+              </Button>
+            )}
+
+            {/* Logic-based buttons */}
+            {candidate.status === 'APPLIED' && (
+              <Button onClick={() => handleStatusUpdate('SHORTLISTED')}>
+                Shortlist
+              </Button>
+            )}
+
+            {candidate.status === 'SHORTLISTED' && (
+              <Button
+                variant="warning"
+                onClick={() => handleStatusUpdate('INTERVIEW')}
+              >
+                Invite to Interview
+              </Button>
+            )}
+
+            {candidate.status === 'INTERVIEW' && (
+              <Button
+                className="bg-green-600"
+                onClick={() => handleStatusUpdate('SELECTED')}
+              >
+                Hire Candidate
+              </Button>
+            )}
           </>
         }
       />

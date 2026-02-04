@@ -54,7 +54,7 @@ const Page = () => {
     remote: false,
     location: { city: '', state: '' },
     resumeRequired: false,
-    jobTypes: [],
+    jobTypes: [] as string[],
   });
 
   useEffect(() => {
@@ -102,6 +102,7 @@ const Page = () => {
   const handleSaveDetails = async () => {
     await updateJobDescription(job._id, {
       salary: draftDetails.salary,
+      jobTypes: draftDetails.jobTypes,
       remote: draftDetails.remote,
       location: draftDetails.location,
       resumeRequired: draftDetails.resumeRequired,
@@ -133,7 +134,7 @@ const Page = () => {
   const addQuestion = () => {
     setDraftQuestions([
       ...draftQuestions,
-      { question: '', type: 'SHORT_ANSWER', required: true },
+      { question: '', type: 'text', required: true },
     ]);
   };
 
@@ -233,12 +234,12 @@ const Page = () => {
           <StatBadge
             label="Views"
             value={job.jobViews}
-            icon={<MousePointerClick className="w-4 h-4" />}
+            // icon={<MousePointerClick className="w-4 h-4" />}
           />
           <StatBadge
             label="Applied"
             value={job.appliedCount}
-            icon={<FileText className="w-4 h-4" />}
+            // icon={<FileText className="w-4 h-4" />}
             onClick={() =>
               router.push(`/dashboard/jobs/${job.slug}/applications`)
             }
@@ -614,6 +615,27 @@ const Page = () => {
               <div className="space-y-4 animate-in fade-in duration-200">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-gray-400 uppercase">
+                    Job Type
+                  </label>
+                  <select
+                    className="w-full p-2 border rounded text-sm bg-white"
+                    value={draftDetails.jobTypes[0] || ''}
+                    onChange={(e) =>
+                      setDraftDetails({
+                        ...draftDetails,
+                        jobTypes: [e.target.value], // Storing as array to match your schema
+                      })
+                    }
+                  >
+                    <option value="">Select Job Type</option>
+                    <option value="FULL_TIME">Full Time</option>
+                    <option value="PART_TIME">Part Time</option>
+                    <option value="CONTRACT">Contract</option>
+                    <option value="INTERNSHIP">Internship</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-gray-400 uppercase">
                     Salary Range & Period
                   </label>
                   <div className="flex gap-2">
@@ -661,7 +683,6 @@ const Page = () => {
                   >
                     <option value="YEARLY">Yearly</option>
                     <option value="MONTHLY">Monthly</option>
-                    <option value="HOURLY">Hourly</option>
                   </select>
                 </div>
                 <div className="space-y-2">
