@@ -53,6 +53,12 @@ interface JobStore {
   jobs: Job[];
   job: Job | null;
   loading: boolean;
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  } | null;
   error: string | null;
   getJobs: () => Promise<void>;
   getSingleHostedJobs: (id: string) => Promise<void>;
@@ -90,18 +96,25 @@ export const useJobStore = create<JobStore>((set) => ({
 
       const response = await apiInstance.get('/jobs/hosted/jobs/job-admin');
 
-      const data = response.data;
+      const { data, meta } = response.data;
 
-      set({ jobs: data.jobs, loading: false });
-    } catch (err: any | string) {
+      set({
+        jobs: data ?? [], // ✅ always an array
+        meta: meta ?? null,
+        loading: false,
+      });
+    } catch (err: any) {
       console.error('Job fetching error:', err);
       set({
+        jobs: [], // ✅ fail-safe
+        meta: null,
         error:
           err.response?.data?.message || err.message || 'Failed to fetch jobs',
         loading: false,
       });
     }
   },
+
   bulkDeleteJobs: async (ids: string[]) => {
     try {
       set({ error: null });

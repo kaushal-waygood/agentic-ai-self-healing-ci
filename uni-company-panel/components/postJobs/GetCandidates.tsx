@@ -19,13 +19,11 @@ const GetCandidates = () => {
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
 
   useEffect(() => {
-    console.log('id', id);
     if (id) {
       getCandidates(id as string);
     }
   }, [id, getCandidates]);
 
-  // --- CSV Export Logic ---
   const exportToCSV = () => {
     const data = candidates.candidates || [];
     if (data.length === 0) return;
@@ -44,7 +42,6 @@ const GetCandidates = () => {
     link.click();
   };
 
-  // --- Column Definitions ---
   const columns: ColumnDef<any>[] = useMemo(
     () => [
       {

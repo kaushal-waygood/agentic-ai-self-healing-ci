@@ -948,31 +948,45 @@ export const getHostedJobsByAdmin = async (req, res) => {
 
   try {
     const organizationId = new mongoose.Types.ObjectId(organization);
-    const cacheKey = `jobs:hosted:v2:${organizationId}`;
 
-    // 1. Fetch Jobs (from Cache or DB)
-    // const jobs = await redisClient.withCache(cacheKey, 3600, async () => {
-    //   return Job.find({
-    //     organizationId,
-    //     origin: 'HOSTED',
-    //   })
-    //     .sort({ createdAt: -1 })
-    //     .lean();
-    // });
+    // pagination params
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
 
+    // 1. total count
+    const totalCount = await Job.countDocuments({
+      organizationId,
+      origin: 'HOSTED',
+    });
+
+    if (totalCount === 0) {
+      return res.status(200).json({
+        data: [],
+        meta: {
+          totalCount: 0,
+          totalPages: 0,
+          currentPage: page,
+          limit,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      });
+    }
+
+    // 2. fetch paginated jobs
     const jobs = await Job.find({
       organizationId,
       origin: 'HOSTED',
     })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
-    if (!jobs || !jobs.length) {
-      return res.status(200).json({ success: true, jobs: [] });
-    }
-
-    // 2. Aggregate Interactions
     const jobIds = jobs.map((j) => j._id);
+
+    // 3. aggregate interactions
     const interactionCounts = await JobInteraction.aggregate([
       {
         $match: {
@@ -988,18 +1002,20 @@ export const getHostedJobsByAdmin = async (req, res) => {
       },
     ]);
 
-    // 3. Build Interaction Map
+    // 4. build interaction map
     const interactionMap = {};
 
     for (const row of interactionCounts) {
-      // Normalize ID to string to ensure keys match
       const jobId = row._id.job.toString();
 
       if (!interactionMap[jobId]) {
-        interactionMap[jobId] = { impressions: 0, views: 0, applied: 0 };
+        interactionMap[jobId] = {
+          impressions: 0,
+          views: 0,
+          applied: 0,
+        };
       }
 
-      // FIXED: Removed the 'return' keywords
       if (row._id.type === 'IMPRESSION') {
         interactionMap[jobId].impressions = row.count;
       } else if (row._id.type === 'VIEW') {
@@ -1009,28 +1025,40 @@ export const getHostedJobsByAdmin = async (req, res) => {
       }
     }
 
-    // 4. Merge Analytics into Job Objects
-    const jobsWithAnalytics = jobs.map((job) => {
+    // 5. merge analytics + normalize id
+    const data = jobs.map((job) => {
       const idStr = job._id.toString();
       const stats = interactionMap[idStr];
 
       return {
+        id: idStr,
         ...job,
+        _id: undefined, // optional: remove Mongo _id
         impressions: stats?.impressions ?? 0,
         jobViews: stats?.views ?? 0,
         appliedCount: stats?.applied ?? 0,
       };
     });
 
+    const totalPages = Math.ceil(totalCount / limit);
+
     return res.status(200).json({
-      success: true,
-      jobs: jobsWithAnalytics,
+      data,
+      meta: {
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (err) {
     console.error('Error in getHostedJobsByAdmin:', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Internal Server Error' });
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
   }
 };
 
@@ -1050,8 +1078,6 @@ export const candidatesOrganization = async (req, res) => {
       organizationId: organization,
       jobId,
     }).select('_id');
-
-    
 
     console.log(candidates);
 
@@ -1120,6 +1146,7 @@ export const getHostedJobCandidates = async (req, res) => {
   const { organization } = req.user;
 
   try {
+    // 1. Resolve job by slug + org
     const job = await Job.findOne({
       slug: jobId,
       organizationId: organization,
@@ -1127,43 +1154,79 @@ export const getHostedJobCandidates = async (req, res) => {
 
     if (!job) {
       return res.status(404).json({
-        success: false,
         message: 'Job not found or unauthorized access',
       });
     }
 
+    // 2. Pagination params
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
+
+    // 3. Total count
+    const totalCount = await AppliedJob.countDocuments({
+      job: job._id,
+    });
+
+    if (totalCount === 0) {
+      return res.status(200).json({
+        data: [],
+        meta: {
+          totalCount: 0,
+          totalPages: 0,
+          currentPage: page,
+          limit,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      });
+    }
+
+    // 4. Fetch paginated applications
     const applications = await AppliedJob.find({ job: job._id })
       .populate({
         path: 'student',
         select: 'fullName email profilePicture university graduationYear phone',
       })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
+    // 5. Normalize response
+    const data = applications.map((app) => ({
+      id: app._id.toString(),
+      status: app.status,
+      applicationMethod: app.applicationMethod,
+      appliedAt: app.createdAt,
+      cvLink: app.cvLink,
+      coverLetterLink: app.coverLetterLink,
+      screeningAnswers: app.screeningAnswers,
+      student: app.student,
+    }));
+
+    const totalPages = Math.ceil(totalCount / limit);
+
     return res.status(200).json({
-      success: true,
-      count: applications.length,
-      candidates: applications.map((app) => ({
-        _id: app._id,
-        status: app.status,
-        applicationMethod: app.applicationMethod,
-        appliedAt: app.createdAt,
-        cvLink: app.cvLink,
-        coverLetterLink: app.coverLetterLink,
-        screeningAnswers: app.screeningAnswers,
-        student: app.student,
-      })),
+      data,
+      meta: {
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     console.error('Error in getHostedJobCandidates:', error);
     return res.status(500).json({
-      success: false,
       message: 'Internal Server Error',
     });
   }
 };
 
-export const  updateJobDescription = async (req, res) => {
+export const updateJobDescription = async (req, res) => {
   const { jobId } = req.params;
   const {
     description,

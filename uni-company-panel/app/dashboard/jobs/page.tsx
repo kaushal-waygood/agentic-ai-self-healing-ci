@@ -190,7 +190,7 @@ const JobsPage = () => {
 
           const handleToggle = async () => {
             setIsToggling(true);
-            const success = await toggleJobStatus(row.original._id);
+            const success = await toggleJobStatus(row.original.id);
 
             if (success) {
               toast.success(`Job is now ${!isActive ? 'Active' : 'Inactive'}`);
@@ -237,7 +237,7 @@ const JobsPage = () => {
 
           const handleDelete = async () => {
             setIsDeleting(true);
-            const success = await deleteJob(row.original._id);
+            const success = await deleteJob(row.original.id);
             if (success) {
               toast.success('Job deleted successfully');
               setIsOpen(false);
@@ -250,9 +250,9 @@ const JobsPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  router.push(`/dashboard/jobs/${row.original._id}`)
-                }
+                onClick={() => {
+                  router.push(`/dashboard/jobs/${row.original.id}`);
+                }}
                 className="hover:text-blue-500 cursor-pointer"
               >
                 <Eye className="h-3.5 w-3.5" /> View
