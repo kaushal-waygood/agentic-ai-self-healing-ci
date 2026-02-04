@@ -3,12 +3,11 @@ import apiInstance from '@/services/api';
 
 interface CandidateStore {
   candidates: any[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
+  pagination: {
+    totalCount: number;
     totalPages: number;
-  } | null;
+    currentPage: number;
+  };
   getCandidates: () => Promise<void>;
   // orgCandidates: () => Promise<void>;
   orgCandidates: (page?: number, limit?: number) => Promise<void>;
