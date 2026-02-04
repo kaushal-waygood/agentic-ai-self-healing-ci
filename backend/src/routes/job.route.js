@@ -28,6 +28,8 @@ import {
   jobStats,
   getCandidatesByOrganization,
   getOrganizationCandidateStats,
+  getOrganizationJobStats,
+  candidatesOrganization,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -91,6 +93,13 @@ router.get(
   getOrganizationCandidateStats,
 );
 
+router.get(
+  '/organization-job-stats',
+  authMiddleware,
+  isAnyAdmin,
+  getOrganizationJobStats,
+);
+
 router.get('/', getAllJobs);
 router.get('/hosted', authMiddleware, isAnyAdmin, getMannualyJobs);
 router.get('/external', getRapidJobs);
@@ -113,10 +122,17 @@ router.get(
   getHostedJobCandidates,
 );
 
+router.get(
+  '/candidates-organization/:jobId',
+  authMiddleware,
+  isAnyAdmin,
+  candidatesOrganization,
+);
+
 router.get('/:jobId', getSingleJobDetail);
 router.patch('/status/:jobId', authMiddleware, isAnyAdmin, toggleJobStatus);
 
-router.post(  
+router.post(
   '/:jobId/apply',
   authMiddleware,
   isGeneralUser,

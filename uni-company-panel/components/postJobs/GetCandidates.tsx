@@ -10,10 +10,7 @@ import { DataTable } from '@/components/common/TableData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CandidateModal } from './CandidateModal';
-
-import { ArrowUpDown, Download, Eye, Loader2, Trash2 } from 'lucide-react';
-import { Checkbox } from '../ui/checkbox';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { ArrowUpDown, Download, Eye, Loader2 } from 'lucide-react';
 
 const GetCandidates = () => {
   const { candidates, getCandidates, loading } = useCandidateStore();
@@ -22,6 +19,7 @@ const GetCandidates = () => {
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
 
   useEffect(() => {
+    console.log('id', id);
     if (id) {
       getCandidates(id as string);
     }
@@ -49,34 +47,6 @@ const GetCandidates = () => {
   // --- Column Definitions ---
   const columns: ColumnDef<any>[] = useMemo(
     () => [
-      // {
-      //   id: 'select',
-      //   header: ({ table }) => (
-      //     <div className="flex justify-center px-1">
-      //       <Checkbox
-      //         checked={
-      //           table.getIsAllPageRowsSelected() ||
-      //           (table.getIsSomePageRowsSelected() && 'indeterminate')
-      //         }
-      //         onCheckedChange={(value) =>
-      //           table.toggleAllPageRowsSelected(!!value)
-      //         }
-      //         aria-label="Select all"
-      //       />
-      //     </div>
-      //   ),
-      //   cell: ({ row }) => (
-      //     <div className="flex justify-center px-1">
-      //       <Checkbox
-      //         checked={row.getIsSelected()}
-      //         onCheckedChange={(value) => row.toggleSelected(!!value)}
-      //         aria-label="Select row"
-      //       />
-      //     </div>
-      //   ),
-      //   enableSorting: false,
-      //   enableHiding: false,
-      // },
       {
         id: 'serialNumber',
         header: 'S.No',
@@ -180,17 +150,6 @@ const GetCandidates = () => {
           </span>
         ),
       },
-      // {
-      //   accessorKey: 'cvLink',
-      //   header: () => <div className="text-center">CV</div>,
-      //   cell: ({ row }) => (
-      //     <div className="flex justify-center">
-      //       <Link href="#" target="_blank" className=" ">
-      //         View Details
-      //       </Link>
-      //     </div>
-      //   ),
-      // },
       {
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,
@@ -207,57 +166,6 @@ const GetCandidates = () => {
               >
                 <Eye className="h-3.5 w-3.5" /> View
               </Button>
-
-              {/* <Popover open={isOpen} onOpenChange={setIsOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="hover:text-red-500 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="w-60 p-4 shadow-lg border-slate-200"
-                >
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-slate-900">
-                      Delete this Candidate?
-                    </p>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      This will permanently delete{' '}
-                      <span className="font-bold">
-                        "{row.original.student?.fullName}"
-                      </span>
-                      .
-                    </p>
-                    <div className="flex justify-end gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setIsOpen(false)}
-                        className="h-8 text-xs"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          // Your delete logic here
-                          console.log('Deleted', row.original.student._id);
-                          setIsOpen(false);
-                        }}
-                        className="h-8 text-xs bg-red-600 hover:bg-red-700"
-                      >
-                        Delete Candidate
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover> */}
             </div>
           );
         },
@@ -265,6 +173,8 @@ const GetCandidates = () => {
     ],
     [],
   );
+
+  console.log('candidates', candidates);
 
   return (
     <div className="p-4 md:p-6 space-y-6 ">

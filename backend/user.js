@@ -438,8 +438,6 @@ async function runAnalytics() {
 
   const fileName = `platform-analytics-${Date.now()}.xlsx`;
   xlsx.writeFile(workbook, fileName);
-
-  console.log(`\n📊 XLSX exported: ${fileName}`);
 }
 
 /* =========================

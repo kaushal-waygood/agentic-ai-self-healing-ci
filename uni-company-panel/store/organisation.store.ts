@@ -6,6 +6,7 @@ interface OrganisationStore {
   organisation: any;
   orgStats: any;
   loading: boolean;
+  orgJobStats;
   error: any;
   getOrganisationProfile: () => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
@@ -17,6 +18,7 @@ interface OrganisationStore {
 const useOrganisationStore = create<OrganisationStore>((set, get) => ({
   organisation: null,
   orgStats: null,
+  orgJobStats: null,
   loading: false,
   error: null,
   getOrganisationProfile: async () => {
@@ -127,6 +129,16 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
     }
   },
 
+  getOrganisationJobStats: async () => {
+    try {
+      set({ loading: true });
+      const response = await apiInstance.get('/jobs/organization-job-stats');
+      set({ orgJobStats: response.data.data, loading: false });
+    } catch (error) {
+      console.error('Error fetching organisation stats:', error);
+      set({ loading: false });
+    }
+  }
   updateCandidateStatus: async (appliedJobId: string, status: string) => {
     try {
       set({ loading: true });

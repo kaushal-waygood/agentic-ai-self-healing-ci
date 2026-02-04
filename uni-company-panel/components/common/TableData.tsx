@@ -184,8 +184,6 @@ export function DataTable<TData, TValue>({
                         .getFilteredSelectedRowModel()
                         .rows.map((row) => (row.original as any)._id);
 
-                      console.log('selectedIds', selectedIds);
-                      console.log('bulkDelete', bulkDelete);
                       if (bulkDelete) {
                         setIsDeleting(true);
                         await bulkDelete(selectedIds);

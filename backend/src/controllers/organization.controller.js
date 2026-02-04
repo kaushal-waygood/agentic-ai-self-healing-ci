@@ -38,8 +38,6 @@ export const updateOrgLogo = async (req, res) => {
 
     const profileLogo = logoPath.secure_url;
 
-    console.log(profileLogo);
-
     const organization = await Organization.findByIdAndUpdate(
       organizationId,
       { $set: { 'profile.logo': profileLogo } },
@@ -460,8 +458,6 @@ export const updateJobTitle = async (req, res) => {
 
     const job = await Job.findOne({ _id: jobId, organization: organizationId });
 
-    console.log(job);
-
     if (!job) {
       return res.status(404).json({ success: false, message: 'Job not found' });
     }
@@ -489,8 +485,6 @@ export const updateJobDetails = async (req, res) => {
     const { jobDetails } = req.body;
 
     const job = await Job.findOne({ _id: jobId, organization: organizationId });
-
-    console.log(job);
 
     if (!job) {
       return res.status(404).json({ success: false, message: 'Job not found' });

@@ -3,7 +3,7 @@ import { autoRenewCron } from './autoRenew.js';
 import { activateRenewalsCron } from './activateRenewals.js';
 
 export function startCronsRenew() {
-  console.log('[CRON] starting cron jobs');
+  // console.log('[CRON] starting cron jobs');
 
   // Runs every hour
   cron.schedule('0 * * * * *', async () => {
