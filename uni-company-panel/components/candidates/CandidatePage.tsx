@@ -283,6 +283,7 @@ const CandidatesPage = () => {
             data={candidates}
             searchKey="candidateName"
             searchPlaceholder="Search by Name..."
+            
             pageCount={pagination.totalPages}
             totalResults={pagination.totalCount}
             paginationState={{ pageIndex, pageSize }}
