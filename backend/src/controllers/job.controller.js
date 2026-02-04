@@ -497,8 +497,6 @@ export const searchJobs = async (req, res) => {
 export const postManualJob = async (req, res) => {
   const { organization: organizationId } = req.user;
 
-  console.log('organization', organizationId);
-
   try {
     if (!organizationId) {
       return res.status(401).json({
@@ -916,8 +914,6 @@ export const generateJobDescription = async (req, res) => {
       'profile contactInfo',
     );
 
-    console.log(org);
-
     if (!org) {
       return res.status(404).json({
         success: false,
@@ -1038,6 +1034,40 @@ export const getHostedJobsByAdmin = async (req, res) => {
   }
 };
 
+export const candidatesOrganization = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { jobId } = req.params;
+
+    if (!organization) {
+      return res.status(400).json({
+        success: false,
+        message: 'Organization not found on user',
+      });
+    }
+
+    const candidates = await Organization.find({
+      organizationId: organization,
+      jobId,
+    }).select('_id');
+
+    
+
+    console.log(candidates);
+
+    return res.status(200).json({
+      success: true,
+      candidates,
+    });
+  } catch (error) {
+    console.error('Error in candidatesOrganization:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+};
+
 export const deleteJobByAdmin = async (req, res) => {
   try {
     const jobId = req.params.id;
@@ -1147,8 +1177,6 @@ export const updateJobDescription = async (req, res) => {
     screeningQuestions,
   } = req.body;
 
-  console.log(screeningQuestions);
-
   try {
     const job = await Job.findById(jobId);
     if (!job) {
@@ -1197,8 +1225,6 @@ export const jobStats = async (req, res) => {
       organizationId: organization,
     });
 
-    console.log(jobExists);
-
     if (!jobExists) {
       return res.status(403).json({
         success: false,
@@ -1230,8 +1256,6 @@ export const jobStats = async (req, res) => {
         },
       },
     ]);
-
-    console.log(stats);
 
     // 3. Prepare the response
     const result = stats[0] || {
@@ -1275,7 +1299,6 @@ export const getCandidatesByOrganization = async (req, res) => {
         },
       },
       { $unwind: '$jobDetails' },
-
       {
         $match: {
           'jobDetails.organizationId': new mongoose.Types.ObjectId(
@@ -1294,9 +1317,7 @@ export const getCandidatesByOrganization = async (req, res) => {
       },
       { $unwind: '$studentDetails' },
 
-      {
-        $sort: { applicationDate: -1 },
-      },
+      { $sort: { applicationDate: -1 } },
 
       {
         $facet: {
@@ -1306,7 +1327,7 @@ export const getCandidatesByOrganization = async (req, res) => {
             {
               $project: {
                 _id: 1,
-                fullName: '$studentDetails.fullName', // Ensure this matches your frontend expectation
+                fullName: '$studentDetails.fullName',
                 email: '$studentDetails.email',
                 status: 1,
                 applicationDate: 1,
@@ -1324,22 +1345,26 @@ export const getCandidatesByOrganization = async (req, res) => {
               },
             },
           ],
-          total: [{ $count: 'count' }],
+          totalCount: [{ $count: 'count' }],
         },
       },
     ]);
 
-    const candidates = result[0].data;
-    const total = result[0].total[0]?.count || 0;
+    const data = result[0]?.data || [];
+    const totalCount = result[0]?.totalCount[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / limit);
 
     res.status(200).json({
       success: true,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      count: candidates.length,
-      data: candidates,
+      data,
+      meta: {
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -1400,6 +1425,125 @@ export const getOrganizationCandidateStats = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getOrganizationJobStats = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const orgId = new mongoose.Types.ObjectId(organization);
+
+    /* ============================
+       JOB STATS
+    ============================ */
+    const jobStats = await Job.aggregate([
+      { $match: { organizationId: orgId } },
+      {
+        $group: {
+          _id: '$isActive',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const jobs = {
+      TOTAL: 0,
+      ACTIVE: 0,
+      INACTIVE: 0,
+    };
+
+    jobStats.forEach((j) => {
+      if (j._id === true) jobs.ACTIVE = j.count;
+      if (j._id === false) jobs.INACTIVE = j.count;
+      jobs.TOTAL += j.count;
+    });
+
+    /* ============================
+       APPLIED JOB STATS
+    ============================ */
+    const appliedStats = await AppliedJob.aggregate([
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'job',
+          foreignField: '_id',
+          as: 'job',
+        },
+      },
+      { $unwind: '$job' },
+      { $match: { 'job.organizationId': orgId } },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const applications = {
+      TOTAL: 0,
+      APPLIED: 0,
+      ACCEPTED: 0,
+      REJECTED: 0,
+      INTERVIEW: 0,
+      CANCELED: 0,
+    };
+
+    appliedStats.forEach((a) => {
+      applications[a._id] = a.count;
+      applications.TOTAL += a.count;
+    });
+
+    /* ============================
+       INTERACTION STATS
+    ============================ */
+    const interactionStats = await JobInteraction.aggregate([
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'job',
+          foreignField: '_id',
+          as: 'job',
+        },
+      },
+      { $unwind: '$job' },
+      { $match: { 'job.organizationId': orgId } },
+      {
+        $group: {
+          _id: '$type',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const interactions = {
+      VIEW: 0,
+      SAVED: 0,
+      VISIT: 0,
+      APPLIED: 0,
+      IMPRESSION: 0,
+    };
+
+    interactionStats.forEach((i) => {
+      interactions[i._id] = i.count;
+    });
+
+    /* ============================
+       FINAL RESPONSE
+    ============================ */
+    res.status(200).json({
+      success: true,
+      data: {
+        jobs,
+        applications,
+        interactions,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -1867,9 +2011,7 @@ export const applyJob = async (req, res) => {
     // 2. Handle Screening Questions
     for (const q of job.screeningQuestions) {
       const questionKey = q._id.toString();
-      console.log(questionKey);
       const value = answers[questionKey]; // This now correctly looks up the ID in the object
-      console.log(value);
       if (q.required && !value) {
         return res
           .status(400)

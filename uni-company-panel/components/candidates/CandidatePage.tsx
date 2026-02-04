@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/common/TableData';
 import { Button } from '@/components/ui/button';
@@ -35,8 +34,6 @@ const CandidatesPage = () => {
     orgCandidates();
     orgCandidatesStats();
   }, []);
-
-  console.log(candidatesStats);
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [

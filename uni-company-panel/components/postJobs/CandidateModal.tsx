@@ -33,8 +33,6 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
     setPreviewTitle(title);
   };
 
-  console.log('candidate', candidate);
-
   const candidateDetails = [
     { icon: Mail, label: 'Email', value: candidate.student?.email },
     { icon: Phone, label: 'Phone', value: candidate.student?.phone },

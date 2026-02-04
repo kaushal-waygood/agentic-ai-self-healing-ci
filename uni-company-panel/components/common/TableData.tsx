@@ -91,8 +91,6 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  console.log('data', data);
-
   const renderPageNumbers = () => {
     const pageCount = table.getPageCount();
     const currentPage = table.getState().pagination.pageIndex;
@@ -186,8 +184,6 @@ export function DataTable<TData, TValue>({
                         .getFilteredSelectedRowModel()
                         .rows.map((row) => (row.original as any)._id);
 
-                      console.log('selectedIds', selectedIds);
-                      console.log('bulkDelete', bulkDelete);
                       if (bulkDelete) {
                         setIsDeleting(true);
                         await bulkDelete(selectedIds);

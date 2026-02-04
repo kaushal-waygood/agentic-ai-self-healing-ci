@@ -83,10 +83,7 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
         resumeRequired: draft.resumeRequired,
       };
 
-      console.log('payload', payload);
-
       const success = await updateJobDescription(job._id, payload);
-      console.log('success', success);
       if (success) {
         toast.success('Job updated successfully');
         onClose();

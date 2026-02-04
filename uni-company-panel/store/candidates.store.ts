@@ -15,7 +15,9 @@ const useCandidateStore = create<CandidateStore>((set, get) => ({
   getCandidates: async (jobId: string) => {
     try {
       set({ loading: true });
-      const response = await apiInstance.get(`/jobs/candidates-organization`);
+      const response = await apiInstance.get(
+        `/jobs/candidates-organization/${jobId}`,
+      );
       set({ candidates: response.data });
     } catch (error) {
       console.error('Error fetching candidates:', error);
@@ -53,7 +55,8 @@ const useCandidateStore = create<CandidateStore>((set, get) => ({
       const response = await apiInstance.get(
         '/jobs/organization-candidate-stats',
       );
-      set({ candidates: response.data });
+
+      set({ candidatesStats: response.data });
     } catch (error) {
       console.error('Error fetching candidates:', error);
     } finally {
