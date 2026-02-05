@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: wp-zobsai
-  namespace: argocd
+  namespace: wordpress
 spec:
   project: default
 
@@ -19,14 +19,12 @@ spec:
           tag: "latest"
           pullPolicy: IfNotPresent
 
-        ## ❤️ Pod annotations to control health checks
         podAnnotations:
           prometheus.io/scrape: "false"
 
-        ## ❤️ Override probes with custom config that won't timeout
         readinessProbe:
           httpGet:
-            path: /
+            path: /resources
             port: http
           initialDelaySeconds: 300
           periodSeconds: 60
@@ -36,7 +34,7 @@ spec:
 
         livenessProbe:
           httpGet:
-            path: /
+            path: /resources
             port: http
           initialDelaySeconds: 600
           periodSeconds: 60
@@ -49,7 +47,6 @@ spec:
         wordpressEmail: admin@zobsai.com
         wordpressBlogName: "Zobsai Blog"
 
-        ## ❤️ Make WordPress believe it runs inside /resources
         wordpressExtraConfigContent: |
           define( 'WP_HOME', 'https://zobsai.com/resources' );
           define( 'WP_SITEURL', 'https://zobsai.com/resources' );
@@ -57,23 +54,13 @@ spec:
         service:
           type: ClusterIP
 
-        ingress:
+        # Ensure WordPress Deployment is created
+        wordpressDeployment:
           enabled: true
-          ingressClassName: traefik
-          hostname: zobsai.com
-          path: /resources
-          pathType: Prefix
-          annotations:
-            cert-manager.io/cluster-issuer: letsencrypt-prod
-            traefik.ingress.kubernetes.io/router.middlewares: wordpress-resources-rewrite@kubernetescrd
-          tls: true
-          certManager:
-            enabled: true
-            issuer:
-              name: letsencrypt-prod
-              kind: ClusterIssuer
 
-        ## ❤️ Increase memory for WordPress with plugins
+        ingress:
+          enabled: false
+
         resources:
           requests:
             memory: "512Mi"
@@ -84,6 +71,7 @@ spec:
 
         persistence:
           enabled: true
+          mountPath: /bitnami/wordpress/wp-content
           storageClass: "local-path"
           accessMode: ReadWriteOnce
           size: 10Gi
@@ -113,28 +101,8 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
 
-  ignoreDifferences:
-    - group: apps
-      kind: StatefulSet
-      name: wp-zobsai-mariadb
-      namespace: wordpress
-      jsonPointers:
-        - /spec/template/metadata/annotations
-        - /spec/template/spec/containers/0/env
-        - /spec/template/spec/containers/0/image
-        - /spec/volumeClaimTemplates
-        - /spec/revisionHistoryLimit
-    - group: apps
-      kind: Deployment
-      name: wp-zobsai-wordpress
-      namespace: wordpress
-      jsonPointers:
-        - /spec/template/spec/containers/0/readinessProbe
-        - /spec/template/spec/containers/0/livenessProbe
 ---
-# -------------------------------
-# Traefik Middleware for path rewrite
-# -------------------------------
+# Middleware to rewrite /resources for public site
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -145,40 +113,9 @@ spec:
     regex: ^/resources/(.*)
     replacement: /$1
     permanent: true
----
-# -------------------------------
-# Ingress for blog subdomain (admin access)
-# -------------------------------
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: wp-zobsai-blog
-  namespace: wordpress
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.middlewares: blog-rewrite@kubernetescrd
-spec:
-  ingressClassName: traefik
-  tls:
-    - hosts:
-        - blog.zobsai.com
-      secretName: wp-zobsai-blog-tls
-  rules:
-    - host: blog.zobsai.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: wp-zobsai-wordpress
-                port:
-                  number: 80
 
 ---
-# -------------------------------
-# Traefik Middleware for blog rewrite
-# -------------------------------
+# Middleware to rewrite /wp-login.php for admin subdomain
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -186,7 +123,64 @@ metadata:
   namespace: wordpress
 spec:
   redirectRegex:
-    regex: ^/(wp-login\.php|wp-admin/(.*))
-    replacement: /resources/$1
+    regex: ^/wp-login.php/(.*)
+    replacement: /resources/wp-login.php/$1
     permanent: false
 
+---
+# Public site ingress for Zobsai WordPress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wp-public-blog
+  namespace: wordpress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: wordpress-resources-rewrite@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: zobsai.com
+      http:
+        paths:
+          - path: /resources
+            pathType: Prefix
+            backend:
+              service:
+                name: wp-zobsai-wordpress
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - zobsai.com
+      secretName: zobsai-tls
+
+---
+# Admin subdomain ingress for Zobsai WordPress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wp-admin-subdomain
+  namespace: wordpress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: blog-rewrite@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: blog.zobsai.com
+      http:
+        paths:
+          - path: /wp-login.php
+            pathType: Prefix
+            backend:
+              service:
+                name: wp-zobsai-wordpress
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - blog.zobsai.com
+      secretName: wp-zobsai-blog-tls

@@ -1,0 +1,52 @@
+export const INDUSTRY_OPTIONS = [
+  'Technology',
+  'Healthcare',
+  'Finance',
+  'Education',
+  'Manufacturing',
+  'Retail',
+  'Hospitality',
+  'Construction',
+  'Real Estate',
+  'Transportation',
+  'Energy',
+  'Media & Entertainment',
+  'Telecommunications',
+  'Agriculture',
+  'Pharmaceuticals',
+  'Automotive',
+  'Aerospace',
+  'Defense',
+  'Food & Beverage',
+  'Fashion',
+  'Beauty & Cosmetics',
+  'Sports',
+  'Non-profit',
+  'Government',
+  'Consulting',
+  'Legal',
+  'Insurance',
+  'E-commerce',
+  'Software',
+  'Hardware',
+  'Biotechnology',
+  'Environmental Services',
+  'Mining',
+  'Logistics',
+  'Travel & Tourism',
+  'Research & Development',
+  'Other'
+];
+
+export const COMPANY_SIZE_OPTIONS = [
+  '1-10',
+  '11-50',
+  '51-200',
+  '201-500',
+  '501-1000',
+  '1001-5000',
+  '5001-10000',
+  '10000+'
+];
+
+export const VALID_WEBSITE_REGEX = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+(\.[a-zA-Z]{2,3})(\/\S*)?$/;

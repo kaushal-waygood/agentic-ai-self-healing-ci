@@ -19,8 +19,13 @@ import {
   Briefcase,
   UserCheck,
   Zap,
+  Eye,
 } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
+import LocationSelector from '@/components/common/LocationSelector';
+import EditableDropdown from '@/components/common/EditableDropdown';
+import { INDUSTRY_OPTIONS, COMPANY_SIZE_OPTIONS, VALID_WEBSITE_REGEX } from '@/constants/companyData';
 
 // --- Types for better safety ---
 interface OrgProfile {
@@ -28,7 +33,12 @@ interface OrgProfile {
   size: string;
   website: string;
   description: string;
-  address: string;
+  // address: string;
+  address: {
+    country: string;
+    state: string;
+    city: string;
+  };
   logo?: string;
 }
 
@@ -37,6 +47,16 @@ interface ContactInfo {
   email: string;
   phone: string;
 }
+
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePhone = (phone: string): boolean => {
+  const phoneRegex = /^[0-9]{10}$/;
+  return phoneRegex.test(phone);
+};
 
 // Reusable Input Component for consistent styling
 const EditableInput = ({
@@ -115,10 +135,11 @@ const OrganizationProfilePage = () => {
         size: organisation?.profile?.size || '',
         website: organisation?.profile?.website || '',
         description: organisation?.profile?.description || '',
-        address: organisation?.profile?.address || '',
+        // address: organisation?.profile?.address || '',
+        address: organisation?.profile?.address || { country: '', state: '', city: '' },
       },
       contactInfo: {
-        name: organisation?.contactInfo?.name || '',
+        // name: organisation?.contactInfo?.name || '',
         email: organisation?.contactInfo?.email || '',
         phone: organisation?.contactInfo?.phone || '',
       },
@@ -127,10 +148,31 @@ const OrganizationProfilePage = () => {
   };
 
   const handleSave = async () => {
+    if (activeSection === 'profile') {
+      const website = tempData?.profile?.website;
+      if (website && website.trim() !== '' && !VALID_WEBSITE_REGEX.test(website)) {
+        toast.error('Please enter a valid website URL (e.g., https://example.com or https://example.co.in)');
+        return;
+      }
+    }
+
+    if (activeSection === 'contact') {
+      if (tempData?.contactInfo?.email && !validateEmail(tempData.contactInfo.email)) {
+        toast.error('Please enter a valid email address ');
+        return;
+      }
+
+      if (tempData?.contactInfo?.phone && !validatePhone(tempData.contactInfo.phone)) {
+        toast.error('Please enter a valid 10-digit phone number');
+        return;
+      }
+    }
     const payload = {
       name: tempData.name,
-      profile: tempData.profile,
-      contactInfo: tempData.contactInfo,
+      // profile: tempData.profile,
+      // contactInfo: tempData.contactInfo,
+      profile: activeSection === 'profile' ? tempData.profile : organisation?.profile || {},
+      contactInfo: activeSection === 'contact' ? tempData.contactInfo : organisation?.contactInfo || {},
       betaFeaturesEnabled: tempData.betaFeaturesEnabled,
     };
 
@@ -295,17 +337,31 @@ const OrganizationProfilePage = () => {
                   Industry
                 </label>
                 {activeSection === 'profile' ? (
-                  <EditableInput
-                    value={tempData?.profile?.industry}
-                    onChange={(e) =>
+                  // <EditableInput
+                  //   value={tempData?.profile?.industry}
+                  //   onChange={(e) =>
+                  //     setTempData({
+                  //       ...tempData,
+                  //       profile: {
+                  //         ...tempData.profile,
+                  //         industry: e.target.value,
+                  //       },
+                  //     })
+                  //   }
+                  // />
+                  <EditableDropdown
+                    value={tempData?.profile?.industry || ''}
+                    onChange={(value) =>
                       setTempData({
                         ...tempData,
                         profile: {
                           ...tempData.profile,
-                          industry: e.target.value,
+                          industry: value,
                         },
                       })
                     }
+                    options={INDUSTRY_OPTIONS}
+                    placeholder="Select industry"
                   />
                 ) : (
                   <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg">
@@ -364,14 +420,28 @@ const OrganizationProfilePage = () => {
                   Company Size
                 </label>
                 {activeSection === 'profile' ? (
-                  <EditableInput
-                    value={tempData?.profile?.size}
-                    onChange={(e) =>
+                  // <EditableInput
+                  //   value={tempData?.profile?.size}
+                  //   onChange={(e) =>
+                  //     setTempData({
+                  //       ...tempData,
+                  //       profile: { ...tempData.profile, size: e.target.value },
+                  //     })
+                  //   }
+                  // />
+                  <EditableDropdown
+                    value={tempData?.profile?.size || ''}
+                    onChange={(value) =>
                       setTempData({
                         ...tempData,
-                        profile: { ...tempData.profile, size: e.target.value },
+                        profile: {
+                          ...tempData.profile,
+                          size: value,
+                        },
                       })
                     }
+                    options={COMPANY_SIZE_OPTIONS}
+                    placeholder="Select company size"
                   />
                 ) : (
                   <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg">
@@ -391,25 +461,51 @@ const OrganizationProfilePage = () => {
                   Headquarters
                 </label>
                 {activeSection === 'profile' ? (
-                  <EditableInput
-                    value={tempData?.profile?.address}
-                    onChange={(e) =>
-                      setTempData({
-                        ...tempData,
-                        profile: {
-                          ...tempData.profile,
-                          address: e.target.value,
-                        },
-                      })
-                    }
-                  />
+                  // <EditableInput
+                  //   value={tempData?.profile?.address}
+                  //   onChange={(e) =>
+                  //     setTempData({
+                  //       ...tempData,
+                  //       profile: {
+                  //         ...tempData.profile,
+                  //         address: e.target.value,
+                  //       },
+                  //     })
+                  //   }
+                  // />
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <LocationSelector
+                      value={tempData?.profile?.address || { country: '', state: '', city: '' }}
+                      onChange={(location) => {
+                        setTempData({
+                          ...tempData,
+                          profile: {
+                            ...tempData.profile,
+                            address: location
+                          }
+                        });
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg">
                     <MapPin size={16} className="text-gray-400" />
-                    {organisation.profile?.address || (
+                    {/* {organisation.profile?.address || (
                       <span className="text-gray-400 italic">
                         Not specified
                       </span>
+                    )} */}
+                    {organisation.profile?.address &&
+                      (organisation.profile.address.country || organisation.profile.address.state || organisation.profile.address.city) ? (
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {[organisation.profile.address.city, organisation.profile.address.state, organisation.profile.address.country]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic">Not specified</span>
                     )}
                   </div>
                 )}
@@ -455,20 +551,24 @@ const OrganizationProfilePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
               {[
-                {
-                  label: 'Point of Contact',
-                  key: 'name',
-                  icon: <UserCheck size={16} className="text-gray-400" />,
-                },
+                // {
+                //   label: 'Point of Contact',
+                //   key: 'name',
+                //   icon: <UserCheck size={16} className="text-gray-400" />,
+                //   disabled: true,
+                //   validation: null,
+                // },
                 {
                   label: 'Official Email',
                   key: 'email',
                   icon: <Mail size={16} className="text-gray-400" />,
+                  validation: validateEmail,
                 },
                 {
                   label: 'Phone Number',
                   key: 'phone',
                   icon: <Phone size={16} className="text-gray-400" />,
+                  validation: validatePhone,
                 },
               ].map((field) => (
                 <div key={field.label} className="space-y-1.5">
@@ -476,18 +576,39 @@ const OrganizationProfilePage = () => {
                     {field.label}
                   </label>
                   {activeSection === 'contact' ? (
-                    <EditableInput
-                      value={tempData?.contactInfo?.[field.key]}
-                      onChange={(e) =>
-                        setTempData({
-                          ...tempData,
-                          contactInfo: {
-                            ...tempData.contactInfo,
-                            [field.key]: e.target.value,
-                          },
-                        })
-                      }
-                    />
+                    //   <EditableInput
+                    //   value={tempData?.contactInfo?.[field.key]}
+                    //   onChange={(e) =>
+                    //     setTempData({
+                    //       ...tempData,
+                    //       contactInfo: {
+                    //         ...tempData.contactInfo,
+                    //         [field.key]: e.target.value,
+                    //       },
+                    //     })
+                    //   }
+                    // />
+                    <>
+                      <EditableInput
+                        value={tempData?.contactInfo?.[field.key] || ''}
+                        onChange={(e) =>
+                          setTempData({
+                            ...tempData,
+                            contactInfo: {
+                              ...tempData.contactInfo,
+                              [field.key]: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                      {field.validation && tempData?.contactInfo?.[field.key] && !field.validation(tempData.contactInfo[field.key]) && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {field.key === 'email'
+                            ? 'Please enter a valid email address (e.g., name@company.com)'
+                            : 'Please enter a valid 10-digit phone number'}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg truncate">
                       {field.icon}
@@ -505,7 +626,7 @@ const OrganizationProfilePage = () => {
         {/* RIGHT COLUMN: ANALYTICS & BETA */}
         <div className="space-y-6">
           {/* STATS CARD (Added to fill empty space) */}
-          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
+          {/* <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
             <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
               <TrendingUp size={16} className="text-blue-600" /> Performance
             </h3>
@@ -547,6 +668,135 @@ const OrganizationProfilePage = () => {
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest">
                 Updated Today
+              </p>
+          </div> */}
+
+          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <TrendingUp size={16} className="text-blue-600" /> Performance Overview
+              </h3>
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Last 30 days</span>
+            </div>
+
+            {/* Top Row - Main Metrics */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Active Jobs */}
+              <div className="p-4 bg-gradient-to-br from-blue-50 to-white rounded-lg border border-blue-100 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-1">Active Jobs</p>
+                    <p className="text-2xl font-bold text-gray-900">8</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp size={12} className="text-green-500" />
+                      <span className="text-xs text-green-600 font-medium">+2</span>
+                      <span className="text-xs text-gray-500 ml-1">this month</span>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                    <Briefcase size={20} className="text-blue-600" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Candidates */}
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-white rounded-lg border border-purple-100 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700 uppercase tracking-wider mb-1">Candidates</p>
+                    <p className="text-2xl font-bold text-gray-900">142</p>
+                    <div className="mt-1">
+                      <span className="text-xs text-gray-500">Total pool</span>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                    <Users size={20} className="text-purple-600" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Applications */}
+              <div className="p-4 bg-gradient-to-br from-green-50 to-white rounded-lg border border-green-100 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-1">Applications</p>
+                    <p className="text-2xl font-bold text-gray-900">64</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp size={12} className="text-green-500" />
+                      <span className="text-xs text-green-600 font-medium">+12</span>
+                      <span className="text-xs text-gray-500 ml-1">this week</span>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                    <UserCheck size={20} className="text-green-600" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Impression Rate */}
+              <div className="p-4 bg-gradient-to-br from-amber-50 to-white rounded-lg border border-amber-100 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">Impression</p>
+                    <p className="text-2xl font-bold text-gray-900">82%</p>
+                    <div className="mt-1">
+                      <span className="text-xs text-gray-500">View rate</span>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                    <Eye size={20} className="text-amber-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Row - Progress Bar */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-medium text-gray-700">Application Funnel</span>
+                <span className="text-xs text-gray-500">Conversion: 24%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="flex h-2 rounded-full">
+                  <div className="bg-blue-500 w-1/4 rounded-l-full"></div>
+                  <div className="bg-green-500 w-1/4"></div>
+                  <div className="bg-yellow-500 w-1/4"></div>
+                  <div className="bg-purple-500 w-1/4 rounded-r-full"></div>
+                </div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>Applied</span>
+                <span>Viewed</span>
+                <span>Shortlisted</span>
+                <span>Hired</span>
+              </div>
+            </div>
+
+            {/* Bottom Row - Quick Stats */}
+            <div className="border-t border-gray-100 pt-4">
+              <div className="grid grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <p className="text-xs text-gray-500 mb-1">Shortlisted</p>
+                  <p className="text-lg font-bold text-gray-900">12</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <p className="text-xs text-gray-500 mb-1">Interview</p>
+                  <p className="text-lg font-bold text-gray-900">8</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <p className="text-xs text-gray-500 mb-1">Rejected</p>
+                  <p className="text-lg font-bold text-gray-900">32</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <p className="text-xs text-gray-500 mb-1">Hired</p>
+                  <p className="text-lg font-bold text-gray-900">4</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest">
+                Updated Today • Refresh for latest data
               </p>
             </div>
           </div>
@@ -602,3 +852,4 @@ const OrganizationProfilePage = () => {
 };
 
 export default OrganizationProfilePage;
+// testing

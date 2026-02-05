@@ -81,6 +81,56 @@ export const updateOrganizationProfile = async (req, res) => {
 
     const { name, profile, contactInfo, betaFeaturesEnabled } = req.body;
 
+    if (profile?.industry && profile.industry.trim() !== '') {
+      const allowedIndustries = [
+        'Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing',
+        'Retail', 'Hospitality', 'Construction', 'Real Estate', 'Transportation',
+        'Energy', 'Media & Entertainment', 'Telecommunications', 'Agriculture',
+        'Pharmaceuticals', 'Automotive', 'Aerospace', 'Defense', 'Food & Beverage',
+        'Fashion', 'Beauty & Cosmetics', 'Sports', 'Non-profit', 'Government',
+        'Consulting', 'Legal', 'Insurance', 'E-commerce', 'Software', 'Hardware',
+        'Biotechnology', 'Environmental Services', 'Mining', 'Logistics',
+        'Travel & Tourism', 'Research & Development', 'Other'
+      ];
+
+      if (!allowedIndustries.includes(profile.industry)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid industry selected',
+        });
+      }
+    }
+
+    // Website validation
+    if (profile?.website && profile.website.trim() !== '') {
+      const urlPattern = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+(\.[a-zA-Z]{2,})(\/\S*)?$/;
+      if (!urlPattern.test(profile.website)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide a valid website URL (e.g., https://example.com)',
+        });
+      }
+      // URL starts with http:// or https://
+      if (!profile.website.startsWith('http://') && !profile.website.startsWith('https://')) {
+        profile.website = 'https://' + profile.website;
+      }
+    }
+
+    // Company size validation
+    if (profile?.size && profile.size.trim() !== '') {
+      const allowedSizes = [
+        '1-10', '11-50', '51-200', '201-500',
+        '501-1000', '1001-5000', '5001-10000', '10000+'
+      ];
+
+      if (!allowedSizes.includes(profile.size)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid company size selected',
+        });
+      }
+    }
+
     // Build update object dynamically
     const updates = {};
 
