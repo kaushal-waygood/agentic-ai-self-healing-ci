@@ -349,6 +349,8 @@ const NewJobPost = () => {
       console.log('Publishing Payload:', previewPayload);
       await mannualPostJob(previewPayload);
       toast.success('Job posted successfully!');
+      form.reset();
+      setCurrentStep(0);
       setIsPreviewOpen(false); // Close modal on success
       // Optional: Redirect or reset form here
     } catch (error) {

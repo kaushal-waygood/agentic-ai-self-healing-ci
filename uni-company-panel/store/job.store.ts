@@ -82,7 +82,7 @@ export const useJobStore = create<JobStore>((set) => ({
       set((state) => ({
         jobs: state.jobs.map((job) =>
           // job._id === jobId ? { ...job, isActive: !job.isActive } : job,
-        (job._id === jobId || job.id === jobId) ? { ...job, isActive: !job.isActive } : job,
+          (job._id === jobId || job.id === jobId) ? { ...job, isActive: !job.isActive } : job,
         ),
       }));
       return true;
@@ -101,7 +101,7 @@ export const useJobStore = create<JobStore>((set) => ({
 
       const transformedJobs = data?.map((job: any) => ({
         ...job,
-        _id: job._id || job.id, 
+        _id: job._id || job.id,
       })) ?? [];
 
       set({
@@ -193,7 +193,14 @@ export const useJobStore = create<JobStore>((set) => ({
 
       const data = response.data;
       console.log('response', data);
-      set({ job: data.job, loading: false });
+     // set({ job: data.job, loading: false });
+      set((state) => ({
+        job: data.job,
+        jobs: state.jobs.map((job) =>
+          job._id === id || job.id === id ? { ...job, ...data.job } : job
+        ),
+        loading: false,
+      }));
       return true;
     } catch (err: any) {
       console.error('Job updating error:', err);
