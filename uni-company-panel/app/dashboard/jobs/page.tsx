@@ -121,16 +121,48 @@ const JobsPage = () => {
           </span>
         ),
       },
+      // {
+      //   id: 'stats',
+      //   header: 'Engagement',
+      //   cell: ({ row }) => (
+      //     <div className="text-xs space-y-1">
+      //       <div className="flex items-center gap-1">
+      //         <Eye className="w-3 h-3" /> {row.original.jobViews}
+      //       </div>
+      //       <div className="flex items-center gap-1">
+      //         <Users className="w-3 h-3" /> {row.original.appliedCount}
+      //       </div>
+      //     </div>
+      //   ),
+      // },
       {
         id: 'stats',
         header: 'Engagement',
         cell: ({ row }) => (
-          <div className="text-xs space-y-1">
-            <div className="flex items-center gap-1">
-              <Eye className="w-3 h-3" /> {row.original.jobViews}
+          <div className="flex items-center gap-7 justify-center px-2">
+
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-blue-50 rounded-md">
+                <Eye className="w-3.5 h-3.5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-slate-900">
+                  {row.original.jobViews || 0}
+                </div>
+                <div className="text-[10px] text-slate-500">Views</div>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Users className="w-3 h-3" /> {row.original.appliedCount}
+
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-emerald-50 rounded-md">
+                <Users className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-slate-900">
+                  {row.original.appliedCount || 0}
+                </div>
+                <div className="text-[10px] text-slate-500">Applied</div>
+              </div>
             </div>
           </div>
         ),
@@ -142,11 +174,20 @@ const JobsPage = () => {
           const [isToggling, setIsToggling] = useState(false);
           const handleToggle = async () => {
             setIsToggling(true);
-            const success = await toggleJobStatus(row.original.id);
-            if (success)
+            const jobId = row.original.id;
+            if (!jobId) {
+              toast.error('Job ID not found');
+              setIsToggling(false);
+              return;
+            }
+            // const success = await toggleJobStatus(row.original.id);
+            const success = await toggleJobStatus(jobId);
+
+            if (success) {
               toast.success(
                 `Job ${!row.original.isActive ? 'activated' : 'deactivated'}`,
               );
+            }
             setIsToggling(false);
           };
 
@@ -173,8 +214,28 @@ const JobsPage = () => {
         header: () => <div className="text-center">Actions</div>,
         cell: ({ row }) => {
           const [isDelOpen, setIsDelOpen] = useState(false);
+
+          const handleDelete = async () => {
+            const jobId = row.original.id;
+            if (!jobId) {
+              toast.error('Job ID not found');
+              return;
+            }
+
+            await deleteJob(jobId);
+            toast.success('Deleted');
+            setIsDelOpen(false);
+          };
+
           return (
             <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="hover:text-blue-500 h-8"
+              >
+                <Eye className="h-3.5 w-3.5 mr-1" /> View
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -208,10 +269,11 @@ const JobsPage = () => {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={async () => {
-                        await deleteJob(row.original.id);
-                        toast.success('Deleted');
-                      }}
+                      // onClick={async () => {
+                      //   await deleteJob(row.original.id);
+                      //   toast.success('Deleted');
+                      // }}
+                      onClick={handleDelete}
                     >
                       Yes, Delete
                     </Button>
