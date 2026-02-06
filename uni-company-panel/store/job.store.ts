@@ -78,7 +78,7 @@ export const useJobStore = create<JobStore>((set) => ({
 
   toggleJobStatus: async (jobId: string) => {
     try {
-      await apiInstance.patch(`jobs/status/${jobId}`);
+      await apiInstance.patch(`/jobs/status/${jobId}`);
       set((state) => ({
         jobs: state.jobs.map((job) =>
           // job._id === jobId ? { ...job, isActive: !job.isActive } : job,

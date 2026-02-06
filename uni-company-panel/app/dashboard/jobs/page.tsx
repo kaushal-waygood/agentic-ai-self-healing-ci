@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useJobStore } from '@/store/job.store';
-import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/common/TableData';
 import {
   Popover,
@@ -14,9 +12,7 @@ import {
 } from '@/components/ui/popover';
 import {
   Eye,
-  TrendingUp,
   Download,
-  Briefcase,
   Users,
   ArrowUpDown,
   Loader2,
@@ -26,11 +22,12 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { EditJobModal } from '@/components/getjobs/EditJobModal';
+import GetSingleJobDetails from '@/components/getjobs/GetSingleJobDetails';
 
 const JobsPage = () => {
-  const router = useRouter();
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const { jobs, getJobs, deleteJob, bulkDeleteJobs, toggleJobStatus, loading } =
     useJobStore();
 
@@ -139,18 +136,9 @@ const JobsPage = () => {
         id: 'stats',
         header: 'Engagement',
         cell: ({ row }) => (
-          <div className="flex items-center gap-7 justify-center px-2">
-
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-50 rounded-md">
-                <Eye className="w-3.5 h-3.5 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-slate-900">
-                  {row.original.jobViews || 0}
-                </div>
-                <div className="text-[10px] text-slate-500">Views</div>
-              </div>
+          <div className="text-xs flex flex-col items-center space-y-1">
+            <div className="flex items-center gap-1">
+              <Eye className="w-3 h-3" /> {row.original.jobViews}
             </div>
 
             <div className="flex items-center gap-2">
@@ -232,9 +220,14 @@ const JobsPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="hover:text-blue-500 h-8"
+                onClick={() => {
+                  setSelectedJob(row.original);
+                  setIsViewModalOpen(true);
+                  // console.log(row.original);
+                  console.log('view modal open', isViewModalOpen);
+                }}
               >
-                <Eye className="h-3.5 w-3.5 mr-1" /> View
+                View
               </Button>
               <Button
                 variant="outline"
@@ -319,6 +312,13 @@ const JobsPage = () => {
           data={jobs}
           searchKey="jobTitle"
           bulkDelete={bulkDeleteJobs}
+        />
+      )}
+      {isViewModalOpen && (
+        <GetSingleJobDetails
+          job={selectedJob}
+          open={isViewModalOpen}
+          onOpenChange={setIsViewModalOpen}
         />
       )}
 
