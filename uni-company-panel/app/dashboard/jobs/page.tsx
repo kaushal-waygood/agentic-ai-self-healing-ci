@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useJobStore } from '@/store/job.store';
-import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/common/TableData';
 import {
   Popover,
@@ -14,9 +12,7 @@ import {
 } from '@/components/ui/popover';
 import {
   Eye,
-  TrendingUp,
   Download,
-  Briefcase,
   Users,
   ArrowUpDown,
   Loader2,
@@ -26,11 +22,12 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { EditJobModal } from '@/components/getjobs/EditJobModal';
+import GetSingleJobDetails from '@/components/getjobs/GetSingleJobDetails';
 
 const JobsPage = () => {
-  const router = useRouter();
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const { jobs, getJobs, deleteJob, bulkDeleteJobs, toggleJobStatus, loading } =
     useJobStore();
 
@@ -125,7 +122,7 @@ const JobsPage = () => {
         id: 'stats',
         header: 'Engagement',
         cell: ({ row }) => (
-          <div className="text-xs space-y-1">
+          <div className="text-xs flex flex-col items-center space-y-1">
             <div className="flex items-center gap-1">
               <Eye className="w-3 h-3" /> {row.original.jobViews}
             </div>
@@ -175,6 +172,18 @@ const JobsPage = () => {
           const [isDelOpen, setIsDelOpen] = useState(false);
           return (
             <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedJob(row.original);
+                  setIsViewModalOpen(true);
+                  // console.log(row.original);
+                  console.log('view modal open', isViewModalOpen);
+                }}
+              >
+                View
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -257,6 +266,13 @@ const JobsPage = () => {
           data={jobs}
           searchKey="jobTitle"
           bulkDelete={bulkDeleteJobs}
+        />
+      )}
+      {isViewModalOpen && (
+        <GetSingleJobDetails
+          job={selectedJob}
+          open={isViewModalOpen}
+          onOpenChange={setIsViewModalOpen}
         />
       )}
 
