@@ -18,10 +18,13 @@ import {
   Loader2,
   Trash2,
   Pencil,
+  UserCheck,
+  UserMinus,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { EditJobModal } from '@/components/getjobs/EditJobModal';
+import { Card, CardContent } from '@/components/ui/card';
 import GetSingleJobDetails from '@/components/getjobs/GetSingleJobDetails';
 
 const JobsPage = () => {
@@ -311,7 +314,39 @@ const JobsPage = () => {
         </Button>
       </div>
 
-      {/* Stats row can stay as you have it */}
+         {/* Stats row can stay as you have it */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <StatCard
+          label="Total Jobs"
+          value={jobs.length || 0}
+          icon={<Users className="text-blue-600" />}
+          color="bg-blue-100"
+        />
+        <StatCard
+          label="Active Jobs"
+          value={jobs.filter(job => job.isActive).length || 0}
+          icon={<Eye className="text-green-600" />}
+          color="bg-green-100"
+        />
+        <StatCard
+          label="Inactive Jobs"
+          value={jobs.filter(job => !job.isActive).length || 0}
+          icon={<UserMinus className="text-red-600" />}
+          color="bg-red-100"
+        />
+        <StatCard
+          label="Total Views"
+          value={jobs.reduce((sum, job) => sum + (job.jobViews || 0), 0) || 0}
+          icon={<Eye className="text-purple-600" />}
+          color="bg-purple-100"
+        />
+        <StatCard
+          label="Total Applicants"
+          value={jobs.reduce((sum, job) => sum + (job.appliedCount || 0), 0) || 0}
+          icon={<UserCheck className="text-amber-600" />}
+          color="bg-amber-100"
+        />
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -346,5 +381,23 @@ const JobsPage = () => {
     </div>
   );
 };
+
+const StatCard = ({ label, value, icon, color }: any) => (
+  <Card className="border-none shadow-sm bg-white">
+    <CardContent className="">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <h3 className="text-2xl font-bold text-slate-900 mt-1">{value}</h3>
+        </div>
+        <div
+          className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center`}
+        >
+          {icon}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default JobsPage;
