@@ -76,26 +76,53 @@ function normalizeStudent(student) {
    ============================================================ */
 
 function resolveIdentityValue(descriptor, student) {
-  const text = `${descriptor.inputKey} ${descriptor.label}`.toLowerCase();
+  // Combine key and label, then trim to handle trailing spaces seen in your logs
+  const text = `${descriptor.inputKey} ${descriptor.label || ''}`
+    .toLowerCase()
+    .trim();
 
-  if (/email/.test(text)) return student.email;
-  if (/phone|mobile/.test(text)) return student.phone;
-  if (/first/.test(text)) return student.firstName;
-  if (/middle/.test(text)) return student.middleName;
-  if (/last|surname/.test(text)) return student.lastName;
+  // 1. Specific Social/Links
+  if (/linkedin/.test(text)) return student.linkedin || '';
 
-  // FIX: Broad name match to catch "name", "candidate name", "full name"
-  if (/name|candidate/.test(text)) return student.fullName;
+  // 2. Exact Identity (Check specific parts before broad "name")
+  if (/first/.test(text)) return student.firstName || '';
+  if (/middle/.test(text)) return student.middleName || '';
+  if (/last|surname/.test(text)) return student.lastName || '';
 
-  if (/gender/.test(text)) return student.gender;
+  // 3. Broad Name (Only if it didn't match first/last)
+  if (/name|candidate/.test(text)) return student.fullName || '';
+
+  // 4. Contact Info
+  if (/email/.test(text)) return student.email || '';
+  if (/phone|mobile|number/.test(text)) return student.phone || '';
+
+  // 5. Address / Geography
+  if (/address\s*1/.test(text)) return student.address || '';
+  if (/address\s*2/.test(text)) return student.address2 || '';
+  if (/zip|postal/.test(text)) return student.zipCode || '';
+  if (/city|locality/.test(text))
+    return student.city || student.jobPreferences?.preferredCities?.[0] || '';
+  if (/state/.test(text)) return student.state || '';
+  if (/country/.test(text))
+    return (
+      student.country || student.jobPreferences?.preferredCountries?.[0] || ''
+    );
+
+  // 6. Professional / Files
+  if (/gender/.test(text)) return student.gender || '';
   if (/resume|cv/.test(text))
     return student.resumeUrl ? { url: student.resumeUrl } : '';
 
-  // Basic Location extraction (AI will refine formatting)
-  if (/city|locality/.test(text))
-    return student.jobPreferences?.preferredCities?.[0] || '';
-  if (/country/.test(text))
-    return student.jobPreferences?.preferredCountries?.[0] || '';
+  // 7. Education/Work Fallbacks (Simple keys)
+  if (/school|university|institution/.test(text))
+    return student.education?.[0]?.school || '';
+  if (/graduation\s*year/.test(text))
+    return student.education?.[0]?.endYear || '';
+  if (/area\s*of\s*study|major/.test(text))
+    return student.education?.[0]?.fieldOfStudy || '';
+  if (/gpa/.test(text)) return student.education?.[0]?.gpa || '';
+  if (/company/.test(text)) return student.experience?.[0]?.company || '';
+  if (/job\s*title/.test(text)) return student.experience?.[0]?.title || '';
 
   return '';
 }
