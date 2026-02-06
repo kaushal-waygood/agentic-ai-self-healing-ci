@@ -81,7 +81,8 @@ export const useJobStore = create<JobStore>((set) => ({
       await apiInstance.patch(`/jobs/status/${jobId}`);
       set((state) => ({
         jobs: state.jobs.map((job) =>
-          job._id === jobId ? { ...job, isActive: !job.isActive } : job,
+          // job._id === jobId ? { ...job, isActive: !job.isActive } : job,
+        (job._id === jobId || job.id === jobId) ? { ...job, isActive: !job.isActive } : job,
         ),
       }));
       return true;
@@ -98,8 +99,14 @@ export const useJobStore = create<JobStore>((set) => ({
 
       const { data, meta } = response.data;
 
+      const transformedJobs = data?.map((job: any) => ({
+        ...job,
+        _id: job._id || job.id, 
+      })) ?? [];
+
       set({
-        jobs: data ?? [], // ✅ always an array
+        // jobs: data ?? [],
+        jobs: transformedJobs,
         meta: meta ?? null,
         loading: false,
       });
@@ -158,7 +165,8 @@ export const useJobStore = create<JobStore>((set) => ({
 
       // 2. Update local state by filtering out the deleted job
       set((state) => ({
-        jobs: state.jobs.filter((job) => job._id !== id),
+        // jobs: state.jobs.filter((job) => job._id !== id),
+        jobs: state.jobs.filter((job) => job._id !== id && job.id !== id),
         // loading: false,
       }));
 
