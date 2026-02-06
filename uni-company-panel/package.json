@@ -33,6 +33,7 @@
     "nextjs-toploader": "^3.9.17",
     "popover": "^2.4.1",
     "quill": "^2.0.3",
+    "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.70.0",

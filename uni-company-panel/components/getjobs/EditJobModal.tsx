@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useJobStore } from '@/store/job.store';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,11 +19,12 @@ import {
   Plus,
   Trash2,
   Banknote,
-  MapPin,
   FileText,
   Briefcase,
   HelpCircle,
   Save,
+  Pencil,
+  MapPin,
 } from 'lucide-react';
 import QuillJs from '@/components/rich-text/QuillJs';
 
@@ -47,7 +48,7 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
     remote: false,
     location: { city: '', state: '' },
     resumeRequired: false,
-    jobTypes: [] as string[], // Added missing jobTypes
+    jobTypes: [] as string[],
   });
 
   useEffect(() => {
@@ -71,25 +72,17 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
     setIsSaving(true);
     try {
       const payload = {
-        title: draft.title,
-        description: draft.description,
+        ...draft,
         responsibilities: draft.responsibilities
           .split('\n')
           .filter((s) => s.trim()),
         qualifications: draft.qualifications
           .split('\n')
           .filter((s) => s.trim()),
-        screeningQuestions: draft.screeningQuestions,
-        salary: draft.salary,
-        remote: draft.remote,
-        location: draft.location,
-        resumeRequired: draft.resumeRequired,
-        jobTypes: draft.jobTypes,
       };
 
-      const result = await updateJobDescription(job._id, payload);
+      const result = await updateJobDescription(job.id || job._id, payload);
 
-      // Check for successful return (handling the success = undefined issue)
       if (result !== false) {
         toast.success('Job updated successfully');
         onClose();
@@ -112,35 +105,35 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl  w-[90vw] sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] flex flex-col p-0">
-        {' '}
-        <DialogHeader className="p-6 pb-2 border-b">
-          <DialogTitle className="text-2xl font-bold text-blue-600">
-            Edit Job Posting
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-          <div className="space-y-10 pb-6">
-            {/* 1. BASIC DETAILS & JOB TYPE */}
-            <section className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                <Briefcase className="w-5 h-5 text-blue-500" /> Basic Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-xl bg-gray-50/30">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="sm:max-w-[650px] w-full flex flex-col p-0 border-l">
+        <SheetHeader className="p-6 border-b bg-white sticky top-0 z-10">
+          <SheetTitle className="text-xl font-bold text-blue-600 flex items-center gap-2">
+            <Pencil className="w-5 h-5" /> Edit Job Posting
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-10 custom-scrollbar">
+          {/* 1. BASIC DETAILS */}
+          <section className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <Briefcase className="w-4 h-4" /> Basic Details
+            </h3>
+            <div className="grid gap-4 p-4 border rounded-xl bg-gray-50/50">
+              <div className="space-y-2">
+                <Label className="font-semibold text-gray-700">Job Title</Label>
+                <Input
+                  value={draft.title}
+                  onChange={(e) =>
+                    setDraft({ ...draft, title: e.target.value })
+                  }
+                  placeholder="e.g. Senior Frontend Engineer"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold text-gray-500">
-                    Job Title
-                  </Label>
-                  <Input
-                    value={draft.title}
-                    onChange={(e) =>
-                      setDraft({ ...draft, title: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold text-gray-500">
+                  <Label className="font-semibold text-gray-700">
                     Job Type
                   </Label>
                   <select
@@ -156,301 +149,279 @@ export const EditJobModal = ({ job, isOpen, onClose }: EditJobModalProps) => {
                     <option value="INTERNSHIP">Internship</option>
                   </select>
                 </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label className="text-xs uppercase font-bold text-gray-500">
-                    Requirements & Remote
-                  </Label>
-                  <div className="flex gap-6 pt-1">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="remote"
-                        checked={draft.remote}
-                        onCheckedChange={(v) =>
-                          setDraft({ ...draft, remote: !!v })
-                        }
-                      />
-                      <Label
-                        htmlFor="remote"
-                        className="font-medium cursor-pointer"
-                      >
-                        Remote Work
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="resume"
-                        checked={draft.resumeRequired}
-                        onCheckedChange={(v) =>
-                          setDraft({ ...draft, resumeRequired: !!v })
-                        }
-                      />
-                      <Label
-                        htmlFor="resume"
-                        className="font-medium cursor-pointer"
-                      >
-                        Require Resume
-                      </Label>
-                    </div>
+                <div className="flex flex-col justify-end space-y-3 pb-1">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="remote-s"
+                      checked={draft.remote}
+                      onCheckedChange={(v) =>
+                        setDraft({ ...draft, remote: !!v })
+                      }
+                    />
+                    <Label htmlFor="remote-s" className="cursor-pointer">
+                      Remote Work
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="resume-s"
+                      checked={draft.resumeRequired}
+                      onCheckedChange={(v) =>
+                        setDraft({ ...draft, resumeRequired: !!v })
+                      }
+                    />
+                    <Label htmlFor="resume-s" className="cursor-pointer">
+                      Require Resume
+                    </Label>
                   </div>
                 </div>
-                {!draft.remote && (
-                  <>
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase font-bold text-gray-500">
-                        City
-                      </Label>
-                      <Input
-                        value={draft.location.city}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            location: {
-                              ...draft.location,
-                              city: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase font-bold text-gray-500">
-                        State
-                      </Label>
-                      <Input
-                        value={draft.location.state}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            location: {
-                              ...draft.location,
-                              state: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  </>
-                )}
               </div>
-            </section>
 
-            {/* 2. SALARY DETAILS */}
-            <section className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                <Banknote className="w-5 h-5 text-blue-500" /> Salary
-                Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-xl bg-gray-50/30">
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold text-gray-500">
-                    Min Salary
-                  </Label>
-                  <Input
-                    type="number"
-                    value={draft.salary.min}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        salary: {
-                          ...draft.salary,
-                          min: Number(e.target.value),
-                        },
-                      })
-                    }
-                  />
+              {!draft.remote && (
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t mt-2">
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-gray-700">City</Label>
+                    <Input
+                      value={draft.location.city}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          location: { ...draft.location, city: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-gray-700">State</Label>
+                    <Input
+                      value={draft.location.state}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          location: {
+                            ...draft.location,
+                            state: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold text-gray-500">
-                    Max Salary
-                  </Label>
-                  <Input
-                    type="number"
-                    value={draft.salary.max}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        salary: {
-                          ...draft.salary,
-                          max: Number(e.target.value),
-                        },
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold text-gray-500">
-                    Period
-                  </Label>
-                  <select
-                    className="w-full h-10 px-3 border rounded-md bg-white text-sm outline-none focus:ring-2 ring-blue-500"
-                    value={draft.salary.period}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        salary: { ...draft.salary, period: e.target.value },
-                      })
-                    }
-                  >
-                    <option value="YEARLY">Yearly</option>
-                    <option value="MONTHLY">Monthly</option>
-                  </select>
-                </div>
-              </div>
-            </section>
+              )}
+            </div>
+          </section>
 
-            {/* 3. DESCRIPTION */}
-            <section className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                <FileText className="w-5 h-5 text-blue-500" /> Job Description
-              </h3>
-              <div className="min-h-[350px] border rounded-xl overflow-hidden shadow-sm">
-                <QuillJs
-                  content={draft.description}
-                  onContentChange={(val) =>
-                    setDraft({ ...draft, description: val })
+          {/* 2. SALARY */}
+          <section className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <Banknote className="w-4 h-4" /> Salary Information
+            </h3>
+            <div className="grid grid-cols-3 gap-3 p-4 border rounded-xl bg-gray-50/50">
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-gray-500">
+                  Min
+                </Label>
+                <Input
+                  type="number"
+                  value={draft.salary.min}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      salary: { ...draft.salary, min: Number(e.target.value) },
+                    })
                   }
                 />
               </div>
-            </section>
-
-            {/* 4. REQUIREMENTS & QUALIFICATIONS */}
-            <section className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                <Plus className="w-5 h-5 text-blue-500" /> Requirements & Lists
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold text-gray-400">
-                    Responsibilities (One per line)
-                  </Label>
-                  <textarea
-                    className="w-full h-48 p-3 border rounded-xl text-sm shadow-sm focus:ring-2 ring-blue-500 outline-none"
-                    value={draft.responsibilities}
-                    onChange={(e) =>
-                      setDraft({ ...draft, responsibilities: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold text-gray-400">
-                    Qualifications (One per line)
-                  </Label>
-                  <textarea
-                    className="w-full h-48 p-3 border rounded-xl text-sm shadow-sm focus:ring-2 ring-blue-500 outline-none"
-                    value={draft.qualifications}
-                    onChange={(e) =>
-                      setDraft({ ...draft, qualifications: e.target.value })
-                    }
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-gray-500">
+                  Max
+                </Label>
+                <Input
+                  type="number"
+                  value={draft.salary.max}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      salary: { ...draft.salary, max: Number(e.target.value) },
+                    })
+                  }
+                />
               </div>
-            </section>
-
-            {/* 5. SCREENING QUESTIONS */}
-            <section className="space-y-4">
-              <div className="flex justify-between items-center border-b pb-2">
-                <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                  <HelpCircle className="w-5 h-5 text-blue-500" /> Screening
-                  Questions
-                </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addQuestion}
-                  className="text-blue-600 border-blue-200"
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-gray-500">
+                  Period
+                </Label>
+                <select
+                  className="w-full h-10 px-3 border rounded-md bg-white text-sm outline-none focus:ring-2 ring-blue-500"
+                  value={draft.salary.period}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      salary: { ...draft.salary, period: e.target.value },
+                    })
+                  }
                 >
-                  <Plus className="w-4 h-4 mr-1" /> Add Question
-                </Button>
+                  <option value="YEARLY">Yearly</option>
+                  <option value="MONTHLY">Monthly</option>
+                </select>
               </div>
-              <div className="grid gap-4">
-                {draft.screeningQuestions.map((q, i) => (
-                  <div
-                    key={i}
-                    className="p-4 border rounded-xl bg-gray-50/50 relative group transition-all hover:border-blue-200"
+            </div>
+          </section>
+
+          {/* 3. DESCRIPTION */}
+          <section className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Job Description
+            </h3>
+            <div className="min-h-[350px] border rounded-xl overflow-hidden shadow-sm bg-white">
+              <QuillJs
+                content={draft.description}
+                onContentChange={(val) =>
+                  setDraft({ ...draft, description: val })
+                }
+              />
+            </div>
+          </section>
+
+          {/* 4. RESPONSIBILITIES & QUALIFICATIONS */}
+          <section className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Requirements
+            </h3>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label className="font-semibold text-gray-700">
+                  Responsibilities (One per line)
+                </Label>
+                <textarea
+                  className="w-full h-32 p-3 border rounded-xl text-sm shadow-sm focus:ring-2 ring-blue-500 outline-none resize-none"
+                  value={draft.responsibilities}
+                  onChange={(e) =>
+                    setDraft({ ...draft, responsibilities: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold text-gray-700">
+                  Qualifications (One per line)
+                </Label>
+                <textarea
+                  className="w-full h-32 p-3 border rounded-xl text-sm shadow-sm focus:ring-2 ring-blue-500 outline-none resize-none"
+                  value={draft.qualifications}
+                  onChange={(e) =>
+                    setDraft({ ...draft, qualifications: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 5. SCREENING QUESTIONS */}
+          <section className="space-y-4 pb-10">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                <HelpCircle className="w-4 h-4" /> Screening Questions
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addQuestion}
+                className="text-blue-600 border-blue-200 h-8"
+              >
+                <Plus className="w-3 h-3 mr-1" /> Add
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {draft.screeningQuestions.map((q, i) => (
+                <div
+                  key={i}
+                  className="p-4 border rounded-xl bg-gray-50/50 relative group"
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500 h-6 w-6 p-0"
+                    onClick={() => {
+                      const updated = draft.screeningQuestions.filter(
+                        (_, idx) => idx !== i,
+                      );
+                      setDraft({ ...draft, screeningQuestions: updated });
+                    }}
                   >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
-                      onClick={() => {
-                        const updated = draft.screeningQuestions.filter(
-                          (_, idx) => idx !== i,
-                        );
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                  <div className="space-y-3 pr-6">
+                    <Input
+                      placeholder="Question text"
+                      value={q.question}
+                      onChange={(e) => {
+                        const updated = [...draft.screeningQuestions];
+                        updated[i].question = e.target.value;
                         setDraft({ ...draft, screeningQuestions: updated });
                       }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    <div className="grid gap-4 w-[95%]">
-                      <Input
-                        placeholder="Enter your question here..."
-                        value={q.question}
+                    />
+                    <div className="flex gap-4 items-center">
+                      <select
+                        className="border rounded-md px-2 py-1 text-xs bg-white h-8"
+                        value={q.type}
                         onChange={(e) => {
                           const updated = [...draft.screeningQuestions];
-                          updated[i].question = e.target.value;
+                          updated[i].type = e.target.value;
                           setDraft({ ...draft, screeningQuestions: updated });
                         }}
-                      />
-                      <div className="flex gap-4 items-center">
-                        <select
-                          className="border rounded-md px-2 py-1 text-sm bg-white"
-                          value={q.type}
-                          onChange={(e) => {
+                      >
+                        <option value="text">Short Answer</option>
+                        <option value="boolean">Yes/No</option>
+                        <option value="number">Number</option>
+                      </select>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`req-${i}`}
+                          checked={q.required}
+                          onCheckedChange={(v) => {
                             const updated = [...draft.screeningQuestions];
-                            updated[i].type = e.target.value;
+                            updated[i].required = !!v;
                             setDraft({ ...draft, screeningQuestions: updated });
                           }}
+                        />
+                        <Label
+                          htmlFor={`req-${i}`}
+                          className="text-xs cursor-pointer"
                         >
-                          <option value="text">Short Answer</option>
-                          <option value="boolean">Yes/No</option>
-                          <option value="number">Number</option>
-                        </select>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id={`req-${i}`}
-                            checked={q.required}
-                            onCheckedChange={(v) => {
-                              const updated = [...draft.screeningQuestions];
-                              updated[i].required = !!v;
-                              setDraft({
-                                ...draft,
-                                screeningQuestions: updated,
-                              });
-                            }}
-                          />
-                          <Label
-                            htmlFor={`req-${i}`}
-                            className="text-xs font-medium cursor-pointer"
-                          >
-                            Required
-                          </Label>
-                        </div>
+                          Required
+                        </Label>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          </div>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
-        <DialogFooter className="p-6 border-t bg-gray-50/80">
-          <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+
+        <SheetFooter className="p-6 border-t bg-gray-50/80 sticky bottom-0 z-10">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            disabled={isSaving}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
           <Button
             onClick={handleSaveAll}
             disabled={isSaving}
-            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]"
+            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[180px] w-full sm:w-auto"
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            Update Job Posting
+            Update Posting
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 };
