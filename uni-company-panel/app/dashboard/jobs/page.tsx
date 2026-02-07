@@ -26,6 +26,9 @@ import { toast } from 'sonner';
 import { EditJobModal } from '@/components/getjobs/EditJobModal';
 import { Card, CardContent } from '@/components/ui/card';
 import GetSingleJobDetails from '@/components/getjobs/GetSingleJobDetails';
+import { navigate } from 'next/dist/client/components/segment-cache/navigation';
+import { useRouter } from 'next/navigation';
+import router from 'next/router';
 
 const JobsPage = () => {
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -33,6 +36,8 @@ const JobsPage = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const { jobs, getJobs, deleteJob, bulkDeleteJobs, toggleJobStatus, loading } =
     useJobStore();
+
+  const router = useRouter();
 
   useEffect(() => {
     getJobs();
@@ -145,7 +150,9 @@ const JobsPage = () => {
                 <Icon className={`w-3.5 h-3.5 text-${color}-600`} />
               </div>
               <div>
-                <div className="text-sm font-semibold text-slate-900">{value}</div>
+                <div className="text-sm font-semibold text-slate-900">
+                  {value}
+                </div>
                 <div className="text-[10px] text-slate-500">{label}</div>
               </div>
             </div>
@@ -159,12 +166,25 @@ const JobsPage = () => {
                 label="Views"
                 color="blue"
               />
-              <Stat
-                icon={Users}
-                value={row.original.appliedCount || 0}
-                label="Applied"
-                color="emerald"
-              />
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2"
+                onClick={() => {
+                  console.log(row.original);
+                  router.push(
+                    `/dashboard/jobs/${row.original.slug}/applications`,
+                  );
+                  // setIsViewModalOpen(true);
+                  // setSelectedJob(row.original);
+                }}
+              >
+                <Stat
+                  icon={Users}
+                  value={row.original.appliedCount || 0}
+                  label="Applied"
+                  color="emerald"
+                />
+              </Button>
             </div>
           );
         },
@@ -314,7 +334,7 @@ const JobsPage = () => {
         </Button>
       </div>
 
-         {/* Stats row can stay as you have it */}
+      {/* Stats row can stay as you have it */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <StatCard
           label="Total Jobs"
@@ -324,13 +344,13 @@ const JobsPage = () => {
         />
         <StatCard
           label="Active Jobs"
-          value={jobs.filter(job => job.isActive).length || 0}
+          value={jobs.filter((job) => job.isActive).length || 0}
           icon={<Eye className="text-green-600" />}
           color="bg-green-100"
         />
         <StatCard
           label="Inactive Jobs"
-          value={jobs.filter(job => !job.isActive).length || 0}
+          value={jobs.filter((job) => !job.isActive).length || 0}
           icon={<UserMinus className="text-red-600" />}
           color="bg-red-100"
         />
@@ -342,7 +362,9 @@ const JobsPage = () => {
         />
         <StatCard
           label="Total Applicants"
-          value={jobs.reduce((sum, job) => sum + (job.appliedCount || 0), 0) || 0}
+          value={
+            jobs.reduce((sum, job) => sum + (job.appliedCount || 0), 0) || 0
+          }
           icon={<UserCheck className="text-amber-600" />}
           color="bg-amber-100"
         />

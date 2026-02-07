@@ -1141,88 +1141,88 @@ export const bulkDeleteJobsByAdmin = async (req, res) => {
   }
 };
 
-export const getHostedJobCandidates = async (req, res) => {
+export const getJobCandidateStats = async (req, res) => {
   const { jobId } = req.params;
   const { organization } = req.user;
 
   try {
-    // 1. Resolve job by slug + org
     const job = await Job.findOne({
       slug: jobId,
       organizationId: organization,
     }).select('_id');
+    if (!job) return res.status(404).json({ message: 'Job not found' });
 
-    if (!job) {
-      return res.status(404).json({
-        message: 'Job not found or unauthorized access',
-      });
-    }
-
-    // 2. Pagination params
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
-    const skip = (page - 1) * limit;
-
-    // 3. Total count
-    const totalCount = await AppliedJob.countDocuments({
-      job: job._id,
-    });
-
-    if (totalCount === 0) {
-      return res.status(200).json({
-        data: [],
-        meta: {
-          totalCount: 0,
-          totalPages: 0,
-          currentPage: page,
-          limit,
-          hasNextPage: false,
-          hasPrevPage: false,
+    // Efficiently count all statuses in one aggregation call
+    const stats = await AppliedJob.aggregate([
+      { $match: { job: job._id } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          shortlisted: {
+            $sum: { $cond: [{ $eq: ['$status', 'SHORTLISTED'] }, 1, 0] },
+          },
+          selected: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['SELECTED', 'HIRED']] }, 1, 0],
+            },
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ['$status', 'REJECTED'] }, 1, 0] },
+          },
         },
-      });
-    }
+      },
+    ]);
 
-    // 4. Fetch paginated applications
-    const applications = await AppliedJob.find({ job: job._id })
-      .populate({
-        path: 'student',
-        select: 'fullName email profilePicture university graduationYear phone',
-      })
+    const defaultStats = { total: 0, shortlisted: 0, selected: 0, rejected: 0 };
+
+    console.log(defaultStats);
+
+    return res.status(200).json(stats[0] || defaultStats);
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+export const getHostedJobCandidates = async (req, res) => {
+  const { jobId } = req.params;
+  const { organization } = req.user;
+  const { page = 1, limit = 10, status } = req.query;
+
+  try {
+    const job = await Job.findOne({
+      slug: jobId,
+      organizationId: organization,
+    }).select('_id');
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    // Build filter
+    const query = { job: job._id };
+    if (status) query.status = status;
+
+    const skip = (Math.max(page, 1) - 1) * limit;
+    const totalCount = await AppliedJob.countDocuments(query);
+
+    const applications = await AppliedJob.find(query)
+      .populate(
+        'student',
+        'fullName email profilePicture university graduationYear phone',
+      )
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
-    // 5. Normalize response
-    const data = applications.map((app) => ({
-      id: app._id.toString(),
-      status: app.status,
-      applicationMethod: app.applicationMethod,
-      appliedAt: app.createdAt,
-      cvLink: app.cvLink,
-      coverLetterLink: app.coverLetterLink,
-      screeningAnswers: app.screeningAnswers,
-      student: app.student,
-    }));
-
-    const totalPages = Math.ceil(totalCount / limit);
-
     return res.status(200).json({
-      data,
+      data: applications,
       meta: {
         totalCount,
-        totalPages,
-        currentPage: page,
-        limit,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
+        totalPages: Math.ceil(totalCount / limit),
+        currentPage: Number(page),
       },
     });
   } catch (error) {
-    console.error('Error in getHostedJobCandidates:', error);
-    return res.status(500).json({
-      message: 'Internal Server Error',
-    });
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 

@@ -18,24 +18,18 @@ import { toast } from 'sonner';
 import { useOrganisationStore } from '@/store/organisation.store';
 
 export function CandidateModal({ candidate, open, onOpenChange }: any) {
-  // State to handle the previewer
-  const {
-    rejectCandidateApplication,
-    acceptCandidateApplication,
-    updateCandidateStatus,
-  } = useOrganisationStore();
+  const { updateCandidateStatus } = useOrganisationStore();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState('');
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   if (!candidate) return null;
-  // 2. Create a generic handler for status updates
   const handleStatusUpdate = async (
     newStatus: 'REJECTED' | 'SHORTLISTED' | 'INTERVIEW' | 'SELECTED',
   ) => {
     setLoadingAction(newStatus);
-    const success = await updateCandidateStatus(candidate._id, newStatus);
+    const success = await updateCandidateStatus(candidate.id, newStatus);
 
     if (success) {
       toast.success(`Candidate ${newStatus}: ${candidate.student?.fullName}`);
@@ -67,7 +61,7 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
         open={open}
         onOpenChange={onOpenChange}
         title={candidate.student?.fullName}
-        description={`Application ID: ${candidate._id}`}
+        description={`Application ID: ${candidate.id}`}
         badgeContent={candidate.student?.fullName?.charAt(0)}
         details={candidateDetails}
         sections={
