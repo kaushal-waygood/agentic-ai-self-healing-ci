@@ -30,6 +30,7 @@ import {
   getOrganizationCandidateStats,
   getOrganizationJobStats,
   candidatesOrganization,
+  getJobCandidateStats,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -120,6 +121,13 @@ router.get(
   authMiddleware,
   isAnyAdmin,
   getHostedJobCandidates,
+);
+
+router.get(
+  '/hosted/jobs/candidates/stats/:jobId',
+  authMiddleware,
+  isAnyAdmin,
+  getJobCandidateStats,
 );
 
 router.get(

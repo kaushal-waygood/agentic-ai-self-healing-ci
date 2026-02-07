@@ -1,17 +1,11 @@
 'use client';
 
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { LucideIcon } from 'lucide-react';
+import { Sheet, SheetContent, SheetFooter, SheetHeader } from '../ui/sheet';
 
 interface ModalDetail {
   icon: LucideIcon;
@@ -59,11 +53,11 @@ export function CommonDetailsModal({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] gap-0 p-0 overflow-hidden outline-none">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="sm:max-w-[550px] gap-0 p-0 overflow-hidden outline-none">
         {/* Header Section */}
         <div className={`${headerClassName} p-6 border-b `}>
-          <DialogHeader>
+          <SheetHeader>
             <div className="flex items-center gap-4 text-left">
               {badgeContent && (
                 <div className="h-12 w-12 rounded-full bg-white border border-slate-100 flex items-center justify-center text-xl font-bold shrink-0">
@@ -79,7 +73,7 @@ export function CommonDetailsModal({
                 )}
               </div>
             </div>
-          </DialogHeader>
+          </SheetHeader>
         </div>
 
         {/* Content Section */}
@@ -101,13 +95,13 @@ export function CommonDetailsModal({
         </div>
 
         {/* Footer Section */}
-        <DialogFooter className="p-4 bg-slate-50 border-t flex sm:justify-between items-center gap-2">
+        <SheetFooter className="p-4 bg-slate-50 border-t flex sm:justify-between items-center gap-2">
           <div className="flex gap-2 items-center">{footerActions}</div>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }

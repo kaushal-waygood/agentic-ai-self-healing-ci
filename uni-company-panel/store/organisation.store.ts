@@ -6,13 +6,20 @@ interface OrganisationStore {
   organisation: any;
   orgStats: any;
   loading: boolean;
-  orgJobStats;
+  orgJobStats: any;
   error: any;
+  candidatesStats: any;
   getOrganisationProfile: () => Promise<void>;
-  updateProfile: (data: any) => Promise<void>;
+  updateProfile: (data: any) => Promise<boolean>;
   getOrgStats: () => Promise<void>;
   rejectCandidateApplication: (appliedJobId: string) => Promise<boolean>;
   acceptCandidateApplication: (appliedJobId: string) => Promise<void>;
+  getOrganisationJobStats: () => Promise<void>;
+  updateCandidateStatus: (
+    appliedJobId: string,
+    status: string,
+  ) => Promise<boolean>;
+  getCandidateStats: (jobId: string) => Promise<void>;
 }
 
 const useOrganisationStore = create<OrganisationStore>((set, get) => ({
@@ -21,6 +28,8 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
   orgJobStats: null,
   loading: false,
   error: null,
+  candidatesStats: null,
+
   getOrganisationProfile: async () => {
     try {
       set({ loading: true });
@@ -41,11 +50,11 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
       );
       // set({ organisation: response.data, loading: false });
       set({ organisation: response.data.data, loading: false });
-       return true;
+      return true;
     } catch (error) {
       console.error('Error updating organisation profile:', error);
       set({ loading: false });
-       return false;
+      return false;
     }
   },
 
@@ -142,6 +151,7 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
       set({ loading: false });
     }
   },
+
   updateCandidateStatus: async (appliedJobId: string, status: string) => {
     try {
       set({ loading: true });
@@ -168,6 +178,21 @@ const useOrganisationStore = create<OrganisationStore>((set, get) => ({
       console.error(`Error updating status to ${status}:`, error);
       set({ loading: false });
       return false;
+    }
+  },
+
+  getCandidateStats: async (jobId: string) => {
+    try {
+      set({ loading: true });
+      const response = await apiInstance.get(
+        `/jobs/hosted/jobs/candidates/stats/${jobId}`,
+      );
+
+      console.log(response.data.data);
+      set({ candidatesStats: response.data.data, loading: false });
+    } catch (error) {
+      console.error('Error fetching candidates stats:', error);
+      set({ loading: false });
     }
   },
 }));
