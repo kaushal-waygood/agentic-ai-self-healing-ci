@@ -18,10 +18,13 @@ import {
   Loader2,
   Trash2,
   Pencil,
+  UserCheck,
+  UserMinus,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { EditJobModal } from '@/components/getjobs/EditJobModal';
+import { Card, CardContent } from '@/components/ui/card';
 import GetSingleJobDetails from '@/components/getjobs/GetSingleJobDetails';
 
 const JobsPage = () => {
@@ -135,25 +138,36 @@ const JobsPage = () => {
       {
         id: 'stats',
         header: 'Engagement',
-        cell: ({ row }) => (
-          <div className="text-xs flex flex-col items-center space-y-1">
-            <div className="flex items-center gap-1">
-              <Eye className="w-3 h-3" /> {row.original.jobViews}
-            </div>
-
+        cell: ({ row }) => {
+          const Stat = ({ icon: Icon, value, label, color }: any) => (
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-emerald-50 rounded-md">
-                <Users className="w-3.5 h-3.5 text-emerald-600" />
+              <div className={`p-1.5 bg-${color}-50 rounded-md`}>
+                <Icon className={`w-3.5 h-3.5 text-${color}-600`} />
               </div>
               <div>
-                <div className="text-sm font-semibold text-slate-900">
-                  {row.original.appliedCount || 0}
-                </div>
-                <div className="text-[10px] text-slate-500">Applied</div>
+                <div className="text-sm font-semibold text-slate-900">{value}</div>
+                <div className="text-[10px] text-slate-500">{label}</div>
               </div>
             </div>
-          </div>
-        ),
+          );
+
+          return (
+            <div className="flex items-center justify-center gap-6 px-4">
+              <Stat
+                icon={Eye}
+                value={row.original.jobViews || 0}
+                label="Views"
+                color="blue"
+              />
+              <Stat
+                icon={Users}
+                value={row.original.appliedCount || 0}
+                label="Applied"
+                color="emerald"
+              />
+            </div>
+          );
+        },
       },
       {
         accessorKey: 'isActive',
@@ -300,7 +314,39 @@ const JobsPage = () => {
         </Button>
       </div>
 
-      {/* Stats row can stay as you have it */}
+         {/* Stats row can stay as you have it */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <StatCard
+          label="Total Jobs"
+          value={jobs.length || 0}
+          icon={<Users className="text-blue-600" />}
+          color="bg-blue-100"
+        />
+        <StatCard
+          label="Active Jobs"
+          value={jobs.filter(job => job.isActive).length || 0}
+          icon={<Eye className="text-green-600" />}
+          color="bg-green-100"
+        />
+        <StatCard
+          label="Inactive Jobs"
+          value={jobs.filter(job => !job.isActive).length || 0}
+          icon={<UserMinus className="text-red-600" />}
+          color="bg-red-100"
+        />
+        <StatCard
+          label="Total Views"
+          value={jobs.reduce((sum, job) => sum + (job.jobViews || 0), 0) || 0}
+          icon={<Eye className="text-purple-600" />}
+          color="bg-purple-100"
+        />
+        <StatCard
+          label="Total Applicants"
+          value={jobs.reduce((sum, job) => sum + (job.appliedCount || 0), 0) || 0}
+          icon={<UserCheck className="text-amber-600" />}
+          color="bg-amber-100"
+        />
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -335,5 +381,23 @@ const JobsPage = () => {
     </div>
   );
 };
+
+const StatCard = ({ label, value, icon, color }: any) => (
+  <Card className="border-none shadow-sm bg-white">
+    <CardContent className="">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <h3 className="text-2xl font-bold text-slate-900 mt-1">{value}</h3>
+        </div>
+        <div
+          className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center`}
+        >
+          {icon}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default JobsPage;

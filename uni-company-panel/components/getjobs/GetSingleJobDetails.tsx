@@ -51,8 +51,11 @@ const GetSingleJobDetails = ({
     updateJobDescription,
     loading,
     toggleJobStatus,
+    job: storeJob,
   } = useJobStore();
   const router = useRouter();
+  const displayJob = storeJob || job;
+
 
   // --- EDIT MODES ---
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -81,21 +84,23 @@ const GetSingleJobDetails = ({
   }, [job?.id, getSingleHostedJobs, open]);
 
   useEffect(() => {
-    if (job) {
-      setDraftTitle(job.title || '');
-      setDraftDescription(job.description || '');
-      setDraftResponsibilities(job.responsibilities?.join('\n') || '');
-      setDraftQualifications(job.qualifications?.join('\n') || '');
-      setDraftQuestions(job.screeningQuestions || []);
+    // if (job) {
+    if (displayJob) {
+      setDraftTitle(displayJob.title || '');
+      setDraftDescription(displayJob.description || '');
+      setDraftResponsibilities(displayJob.responsibilities?.join('\n') || '');
+      setDraftQualifications(displayJob.qualifications?.join('\n') || '');
+      setDraftQuestions(displayJob.screeningQuestions || []);
       setDraftDetails({
-        salary: job.salary || { min: 0, max: 0, period: 'YEARLY' },
-        remote: job.remote || false,
-        location: job.location || { city: '', state: '' },
-        resumeRequired: job.resumeRequired || false,
-        jobTypes: job.jobTypes || [],
+        salary: displayJob.salary || { min: 0, max: 0, period: 'YEARLY' },
+        remote: displayJob.remote || false,
+        location: displayJob.location || { city: '', state: '' },
+        resumeRequired: displayJob.resumeRequired || false,
+        jobTypes: displayJob.jobTypes || [],
       });
     }
-  }, [job]);
+    // }, [job]);
+  }, [displayJob]);
 
   // --- SAVE HANDLERS ---
   const handleSaveTitle = async () => {
@@ -209,7 +214,8 @@ const GetSingleJobDetails = ({
                     ) : (
                       <>
                         <SheetTitle className="text-3xl font-bold text-blue-500">
-                          {job?.title}
+                          {/* {job?.title} */}
+                          {displayJob?.title}
                         </SheetTitle>
                         <Button
                           variant="outline"
@@ -249,12 +255,12 @@ const GetSingleJobDetails = ({
                           disabled={loading}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
                             job?.isActive ? 'bg-green-500' : 'bg-gray-300'
-                          } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           <span
                             className={`${
                               job?.isActive ? 'translate-x-5' : 'translate-x-1'
-                            } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                              } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
                           />
                         </button>
                       </div>
@@ -262,10 +268,10 @@ const GetSingleJobDetails = ({
                   </div>
                   <div className="flex items-center gap-2 text-gray-500 flex-wrap">
                     <Building2 className="w-4 h-4" />
-                    <span className="font-medium">{job?.company}</span>
+                    <span className="font-medium">{displayJob?.company}</span>
                     <span>•</span>
                     <span className="text-sm">
-                      Posted {timeAgo(job?.createdAt)}
+                      Posted {timeAgo(displayJob?.createdAt)}
                     </span>
                     <Button
                       variant="link"
@@ -273,7 +279,7 @@ const GetSingleJobDetails = ({
                       asChild
                     >
                       <Link
-                        href={`https://zobsai.com/jobs/${job?.slug}`}
+                        href={`https://zobsai.com/jobs/${displayJob?.slug}`}
                         target="_blank"
                       >
                         View on Page <ArrowRight className="ml-1 w-4 h-4" />
@@ -282,12 +288,12 @@ const GetSingleJobDetails = ({
                   </div>
                 </div>
                 <div className="flex gap-4 self-end md:self-start">
-                  <StatBadge label="Views" value={job?.jobViews} />
+                  <StatBadge label="Views" value={displayJob?.jobViews} />
                   <StatBadge
                     label="Applied"
-                    value={job?.appliedCount}
+                    value={displayJob?.appliedCount}
                     onClick={() =>
-                      router.push(`/dashboard/jobs/${job?.slug}/applications`)
+                      router.push(`/dashboard/jobs/${displayJob?.slug}/applications`)
                     }
                     clickable
                   />
@@ -342,7 +348,7 @@ const GetSingleJobDetails = ({
                       {!isEditingDescription ? (
                         <div
                           className="prose prose-blue max-w-none text-gray-600"
-                          dangerouslySetInnerHTML={{ __html: job?.description }}
+                          dangerouslySetInnerHTML={{ __html: displayJob?.description }}
                         />
                       ) : (
                         <div className="min-h-[300px]">
@@ -398,7 +404,7 @@ const GetSingleJobDetails = ({
                         </h4>
                         {!isEditingRequirements ? (
                           <ul className="space-y-2">
-                            {job?.responsibilities?.map(
+                            {displayJob?.responsibilities?.map(
                               (item: string, i: number) => (
                                 <li
                                   key={i}
@@ -427,7 +433,7 @@ const GetSingleJobDetails = ({
                         </h4>
                         {!isEditingRequirements ? (
                           <ul className="space-y-2">
-                            {job?.qualifications?.map(
+                            {displayJob?.qualifications?.map(
                               (item: string, i: number) => (
                                 <li
                                   key={i}
@@ -647,7 +653,7 @@ const GetSingleJobDetails = ({
                           icon={<Briefcase className="w-5 h-5 text-gray-400" />}
                           label="Job Type"
                           value={
-                            job?.jobTypes
+                           displayJob?.jobTypes
                               ?.map((t: string) => t.replace('_', ' '))
                               .join(', ') || 'Not specified'
                           }
@@ -656,16 +662,16 @@ const GetSingleJobDetails = ({
                           icon={<Banknote className="w-5 h-5 text-gray-400" />}
                           label="Salary"
                           value={formatSalary(
-                            job?.salary?.min,
-                            job?.salary?.max,
-                            job?.salary?.period,
+                            displayJob?.salary?.min,
+                            displayJob?.salary?.max,
+                            displayJob?.salary?.period,
                           )}
                         />
                         <SidebarItem
                           icon={<MapPin className="w-5 h-5 text-gray-400" />}
                           label="Location"
                           value={
-                            job?.remote
+                            displayJob?.remote
                               ? 'Remote'
                               : `${job?.location?.city || ''}, ${job?.location?.state || job?.country || ''}`
                           }
