@@ -26,6 +26,9 @@ import { toast } from 'sonner';
 import LocationSelector from '@/components/common/LocationSelector';
 import EditableDropdown from '@/components/common/EditableDropdown';
 import { INDUSTRY_OPTIONS, COMPANY_SIZE_OPTIONS, VALID_WEBSITE_REGEX } from '@/constants/companyData';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import SimplePhoneInput from '@/components/common/SimplePhoneInput';
 
 // --- Types for better safety ---
 interface OrgProfile {
@@ -54,8 +57,8 @@ const validateEmail = (email: string): boolean => {
 };
 
 const validatePhone = (phone: string): boolean => {
-  const phoneRegex = /^[0-9]{10}$/;
-  return phoneRegex.test(phone);
+  if (!phone) return false;
+  return isValidPhoneNumber(phone);
 };
 
 // Reusable Input Component for consistent styling
@@ -162,7 +165,7 @@ const OrganizationProfilePage = () => {
         return;
       }
 
-      if (tempData?.contactInfo?.phone && !validatePhone(tempData.contactInfo.phone)) {
+      if (tempData?.contactInfo?.phone && !isValidPhoneNumber(tempData.contactInfo.phone)) {
         toast.error('Please enter a valid 10-digit phone number');
         return;
       }
@@ -550,7 +553,7 @@ const OrganizationProfilePage = () => {
             <SectionHeader title="Contact Information" id="contact" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              {[
+              {/* {[
                 // {
                 //   label: 'Point of Contact',
                 //   key: 'name',
@@ -571,58 +574,89 @@ const OrganizationProfilePage = () => {
                   validation: validatePhone,
                 },
               ].map((field) => (
-                <div key={field.label} className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500">
-                    {field.label}
-                  </label>
-                  {activeSection === 'contact' ? (
-                    //   <EditableInput
-                    //   value={tempData?.contactInfo?.[field.key]}
-                    //   onChange={(e) =>
-                    //     setTempData({
-                    //       ...tempData,
-                    //       contactInfo: {
-                    //         ...tempData.contactInfo,
-                    //         [field.key]: e.target.value,
-                    //       },
-                    //     })
-                    //   }
-                    // />
-                    <>
-                      <EditableInput
-                        value={tempData?.contactInfo?.[field.key] || ''}
-                        onChange={(e) =>
-                          setTempData({
-                            ...tempData,
-                            contactInfo: {
-                              ...tempData.contactInfo,
-                              [field.key]: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                      {field.validation && tempData?.contactInfo?.[field.key] && !field.validation(tempData.contactInfo[field.key]) && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {field.key === 'email'
-                            ? 'Please enter a valid email address (e.g., name@company.com)'
-                            : 'Please enter a valid 10-digit phone number'}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg truncate">
-                      {field.icon}
-                      {organisation.contactInfo?.[
-                        field.key as keyof ContactInfo
-                      ] || <span className="text-gray-400 italic">—</span>}
-                    </div>
-                  )}
-                </div>
-              ))}
+                <div key={field.label} className="space-y-1.5"> */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500">
+                  {/* {field.label} */}
+                  Official Email
+                </label>
+                {activeSection === 'contact' ? (
+                  //   <EditableInput
+                  //   value={tempData?.contactInfo?.[field.key]}
+                  //   onChange={(e) =>
+                  //     setTempData({
+                  //       ...tempData,
+                  //       contactInfo: {
+                  //         ...tempData.contactInfo,
+                  //         [field.key]: e.target.value,
+                  //       },
+                  //     })
+                  //   }
+                  // />
+                  <>
+                    <EditableInput
+                      value={tempData?.contactInfo?.email || ''}
+                      onChange={(e) =>
+                        setTempData({
+                          ...tempData,
+                          contactInfo: {
+                            ...tempData.contactInfo,
+                            email: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    {tempData?.contactInfo?.email && !validateEmail(tempData.contactInfo.email) && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Please enter a valid email address (e.g., name@company.com)
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg truncate">
+                    {/* {field.icon} */}
+                    <Mail size={16} className="text-gray-400" />
+                    {organisation.contactInfo?.email || <span className="text-gray-400 italic">—</span>}
+                  </div>
+                )}
+              </div>
+
+              {/* Phone Field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500">
+                  Phone Number
+                </label>
+                {activeSection === 'contact' ? (
+                  <div className="space-y-2">
+                    <SimplePhoneInput
+                      value={tempData?.contactInfo?.phone || ''}
+                      onChange={(value) =>
+                        setTempData({
+                          ...tempData,
+                          contactInfo: {
+                            ...tempData.contactInfo,
+                            phone: value || '',
+                          },
+                        })
+                      }
+                      placeholder="Enter phone number"
+                    />
+                    {tempData?.contactInfo?.phone && !isValidPhoneNumber(tempData.contactInfo.phone) && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Please enter a valid international phone number
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-900 p-2.5 bg-gray-50/50 rounded-lg truncate">
+                    <Phone size={16} className="text-gray-400" />
+                    {organisation.contactInfo?.phone || <span className="text-gray-400 italic">—</span>}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-
         {/* RIGHT COLUMN: ANALYTICS & BETA */}
         <div className="space-y-6">
           {/* STATS CARD (Added to fill empty space) */}
@@ -852,4 +886,3 @@ const OrganizationProfilePage = () => {
 };
 
 export default OrganizationProfilePage;
-// testing

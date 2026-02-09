@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useCandidateStore } from '@/store/candidates.store';
 import { Badge } from '../ui/badge';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const CandidatesPage = () => {
   const {
@@ -31,6 +32,16 @@ const CandidatesPage = () => {
     candidatesStats,
     orgCandidatesStats,
   } = useCandidateStore();
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentStatus = searchParams.get('status') || 'total';
+
+  const handleStatusClick = (status: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('status', status);
+    router.push(`?${params.toString()}`);
+  };
 
   const [{ pageIndex, pageSize }, setPagination] = useState({
     pageIndex: 0,
@@ -244,30 +255,40 @@ const CandidatesPage = () => {
           value={candidatesStats?.data?.TOTAL || 0}
           icon={<Users className="text-blue-600" />}
           color="bg-blue-100"
+          onClick={() => handleStatusClick('total')}
+          isActive={currentStatus === 'total'}
         />
         <StatCard
           label="Interviews"
           value={candidatesStats?.data?.INTERVIEW || 0}
           icon={<Clock className="text-purple-600" />}
           color="bg-purple-100"
+          onClick={() => handleStatusClick('interview')}
+          isActive={currentStatus === 'interview'}
         />
         <StatCard
           label="Shortlisted"
           value={candidatesStats?.data?.ACCEPTED || 0}
           icon={<UserCheck className="text-green-600" />}
           color="bg-green-100"
+          onClick={() => handleStatusClick('shortlisted')}
+          isActive={currentStatus === 'shortlisted'}
         />
         <StatCard
           label="Pending"
           value={candidatesStats?.data?.APPLIED || 0}
           icon={<Clock className="text-amber-600" />}
           color="bg-amber-100"
+          onClick={() => handleStatusClick('pending')}
+          isActive={currentStatus === 'pending'}
         />
         <StatCard
           label="Rejected"
           value={candidatesStats?.data?.REJECTED || 0}
           icon={<UserMinus className="text-red-600" />}
           color="bg-red-100"
+          onClick={() => handleStatusClick('rejected')}
+          isActive={currentStatus === 'rejected'}
         />
       </div>
 
@@ -283,7 +304,7 @@ const CandidatesPage = () => {
             data={candidates}
             searchKey="candidateName"
             searchPlaceholder="Search by Name..."
-            
+
             pageCount={pagination.totalPages}
             totalResults={pagination.totalCount}
             paginationState={{ pageIndex, pageSize }}
@@ -295,8 +316,14 @@ const CandidatesPage = () => {
   );
 };
 
-const StatCard = ({ label, value, icon, color }: any) => (
-  <Card className="border-none shadow-sm bg-white">
+const StatCard = ({ label, value, icon, color, onClick, isActive = false }: any) => (
+  <Card
+    className={`border-none shadow-sm bg-white cursor-pointer transition-all hover:scale-[1.02] ${isActive
+        ? 'ring-2 ring-blue-500 bg-blue-50'
+        : 'hover:bg-gray-50'
+      }`}
+    onClick={onClick}
+  >
     <CardContent className="">
       <div className="flex items-center justify-between">
         <div>

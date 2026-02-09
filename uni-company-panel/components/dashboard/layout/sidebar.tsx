@@ -247,9 +247,9 @@ export const AppSidebarContent = ({
               onMouseLeave={() => setHoveredItem(null)}
               className={`flex  ${isCollapsed ? 'justify-center ' : 'justify-start'}  items-center gap-3 px-4 py-2 rounded-sm text-sm transition ${
                 isActive
-                  ? 'bg-blue-500 text-blue-700 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
+                ? 'bg-blue-500 text-blue-700 text-white'
+                : 'text-slate-600 hover:bg-slate-100'
+                }`}
             >
               <Icon size={18} />
               {!isCollapsed && <span>{item.title}</span>}
@@ -266,19 +266,35 @@ export const AppSidebarContent = ({
       {/* Footer */}
       <div className="p-3 border-t text-sm">
         {!isCollapsed && (
+          // <>
+          //   <p className="font-medium truncate">{user.fullName}</p>
+          //   <p className="text-xs text-slate-500">Welcome back</p>
+          // </>
           <>
-            <p className="font-medium truncate">{user.fullName}</p>
-            <p className="text-xs text-slate-500">Welcome back</p>
+            <button
+              onClick={() => router.push('/dashboard/company')}
+              className="w-full flex items-center gap-3 p-2 hover:bg-slate-50 rounded transition group"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-semibold text-sm">
+                  {user.fullName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="text-left flex-1 min-w-0">
+                <p className="font-medium truncate hover:text-blue-600">{user.fullName}</p>
+                <p className="text-xs text-slate-500">Welcome back</p>
+              </div>
+            </button>
           </>
         )}
-        {user.plan !== 'Pro' && (
+        {/* {user.plan !== 'Pro' && (
           <button
             onClick={() => router.push('/dashboard/subscriptions')}
             className="mt-3 w-full text-xs py-2 rounded bg-gradient-to-r from-purple-500 to-cyan-500 text-white"
           >
             Upgrade Plan
           </button>
-        )}
+        )} */}
       </div>
     </div>
   );
