@@ -75,6 +75,7 @@ export const useJobStore = create<JobStore>((set) => ({
   job: null,
   loading: false,
   error: null,
+  meta: null,
 
   toggleJobStatus: async (jobId: string) => {
     try {
@@ -82,7 +83,9 @@ export const useJobStore = create<JobStore>((set) => ({
       set((state) => ({
         jobs: state.jobs.map((job) =>
           // job._id === jobId ? { ...job, isActive: !job.isActive } : job,
-          (job._id === jobId || job.id === jobId) ? { ...job, isActive: !job.isActive } : job,
+          job._id === jobId || job.id === jobId
+            ? { ...job, isActive: !job.isActive }
+            : job,
         ),
       }));
       return true;
@@ -91,18 +94,23 @@ export const useJobStore = create<JobStore>((set) => ({
       return false;
     }
   },
-  getJobs: async () => {
+  getJobs: async (status: string) => {
     try {
       set({ loading: true, error: null });
 
-      const response = await apiInstance.get('/jobs/hosted/jobs/job-admin');
+      console.log('status...', status);
+
+      const response = await apiInstance.get(
+        `/jobs/hosted/jobs/job-admin?status=${status}`,
+      );
 
       const { data, meta } = response.data;
 
-      const transformedJobs = data?.map((job: any) => ({
-        ...job,
-        _id: job._id || job.id,
-      })) ?? [];
+      const transformedJobs =
+        data?.map((job: any) => ({
+          ...job,
+          _id: job._id || job.id,
+        })) ?? [];
 
       set({
         // jobs: data ?? [],
@@ -193,11 +201,11 @@ export const useJobStore = create<JobStore>((set) => ({
 
       const data = response.data;
       console.log('response', data);
-     // set({ job: data.job, loading: false });
+      // set({ job: data.job, loading: false });
       set((state) => ({
         job: data.job,
         jobs: state.jobs.map((job) =>
-          job._id === id || job.id === id ? { ...job, ...data.job } : job
+          job._id === id || job.id === id ? { ...job, ...data.job } : job,
         ),
         loading: false,
       }));

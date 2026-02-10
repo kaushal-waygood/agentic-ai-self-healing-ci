@@ -938,6 +938,7 @@ export const generateJobDescription = async (req, res) => {
 
 export const getHostedJobsByAdmin = async (req, res) => {
   const { organization } = req.user;
+  const { status } = req.query;
 
   if (!organization) {
     return res.status(400).json({
@@ -946,8 +947,23 @@ export const getHostedJobsByAdmin = async (req, res) => {
     });
   }
 
+  let query = {
+    organizationId,
+    origin: 'HOSTED',
+  };
+
+  if (status === 'total') {
+    delete query.status;
+  } else if (status === 'active') {
+    query.status = 'ACTIVE';
+  } else if (status === 'inactive') {
+    query.status = 'INACTIVE';
+  }
+
   try {
     const organizationId = new mongoose.Types.ObjectId(organization);
+
+    console.log('QUERY', query);
 
     // pagination params
     const page = Math.max(parseInt(req.query.page) || 1, 1);
@@ -955,10 +971,7 @@ export const getHostedJobsByAdmin = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // 1. total count
-    const totalCount = await Job.countDocuments({
-      organizationId,
-      origin: 'HOSTED',
-    });
+    const totalCount = await Job.countDocuments(query);
 
     if (totalCount === 0) {
       return res.status(200).json({
@@ -975,10 +988,7 @@ export const getHostedJobsByAdmin = async (req, res) => {
     }
 
     // 2. fetch paginated jobs
-    const jobs = await Job.find({
-      organizationId,
-      origin: 'HOSTED',
-    })
+    const jobs = await Job.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

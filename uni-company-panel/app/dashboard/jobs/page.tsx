@@ -26,9 +26,7 @@ import { toast } from 'sonner';
 import { EditJobModal } from '@/components/getjobs/EditJobModal';
 import { Card, CardContent } from '@/components/ui/card';
 import GetSingleJobDetails from '@/components/getjobs/GetSingleJobDetails';
-import { navigate } from 'next/dist/client/components/segment-cache/navigation';
 import { useRouter, useSearchParams } from 'next/navigation';
-import router from 'next/router';
 
 const JobsPage = () => {
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -37,19 +35,23 @@ const JobsPage = () => {
   const { jobs, getJobs, deleteJob, bulkDeleteJobs, toggleJobStatus, loading } =
     useJobStore();
 
+  const handleStatusClick = (status: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('status', status);
+    // This updates the URL without a full page reload
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentStatus = searchParams.get('status') || 'total';
 
-  const handleStatusClick = (status: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('status', status);
-    router.push(`?${params.toString()}`);
-  };
-
   useEffect(() => {
-    getJobs();
-  }, [getJobs]);
+    console.log('currentStatus', currentStatus);
+    if (currentStatus) {
+      getJobs(currentStatus);
+    }
+  }, [getJobs, currentStatus]);
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
@@ -350,7 +352,7 @@ const JobsPage = () => {
           icon={<Users className="text-blue-600" />}
           color="bg-blue-100"
           onClick={() => handleStatusClick('total')}
-          isActive={currentStatus === 'total'} 
+          isActive={currentStatus === 'total'}
         />
         <StatCard
           label="Active Jobs"
@@ -358,7 +360,7 @@ const JobsPage = () => {
           icon={<Eye className="text-green-600" />}
           color="bg-green-100"
           onClick={() => handleStatusClick('active')}
-          isActive={currentStatus === 'active'} 
+          isActive={currentStatus === 'active'}
         />
         <StatCard
           label="Inactive Jobs"
@@ -366,7 +368,7 @@ const JobsPage = () => {
           icon={<UserMinus className="text-red-600" />}
           color="bg-red-100"
           onClick={() => handleStatusClick('inactive')}
-          isActive={currentStatus === 'inactive'} 
+          isActive={currentStatus === 'inactive'}
         />
         <StatCard
           label="Total Views"
@@ -374,7 +376,7 @@ const JobsPage = () => {
           icon={<Eye className="text-purple-600" />}
           color="bg-purple-100"
           onClick={() => handleStatusClick('views')}
-          isActive={currentStatus === 'views'} 
+          isActive={currentStatus === 'views'}
         />
         <StatCard
           label="Total Applicants"
@@ -384,7 +386,7 @@ const JobsPage = () => {
           icon={<UserCheck className="text-amber-600" />}
           color="bg-amber-100"
           onClick={() => handleStatusClick('applicants')}
-          isActive={currentStatus === 'applicants'} 
+          isActive={currentStatus === 'applicants'}
         />
       </div>
 
@@ -422,12 +424,18 @@ const JobsPage = () => {
   );
 };
 
-const StatCard = ({ label, value, icon, color, onClick, isActive = false }: any) => (
+const StatCard = ({
+  label,
+  value,
+  icon,
+  color,
+  onClick,
+  isActive = false,
+}: any) => (
   <Card
-    className={`border-none shadow-sm bg-white cursor-pointer transition-all hover:scale-[1.02] ${isActive
-      ? 'ring-2 ring-blue-500 bg-blue-50'
-      : 'hover:bg-gray-50'
-      }`}
+    className={`border-none shadow-sm bg-white cursor-pointer transition-all hover:scale-[1.02] ${
+      isActive ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+    }`}
     onClick={onClick}
   >
     <CardContent className="p-4">
