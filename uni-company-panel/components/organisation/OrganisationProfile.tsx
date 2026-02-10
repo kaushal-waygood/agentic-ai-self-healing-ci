@@ -28,7 +28,7 @@ import EditableDropdown from '@/components/common/EditableDropdown';
 import { INDUSTRY_OPTIONS, COMPANY_SIZE_OPTIONS, VALID_WEBSITE_REGEX } from '@/constants/companyData';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import SimplePhoneInput from '@/components/common/SimplePhoneInput';
+import {SimplePhoneInput} from '@/components/common/SimplePhoneInput';
 
 // --- Types for better safety ---
 interface OrgProfile {
