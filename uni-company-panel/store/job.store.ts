@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import apiInstance from '@/services/api';
+import { useMultiCompanyStore } from './multi-company.store';
 
 interface Job {
   _id: string;
@@ -98,11 +99,16 @@ export const useJobStore = create<JobStore>((set) => ({
     try {
       set({ loading: true, error: null });
 
-      console.log('status...', status);
+      const { currentCompany } = useMultiCompanyStore.getState();
+      const companyId = currentCompany?._id;
 
       const response = await apiInstance.get(
-        `/jobs/hosted/jobs/job-admin?status=${status}`,
+        companyId
+          ? `/jobs/hosted/jobs/job-admin?companyId=${companyId}`
+          : '/jobs/hosted/jobs/job-admin'
       );
+
+      const response = await apiInstance.get('/jobs/hosted/jobs/job-admin');
 
       const { data, meta } = response.data;
 

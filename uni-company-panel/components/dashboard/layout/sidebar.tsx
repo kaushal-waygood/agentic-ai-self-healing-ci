@@ -13,6 +13,10 @@ import {
   LayoutDashboard,
   PlusSquare,
   Search,
+  FolderTree, 
+  ChevronRight,
+  Settings,
+  ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -21,6 +25,8 @@ import Image from 'next/image';
 import apiInstance from '@/services/api';
 import { useSidebar } from '@/app/dashboard/layout';
 import { useAuthStore } from '@/store/auth.store';
+import { useMultiCompanyStore } from '@/store/multi-company.store';
+import { Button } from '@/components/ui/button';
 
 type Role = 'uni-admin' | 'employer-admin' | 'student';
 
@@ -34,8 +40,20 @@ export const AppSidebarContent = ({
   const router = useRouter();
   const { user: authUser } = useAuthStore();
 
+    const { 
+    allCompaniesTree, 
+    currentCompany, 
+    switchCompany,
+    getCompanies 
+  } = useMultiCompanyStore();
+
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [planType, setPlanType] = useState('Free');
+  const [expandedCompanies, setExpandedCompanies] = useState<string[]>(['1']); 
+
+ useEffect(() => {
+    getCompanies();
+  }, [getCompanies]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -63,6 +81,120 @@ export const AppSidebarContent = ({
      SIDEBAR CONFIG
   ---------------------------- */
 
+    const CompanyHierarchySidebar = () => {
+  const toggleExpand = (companyId: string) => {  
+    setExpandedCompanies(prev =>
+      prev.includes(companyId)
+        ? prev.filter(id => id !== companyId)
+        : [...prev, companyId]
+    );
+  };
+
+  const handleCompanyClick = (companyId: string) => {
+    switchCompany(companyId); 
+    router.push(`/dashboard/companies/${companyId}`);
+  };
+
+  const renderTree = (nodes: any[], level = 0) => {
+    return nodes.map(node => {
+      const hasChildren = node.children && node.children.length > 0;
+      const isExpanded = expandedCompanies.includes(node._id);  
+      const isCurrent = currentCompany?._id === node._id;
+      
+      return (
+        <div key={node._id} className="mb-1">
+          <div className="flex">
+            {/* Indentation */}
+            <div className={`w-${level * 4}`} />
+            
+            <button
+              onClick={() => handleCompanyClick(node._id)}  
+              className={`flex items-center gap-2 p-2 rounded-lg w-full text-left hover:bg-gray-100 transition-colors ${
+                isCurrent ? 'bg-blue-50 text-blue-600' : ''
+              }`}
+            >
+              {hasChildren ? (
+                <Button
+                  asChild
+                  className="w-4 h-4 flex items-center justify-center"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent parent click
+                    toggleExpand(node._id);
+                  }}
+                >
+                  <span
+                    className="w-4 h-4 flex items-center justify-center"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleExpand(node._id);
+                      }
+                    }}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="w-3 h-3 text-gray-500" />  // ▼ when expanded
+                    ) : (
+                      <ChevronRight className="w-3 h-3 text-gray-500" /> // ▶ when collapsed
+                    )}
+                  </span>
+                </Button>
+              ) : (
+                <div className="w-4 h-4" />
+              )}
+              
+              {/* Company Logo/Icon */}
+              {node.logo ? (
+                <img 
+                  src={node.logo} 
+                  alt={node.name} 
+                  className="w-5 h-5 rounded flex-shrink-0" 
+                />
+              ) : (
+                <Building2 className="w-4 h-4 text-gray-500 flex-shrink-0" />
+              )}
+              
+              {/* Company Name */}
+              <span className="truncate text-sm flex-1">{node.name}</span>
+              
+              {node.type === 'PARENT' && (
+                <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                  Parent
+                </span>
+              )}
+            </button>
+          </div>
+          
+          {hasChildren && isExpanded && (
+            <div className="ml-8 border-l-2 border-gray-200 pl-2">
+              {renderTree(node.children, level + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
+    
+    return (
+      <div className="mt-4">
+        <div className="flex items-center gap-2 px-2 mb-2 text-xs font-semibold text-gray-500">
+          <FolderTree className="w-3 h-3" />
+          COMPANY HIERARCHY
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+{allCompaniesTree && allCompaniesTree.length > 0 ? (
+            renderTree(allCompaniesTree)
+          ) : (
+            <p className="text-sm text-gray-500 px-2 py-4 text-center">
+              No companies found
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const sidebarConfig = {
     name: 'ZobsAI',
     common: [
@@ -70,6 +202,21 @@ export const AppSidebarContent = ({
         title: 'Dashboard',
         href: '/dashboard',
         icon: LayoutDashboard,
+      },
+        {
+        title: 'Parent Dashboard', 
+        href: '/dashboard/parent-dashboard',
+        icon: Crown, 
+      },
+      {
+        title: 'Companies',
+        href: '/dashboard/companies',
+        icon: Building2,
+      },
+      {
+        title: 'Team',
+        href: '/dashboard/team',
+        icon: Users,
       },
     ],
 
@@ -92,7 +239,7 @@ export const AppSidebarContent = ({
       {
         title: 'Company Profile',
         href: '/dashboard/company',
-        icon: Building2,
+       icon: Settings,
       },
     ],
 
@@ -245,10 +392,9 @@ export const AppSidebarContent = ({
               href={item.href}
               onMouseEnter={() => setHoveredItem(item.href)}
               onMouseLeave={() => setHoveredItem(null)}
-              className={`flex  ${isCollapsed ? 'justify-center ' : 'justify-start'}  items-center gap-3 px-4 py-2 rounded-sm text-sm transition ${
-                isActive
-                ? 'bg-blue-500 text-blue-700 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+              className={`flex  ${isCollapsed ? 'justify-center ' : 'justify-start'}  items-center gap-3 px-4 py-2 rounded-sm text-sm transition ${isActive
+                  ? 'bg-blue-500 text-blue-700 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
                 }`}
             >
               <Icon size={18} />
@@ -262,7 +408,7 @@ export const AppSidebarContent = ({
           );
         })}
       </nav>
-
+        <CompanyHierarchySidebar />
       {/* Footer */}
       <div className="p-3 border-t text-sm">
         {!isCollapsed && (
