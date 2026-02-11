@@ -47,7 +47,6 @@ const JobsPage = () => {
   const currentStatus = searchParams.get('status') || 'total';
 
   useEffect(() => {
-    console.log('currentStatus', currentStatus);
     if (currentStatus) {
       getJobs(currentStatus);
     }

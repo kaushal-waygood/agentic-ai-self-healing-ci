@@ -35,7 +35,7 @@ export const INDUSTRY_OPTIONS = [
   'Logistics',
   'Travel & Tourism',
   'Research & Development',
-  'Other'
+  'Other',
 ];
 
 export const COMPANY_SIZE_OPTIONS = [
@@ -46,7 +46,8 @@ export const COMPANY_SIZE_OPTIONS = [
   '501-1000',
   '1001-5000',
   '5001-10000',
-  '10000+'
+  '10000+',
 ];
 
-export const VALID_WEBSITE_REGEX = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+(\.[a-zA-Z]{2,3})(\/\S*)?$/;
+export const VALID_WEBSITE_REGEX =
+  /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+(\.[a-zA-Z]{2,3})(\/\S*)?$/;

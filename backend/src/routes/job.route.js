@@ -31,6 +31,7 @@ import {
   getOrganizationJobStats,
   candidatesOrganization,
   getJobCandidateStats,
+  getAllAppliedJobList,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -44,6 +45,7 @@ import { upload } from '../middlewares/multer.js';
 
 const router = Router();
 
+router.get('/get-jobs', authMiddleware, isGeneralUser, getAllAppliedJobList);
 router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
 router.post('/generate-jd', authMiddleware, isAnyAdmin, generateJobDescription);
 router.patch(

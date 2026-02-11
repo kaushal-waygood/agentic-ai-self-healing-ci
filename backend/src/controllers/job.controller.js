@@ -187,6 +187,19 @@ async function generateJobDescriptionService(jd, org) {
 
 // -------Controllers-------
 
+export const getAllAppliedJobList = async (req, res) => {
+  const { _id: studentId } = req.user;
+  const appliedJobs = await AppliedJob.find({ student: studentId })
+    .populate('job')
+    .lean()
+    .exec();
+
+  return res.status(200).json({
+    success: true,
+    appliedJobs,
+  });
+};
+
 export const searchJobs = async (req, res) => {
   const {
     q,
@@ -948,7 +961,7 @@ export const getHostedJobsByAdmin = async (req, res) => {
   }
 
   let query = {
-    organizationId,
+    organizationId: organization,
     origin: 'HOSTED',
   };
 
