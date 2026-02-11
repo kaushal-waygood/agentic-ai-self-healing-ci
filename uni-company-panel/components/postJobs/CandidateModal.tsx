@@ -8,7 +8,6 @@ import {
   ExternalLink,
   Workflow,
   FileUser,
-  Loader2,
 } from 'lucide-react';
 import { CommonDetailsModal } from '@/components/common/CommonDetailsModal';
 import { Button } from '@/components/ui/button';
@@ -22,14 +21,14 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState('');
 
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [setLoadingAction] = useState<string | null>(null);
 
   if (!candidate) return null;
   const handleStatusUpdate = async (
     newStatus: 'REJECTED' | 'SHORTLISTED' | 'INTERVIEW' | 'SELECTED',
   ) => {
     setLoadingAction(newStatus);
-    const success = await updateCandidateStatus(candidate.id, newStatus);
+    const success = await updateCandidateStatus(candidate._id, newStatus);
 
     if (success) {
       toast.success(`Candidate ${newStatus}: ${candidate.student?.fullName}`);
@@ -55,13 +54,15 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
     { icon: Workflow, label: 'Method', value: candidate.applicationMethod },
   ];
 
+  console.log('candidate', candidate);
+
   return (
     <>
       <CommonDetailsModal
         open={open}
         onOpenChange={onOpenChange}
         title={candidate.student?.fullName}
-        description={`Application ID: ${candidate.id}`}
+        description={`Application ID: ${candidate._id}`}
         badgeContent={candidate.student?.fullName?.charAt(0)}
         details={candidateDetails}
         sections={
