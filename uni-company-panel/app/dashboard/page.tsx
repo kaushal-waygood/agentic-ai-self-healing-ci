@@ -179,7 +179,7 @@ export default function DashboardPage() {
       label: 'Manage Companies',
       icon: Building2,
       color: 'purple',
-      onClick: () => router.push('/dashboard/companies'),
+      onClick: () => router.push('/dashboard/company'),
     },
     {
       label: 'Generate Report',
@@ -350,14 +350,15 @@ export default function DashboardPage() {
             <div className="flex items-center bg-white border border-slate-200 rounded-2xl shadow-sm px-4 py-2 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
               <div className="flex items-center gap-2">
                 <Calendar size={14} className="text-slate-400" />
-                <span className="text-sm font-bold text-slate-700">
-                  Today
-                </span>
+                <span className="text-sm font-bold text-slate-700">Today</span>
               </div>
               <ArrowRight size={14} className="mx-3 text-slate-300" />
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-slate-700">
-                  {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {new Date().toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </span>
               </div>
             </div>
@@ -393,7 +394,7 @@ export default function DashboardPage() {
 
       <main className="max-w-7xl mx-auto">
         {activeTab === 'overview' && (
-          <OverviewView 
+          <OverviewView
             stats={overviewStats}
             recentActivities={recentActivities}
             topCategories={topCategories}
@@ -402,7 +403,7 @@ export default function DashboardPage() {
           />
         )}
         {activeTab === 'analytics' && (
-          <AnalyticsView 
+          <AnalyticsView
             analyticsStats={analyticsStats}
             performanceTrends={performanceTrends}
             conversionData={conversionData}
@@ -410,7 +411,7 @@ export default function DashboardPage() {
           />
         )}
         {activeTab === 'activity' && (
-          <ActivityView 
+          <ActivityView
             activityMetrics={activityMetrics}
             systemLogs={systemLogs}
             userEngagement={userEngagement}
@@ -423,7 +424,13 @@ export default function DashboardPage() {
 
 /** --- SUB-VIEWS --- **/
 
-function OverviewView({ stats, recentActivities, topCategories, pendingActions, quickActions }) {
+function OverviewView({
+  stats,
+  recentActivities,
+  topCategories,
+  pendingActions,
+  quickActions,
+}) {
   return (
     <div className="space-y-6">
       {/* Main Stats Grid */}
@@ -484,8 +491,8 @@ function OverviewView({ stats, recentActivities, topCategories, pendingActions, 
                         : activity.type === 'company'
                           ? 'bg-purple-100'
                           : activity.type === 'candidate'
-                          ? 'bg-orange-100'
-                          : 'bg-gray-100'
+                            ? 'bg-orange-100'
+                            : 'bg-gray-100'
                   }`}
                 >
                   {activity.type === 'job' ? (
@@ -510,9 +517,7 @@ function OverviewView({ stats, recentActivities, topCategories, pendingActions, 
                     )}
                   </div>
                   <p className="text-sm text-slate-600">{activity.action}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {activity.time}
-                  </p>
+                  <p className="text-xs text-slate-500 mt-1">{activity.time}</p>
                 </div>
               </div>
             ))}
@@ -557,8 +562,12 @@ function OverviewView({ stats, recentActivities, topCategories, pendingActions, 
               onClick={action.onClick}
               className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center space-y-2 hover:shadow-md transition-all hover:scale-[1.02]"
             >
-              <div className={`p-3 rounded-xl ${getColorClass(action.color, 'bg')}`}>
-                {React.createElement(action.icon, { className: `${getColorClass(action.color, 'text')} w-6 h-6` })}
+              <div
+                className={`p-3 rounded-xl ${getColorClass(action.color, 'bg')}`}
+              >
+                {React.createElement(action.icon, {
+                  className: `${getColorClass(action.color, 'text')} w-6 h-6`,
+                })}
               </div>
               <span className="text-sm font-bold text-slate-700">
                 {action.label}
@@ -571,7 +580,12 @@ function OverviewView({ stats, recentActivities, topCategories, pendingActions, 
   );
 }
 
-function AnalyticsView({ analyticsStats, performanceTrends, conversionData, sourceData }) {
+function AnalyticsView({
+  analyticsStats,
+  performanceTrends,
+  conversionData,
+  sourceData,
+}) {
   return (
     <div className="space-y-6">
       {/* Analytics Stats */}
@@ -638,7 +652,9 @@ function AnalyticsView({ analyticsStats, performanceTrends, conversionData, sour
                     {stage.stage}
                   </span>
                   <div className="text-right">
-                    <span className="text-slate-700 font-bold">{stage.count}</span>
+                    <span className="text-slate-700 font-bold">
+                      {stage.count}
+                    </span>
                     <span className="text-slate-500 text-sm ml-2">
                       ({stage.percentage}%)
                     </span>
@@ -683,7 +699,9 @@ function AnalyticsView({ analyticsStats, performanceTrends, conversionData, sour
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: COLORS[i % COLORS.length] }}
                 />
-                <span className="text-slate-600 font-medium">{source.name}:</span>
+                <span className="text-slate-600 font-medium">
+                  {source.name}:
+                </span>
                 <span className="font-bold text-slate-900">
                   {source.value}%
                 </span>
@@ -732,11 +750,17 @@ function ActivityView({ activityMetrics, systemLogs, userEngagement }) {
                 key={log.id}
                 className="flex items-start space-x-3 pb-4 border-b border-slate-100 last:border-0 last:pb-0"
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  log.status === 'success' ? 'bg-green-100' :
-                  log.status === 'warning' ? 'bg-yellow-100' :
-                  log.status === 'info' ? 'bg-blue-100' : 'bg-red-100'
-                }`}>
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    log.status === 'success'
+                      ? 'bg-green-100'
+                      : log.status === 'warning'
+                        ? 'bg-yellow-100'
+                        : log.status === 'info'
+                          ? 'bg-blue-100'
+                          : 'bg-red-100'
+                  }`}
+                >
                   {log.status === 'success' ? (
                     <CheckCircle className="w-4 h-4 text-green-600" />
                   ) : log.status === 'warning' ? (
@@ -747,16 +771,23 @@ function ActivityView({ activityMetrics, systemLogs, userEngagement }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-slate-900">{log.user}</p>
+                    <p className="text-sm font-bold text-slate-900">
+                      {log.user}
+                    </p>
                     <p className="text-xs text-slate-500">{log.time}</p>
                   </div>
                   <p className="text-sm text-slate-600">{log.action}</p>
-                  <span className={`inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full ${
-                    log.type === 'system' ? 'bg-blue-50 text-blue-700' :
-                    log.type === 'job' ? 'bg-green-50 text-green-700' :
-                    log.type === 'security' ? 'bg-red-50 text-red-700' :
-                    'bg-purple-50 text-purple-700'
-                  }`}>
+                  <span
+                    className={`inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+                      log.type === 'system'
+                        ? 'bg-blue-50 text-blue-700'
+                        : log.type === 'job'
+                          ? 'bg-green-50 text-green-700'
+                          : log.type === 'security'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-purple-50 text-purple-700'
+                    }`}
+                  >
                     {log.type}
                   </span>
                 </div>
@@ -855,7 +886,7 @@ function StatCard({ title, value, change, trending, icon, color }) {
     amber: 'bg-amber-500 text-white shadow-amber-200',
     purple: 'bg-violet-500 text-white shadow-violet-200',
   };
-  
+
   return (
     <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-start transition-transform hover:scale-[1.02]">
       <div className={`p-2.5 rounded-2xl mb-4 shadow-lg ${variants[color]}`}>
@@ -874,14 +905,21 @@ function StatCard({ title, value, change, trending, icon, color }) {
           ) : null}
           <span
             className={`text-sm font-bold ${
-              trending === 'up' ? 'text-green-600' : 
-              trending === 'down' ? 'text-red-600' : 'text-slate-600'
+              trending === 'up'
+                ? 'text-green-600'
+                : trending === 'down'
+                  ? 'text-red-600'
+                  : 'text-slate-600'
             }`}
           >
             {change}
           </span>
           <span className="text-xs text-slate-500 ml-1">
-            {trending === 'up' ? 'increase' : trending === 'down' ? 'decrease' : 'change'}
+            {trending === 'up'
+              ? 'increase'
+              : trending === 'down'
+                ? 'decrease'
+                : 'change'}
           </span>
         </div>
       )}

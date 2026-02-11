@@ -52,7 +52,6 @@ const CandidatesPage = () => {
     orgCandidates(pageIndex + 1, pageSize);
     orgCandidatesStats();
   }, [pageIndex, pageSize]);
-  console.log('candidatesStats', candidatesStats);
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
@@ -304,7 +303,6 @@ const CandidatesPage = () => {
             data={candidates}
             searchKey="candidateName"
             searchPlaceholder="Search by Name..."
-
             pageCount={pagination.totalPages}
             totalResults={pagination.totalCount}
             paginationState={{ pageIndex, pageSize }}
@@ -316,12 +314,18 @@ const CandidatesPage = () => {
   );
 };
 
-const StatCard = ({ label, value, icon, color, onClick, isActive = false }: any) => (
+const StatCard = ({
+  label,
+  value,
+  icon,
+  color,
+  onClick,
+  isActive = false,
+}: any) => (
   <Card
-    className={`border-none shadow-sm bg-white cursor-pointer transition-all hover:scale-[1.02] ${isActive
-        ? 'ring-2 ring-blue-500 bg-blue-50'
-        : 'hover:bg-gray-50'
-      }`}
+    className={`border-none shadow-sm bg-white cursor-pointer transition-all hover:scale-[1.02] ${
+      isActive ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+    }`}
     onClick={onClick}
   >
     <CardContent className="">
