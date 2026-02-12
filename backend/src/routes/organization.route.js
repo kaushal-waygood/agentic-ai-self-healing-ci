@@ -24,6 +24,13 @@ import {
   isHr,
 } from '../middlewares/auth.middleware.js';
 import { orgLogoUpload, upload } from '../middlewares/multer.js';
+import {
+  createRole,
+  deleteRole,
+  getOrgRoles,
+  inviteMember,
+  updateRole,
+} from '../controllers/role.controller.js';
 
 const router = Router();
 
@@ -106,5 +113,12 @@ router.get(
   getUniqueCourses,
 );
 router.get('/get-job', authMiddleware, isAnyAdmin, getJobsByOrgPosted);
+
+// ROLES
+router.post('/roles/create', authMiddleware, isAnyAdmin, createRole);
+router.get('/roles/all', authMiddleware, isAnyAdmin, getOrgRoles);
+router.patch('/roles/:id/edit', authMiddleware, isAnyAdmin, updateRole);
+router.delete('/roles/:id/remove', authMiddleware, isAnyAdmin, deleteRole);
+router.post('/team/send-invite', authMiddleware, isAnyAdmin, inviteMember);
 
 export default router;
