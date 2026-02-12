@@ -105,10 +105,8 @@ export const useJobStore = create<JobStore>((set) => ({
       const response = await apiInstance.get(
         companyId
           ? `/jobs/hosted/jobs/job-admin?companyId=${companyId}`
-          : '/jobs/hosted/jobs/job-admin'
+          : '/jobs/hosted/jobs/job-admin',
       );
-
-      const response = await apiInstance.get('/jobs/hosted/jobs/job-admin');
 
       const { data, meta } = response.data;
 
@@ -119,7 +117,6 @@ export const useJobStore = create<JobStore>((set) => ({
         })) ?? [];
 
       set({
-        // jobs: data ?? [],
         jobs: transformedJobs,
         meta: meta ?? null,
         loading: false,
@@ -127,7 +124,7 @@ export const useJobStore = create<JobStore>((set) => ({
     } catch (err: any) {
       console.error('Job fetching error:', err);
       set({
-        jobs: [], // ✅ fail-safe
+        jobs: [],
         meta: null,
         error:
           err.response?.data?.message || err.message || 'Failed to fetch jobs',
