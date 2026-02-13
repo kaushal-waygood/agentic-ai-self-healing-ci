@@ -1,5 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
 resources:
   - zobsai-backend-deployment-dev.yaml
   - zobsai-backend-config-dev.yaml
@@ -10,5 +11,12 @@ resources:
   - zobsai-redis-dev.yaml
   - zobsai-ingress-dev.yaml
 
+  # New uni_company_panel manifests
+  - zobsai-uni-company-panel-deployment-dev.yaml
+  - zobsai-uni-company-panel-config-dev.yaml
+  - zobsai-uni-company-panel-secrets-dev.yaml
+  - zobsai-uni-company-panel-service-dev.yaml
+
 namespace: dev-zobsai
-# refreshed overlay: 2025-09-28T23:46:00Z
+
+# refreshed overlay: 2026-02-12T00:00:00Z
