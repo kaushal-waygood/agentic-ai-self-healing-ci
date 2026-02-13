@@ -1,13 +1,16 @@
 'use client';
 
+import { getToken } from '@/hooks/useToken';
 import axios from 'axios';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
-    ? 'https://api.dev.zobsai.com'
-    : 'http://127.0.0.1:8080';
+      ? 'https://api.dev.zobsai.com'
+      : 'http://127.0.0.1:8080';
+
+const token = getToken();
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -37,6 +40,7 @@ const apiInstance = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,
   headers: {
     Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
   },
   withCredentials: true,
 });
@@ -48,7 +52,7 @@ apiInstance.interceptors.request.use((config) => {
     config.headers['Content-Type'] = 'application/json';
   }
 
-  const accessToken = safeLocalStorage.getItem('accessToken');
+  const accessToken = getToken();
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`;
   }

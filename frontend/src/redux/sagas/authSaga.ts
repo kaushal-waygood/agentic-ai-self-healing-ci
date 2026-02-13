@@ -41,9 +41,7 @@ function* loginSaga(
 ): SagaIterator {
   try {
     const response = yield call(login, action.payload);
-
     const { user, accessToken: token } = response.data;
-    localStorage.setItem('accessToken', token);
     yield put(loginSuccess({ user, token }));
   } catch (error: unknown) {
     const errorMessage =
@@ -101,9 +99,10 @@ function* changePasswordSaga(action: PayloadAction<any>): SagaIterator {
   }
 }
 
-function* getGetMeSaga(): SagaIterator {
+function* getGetMeSaga(token: string): SagaIterator {
   try {
-    const response = yield call(getMe);
+    const response = yield call(getMe, token.payload);
+
     yield put(getGetMeSuccess(response.data));
   } catch (error: unknown) {
     const errorMessage =
@@ -119,7 +118,6 @@ function* logoutSaga(): SagaIterator {
 
     // 🔥 Clear all client-side auth traces
     localStorage.removeItem('persist:root');
-    localStorage.removeItem('accessToken');
     yield put(logoutSuccess());
   } catch (error: unknown) {
     const errorMessage =
@@ -132,17 +130,8 @@ function* verifyEmailSaga(
   action: PayloadAction<{ email: string; otp: string }>,
 ): SagaIterator {
   try {
-    // Pass the payload (email, otp) to the API call
     const response = yield call(verifyEmail, action.payload);
-    console.log(response);
-
-    // Assuming backend returns { user, accessToken }
     const { user, accessToken: token } = response.data;
-
-    // Set token in storage
-    localStorage.setItem('accessToken', token);
-
-    // Dispatch success to Redux
     yield put(verifyEmailSuccess({ user, token }));
   } catch (error: any) {
     const errorMessage =

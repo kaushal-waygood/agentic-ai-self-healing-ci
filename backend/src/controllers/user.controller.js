@@ -56,7 +56,6 @@ const generateOtp = () => crypto.randomInt(100000, 999999).toString();
 
 const setAccessTokenCookie = (res, token) => {
   const cookieOptions = {
-    // httpOnly: true, // often disabled if frontend needs to read it, enable if using exclusively for API calls
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'Strict',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -340,7 +339,7 @@ export const firebaseAuth = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       success: true,
@@ -423,7 +422,7 @@ export const firebaseGoogleSignup = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(201).json({
       success: true,
@@ -481,7 +480,7 @@ export const firebaseGoogleLogin = async (req, res) => {
 
     // Success
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       success: true,
@@ -681,7 +680,7 @@ export const verifyEmail = async (req, res) => {
     await user.save();
 
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     // Send Welcome Email
     await sendTemplatedEmail({
@@ -799,7 +798,7 @@ export const verifyUpdateEmail = async (req, res) => {
     await user.save();
 
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       message: 'Email updated successfully',
@@ -885,7 +884,7 @@ export const signInUser = async (req, res) => {
     const userObject = user.toObject();
     delete userObject.password;
 
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       message: 'Signed in successfully',
@@ -1336,12 +1335,16 @@ export const handleGoogleCallback = async (req, res) => {
 
 export const getMe = async (req, res, next) => {
   const userId = req.user?.id || req.user?._id;
+  let token = req.headers.authorization;
+  if (token.startsWith('Bearer ')) {
+    token = token.slice(7, token.length).trimLeft();
+  }
   if (!userId) return res.status(401).json({ message: 'Auth error: No ID.' });
 
   try {
     const user = await User.findById(userId).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found.' });
-    return res.status(200).json(user);
+    return res.status(200).json({ user, token });
   } catch (error) {
     return next(error);
   }
@@ -1391,7 +1394,6 @@ export const getVerifiedUser = async (req, res) => {
 };
 
 export const submitFeedback = async (req, res) => {
-  console.log(req.body);
   try {
     const { category, message, path } = req.body;
     const { _id: userId } = req.user;

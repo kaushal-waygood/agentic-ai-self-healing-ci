@@ -1,53 +1,55 @@
-/** @format */
-
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { jwtDecode } from 'jwt-decode';
-import { googleLoginSuccess } from '../../redux/reducers/authReducer'; // Adjust path if needed
+import { googleLoginSuccess } from '../../redux/reducers/authReducer';
 
 const GoogleAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const hasProcessed = useRef(false);
+
   useEffect(() => {
+    if (hasProcessed.current) return;
+
     const token = searchParams.get('token');
 
     if (token) {
       try {
-        // 1. Store the token in localStorage
-        localStorage.setItem('accessToken', token);
+        hasProcessed.current = true;
 
-        // 2. Decode the token to get user payload
-        // This payload should match what you signed in the backend JWT
-        const decodedUser: { id: string; email: string } = jwtDecode(token);
-
-        // 3. Dispatch the success action to update Redux state
-        // The user object here can be partial, as long as it's enough for the UI
-        // A subsequent call to getProfile can fetch the full user object if needed.
+        const decodedUser: any = jwtDecode(token);
         dispatch(
           googleLoginSuccess({
-            user: { _id: decodedUser.id, email: decodedUser.email },
-            token,
+            user: {
+              _id: decodedUser.id || decodedUser.sub,
+              email: decodedUser.email,
+              name: decodedUser.name,
+            },
+            token: token,
           }),
         );
 
-        // 4. Redirect to the dashboard
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       } catch (error) {
-        console.error('Invalid token:', error);
-        // Redirect to login page with an error
+        console.error('Failed to process Google login:', error);
         navigate('/login?error=invalid_token');
       }
-    } else {
-      // No token found, redirect to login
-      navigate('/login?error=no_token');
+    } else if (searchParams.has('error')) {
+      navigate(`/login?error=${searchParams.get('error')}`);
     }
   }, [dispatch, navigate, searchParams]);
 
-  // Render a loading indicator while processing
-  return <div>Loading, please wait...</div>;
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold">Authenticating...</h2>
+        <p className="text-gray-500">Please wait while we log you in.</p>
+      </div>
+    </div>
+  );
 };
 
 export default GoogleAuthCallback;

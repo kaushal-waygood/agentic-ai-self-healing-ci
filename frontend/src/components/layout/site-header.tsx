@@ -1,5 +1,6 @@
 'use client';
 import { Button } from '@/components/ui/button';
+import { getToken } from '@/hooks/useToken';
 import { Menu, X, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -21,11 +22,11 @@ export const Navigation = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [token, setToken] = useState<string | undefined>(undefined);
   const router = useRouter();
+  const tokens = getToken();
 
   // On component mount, check if the access token cookie exists
   useEffect(() => {
-    const accessToken =
-      localStorage.getItem('accessToken') || getCookie('accessToken');
+    const accessToken = tokens;
     setToken(accessToken);
   }, []);
 

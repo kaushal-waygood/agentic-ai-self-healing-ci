@@ -22,10 +22,8 @@ const GoogleAuthCallback = () => {
 
     if (token) {
       try {
-        localStorage.setItem('accessToken', token);
-
         dispatch(googleLoginSuccess(token));
-        dispatch(getGetMeRequest());
+        dispatch(getGetMeRequest(token));
 
         if (isNew === 'true') {
           navigate.push('/dashboard/onboarding-tour');
