@@ -14,16 +14,26 @@ jobs:
       contents: write
       packages: write
 
+    env:
+      # Non-sensitive environment variables
+      NODE_ENV: development
+      API_URL_DEV: "https://api.dev.zobsai.com"
+
     steps:
+      # -------------------------------
+      # 1️⃣ Checkout code
+      # -------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # ensures all files and history are available
+          fetch-depth: 0
 
       - name: Set lowercase repo owner
-        id: vars
         run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
+      # -------------------------------
+      # 2️⃣ Log in to GitHub Container Registry
+      # -------------------------------
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -32,30 +42,25 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # -------------------------------
-      # Build & Push Backend Image
+      # 3️⃣ Build & Push Docker Images
       # -------------------------------
+
+      ## Backend
       - name: Build & Push Backend Image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
+          build-args: |
+            NODE_ENV=${{ env.NODE_ENV }}
+            MONGO_URL=${{ secrets.MONGO_URL }}
+            RAPID_API_KEY=${{ secrets.RAPID_API_KEY }}
           tags: |
             ghcr.io/${{ env.repo_owner }}/zobsai-backend:develop
             ghcr.io/${{ env.repo_owner }}/zobsai-backend:${{ github.sha }}
 
-      # -------------------------------
-      # Build & Push Frontend Image
-      # -------------------------------
-      - name: Set Frontend Build Args from ConfigMap
-        id: frontend-args
-        run: |
-          # You can either fetch from k3s or define them as secrets for CI
-          echo "NEXT_PUBLIC_API_URL=https://api.dev.zobsai.com" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=584491493872-k4r3sueu3m2j7fm5ancngm9i1018qp2j.apps.googleusercontent.com" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51S91qQIdYj6K0osbkzgNmVJQ8Pt2AXyFFri0f84jMsrRKLdc15qIw3aiN7eLMdktmDxgqeH8shl3784s9QVUXUPs00RM7BbtaS" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_NODE_ENV=development" >> $GITHUB_ENV
-
+      ## Frontend
       - name: Build & Push Frontend Image
         uses: docker/build-push-action@v6
         with:
@@ -63,33 +68,30 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ env.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
-            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
-            NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
+            NEXT_PUBLIC_API_URL=${{ env.API_URL_DEV }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_DEV }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY_DEV }}
+            NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
           tags: |
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:develop
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}
 
-      - name: Set Uni_comapny_panel Build Args
-        id: Uni_comapny_panel-args
-        run: |
-          echo "NEXT_PUBLIC_NODE_ENV=development" >> $GITHUB_ENV
-
-      - name: Build & Push uni-company-panel Image
+      ## Uni Company Panel
+      - name: Build & Push Uni Company Panel Image
         uses: docker/build-push-action@v6
         with:
-          context: ./uni-company-panel
-          file: ./uni-company-panel/Dockerfile
+          context: ./uni_company_panel
+          file: ./uni_company_panel/Dockerfile
           push: true
           build-args: |
-            NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
+            NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
+            MONGO_URL=${{ secrets.MONGO_URL }}
           tags: |
             ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:develop
             ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:${{ github.sha }}
 
       # -------------------------------
-      # Update manifests
+      # 4️⃣ Update Kubernetes Manifests
       # -------------------------------
       - name: List dev manifest files
         run: ls -R manifests/dev/
@@ -99,7 +101,7 @@ jobs:
           MANIFEST="manifests/dev/zobsai-backend-deployment-dev.yaml"
           if [ -f "$MANIFEST" ]; then
             sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-backend:.*#ghcr.io/${{ env.repo_owner }}/zobsai-backend:${{ github.sha }}#g" "$MANIFEST"
-            echo "Backend deployment manifest updated."
+            echo "Backend manifest updated."
           else
             echo "Backend manifest not found at $MANIFEST, skipping."
           fi
@@ -109,25 +111,25 @@ jobs:
           MANIFEST="manifests/dev/zobsai-frontend-deployment-dev.yaml"
           if [ -f "$MANIFEST" ]; then
             sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-frontend:.*#ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}#g" "$MANIFEST"
-            echo "Frontend deployment manifest updated."
+            echo "Frontend manifest updated."
           else
             echo "Frontend manifest not found at $MANIFEST, skipping."
           fi
 
-      - name: Update uni-company-panel Deployment Manifest
+      - name: Update Uni Company Panel Deployment Manifest
         run: |
-          # UPDATED FILE PATH (Changed _ to -)
           MANIFEST="manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml"
-
           if [ -f "$MANIFEST" ]; then
-            # UPDATED SEARCH STRING (Changed _ to -)
-            sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:[^ ]*#ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:${{ github.sha }}#g" "$MANIFEST"
-            echo "uni-company-panel deployment manifest updated."
+            sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:.*#ghcr.io/${{ env.repo_owner }}/zobsai-uni-company-panel:${{ github.sha }}#g" "$MANIFEST"
+            echo "Uni Company Panel manifest updated."
           else
-            echo "uni-company-panel manifest not found at $MANIFEST, skipping."
-            exit 1 # Optional: Fail the job if the file is missing to catch errors early
+            echo "Uni Company Panel manifest not found at $MANIFEST, skipping."
+            exit 1
           fi
 
+      # -------------------------------
+      # 5️⃣ Commit & Push Manifest Changes
+      # -------------------------------
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"
