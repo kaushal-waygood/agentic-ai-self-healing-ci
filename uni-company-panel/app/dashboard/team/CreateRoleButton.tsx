@@ -81,8 +81,6 @@ export function CreateRoleButton() {
 
       await getAllCustomRoles();
 
-      console.log(roles);
-
       toast.success('Custom role created successfully!');
       reset(); // Clear the form
       setOpen(false); // Close the dialog
