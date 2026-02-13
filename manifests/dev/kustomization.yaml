@@ -2,16 +2,25 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  # Backend resources
   - zobsai-backend-deployment-dev.yaml
   - zobsai-backend-config-dev.yaml
   - zobsai-backend-secrets-dev.yaml
+
+  # Frontend resources
   - zobsai-frontend-deployment-dev.yaml
   - zobsai-frontend-config-dev.yaml
   - zobsai-frontend-secrets-dev.yaml
+
+  # Redis
   - zobsai-redis-dev.yaml
+
+  # Ingress
   - zobsai-ingress-dev.yaml
 
-  # New uni_company_panel manifests
+  # ---------------------------
+  # Uni Company Panel resources
+  # ---------------------------
   - zobsai-uni-company-panel-deployment-dev.yaml
   - zobsai-uni-company-panel-config-dev.yaml
   - zobsai-uni-company-panel-secrets-dev.yaml
