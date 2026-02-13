@@ -11,11 +11,6 @@ resources:
   - zobsai-redis-dev.yaml
   - zobsai-ingress-dev.yaml
 
-  # New uni_company_panel manifests
-  - zobsai-uni-company-panel-deployment-dev.yaml
-  - zobsai-uni-company-panel-config-dev.yaml
-  - zobsai-uni-company-panel-secrets-dev.yaml
-  - zobsai-uni-company-panel-service-dev.yaml
 
 namespace: dev-zobsai
 
