@@ -66,7 +66,11 @@ export const verifyEmail = async (data: any) => {
   return response;
 };
 
-export const getMe = async () => {
-  const response = await apiInstance.get('/user/getme');
+export const getMe = async (token: string) => {
+  const response = await apiInstance.get('/user/getme', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   return response;
 };

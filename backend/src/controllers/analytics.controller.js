@@ -7,7 +7,6 @@ import {
 
 export async function dashboardAnalytics(req, res) {
   try {
-    console.log(req.query);
     const { start, end } = resolveDateRange(req.query);
     const data = await buildDashboardAnalyticsDTO({ start, end });
 

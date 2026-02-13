@@ -1,6 +1,7 @@
 // hooks/useSocket.js
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import { getToken } from './useToken';
 
 export const useSocket = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -13,9 +14,7 @@ export const useSocket = () => {
     const setupSocket = async () => {
       try {
         // Get token from your auth system
-        const token =
-          localStorage.getItem('accessToken') ||
-          sessionStorage.getItem('accessToken');
+        const token = getToken();
 
         if (!token) {
           console.error('❌ useSocket: No authentication token found');
