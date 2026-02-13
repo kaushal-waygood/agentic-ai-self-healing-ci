@@ -53,24 +53,4 @@ spec:
                 port:
                   number: 8080
 
-    - host: dev.zobsai.com
-      http:
-        paths:
-          - path: /uni-admin
-            pathType: Prefix
-            backend:
-              service:
-                name: zobsai-uni-company-panel
-                port:
-                  number: 3002
 
-    - host: www.dev.zobsai.com
-      http:
-        paths:
-          - path: /uni-admin
-            pathType: Prefix
-            backend:
-              service:
-                name: zobsai-uni-company-panel
-                port:
-                  number: 3002
