@@ -41,6 +41,63 @@ spec:
                 name: zobsai-frontend
                 port:
                   number: 3000
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zobsai-ingress-dev
+  namespace: dev-zobsai
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    #ingressClassName: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    cert-manager.io/cluster-issuer: letsencrypt-prod # <-- switch to prod after testing
+    traefik.ingress.kubernetes.io/router.tls: 'true'
+spec:
+  tls:
+    - hosts:
+        - dev.zobsai.com
+        - www.dev.zobsai.com
+      secretName: zobsai-frontend-dev-tls
+    - hosts:
+        - api.dev.zobsai.com
+      secretName: zobsai-backend-dev-tls
+  rules:
+    # Frontend (dev)
+    - host: dev.zobsai.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zobsai-frontend
+                port:
+                  number: 3000
+
+    - host: www.dev.zobsai.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zobsai-frontend
+                port:
+                  number: 3000
+
+    # Backend (dev API)
+    - host: api.dev.zobsai.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zobsai-backend
+                port:
+                  number: 8080
+
+
 
 
 
