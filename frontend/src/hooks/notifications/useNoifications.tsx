@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import apiInstance, { API_BASE_URL } from '@/services/api';
+import { getToken } from '../useToken';
 
 type Notification = {
   _id: string;
@@ -29,8 +30,7 @@ export function useNotifications() {
   // Init socket once
   useEffect(() => {
     const backendUrl = API_BASE_URL || 'http://127.0.0.1:8080';
-    const token =
-      typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
+    const token = typeof window !== 'undefined' ? getToken() : '';
 
     // reuse socket if already connected (helps with HMR/StrictMode)
     if (socketRef.current && socketRef.current.connected) {

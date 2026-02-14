@@ -5,7 +5,7 @@ metadata:
   namespace: wordpress
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: wordpress-wordpress-rewrite-resources@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: wordpress-rewrite-resources@kubernetescrd
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: traefik

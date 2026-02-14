@@ -2,32 +2,94 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useJobStore } from '@/store/job.store';
-import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/common/TableData';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
   Eye,
-  TrendingUp,
   Download,
-  Briefcase,
   Users,
   ArrowUpDown,
-  Loader,
   Loader2,
+  Trash2,
+  Pencil,
+  UserCheck,
+  UserMinus,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
+import { EditJobModal } from '@/components/getjobs/EditJobModal';
+import { Card, CardContent } from '@/components/ui/card';
+import GetSingleJobDetails from '@/components/getjobs/GetSingleJobDetails';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const JobsPage = () => {
+  const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const { jobs, getJobs, deleteJob, bulkDeleteJobs, toggleJobStatus, loading } =
+    useJobStore();
+
+  const handleStatusClick = (status: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('status', status);
+    // This updates the URL without a full page reload
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
   const router = useRouter();
-  const { jobs, getJobs, loading } = useJobStore();
+  const searchParams = useSearchParams();
+  const currentStatus = searchParams.get('status') || 'total';
 
   useEffect(() => {
-    getJobs();
-  }, [getJobs]);
+    if (currentStatus) {
+      getJobs(currentStatus);
+    }
+  }, [getJobs, currentStatus]);
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <div className="flex justify-center px-1">
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
+              aria-label="Select all"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="flex justify-center px-1">
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+            />
+          </div>
+        ),
+        enableSorting: false,
+      },
+      {
+        id: 'serialNumber',
+        header: 'S.No',
+        cell: ({ row }) => (
+          <span className="text-slate-500 font-medium">
+            {parseInt(row.id) + 1}
+          </span>
+        ),
+      },
       {
         id: 'jobTitle',
         accessorFn: (row) => row.title,
@@ -41,272 +103,354 @@ const JobsPage = () => {
           </Button>
         ),
         cell: ({ row }) => (
-          <div>
-            <div className="font-semibold text-slate-900">
-              {row.original.title}
-            </div>
+          <div className="font-semibold text-slate-900">
+            {row.original.title}
           </div>
         ),
       },
       {
-        accessorKey: 'job.company',
-        header: 'Company',
-        cell: ({ row }) => (
-          <div className="text-sm">
-            <div>{row.original.company}</div>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'job.location',
+        accessorKey: 'location.city',
         header: 'Location',
         cell: ({ row }) => (
           <div className="text-sm">
-            <div>{row.original.location.city}</div>
+            {row.original.location?.city || 'Remote'}
           </div>
         ),
       },
       {
-        accessorKey: 'job.jobTypes',
-        header: 'jobTypes',
+        accessorKey: 'jobTypes',
+        header: 'Type',
         cell: ({ row }) => (
-          <div className="text-sm">
-            <div>{row.original.jobTypes}</div>
+          <div className="text-sm capitalize">
+            {row.original.jobTypes?.join(', ').replace('_', ' ')}
           </div>
         ),
       },
-
       {
         accessorKey: 'jobPostedAt',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="text-center"
-          >
-            Job Posted <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        sortingFn: 'datetime',
+        header: 'Posted',
         cell: ({ row }) => (
-          <span className="text-sm text-slate-600">
-            {new Date(row.getValue('jobPostedAt')).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}
+          <span className="text-sm">
+            {new Date(row.original.jobPostedAt).toLocaleDateString('en-GB')}
           </span>
         ),
       },
+      // {
+      //   id: 'stats',
+      //   header: 'Engagement',
+      //   cell: ({ row }) => (
+      //     <div className="text-xs space-y-1">
+      //       <div className="flex items-center gap-1">
+      //         <Eye className="w-3 h-3" /> {row.original.jobViews}
+      //       </div>
+      //       <div className="flex items-center gap-1">
+      //         <Users className="w-3 h-3" /> {row.original.appliedCount}
+      //       </div>
+      //     </div>
+      //   ),
+      // },
       {
-        accessorKey: 'job.views',
-        header: 'Views',
-        cell: ({ row }) => (
-          <div className="text-sm">
-            <div>{row.original.jobViews}</div>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'job.applied',
-        header: 'Applied',
-        cell: ({ row }) => (
-          <div className="text-sm">
-            <div>{row.original.appliedCount}</div>
-          </div>
-        ),
-      },
+        id: 'stats',
+        header: 'Engagement',
+        cell: ({ row }) => {
+          const Stat = ({ icon: Icon, value, label, color }: any) => (
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 bg-${color}-50 rounded-md`}>
+                <Icon className={`w-3.5 h-3.5 text-${color}-600`} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-slate-900">
+                  {value}
+                </div>
+                <div className="text-[10px] text-slate-500">{label}</div>
+              </div>
+            </div>
+          );
 
+          return (
+            <div className="flex items-center justify-center gap-6 px-4">
+              <Stat
+                icon={Eye}
+                value={row.original.jobViews || 0}
+                label="Views"
+                color="blue"
+              />
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2"
+                onClick={() => {
+                  console.log(row.original);
+                  router.push(
+                    `/dashboard/jobs/${row.original.slug}/applications`,
+                  );
+                  // setIsViewModalOpen(true);
+                  // setSelectedJob(row.original);
+                }}
+              >
+                <Stat
+                  icon={Users}
+                  value={row.original.appliedCount || 0}
+                  label="Applied"
+                  color="emerald"
+                />
+              </Button>
+            </div>
+          );
+        },
+      },
       {
         accessorKey: 'isActive',
-        header: () => <div className="text-center">Status</div>,
+        header: 'Status',
         cell: ({ row }) => {
+          const [isToggling, setIsToggling] = useState(false);
+          const handleToggle = async () => {
+            setIsToggling(true);
+            const jobId = row.original.id;
+            if (!jobId) {
+              toast.error('Job ID not found');
+              setIsToggling(false);
+              return;
+            }
+            // const success = await toggleJobStatus(row.original.id);
+            const success = await toggleJobStatus(jobId);
+
+            if (success) {
+              toast.success(
+                `Job ${!row.original.isActive ? 'activated' : 'deactivated'}`,
+              );
+            }
+            setIsToggling(false);
+          };
+
           return (
-            <div
-              className={`${row.original.isActive ? 'text-green-600' : 'text-red-600'}`}
+            <button
+              onClick={handleToggle}
+              disabled={isToggling}
+              className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all min-w-[65px]
+                ${row.original.isActive ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}
             >
-              {row.original.isActive ? 'Active' : 'Inactive'}
-            </div>
+              {isToggling ? (
+                <Loader2 className="h-3 w-3 animate-spin mx-auto" />
+              ) : row.original.isActive ? (
+                'ACTIVE'
+              ) : (
+                'INACTIVE'
+              )}
+            </button>
           );
         },
       },
       {
         id: 'actions',
         header: () => <div className="text-center">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                router.push(`/dashboard/jobs/${row.original._id}`);
-              }}
-              className="flex gap-2"
-            >
-              <Eye className="h-3.5 w-3.5" /> View
-            </Button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const [isDelOpen, setIsDelOpen] = useState(false);
+
+          const handleDelete = async () => {
+            const jobId = row.original.id;
+            if (!jobId) {
+              toast.error('Job ID not found');
+              return;
+            }
+
+            await deleteJob(jobId);
+            toast.success('Deleted');
+            setIsDelOpen(false);
+          };
+
+          return (
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedJob(row.original);
+                  setIsViewModalOpen(true);
+                  // console.log(row.original);
+                  console.log('view modal open', isViewModalOpen);
+                }}
+              >
+                View
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setSelectedJob(row.original) || setIsEditModalOpen(true)
+                }
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+              </Button>
+
+              <Popover open={isDelOpen} onOpenChange={setIsDelOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:text-red-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-4">
+                  <p className="text-sm font-bold">Delete this job?</p>
+                  <div className="flex justify-end gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsDelOpen(false)}
+                    >
+                      No
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      // onClick={async () => {
+                      //   await deleteJob(row.original.id);
+                      //   toast.success('Deleted');
+                      // }}
+                      onClick={handleDelete}
+                    >
+                      Yes, Delete
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          );
+        },
       },
     ],
-    [],
+    [toggleJobStatus, deleteJob],
   );
 
-  // --- CSV Export Logic ---
-  const exportToCSV = () => {
-    const data = jobs || [];
-    if (data.length === 0) return;
-
-    // 1. Define descriptive headers for the CSV
-    const headers = [
-      'Job Title',
-      'Company',
-      'Location',
-      'Job Type',
-      'Views',
-      'Applications',
-      'Status',
-      'Posted On',
-    ];
-
-    // 2. Map the job data to match the headers
-    const rows = data.map((job: any) => {
-      const title = `"${job.title || 'N/A'}"`;
-      const company = `"${job.company || 'N/A'}"`;
-      const location = `"${job.location?.city || ''}, ${job.location?.state || ''}"`;
-      const type = `"${job.jobTypes?.join(' / ') || 'N/A'}"`;
-      const views = job.jobViews ?? 0;
-      const applications = job.appliedCount ?? 0;
-      const status = job.isActive ? 'Active' : 'Inactive';
-      const postedDate = job.jobPostedAt
-        ? new Date(job.jobPostedAt).toLocaleDateString()
-        : 'N/A';
-
-      return [
-        title,
-        company,
-        location,
-        type,
-        views,
-        applications,
-        status,
-        postedDate,
-      ].join(',');
-    });
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
-
-    const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csvContent));
-
-    const fileName = `posted_jobs_${new Date().toISOString().split('T')[0]}.csv`;
-    link.setAttribute('download', fileName);
-
-    document.body.appendChild(link); // Required for Firefox
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
-    <div className="p-6 space-y-6 ">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-blue-500">Posted Jobs</h1>
-          <p className="text-gray-600">
-            Manage and track all your job postings
+          <p className="text-gray-500">
+            Manage and track your active recruitment
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={exportToCSV} className="gap-2">
-            <Download className="w-4 h-4" />
-            Export
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            /* Export Logic */
+          }}
+        >
+          <Download className="w-4 h-4 mr-2" /> Export CSV
+        </Button>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
-        <Card>
-          <CardContent className="">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Jobs</p>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                  {jobs.length}
-                </h3>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Active Jobs</p>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                  {jobs.filter((j) => j.isActive).length}
-                </h3>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Views</p>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                  {jobs.reduce((sum, j) => sum + (j.jobViews || 0), 0)}
-                </h3>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Eye className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Applications</p>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                  {jobs.reduce((sum, j) => sum + (j.appliedCount || 0), 0)}
-                </h3>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Stats row can stay as you have it */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <StatCard
+          label="Total Jobs"
+          value={jobs.length || 0}
+          icon={<Users className="text-blue-600" />}
+          color="bg-blue-100"
+          onClick={() => handleStatusClick('total')}
+          isActive={currentStatus === 'total'}
+        />
+        <StatCard
+          label="Active Jobs"
+          value={jobs.filter((job) => job.isActive).length || 0}
+          icon={<Eye className="text-green-600" />}
+          color="bg-green-100"
+          onClick={() => handleStatusClick('active')}
+          isActive={currentStatus === 'active'}
+        />
+        <StatCard
+          label="Inactive Jobs"
+          value={jobs.filter((job) => !job.isActive).length || 0}
+          icon={<UserMinus className="text-red-600" />}
+          color="bg-red-100"
+          onClick={() => handleStatusClick('inactive')}
+          isActive={currentStatus === 'inactive'}
+        />
+        <StatCard
+          label="Total Views"
+          value={jobs.reduce((sum, job) => sum + (job.jobViews || 0), 0) || 0}
+          icon={<Eye className="text-purple-600" />}
+          color="bg-purple-100"
+          onClick={() => handleStatusClick('views')}
+          isActive={currentStatus === 'views'}
+        />
+        <StatCard
+          label="Total Applicants"
+          value={
+            jobs.reduce((sum, job) => sum + (job.appliedCount || 0), 0) || 0
+          }
+          icon={<UserCheck className="text-amber-600" />}
+          color="bg-amber-100"
+          onClick={() => handleStatusClick('applicants')}
+          isActive={currentStatus === 'applicants'}
+        />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className=" h-8 w-8 text-blue-500 animate-spin " />
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
         </div>
       ) : (
         <DataTable
           columns={columns}
           data={jobs}
           searchKey="jobTitle"
-          searchPlaceholder="Search by Job Title..."
+          bulkDelete={bulkDeleteJobs}
+        />
+      )}
+      {isViewModalOpen && (
+        <GetSingleJobDetails
+          job={selectedJob}
+          open={isViewModalOpen}
+          onOpenChange={setIsViewModalOpen}
+        />
+      )}
+
+      {selectedJob && (
+        <EditJobModal
+          job={selectedJob}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedJob(null);
+          }}
         />
       )}
     </div>
   );
 };
+
+const StatCard = ({
+  label,
+  value,
+  icon,
+  color,
+  onClick,
+  isActive = false,
+}: any) => (
+  <Card
+    className={`border-none shadow-sm bg-white cursor-pointer transition-all hover:scale-[1.02] ${
+      isActive ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+    }`}
+    onClick={onClick}
+  >
+    <CardContent className="p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <h3 className="text-2xl font-bold text-slate-900 mt-1">{value}</h3>
+        </div>
+        <div
+          className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center`}
+        >
+          {icon}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default JobsPage;

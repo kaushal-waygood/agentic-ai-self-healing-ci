@@ -10,23 +10,42 @@ import { genAIRequest as genAI } from '../config/gemini.js';
 const router = Router();
 
 /* ============================================================
+   FORMATTING HELPERS
+   ============================================================ */
+
+function formatValue(value, key = '') {
+  if (!value || typeof value !== 'string') return value;
+
+  const lowerKey = key.toLowerCase();
+  // Do NOT capitalize emails, websites, or file URLs
+  if (
+    lowerKey.includes('email') ||
+    lowerKey.includes('url') ||
+    lowerKey.includes('resume') ||
+    lowerKey.includes('link')
+  ) {
+    return value.toLowerCase();
+  }
+
+  return value
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+/* ============================================================
    FIELD CLASSIFICATION
    ============================================================ */
 
-const IDENTITY_FIELD_REGEX =
-  /(name|candidate|email|phone|mobile|education|experience|skill|resume|cv|address|street|city|state|postal|zip|country|location|gender|nationality|dob|birth)/i;
-
-const NARRATIVE_FIELD_REGEX =
-  /(summary|guidance|description|about|profile|objective|cover|why|statement|role|background)/i;
-
 const SECURITY_FIELD_REGEX =
-  /(captcha|csrf|token|otp|password|auth|verification)/i;
+  /(captcha|csrf|token|otp|password|auth|verification|g-recaptcha)/i;
+const NARRATIVE_FIELD_REGEX =
+  /(summary|guidance|description|about|profile|objective|cover|why|statement|role|background|describe)/i;
 
 function classifyField(descriptor) {
-  const text = `${descriptor.inputKey} ${descriptor.label}`.toLowerCase();
+  const text = `${descriptor.inputKey} ${descriptor.label || ''}`.toLowerCase();
   if (SECURITY_FIELD_REGEX.test(text)) return 'SECURITY';
   if (NARRATIVE_FIELD_REGEX.test(text)) return 'NARRATIVE';
-  if (IDENTITY_FIELD_REGEX.test(text)) return 'IDENTITY';
   return 'IDENTITY';
 }
 
@@ -35,74 +54,185 @@ function classifyField(descriptor) {
    ============================================================ */
 
 function normalizeInputs(rawInputs = []) {
-  return rawInputs.map((i) => ({
-    inputKey: (i.inputKey || i.name || i.id || i.label || '').trim(),
-    label: (i.label || i.placeholder || '').trim(),
-    type: i.type || 'text',
-    options: Array.isArray(i.options) ? i.options : [],
-  }));
+  // First, deduplicate inputs with same key
+  const seenKeys = new Map();
+
+  rawInputs.forEach((i) => {
+    const key = (i.inputKey || i.name || i.id || i.label || '').trim();
+    if (!key) return;
+
+    // For duplicate keys, keep the first occurrence
+    if (!seenKeys.has(key)) {
+      seenKeys.set(key, {
+        inputKey: key,
+        normalizedKey: normalizeKeyForMatching(key),
+        label: (i.label || i.placeholder || '').trim(),
+        type: i.type || 'text',
+        options: Array.isArray(i.options) ? i.options : [],
+      });
+    }
+  });
+
+  return Array.from(seenKeys.values());
 }
 
-function normalizeStudent(student) {
-  const fullName =
-    student.fullName ||
-    [student.firstName, student.middleName, student.lastName]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
+function normalizeKeyForMatching(key) {
+  return key
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, ' ') // Replace special chars with space
+    .replace(/\s+/g, ' ') // Collapse multiple spaces
+    .trim();
+}
+/* ============================================================
+   NORMALIZATION HELPERS
+   ============================================================ */
 
-  const parts = fullName.split(/\s+/);
+function normalizeStudent(student) {
+  let fName = student.firstName || '';
+  let lName = student.lastName || '';
+
+  if (!fName && !lName && student.fullName) {
+    const parts = student.fullName.trim().split(/\s+/);
+    fName = parts[0] || '';
+    lName = parts.length > 1 ? parts.slice(1).join(' ') : '';
+  }
+
+  let city = student.city || '';
+  let country = student.country || '';
+
+  if (!city && !country && student.location) {
+    const locParts = student.location.split(',').map((p) => p.trim());
+    if (locParts.length >= 2) {
+      city = locParts[0];
+      country = locParts[1];
+    } else {
+      country = locParts[0];
+    }
+  }
+
+  // Get Most Recent Experience (First item in array usually)
+  const latestExp =
+    student.experience && student.experience.length > 0
+      ? student.experience[0]
+      : {};
+
+  // Get Most Recent Education
+  const latestEdu =
+    student.education && student.education.length > 0
+      ? student.education[0]
+      : {};
+
+  // Get First Project
+  const latestProj =
+    student.projects && student.projects.length > 0 ? student.projects[0] : {};
+
   return {
     id: String(student._id),
-    fullName,
-    firstName: student.firstName || parts[0] || '',
-    lastName: student.lastName || parts.at(-1) || '',
-    middleName: student.middleName || parts.slice(1, -1).join(' ') || '',
+    fullName:
+      student.fullName || [fName, lName].filter(Boolean).join(' ') || '',
+    firstName: fName,
+    lastName: lName,
     email: student.email || '',
     phone: student.phone || '',
-    gender: student.gender || '',
+    phoneCountryCode: student.phoneCountryCode || '',
+    city: city,
+    state: student.state || '',
+    country: country,
+    zipCode: student.zipCode || '',
     jobRole: student.jobRole || '',
-    education: student.education || [],
-    experience: student.experience || [],
-    skills: student.skills || [],
-    projects: student.projects || [],
-    jobPreferences: student.jobPreferences || {},
+    skills: student.skills?.map((s) => s.skill) || [],
     resumeUrl: student.uploadedCV || student.resumeUrl || '',
+
+    // NEW FIELDS EXTRACTED FROM ARRAYS
+    school: latestEdu.institute || '',
+    degree: latestEdu.degree || '',
+    fieldOfStudy: latestEdu.fieldOfStudy || '',
+    graduationYear: latestEdu.endDate
+      ? new Date(latestEdu.endDate).getFullYear()
+      : '',
+
+    company: latestExp.company || '',
+    jobTitle: latestExp.title || '',
+    jobDescription: latestExp.description || '',
+
+    projectName: latestProj.projectName || '',
+    projectDescription: latestProj.description || '',
   };
 }
 
 /* ============================================================
-   DETERMINISTIC RESOLVER (Identity)
+   DETERMINISTIC RESOLVER (MAPPINGS UPDATE)
    ============================================================ */
 
+const FIELD_MAPPINGS = [
+  // ... your name and contact mappings remain the same ...
+  { patterns: ['first name', 'fname'], field: 'firstName' },
+  { patterns: ['last name', 'lname'], field: 'lastName' },
+  { patterns: ['full name', 'candidate name'], field: 'fullName' },
+  { patterns: ['email'], field: 'email' },
+  { patterns: ['phone', 'mobile'], field: 'phone' },
+
+  // Education (Using the new normalized keys)
+  {
+    patterns: ['school', 'university', 'college', 'institution'],
+    field: 'school',
+  },
+  { patterns: ['degree', 'qualification'], field: 'degree' },
+  {
+    patterns: ['area of study', 'major', 'field of study'],
+    field: 'fieldOfStudy',
+  },
+  { patterns: ['graduation year', 'grad year'], field: 'graduationYear' },
+
+  // Experience
+  { patterns: ['company', 'employer', 'organization'], field: 'company' },
+  { patterns: ['job title', 'role', 'designation'], field: 'jobTitle' },
+  { patterns: ['work description', 'job summary'], field: 'jobDescription' },
+
+  // Projects
+  { patterns: ['project name', 'title of project'], field: 'projectName' },
+  { patterns: ['project description'], field: 'projectDescription' },
+
+  // Location
+  { patterns: ['city'], field: 'city' },
+  { patterns: ['country'], field: 'country' },
+];
+
 function resolveIdentityValue(descriptor, student) {
-  const text = `${descriptor.inputKey} ${descriptor.label}`.toLowerCase();
+  const normalizedKey =
+    descriptor.normalizedKey || normalizeKeyForMatching(descriptor.inputKey);
+  const keyWithLabel = normalizeKeyForMatching(
+    `${descriptor.inputKey} ${descriptor.label || ''}`,
+  );
 
-  if (/email/.test(text)) return student.email;
-  if (/phone|mobile/.test(text)) return student.phone;
-  if (/first/.test(text)) return student.firstName;
-  if (/middle/.test(text)) return student.middleName;
-  if (/last|surname/.test(text)) return student.lastName;
+  // Try to find matching pattern
+  for (const mapping of FIELD_MAPPINGS) {
+    for (const pattern of mapping.patterns) {
+      const normalizedPattern = normalizeKeyForMatching(pattern);
 
-  // FIX: Broad name match to catch "name", "candidate name", "full name"
-  if (/name|candidate/.test(text)) return student.fullName;
+      if (
+        normalizedKey.includes(normalizedPattern) ||
+        keyWithLabel.includes(normalizedPattern)
+      ) {
+        let value = student[mapping.field];
 
-  if (/gender/.test(text)) return student.gender;
-  if (/resume|cv/.test(text))
-    return student.resumeUrl ? { url: student.resumeUrl } : '';
+        // Handle array fields
+        if (Array.isArray(value) && value.length > 0) {
+          value = value[0];
+        }
 
-  // Basic Location extraction (AI will refine formatting)
-  if (/city|locality/.test(text))
-    return student.jobPreferences?.preferredCities?.[0] || '';
-  if (/country/.test(text))
-    return student.jobPreferences?.preferredCountries?.[0] || '';
+        // Handle defaults
+        if (!value && mapping.default !== undefined) {
+          value = mapping.default;
+        }
+
+        return value || '';
+      }
+    }
+  }
 
   return '';
 }
-
-/* ============================================================
-   OPTION MATCHER
-   ============================================================ */
 
 function pickOption(options = [], value) {
   if (!options.length || !value) return value;
@@ -110,8 +240,44 @@ function pickOption(options = [], value) {
   return (
     options.find((o) => String(o).toLowerCase() === v) ||
     options.find((o) => String(o).toLowerCase().includes(v)) ||
-    options[0]
+    options[0] ||
+    value
   );
+}
+
+/* ============================================================
+   AI PROMPT BUILDER (IMPROVED)
+   ============================================================ */
+
+function buildAIPrompt(student, aiTargetInputs) {
+  return `
+    You are an AI assistant that fills form fields accurately.
+    
+    STUDENT DATA:
+    ${JSON.stringify(student, null, 2)}
+    
+    FORM FIELDS TO FILL:
+    ${JSON.stringify(
+      aiTargetInputs.map((i) => ({
+        key: i.inputKey,
+        label: i.label,
+        type: i.type,
+      })),
+      null,
+      2,
+    )}
+    
+    INSTRUCTIONS:
+    1. Return ONLY valid JSON, no other text
+    2. Format: { "outputs": [{ "inputKey": "exact key from field", "value": "formatted value" }] }
+    3. Use Title Case for names, cities, countries
+    4. Convert countries to demonyms (India -> Indian)
+    5. For EEO fields, leave empty unless data is explicitly provided
+    6. Only fill fields that have corresponding data in student object
+    7. Extract job title from student.jobRole or skills array
+    
+    Return ONLY the JSON object.
+  `;
 }
 
 /* ============================================================
@@ -122,64 +288,63 @@ router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
   const studentId = req.user?._id;
   let { inputs } = req.body;
 
-  if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
-    return res.status(400).json({ error: 'Invalid authenticated user' });
-  }
-
-  // Handle JSON parsing for inputs
-  if (typeof inputs === 'string') {
-    try {
-      inputs = JSON.parse(inputs);
-    } catch {
-      return res.status(400).json({ error: 'Invalid inputs JSON' });
-    }
+  if (!studentId) return res.status(400).json({ error: 'User not found' });
+  if (!inputs || !Array.isArray(inputs)) {
+    return res.status(400).json({ error: 'Invalid inputs format' });
   }
 
   const studentRaw = await Student.findById(studentId).lean();
   if (!studentRaw) return res.status(404).json({ error: 'Student not found' });
 
+  console.log(studentRaw);
+
   const student = normalizeStudent(studentRaw);
+
+  console.log(student);
+
   const normalizedInputs = normalizeInputs(inputs);
 
-  /* ---------------- ENHANCED AI CALL ---------------- */
+  // First pass: deterministic resolution for all fields
+  const deterministicOutputs = new Map();
+  normalizedInputs.forEach((descriptor) => {
+    if (classifyField(descriptor) !== 'SECURITY') {
+      const value = resolveIdentityValue(descriptor, student);
+      if (value) {
+        deterministicOutputs.set(descriptor.inputKey.toLowerCase(), value);
+      }
+    }
+  });
 
+  // Second pass: AI enhancement for narrative and location fields
   let aiMap = new Map();
   try {
-    // We send Narrative fields AND location/nationality fields to AI for formatting
-    const aiTargetInputs = normalizedInputs.filter(
-      (d) =>
-        classifyField(d) === 'NARRATIVE' ||
-        /city|country|state|nationality/i.test(d.inputKey),
-    );
+    const aiTargetInputs = normalizedInputs.filter((d) => {
+      const category = classifyField(d);
+      const text = d.normalizedKey || normalizeKeyForMatching(d.inputKey);
+
+      // Include fields that need formatting or demonym conversion
+      const needsEnhancement =
+        category === 'NARRATIVE' ||
+        text.includes('country') ||
+        text.includes('city') ||
+        text.includes('state') ||
+        text.includes('nationality') ||
+        text.includes('job title') ||
+        text.includes('position');
+
+      // Only include if we don't already have a deterministic value
+      return (
+        needsEnhancement && !deterministicOutputs.has(d.inputKey.toLowerCase())
+      );
+    });
 
     if (aiTargetInputs.length) {
-      const prompt = `
-# ROLE
-You are a Professional Career Assistant. Extract and format data for a student's job application form.
-
-# DATA
-Student Profile: ${JSON.stringify(student, null, 2)}
-Target Fields: ${JSON.stringify(aiTargetInputs, null, 2)}
-
-# CONSTRAINTS
-1. ONLY use provided data. Do not hallucinate skills or dates.
-2. If data is missing for a field, return "".
-3. FORMATTING:
-   - "City", "Country", "State": Use Title Case (e.g., "new delhi" -> "New Delhi").
-   - "Nationality": Convert country to demonym (e.g., "India" -> "Indian").
-   - "Job Description": Provide a professional summary with bullet points.
-   - "CV Guidance": provide high-level instructions on what to highlight based on the student's skills.
-4. RESPONSE: Return ONLY valid JSON.
-
-# OUTPUT FORMAT
-{ "outputs": [{ "inputKey": "key", "value": "formatted value" }] }
-`;
-
+      const prompt = buildAIPrompt(student, aiTargetInputs);
       const raw = await genAI(prompt);
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
 
-      if (Array.isArray(parsed?.outputs)) {
+      if (parsed?.outputs) {
         aiMap = new Map(
           parsed.outputs.map((o) => [
             String(o.inputKey).toLowerCase(),
@@ -189,32 +354,45 @@ Target Fields: ${JSON.stringify(aiTargetInputs, null, 2)}
       }
     }
   } catch (err) {
-    console.error('AI Processing Error:', err);
+    console.error('AI Error:', err);
   }
 
-  /* ---------------- FINAL CONSOLIDATION ---------------- */
-
+  // Combine results
   const outputs = normalizedInputs.map((descriptor) => {
-    const category = classifyField(descriptor);
-    const key = descriptor.inputKey.toLowerCase();
+    const key = descriptor.inputKey;
+    const lowerKey = key.toLowerCase();
 
     let value = '';
 
-    if (category === 'SECURITY') {
-      value = '';
-    } else {
-      // AI (Formatting/Narrative) takes priority, followed by Local Resolver
-      value = aiMap.get(key) || resolveIdentityValue(descriptor, student);
+    // Priority: AI > Deterministic > Empty string
+    if (classifyField(descriptor) !== 'SECURITY') {
+      value = aiMap.get(lowerKey) || deterministicOutputs.get(lowerKey) || '';
     }
 
+    // Apply formatting
+    value = formatValue(value, descriptor.inputKey);
+
+    // Handle options
     if (Array.isArray(descriptor.options) && descriptor.options.length) {
       value = pickOption(descriptor.options, value);
     }
 
-    return { inputKey: descriptor.inputKey, value: value ?? '' };
+    return { inputKey: key, value: value ?? '' };
   });
 
-  return res.json({ studentId: student.id, outputs });
+  // Log stats for debugging
+  const filledCount = outputs.filter((o) => o.value && o.value !== '').length;
+  console.log(`Filled ${filledCount}/${outputs.length} fields`);
+
+  return res.json({
+    studentId: student.id,
+    outputs,
+    stats: {
+      total: outputs.length,
+      filled: filledCount,
+      empty: outputs.length - filledCount,
+    },
+  });
 });
 
 export default router;

@@ -24,6 +24,9 @@ import bringZobsRoutes from './routes/bringzobs.route.js';
 import notificationRoutes from './routes/notification.route.js';
 import sitemapRoutes from './routes/sitemap.js';
 import jobApplicationRoutes from './routes/jobApplication.route.js';
+import analyticsRoutes from './routes/analytics.route.js';
+import orgAnalyticsRoutes from './routes/orgAnalytics.route.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 import { startCronsRenew } from './config/renew-cron/cron.js';
 
@@ -122,6 +125,9 @@ app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/v1', sitemapRoutes);
 app.use('/api/v1/social', socialRouter);
 app.use('/api/v1/job-application', jobApplicationRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/org-analytics', orgAnalyticsRoutes);
+app.use('/api/v1/chats', chatRoutes);
 
 /* ---------------- ERRORS ---------------- */
 

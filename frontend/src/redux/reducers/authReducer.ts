@@ -35,9 +35,13 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
     },
 
-    googleLoginSuccess: (state, action: PayloadAction<{ token: string }>) => {
+    googleLoginSuccess: (
+      state,
+      action: PayloadAction<{ user: any; token: string }>,
+    ) => {
       state.loading = false;
       state.isAuthenticated = true;
+      state.user = action.payload.user;
       state.token = action.payload.token;
       state.error = null;
     },
@@ -100,7 +104,6 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.error = null;
-      localStorage.removeItem('accessToken');
     },
     logoutFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -111,10 +114,13 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    getGetMeSuccess: (state, action: PayloadAction<User>) => {
+    getGetMeSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.isAuthenticated = true;
-      state.user = action.payload;
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      // IMPORTANT: We do NOT touch state.token here, so it stays persisted
+      state.error = null;
     },
     getGetMeFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

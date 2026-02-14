@@ -15,12 +15,13 @@ export const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
   const router = useRouter();
   const { user, logout } = useAuthStore();
 
+  
+
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;
 
   const dpProfile = user.fullName?.charAt(0).toUpperCase();
-  console.log('user', user);
 
   const handleLogout = () => {
     logout();
@@ -43,12 +44,19 @@ export const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
           className="relative outline-none"
         >
           {/* PROFILE BUTTON */}
-          <button
-            onClick={() => setIsDropdownOpen((v) => !v)}
-            className="text-xl font-bold bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center focus:outline-none cursor-pointer"
-          >
-            {dpProfile}
-          </button>
+
+          <div className="flex gap-2 justify-center  items-center">
+            <span className="font-semibold animate-in fade-in slide-in-from-right-4 duration-600">
+              {' '}
+              {user.fullName}
+            </span>
+            <button
+              onClick={() => setIsDropdownOpen((v) => !v)}
+              className="text-xl font-bold bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center focus:outline-none cursor-pointer"
+            >
+              {dpProfile}
+            </button>
+          </div>
 
           {/* dropdown  */}
           {isDropdownOpen && (

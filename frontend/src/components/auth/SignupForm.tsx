@@ -48,6 +48,7 @@ import { verifyEmailRequest } from '@/redux/reducers/authReducer';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
+import { getToken } from '@/hooks/useToken';
 
 // Zod Schema
 const signupFormSchema = z
@@ -124,7 +125,7 @@ const SignupForm = () => {
       setStoredEmail(pendingEmail);
       setSignupSuccess(true);
     }
-    const token = Cookies.get('accessToken');
+    const token = getToken();
     // If user is already logged in via cookie, redirect
     if (token) {
       router.push('/dashboard');

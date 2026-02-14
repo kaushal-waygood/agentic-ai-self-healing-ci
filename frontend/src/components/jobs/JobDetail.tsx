@@ -40,6 +40,7 @@ import {
 import { JobListing } from '@/lib/data/jobs';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { divide, set } from 'lodash';
+import { getToken } from '@/hooks/useToken';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -93,10 +94,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   // token lookup (SSR-safe)
   useEffect(() => {
     try {
-      const accessToken =
-        (typeof window !== 'undefined' &&
-          window.localStorage?.getItem('accessToken')) ||
-        getCookie('accessToken');
+      const accessToken = getToken();
       setToken(accessToken || undefined);
     } catch {
       setToken(undefined);
@@ -612,7 +610,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   >
                     <div className="relative flex items-center justify-center gap-2">
                       <ExternalLink className="w-5 h-5" />
-                      <span>Company Site</span>
+                      <span>Apply on Company Site</span>
                     </div>
                   </Link>
                 </Button>

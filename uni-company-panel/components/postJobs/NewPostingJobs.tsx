@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -37,13 +36,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Loader2,
   Building2,
-  MapPin,
   Banknote,
-  FileText,
-  Globe,
-  Mail,
   Sparkles,
-  ClipboardList,
   FileUp,
   PenTool,
   ArrowRight,
@@ -52,14 +46,15 @@ import {
   MessageSquare,
   Plus,
   Trash2,
-  Briefcase,
-  DollarSign,
+  Mail, 
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 import { useJobStore } from '@/store/job.store';
 import PreviewModal from './PreviewModal';
 import { toast } from 'sonner';
+import { useOrganisationStore } from '@/store/organisation.store';
+import { useAuthStore } from '@/store/auth.store';
 
 const QuillJs = dynamic(() => import('@/components/rich-text/QuillJs'), {
   ssr: false,
@@ -176,26 +171,17 @@ const STEPS = [
       'contractLengthValue',
     ],
   },
-  // {
-  //   id: 2,
-  //   name: 'Screening',
-  //   icon: ClipboardList,
-  //   fields: [
-  //     'applyEmail',
-  //     'includeAssignment',
-  //     'assignmentQuestion',
-  //     'assignmentFile',
-  //   ],
-  // },
 ];
 
 const NewJobPost = () => {
-  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { mannualPostJob, rewriteJobDescriptionWithAI, loading } =
     useJobStore();
 
+  const { user } = useAuthStore();
+
+  console.log(user);
   const [editorKey, setEditorKey] = useState(0);
 
   const THEME = {
@@ -216,8 +202,8 @@ const NewJobPost = () => {
     defaultValues: {
       title: '',
       description: '',
-      company: '',
-      applyEmail: '',
+      company: user?.fullName,
+      applyEmail: user?.email,
       jobType: 'FULL_TIME',
       contractLengthValue: 0,
       contractLengthType: 'MONTHS',
@@ -249,6 +235,12 @@ const NewJobPost = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewPayload, setPreviewPayload] = useState<any>(null); // Store the final formatted data here
 
+  useEffect(() => {
+    if (user?.fullName && !form.getValues('company')) {
+      form.setValue('company', user.fullName);
+    }
+  }, [user, form]);
+
   // --- Navigation Logic ---
   const handleNext = async () => {
     const fields = STEPS[currentStep].fields;
@@ -269,94 +261,18 @@ const NewJobPost = () => {
   const splitLines = (value?: string | null) =>
     value
       ? value
-          .split('\n')
-          .map((s) => s.trim())
-          .filter(Boolean)
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
       : [];
 
   const splitTags = (value?: string | null) =>
     value
       ? value
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
       : [];
-
-  // const onSubmit = async (data: JobFormType) => {
-  //   setIsSubmitting(true);
-  //   try {
-  //     const finalPayload: any = {
-  //       title: data.title,
-  //       description: data.description,
-  //       company: data.company,
-  //       applyMethod: { method: 'EMAIL', emails: [data.applyEmail] },
-  //       jobTypes: [data.jobType],
-  //       contractLength:
-  //         data.jobType === 'CONTRACT'
-  //           ? {
-  //               value: data.contractLengthValue,
-  //               type: data.contractLengthType,
-  //             }
-  //           : null,
-  //       salary: {
-  //         min: data.salaryMin,
-  //         max: data.salaryMax,
-  //         period: data.salaryPeriod,
-  //       },
-  //       jobAddress: !data.remote
-  //         ? `${data.city}${data.state ? ', ' + data.state : ''}, ${
-  //             data.country
-  //           }`
-  //         : null,
-  //       country: data.country,
-  //       resumeRequiblue: data.resumeRequiblue,
-  //       remote: data.remote,
-  //       location: data.remote
-  //         ? null
-  //         : {
-  //             city: data.city,
-  //             state: data.state || '',
-  //             postalCode: data.postalCode || '',
-  //           },
-  //       responsibilities: splitLines(data.responsibilities),
-  //       qualifications: splitLines(data.qualifications),
-  //       experience: splitLines(data.experience),
-  //       tags: splitTags(data.tags),
-  //       screeningQuestions: data.screeningQuestions,
-  //       assignment: data.includeAssignment
-  //         ? {
-  //             isEnabled: true,
-  //             type: data.assignmentType,
-  //             content:
-  //               data.assignmentType === 'MANUAL'
-  //                 ? data.assignmentQuestion
-  //                 : 'File Attached',
-  //           }
-  //         : null,
-  //     };
-
-  // if (data.includeAssignment) {
-  //   finalPayload.assignment = {
-  //     isEnabled: true,
-  //     type: data.assignmentType,
-  //     content:
-  //       data.assignmentType === 'MANUAL'
-  //         ? data.assignmentQuestion
-  //         : 'File Attached',
-  //   };
-  //   // File upload logic here if needed
-  // }
-
-  //     console.log('Payload:', finalPayload);
-  //     // mannualPostJob(finalPayload);
-  //     toast.success('Job posted successfully!');
-  //   } catch (error) {
-  //     console.error(error);
-  //     toast.error('Failed to post job.');
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
 
   // This replaces your current onSubmit
   const handlePreview = (data: JobFormType) => {
@@ -370,9 +286,9 @@ const NewJobPost = () => {
       contractLength:
         data.jobType === 'CONTRACT'
           ? {
-              value: data.contractLengthValue,
-              type: data.contractLengthType,
-            }
+            value: data.contractLengthValue,
+            type: data.contractLengthType,
+          }
           : null,
       salary: {
         min: data.salaryMin,
@@ -383,15 +299,15 @@ const NewJobPost = () => {
         ? `${data.city}${data.state ? ', ' + data.state : ''}, ${data.country}`
         : null,
       country: data.country,
-      resumeRequiblue: data.resumeRequiblue, // Kept your variable name
+      resumeRequiblue: data.resumeRequiblue,
       remote: data.remote,
       location: data.remote
         ? null
         : {
-            city: data.city,
-            state: data.state || '',
-            postalCode: data.postalCode || '',
-          },
+          city: data.city,
+          state: data.state || '',
+          postalCode: data.postalCode || '',
+        },
       responsibilities: splitLines(data.responsibilities),
       qualifications: splitLines(data.qualifications),
       experience: splitLines(data.experience),
@@ -399,13 +315,13 @@ const NewJobPost = () => {
       screeningQuestions: data.screeningQuestions,
       assignment: data.includeAssignment
         ? {
-            isEnabled: true,
-            type: data.assignmentType,
-            content:
-              data.assignmentType === 'MANUAL'
-                ? data.assignmentQuestion
-                : 'File Attached',
-          }
+          isEnabled: true,
+          type: data.assignmentType,
+          content:
+            data.assignmentType === 'MANUAL'
+              ? data.assignmentQuestion
+              : 'File Attached',
+        }
         : null,
     };
 
@@ -432,8 +348,10 @@ const NewJobPost = () => {
     setIsSubmitting(true);
     try {
       console.log('Publishing Payload:', previewPayload);
-      // await mannualPostJob(previewPayload);
+      await mannualPostJob(previewPayload);
       toast.success('Job posted successfully!');
+      form.reset();
+      setCurrentStep(0);
       setIsPreviewOpen(false); // Close modal on success
       // Optional: Redirect or reset form here
     } catch (error) {
@@ -521,13 +439,12 @@ const NewJobPost = () => {
               <div
                 className={`
               w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all
-              ${
-                currentStep === idx
-                  ? 'bg-blue-500 text-white shadow-md scale-110'
-                  : currentStep > idx
-                    ? 'bg-green-100 text-green-500'
-                    : 'bg-slate-100 text-slate-400'
-              }
+              ${currentStep === idx
+                    ? 'bg-blue-500 text-white shadow-md scale-110'
+                    : currentStep > idx
+                      ? 'bg-green-100 text-green-500'
+                      : 'bg-slate-100 text-slate-400'
+                  }
             `}
               >
                 {currentStep > idx ? (
@@ -552,7 +469,7 @@ const NewJobPost = () => {
           />
         </div>
 
-        <CardHeader className=" ">
+        {/* <CardHeader className=" ">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 text-blue-500 rounded-lg">
               <CurrentIcon className="w-6 h-6" />
@@ -564,6 +481,38 @@ const NewJobPost = () => {
               <CardDescription>
                 Please fill in the details below.
               </CardDescription>
+            </div>
+          </div>
+        </CardHeader> */}
+        <CardHeader className=" ">
+          <div className="flex items-center justify-between w-full">
+            {/* LEFT SIDE: Step Info */}
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-blue-100 text-blue-500 rounded-lg">
+                <CurrentIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-bold text-gray-800">
+                  {STEPS[currentStep].name}
+                </CardTitle>
+                <CardDescription>
+                  Please fill in the details below.
+                </CardDescription>
+              </div>
+            </div>
+
+            {/* RIGHT SIDE: Company Info */}
+            <div className="text-right">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-gray-400" />
+                <div className="text-sm font-semibold text-gray-900 capitalize">
+                  {form.getValues('company') || user?.fullName || 'Your Company'}
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 flex items-center gap-1 justify-end mt-1">
+                <Mail className="w-3 h-3 text-gray-400" />
+                {form.getValues('applyEmail') || user?.email || 'email@company.com'}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -596,7 +545,7 @@ const NewJobPost = () => {
                             </FormItem>
                           )}
                         />
-                        <FormField
+                        {/* <FormField
                           control={form.control}
                           name="company"
                           render={({ field }) => (
@@ -606,8 +555,29 @@ const NewJobPost = () => {
                                 <Input
                                   placeholder="e.g. Acme Inc."
                                   {...field}
+                                  disabled
                                   className={THEME.inputFocus}
                                 />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        /> */}
+
+                        <FormField
+                          control={form.control}
+                          name="applyEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Recruiter Email *</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    {...field}
+                                    className={` ${THEME.inputFocus}`}
+                                    disabled
+                                  />
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -647,9 +617,8 @@ const NewJobPost = () => {
                                   <FormControl>
                                     <Input
                                       {...field}
-                                      className="bg-white"
+                                      className={`bg-white ${THEME.inputFocus}`}
                                       placeholder="New York"
-                                      className={THEME.inputFocus}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -665,9 +634,8 @@ const NewJobPost = () => {
                                   <FormControl>
                                     <Input
                                       {...field}
-                                      className="bg-white"
+                                      className={`bg-white ${THEME.inputFocus}`}
                                       placeholder="USA"
-                                      className={THEME.inputFocus}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -729,7 +697,7 @@ const NewJobPost = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 space-y-6  animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8   animate-in fade-in slide-in-from-right-4 duration-300">
                     <FormField
                       control={form.control}
                       name="responsibilities"
@@ -922,25 +890,6 @@ const NewJobPost = () => {
 
                   {/* 1. BASIC SETTINGS */}
                   <div className="flex flex-wrap justify-start gap-4">
-                    <FormField
-                      control={form.control}
-                      name="applyEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Recruiter Email *</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                className={` ${THEME.inputFocus}`}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                       control={form.control}
                       name="resumeRequiblue"

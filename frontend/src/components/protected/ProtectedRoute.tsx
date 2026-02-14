@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { getToken } from '@/hooks/useToken';
 
 // Helper function to get cookie value by name
 function getCookie(name: string): string | null {
@@ -45,8 +46,7 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     const checkAuth = () => {
-      const accessToken = localStorage.getItem('accessToken');
-
+      const accessToken = getToken();
       if (accessToken && isTokenValid(accessToken)) {
         setAuthStatus('authenticated');
       } else {

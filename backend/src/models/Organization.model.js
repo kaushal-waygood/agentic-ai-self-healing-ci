@@ -41,8 +41,15 @@ const organizationSchema = new Schema(
         type: String,
         maxlength: 1000,
       },
-
-      address: { type: String },
+      // address: { type: String },
+      address: {
+        type: {
+          country: { type: String, default: '' },
+          state: { type: String, default: '' },
+          city: { type: String, default: '' }
+        },
+        default: () => ({ country: '', state: '', city: '' })
+      },
 
       logo: { type: String },
     },

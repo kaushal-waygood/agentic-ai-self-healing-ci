@@ -34,7 +34,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(true);
-  const [isPinned, setPinned] = useState(false);
+  const [isPinned, setPinned] = useState(true);
 
   const toggle = () => setIsOpen((v) => !v);
 

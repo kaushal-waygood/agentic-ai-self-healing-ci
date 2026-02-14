@@ -297,8 +297,6 @@ export const createAutopilotAgent = async (req, res) => {
       });
     }
 
-    console.log('req.body', req.body);
-
     const agentName = String(req.body.agentName).trim();
     const jobTitle = String(req.body.jobTitle).trim();
     const employmentType = req.body.employmentTypes;

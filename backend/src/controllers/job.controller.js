@@ -187,6 +187,19 @@ async function generateJobDescriptionService(jd, org) {
 
 // -------Controllers-------
 
+export const getAllAppliedJobList = async (req, res) => {
+  const { _id: studentId } = req.user;
+  const appliedJobs = await AppliedJob.find({ student: studentId })
+    .populate('job')
+    .lean()
+    .exec();
+
+  return res.status(200).json({
+    success: true,
+    appliedJobs,
+  });
+};
+
 export const searchJobs = async (req, res) => {
   const {
     q,
@@ -496,8 +509,6 @@ export const searchJobs = async (req, res) => {
 
 export const postManualJob = async (req, res) => {
   const { organization: organizationId } = req.user;
-
-  console.log('organization', organizationId);
 
   try {
     if (!organizationId) {
@@ -916,8 +927,6 @@ export const generateJobDescription = async (req, res) => {
       'profile contactInfo',
     );
 
-    console.log(org);
-
     if (!org) {
       return res.status(404).json({
         success: false,
@@ -942,6 +951,7 @@ export const generateJobDescription = async (req, res) => {
 
 export const getHostedJobsByAdmin = async (req, res) => {
   const { organization } = req.user;
+  const { status } = req.query;
 
   if (!organization) {
     return res.status(400).json({
@@ -950,33 +960,56 @@ export const getHostedJobsByAdmin = async (req, res) => {
     });
   }
 
+  let query = {
+    organizationId: organization,
+    origin: 'HOSTED',
+  };
+
+  if (status === 'total') {
+    delete query.status;
+  } else if (status === 'active') {
+    query.status = 'ACTIVE';
+  } else if (status === 'inactive') {
+    query.status = 'INACTIVE';
+  }
+
   try {
     const organizationId = new mongoose.Types.ObjectId(organization);
-    const cacheKey = `jobs:hosted:v2:${organizationId}`;
 
-    // 1. Fetch Jobs (from Cache or DB)
-    // const jobs = await redisClient.withCache(cacheKey, 3600, async () => {
-    //   return Job.find({
-    //     organizationId,
-    //     origin: 'HOSTED',
-    //   })
-    //     .sort({ createdAt: -1 })
-    //     .lean();
-    // });
+    console.log('QUERY', query);
 
-    const jobs = await Job.find({
-      organizationId,
-      origin: 'HOSTED',
-    })
-      .sort({ createdAt: -1 })
-      .lean();
+    // pagination params
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
 
-    if (!jobs || !jobs.length) {
-      return res.status(200).json({ success: true, jobs: [] });
+    // 1. total count
+    const totalCount = await Job.countDocuments(query);
+
+    if (totalCount === 0) {
+      return res.status(200).json({
+        data: [],
+        meta: {
+          totalCount: 0,
+          totalPages: 0,
+          currentPage: page,
+          limit,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      });
     }
 
-    // 2. Aggregate Interactions
+    // 2. fetch paginated jobs
+    const jobs = await Job.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
     const jobIds = jobs.map((j) => j._id);
+
+    // 3. aggregate interactions
     const interactionCounts = await JobInteraction.aggregate([
       {
         $match: {
@@ -992,18 +1025,20 @@ export const getHostedJobsByAdmin = async (req, res) => {
       },
     ]);
 
-    // 3. Build Interaction Map
+    // 4. build interaction map
     const interactionMap = {};
 
     for (const row of interactionCounts) {
-      // Normalize ID to string to ensure keys match
       const jobId = row._id.job.toString();
 
       if (!interactionMap[jobId]) {
-        interactionMap[jobId] = { impressions: 0, views: 0, applied: 0 };
+        interactionMap[jobId] = {
+          impressions: 0,
+          views: 0,
+          applied: 0,
+        };
       }
 
-      // FIXED: Removed the 'return' keywords
       if (row._id.type === 'IMPRESSION') {
         interactionMap[jobId].impressions = row.count;
       } else if (row._id.type === 'VIEW') {
@@ -1013,32 +1048,123 @@ export const getHostedJobsByAdmin = async (req, res) => {
       }
     }
 
-    // 4. Merge Analytics into Job Objects
-    const jobsWithAnalytics = jobs.map((job) => {
+    // 5. merge analytics + normalize id
+    const data = jobs.map((job) => {
       const idStr = job._id.toString();
       const stats = interactionMap[idStr];
 
       return {
+        id: idStr,
         ...job,
+        _id: undefined, // optional: remove Mongo _id
         impressions: stats?.impressions ?? 0,
         jobViews: stats?.views ?? 0,
         appliedCount: stats?.applied ?? 0,
       };
     });
 
+    const totalPages = Math.ceil(totalCount / limit);
+
     return res.status(200).json({
-      success: true,
-      jobs: jobsWithAnalytics,
+      data,
+      meta: {
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (err) {
     console.error('Error in getHostedJobsByAdmin:', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Internal Server Error' });
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
   }
 };
 
-export const getHostedJobCandidates = async (req, res) => {
+export const candidatesOrganization = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const { jobId } = req.params;
+
+    if (!organization) {
+      return res.status(400).json({
+        success: false,
+        message: 'Organization not found on user',
+      });
+    }
+
+    const candidates = await Organization.find({
+      organizationId: organization,
+      jobId,
+    }).select('_id');
+
+    console.log(candidates);
+
+    return res.status(200).json({
+      success: true,
+      candidates,
+    });
+  } catch (error) {
+    console.error('Error in candidatesOrganization:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+};
+
+export const deleteJobByAdmin = async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const { organization } = req.user;
+
+    const deletedJob = await Job.findOneAndDelete({
+      _id: jobId,
+      organizationId: organization,
+    });
+
+    if (!deletedJob) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Job deleted successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting job',
+      error: error.message,
+    });
+  }
+};
+
+export const bulkDeleteJobsByAdmin = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const { organization } = req.user;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'No job IDs provided' });
+    }
+
+    await Job.deleteMany({ _id: { $in: ids }, organizationId: organization });
+
+    res.status(200).json({
+      success: true,
+      message: `${ids.length} jobs deleted successfully`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getJobCandidateStats = async (req, res) => {
   const { jobId } = req.params;
   const { organization } = req.user;
 
@@ -1047,64 +1173,118 @@ export const getHostedJobCandidates = async (req, res) => {
       slug: jobId,
       organizationId: organization,
     }).select('_id');
+    if (!job) return res.status(404).json({ message: 'Job not found' });
 
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found or unauthorized access',
-      });
-    }
+    // Efficiently count all statuses in one aggregation call
+    const stats = await AppliedJob.aggregate([
+      { $match: { job: job._id } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          shortlisted: {
+            $sum: { $cond: [{ $eq: ['$status', 'SHORTLISTED'] }, 1, 0] },
+          },
+          selected: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['SELECTED', 'HIRED']] }, 1, 0],
+            },
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ['$status', 'REJECTED'] }, 1, 0] },
+          },
+        },
+      },
+    ]);
 
-    const applications = await AppliedJob.find({ job: job._id })
-      .populate({
-        path: 'student',
-        select: 'fullName email profilePicture university graduationYear phone',
-      })
+    const defaultStats = { total: 0, shortlisted: 0, selected: 0, rejected: 0 };
+
+    console.log(defaultStats);
+
+    return res.status(200).json(stats[0] || defaultStats);
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+export const getHostedJobCandidates = async (req, res) => {
+  const { jobId } = req.params;
+  const { organization } = req.user;
+  const { page = 1, limit = 10, status } = req.query;
+
+  try {
+    const job = await Job.findOne({
+      slug: jobId,
+      organizationId: organization,
+    }).select('_id');
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    // Build filter
+    const query = { job: job._id };
+    if (status) query.status = status;
+
+    const skip = (Math.max(page, 1) - 1) * limit;
+    const totalCount = await AppliedJob.countDocuments(query);
+
+    const applications = await AppliedJob.find(query)
+      .populate(
+        'student',
+        'fullName email profilePicture university graduationYear phone',
+      )
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
     return res.status(200).json({
-      success: true,
-      count: applications.length,
-      candidates: applications.map((app) => ({
-        applicationId: app._id,
-        status: app.status,
-        applicationMethod: app.applicationMethod,
-        appliedAt: app.createdAt,
-        cvLink: app.cvLink,
-        coverLetterLink: app.coverLetterLink,
-        screeningAnswers: app.screeningAnswers,
-        student: app.student,
-      })),
+      data: applications,
+      meta: {
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        currentPage: Number(page),
+      },
     });
   } catch (error) {
-    console.error('Error in getHostedJobCandidates:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal Server Error',
-    });
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
 export const updateJobDescription = async (req, res) => {
   const { jobId } = req.params;
-  const { description } = req.body;
+  const {
+    description,
+    jobTypes,
+    title,
+    salary,
+    remote,
+    location,
+    resumeRequired,
+    responsibilities,
+    qualifications,
+    screeningQuestions,
+  } = req.body;
+
+  console.log('resumeRequired', resumeRequired);
 
   try {
-    if (!description || typeof description !== 'string') {
-      return res.status(400).json({
-        success: false,
-        message: 'Description is required',
-      });
-    }
-
     const job = await Job.findById(jobId);
     if (!job) {
       return res.status(404).json({ success: false, message: 'Job not found' });
     }
 
     // 1. Update MongoDB
-    job.description = description;
+    job.description = description || job.description;
+    job.jobTypes = jobTypes || job.jobTypes;
+    job.title = title || job.title;
+    job.salary = salary || job.salary;
+    job.remote = remote ?? job.remote;
+    job.location = location || job.location;
+    job.resumeRequired = resumeRequired ?? job.resumeRequired;
+    job.responsibilities = responsibilities || job.responsibilities;
+    job.qualifications = qualifications || job.qualifications;
+    job.screeningQuestions = screeningQuestions || job.screeningQuestions;
+
+    console.log('job', job);
     await job.save();
 
     // 2. 🔥 Invalidate ALL job-related caches (single + lists)
@@ -1121,6 +1301,339 @@ export const updateJobDescription = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
+    });
+  }
+};
+
+export const jobStats = async (req, res) => {
+  const { organization } = req.user; // From your auth middleware
+  const { jobId } = req.params;
+
+  try {
+    // 1. Security Check: Ensure this job actually belongs to the user's organization
+    const jobExists = await Job.findOne({
+      _id: jobId,
+      organizationId: organization,
+    });
+
+    if (!jobExists) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied or job not found',
+      });
+    }
+
+    // 2. Aggregate interactions for this specific job
+    const stats = await JobInteraction.aggregate([
+      {
+        $match: {
+          job: jobExists._id, // Filter by this specific job ID
+        },
+      },
+      {
+        $group: {
+          totalViews: {
+            $sum: { $cond: [{ $eq: ['$type', 'VIEW'] }, 1, 0] },
+          },
+          totalApplications: {
+            $sum: { $cond: [{ $eq: ['$type', 'APPLIED'] }, 1, 0] },
+          },
+          totalImpressions: {
+            $sum: { $cond: [{ $eq: ['$type', 'IMPRESSION'] }, 1, 0] },
+          },
+          totalSaves: {
+            $sum: { $cond: [{ $eq: ['$type', 'SAVED'] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    // 3. Prepare the response
+    const result = stats[0] || {
+      totalViews: 0,
+      totalApplications: 0,
+      totalImpressions: 0,
+      totalSaves: 0,
+    };
+
+    res.status(200).json({
+      success: true,
+      jobTitle: jobExists.title, // Helpful for the frontend
+      stats: {
+        views: result.totalViews,
+        applications: result.totalApplications,
+        impressions: result.totalImpressions,
+        saves: result.totalSaves,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching job stats:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const getCandidatesByOrganization = async (req, res) => {
+  try {
+    const { organization } = req.user;
+
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
+    const skip = (page - 1) * limit;
+
+    const result = await AppliedJob.aggregate([
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'job',
+          foreignField: '_id',
+          as: 'jobDetails',
+        },
+      },
+      { $unwind: '$jobDetails' },
+      {
+        $match: {
+          'jobDetails.organizationId': new mongoose.Types.ObjectId(
+            organization,
+          ),
+        },
+      },
+
+      {
+        $lookup: {
+          from: 'students',
+          localField: 'student',
+          foreignField: '_id',
+          as: 'studentDetails',
+        },
+      },
+      { $unwind: '$studentDetails' },
+
+      { $sort: { applicationDate: -1 } },
+
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 1,
+                fullName: '$studentDetails.fullName',
+                email: '$studentDetails.email',
+                status: 1,
+                applicationDate: 1,
+                cvLink: 1,
+                screeningAnswers: 1,
+                jobTitle: '$jobDetails.title',
+                candidateName: '$studentDetails.name',
+                candidateEmail: '$studentDetails.email',
+                studentId: '$studentDetails._id',
+                appliedAt: '$createdAt',
+                jobTitle: '$jobDetails.title',
+                jobId: '$jobDetails._id',
+                jobSlug: '$jobDetails.slug',
+                jobType: '$jobDetails.type',
+              },
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ]);
+
+    const data = result[0]?.data || [];
+    const totalCount = result[0]?.totalCount[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.status(200).json({
+      success: true,
+      data,
+      meta: {
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getOrganizationCandidateStats = async (req, res) => {
+  try {
+    const { organization } = req.user;
+
+    const stats = await AppliedJob.aggregate([
+      // 1. Join with Jobs to filter by Organization
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'job',
+          foreignField: '_id',
+          as: 'jobInfo',
+        },
+      },
+      { $unwind: '$jobInfo' },
+      {
+        $match: {
+          'jobInfo.organizationId': new mongoose.Types.ObjectId(organization),
+        },
+      },
+
+      // 2. Group by status to get counts
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // 3. Format the data into a clean object for the frontend
+    const formattedStats = {
+      TOTAL: 0,
+      APPLIED: 0,
+      INTERVIEW: 0,
+      ACCEPTED: 0,
+      REJECTED: 0,
+      CANCELED: 0,
+    };
+
+    stats.forEach((item) => {
+      formattedStats[item._id] = item.count;
+      formattedStats.TOTAL += item.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: formattedStats,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getOrganizationJobStats = async (req, res) => {
+  try {
+    const { organization } = req.user;
+    const orgId = new mongoose.Types.ObjectId(organization);
+
+    /* ============================
+       JOB STATS
+    ============================ */
+    const jobStats = await Job.aggregate([
+      { $match: { organizationId: orgId } },
+      {
+        $group: {
+          _id: '$isActive',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const jobs = {
+      TOTAL: 0,
+      ACTIVE: 0,
+      INACTIVE: 0,
+    };
+
+    jobStats.forEach((j) => {
+      if (j._id === true) jobs.ACTIVE = j.count;
+      if (j._id === false) jobs.INACTIVE = j.count;
+      jobs.TOTAL += j.count;
+    });
+
+    /* ============================
+       APPLIED JOB STATS
+    ============================ */
+    const appliedStats = await AppliedJob.aggregate([
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'job',
+          foreignField: '_id',
+          as: 'job',
+        },
+      },
+      { $unwind: '$job' },
+      { $match: { 'job.organizationId': orgId } },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const applications = {
+      TOTAL: 0,
+      APPLIED: 0,
+      ACCEPTED: 0,
+      REJECTED: 0,
+      INTERVIEW: 0,
+      CANCELED: 0,
+    };
+
+    appliedStats.forEach((a) => {
+      applications[a._id] = a.count;
+      applications.TOTAL += a.count;
+    });
+
+    /* ============================
+       INTERACTION STATS
+    ============================ */
+    const interactionStats = await JobInteraction.aggregate([
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'job',
+          foreignField: '_id',
+          as: 'job',
+        },
+      },
+      { $unwind: '$job' },
+      { $match: { 'job.organizationId': orgId } },
+      {
+        $group: {
+          _id: '$type',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const interactions = {
+      VIEW: 0,
+      SAVED: 0,
+      VISIT: 0,
+      APPLIED: 0,
+      IMPRESSION: 0,
+    };
+
+    interactionStats.forEach((i) => {
+      interactions[i._id] = i.count;
+    });
+
+    /* ============================
+       FINAL RESPONSE
+    ============================ */
+    res.status(200).json({
+      success: true,
+      data: {
+        jobs,
+        applications,
+        interactions,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
@@ -1273,6 +1786,7 @@ export const getAllExperiences = async (req, res) => {
 
 export const toggleJobStatus = async (req, res) => {
   const { jobId } = req.params;
+
   try {
     const job = await Job.findById(jobId);
     if (!job) return res.status(404).json({ message: 'Job not found' });
@@ -1588,9 +2102,7 @@ export const applyJob = async (req, res) => {
     // 2. Handle Screening Questions
     for (const q of job.screeningQuestions) {
       const questionKey = q._id.toString();
-      console.log(questionKey);
       const value = answers[questionKey]; // This now correctly looks up the ID in the object
-      console.log(value);
       if (q.required && !value) {
         return res
           .status(400)
