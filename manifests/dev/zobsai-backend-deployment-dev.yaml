@@ -11,6 +11,7 @@ metadata:
     app: zobsai-backend
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:  
       app: zobsai-backend
@@ -23,7 +24,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend
-          image: ghcr.io/zobsai-com/zobsai-backend:8f7788852f3c0fd28330d6ca67e07b9fcdb146ab
+          image: ghcr.io/zobsai-com/zobsai-backend:9b8f9fb8d0ddda71de2e6bb1a183af2cfb8c8b34
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -42,7 +43,7 @@ spec:
   selector:
     app: zobsai-backend
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 80
+      targetPort: 80
       nodePort: 30050
   type: NodePort
