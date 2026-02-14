@@ -42,16 +42,6 @@ spec:
                 port:
                   number: 3000
 
-    # Backend (dev API)
-    - host: api.dev.zobsai.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: zobsai-backend
-                port:
-                  number: 8080
+
 
 
