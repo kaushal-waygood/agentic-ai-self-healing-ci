@@ -55,27 +55,6 @@ const CandidatesPage = () => {
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
-      // {
-      //   id: 'select',
-      //   header: ({ table }) => (
-      //     <div className="flex justify-center px-1">
-      //       <Checkbox
-      //         checked={table.getIsAllPageRowsSelected()}
-      //         onCheckedChange={(value) =>
-      //           table.toggleAllPageRowsSelected(!!value)
-      //         }
-      //       />
-      //     </div>
-      //   ),
-      //   cell: ({ row }) => (
-      //     <div className="flex justify-center px-1">
-      //       <Checkbox
-      //         checked={row.getIsSelected()}
-      //         onCheckedChange={(value) => row.toggleSelected(!!value)}
-      //       />
-      //     </div>
-      //   ),
-      // },
       {
         id: 'serialNumber',
         header: 'S.No',
@@ -216,7 +195,9 @@ const CandidatesPage = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
 
-    // 4. Trigger download
+    // 4. Trigger download (client-side only)
+    if (typeof window === 'undefined') return;
+
     const link = document.createElement('a');
     link.setAttribute('href', encodeURI(csvContent));
     const fileName = `candidates_export_${new Date().toISOString().split('T')[0]}.csv`;
