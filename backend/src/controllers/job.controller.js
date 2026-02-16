@@ -1666,6 +1666,7 @@ export const getJobFromJobId = async (req, res) => {
 
 export const getSingleJobDetail = async (req, res) => {
   const { jobId } = req.params;
+  console.log(jobId);
 
   try {
     const cacheKey = `job:${jobId}`;
@@ -1675,12 +1676,6 @@ export const getSingleJobDetail = async (req, res) => {
 
       if (mongoose.isValidObjectId(jobId)) {
         foundJob = await Job.findById(jobId).select('-queries').lean();
-      }
-
-      if (!foundJob) {
-        foundJob = await Job.findOne({ jobId: jobId })
-          .select('-queries')
-          .lean();
       }
 
       if (!foundJob) {

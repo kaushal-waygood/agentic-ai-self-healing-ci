@@ -108,11 +108,11 @@ export const AppSidebarContent = ({
         icon: Search,
         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
       },
-      {
-        title: 'Chat',
-        href: '/dashboard/chat',
-        icon: BotMessageSquare,
-      },
+      // {
+      //   title: 'Chat',
+      //   href: '/dashboard/chat',
+      //   icon: BotMessageSquare,
+      // },
 
       {
         title: 'AI CV Generator',
