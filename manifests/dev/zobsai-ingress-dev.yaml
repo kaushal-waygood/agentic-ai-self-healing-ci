@@ -4,7 +4,8 @@ metadata:
   name: zobsai-ingress-dev
   namespace: dev-zobsai
   annotations:
-    kubernetes.io/ingress.class: traefik
+   # kubernetes.io/ingress.class: traefik
+    ingressClassName: traefik
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     cert-manager.io/cluster-issuer: letsencrypt-prod # <-- switch to prod after testing
     traefik.ingress.kubernetes.io/router.tls: 'true'
@@ -52,5 +53,4 @@ spec:
                 name: zobsai-backend
                 port:
                   number: 8080
-
 
