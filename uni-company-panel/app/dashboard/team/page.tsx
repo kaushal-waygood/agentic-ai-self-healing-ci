@@ -178,7 +178,6 @@ export default function TeamPage() {
   };
 
   const onInviteSubmit = async (data: any) => {
-    console.log(currentCompany, data);
     if (!currentCompany?._id) {
       return toast.error('No active organization found.');
     }

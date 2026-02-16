@@ -25,12 +25,16 @@ import {
   verifyEmailRequest,
   verifyEmailSuccess,
   verifyEmailFailure,
+  loginHistoryRequest,
+  loginHistorySuccess,
+  loginHistoryFailure,
 } from '../reducers/authReducer';
 import {
   changePassword,
   getMe,
   getProfile,
   login,
+  loginHistory,
   logout,
   signup,
   verifyEmail,
@@ -116,7 +120,6 @@ function* logoutSaga(): SagaIterator {
   try {
     yield call(logout);
 
-    // 🔥 Clear all client-side auth traces
     localStorage.removeItem('persist:root');
     yield put(logoutSuccess());
   } catch (error: unknown) {
@@ -140,6 +143,17 @@ function* verifyEmailSaga(
   }
 }
 
+function* loginHistorySaga(action: PayloadAction<any>): SagaIterator {
+  try {
+    const response = yield call(loginHistory, action.payload);
+    yield put(loginHistorySuccess(response.data));
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to fetch login history';
+    yield put(loginHistoryFailure(errorMessage));
+  }
+}
+
 export function* watchAuth(): SagaIterator {
   yield takeLatest(loginRequest.type, loginSaga);
   yield takeLatest(signupRequest.type, signupSaga);
@@ -148,4 +162,5 @@ export function* watchAuth(): SagaIterator {
   yield takeLatest(logoutRequest.type, logoutSaga);
   yield takeLatest(getGetMeRequest.type, getGetMeSaga);
   yield takeLatest(verifyEmailRequest.type, verifyEmailSaga);
+  yield takeLatest(loginHistoryRequest.type, loginHistorySaga);
 }

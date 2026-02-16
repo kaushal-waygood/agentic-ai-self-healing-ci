@@ -156,6 +156,19 @@ const authSlice = createSlice({
         state.user.googleAuth = action.payload;
       }
     },
+
+    loginHistoryRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    loginHistorySuccess: (state, action: PayloadAction<any>) => {
+      state.loading = false;
+      state.error = null;
+    },
+    loginHistoryFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 
@@ -188,6 +201,10 @@ export const {
   verifyEmailRequest,
   verifyEmailSuccess,
   verifyEmailFailure,
+
+  loginHistoryRequest,
+  loginHistorySuccess,
+  loginHistoryFailure,
 
   googleLoginSuccess,
 } = authSlice.actions;

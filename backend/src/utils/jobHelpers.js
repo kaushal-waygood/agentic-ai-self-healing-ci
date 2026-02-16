@@ -290,17 +290,17 @@ export async function fetchExternalJobs(
 ) {
   try {
     let query = apiQuery;
-    if (city && state) query = `${apiQuery} in ${city}, ${state}`;
-    else if (state) query = `${apiQuery} in ${state}`;
-    else if (city) query = `${apiQuery} in ${city}`;
 
-    const params = { query, page: String(page), num_pages: '1' };
-    if (country) params.country = country;
-    if (state) params.state = state;
-    if (city) params.city = city;
-    if (datePosted) params.date_posted = datePosted;
-    if (employmentType) params.employment_type = employmentType;
-    if (experience) params.job_requirements = experience;
+    // Only append location in query
+    if (city) query += ` ${city}`;
+    else if (state) query += ` ${state}`;
+
+    const params = {
+      query,
+      page: String(page),
+    };
+
+    console.log('RapidAPI params:', params);
 
     const response = await axios.get(config.rapidJobApi, {
       params,
@@ -310,21 +310,26 @@ export async function fetchExternalJobs(
       },
     });
 
-    const headers = response.headers;
-
-    return response?.data?.data || [];
-  } catch (e) {
-    console.error(
-      `RapidAPI fetch failed for "${apiQuery}" p${page}:`,
-      e?.response?.data || e?.message,
+    console.log(
+      'RapidAPI response:',
+      JSON.stringify(response.data).slice(0, 300),
     );
+
+    return (
+      response?.data?.data ||
+      response?.data?.jobs ||
+      response?.data?.results ||
+      []
+    );
+  } catch (e) {
+    console.error('RapidAPI error:', e?.response?.data || e.message);
     return [];
   }
 }
 
 export async function fetchExternalJobsCached(
   apiQuery,
-  country,
+  country = 'IN',
   state,
   city,
   datePosted,
@@ -333,6 +338,7 @@ export async function fetchExternalJobsCached(
   page = 1,
   ttlMs = 15 * 60 * 1000,
 ) {
+  console.log('Fetching external jobs:', apiQuery, country, state, city);
   const key = makeExternalCacheKey(
     apiQuery,
     country,
@@ -361,6 +367,8 @@ export async function fetchExternalJobsCached(
     page,
   );
 
+  console.log('Fetched external jobs:', data.length);
+
   externalJobCache.set(key, {
     data,
     expiresAt: now + ttlMs,
@@ -374,8 +382,22 @@ export async function fetchExternalJobsCached(
 // --------------------
 // src/utils/jobHelpers.js
 
+async function getExistingExternalJobMap(jobIds = []) {
+  if (!jobIds.length) return {};
+
+  const existing = await Job.find(
+    { jobId: { $in: jobIds }, origin: 'EXTERNAL' },
+    { jobId: 1, embeddingHash: 1 },
+  ).lean();
+
+  return Object.fromEntries(existing.map((j) => [j.jobId, j.embeddingHash]));
+}
+
 export async function upsertExternalJobs(externalJobs) {
   if (!externalJobs.length) return;
+
+  const jobIds = externalJobs.map((j) => j.jobId);
+  const existingMap = await getExistingExternalJobMap(jobIds);
 
   const ops = [];
 
@@ -391,13 +413,9 @@ Company: ${j.company}
 
     const embeddingHash = hashText(textToEmbed);
 
-    const existing = await Job.findOne(
-      { jobId: j.jobId, origin: 'EXTERNAL' },
-      { embeddingHash: 1 },
-    ).lean();
-
     let vector;
-    if (!existing || existing.embeddingHash !== embeddingHash) {
+
+    if (!existingMap[j.jobId] || existingMap[j.jobId] !== embeddingHash) {
       vector = await generateEmbedding(textToEmbed);
     }
 
@@ -439,35 +457,49 @@ Company: ${j.company}
     });
   }
 
-  try {
-    const result = await Job.bulkWrite(ops, { ordered: false });
-  } catch (e) {
-    const dupesOnly = e?.writeErrors?.every((w) => w?.code === 11000);
-    if (!dupesOnly) throw e;
-  }
+  const result = await Job.bulkWrite(ops, { ordered: false });
+
+  console.log(
+    'External jobs inserted:',
+    result.upsertedCount,
+    'updated:',
+    result.modifiedCount,
+  );
 }
 
 // --------------------
 // External query builder & scoring
 // --------------------
-export function buildExternalQueries(titles, skills) {
-  const titleQueries = titles.slice(0, 3);
-  const topSkills = skills.slice(0, 3);
-  const combos = [];
+export function buildExternalQueries(titles = [], skills = []) {
+  const queries = new Set();
 
-  for (const t of titleQueries) {
-    if (topSkills.length) combos.push(`${t} ${topSkills[0]}`);
-    combos.push(t);
-  }
-  if (!combos.length && topSkills.length) combos.push(topSkills.join(' '));
-
-  const seen = new Set();
-  return combos.filter((q) => {
-    const key = q.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+  // Only job titles
+  titles.slice(0, 3).forEach((t) => {
+    if (t && t.length < 40) {
+      queries.add(t.toLowerCase());
+    }
   });
+
+  // Optional hard skills only
+  const HARD_SKILLS = [
+    'python',
+    'java',
+    'react',
+    'node',
+    'sales',
+    'accounting',
+    'data',
+  ];
+
+  skills.slice(0, 3).forEach((s) => {
+    if (HARD_SKILLS.includes(s.toLowerCase())) {
+      titles.forEach((t) => {
+        queries.add(`${t} ${s}`);
+      });
+    }
+  });
+
+  return Array.from(queries);
 }
 
 export function scoreJob(job, profile) {
@@ -603,6 +635,14 @@ export async function getCTRMap(jobIds) {
   return map;
 }
 
+function isRelevantJob(jobTitle, profileTitles = []) {
+  if (!jobTitle) return false;
+
+  const jt = jobTitle.toLowerCase();
+
+  return profileTitles.some((t) => jt.includes(t.toLowerCase()));
+}
+
 export async function getJobViewsMap(jobIds = []) {
   if (!jobIds.length) return {};
 
@@ -627,115 +667,74 @@ export async function getJobViewsMap(jobIds = []) {
 export async function getLocalRecommendedJobs(profile) {
   const prefs = profile.jobPreferences || {};
 
-  const normalizedPreferredJobTypes =
-    prefs.preferredJobTypes?.map((t) =>
-      t.replace(/[\s_-]/g, '').toUpperCase(),
-    ) || [];
-
-  // ---------- USER VECTOR ----------
-  const userIntent = `
-Titles: ${profile.titles.join(', ')}
-Skills: ${profile.skills.join(', ')}
-Location: ${profile.location?.city || ''}
-`.trim();
-
-  const userVector = await generateEmbedding(userIntent);
-  if (!userVector) return [];
+  const skills = profile.skills || [];
+  const titles = profile.titles || [];
 
   const appliedJobIds =
     profile.appliedJobs?.map((j) => j.job).filter(Boolean) || [];
 
-  const country = profile.location?.country;
-
-  // ---------- VECTOR SEARCH (STRICT FILTERS ONLY) ----------
-  const pipeline = [
-    {
-      $vectorSearch: {
-        index: 'vector_index',
-        path: 'job_embedding',
-        queryVector: userVector,
-        numCandidates: 1000,
-        limit: 150,
-        filter: {
-          $and: [
-            { isActive: true },
-            { job_embedding: { $exists: true } },
-
-            // ✅ SAFE: country exact match OR remote
-            ...(country
-              ? [
-                  {
-                    $or: [{ country: { $eq: country } }, { remote: true }],
-                  },
-                ]
-              : []),
-
-            ...(appliedJobIds.length ? [{ _id: { $nin: appliedJobIds } }] : []),
-
-            ...(normalizedPreferredJobTypes.length
-              ? [{ jobTypes: { $in: normalizedPreferredJobTypes } }]
-              : []),
-          ],
-        },
-      },
-    },
-    {
-      $addFields: {
-        score: { $meta: 'vectorSearchScore' },
-      },
-    },
-    {
-      $addFields: {
-        recencyBoost: {
-          $cond: [
-            {
-              $gte: [
-                '$jobPostedAt',
-                new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-              ],
-            },
-            0.1,
-            0,
-          ],
-        },
-      },
-    },
-    {
-      $addFields: {
-        finalScore: { $add: ['$score', '$recencyBoost'] },
-      },
-    },
-    {
-      $project: {
-        job_embedding: 0,
-        __v: 0,
-      },
-    },
-  ];
-
-  let jobs = await Job.aggregate(pipeline);
-  if (!jobs.length) return [];
-
-  // ---------- CTR BOOST ----------
-  const ctrMap = await getCTRMap(jobs.map((j) => j._id));
-
-  // ---------- GEO HELPERS ----------
   const loc = profile.location || {};
   const userLat = loc.lat;
   const userLng = loc.lng;
 
   const city = loc.city?.toLowerCase();
   const state = loc.state?.toLowerCase();
-  const countryLc = loc.country?.toLowerCase();
+  const country = loc.country;
 
+  // ---------- BASE QUERY ----------
+  const query = { isActive: true };
+
+  if (appliedJobIds.length) {
+    query._id = { $nin: appliedJobIds };
+  }
+
+  // ---------- LOCATION FILTER ----------
+  if (country) {
+    query.$or = [{ country }, { remote: true }];
+  }
+
+  // ---------- SKILLS + TITLES ----------
+  const skillOr = [];
+
+  if (skills.length) {
+    skillOr.push(
+      { skills: { $in: skills } },
+      { mustHaveSkills: { $in: skills } },
+    );
+  }
+
+  if (titles.length) {
+    titles.forEach((t) => {
+      skillOr.push({ title: { $regex: t, $options: 'i' } });
+    });
+  }
+
+  if (skillOr.length) {
+    query.$and = [{ $or: skillOr }];
+  }
+
+  // ---------- FETCH ----------
+  let jobs = await Job.find(query).sort({ jobPostedAt: -1 }).limit(250).lean();
+
+  if (!jobs.length) return [];
+
+  // ---------- CTR BOOST ----------
+  const ctrMap = await getCTRMap(jobs.map((j) => j._id));
+
+  // ---------- JOB VIEWS ----------
+  const jobViewsMap = await getJobViewsMap(jobs.map((j) => j._id));
+
+  // ---------- GEO ----------
   const haversineKm = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const toRad = (v) => (v * Math.PI) / 180;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
+
     const a =
       Math.sin(dLat / 2) ** 2 +
       Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
@@ -746,17 +745,23 @@ Location: ${profile.location?.city || ''}
     const js = job.location?.state?.toLowerCase();
     const jco = job.country?.toLowerCase();
 
-    if (city && jc === city) return 0.3;
-    if (state && js === state) return 0.2;
-    if (countryLc && jco === countryLc) return 0.1;
+    if (city && jc === city) return 0.35;
+    if (state && js === state) return 0.25;
+    if (country && jco === country.toLowerCase()) return 0.1;
+
     return 0;
   };
 
-  // ---------- JOB VIEWS ----------
-  const jobIds = jobs.map((j) => j._id);
-  const jobViewsMap = await getJobViewsMap(jobIds);
+  // ---------- SKILL MATCH ----------
+  const skillScore = (jobSkills = []) => {
+    if (!jobSkills.length || !skills.length) return 0;
 
-  // ---------- FINAL SCORING ----------
+    const matches = jobSkills.filter((s) => skills.includes(s)).length;
+
+    return matches / jobSkills.length;
+  };
+
+  // ---------- FINAL RANK ----------
   jobs = jobs.map((job) => {
     let geoBoost = 0;
 
@@ -767,19 +772,28 @@ Location: ${profile.location?.city || ''}
         job.location.lat,
         job.location.lng,
       );
-      if (km <= 200) geoBoost = Math.max(0, 1 - km / 200);
+
+      if (km <= 200) {
+        geoBoost = Math.max(0, 1 - km / 200);
+      }
     }
 
     const locBoost = locationDecay(job);
 
+    const ctr = ctrMap[job._id.toString()] || 0;
+    const views = jobViewsMap[job._id.toString()] || 0;
+
+    const skillMatch = skillScore(job.skills || job.mustHaveSkills) * 0.5;
+
     return {
       ...job,
-      jobViews: jobViewsMap[job._id.toString()] || 0, // ✅ SAME AS searchJobs
+      jobViews: views,
       finalScore:
-        job.finalScore +
-        (ctrMap[job._id.toString()] || 0) +
+        ctr +
         geoBoost * 0.3 +
-        locBoost,
+        locBoost +
+        skillMatch +
+        Math.log(views + 1) * 0.05, // popularity
     };
   });
 
@@ -787,6 +801,7 @@ Location: ${profile.location?.city || ''}
   jobs.sort((a, b) => {
     const aLoc = locationDecay(a);
     const bLoc = locationDecay(b);
+
     if (aLoc !== bLoc) return bLoc - aLoc;
     return b.finalScore - a.finalScore;
   });
@@ -795,54 +810,61 @@ Location: ${profile.location?.city || ''}
 }
 
 export async function fetchAndUpsertMoreExternalJobs(profile) {
-  const queries = buildExternalQueries(profile.titles, profile.skills);
+  try {
+    const queries = buildExternalQueries(profile.titles, profile.skills);
 
-  const allExternalJobs = [];
+    if (!queries.length) return;
 
-  for (const q of queries) {
-    const apiJobs = await fetchExternalJobsCached(
-      q,
-      profile.location?.country,
-      profile.location?.state,
-      profile.location?.city,
-      undefined,
-      normalizeEmploymentTypeForApi(
-        profile.jobPreferences?.preferredJobTypes?.join(','),
-      ),
-      undefined,
-      1,
+    const city = profile.location?.city;
+    const state = profile.location?.state;
+
+    const results = await Promise.allSettled(
+      queries.map((q) => fetchExternalJobsCached(q, 'IN', state, city)),
     );
 
-    if (Array.isArray(apiJobs)) {
-      apiJobs.forEach((aj) =>
-        allExternalJobs.push(transformRapidApiJob(aj, q)),
-      );
+    const allExternalJobs = [];
+
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+        r.value.forEach((apiJob) => {
+          const job = transformRapidApiJob(apiJob, queries[i]);
+
+          // ---------- RELEVANCE FILTER ----------
+          if (!isRelevantJob(job.title, profile.titles)) return;
+
+          allExternalJobs.push(job);
+        });
+      }
+    });
+
+    if (!allExternalJobs.length) {
+      console.log('No relevant external jobs found.');
+      return;
     }
+
+    const deduped = dedupeByTitleCompany(allExternalJobs);
+
+    await upsertExternalJobs(deduped);
+  } catch (err) {
+    console.error('External sync failed:', err);
   }
-
-  if (!allExternalJobs.length) return;
-
-  // IMPORTANT: no arbitrary slice here
-  const deduped = dedupeByTitleCompany(allExternalJobs);
-
-  await upsertExternalJobs(deduped);
 }
 
 async function getFallbackJobs(profile, excludeIds, limit = 50) {
+  const titles = profile.titles || [];
+
+  const titleRegex = titles.map((t) => ({
+    title: { $regex: t, $options: 'i' },
+  }));
+
   const query = {
     isActive: true,
     _id: { $nin: excludeIds },
     origin: 'EXTERNAL',
   };
 
-  // soft location preference
-  if (profile.location?.city) {
-    query['location.city'] = { $regex: profile.location.city, $options: 'i' };
-  }
-
-  // soft job type
-  if (profile.jobPreferences?.preferredJobTypes?.length) {
-    query.jobTypes = { $in: profile.jobPreferences.preferredJobTypes };
+  if (titleRegex.length) {
+    query.$or = titleRegex;
   }
 
   return Job.find(query).sort({ jobPostedAt: -1 }).limit(limit).lean();
