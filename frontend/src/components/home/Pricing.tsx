@@ -48,6 +48,26 @@ export function Pricing() {
     fetchPlan();
   }, []);
 
+  const [userPlanType, setUserPlanType] = useState('Free');
+
+  useEffect(() => {
+    // ✅ Logic: Only fetch if we are NOT on the home page
+    const isHomePage = pathname === '/';
+
+    if (!isHomePage) {
+      const fetchUserPlan = async () => {
+        try {
+          const res = await apiInstance.get('/plan/get-user-plan-type');
+          if (res.data.success) {
+            setUserPlanType(res.data.data.planType);
+          }
+        } catch (error) {
+          console.error('Fetch error:', error);
+        }
+      };
+      fetchUserPlan();
+    }
+  }, [pathname]);
   // Currency toggle handler
   const handleCurrencyChange = (newCurrency: 'usd' | 'inr') => {
     setCurrency(newCurrency);
@@ -144,6 +164,7 @@ export function Pricing() {
                     currency={currency}
                     // handlePlanSelect={handlePlanSelect}
                     isSubscriptionPage={isSubscriptionPage}
+                    userPlanType={userPlanType}
                   />
                 </div>
               ))}
