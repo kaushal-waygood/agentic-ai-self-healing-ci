@@ -1,25 +1,26 @@
 // src/utils/embedding.js
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { config } from '../config/config.js';
 
-// Ensure process.env.GEMINI_API_KEY is set
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_KEY);
+// Initialize ONCE outside the function
+const model = genAI.getGenerativeModel({ model: 'embedding-001' });
 
 export const generateEmbedding = async (text) => {
   try {
-    if (!text) return null;
+    if (!text || typeof text !== 'string') return null;
 
-    // Clean text
-    const cleanText = text.replace(/\n/g, ' ').substring(0, 9000);
+    const cleanText = text.replace(/\s+/g, ' ').trim().substring(0, 8000);
 
+    // Reusing the 'model' instance
     const result = await model.embedContent(cleanText);
-    const embedding = result.embedding;
 
-    // Return the array of numbers
-    return embedding.values;
+    if (result?.embedding?.values) {
+      return result.embedding.values;
+    }
+
+    return null;
   } catch (error) {
-    console.error('Error generating Gemini embedding:', error.message);
+    console.error('Gemini Embedding Error:', error.message);
     return null;
   }
 };

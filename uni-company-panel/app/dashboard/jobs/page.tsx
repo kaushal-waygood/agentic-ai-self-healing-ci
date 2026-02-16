@@ -179,12 +179,9 @@ const JobsPage = () => {
                 variant="ghost"
                 className="flex items-center gap-2"
                 onClick={() => {
-                  console.log(row.original);
                   router.push(
                     `/dashboard/jobs/${row.original.slug}/applications`,
                   );
-                  // setIsViewModalOpen(true);
-                  // setSelectedJob(row.original);
                 }}
               >
                 <Stat
@@ -266,8 +263,6 @@ const JobsPage = () => {
                 onClick={() => {
                   setSelectedJob(row.original);
                   setIsViewModalOpen(true);
-                  // console.log(row.original);
-                  console.log('view modal open', isViewModalOpen);
                 }}
               >
                 View

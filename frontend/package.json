@@ -16,6 +16,7 @@
     "@genkit-ai/googleai": "^1.8.0",
     "@genkit-ai/next": "^1.8.0",
     "@hookform/resolvers": "3.8.0",
+    "@microsoft/clarity": "^1.0.2",
     "@multiavatar/multiavatar": "^1.0.7",
     "@opentelemetry/exporter-jaeger": "^1.25.1",
     "@radix-ui/react-accordion": "^1.2.3",

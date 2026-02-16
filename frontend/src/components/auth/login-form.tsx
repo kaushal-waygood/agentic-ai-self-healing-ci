@@ -77,8 +77,17 @@ const LoginForm = () => {
   async function onSubmit(data: LoginFormValues) {
     NProgress.start();
 
+    const deviceInfo = {
+      device: navigator.platform,
+      browser: navigator.userAgent,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+
     try {
-      const response = await apiInstance.post('/user/signin', data);
+      const response = await apiInstance.post('/user/signin', {
+        ...data,
+        deviceInfo,
+      });
       const { accessToken: token, user } = response.data;
 
       dispatch(loginRequest(data));

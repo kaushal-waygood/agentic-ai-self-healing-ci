@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "nextn",
@@ -10,6 +9,7 @@
         "@genkit-ai/googleai": "^1.8.0",
         "@genkit-ai/next": "^1.8.0",
         "@hookform/resolvers": "3.8.0",
+        "@microsoft/clarity": "^1.0.2",
         "@multiavatar/multiavatar": "^1.0.7",
         "@opentelemetry/exporter-jaeger": "^1.25.1",
         "@radix-ui/react-accordion": "^1.2.3",
@@ -626,6 +626,8 @@
     "@locator/runtime": ["@locator/runtime@0.4.4", "", { "dependencies": { "@floating-ui/dom": "^1.0.1", "@locator/shared": "^0.4.4", "solid-js": "^1.7.8", "tailwindcss": "^3.3.2" } }, "sha512-6uCkE12N5y0136wcBNEeyYn1iEOFKG+SDYsNeCJsC54/yyD4/6fKywOYJqManA64mg20f41utBFP+b262oZYXQ=="],
 
     "@locator/shared": ["@locator/shared@0.4.4", "", { "dependencies": { "semver": "^7.5.4" } }, "sha512-8fF395jPvrAAetsiQCj/8HcZXfDiY5mL1M/d4V2jDbjKkzM/BiZAukn4ndeuqSehnsck1Uu7ir8wDRTeg34Mog=="],
+
+    "@microsoft/clarity": ["@microsoft/clarity@1.0.2", "", {}, "sha512-9EZYROFpJxEGmQpHvUFqvD3ZJ7QQSqnibYSWmS+1xusoZfG1QQ1/Al9yVBBc11DWMbJrs1pe1hLT273it/skJg=="],
 
     "@multiavatar/multiavatar": ["@multiavatar/multiavatar@1.0.7", "", {}, "sha512-Yg9Uw57bmlErsWL0CSv4d6D4ZqVBE00OZmYr9MRgygoXZdboNtsEI6FbBRw1AY8l88Sm1ARcyojtlm2uwUn0Zg=="],
 

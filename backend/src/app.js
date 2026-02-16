@@ -26,6 +26,7 @@ import sitemapRoutes from './routes/sitemap.js';
 import jobApplicationRoutes from './routes/jobApplication.route.js';
 import analyticsRoutes from './routes/analytics.route.js';
 import orgAnalyticsRoutes from './routes/orgAnalytics.route.js';
+import loginHistoryRoutes from './routes/loginHistory.route.js';
 import chatRoutes from './routes/chatRoutes.js';
 
 import { startCronsRenew } from './config/renew-cron/cron.js';

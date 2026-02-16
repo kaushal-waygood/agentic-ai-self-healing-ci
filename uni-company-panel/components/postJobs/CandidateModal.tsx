@@ -54,8 +54,6 @@ export function CandidateModal({ candidate, open, onOpenChange }: any) {
     { icon: Workflow, label: 'Method', value: candidate.applicationMethod },
   ];
 
-  console.log('candidate', candidate);
-
   return (
     <>
       <CommonDetailsModal
