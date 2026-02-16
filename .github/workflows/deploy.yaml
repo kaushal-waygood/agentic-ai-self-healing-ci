@@ -84,7 +84,7 @@ jobs:
       - name: Build & Push Uni Company Panel Image
         uses: docker/build-push-action@v6
         with:
-          context: ./uni_company_panel
+          context: ./uni-company-panel
           file: ./uni_company_panel/Dockerfile
           push: true
           build-args: |
