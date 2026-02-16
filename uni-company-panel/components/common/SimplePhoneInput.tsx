@@ -1,7 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { getCountries, getCountryCallingCode, type CountryCode, isValidPhoneNumber } from 'react-phone-number-input';
+import {
+  getCountries,
+  getCountryCallingCode,
+  type CountryCode,
+  isValidPhoneNumber,
+} from 'react-phone-number-input';
 import { Input } from '@/components/ui/input';
 import flags from 'react-phone-number-input/flags';
 import { Search, ChevronDown } from 'lucide-react';
@@ -31,8 +36,14 @@ export const SimplePhoneInput = ({
   }, []);
 
   useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') return;
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -57,7 +68,7 @@ export const SimplePhoneInput = ({
   const filteredCountries = useMemo(() => {
     if (!searchQuery) return countries;
 
-    return countries.filter(country => {
+    return countries.filter((country) => {
       const countryName = country.toLowerCase();
       const code = getCountryCallingCode(country).toString();
       return (
@@ -89,9 +100,10 @@ export const SimplePhoneInput = ({
     }
   };
 
-  const FlagComponent = selectedCountry && flags[selectedCountry]
-    ? flags[selectedCountry]
-    : () => <span className="w-5 h-5 bg-gray-200 rounded"></span>;
+  const FlagComponent =
+    selectedCountry && flags[selectedCountry]
+      ? flags[selectedCountry]
+      : () => <span className="w-5 h-5 bg-gray-200 rounded"></span>;
 
   return (
     <div className="flex gap-2">
@@ -136,7 +148,8 @@ export const SimplePhoneInput = ({
 
               <div className="max-h-[240px] overflow-y-auto">
                 {filteredCountries.map((code) => {
-                  const CountryFlag = flags[code] || (() => <div className="w-5 h-5"></div>);
+                  const CountryFlag =
+                    flags[code] || (() => <div className="w-5 h-5"></div>);
                   return (
                     <button
                       key={code}
@@ -149,7 +162,9 @@ export const SimplePhoneInput = ({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium truncate">{code}</span>
+                          <span className="text-sm font-medium truncate">
+                            {code}
+                          </span>
                           <span className="text-sm text-muted-foreground ml-2">
                             +{getCountryCallingCode(code)}
                           </span>
@@ -173,7 +188,7 @@ export const SimplePhoneInput = ({
       <div className="flex-1">
         <Input
           type="tel"
-          placeholder={placeholder || "Phone number"}
+          placeholder={placeholder || 'Phone number'}
           value={phoneNumber}
           onChange={handlePhoneNumberChange}
           className="h-10"

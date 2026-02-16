@@ -54,7 +54,7 @@ const CountrySelector = ({
   value,
   onChange,
   className,
-}: CountrySelectorProps) =>{
+}: CountrySelectorProps) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const itemRefs = React.useRef<(HTMLLIElement | null)[]>([]);
@@ -71,6 +71,9 @@ const CountrySelector = ({
 
   /* ---------------- Click outside ---------------- */
   React.useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') return;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (
         containerRef.current &&
@@ -202,6 +205,6 @@ const CountrySelector = ({
       )}
     </div>
   );
-}
+};
 
 export default CountrySelector;
