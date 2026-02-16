@@ -18,7 +18,7 @@ jobs:
     env:
       # Non-sensitive environment variables
       NODE_ENV: development
-      API_URL_DEV: "https://api.dev.zobsai.com"
+      API_URL_DEV: 'https://api.dev.zobsai.com'
 
     steps:
       # -------------------------------
@@ -85,7 +85,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./uni-company-panel
-          file: ./uni_company_panel/Dockerfile
+          file: ./uni-company-panel/Dockerfile
           push: true
           build-args: |
             NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
@@ -138,4 +138,3 @@ jobs:
           git add manifests/
           git commit -m "Update backend/frontend images to ${{ github.sha }}" || echo "No changes to commit"
           git push origin main
-
