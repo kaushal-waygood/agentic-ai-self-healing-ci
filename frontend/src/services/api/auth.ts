@@ -74,3 +74,8 @@ export const getMe = async (token: string) => {
   });
   return response;
 };
+
+export const loginHistory = async (payload: any) => {
+  const response = await apiInstance.post('/analytics/login-history', payload);
+  return response;
+};

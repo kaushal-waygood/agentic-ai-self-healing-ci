@@ -20,6 +20,9 @@ import qs from 'querystring';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 import { Feedback } from '../models/feedback.model.js';
 
+import { v4 as uuidv4 } from 'uuid';
+import { LoginHistory } from '../models/analyics/loginHistory.model.js';
+
 /* -------------------------
    Initialization
    ------------------------- */
@@ -863,33 +866,76 @@ export const resendOtp = async (req, res) => {
 };
 
 export const signInUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, deviceInfo } = req.body;
+
   try {
-    if (!email || !password)
+    if (!email || !password) {
       return res
         .status(400)
         .json({ message: 'Email and password are required' });
+    }
 
     const user = await User.findOne({ email }).select('+password');
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+
+    // 🔴 Log failed attempt (user not found)
+    if (!user) {
+      await LoginHistory.create({
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        loginMethod: 'local',
+        status: 'FAILED',
+      });
+
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    if (!user.isEmailVerified)
-      return res
-        .status(403)
-        .json({ message: 'Please verify your email before signing in.' });
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    // 🔴 Log failed password
+    if (!isMatch) {
+      await LoginHistory.create({
+        userId: user._id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        loginMethod: user.authMethod,
+        status: 'FAILED',
+      });
+
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        message: 'Please verify your email before signing in.',
+      });
+    }
+
+    // ✅ Generate session
+    const sessionId = uuidv4();
 
     const accessToken = user.generateAccessToken();
+
     const userObject = user.toObject();
     delete userObject.password;
 
-    // setAccessTokenCookie(res, accessToken);
+    // ✅ Log successful login
+    await LoginHistory.create({
+      userId: user._id,
+      sessionId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      device: deviceInfo?.device,
+      browser: deviceInfo?.browser,
+      os: deviceInfo?.os,
+      loginMethod: user.authMethod,
+      status: 'SUCCESS',
+    });
 
     return res.status(200).json({
       message: 'Signed in successfully',
       user: userObject,
       accessToken,
+      sessionId,
     });
   } catch (error) {
     console.error('Sign in error:', error);

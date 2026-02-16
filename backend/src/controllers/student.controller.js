@@ -1920,37 +1920,70 @@ ${JSON.stringify(profile)}
   }
 }
 
+const syncCooldown = new Map();
+
 export const getProfileBasedRecommendedJobs = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) return res.sendStatus(401);
 
     const profile = await buildUserProfileFromStudent(userId);
-
     let jobs = await getLocalRecommendedJobs(profile);
 
-    const MIN_RESULTS = 1000;
+    const MIN_RESULTS = 10;
+    const MAX_SYNC_ROUNDS = 3;
+    const COOLDOWN_MS = 10 * 60 * 1000;
 
-    if (jobs.length < MIN_RESULTS) {
-      await fetchAndUpsertMoreExternalJobs(profile);
-      jobs = await getLocalRecommendedJobs(profile);
+    const now = Date.now();
+    const lastSync = syncCooldown.get(userId.toString());
+    const isInCooldown = lastSync && now - lastSync < COOLDOWN_MS;
+
+    // -------- CRITICAL FIX --------
+    if (jobs.length < MIN_RESULTS && !isInCooldown) {
+      syncCooldown.set(userId.toString(), now);
+
+      console.log('Low results. Running progressive sync...');
+
+      let round = 0;
+
+      while (jobs.length < MIN_RESULTS && round < MAX_SYNC_ROUNDS) {
+        console.log(`Sync round ${round + 1}`);
+
+        await fetchAndUpsertMoreExternalJobs(profile);
+
+        jobs = await getLocalRecommendedJobs(profile);
+
+        round++;
+      }
+
+      // -------- FALLBACK --------
+      if (jobs.length < MIN_RESULTS) {
+        console.log('Fallback to trending jobs');
+
+        const fallback = await Job.find({
+          isActive: true,
+          country: profile.location?.country,
+        })
+          .sort({ jobPostedAt: -1 })
+          .limit(MIN_RESULTS)
+          .lean();
+
+        jobs = [...jobs, ...fallback];
+      }
     }
 
-    jobs.sort((a, b) => {
-      return new Date(b.jobPostedAt) - new Date(a.jobPostedAt);
-    });
+    // Remove duplicates
+    const unique = new Map();
+    jobs.forEach((j) => unique.set(j._id.toString(), j));
 
     return res.json({
       success: true,
-      count: jobs.length,
-      jobs,
+      count: unique.size,
+      jobs: Array.from(unique.values()).slice(0, 30),
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch recommended jobs',
-    });
+    return res.status(500).json({ success: false });
   }
 };
 

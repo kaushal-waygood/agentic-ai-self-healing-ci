@@ -1,28 +1,11 @@
 // src/components/dashboard/UtilsComp.tsx
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
-import {
-  BarChart3,
-  CheckCircle,
-  LucideIcon,
-  Star,
-  Target,
-  Circle,
-} from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { Label } from '@/components/ui/label'; // Corrected import path for Label
-import { Skeleton } from '@/components/ui/skeleton';
-import { SidebarMenuSkeleton } from '@/components/ui/sidebar'; // Assuming this exists
-import { AuthState } from '@/redux/types/authType';
 
 // Define the props for the components
 interface StatCardProps {
