@@ -9,6 +9,7 @@ metadata:
     app: zobsai-frontend
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: zobsai-frontend
@@ -21,7 +22,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: frontend
-          image: ghcr.io/zobsai-com/zobsai-frontend:8f7788852f3c0fd28330d6ca67e07b9fcdb146ab
+          image: ghcr.io/zobsai-com/zobsai-frontend:9b8f9fb8d0ddda71de2e6bb1a183af2cfb8c8b34
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
