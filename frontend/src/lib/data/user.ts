@@ -90,7 +90,7 @@ export type SavedCoverLetter = {
 };
 
 // New types for auto-apply
-export interface AutoApplyJobFilters {
+interface AutoApplyJobFilters {
   query: string;
   country?: string;
   datePosted?: 'all' | 'today' | '3days' | 'week' | 'month';
