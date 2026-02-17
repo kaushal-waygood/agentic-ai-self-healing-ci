@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export default function GeneratingAgent() {
   return (
-    <div className="w-full min-h-screen bg-white flex items-center justify-center p-4 overflow-hidden">
+    <div className="w-full min-h-screen  flex items-center justify-center overflow-hidden">
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center justify-center gap-8 md:gap-10">
         {/* Logo container with animation */}
