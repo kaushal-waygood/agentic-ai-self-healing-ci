@@ -84,6 +84,7 @@ jobs:
         run: |
           # Use the exact image name found in your Deployment YAML
           # This command updates the overlays/dev/kustomization.yaml file automatically
+          ls
           cd ./manifest/overlays/dev
           kustomize edit set image ghcr.io/zobsai-com/zobsai-frontend=ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}
           kustomize edit set image ghcr.io/zobsai-com/zobsai-backend=ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}
