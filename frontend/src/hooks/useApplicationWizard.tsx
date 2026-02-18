@@ -12,9 +12,7 @@ import { RootState } from '@/redux/rootReducer';
 import { savedStudentResumeRequest } from '@/redux/reducers/aiReducer';
 import { getStudentDetailsRequest } from '@/redux/reducers/studentReducer';
 import apiInstance from '@/services/api';
-import { extractJobDetails } from '@/ai/flows/extract-job-details-flow';
 import { generateCv as generateCvFlow } from '@/ai/flows/cv-generation';
-import { parseJobFromFile } from '@/ai/flows/parse-job-from-file-flow';
 import { mockUserProfile, SavedCv } from '@/lib/data/user'; // Adjust paths as needed
 
 //================================================================
