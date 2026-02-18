@@ -56,7 +56,7 @@ export default function ProtectedRoute({
     };
 
     checkAuth();
-  }, [router]);
+  }, [authStatus]);
 
   if (authStatus === 'loading') {
     return (
