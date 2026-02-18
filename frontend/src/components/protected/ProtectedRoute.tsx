@@ -47,6 +47,7 @@ export default function ProtectedRoute({
   useEffect(() => {
     const checkAuth = () => {
       const accessToken = getToken();
+      console.log('accessToken', accessToken);
       if (accessToken && isTokenValid(accessToken)) {
         setAuthStatus('authenticated');
       } else {
