@@ -663,8 +663,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [savedJobs, setSavedJobs] = useState([]);
-
   const [planDetails, setPlanDetails] = useState(null);
 
   const dispatch = useDispatch();
@@ -820,21 +818,6 @@ export default function DashboardPage() {
     };
 
     response();
-  }, []);
-
-  useEffect(() => {
-    const fetchSavedJobs = async () => {
-      try {
-        const response = await apiInstance.get(
-          `/students/jobs/events?type=SAVED`,
-        );
-        setSavedJobs(response.data.jobs);
-      } catch (error) {
-        console.error('Error fetching saved jobs:', error);
-      }
-    };
-
-    fetchSavedJobs();
   }, []);
 
   const [showCompletionModal, setShowCompletionModal] =
