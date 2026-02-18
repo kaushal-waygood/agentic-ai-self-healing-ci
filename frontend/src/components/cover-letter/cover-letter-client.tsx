@@ -356,8 +356,8 @@ export function CoverLetterGeneratorClient() {
         jobContext.mode === 'paste'
           ? '/students/coverletter/generate/jd'
           : jobContext.mode === 'title'
-          ? '/students/coverletter/generate/jobtitle'
-          : '/students/coverletter/generate/jobId';
+            ? '/students/coverletter/generate/jobtitle'
+            : '/students/coverletter/generate/jobId';
 
       const res = await apiInstance.post(endpoint, formData);
       const letter = res.data?.data ?? res.data;
@@ -420,14 +420,6 @@ export function CoverLetterGeneratorClient() {
   });
 
   /* ---------------- save ---------------- */
-
-  const handleInitiateSave = () => {
-    if (!currentContent.trim()) return;
-
-    setActiveLetterToSave(currentContent);
-    setLetterNameForSavingInput(`Letter for ${jobContext?.title || 'Job'}`);
-    setIsNamingDialogDisplayed(true);
-  };
 
   const confirmSaveNamedLetter = async () => {
     if (!letterNameForSavingInput.trim() || !activeLetterToSave) return;

@@ -13,15 +13,10 @@ interface JobCardProps {
   jobPosted?: string;
 }
 
-const resolveJobPostedAt = (jobPostedAt: string) => {
-  const date = new Date(jobPostedAt);
-  return date.toLocaleDateString();
-};
 const calculateJobPostedFromNow = (jobPostedAt: string) => {
   const date = new Date(jobPostedAt);
-
   if (Number.isNaN(date.getTime())) {
-    return 'Date Not Available';
+    return 'Date not available';
   }
 
   const now = new Date();
@@ -41,6 +36,8 @@ const calculateJobPostedFromNow = (jobPostedAt: string) => {
 };
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
+  console.log('job', job);
+
   return (
     <div
       onClick={onClick}
@@ -119,7 +116,6 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               <div className="flex items-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-600 transition-colors">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0 text-purple-400" />
                 <span className="font-medium">
-                  {/* {resolveJobPostedAt(job.jobPostedAt)} -{' '} */}
                   {calculateJobPostedFromNow(job.jobPostedAt)}
                 </span>
               </div>
