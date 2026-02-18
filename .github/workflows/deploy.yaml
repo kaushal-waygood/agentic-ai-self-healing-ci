@@ -80,6 +80,14 @@ jobs:
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:latest
             ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}
 
+      - name: Update Frontend Image
+        run: |
+          # Use the exact image name found in your Deployment YAML
+          # This command updates the overlays/dev/kustomization.yaml file automatically
+          cd overlays/dev
+          kustomize edit set image ghcr.io/zobsai-com/zobsai-frontend=ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}
+          kustomize edit set image ghcr.io/zobsai-com/zobsai-backend=ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}
+
       ## Uni Company Panel
       - name: Build & Push Uni Company Panel Image
         uses: docker/build-push-action@v6
