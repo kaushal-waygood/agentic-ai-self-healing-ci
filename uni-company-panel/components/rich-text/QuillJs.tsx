@@ -3,7 +3,6 @@
 
 import React, { useRef, useEffect } from 'react';
 import Editor from './Editor';
-import Quill from 'quill';
 
 interface QuillJsProps {
   content?: string;
@@ -11,7 +10,7 @@ interface QuillJsProps {
 }
 
 const QuillJs = ({ content = '', onContentChange }: QuillJsProps) => {
-  const quillRef = useRef<Quill | null>(null);
+  const quillRef = useRef<any>(null);
 
   // Only handle text changes, don't keep re-writing content to editor
   useEffect(() => {

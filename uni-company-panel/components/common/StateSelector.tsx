@@ -101,6 +101,9 @@ const StateSelector = ({
 
   /* ---------------- Click outside ---------------- */
   React.useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') return;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (
         containerRef.current &&
@@ -133,7 +136,7 @@ const StateSelector = ({
       e.preventDefault();
       const selected = filteredStates[highlightedIndex];
       if (selected) {
-        onChange(selected.label); 
+        onChange(selected.label);
         setOpen(false);
         setSearch('');
       }
@@ -182,8 +185,8 @@ const StateSelector = ({
           {selectedState
             ? selectedState.label
             : countryCode
-            ? 'Select state'
-            : 'Select country first'}
+              ? 'Select state'
+              : 'Select country first'}
         </span>
         <ChevronDown className="h-4 w-4 text-gray-500" />
       </button>
@@ -217,7 +220,7 @@ const StateSelector = ({
                 ref={(el) => (itemRefs.current[index] = el)}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 onClick={() => {
-                  onChange(state.label); 
+                  onChange(state.label);
                   setOpen(false);
                   setSearch('');
                 }}

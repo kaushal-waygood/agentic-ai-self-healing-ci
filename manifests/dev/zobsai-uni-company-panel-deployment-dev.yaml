@@ -21,7 +21,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: uni-company-panel
-          image: ghcr.io/zobsai-com/zobsai-uni-company-panel:8f7788852f3c0fd28330d6ca67e07b9fcdb146ab
+          image: ghcr.io/zobsai-com/zobsai-uni-company-panel:0be6faf7dea3e6321da18313af1777a51365725a
           imagePullPolicy: Always
           ports:
             - containerPort: 3002
@@ -30,17 +30,4 @@ spec:
                 name: uni-company-panel-config # Must match ConfigMap name above
             - secretRef:
                 name: uni-company-panel-secrets # Ensure your Secret is also renamed to use -
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: uni-company-panel
-  namespace: dev-zobsai
-spec:
-  type: NodePort
-  selector:
-    app: uni-company-panel
-  ports:
-    - port: 3002
-      targetPort: 3002
-      nodePort: 30055
+

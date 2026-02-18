@@ -91,11 +91,11 @@ export function Platforms() {
 
   return (
     <section
-      className="py-8  bg-slate-50 relative overflow-hidden"
+      className="py-8 bg-slate-50 relative overflow-hidden"
       id="platforms"
     >
       {/* Background Grid Pattern */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-40"></div>
+      {/* <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-40"></div> */}
       <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-slate-50/80 to-slate-50"></div>
 
       <div className="container mx-auto px-6 relative z-10">

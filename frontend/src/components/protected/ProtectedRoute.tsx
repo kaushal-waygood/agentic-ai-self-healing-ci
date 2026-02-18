@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { getToken } from '@/hooks/useToken';
+import { RootState } from '@/redux/rootReducer';
+import { useSelector } from 'react-redux';
 
 // Helper function to get cookie value by name
 function getCookie(name: string): string | null {
@@ -39,26 +42,22 @@ export default function ProtectedRoute({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [authStatus, setAuthStatus] = useState<
-    'loading' | 'authenticated' | 'unauthenticated'
-  >('loading');
+  const pathname = usePathname(); // Watch the URL
+  const { user } = useSelector((state: RootState) => state.auth); // Watch the User
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const accessToken = localStorage.getItem('accessToken');
+    const accessToken = getToken();
 
-      if (accessToken && isTokenValid(accessToken)) {
-        setAuthStatus('authenticated');
-      } else {
-        setAuthStatus('unauthenticated');
-        router.push('/login');
-      }
-    };
+    if (!accessToken || !isTokenValid(accessToken)) {
+      setLoading(false);
+      router.replace('/login');
+    } else {
+      setLoading(false);
+    }
+  }, [pathname, user, router]); // Re-run whenever path or user changes
 
-    checkAuth();
-  }, [router]);
-
-  if (authStatus === 'loading') {
+  if (loading) {
     return (
       <div className="flex items-center flex-col justify-center min-h-screen">
         <div>
@@ -75,7 +74,7 @@ export default function ProtectedRoute({
     );
   }
 
-  if (authStatus === 'unauthenticated') {
+  if (!user) {
     return null;
   }
 

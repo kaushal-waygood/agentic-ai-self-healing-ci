@@ -20,6 +20,9 @@ import qs from 'querystring';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 import { Feedback } from '../models/feedback.model.js';
 
+import { v4 as uuidv4 } from 'uuid';
+import { LoginHistory } from '../models/analyics/loginHistory.model.js';
+
 /* -------------------------
    Initialization
    ------------------------- */
@@ -56,7 +59,6 @@ const generateOtp = () => crypto.randomInt(100000, 999999).toString();
 
 const setAccessTokenCookie = (res, token) => {
   const cookieOptions = {
-    // httpOnly: true, // often disabled if frontend needs to read it, enable if using exclusively for API calls
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'Strict',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -340,7 +342,7 @@ export const firebaseAuth = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       success: true,
@@ -423,7 +425,7 @@ export const firebaseGoogleSignup = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(201).json({
       success: true,
@@ -481,7 +483,7 @@ export const firebaseGoogleLogin = async (req, res) => {
 
     // Success
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       success: true,
@@ -681,7 +683,7 @@ export const verifyEmail = async (req, res) => {
     await user.save();
 
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     // Send Welcome Email
     await sendTemplatedEmail({
@@ -799,7 +801,7 @@ export const verifyUpdateEmail = async (req, res) => {
     await user.save();
 
     const accessToken = user.generateAccessToken();
-    setAccessTokenCookie(res, accessToken);
+    // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       message: 'Email updated successfully',
@@ -864,33 +866,76 @@ export const resendOtp = async (req, res) => {
 };
 
 export const signInUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, deviceInfo } = req.body;
+
   try {
-    if (!email || !password)
+    if (!email || !password) {
       return res
         .status(400)
         .json({ message: 'Email and password are required' });
+    }
 
     const user = await User.findOne({ email }).select('+password');
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+
+    // 🔴 Log failed attempt (user not found)
+    if (!user) {
+      await LoginHistory.create({
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        loginMethod: 'local',
+        status: 'FAILED',
+      });
+
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    if (!user.isEmailVerified)
-      return res
-        .status(403)
-        .json({ message: 'Please verify your email before signing in.' });
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    // 🔴 Log failed password
+    if (!isMatch) {
+      await LoginHistory.create({
+        userId: user._id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        loginMethod: user.authMethod,
+        status: 'FAILED',
+      });
+
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        message: 'Please verify your email before signing in.',
+      });
+    }
+
+    // ✅ Generate session
+    const sessionId = uuidv4();
 
     const accessToken = user.generateAccessToken();
+
     const userObject = user.toObject();
     delete userObject.password;
 
-    setAccessTokenCookie(res, accessToken);
+    // ✅ Log successful login
+    await LoginHistory.create({
+      userId: user._id,
+      sessionId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      device: deviceInfo?.device,
+      browser: deviceInfo?.browser,
+      os: deviceInfo?.os,
+      loginMethod: user.authMethod,
+      status: 'SUCCESS',
+    });
 
     return res.status(200).json({
       message: 'Signed in successfully',
       user: userObject,
       accessToken,
+      sessionId,
     });
   } catch (error) {
     console.error('Sign in error:', error);
@@ -1336,12 +1381,16 @@ export const handleGoogleCallback = async (req, res) => {
 
 export const getMe = async (req, res, next) => {
   const userId = req.user?.id || req.user?._id;
+  let token = req.headers.authorization;
+  if (token.startsWith('Bearer ')) {
+    token = token.slice(7, token.length).trimLeft();
+  }
   if (!userId) return res.status(401).json({ message: 'Auth error: No ID.' });
 
   try {
     const user = await User.findById(userId).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found.' });
-    return res.status(200).json(user);
+    return res.status(200).json({ user, token });
   } catch (error) {
     return next(error);
   }
@@ -1391,7 +1440,6 @@ export const getVerifiedUser = async (req, res) => {
 };
 
 export const submitFeedback = async (req, res) => {
-  console.log(req.body);
   try {
     const { category, message, path } = req.body;
     const { _id: userId } = req.user;

@@ -16,7 +16,7 @@ import { z } from 'zod';
 const memberFormSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email.'),
-  role: z.enum(['admin', 'member']), // Changed from OrgMember/member to be consistent
+  role: z.enum(['admin', 'member']),
   department: z.string().optional(),
   course: z.string().optional(),
 });

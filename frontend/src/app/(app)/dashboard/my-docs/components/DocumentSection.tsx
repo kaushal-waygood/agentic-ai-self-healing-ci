@@ -27,16 +27,16 @@ export const DocumentSection = ({
           {type === 'cv'
             ? 'CVs'
             : type === 'coverLetter'
-            ? 'Cover Letters'
-            : 'Applications'}{' '}
+              ? 'Cover Letters'
+              : 'Applications'}{' '}
           Found
         </h3>
         <p className="text-gray-600 dark:text-gray-400">
           {type === 'cv'
             ? 'Generate your first CV to get started'
             : type === 'coverLetter'
-            ? 'Create your first cover letter to see it here'
-            : 'Create your first tailored application to see it here'}
+              ? 'Create your first cover letter to see it here'
+              : 'Create your first tailored application to see it here'}
         </p>
       </div>
     ) : (
