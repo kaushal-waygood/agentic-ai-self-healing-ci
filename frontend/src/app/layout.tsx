@@ -94,9 +94,8 @@ export default function RootLayout({
     ],
   };
 
-  // const projectId = 'vi4y7xtc9c';
-
-  const projectId = 'vi5ne0i7kt';
+  // const projectId = 'vi5ne0i7kt';
+  const projectId = 'vi4y7xtc9c';
 
   Clarity.init(projectId);
 
