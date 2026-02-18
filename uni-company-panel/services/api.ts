@@ -62,6 +62,7 @@ apiInstance.interceptors.request.use((config) => {
   }
 
   const accessToken = token;
+  console.log(accessToken);
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`;
   }
