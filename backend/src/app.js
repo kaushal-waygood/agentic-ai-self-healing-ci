@@ -88,6 +88,7 @@ app.use(
       'https://www.zobsai.com',
       'https://zobsai.com',
       'chrome-extension://obfphahhgennnkhdhpkjnbadgcaolkbk',
+      'http://127.0.0.1',
     ],
     credentials: true,
   }),
