@@ -29,7 +29,6 @@ import { mockUserProfile, SavedCv } from '@/lib/data/user';
 import JobWizard from './components/JobWizard';
 import CVGeneratorClient from './CVGeneratorClient';
 import ContextWizard from './ContextWizard';
-import SavedCvs from './components/SavedCvs';
 import FinalResultView from '../cover-letter/components/FinalResultView';
 
 /* ---------- helpers ---------- */
@@ -350,8 +349,8 @@ export function CvGeneratorClient() {
         jobContext.mode === 'paste'
           ? '/students/resume/generate/jd'
           : jobContext.mode === 'title'
-          ? '/students/resume/generate/jobtitle'
-          : '/students/resume/generate/jobId';
+            ? '/students/resume/generate/jobtitle'
+            : '/students/resume/generate/jobId';
 
       const res = await apiInstance.post(endpoint, formData);
       const data = res.data.data || res.data;
