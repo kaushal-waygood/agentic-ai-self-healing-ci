@@ -376,6 +376,8 @@ export const createAutopilotAgent = async (req, res) => {
 export const getAllPilotAgents = async (req, res) => {
   const studentId = req.user._id;
 
+  
+
   try {
     const activeAgents = await StudentAgent.find({ student: studentId });
 

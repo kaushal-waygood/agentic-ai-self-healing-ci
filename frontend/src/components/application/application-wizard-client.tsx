@@ -46,8 +46,6 @@ export function ApplicationWizardClient() {
     generatedData,
     jobs,
     selectedCvId,
-    rateLimited = false,
-    rateLimitMessage = null,
   } = state;
   const { navigateToStep, setGeneratedData } = actions;
 
@@ -110,14 +108,6 @@ export function ApplicationWizardClient() {
       if (isDeepInWizard) {
         // Re-push the state to stay on the page
         window.history.pushState(null, '', window.location.href);
-
-        // Optional: replace alert with a toast or your custom AlertDialog
-        // toast({
-        //   title: 'Progress will be lost',
-        //   description:
-        //     "Are you sure you want to leave? Use the 'Back' buttons inside the wizard to navigate safely.",
-        //   variant: 'destructive',
-        // });
 
         alert('Please wait until resume extraction is complete.');
       }
@@ -207,6 +197,8 @@ export function ApplicationWizardClient() {
             jobContext={state.jobContext}
             cvContext={state.cvContext}
             clContext={state.clContext}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
             handleGenerate={actions.handleGenerate}
             setWizardStep={navigateToStep}
           />

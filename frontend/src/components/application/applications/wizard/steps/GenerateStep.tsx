@@ -11,6 +11,7 @@ import {
   Loader,
   Zap,
   Star,
+  Loader2,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
@@ -182,56 +183,36 @@ export const GenerateStep = ({
 
         {/* Generate Section */}
         <div className="p-3 sm:p-4">
-          {isLoading ? (
-            /* Loading State driven by the `isLoading` prop */
-            <div className="text-center py-8 animate-fadeIn">
-              <div className="relative w-24 h-24 mx-auto mb-6">
-                <div
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 to-cyan-400 animate-spin"
-                  style={{ animationDuration: '2s' }}
-                ></div>
-                <div className="absolute inset-2 rounded-full bg-white flex items-center justify-center">
-                  <Loader className="w-8 h-8 text-purple-600 animate-spin" />
+          <div className="flex flex-wrap  justify-between">
+            <button
+              type="button"
+              onClick={() => setWizardStep('cl')}
+              className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-lg hover:bg-slate-100"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="font-medium">Back</span>
+            </button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              {isLoading ? (
+                <div className="relative flex items-center justify-center space-x-3">
+                  <Loader2 className="w-6 h-6 text-buttonPrimary animate-spin" />
                 </div>
-              </div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-2">
-                Generating Your Documents
-              </h3>
-              <p className="text-slate-600">
-                AI is tailoring your application, please wait...
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-wrap  justify-between">
+              ) : (
                 <button
-                  type="button"
-                  onClick={() => setWizardStep('cl')}
-                  className="flex items-center space-x-2 px-6 py-3 text-slate-600 hover:text-slate-900 transition-colors duration-200 rounded-lg hover:bg-slate-100"
+                  onClick={handleGenerate}
+                  disabled={isLoading}
+                  className="group relative flex items-center justify-center p-4 bg-buttonPrimary text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-purple-500/25"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="font-medium">Back</span>
-                </button>
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <button
-                    onClick={handleGenerate}
-                    disabled={isLoading}
-                    className="group relative flex items-center justify-center p-4 bg-buttonPrimary text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-300 overflow-hidden"
-                  >
-                    <div className="relative flex items-center justify-center space-x-3">
-                      <Zap className="w-6 h-6" />
+                  <div className="relative flex items-center justify-center space-x-3">
+                    <Zap className="w-6 h-6" />
 
-                      <span>Tailor My Application</span>
-                      <Sparkles className="w-6 h-6" />
-                    </div>
-                  </button>
-                </motion.div>
-              </div>
-            </>
-          )}
+                    <span>Tailor My Application</span>
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                </button>
+              )}
+            </motion.div>
+          </div>
         </div>
       </div>
 
