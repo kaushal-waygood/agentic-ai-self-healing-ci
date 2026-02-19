@@ -85,7 +85,7 @@ jobs:
       # -------------------------------
       - name: Update Backend Deployment Manifest
         run: |
-          MANIFEST="manifests/zobsai-backend-deployment.yaml"
+          MANIFEST="manifests/dev/zobsai-backend-deployment.yaml"
           if [ -f "$MANIFEST" ]; then
             sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-backend:.*#ghcr.io/${{ env.repo_owner }}/zobsai-backend:${{ github.sha }}#g" "$MANIFEST"
             echo "Backend manifest updated."
@@ -95,7 +95,7 @@ jobs:
 
       - name: Update Frontend Deployment Manifest
         run: |
-          MANIFEST="manifests/zobsai-frontend-deployment.yaml"
+          MANIFEST="manifests/dev/zobsai-frontend-deployment.yaml"
           if [ -f "$MANIFEST" ]; then
             sed -i'' -e "s#ghcr.io/${{ env.repo_owner }}/zobsai-frontend:.*#ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}#g" "$MANIFEST"
             echo "Frontend manifest updated."
