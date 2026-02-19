@@ -19,9 +19,9 @@ jobs:
 
     env:
       NODE_ENV: development
-      API_URL_DEV: "https://api.dev.zobsai.com"
+      API_URL_DEV: 'https://api.dev.zobsai.com'
       REGISTRY: ghcr.io
-      IMAGE_OWNER: zobsai-com   # MUST match your manifest image path
+      IMAGE_OWNER: zobsai-com # MUST match your manifest image path
 
     steps:
       # -------------------------------
@@ -134,7 +134,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add manifests/dev/*.yaml
+          git add -f manifests/dev/*.yaml
 
           if git diff --cached --quiet; then
             echo "⚠️ No changes to commit"
