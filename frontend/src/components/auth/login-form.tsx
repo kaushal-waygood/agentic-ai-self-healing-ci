@@ -72,7 +72,19 @@ const LoginForm = () => {
     defaultValues: { email: '' },
   });
 
-  const token = getToken();
+  const { isAuthenticated, token, user } = useSelector(
+    (state: RootState) => state.auth,
+  );
+
+  // const token = getToken();
+
+  useEffect(() => {
+    if (token && user) {
+      router.push('/dashboard');
+      successToast('Login successful!');
+      NProgress.done();
+    }
+  }, [token, user, router]);
 
   async function onSubmit(data: LoginFormValues) {
     NProgress.start();
@@ -84,21 +96,11 @@ const LoginForm = () => {
     };
 
     try {
-      const response = await apiInstance.post('/user/signin', {
-        ...data,
-        deviceInfo,
-      });
-      const { accessToken: token, user } = response.data;
-
       dispatch(loginRequest(data));
-
-      if (user) {
-        router.push('/dashboard');
-        successToast('Login successful! Redirecting to your dashboard...');
-      } else {
-        errorToast('Invalid email or password');
-        NProgress.done();
-      }
+      toast({
+        title: 'Login Success',
+        variant: 'success',
+      });
     } catch (error) {
       console.error('Login error:', error);
       NProgress.done();

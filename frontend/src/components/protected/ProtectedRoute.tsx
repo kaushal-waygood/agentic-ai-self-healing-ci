@@ -2,39 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-import Image from 'next/image';
-import { getToken } from '@/hooks/useToken';
-import { RootState } from '@/redux/rootReducer';
 import { useSelector } from 'react-redux';
-
-// Helper function to get cookie value by name
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null; // SSR safety
-
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-
-  if (parts.length === 2) {
-    const cookieValue = parts.pop()?.split(';').shift();
-    return cookieValue || null;
-  }
-  return null;
-}
-
-// Optional: Check if token is valid (not expired)
-function isTokenValid(token: string | null): boolean {
-  if (!token) return false;
-
-  try {
-    // Decode the token to check expiration (JWT format)
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const expirationTime = payload.exp * 1000; // Convert to milliseconds
-    return Date.now() < expirationTime;
-  } catch (error) {
-    return false;
-  }
-}
+import { RootState } from '@/redux/rootReducer';
 
 export default function ProtectedRoute({
   children,
@@ -42,41 +11,49 @@ export default function ProtectedRoute({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname(); // Watch the URL
-  const { user } = useSelector((state: RootState) => state.auth); // Watch the User
-  const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
+  const { token, loading: authLoading } = useSelector(
+    (state: RootState) => state.auth,
+  );
+  const [isChecking, setIsChecking] = useState(true);
+
+  // Check if the current route starts with /dashboard
+  const isDashboardRoute = pathname.startsWith('/dashboard');
 
   useEffect(() => {
-    const accessToken = getToken();
-    console.log('ACCESS TOKEN', accessToken);
-
-    if (!accessToken || !isTokenValid(accessToken)) {
-      setLoading(false);
-      router.replace('/login');
-    } else {
-      setLoading(false);
+    // 1. If it's NOT a dashboard route, we don't need to guard it
+    if (!isDashboardRoute) {
+      setIsChecking(false);
+      return;
     }
-  }, [pathname, user, router]); // Re-run whenever path or user changes
 
-  if (loading) {
-    return (
-      <div className="flex items-center flex-col justify-center min-h-screen">
-        <div>
-          <Image
-            src="/logo.png"
-            alt="zobsai logo"
-            width={100}
-            height={100}
-            className="w-10 h-10 animate-bounce"
-          />
-        </div>
-        <div className="text-md font-semibold">LOADING...</div>
-      </div>
-    );
+    // 2. If it IS a dashboard route, wait for auth to finish loading
+    if (!authLoading) {
+      if (!token) {
+        // No token found, send to login
+        router.replace('/login');
+      } else {
+        // Token exists, allow access
+        setIsChecking(false);
+      }
+    }
+  }, [pathname, token, authLoading, isDashboardRoute, router]);
+
+  // If we are not on a dashboard route, just render children (Home, Login, etc.)
+  if (!isDashboardRoute) {
+    return <>{children}</>;
   }
 
-  if (!user) {
-    return null;
+  // Show loading while verifying dashboard access
+  if (isChecking || authLoading) {
+    return (
+      <div className="flex items-center flex-col justify-center min-h-screen">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="text-md font-semibold text-gray-600">
+          Verifying Access...
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
