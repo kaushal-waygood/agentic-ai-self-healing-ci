@@ -249,7 +249,7 @@ const FormFooter: React.FC<{
   isLast,
 }) => {
   return (
-    <div className="pt-4 flex justify-between items-center px-6 pb-6 bg-white">
+    <div className="pt-4 flex flex-wrap gap-2 justify-between items-center px-6 pb-6 bg-white">
       <Button
         type="button"
         variant="outline"
@@ -736,11 +736,11 @@ export const AddProject: React.FC<{
       technologies: Array.isArray(data?.technologies)
         ? (data?.technologies as string[])
         : typeof data?.technologies === 'string'
-        ? data!.technologies
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : [],
+          ? data!.technologies
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [],
       link: data?.link || '',
     },
     mode: 'onSubmit',
@@ -886,7 +886,7 @@ export const AddProject: React.FC<{
                           type="month"
                           {...field}
                           disabled={isCurrent}
-                          value={isCurrent ? '' : field.value ?? ''}
+                          value={isCurrent ? '' : (field.value ?? '')}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1194,7 +1194,7 @@ export const AddExperience: React.FC<{
                           {...field}
                           required
                           disabled={isCurrent}
-                          value={isCurrent ? '' : field.value ?? ''}
+                          value={isCurrent ? '' : (field.value ?? '')}
                         />
                       </FormControl>
                       <FormMessage />

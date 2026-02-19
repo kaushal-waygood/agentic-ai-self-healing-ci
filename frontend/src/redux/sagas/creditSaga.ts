@@ -70,8 +70,8 @@ export function* earnCreditSaga(action: PayloadAction<any>): SagaIterator {
 export function* fetchDailyStreakSaga(): SagaIterator {
   try {
     const response: AxiosResponse = yield call(fetchDailyStreak);
-    yield put(fetchDailyStreakSuccess(response.data));
-    // Removed getCreditRequest() call here to avoid infinite loops
+
+    yield put(fetchDailyStreakSuccess(response));
   } catch (error: unknown) {
     yield put(
       fetchDailyStreakFailure(

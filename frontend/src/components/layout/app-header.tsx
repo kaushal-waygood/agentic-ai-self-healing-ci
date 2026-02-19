@@ -37,7 +37,6 @@ import PlanDropdown from './PlanDropdown';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import { NotificationBell } from '../notifications/NotificationBell';
 import StreakDropdown from './StreakDropdown';
-import ReminderModal from './ReminderModal';
 import { Tooltip } from './tooltip';
 import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
 import ThemeToggle from '../ui/theme-toggle';
@@ -192,8 +191,7 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 export const TotalCredit = () => {
   const [open, setOpen] = useState(false);
 
-  const { streak, loading, claiming, claim, claimCredits, credit } =
-    useDailyStreak();
+  const { streak, claiming, claim, credit } = useDailyStreak();
 
   const dropdownRef = useRef(null);
 
