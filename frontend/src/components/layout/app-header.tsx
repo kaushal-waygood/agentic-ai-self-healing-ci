@@ -45,6 +45,7 @@ import { useFeedback } from '../Feedback-context/feedbackContext';
 import { useProfile } from '@/hooks/useProfile';
 import Image from 'next/image';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { fetchPlanRequest } from '@/redux/reducers/planReducer';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -307,12 +308,13 @@ const AppHeader = ({
     aiAutoApplyDailyLimit: 0,
     aiMannualApplication: 0,
   });
-  const [planType, setPlanType] = useState('free');
+  // const [planType, setPlanType] = useState('free');
 
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { planType } = useSelector((state: RootState) => state.plan);
 
   const effectivePlanLimits = useMemo(
     () => ({
@@ -341,16 +343,15 @@ const AppHeader = ({
   useEffect(() => {
     const fetchUsageData = async () => {
       try {
-        const [limitsRes, planRes] = await Promise.all([
+        dispatch(fetchPlanRequest());
+        const [limitsRes] = await Promise.all([
           apiInstance.get('/plan/usage-limit'),
-          apiInstance.get('/plan/get-user-plan-type'),
         ]);
 
         setUsageData(limitsRes.data.data.usageCounters);
 
         if (limitsRes.data?.success)
           setUsageLimits(limitsRes.data.data.usageLimits);
-        if (planRes.data?.success) setPlanType(planRes.data.data.planType);
       } catch (error) {
         console.error('Failed to fetch user plan data:', error);
       }

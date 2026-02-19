@@ -214,12 +214,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         });
       }
     } catch (error) {
-      console.log(error.response.data.message);
       toast({
         title: 'Could not calculate the AI  score.',
         description: error.response.data.message,
       });
-      console.error('Match score error:', error);
       setProgress(0);
       setScoreError('Could not calculate the AI match score.');
     } finally {

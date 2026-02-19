@@ -22,7 +22,6 @@ export default function HomePage() {
   useEffect(() => {
     try {
       if (token) {
-        console.log('token', token);
         router.push('/dashboard');
       }
     } catch (error) {

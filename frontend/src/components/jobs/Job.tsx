@@ -52,7 +52,6 @@ export default async function SearchJobsPage({
           <div>Filters will go here</div>
         </aside>
 
-        {/* Main job listings */}
         <main>
           {!hasQuery ? (
             <div className="text-center py-10 border rounded-lg">
