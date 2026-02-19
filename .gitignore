@@ -1,5 +1,6 @@
 .env
 develop.deploy
+manifests
 main.deploy
 /rof/*
 .github/workflows
