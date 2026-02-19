@@ -102,7 +102,7 @@ const Experience = () => {
 
                 <div className="mt-2 pt-4 border-t border-gray-100 space-y-2">
                   {exp.description && (
-                    <p className="text-gray-600 leading-relaxed">
+                    <p className="text-gray-600 break-all leading-relaxed">
                       {exp.description}
                     </p>
                   )}

@@ -12,7 +12,7 @@ const buttonVariants = cva(
         primary:
           'bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow hover:shadow-accent',
         default:
-          'bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow hover:shadow-accent',
+          'bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow',
         hero: 'bg-gradient-hero text-white hover:scale-105 shadow-glow hover:shadow-accent font-semibold',
         accent:
           'bg-accent text-accent-foreground hover:bg-accent/90 shadow-accent',
@@ -46,7 +46,8 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
