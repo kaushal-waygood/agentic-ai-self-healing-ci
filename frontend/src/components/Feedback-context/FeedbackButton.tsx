@@ -269,11 +269,7 @@ const FeedbackButton = () => {
 
     // Simulate API call
     try {
-      console.log('Submitting:', Object.fromEntries(dataToSend)); // Debug log
-      // await new Promise((resolve) => setTimeout(resolve, 1500));
-
       const res = await apiInstance.post('/user/feedback', dataToSend);
-      console.log('Response:', res.data);
 
       // Reset Form
       setIsOpen(false);

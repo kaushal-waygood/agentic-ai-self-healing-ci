@@ -93,8 +93,8 @@ const LoginForm = () => {
       dispatch(loginRequest(data));
 
       if (user) {
-        successToast('Login successful! Redirecting to your dashboard...');
         router.push('/dashboard');
+        successToast('Login successful! Redirecting to your dashboard...');
       } else {
         errorToast('Invalid email or password');
         NProgress.done();

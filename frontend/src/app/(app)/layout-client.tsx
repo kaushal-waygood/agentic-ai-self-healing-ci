@@ -6,6 +6,7 @@ import React, {
   createContext,
   useContext,
   useMemo,
+  useRef,
 } from 'react';
 import { usePathname } from 'next/navigation';
 import { AppHeader, CommandPalette } from '@/components/layout/app-header';
@@ -20,6 +21,7 @@ import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext'
 import logRocketAnalytics from '@/components/logrocket/logrocket';
 import { RootState } from '@/redux/rootReducer';
 import FeedbackButton from '@/components/Feedback-context/FeedbackButton';
+import ImprovementPopup from '@/components/Improvement-popup/ImprovementPopup';
 
 interface SidebarContextType {
   isOpen: boolean;
@@ -48,8 +50,31 @@ export default function DashboardLayoutClient({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [showImprovementPopup, setShowImprovementPopup] = useState(false);
+  const [hasUserEngaged, setHasUserEngaged] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout>();
+  const [lastDismissedPath, setLastDismissedPath] = useState<string | null>(
+    null,
+  );
+  const [lastDismissedTime, setLastDismissedTime] = useState<number>(0);
+  const popupShownForPathRef = useRef<Set<string>>(new Set());
 
   const { user } = useSelector((state: RootState) => state.auth);
+  const [globalLastDismissTime, setGlobalLastDismissTime] = useState<number>(0);
+
+  useEffect(() => {
+    const feedbackData = localStorage.getItem('feedback_completed');
+    if (feedbackData) {
+      const { completed, expiry } = JSON.parse(feedbackData);
+      if (Date.now() < expiry) {
+        completed.forEach((path: string) =>
+          popupShownForPathRef.current.add(path),
+        );
+      } else {
+        localStorage.removeItem('feedback_completed');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const update = () => setIsDesktop(window.innerWidth >= 1024);
@@ -157,6 +182,87 @@ export default function DashboardLayoutClient({
     });
   }, [user]);
 
+  useEffect(() => {
+    if (
+      popupShownForPathRef.current.has('/dashboard/*') &&
+      pathname.startsWith('/dashboard')
+    ) {
+      return;
+    }
+
+    let waitTime = 0;
+
+    if (globalLastDismissTime > 0) {
+      const timeSinceGlobal = Date.now() - globalLastDismissTime;
+
+      if (timeSinceGlobal < 60000) {
+        waitTime = 60000 - timeSinceGlobal;
+      }
+    }
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    if (waitTime > 0) {
+      timerRef.current = setTimeout(() => {
+        const finalTimer = setTimeout(() => {
+          setShowImprovementPopup(true);
+        }, 30000);
+
+        timerRef.current = finalTimer;
+      }, waitTime);
+    } else {
+      timerRef.current = setTimeout(() => {
+        setShowImprovementPopup(true);
+      }, 30000);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [pathname, globalLastDismissTime]);
+
+  const handleDismissPopup = () => {
+    setShowImprovementPopup(false);
+
+    setLastDismissedPath(pathname);
+    setLastDismissedTime(Date.now());
+    setGlobalLastDismissTime(Date.now());
+  };
+
+  useEffect(() => {
+    const handleUserActivity = () => {
+      setHasUserEngaged(true);
+    };
+
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+
+    return () => {
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+    };
+  }, []);
+
+  const handleYesInteraction = () => {
+    setShowImprovementPopup(false);
+
+    popupShownForPathRef.current.add('/dashboard/*');
+
+    localStorage.setItem(
+      'feedback_completed',
+      JSON.stringify({
+        completed: ['/dashboard/*'],
+        expiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      }),
+    );
+  };
+
   return (
     <ProtectedRoute>
       <FeedbackProvider>
@@ -220,6 +326,13 @@ export default function DashboardLayoutClient({
             </div>
           </div>
           {/* feedback popup in 1 second delay */}
+          {showImprovementPopup && (
+            <ImprovementPopup
+              onClose={handleDismissPopup}
+              onYes={handleYesInteraction}
+            />
+          )}
+
           <FeedbackPopup delay={50000} enableAutoOpen={true} />
         </SidebarContext.Provider>
       </FeedbackProvider>

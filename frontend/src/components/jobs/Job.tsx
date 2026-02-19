@@ -12,23 +12,22 @@ async function fetchJobs(searchParams: JobSearchFlowInput) {
     employmentTypes: Array.isArray(searchParams.employmentTypes)
       ? searchParams.employmentTypes
       : searchParams.employmentTypes
-      ? [searchParams.employmentTypes]
-      : [],
+        ? [searchParams.employmentTypes]
+        : [],
     jobRequirements: Array.isArray(searchParams.jobRequirements)
       ? searchParams.jobRequirements
       : searchParams.jobRequirements
-      ? [searchParams.jobRequirements]
-      : [],
+        ? [searchParams.jobRequirements]
+        : [],
     radius: searchParams.radius ? Number(searchParams.radius) : undefined,
   };
 
-  // Assuming searchJobsFlow returns the jobs or throws an error
   try {
     const jobs = await searchJobsFlow(processedParams);
-    return jobs || []; // Ensure it returns an array
+    return jobs || [];
   } catch (error) {
     console.error('Error fetching jobs:', error);
-    return []; // Return an empty array on error
+    return [];
   }
 }
 
@@ -49,12 +48,10 @@ export default async function SearchJobsPage({
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8 items-start">
-        {/* Filters section */}
         <aside className="sticky top-6">
           <div>Filters will go here</div>
         </aside>
 
-        {/* Main job listings */}
         <main>
           {!hasQuery ? (
             <div className="text-center py-10 border rounded-lg">

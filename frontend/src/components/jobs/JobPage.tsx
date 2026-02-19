@@ -77,14 +77,16 @@ export default function JobsPage() {
   }, [searchParams, fetchJobDetails]);
 
   const handleCardClick = (job: any) => {
-    // 1️⃣ Track click immediately
+    if (selectedJob?._id === job._id) return;
+
     trackJobClick(job._id, filters?.q);
 
-    // 2️⃣ Navigate or load details
     if (isMobile) {
       router.push(`/jobs/${job.slug}`);
     } else {
-      fetchJobDetails(job.slug || querySlug);
+      setSelectedJob(job);
+
+      fetchJobDetails(job.slug);
     }
   };
 

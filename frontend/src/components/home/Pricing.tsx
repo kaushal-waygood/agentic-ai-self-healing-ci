@@ -7,6 +7,9 @@ import PlanCard from './PlanCard';
 import { ArrowRight, DollarSign, IndianRupee, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../ui/button';
+import { useSelector } from 'react-redux';
+import state from 'country-state-city/lib/state';
+import { RootState } from '@/redux/rootReducer';
 
 interface Plan {
   _id: string;
@@ -48,27 +51,10 @@ export function Pricing() {
     fetchPlan();
   }, []);
 
-  const [userPlanType, setUserPlanType] = useState('Free');
+  const { planType: userPlanType } = useSelector(
+    (state: RootState) => state.plan,
+  );
 
-  useEffect(() => {
-    // ✅ Logic: Only fetch if we are NOT on the home page
-    const isHomePage = pathname === '/';
-
-    if (!isHomePage) {
-      const fetchUserPlan = async () => {
-        try {
-          const res = await apiInstance.get('/plan/get-user-plan-type');
-          if (res.data.success) {
-            setUserPlanType(res.data.data.planType);
-          }
-        } catch (error) {
-          console.error('Fetch error:', error);
-        }
-      };
-      fetchUserPlan();
-    }
-  }, [pathname]);
-  // Currency toggle handler
   const handleCurrencyChange = (newCurrency: 'usd' | 'inr') => {
     setCurrency(newCurrency);
   };
@@ -162,7 +148,6 @@ export function Pricing() {
                   <PlanCard
                     plan={plan}
                     currency={currency}
-                    // handlePlanSelect={handlePlanSelect}
                     isSubscriptionPage={isSubscriptionPage}
                     userPlanType={userPlanType}
                   />
