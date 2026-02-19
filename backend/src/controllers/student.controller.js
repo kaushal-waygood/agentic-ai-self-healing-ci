@@ -2694,7 +2694,7 @@ export const getCreditsSummary = async (req, res) => {
         case 'FOLLOW_FACEBOOK':
           return 'https://www.facebook.com/zobsai.co';
         case 'FOLLOW_YOUTUBE':
-          return 'https://www.youtube.com/@ZobsAI';
+          return 'https://www.youtube.com/@Zobsai.official/';
         case 'FOLLOW_TIKTOK':
           return '/social-follow';
 

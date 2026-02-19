@@ -6,7 +6,10 @@ import {
   removeAutoPilotAgent,
 } from '../controllers/autopilotAgent.controller.js';
 import express from 'express';
-import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
+import {
+  authMiddleware,
+  isGeneralUser,
+} from '../middlewares/auth.middleware.js';
 import { upload } from '../middlewares/multer.js';
 
 const router = express.Router();
@@ -14,13 +17,19 @@ const router = express.Router();
 router.post(
   '/create',
   authMiddleware,
-  isStudent,
+  isGeneralUser,
   upload.single('cv'),
   createAutopilotAgent,
 );
-router.get('/get', authMiddleware, isStudent, getAllPilotAgents);
-router.get('/get/:id', authMiddleware, isStudent, getSinglePilotAgent);
-router.delete('/delete/:id', authMiddleware, isStudent, removeAutoPilotAgent);
-router.post('/activate/:id', authMiddleware, isStudent, activateAgent);
+
+router.get('/get', authMiddleware, isGeneralUser, getAllPilotAgents);
+router.get('/get/:id', authMiddleware, isGeneralUser, getSinglePilotAgent);
+router.delete(
+  '/delete/:id',
+  authMiddleware,
+  isGeneralUser,
+  removeAutoPilotAgent,
+);
+router.post('/activate/:id', authMiddleware, isGeneralUser, activateAgent);
 
 export default router;

@@ -525,6 +525,8 @@ export const useApplicationWizard = () => {
   );
   const handleGenerate = useCallback(async () => {
     // 🔒 HARD GUARD (this is the fix)
+    setIsLoading(true);
+    console.log('isloading', isLoading);
 
     if (!jobContext || !cvContext) {
       toast({
@@ -536,7 +538,6 @@ export const useApplicationWizard = () => {
       return;
     }
 
-    setIsLoading(true);
     setLoadingMessage('Generating your tailored application...');
 
     try {
@@ -767,6 +768,8 @@ export const useApplicationWizard = () => {
       handleSendEmail,
       setSelectedCvId,
       handleSaveAndFinish,
+      setIsLoading,
+      setLoadingMessage,
     },
     forms: { clForm },
   };
