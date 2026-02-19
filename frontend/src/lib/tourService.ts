@@ -4,10 +4,10 @@ import debounce from 'lodash/debounce';
 
 const API_BASE = '/onboarding/tours';
 
-// export const fetchTourConfig = async () => {
-//   const res = await apiInstance.get(`${API_BASE}`);
-//   return res.data || {};
-// };
+export const fetchTourConfig = async () => {
+  const res = await apiInstance.get(`${API_BASE}`);
+  return res.data || {};
+};
 
 export const updateTourProgress = async (
   pageKey: string,
