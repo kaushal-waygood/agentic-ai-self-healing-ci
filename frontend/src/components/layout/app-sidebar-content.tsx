@@ -44,7 +44,7 @@ export const AppSidebarContent = ({
   const router = useRouter();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [planType, setPlanType] = useState('Free');
+  // const [planType, setPlanType] = useState('Free');
 
   // --- 1. ROLE DEFINITIONS ---
   const ROLES = {
@@ -59,30 +59,14 @@ export const AppSidebarContent = ({
 
   // Safe fallback to 'user' if role is missing
   const currentRole = authUser?.role || ROLES.USER;
-
-  // --- 2. DATA FETCHING ---
-  useEffect(() => {
-    const fetchUserPlanType = async () => {
-      try {
-        const response = await apiInstance.get('/plan/get-user-plan-type');
-        if (response.data?.data?.planType) {
-          setPlanType(response.data.data.planType);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user plan:', error);
-      }
-    };
-
-    if (authUser) {
-      fetchUserPlanType();
-    }
-  }, [authUser]);
+  const { planType } = useSelector((state: RootState) => state.plan);
 
   const user = {
     role: currentRole,
     fullName: authUser?.fullName || 'Guest User',
     plan: planType,
   };
+
   const SIDEBAR_SECTIONS = [
     // { label: 'Core', start: 0 },
     { label: 'AI Tools', start: 2 },

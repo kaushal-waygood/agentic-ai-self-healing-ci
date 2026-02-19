@@ -53,6 +53,7 @@ import { useCredits } from '@/hooks/useCredits';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import OnboardingExperienceFeedback from '../onboarding-tour/OnboardingExperienceFeedback';
+import { RootState } from '@/redux/rootReducer';
 
 export function StatCard({
   title,
@@ -509,7 +510,6 @@ function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
 
 export function SubscriptionStatusCard({ plan }: any) {
   const pathname = usePathname();
-  // Fallback UI if there's no active plan
   if (!plan || !plan.isActive) {
     return (
       <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
@@ -649,9 +649,6 @@ export default function DashboardPage() {
   });
   const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
-  {
-    /* For Onboarding show feedback page */
-  }
   const searchParams = useSearchParams();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
   const [showFeedback, setShowFeedback] = useState(false);
@@ -663,16 +660,21 @@ export default function DashboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
+  const { planType, isActive } = useSelector((state: RootState) => state.plan);
+  const { user: authUser } = useSelector((state: RootState) => state.auth);
+
+  const planDetails = {
+    planType,
+    isActive,
+    user: authUser,
+  };
   const [planDetails, setPlanDetails] = useState(null);
 
   const dispatch = useDispatch();
-  // Use the user from Redux as the single source of truth for authentication
-  const { user: authUser } = useSelector((state: any) => state.auth);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Fetch Job Stats
         const statsResponse = await apiInstance.get('/students/jobs/stats');
         const apiData = statsResponse.data;
 
@@ -719,13 +721,6 @@ export default function DashboardPage() {
           },
         ]);
 
-        // --- Fetch Plan Details ---
-        const planResponse = await apiInstance.get('/plan/get-user-plan-type');
-        if (planResponse.data.success) {
-          setPlanDetails(planResponse.data.data);
-        }
-
-        // Mock action items
         setActionItems(mockUserProfile.actionItems || []);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);

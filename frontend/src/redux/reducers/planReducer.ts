@@ -6,13 +6,15 @@ interface PlanState {
   usageLimits: any;
   fetched: boolean;
   usageData: any;
+  isActive: boolean;
   error: string | null;
 }
 
 const initialState: PlanState = {
   loading: false,
   fetched: false,
-  planType: 'free',
+  isActive: false,
+  planType: '',
   usageLimits: {},
   usageData: {},
   error: null,
@@ -29,6 +31,7 @@ const planSlice = createSlice({
     fetchPlanSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.planType = action.payload.planType;
+      state.isActive = action.payload.isActive;
       state.usageLimits = action.payload.usageLimits;
       state.usageData = action.payload.usageData;
       state.fetched = true;

@@ -7,7 +7,7 @@ import { watchAI } from './sagas/aiSaga';
 import { autopilotWatcher } from './sagas/autopilotSaga';
 import { creditSaga } from './sagas/creditSaga';
 import checkoutSaga from './sagas/checkoutSaga';
-import { watchPlanSaga } from './sagas/planSaga';
+import { planWatcher } from './sagas/planSaga';
 
 export function* rootSaga() {
   try {
@@ -20,7 +20,7 @@ export function* rootSaga() {
       autopilotWatcher(),
       creditSaga(),
       checkoutSaga(),
-      watchPlanSaga(),
+      planWatcher(),
     ]);
   } catch (error) {
     console.error('Saga error:', error);

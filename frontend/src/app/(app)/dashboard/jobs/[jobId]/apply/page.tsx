@@ -143,7 +143,6 @@ const JobDetailPage = () => {
       const response = await apiInstance.get(
         '/students/jobs/events?type=APPLIED',
       );
-      console.log(response);
       router.replace('/dashboard/search-jobs');
 
       toast({

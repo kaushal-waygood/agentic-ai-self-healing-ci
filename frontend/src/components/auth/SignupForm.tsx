@@ -156,12 +156,10 @@ const SignupForm = () => {
       const response = await apiInstance.post('/user/signup', data);
 
       if (response.status === 201) {
-        console.log('User created successfully:', response.data);
         successToast(
           'Account created! Please check your email for a verification code.',
         );
         localStorage.setItem('pendingVerificationEmail', data.email);
-        console.log(localStorage.getItem('pendingVerificationEmail'));
         setStoredEmail(data.email);
         setSignupSuccess(true);
       }

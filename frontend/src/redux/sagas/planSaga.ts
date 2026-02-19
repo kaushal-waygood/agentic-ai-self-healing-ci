@@ -5,26 +5,17 @@ import {
   fetchPlanSuccess,
   fetchPlanFailure,
 } from '../reducers/planReducer';
+import { getPlanDetails } from '@/services/api/plan';
 
 function* fetchPlanWorker(): Generator<any, void, any> {
   try {
-    const [limitsRes, planRes] = yield all([
-      call(apiInstance.get, '/plan/usage-limit'),
-      call(apiInstance.get, '/plan/get-user-plan-type'),
-    ]);
-
-    yield put(
-      fetchPlanSuccess({
-        usageLimits: limitsRes.data.data.usageLimits,
-        usageData: limitsRes.data.data.usageCounters,
-        planType: planRes.data.data.planType,
-      }),
-    );
+    const res = yield call(getPlanDetails);
+    yield put(fetchPlanSuccess(res.data));
   } catch (error: any) {
     yield put(fetchPlanFailure(error?.message || 'Failed to fetch plan'));
   }
 }
 
-export function* watchPlanSaga(): Generator<any, void, any> {
+export function* planWatcher() {
   yield takeLatest(fetchPlanRequest.type, fetchPlanWorker);
 }

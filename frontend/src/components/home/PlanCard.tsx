@@ -102,23 +102,6 @@ const PlanCard = ({ plan, currency, userPlanType = 'Free' }: PlanCardProps) => {
       plan.billingVariants[0]?.period,
   );
 
-  // const [planDetails, setPlanDetails] = useState<any>(null);
-
-  // --- Fetch Plan Details ---
-  // useEffect(() => {
-  //   const fetchPlanDetails = async () => {
-  //     try {
-  //       const planResponse = await apiInstance.get('/plan/get-user-plan-type');
-  //       if (planResponse.data.success) {
-  //         setPlanDetails(planResponse.data.data);
-  //       }
-  //     } catch (error) {
-  //       console.error('Failed to fetch plan details:', error);
-  //     }
-  //   };
-  //   fetchPlanDetails();
-  // }, []);
-
   // ✅ Student discount state
   const [studentDiscount, setStudentDiscount] = useState(false);
   const IconComponent = planIcons[plan.planType];

@@ -48,6 +48,7 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     const accessToken = getToken();
+    console.log('ACCESS TOKEN', accessToken);
 
     if (!accessToken || !isTokenValid(accessToken)) {
       setLoading(false);
