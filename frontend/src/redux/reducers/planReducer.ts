@@ -33,7 +33,7 @@ const planSlice = createSlice({
       state.planType = action.payload.planType;
       state.isActive = action.payload.isActive;
       state.usageLimits = action.payload.usageLimits;
-      state.usageData = action.payload.usageData;
+      state.usageData = action.payload.usageCounters;
       state.fetched = true;
     },
     fetchPlanFailure: (state, action: PayloadAction<string>) => {

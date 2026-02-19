@@ -208,14 +208,14 @@ export default function DashboardLayoutClient({
       timerRef.current = setTimeout(() => {
         const finalTimer = setTimeout(() => {
           setShowImprovementPopup(true);
-        }, 30000);
+        }, 1);
 
         timerRef.current = finalTimer;
       }, waitTime);
     } else {
       timerRef.current = setTimeout(() => {
         setShowImprovementPopup(true);
-      }, 30000);
+      }, 1);
     }
 
     return () => {

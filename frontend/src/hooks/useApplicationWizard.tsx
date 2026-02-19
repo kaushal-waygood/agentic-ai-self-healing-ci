@@ -526,7 +526,6 @@ export const useApplicationWizard = () => {
   const handleGenerate = useCallback(async () => {
     // 🔒 HARD GUARD (this is the fix)
     setIsLoading(true);
-    console.log('isloading', isLoading);
 
     if (!jobContext || !cvContext) {
       toast({
