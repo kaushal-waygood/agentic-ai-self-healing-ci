@@ -668,7 +668,7 @@ export default function DashboardPage() {
     isActive,
     user: authUser,
   };
-  const [planDetails, setPlanDetails] = useState(null);
+  // const [planDetails, setPlanDetails] = useState(null);
 
   const dispatch = useDispatch();
 
