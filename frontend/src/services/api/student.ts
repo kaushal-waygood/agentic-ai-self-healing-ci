@@ -157,3 +157,8 @@ export const getStudentEvent = async (data: any) => {
   );
   return response;
 };
+
+export const getStudentStats = async () => {
+  const response = await apiInstance.get('/students/jobs/stats');
+  return response;
+};

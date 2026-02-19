@@ -7,6 +7,9 @@ import { useToast } from '@/hooks/use-toast';
 import { ApplicationRow, StatCard } from './statusConfig';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { getStudentStatsRequest } from '@/redux/reducers/studentReducer';
 
 interface Application {
   id: string;
@@ -30,12 +33,14 @@ const extendedApplicationStatuses = [
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [jobStats, setJobStats] = useState({
-    savedJobsCount: 0,
-    jobsViewed: 0,
-    jobsVisited: 0,
-    appliedJobsCount: 0,
-  });
+  // const [jobStats, setJobStats] = useState({
+  //   savedJobsCount: 0,
+  //   jobsViewed: 0,
+  //   jobsVisited: 0,
+  //   appliedJobsCount: 0,
+  // });
+
+  const { stats: jobStats } = useSelector((state: RootState) => state.student);
 
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -44,17 +49,11 @@ export default function ApplicationsPage() {
     searchParams.get('status') || 'Saved',
   );
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await apiInstance.get(`/students/jobs/stats`);
-        setJobStats(response.data);
-      } catch (error) {
-        console.error('Failed to fetch job stats:', error);
-      }
-    };
-    fetchStats();
-  }, []);
+    dispatch(getStudentStatsRequest());
+  }, [dispatch]);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -184,28 +183,28 @@ export default function ApplicationsPage() {
         <div className="grid grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6 mb-6 cursor-pointer md:p-2">
           <StatCard
             label="Applied Jobs"
-            value={jobStats.appliedJobsCount}
+            value={jobStats?.appliedJobsCount}
             icon={Send}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Applied')}
           />
           <StatCard
             label="Saved Jobs"
-            value={jobStats.savedJobsCount}
+            value={jobStats?.savedJobsCount}
             icon={Bookmark}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Saved')}
           />
           <StatCard
             label="Viewed Jobs"
-            value={jobStats.jobsViewed}
+            value={jobStats?.jobsViewed}
             icon={Eye}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Viewed')}
           />
           <StatCard
             label="Visited Links"
-            value={jobStats.jobsVisited}
+            value={jobStats?.jobsVisited}
             icon={Link}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Visited')}

@@ -14,14 +14,18 @@ import {
   fetchDailyStreakRequest,
   fetchDailyStreakSuccess,
   fetchDailyStreakFailure,
+  claimDailyStreakRequest,
+  claimDailyStreakSuccess,
+  claimDailyStreakFailure,
 } from '../reducers/creditReducer';
 import {
   earnSocialCredit,
   getCredit,
   getTotalCredit,
+  fetchDailyStreak,
+  claimDailyStreakApi,
 } from '@/services/api/credit';
 import { AxiosResponse } from 'axios';
-import { fetchDailyStreak } from '@/services/api/streakApi';
 
 export function* getCreditSaga(): SagaIterator {
   try {
@@ -57,7 +61,7 @@ export function* earnCreditSaga(action: PayloadAction<any>): SagaIterator {
       action.payload.meta,
     );
     yield put(earnCreditSuccess(response.data));
-    yield put(getCreditRequest()); // Refresh credit after earning
+    yield put(getCreditRequest());
   } catch (error: unknown) {
     yield put(
       earnCreditFailure(
@@ -71,10 +75,23 @@ export function* fetchDailyStreakSaga(): SagaIterator {
   try {
     const response: AxiosResponse = yield call(fetchDailyStreak);
     yield put(fetchDailyStreakSuccess(response.data));
-    // Removed getCreditRequest() call here to avoid infinite loops
   } catch (error: unknown) {
     yield put(
       fetchDailyStreakFailure(
+        error instanceof Error ? error.message : 'Unknown error',
+      ),
+    );
+  }
+}
+
+export function* claimDailyStreakSaga(): SagaIterator {
+  try {
+    const response: AxiosResponse = yield call(claimDailyStreakApi);
+    yield put(claimDailyStreakSuccess(response.data));
+    yield put(getCreditRequest());
+  } catch (error: unknown) {
+    yield put(
+      claimDailyStreakFailure(
         error instanceof Error ? error.message : 'Unknown error',
       ),
     );
@@ -86,4 +103,5 @@ export function* creditSaga() {
   yield takeLatest(getTotalCreditRequest.type, getTotalCreditSaga);
   yield takeLatest(earnCreditRequest.type, earnCreditSaga);
   yield takeLatest(fetchDailyStreakRequest.type, fetchDailyStreakSaga);
+  yield takeLatest(claimDailyStreakRequest.type, claimDailyStreakSaga);
 }

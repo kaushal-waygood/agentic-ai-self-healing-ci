@@ -92,6 +92,9 @@ import {
   getStudentEventsRequest,
   getStudentEventsSuccess,
   getStudentEventsFailure,
+  getStudentStatsRequest,
+  getStudentStatsSuccess,
+  getStudentStatsFailure,
 } from '../reducers/studentReducer';
 
 import {
@@ -139,6 +142,7 @@ import {
   getEducation,
   studentEvents,
   getStudentEvent,
+  getStudentStats,
 } from '@/services/api/student';
 import {
   savedStudentJobsRequest,
@@ -479,7 +483,7 @@ function* getStudentSavedJobsSaga() {
     const response: AxiosResponse = yield call(getAllSavedJobs);
     const payload = Array.isArray(response.data)
       ? response.data
-      : response.data?.savedJobs ?? [];
+      : (response.data?.savedJobs ?? []);
     yield put(getAllSavedJobsSuccess(payload));
     yield put(getStudentDetailsRequest());
   } catch (error) {
@@ -557,6 +561,15 @@ function* getStudentEventsSaga(action: PayloadAction<Record<string, any>>) {
   }
 }
 
+function* getStudentStatsSaga() {
+  try {
+    const response: AxiosResponse = yield call(getStudentStats);
+    yield put(getStudentStatsSuccess(response.data));
+  } catch (error) {
+    yield put(getStudentStatsFailure(getErrorMessage(error)));
+  }
+}
+
 export function* studentWatcher() {
   // details
   yield takeLatest(getStudentDetailsRequest.type, getStudentDetailsSaga);
@@ -623,4 +636,5 @@ export function* studentWatcher() {
 
   yield takeLatest(postStudentEventsRequest.type, postStudentEventsSaga);
   yield takeLatest(postStudentEventsRequest.type, getStudentEventsSaga);
+  yield takeLatest(getStudentStatsRequest.type, getStudentStatsSaga);
 }
