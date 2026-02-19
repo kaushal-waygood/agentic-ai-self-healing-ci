@@ -1,18 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import {
-  fetchDailyStreak,
-  claimDailyStreakApi,
-  DailyStreakResponse,
-} from '@/services/api/streakApi';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import {
   fetchDailyStreakRequest,
   getCreditRequest,
-  getTotalCreditRequest,
+  claimDailyStreakRequest,
 } from '@/redux/reducers/creditReducer';
 
 type StreakState = {
@@ -25,121 +21,69 @@ type StreakState = {
 };
 
 export function useDailyStreak() {
-  const [streak, setStreak] = useState<StreakState>({
-    current: 0,
-    longest: 0,
-    lastClaimedAt: null,
-    activeDays: [],
-    canClaimToday: false,
-    freezeTokens: 0,
-  });
-
   const dispatch = useDispatch();
+
   const {
-    claimCredits,
+    streak: reduxStreak,
     credit,
     loading: creditLoading,
     error: creditError,
-    streak: reduxStreak, // Fixed: renamed from 'any' to 'reduxStreak'
+    claimCredits,
   } = useSelector((state: RootState) => state.credit);
-
-  const [loading, setLoading] = useState(true);
-  const [claiming, setClaiming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchDailyStreakRequest());
-    dispatch(getCreditRequest());
-    dispatch(getTotalCreditRequest());
   }, [dispatch]);
 
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchDailyStreak();
-
-      const activeDays = computeActiveDays(
-        data.streak.current,
-        data.streak.lastClaimedAt,
-      );
-
-      setStreak({
-        current: data.streak.current,
-        longest: data.streak.longest,
-        lastClaimedAt: data.streak.lastClaimedAt,
-        activeDays,
-        canClaimToday: data.canClaimToday,
-        freezeTokens: data.streak.freezeTokens ?? 0,
-      });
-    } catch (err: any) {
-      console.error('Failed to fetch streak:', err);
-      setError('Failed to load streak');
-    } finally {
-      setLoading(false);
+  const streakData = useMemo(() => {
+    if (!reduxStreak?.streak) {
+      return {
+        current: 0,
+        longest: 0,
+        lastClaimedAt: null,
+        activeDays: [],
+        canClaimToday: false,
+        freezeTokens: 0,
+      };
     }
-  }, []);
+
+    return {
+      current: reduxStreak.streak.current,
+      longest: reduxStreak.streak.longest,
+      lastClaimedAt: reduxStreak.streak.lastClaimedAt,
+      activeDays: computeActiveDays(
+        reduxStreak.streak.current,
+        reduxStreak.streak.lastClaimedAt,
+      ),
+      canClaimToday: reduxStreak.canClaimToday,
+      freezeTokens: reduxStreak.streak.freezeTokens ?? 0,
+    };
+  }, [reduxStreak]);
 
   const claim = useCallback(async () => {
     try {
-      setClaiming(true);
-      setError(null);
-      const res = await claimDailyStreakApi();
-
-      // Backend returns updated streak in `res.streak`
-      const { streak: s } = res;
-
-      const activeDays = computeActiveDays(s.current, s.lastClaimedAt);
-
-      setStreak((prev) => ({
-        ...prev,
-        current: s.current,
-        longest: s.longest,
-        lastClaimedAt: s.lastClaimedAt,
-        activeDays,
-        canClaimToday: false, // just claimed
-        freezeTokens: s.freezeTokens ?? prev.freezeTokens,
-      }));
-
-      // Refresh credit after claiming streak
+      dispatch(claimDailyStreakRequest());
+      dispatch(fetchDailyStreakRequest());
       dispatch(getCreditRequest());
     } catch (err: any) {
       console.error('Failed to claim streak:', err);
-      setError('Failed to claim daily check-in');
-    } finally {
-      setClaiming(false);
     }
   }, [dispatch]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  // Sync with Redux state if needed
-  useEffect(() => {
-    dispatch(getCreditRequest());
-    dispatch(fetchDailyStreakRequest());
-  }, [dispatch]);
-
   return {
-    streak,
+    streak: streakData,
     credit,
-    loading,
-    claiming,
-    error,
-    reload: load,
+    loading: creditLoading,
+    error: creditError,
     claim,
     claimCredits,
-    creditLoading,
-    creditError,
     reduxStreak,
   };
 }
 
-// Helper function to get UI day index from date
 function getUiDayIndexFromDate(date: Date): number {
   const jsDay = date.getDay(); // 0..6
-  const map = [6, 0, 1, 2, 3, 4, 5]; // Sunday = 6, Monday = 0, etc.
+  const map = [6, 0, 1, 2, 3, 4, 5];
   return map[jsDay];
 }
 
@@ -160,5 +104,5 @@ function computeActiveDays(
     if (!days.includes(idx)) days.push(idx);
   }
 
-  return days.sort((a, b) => a - b); // Sort for consistent order
+  return days.sort((a, b) => a - b);
 }

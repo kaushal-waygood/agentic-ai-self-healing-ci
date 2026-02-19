@@ -59,7 +59,6 @@ export function useCredits() {
   /* ------------------ fetch ------------------ */
 
   useEffect(() => {
-    dispatch(getCreditRequest());
     dispatch(getTotalCreditRequest());
   }, [dispatch]);
 
@@ -82,7 +81,6 @@ export function useCredits() {
 
   const refresh = useCallback(() => {
     setRefreshing(true);
-    dispatch(getCreditRequest());
     dispatch(getTotalCreditRequest());
   }, [dispatch]);
 

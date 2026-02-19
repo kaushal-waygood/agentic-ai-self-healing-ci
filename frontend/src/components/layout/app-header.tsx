@@ -284,35 +284,14 @@ const AppHeader = ({
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
-  const [usageLimits, setUsageLimits] = useState({
-    aiJobApply: 0,
-    cvCreation: 0,
-    coverLetter: 0,
-    autoApply: 0,
-    atsScore: 0,
-    jobMatching: 0,
-    aiAutoApply: 0,
-    aiAutoApplyDailyLimit: 0,
-    aiMannualApplication: 0,
-  });
-  const [usageData, setUsageData] = useState({
-    aiJobApply: 0,
-    cvCreation: 0,
-    coverLetter: 0,
-    autoApply: 0,
-    atsScore: 0,
-    jobMatching: 0,
-    aiAutoApply: 0,
-    aiAutoApplyDailyLimit: 0,
-    aiMannualApplication: 0,
-  });
-  // const [planType, setPlanType] = useState('free');
 
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
-  const { planType } = useSelector((state: RootState) => state.plan);
+  const { planType, usageLimits, usageData } = useSelector(
+    (state: RootState) => state.plan,
+  );
 
   const effectivePlanLimits = useMemo(
     () => ({
@@ -342,14 +321,6 @@ const AppHeader = ({
     const fetchUsageData = async () => {
       try {
         dispatch(fetchPlanRequest());
-        const [limitsRes] = await Promise.all([
-          apiInstance.get('/plan/usage-limit'),
-        ]);
-
-        setUsageData(limitsRes.data.data.usageCounters);
-
-        if (limitsRes.data?.success)
-          setUsageLimits(limitsRes.data.data.usageLimits);
       } catch (error) {
         console.error('Failed to fetch user plan data:', error);
       }

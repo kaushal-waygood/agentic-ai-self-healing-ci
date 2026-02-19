@@ -27,6 +27,7 @@ const creditSlice = createSlice({
       state.error = null;
     },
     getCreditSuccess: (state, action: PayloadAction<number>) => {
+      console.log('ACTION>PAYLOAD', action.payload);
       state.loading = false;
       state.error = null;
       state.claimCredits = action.payload;
@@ -69,12 +70,24 @@ const creditSlice = createSlice({
       state.error = null;
     },
     fetchDailyStreakSuccess: (state, action: PayloadAction<any>) => {
-      // Changed to accept any for streak data
       state.loading = false;
       state.error = null;
       state.streak = action.payload; // Fixed: was setting credit instead of streak
     },
     fetchDailyStreakFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+    claimDailyStreakRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    claimDailyStreakSuccess: (state, action: PayloadAction<any>) => {
+      state.loading = false;
+      state.error = null;
+      state.streak = action.payload;
+    },
+    claimDailyStreakFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
     },
@@ -85,14 +98,21 @@ export const {
   getCreditRequest,
   getCreditSuccess,
   getCreditFailure,
+
   getTotalCreditRequest,
   getTotalCreditSuccess,
   getTotalCreditFailure,
+
   earnCreditRequest,
   earnCreditSuccess,
   earnCreditFailure,
+
   fetchDailyStreakRequest,
   fetchDailyStreakSuccess,
   fetchDailyStreakFailure,
+
+  claimDailyStreakRequest,
+  claimDailyStreakSuccess,
+  claimDailyStreakFailure,
 } = creditSlice.actions;
 export default creditSlice.reducer;
