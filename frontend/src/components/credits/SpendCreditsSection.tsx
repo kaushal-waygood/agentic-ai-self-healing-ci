@@ -119,12 +119,10 @@ export function SpendCreditsSection({
     }
 
     if (capitalisePlanDetails(planDetails) === 'Weekly') {
-      console.log('Weekly Plan');
       return CATALOG.filter((item) => WEEKLY_ALLOWED_IDS.includes(item.id));
     }
 
     if (capitalisePlanDetails(planDetails) === 'Monthly') {
-      console.log('Monthly Plan');
       return [];
     }
 

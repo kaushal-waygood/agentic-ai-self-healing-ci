@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
+import Image from 'next/image';
 
 export default function ProtectedRoute({
   children,
@@ -48,9 +49,14 @@ export default function ProtectedRoute({
   if (isChecking || authLoading) {
     return (
       <div className="flex items-center flex-col justify-center min-h-screen">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <div className="text-md font-semibold text-gray-600">
-          Verifying Access...
+        <div className="">
+          <Image
+            src="/logo.png"
+            alt="Logo"
+            width={100}
+            height={100}
+            className="w-20 h-20"
+          />
         </div>
       </div>
     );

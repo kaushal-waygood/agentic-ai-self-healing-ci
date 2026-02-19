@@ -96,7 +96,13 @@ const LoginForm = () => {
     };
 
     try {
-      dispatch(loginRequest(data));
+      dispatch(
+        loginRequest({
+          email: data.email,
+          password: data.password,
+          deviceInfo,
+        }),
+      );
       toast({
         title: 'Login Success',
         variant: 'success',

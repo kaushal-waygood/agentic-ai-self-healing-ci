@@ -76,12 +76,21 @@ export default function BillingPage() {
     return planDetails.charAt(0).toUpperCase() + planDetails.slice(1);
   };
 
-  const { planType, isActive } = useSelector((state: RootState) => state.plan);
+  const {
+    planType,
+    isActive,
+    usageData: usageCounters,
+    usageLimits,
+  } = useSelector((state: RootState) => state.plan);
 
   const plan = {
     planType,
     isActive,
+    usageCounters,
+    usageLimits,
   };
+
+  // console.log('PLAN...', plan);
 
   useEffect(() => {
     const fetchBillingData = async () => {

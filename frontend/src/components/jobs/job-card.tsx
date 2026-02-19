@@ -36,8 +36,6 @@ const calculateJobPostedFromNow = (jobPostedAt: string) => {
 };
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
-  console.log('job', job);
-
   return (
     <div
       onClick={onClick}
