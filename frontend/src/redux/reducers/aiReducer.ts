@@ -1,7 +1,9 @@
-import { renameSavedCoverLetter } from '@/services/api/ai';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { rename } from 'fs';
-
+type CountDetail = {
+  generated: number;
+  saved: number;
+  total: number;
+};
 type Resume = {
   html: string;
   htmlCVTitle: string;
@@ -11,10 +13,19 @@ type CoverLetter = {
   html: string;
   htmlCoverLetterTitle: string;
 };
-
+type TailoredDetail = {
+  generated: number;
+  total: number;
+};
+type DocumentCounts = {
+  cv: CountDetail;
+  cl: CountDetail;
+  tailored: TailoredDetail;
+};
 type AI = {
   resume: Resume[];
   coverLetter: CoverLetter[];
+  documentCounts: DocumentCounts | null;
   loading: boolean;
   error: string | null;
 };
@@ -23,6 +34,7 @@ const initialState: AI = {
   resume: [],
   coverLetter: [],
   loading: false,
+  documentCounts: null,
   error: null,
 };
 
@@ -30,6 +42,22 @@ const AISlice = createSlice({
   name: 'ai',
   initialState,
   reducers: {
+    getDocumentCountsRequest: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getDocumentCountsSuccess: (
+      state,
+      action: PayloadAction<DocumentCounts>,
+    ) => {
+      state.loading = false;
+      state.documentCounts = action.payload;
+    },
+    getDocumentCountsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     generateCVByJobDescriptionRequest: (state, action: PayloadAction<any>) => {
       state.loading = true;
       state.error = null;
@@ -198,5 +226,9 @@ export const {
   renameSavedCoverLetterRequest,
   renameSavedCoverLetterSuccess,
   renameSavedCoverLetterFailure,
+
+  getDocumentCountsRequest,
+  getDocumentCountsSuccess,
+  getDocumentCountsFailure,
 } = AISlice.actions;
 export default AISlice.reducer;
