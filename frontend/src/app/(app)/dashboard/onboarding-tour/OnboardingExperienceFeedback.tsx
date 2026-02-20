@@ -23,7 +23,6 @@ export default function OnboardingExperienceFeedback({
       rating,
       message: feedback,
     });
-    console.log(response);
     onClose();
   };
 

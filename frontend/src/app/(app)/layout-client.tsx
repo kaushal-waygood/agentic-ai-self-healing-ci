@@ -280,6 +280,57 @@ export default function DashboardLayoutClient({
   }, [user]);
 
   useEffect(() => {
+    if (
+      popupShownForPathRef.current.has('/dashboard/*') &&
+      pathname.startsWith('/dashboard')
+    ) {
+      return;
+    }
+
+    let waitTime = 0;
+
+    if (globalLastDismissTime > 0) {
+      const timeSinceGlobal = Date.now() - globalLastDismissTime;
+
+      if (timeSinceGlobal < 60000) {
+        waitTime = 60000 - timeSinceGlobal;
+      }
+    }
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    if (waitTime > 0) {
+      timerRef.current = setTimeout(() => {
+        const finalTimer = setTimeout(() => {
+          setShowImprovementPopup(true);
+        }, 1);
+
+        timerRef.current = finalTimer;
+      }, waitTime);
+    } else {
+      timerRef.current = setTimeout(() => {
+        setShowImprovementPopup(true);
+      }, 1);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [pathname, globalLastDismissTime]);
+
+  const handleDismissPopup = () => {
+    setShowImprovementPopup(false);
+
+    setLastDismissedPath(pathname);
+    setLastDismissedTime(Date.now());
+    setGlobalLastDismissTime(Date.now());
+  };
+
+  useEffect(() => {
     const handleUserActivity = () => {
       setHasUserEngaged(true);
     };
@@ -296,29 +347,28 @@ export default function DashboardLayoutClient({
   }, []);
 
   return (
-    <ProtectedRoute>
-      <FeedbackProvider>
-        <SidebarContext.Provider value={contextValue}>
-          {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
+    <FeedbackProvider>
+      <SidebarContext.Provider value={contextValue}>
+        {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
 
-          <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
-            {showDashboardUI && (
-              <>
-                {/* MOBILE OVERLAY */}
-                {!isDesktop && (
-                  <div
-                    className={`fixed inset-0 z-40 bg-black/40 transition-opacity
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
+          {showDashboardUI && (
+            <>
+              {/* MOBILE OVERLAY */}
+              {!isDesktop && (
+                <div
+                  className={`fixed inset-0 z-40 bg-black/40 transition-opacity
           ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
-                    onClick={() => setIsOpen(false)}
-                  />
-                )}
+                  onClick={() => setIsOpen(false)}
+                />
+              )}
 
-                {/* SIDEBAR */}
-                <div
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                  className={`
+              {/* SIDEBAR */}
+              <div
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                className={`
         fixed inset-y-0 left-0 z-50
         bg-white dark:bg-gray-900 border-r
         transition-all duration-300 ease-in-out
@@ -327,51 +377,46 @@ export default function DashboardLayoutClient({
         lg:relative lg:translate-x-0
         shrink-0
       `}
-                >
-                  <AppSidebarContent isCollapsed={!sidebarVisible} />
-                </div>
-              </>
-            )}
-
-            {/* MAIN CONTENT AREA */}
-            <div className="flex flex-1 flex-col w-full min-w-0">
-              {/* HEADER */}
-              {showDashboardUI && (
-                <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                  <AppHeader
-                    setIsSearchOpen={setIsSearchOpen}
-                    onMenuClick={toggle}
-                    isSidebarOpen={isOpen}
-                  />
-                </header>
-              )}
-
-              {/* SCROLL WRAPPER */}
-              <ScrollArea className="flex-1 min-w-0 overflow-x-hidden">
-                <main className="min-w-0 overflow-x-hidden">{children}</main>
-
-                {!isDashboardPage && <Footer />}
-              </ScrollArea>
-              <FeedbackButton />
-              {/* FOOTER */}
-              {showDashboardUI && <DashboardFooter />}
-            </div>
-          </div>
-          <StreakPopup
-            isOpen={showStreakPopup}
-            onClose={handleCloseStreakPopup}
-          />
-          {/* feedback popup in 1 second delay */}
-          {showImprovementPopup && (
-            <ImprovementPopup
-              onClose={handleDismissPopup}
-              onYes={handleYesInteraction}
-            />
+              >
+                <AppSidebarContent isCollapsed={!sidebarVisible} />
+              </div>
+            </>
           )}
 
-          <FeedbackPopup delay={50000} enableAutoOpen={true} />
-        </SidebarContext.Provider>
-      </FeedbackProvider>
-    </ProtectedRoute>
+          {/* MAIN CONTENT AREA */}
+          <div className="flex flex-1 flex-col w-full min-w-0">
+            {/* HEADER */}
+            {showDashboardUI && (
+              <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                <AppHeader
+                  setIsSearchOpen={setIsSearchOpen}
+                  onMenuClick={toggle}
+                  isSidebarOpen={isOpen}
+                />
+              </header>
+            )}
+
+            {/* SCROLL WRAPPER */}
+            <ScrollArea className="flex-1 min-w-0 overflow-x-hidden">
+              <main className="min-w-0 overflow-x-hidden">{children}</main>
+
+              {!isDashboardPage && <Footer />}
+            </ScrollArea>
+            <FeedbackButton />
+            {/* FOOTER */}
+            {showDashboardUI && <DashboardFooter />}
+          </div>
+        </div>
+        {/* feedback popup in 1 second delay */}
+        {showImprovementPopup && (
+          <ImprovementPopup
+            onClose={handleDismissPopup}
+            onYes={handleYesInteraction}
+          />
+        )}
+
+        <FeedbackPopup delay={50000} enableAutoOpen={true} />
+      </SidebarContext.Provider>
+    </FeedbackProvider>
   );
 }

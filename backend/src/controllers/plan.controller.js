@@ -36,15 +36,15 @@ const BACKEND_API_BASE_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NODE_ENV === 'development'
-    ? 'https://api.dev.zobsai.com'
-    : 'http://127.0.0.1:8080';
+      ? 'https://api.dev.zobsai.com'
+      : 'http://127.0.0.1:8080';
 
 const FRONTEND_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NODE_ENV === 'development'
-    ? 'https://dev.zobsai.com'
-    : 'http://127.0.0.1:3000';
+      ? 'https://dev.zobsai.com'
+      : 'http://127.0.0.1:3000';
 
 // ---------- Helpers ----------
 const parseFeatureLimitValue = (raw) => {
@@ -1011,9 +1011,8 @@ export const verifyRazorpayPayment = async (req, res) => {
     let startDate = new Date();
 
     if (purchaseType === 'renewal' && previousPurchaseId) {
-      const previousPurchase = await Purchase.findById(
-        previousPurchaseId,
-      ).session(session);
+      const previousPurchase =
+        await Purchase.findById(previousPurchaseId).session(session);
 
       if (!previousPurchase) {
         throw new Error('Previous purchase not found for renewal');
@@ -1133,22 +1132,18 @@ export const getPaymentStatus = async (req, res) => {
 
 export const getActivePlan = async (req, res) => {
   try {
-    const userId = req.user && req.user._id;
+    const userId = req.user?._id;
     if (!userId) {
       return res
         .status(401)
         .json({ success: false, message: 'Authentication required.' });
     }
 
-    const user = await User.findById(userId)
-      .populate({
-        path: 'currentPurchase',
-        populate: {
-          path: 'plan',
-          model: 'Plan',
-        },
-      })
-      .lean();
+    // We don't use .lean() because we need the .save() method for the one-time cleanup
+    const user = await User.findById(userId).populate({
+      path: 'currentPurchase',
+      populate: { path: 'plan', model: 'Plan' },
+    });
 
     if (!user) {
       return res
@@ -1156,15 +1151,18 @@ export const getActivePlan = async (req, res) => {
         .json({ success: false, message: 'User not found.' });
     }
 
+    const purchase = user.currentPurchase;
+    const now = new Date();
+
+    // Check if there is an active, non-expired plan
     const hasActivePlan =
-      user.currentPurchase &&
-      user.currentPurchase.plan &&
-      user.currentPurchase.isActive &&
-      new Date(user.currentPurchase.endDate) > new Date();
+      purchase &&
+      purchase.plan &&
+      (purchase.isActive === true || purchase.isActive === 'true') &&
+      new Date(purchase.endDate) > now;
 
     if (hasActivePlan) {
-      const activePlan = user.currentPurchase.plan;
-      const purchaseDetails = user.currentPurchase;
+      const activePlan = purchase.plan;
       return res.status(200).json({
         success: true,
         message: 'Active plan details fetched successfully.',
@@ -1172,27 +1170,57 @@ export const getActivePlan = async (req, res) => {
           isActive: true,
           planId: activePlan._id,
           planType: activePlan.planType,
-          startDate: purchaseDetails.startDate,
-          endDate: purchaseDetails.endDate,
+          startDate: purchase.startDate,
+          endDate: purchase.endDate,
           usageLimits: user.usageLimits || {},
           usageCounters: user.usageCounters || {},
         },
       });
     }
 
+    // --- ONE-TIME RESET LOGIC ---
+    // We only perform the save if the user still has a purchase ID linked.
+    // If currentPurchase is already null, it means we already reset this user.
+    if (user.currentPurchase || user.currentPlan || user.plan) {
+      console.log(`Performing one-time reset for user: ${userId}`);
+
+      user.currentPurchase = null;
+      user.currentPlan = null;
+      user.plan = null;
+
+      const resetFields = {
+        cvCreation: 0,
+        coverLetter: 0,
+        aiApplication: 0,
+        aiAutoApply: 0,
+        aiAutoApplyDailyLimit: 0,
+        atsScore: 0,
+        jobMatching: 0,
+        aiMannualApplication: 0,
+      };
+
+      user.usageLimits = resetFields;
+      user.usageCounters = { ...resetFields, lastReset: now };
+
+      await user.save();
+    }
+
+    // This part runs every time for free users, but without the database 'save' overhead
     return res.status(200).json({
       success: true,
       message: 'No active plan found.',
       data: {
         isActive: false,
         planType: 'Free',
+        usageLimits: user.usageLimits || {},
+        usageCounters: user.usageCounters || {},
       },
     });
   } catch (error) {
-    console.error('Error fetching active plan:', error);
+    console.error('Error in getActivePlan:', error);
     return res
       .status(500)
-      .json({ success: false, message: 'An internal server error occurred.' });
+      .json({ success: false, message: 'Internal server error.' });
   }
 };
 

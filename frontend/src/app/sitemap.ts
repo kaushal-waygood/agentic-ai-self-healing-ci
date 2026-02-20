@@ -65,8 +65,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
   });
 
-  console.log(dynamicPages);
-  console.log(staticPages);
-
   return [...staticPages, ...dynamicPages];
 }

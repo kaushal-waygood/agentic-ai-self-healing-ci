@@ -37,7 +37,6 @@ import PlanDropdown from './PlanDropdown';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import { NotificationBell } from '../notifications/NotificationBell';
 import StreakDropdown from './StreakDropdown';
-import ReminderModal from './ReminderModal';
 import { Tooltip } from './tooltip';
 import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
 import ThemeToggle from '../ui/theme-toggle';
@@ -45,6 +44,7 @@ import { useFeedback } from '../Feedback-context/feedbackContext';
 import { useProfile } from '@/hooks/useProfile';
 import Image from 'next/image';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { fetchPlanRequest } from '@/redux/reducers/planReducer';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -191,8 +191,7 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 export const TotalCredit = () => {
   const [open, setOpen] = useState(false);
 
-  const { streak, loading, claiming, claim, claimCredits, credit } =
-    useDailyStreak();
+  const { streak, claiming, claim, credit } = useDailyStreak();
 
   const dropdownRef = useRef(null);
 
@@ -285,34 +284,14 @@ const AppHeader = ({
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
-  const [usageLimits, setUsageLimits] = useState({
-    aiJobApply: 0,
-    cvCreation: 0,
-    coverLetter: 0,
-    autoApply: 0,
-    atsScore: 0,
-    jobMatching: 0,
-    aiAutoApply: 0,
-    aiAutoApplyDailyLimit: 0,
-    aiMannualApplication: 0,
-  });
-  const [usageData, setUsageData] = useState({
-    aiJobApply: 0,
-    cvCreation: 0,
-    coverLetter: 0,
-    autoApply: 0,
-    atsScore: 0,
-    jobMatching: 0,
-    aiAutoApply: 0,
-    aiAutoApplyDailyLimit: 0,
-    aiMannualApplication: 0,
-  });
-  const [planType, setPlanType] = useState('free');
 
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { planType, usageLimits, usageData } = useSelector(
+    (state: RootState) => state.plan,
+  );
 
   const effectivePlanLimits = useMemo(
     () => ({
@@ -341,16 +320,7 @@ const AppHeader = ({
   useEffect(() => {
     const fetchUsageData = async () => {
       try {
-        const [limitsRes, planRes] = await Promise.all([
-          apiInstance.get('/plan/usage-limit'),
-          apiInstance.get('/plan/get-user-plan-type'),
-        ]);
-
-        setUsageData(limitsRes.data.data.usageCounters);
-
-        if (limitsRes.data?.success)
-          setUsageLimits(limitsRes.data.data.usageLimits);
-        if (planRes.data?.success) setPlanType(planRes.data.data.planType);
+        dispatch(fetchPlanRequest());
       } catch (error) {
         console.error('Failed to fetch user plan data:', error);
       }

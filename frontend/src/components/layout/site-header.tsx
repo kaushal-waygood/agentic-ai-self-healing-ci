@@ -7,15 +7,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
-const getCookie = (name: string): string | undefined => {
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-};
-
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,9 +74,7 @@ export const Navigation = () => {
                 <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
                   <Image width={32} height={32} src="/logo.png" alt="abc" />
                 </div>
-                {/* <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div> */}
+
                 <Link
                   href={'/'}
                   className="text-2xl font-bold bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 bg-clip-text text-transparent"

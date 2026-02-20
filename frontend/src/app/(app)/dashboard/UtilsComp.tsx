@@ -18,9 +18,6 @@ import { AuthState } from '@/redux/types/authType';
 
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
-// This is a placeholder for your API instance. Ensure it's correctly configured.
-// import apiInstance from '@/services/api';
-
 interface StatCardProps {
   title: string;
   value: string;

@@ -60,9 +60,9 @@ export default function FinalResultView({
   };
 
   return (
-    <div className="flex items-center justify-center p-4">
+    <div className="flex min-h-[calc(100vh-160px)] items-center justify-center">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+        <div className="bg-white rounded-lg shadow-xl p-8 text-center">
           {/* RATE LIMIT */}
           {rateLimited ? (
             <>

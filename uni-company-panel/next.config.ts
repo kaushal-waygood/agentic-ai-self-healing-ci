@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  basePath: '/uni-com',
+  // basePath: '/uni-com',
   typescript: {
     ignoreBuildErrors: true,
   },

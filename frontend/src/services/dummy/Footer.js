@@ -85,7 +85,7 @@ export const socialLinks = [
     icon: Youtube,
     color: 'red',
     followers: '8.9K',
-    url: 'https://www.youtube.com/@ZobsAI/',
+    url: 'https://www.youtube.com/@Zobsai.official/',
   },
   {
     name: 'Facebook',

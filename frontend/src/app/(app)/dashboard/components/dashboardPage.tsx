@@ -53,6 +53,8 @@ import { useCredits } from '@/hooks/useCredits';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import OnboardingExperienceFeedback from '../onboarding-tour/OnboardingExperienceFeedback';
+import { RootState } from '@/redux/rootReducer';
+import { getStudentStatsRequest } from '@/redux/reducers/studentReducer';
 
 export function StatCard({
   title,
@@ -509,7 +511,6 @@ function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
 
 export function SubscriptionStatusCard({ plan }: any) {
   const pathname = usePathname();
-  // Fallback UI if there's no active plan
   if (!plan || !plan.isActive) {
     return (
       <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
@@ -554,12 +555,12 @@ export function SubscriptionStatusCard({ plan }: any) {
       </div>
 
       <div className="space-y-4 mb-6">
-        {Object.keys(plan?.usageCounters || {}).map((key) =>
+        {Object.keys(plan?.usageData || {}).map((key) =>
           key !== 'lastReset' ? (
             <UsageMeter
               key={key}
               label={key}
-              used={plan?.usageCounters?.[key] ?? 0}
+              used={plan?.usageData?.[key] ?? 0}
               limit={plan?.usageLimits?.[key] ?? 0}
             />
           ) : null,
@@ -636,22 +637,7 @@ export default function DashboardPage() {
   const [recentAI, setRecentAI] = useState<any>(null);
   const { balance, spending, checkout } = useCredits();
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
-  const [stats, setStats] = useState({
-    applicationsSent: 0,
-    savedJobsCount: 0,
-    cvsGenerated: 0,
-    coverLettersGenerated: 0,
-    referralCount: 0,
-    tailoredApplications: 0,
-    jobsViewed: 0,
-    appliedJobsCount: 0,
-    jobsVisited: 0,
-  });
-  const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
-  {
-    /* For Onboarding show feedback page */
-  }
   const searchParams = useSearchParams();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
   const [showFeedback, setShowFeedback] = useState(false);
@@ -660,151 +646,33 @@ export default function DashboardPage() {
     setShowFeedback(true);
   }, [fromOnboarding]);
 
+  const { stats } = useSelector((state: RootState) => state.student);
+
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [savedJobs, setSavedJobs] = useState([]);
+  const { planType, isActive, usageData, usageLimits } = useSelector(
+    (state: RootState) => state.plan,
+  );
+  const { user: authUser } = useSelector((state: RootState) => state.auth);
 
-  const [planDetails, setPlanDetails] = useState(null);
+  const planDetails = {
+    planType,
+    isActive,
+    usageData,
+    usageLimits,
+    user: authUser,
+  };
+  // const [planDetails, setPlanDetails] = useState(null);
 
   const dispatch = useDispatch();
-  // Use the user from Redux as the single source of truth for authentication
-  const { user: authUser } = useSelector((state: any) => state.auth);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        // Fetch Job Stats
-        const statsResponse = await apiInstance.get('/students/jobs/stats');
-        const apiData = statsResponse.data;
-
-        setStats({
-          applicationsSent: apiData.applicationsSent || 0,
-          savedJobsCount: apiData.savedJobsCount || 0,
-          cvsGenerated: apiData.cvsGenerated || 0,
-          coverLettersGenerated: apiData.coverLettersGenerated || 0,
-          referralCount: apiData.referralCount || 0,
-          tailoredApplications: apiData.tailoredApplications || 0,
-          jobsViewed: apiData.jobsViewed || 0,
-          appliedJobsCount: apiData.appliedJobsCount || 0,
-
-          jobsVisited: apiData.jobsVisited || 0,
-        });
-
-        const statusCounts = (apiData.applicationStats || []).reduce(
-          (acc, stat) => {
-            acc[stat.status] = stat.count;
-            return acc;
-          },
-          {},
-        );
-        setStatusChartData([
-          {
-            status: 'Sent',
-            applications: statusCounts['Sent'] || 0,
-            color: '#8b5cf6',
-          },
-          {
-            status: 'Reviewed',
-            applications: statusCounts['Reviewed'] || 0,
-            color: '#3b82f6',
-          },
-          {
-            status: 'Interview',
-            applications: statusCounts['Interview'] || 0,
-            color: '#06b6d4',
-          },
-          {
-            status: 'Rejected',
-            applications: statusCounts['Rejected'] || 0,
-            color: '#ef4444',
-          },
-        ]);
-
-        // --- Fetch Plan Details ---
-        const planResponse = await apiInstance.get('/plan/get-user-plan-type');
-        if (planResponse.data.success) {
-          setPlanDetails(planResponse.data.data);
-        }
-
-        // Mock action items
-        setActionItems(mockUserProfile.actionItems || []);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      }
-    };
-
-    if (authUser) {
-      fetchDashboardData();
-    }
-  }, [authUser]);
-
-  useEffect(() => {
+    dispatch(getStudentStatsRequest());
     if (!authUser) {
       dispatch(getProfileRequest());
     }
   }, [dispatch, authUser]);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await apiInstance.get('/students/jobs/stats');
-        const apiData = response.data;
-
-        setStats({
-          applicationsSent: apiData.applicationsSent || 0,
-          savedJobsCount: apiData.savedJobsCount || 0,
-          cvsGenerated: apiData.cvsGenerated || 0,
-          coverLettersGenerated: apiData.coverLettersGenerated || 0,
-          referralCount: apiData.referralCount || 0,
-          tailoredApplications: apiData.tailoredApplications || 0,
-          jobsViewed: apiData.jobsViewed || 0,
-          appliedJobsCount: apiData.appliedJobsCount || 0,
-
-          jobsVisited: apiData.jobsVisited || 0,
-        });
-
-        const applicationStats = apiData.applicationStats || [];
-        const statusCounts = applicationStats.reduce((acc, stat) => {
-          acc[stat.status] = stat.count;
-          return acc;
-        }, {});
-
-        const chartData = [
-          {
-            status: 'Sent',
-            applications: statusCounts['Sent'] || 0,
-            color: '#8b5cf6',
-          },
-          {
-            status: 'Reviewed',
-            applications: statusCounts['Reviewed'] || 0,
-            color: '#3b82f6',
-          },
-          {
-            status: 'Interview',
-            applications: statusCounts['Interview'] || 0,
-            color: '#06b6d4',
-          },
-          {
-            status: 'Rejected',
-            applications: statusCounts['Rejected'] || 0,
-            color: '#ef4444',
-          },
-        ];
-        setStatusChartData(chartData);
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      }
-    };
-
-    // This guard clause prevents the API call from being made without authentication.
-    if (authUser) {
-      fetchStats();
-      // Mock action items for demonstration until API is ready
-      setActionItems(mockUserProfile.actionItems || []);
-    }
-  }, [authUser]); // This dependency array solves the race condition.
 
   const handleMarkAsRead = (id: string) => {
     setActionItems((prevItems) =>
@@ -813,29 +681,6 @@ export default function DashboardPage() {
       ),
     );
   };
-
-  useEffect(() => {
-    const response = async () => {
-      const response = await apiInstance.get('/students/jobs/stats');
-    };
-
-    response();
-  }, []);
-
-  useEffect(() => {
-    const fetchSavedJobs = async () => {
-      try {
-        const response = await apiInstance.get(
-          `/students/jobs/events?type=SAVED`,
-        );
-        setSavedJobs(response.data.jobs);
-      } catch (error) {
-        console.error('Error fetching saved jobs:', error);
-      }
-    };
-
-    fetchSavedJobs();
-  }, []);
 
   const [showCompletionModal, setShowCompletionModal] =
     useState<boolean>(false);
@@ -1143,7 +988,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                   title="Applications Tracked"
-                  value={stats.tailoredApplications}
+                  value={stats?.tailoredApplications || 0}
                   icon={Send}
                   description="Total job applications currently in your pipeline."
                   color="cyan"
@@ -1152,7 +997,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Saved CVs"
-                  value={stats.cvsGenerated}
+                  value={stats?.cvsGenerated || 0}
                   icon={FileText}
                   description="AI-generated CVs you’ve saved for future use."
                   color="purple"
@@ -1161,7 +1006,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Cover Letters"
-                  value={stats.coverLettersGenerated}
+                  value={stats?.coverLettersGenerated || 0}
                   icon={Bot}
                   description="Personalized cover letters created using AI."
                   color="blue"
@@ -1180,7 +1025,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* 🧩 JOBS SECTION */}
             <div id="my-applications">
               <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
                 My Applications
@@ -1188,7 +1032,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <StatCard
                   title="Saved Jobs"
-                  value={stats.savedJobsCount}
+                  value={stats?.savedJobsCount || 0}
                   icon={Bookmark}
                   description="Job opportunities you’ve bookmarked for later."
                   color="cyan"
@@ -1197,7 +1041,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Viewed Jobs"
-                  value={stats.jobsViewed}
+                  value={stats?.jobsViewed || 0}
                   icon={Eye}
                   description="Jobs you’ve recently explored on the platform."
                   color="purple"
@@ -1206,7 +1050,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Visited Jobs"
-                  value={stats.jobsVisited}
+                  value={stats?.jobsVisited || 0}
                   icon={Globe}
                   description="Job listings you’ve opened but not saved or applied to."
                   color="blue"
@@ -1215,7 +1059,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Applied Jobs"
-                  value={stats.appliedJobsCount}
+                  value={stats?.appliedJobsCount || 0}
                   icon={Briefcase}
                   description="Jobs you’ve officially applied for through the platform."
                   color="green"
@@ -1233,7 +1077,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                   title="Referral Count"
-                  value={stats.referralCount}
+                  value={stats?.referralCount || 0}
                   icon={Award}
                   description="Successful referrals you’ve made to friends."
                   color="cyan"
@@ -1243,6 +1087,8 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {console.log('planDetails', planDetails)}
 
           <div className="space-y-8">
             <div id="plan-driver">

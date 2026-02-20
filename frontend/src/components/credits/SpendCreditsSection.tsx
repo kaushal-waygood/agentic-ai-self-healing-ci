@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Minus, Plus, Sparkles, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
 
 export interface SpendItem {
   id: string;
@@ -97,36 +99,30 @@ export function SpendCreditsSection({
   const [openHelp, setOpenHelp] = useState(false);
 
   // Logic State: Plan Details
-  const [planDetails, setPlanDetails] = useState<any>(null);
+  // const [planDetails, setPlanDetails] = useState<any>(null);
 
-  // --- Logic: Fetch Plan Details ---
-  useEffect(() => {
-    const fetchPlanDetails = async () => {
-      try {
-        const planResponse = await apiInstance.get('/plan/get-user-plan-type');
-        if (planResponse.data.success) {
-          setPlanDetails(planResponse.data.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch plan details:', error);
-      }
-    };
-    fetchPlanDetails();
-  }, []);
+  const { planType: planDetails } = useSelector(
+    (state: RootState) => state.plan,
+  );
+
+  const capitalisePlanDetails = (planDetails: string) => {
+    if (!planDetails) return '';
+    return planDetails.charAt(0).toUpperCase() + planDetails.slice(1);
+  };
 
   // --- Logic: Filter Catalog based on Plan ---
   const filteredCatalog = useMemo(() => {
-    if (!planDetails?.planType) return CATALOG;
+    if (!planDetails) return CATALOG;
 
-    if (planDetails.planType === 'Free') {
+    if (capitalisePlanDetails(planDetails) === 'Free') {
       return CATALOG;
     }
 
-    if (planDetails.planType === 'Weekly') {
+    if (capitalisePlanDetails(planDetails) === 'Weekly') {
       return CATALOG.filter((item) => WEEKLY_ALLOWED_IDS.includes(item.id));
     }
 
-    if (planDetails.planType === 'Monthly') {
+    if (capitalisePlanDetails(planDetails) === 'Monthly') {
       return [];
     }
 

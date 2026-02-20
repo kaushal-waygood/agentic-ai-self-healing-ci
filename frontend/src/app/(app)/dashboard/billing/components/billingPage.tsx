@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import { SubscriptionStatusCard } from '../../components/dashboardPage';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
 
 // Define the types
 interface Price {
@@ -68,15 +70,27 @@ export default function BillingPage() {
 
   const [billingData, setBillingData] = useState<BillingRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [plan, setPlan] = useState(null);
 
-  useEffect(() => {
-    const loadPlan = async () => {
-      const res = await apiInstance.get('/plan/get-user-plan-type');
-      setPlan(res.data.data);
-    };
-    loadPlan();
-  }, []);
+  const capitalisePlanDetails = (planDetails: string) => {
+    if (!planDetails) return '';
+    return planDetails.charAt(0).toUpperCase() + planDetails.slice(1);
+  };
+
+  const {
+    planType,
+    isActive,
+    usageData: usageCounters,
+    usageLimits,
+  } = useSelector((state: RootState) => state.plan);
+
+  const plan = {
+    planType,
+    isActive,
+    usageCounters,
+    usageLimits,
+  };
+
+  // console.log('PLAN...', plan);
 
   useEffect(() => {
     const fetchBillingData = async () => {

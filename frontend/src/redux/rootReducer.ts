@@ -7,6 +7,7 @@ import aiReducer from './reducers/aiReducer';
 import autopilotReducer from './reducers/autopilotReducer';
 import creditReducer from './reducers/creditReducer';
 import { checkoutReducer } from './reducers/checkoutReducer';
+import planReducer from './reducers/planReducer';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -17,6 +18,7 @@ const rootReducer = combineReducers({
   autopilot: autopilotReducer,
   credit: creditReducer,
   checkout: checkoutReducer,
+  plan: planReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

@@ -7,9 +7,6 @@ import { config } from '../config/config.js';
 
 const userSchema = new Schema(
   {
-    /* ============================
-       AUTH PROVIDERS
-    ============================ */
     firebaseUid: String,
     linkedInUid: String,
 
@@ -33,9 +30,6 @@ const userSchema = new Schema(
       expiry_date: Number,
     },
 
-    /* ============================
-       CORE IDENTITY
-    ============================ */
     fullName: String,
 
     email: {
@@ -57,10 +51,6 @@ const userSchema = new Schema(
     avatar: String,
     jobRole: String,
 
-    /* ============================
-       AUTHORIZATION
-       (role = permissions, accountType = identity)
-    ============================ */
     role: {
       type: String,
       enum: [
@@ -101,9 +91,6 @@ const userSchema = new Schema(
       index: true,
     },
 
-    /* ============================
-       EMAIL / OTP SECURITY
-    ============================ */
     otp: { type: String, select: false },
     otpExpires: { type: Date, select: false },
 
@@ -116,18 +103,12 @@ const userSchema = new Schema(
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },
 
-    /* ============================
-       ORGANIZATION
-    ============================ */
     organization: {
       type: Schema.Types.ObjectId,
       ref: 'Organization',
       index: true,
     },
 
-    /* ============================
-       REFERRAL SYSTEM
-    ============================ */
     referralCode: {
       type: String,
       unique: true,
@@ -155,11 +136,6 @@ const userSchema = new Schema(
       },
     ],
 
-    /* ============================
-       CREDITS & TRANSACTIONS
-       ⚠️ Backward compatible
-       ⚠️ New writes should go to CreditLedger
-    ============================ */
     credits: {
       type: Number,
       default: 0,
@@ -186,11 +162,6 @@ const userSchema = new Schema(
       default: false,
     },
 
-    /* ============================
-       PLANS & USAGE
-       ⚠️ usageCounters kept for compatibility
-       ⚠️ authoritative usage = Usage collection
-    ============================ */
     plan: {
       type: Schema.Types.ObjectId,
       ref: 'Plan',
@@ -213,31 +184,22 @@ const userSchema = new Schema(
       aiApplication: { type: Number, default: 0 },
       aiAutoApply: { type: Number, default: 0 },
       aiAutoApplyDailyLimit: { type: Number, default: 0 },
-      // New additions
       atsScore: { type: Number, default: 0 },
       jobMatching: { type: Number, default: 0 },
       aiMannualApplication: { type: Number, default: 0 },
     },
-
-    // 2. ADD NEW FIELDS TO COUNTERS
     usageCounters: {
       cvCreation: { type: Number, default: 0 },
       coverLetter: { type: Number, default: 0 },
       aiApplication: { type: Number, default: 0 },
       aiAutoApply: { type: Number, default: 0 },
       aiAutoApplyDailyLimit: { type: Number, default: 0 },
-      // New additions
       atsScore: { type: Number, default: 0 },
       jobMatching: { type: Number, default: 0 },
       aiMannualApplication: { type: Number, default: 0 },
-
       lastReset: { type: Date, default: Date.now },
     },
 
-    /* ============================
-       DAILY STREAK
-       (kept untouched)
-    ============================ */
     dailyStreak: {
       current: { type: Number, default: 0 },
       longest: { type: Number, default: 0 },
@@ -246,9 +208,6 @@ const userSchema = new Schema(
       lastRecoveryAt: Date,
     },
 
-    /* ============================
-       ROLE HISTORY
-    ============================ */
     roleHistory: [
       {
         oldRole: String,
@@ -282,10 +241,6 @@ const userSchema = new Schema(
   },
 );
 
-/* ============================
-   HOOKS
-============================ */
-
 userSchema.pre('save', async function (next) {
   if (
     !this.isModified('password') ||
@@ -299,10 +254,6 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
-
-/* ============================
-   METHODS
-============================ */
 
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(

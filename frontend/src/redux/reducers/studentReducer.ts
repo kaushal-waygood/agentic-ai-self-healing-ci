@@ -6,6 +6,20 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 ========================= */
 export type ID = string;
 
+export interface Stats {
+  jobsViewed: number;
+  savedJobsCount: number;
+  jobsVisited: number;
+  appliedJobsCount: number;
+  applicationsSent: number;
+  cvsGenerated: number;
+  coverLettersGenerated: number;
+  tailoredApplications: number;
+  referralCount: number;
+  referralCode: string;
+  isEmailVerified: boolean;
+}
+
 export interface Education {
   _id: ID;
   institution: string;
@@ -68,6 +82,7 @@ type StudentState = {
   jobPreference: JobPreference | null;
   savedJobs: string[]; // keep consistent
   events: any[];
+  stats: Stats | null;
   resume?: any;
 };
 
@@ -81,6 +96,7 @@ const initialState: StudentState = {
   jobPreference: null,
   loading: false,
   events: [],
+  stats: null,
   error: null,
 };
 
@@ -575,6 +591,20 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
 
+    getStudentStatsRequest: (state, _action: PayloadAction<void>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    getStudentStatsSuccess: (state, action: PayloadAction<any>) => {
+      state.loading = false;
+      state.stats = action.payload;
+      state.error = null;
+    },
+    getStudentStatsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     /* =========================
        Utils
     ========================= */
@@ -671,6 +701,10 @@ export const {
   getStudentEventsRequest,
   getStudentEventsSuccess,
   getStudentEventsFailure,
+
+  getStudentStatsRequest,
+  getStudentStatsSuccess,
+  getStudentStatsFailure,
 
   clearError,
 } = studentSlice.actions;

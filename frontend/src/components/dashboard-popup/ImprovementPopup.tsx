@@ -31,9 +31,6 @@ export default function ImprovementPopup({
       });
       setSubmitted(true);
       if (onYes) onYes();
-      setTimeout(() => {
-        onClose();
-      }, 2000);
     } catch (error) {
       console.error('Feedback submit failed:', error);
     } finally {
