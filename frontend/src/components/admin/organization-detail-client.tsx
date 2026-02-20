@@ -162,7 +162,7 @@ function useOrganizationData(
       if (orgIndex > -1) {
         (mockOrganizations[orgIndex] as any)[key] = value;
       }
-      setOrganization((prev) => ({ ...prev, [key]: value } as Organization));
+      setOrganization((prev) => ({ ...prev, [key]: value }) as Organization);
     },
     [organization.id],
   );
@@ -393,8 +393,8 @@ function AddEditMemberDialog({
                     ? 'Saving...'
                     : 'Adding...'
                   : isEditing
-                  ? 'Save Changes'
-                  : 'Add Member'}
+                    ? 'Save Changes'
+                    : 'Add Member'}
               </Button>
             </DialogFooter>
           </form>
@@ -760,7 +760,9 @@ export function OrganizationDetailClient({
               variant="link"
               className="p-0 h-auto ml-1 font-semibold"
             >
-              <Link href="/subscriptions">Manage Subscription</Link>
+              <Link href="/subscriptions" prefetch={false}>
+                Manage Subscription
+              </Link>
             </Button>
           </AlertDescription>
         </Alert>
@@ -844,7 +846,10 @@ export function OrganizationDetailClient({
                         Edit Member
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href={`/primary-admin/users/${member.id}`}>
+                        <Link
+                          href={`/primary-admin/users/${member.id}`}
+                          prefetch={false}
+                        >
                           <DollarSign className="mr-2 h-4 w-4" />
                           Manage Subscription
                         </Link>
@@ -957,7 +962,7 @@ export function OrganizationDetailClient({
       </CardContent>
       <CardFooter>
         <Button asChild variant="outline" className="w-full">
-          <Link href="/subscriptions">
+          <Link href="/subscriptions" prefetch={false}>
             <DollarSign className="mr-2 h-4 w-4" />
             Manage Plan & Seats
           </Link>

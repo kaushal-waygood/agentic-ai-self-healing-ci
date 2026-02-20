@@ -12,6 +12,7 @@ import { Loader2, Mail, User2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 import { X, ShieldCheck } from 'lucide-react';
 import React from 'react';
+import Link from 'next/link';
 
 interface OtpModalProps {
   isOpen: boolean;
@@ -317,7 +318,9 @@ export const AccountSetting = () => {
             </div>
           </div>
           <Button asChild variant="outline" size="sm">
-            <a href="/dashboard/profile">Edit Full Profile</a>
+            <Link href="/dashboard/profile" prefetch={false}>
+              Edit Full Profile
+            </Link>
           </Button>
         </div>
 

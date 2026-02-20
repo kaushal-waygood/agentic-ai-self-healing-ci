@@ -17,6 +17,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { setCheckoutRequest } from '@/redux/actions/checkoutAction';
 import { useDispatch } from 'react-redux';
+import { Loader } from '../Loader';
 
 // --- Types ---
 
@@ -494,18 +495,7 @@ export default function CheckoutPage() {
   // --- Render ---
 
   if (isLoading) {
-    return (
-      <div className="flex items-center flex-col justify-center min-h-screen">
-        <Image
-          src="/logo.png"
-          alt="zobsai logo"
-          width={100}
-          height={100}
-          className="w-10 h-10 animate-bounce"
-        />
-        <div className="text-lg mt-4">Preparing your secure checkout...</div>
-      </div>
-    );
+    return <Loader message="Preparing your secure checkout..." />;
   }
 
   if (error || !plan) {

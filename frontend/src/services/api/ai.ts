@@ -63,3 +63,8 @@ export const renameSavedCoverLetter = async (
   );
   return response;
 };
+
+export const fetchDocumentCounts = async () => {
+  const response = await apiInstance.get('/students/documents/count');
+  return response;
+};

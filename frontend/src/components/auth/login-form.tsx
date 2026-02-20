@@ -356,6 +356,7 @@ const LoginForm = () => {
 
                   <Link
                     href="/signup"
+                    prefetch={false}
                     className="mt-1 inline-flex items-center gap-2
       text-sm font-semibold text-blue-700
       

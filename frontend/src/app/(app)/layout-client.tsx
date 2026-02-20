@@ -21,7 +21,9 @@ import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext'
 import logRocketAnalytics from '@/components/logrocket/logrocket';
 import { RootState } from '@/redux/rootReducer';
 import FeedbackButton from '@/components/Feedback-context/FeedbackButton';
-import ImprovementPopup from '@/components/Improvement-popup/ImprovementPopup';
+import ImprovementPopup from '@/components/dashboard-popup/ImprovementPopup';
+import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
+import StreakPopup from '@/components/dashboard-popup/StreakPopup';
 
 interface SidebarContextType {
   isOpen: boolean;
@@ -61,6 +63,93 @@ export default function DashboardLayoutClient({
 
   const { user } = useSelector((state: RootState) => state.auth);
   const [globalLastDismissTime, setGlobalLastDismissTime] = useState<number>(0);
+  const { streak, claiming, claim } = useDailyStreak();
+  const [showStreakPopup, setShowStreakPopup] = useState(false);
+
+  useEffect(() => {
+    if (!streak?.canClaimToday) {
+      setShowStreakPopup(false);
+      return;
+    }
+
+    const hasShownStreak = sessionStorage.getItem('streak_popup_shown');
+    if (hasShownStreak) return;
+
+    const timer = setTimeout(() => {
+      setShowStreakPopup(true);
+      sessionStorage.setItem('streak_popup_shown', 'true');
+    }, 1);
+
+    return () => clearTimeout(timer);
+  }, [streak?.canClaimToday]);
+  const handleCloseStreakPopup = () => {
+    setShowStreakPopup(false);
+    sessionStorage.setItem('streak_popup_shown', 'true');
+  };
+
+  useEffect(() => {
+    const hasShownImprovement = sessionStorage.getItem(
+      'improvement_popup_shown',
+    );
+
+    const isPermanentlyCompleted =
+      popupShownForPathRef.current.has('/dashboard/*') &&
+      pathname.startsWith('/dashboard');
+
+    if (hasShownImprovement || isPermanentlyCompleted) {
+      return;
+    }
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    if (!hasShownImprovement && !isPermanentlyCompleted) {
+      timerRef.current = setTimeout(() => {
+        setShowImprovementPopup(true);
+        sessionStorage.setItem('improvement_popup_shown', 'true');
+      }, 120000);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    const hasShownImprovement = sessionStorage.getItem(
+      'improvement_popup_shown',
+    );
+
+    if (!hasShownImprovement) return;
+
+    if (
+      popupShownForPathRef.current.has('/dashboard/*') &&
+      pathname.startsWith('/dashboard')
+    ) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowImprovementPopup(true);
+    }, 120000);
+
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
+  const handleYesInteraction = () => {
+    setShowImprovementPopup(false);
+    popupShownForPathRef.current.add('/dashboard/*');
+    localStorage.setItem(
+      'feedback_completed',
+      JSON.stringify({
+        completed: ['/dashboard/*'],
+        expiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      }),
+    );
+    sessionStorage.setItem('improvement_popup_shown', 'true');
+  };
 
   useEffect(() => {
     const feedbackData = localStorage.getItem('feedback_completed');
@@ -143,7 +232,7 @@ export default function DashboardLayoutClient({
   }, []);
 
   const toggle = () => setIsOpen(!isOpen);
-
+ 
   const handleMouseEnter = () => {
     if (isDesktop && !isPinned) {
       setIsHovered(true);
@@ -248,20 +337,6 @@ export default function DashboardLayoutClient({
       window.removeEventListener('keydown', handleUserActivity);
     };
   }, []);
-
-  const handleYesInteraction = () => {
-    setShowImprovementPopup(false);
-
-    popupShownForPathRef.current.add('/dashboard/*');
-
-    localStorage.setItem(
-      'feedback_completed',
-      JSON.stringify({
-        completed: ['/dashboard/*'],
-        expiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      }),
-    );
-  };
 
   return (
     <FeedbackProvider>

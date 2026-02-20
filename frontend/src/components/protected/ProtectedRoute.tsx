@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import Image from 'next/image';
+import { Loader } from '../Loader';
 
 export default function ProtectedRoute({
   children,
@@ -47,19 +48,7 @@ export default function ProtectedRoute({
 
   // Show loading while verifying dashboard access
   if (isChecking || authLoading) {
-    return (
-      <div className="flex items-center flex-col justify-center min-h-screen">
-        <div className="">
-          <Image
-            src="/logo.png"
-            alt="Logo"
-            width={100}
-            height={100}
-            className="w-20 h-20"
-          />
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   return <>{children}</>;

@@ -6,6 +6,7 @@ interface CreditState {
   loading: boolean;
   error: string | null;
   streak: number; // Changed from 'any' to 'number'
+  canClaimToday: boolean;
 }
 
 const initialState: CreditState = {
@@ -14,6 +15,7 @@ const initialState: CreditState = {
   claimCredits: null,
   loading: false,
   error: null,
+  canClaimToday: false,
 };
 
 const creditSlice = createSlice({

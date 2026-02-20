@@ -4,10 +4,12 @@ export interface AuthState {
     _id: string;
     fullName: string;
     email: string;
-    token: string;
-    accountType: string;
-    jobPreference: string;
-    organizationName: string;
+    token?: string;
+    accountType?: string;
+    jobPreference?: string;
+    organizationName?: string;
+    dailyStreak?: any;
+    googleAuth?: any;
   };
   message: string;
   token: string | null;

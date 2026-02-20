@@ -20,14 +20,15 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    loginSuccess: (
-      state,
-      action: PayloadAction<{ user: AuthState['user']; token: string }>,
-    ) => {
+    loginSuccess: (state, action) => {
       state.loading = false;
       state.isAuthenticated = true;
-      state.user = action.payload.user;
       state.token = action.payload.token;
+
+      // Instead of state.user = action.payload.user
+      // Pick only what you actually need for the UI
+      const { _id, fullName, email, dailyStreak } = action.payload.user;
+      state.user = { _id, fullName, email, dailyStreak };
     },
     loginFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

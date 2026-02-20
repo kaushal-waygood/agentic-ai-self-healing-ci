@@ -37,7 +37,6 @@ import PlanDropdown from './PlanDropdown';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import { NotificationBell } from '../notifications/NotificationBell';
 import StreakDropdown from './StreakDropdown';
-import ReminderModal from './ReminderModal';
 import { Tooltip } from './tooltip';
 import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
 import ThemeToggle from '../ui/theme-toggle';
@@ -192,8 +191,7 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 export const TotalCredit = () => {
   const [open, setOpen] = useState(false);
 
-  const { streak, loading, claiming, claim, claimCredits, credit } =
-    useDailyStreak();
+  const { streak, claiming, claim, credit } = useDailyStreak();
 
   const dropdownRef = useRef(null);
 
@@ -227,6 +225,7 @@ export const TotalCredit = () => {
         <Tooltip label={'Credits'}>
           <Link
             href="/dashboard/credits"
+            prefetch={false}
             className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
           >
             <Coins className="w-6 h-6 text-yellow-500" />
@@ -561,6 +560,7 @@ const AppHeader = ({
                     )}
                     <Link
                       href="/dashboard/profile"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <UserCircle className="w-4 h-4 text-slate-600" />{' '}
@@ -568,6 +568,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/settings"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <Settings className="w-4 h-4 text-slate-600" />{' '}
@@ -575,6 +576,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/billing"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <CreditCard className="w-4 h-4 text-slate-600" />{' '}
@@ -582,6 +584,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/support"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <HelpCircle className="w-4 h-4 text-slate-600" />{' '}
