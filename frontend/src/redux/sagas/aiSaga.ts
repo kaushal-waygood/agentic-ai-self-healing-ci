@@ -23,6 +23,9 @@ import {
   renameSavedCoverLetterRequest,
   renameSavedCoverLetterSuccess,
   renameSavedCoverLetterFailure,
+  getDocumentCountsSuccess,
+  getDocumentCountsFailure,
+  getDocumentCountsRequest,
 } from '../reducers/aiReducer';
 import {
   generateCVByJobDescription,
@@ -32,6 +35,7 @@ import {
   deleteSavedCoverLetter,
   renameSavedResume,
   renameSavedCoverLetter,
+  fetchDocumentCounts,
 } from '@/services/api/ai';
 import { AxiosResponse } from 'axios';
 
@@ -75,6 +79,7 @@ function* deleteSavedResumeSaga(action: PayloadAction<{ cvId: string }>) {
     const { cvId } = action.payload;
     yield call(deleteSavedResume, cvId);
     yield put(savedStudentResumeRequest());
+    yield put(getDocumentCountsRequest());
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Delete failed';
@@ -87,6 +92,7 @@ function* deleteSavedCoverLetterSaga(action: PayloadAction<{ clId: string }>) {
     yield call(deleteSavedCoverLetter, clId);
 
     yield put(savedStudentCoverLetterRequest());
+    yield put(getDocumentCountsRequest());
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Delete failed';
@@ -129,6 +135,18 @@ function* renameSavedCoverLetterSaga(
   }
 }
 
+function* fetchDocumentCountsSaga() {
+  try {
+    const response = yield call(fetchDocumentCounts);
+    // Based on your Postman result, the data is in response.data.data
+    yield put(getDocumentCountsSuccess(response.data.data));
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.error || 'Failed to fetch document counts';
+    yield put(getDocumentCountsFailure(errorMessage));
+  }
+}
+
 export function* watchAI() {
   yield takeLatest(
     generateCVByJobDescriptionRequest.type,
@@ -153,4 +171,6 @@ export function* watchAI() {
     renameSavedCoverLetterRequest.type,
     renameSavedCoverLetterSaga,
   );
+
+  yield takeLatest(getDocumentCountsRequest.type, fetchDocumentCountsSaga);
 }

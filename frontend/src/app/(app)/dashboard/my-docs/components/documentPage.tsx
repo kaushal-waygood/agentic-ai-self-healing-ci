@@ -20,6 +20,7 @@ import { RootState } from '@/redux/rootReducer';
 import {
   deleteSavedCoverLetterRequest,
   deleteSavedResumeRequest,
+  getDocumentCountsRequest,
   renameSavedCoverLetterRequest,
   renameSavedResumeRequest,
   savedStudentCoverLetterRequest,
@@ -97,6 +98,14 @@ export default function DocumentsPage() {
     tailoredApplicationsCount: 0,
   });
 
+  const dispatch = useDispatch();
+  const { documentCounts, loading } = useSelector(
+    (state: RootState) => state.ai,
+  );
+  useEffect(() => {
+    dispatch(getDocumentCountsRequest());
+  }, [dispatch]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -109,7 +118,6 @@ export default function DocumentsPage() {
   } | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
-  const dispatch = useDispatch();
 
   // Update the URL whenever tab changes
   useEffect(() => {
@@ -118,31 +126,27 @@ export default function DocumentsPage() {
     router.replace(`${window.location.pathname}?${params.toString()}`);
   }, [activeTab, router]);
 
-  // Fetch all data on mount
+  // Fetch data only for the active tab
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    const fetchTabData = async () => {
+      setIsLoading(true);
+      try {
+        if (activeTab === 'cvs') {
+          await fetchCVs();
+        } else if (activeTab === 'cover-letters') {
+          await fetchCoverLetters();
+        } else if (activeTab === 'applications') {
+          await fetchApplications();
+        }
+      } catch (error) {
+        console.error('Failed to fetch tab data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    dispatch(savedStudentResumeRequest());
-    dispatch(savedStudentCoverLetterRequest());
-  }, [dispatch]);
-
-  const fetchAllData = async () => {
-    setIsLoading(true);
-    try {
-      await Promise.all([fetchCVs(), fetchCoverLetters(), fetchApplications()]);
-    } catch (error) {
-      console.error('Failed to fetch documents:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to load your documents',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    fetchTabData();
+  }, [activeTab]); // This runs every time activeTab changes
 
   const fetchCVs = async () => {
     try {
@@ -488,7 +492,7 @@ export default function DocumentsPage() {
         <div className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <StatCard
             label="Curiculums Vitae"
-            value={stats.cvsCount}
+            value={documentCounts?.cv?.total}
             icon={FileText}
             color="from-blue-500 to-blue-600"
             isActive={activeTab === 'cvs'}
@@ -496,7 +500,7 @@ export default function DocumentsPage() {
           />
           <StatCard
             label="Cover Letters"
-            value={stats.coverLettersCount}
+            value={documentCounts?.cl?.total}
             icon={Bookmark}
             color="from-purple-500 to-pink-500"
             isActive={activeTab === 'cover-letters'}
@@ -504,7 +508,7 @@ export default function DocumentsPage() {
           />
           <StatCard
             label="Tailored Applications "
-            value={stats.tailoredApplicationsCount}
+            value={documentCounts?.tailored?.total}
             icon={Send}
             color="from-green-500 to-emerald-500"
             isActive={activeTab === 'applications'}
@@ -522,6 +526,7 @@ export default function DocumentsPage() {
                 <DocumentSection
                   title="CVs"
                   items={cvs}
+                  documentCounts={documentCounts}
                   refreshGeneratedDocs={refreshGeneratedDocs}
                   onDelete={deleteCV}
                   onDeleteSaved={deleteSavedCV}
@@ -542,6 +547,7 @@ export default function DocumentsPage() {
                   title="Cover Letters"
                   refreshGeneratedDocs={refreshGeneratedDocs}
                   items={coverLetters}
+                  documentCounts={documentCounts}
                   onDelete={deleteCoverLetter}
                   onDeleteSaved={deleteSavedCoverLetter}
                   onRename={handleRename}
@@ -560,6 +566,7 @@ export default function DocumentsPage() {
                 <DocumentSection
                   title="Tailored Applications"
                   items={applications}
+                  documentCounts={documentCounts}
                   onDelete={deleteApplication}
                   onCopy={copyToClipboard}
                   onDownload={downloadAsFile}
@@ -639,3 +646,405 @@ export default function DocumentsPage() {
 }
 
 // Stat Card Component
+const StatCard = ({
+  label,
+  value,
+  icon: Icon,
+  color,
+  isActive,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  icon: any;
+  color: string;
+  isActive: boolean;
+  onClick: () => void;
+}) => (
+  <div
+    className={`p-4 md:p-6 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+      isActive
+        ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-lg scale-105'
+        : 'border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 hover:scale-102'
+    }`}
+    onClick={onClick}
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          {label}
+        </p>
+        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+          {value}
+        </p>
+      </div>
+      <div
+        className={`hidden md:block p-3 rounded-lg bg-gradient-to-r ${color}`}
+      >
+        <Icon className="h-6 w-6 text-white" />
+      </div>
+    </div>
+  </div>
+);
+
+const DocumentSection = ({
+  documentCounts,
+  title,
+  items,
+  onDelete,
+  onDeleteSaved,
+  onRenameSaved,
+  onCopy,
+  onDownload,
+  copiedId,
+  getStatusIcon,
+  refreshGeneratedDocs,
+  getStatusColor,
+  formatDate,
+  type,
+}: any) => {
+  const [visibleCount, setVisibleCount] = useState(10);
+  // const [docState, setDocState] = useState<'generated' | 'saved'>('generated');
+  const dispatch = useDispatch();
+
+  const searchParams = useSearchParams();
+
+  const initialDocState =
+    searchParams.get('q') === 'saved' ? 'saved' : 'generated';
+
+  const [docState, setDocState] = useState<'generated' | 'saved'>(
+    initialDocState,
+  );
+
+  // 1. Add state to store the search input
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // actual search used for filtering
+  const [finalSearchTerm, setFinalSearchTerm] = useState('');
+
+  // Auto reset when input becomes empty
+  useEffect(() => {
+    if (searchTerm === '') {
+      setFinalSearchTerm('');
+    }
+  }, [searchTerm]);
+  // Inside DocumentSection component
+  useEffect(() => {
+    // Only trigger dispatch if the user has toggled to the 'saved' view
+    if (docState === 'saved') {
+      if (type === 'cv') {
+        console.log('Fetching saved CVs only now...');
+        dispatch(savedStudentResumeRequest());
+      } else if (type === 'coverLetter') {
+        console.log('Fetching saved Cover Letters only now...');
+        dispatch(savedStudentCoverLetterRequest());
+      }
+    }
+  }, [docState, type, dispatch]);
+  useEffect(() => {
+    if (type === 'application') {
+      setDocState('generated');
+    }
+  }, [type]);
+
+  const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
+
+  const listToRender = (() => {
+    if (docState === 'saved') {
+      if (type === 'cv') {
+        return Array.isArray(resume?.html) ? resume.html : [];
+      }
+
+      if (type === 'coverLetter') {
+        return Array.isArray(coverLetter?.html) ? coverLetter.html : [];
+      }
+
+      return [];
+    }
+
+    return Array.isArray(items) ? items : [];
+  })();
+
+  const filteredItems = listToRender.filter((item: any) => {
+    if (!finalSearchTerm.trim()) return true;
+
+    const searchLower = finalSearchTerm.toLowerCase();
+
+    // Collect all searchable text safely
+    const searchableText = [
+      item.clTitle,
+      item.coverLetterTitle,
+      item.cvTitle,
+      item.htmlCVTitle,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return searchableText.includes(searchLower);
+  });
+
+  const handleSearch = () => {
+    setFinalSearchTerm(searchTerm); // 🔥 Search only when triggered
+  };
+
+  const handleRenameDocument = async (documentId: string, newTitle: string) => {
+    try {
+      const endpoint =
+        docState === 'saved'
+          ? type === 'cv'
+            ? `/students/resume/${documentId}/rename`
+            : `/students/cover-letter/${documentId}/rename`
+          : type === 'cv'
+            ? `/students/cv/${documentId}/rename`
+            : `/students/cl/${documentId}/rename`;
+
+      await apiInstance.patch(endpoint, { title: newTitle });
+
+      // 🔥 refresh logic
+      if (docState === 'saved') {
+        type === 'cv'
+          ? dispatch(savedStudentResumeRequest())
+          : dispatch(savedStudentCoverLetterRequest());
+      } else {
+        refreshGeneratedDocs(type);
+      }
+
+      toast({
+        title: 'Document Renamed',
+        description: 'Updated name fetched successfully.',
+      });
+    } catch (error) {
+      console.error('Rename failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Rename Failed',
+        description: 'Could not update the document name.',
+      });
+      throw error;
+    }
+  };
+
+  const countsForType = (() => {
+    if (!documentCounts) return { generated: 0, saved: 0, total: 0 };
+
+    switch (type) {
+      case 'cv':
+        return documentCounts.cv;
+      case 'coverLetter':
+        return documentCounts.cl;
+      case 'application':
+        return documentCounts.tailored;
+      default:
+        return { generated: 0, saved: 0, total: 0 };
+    }
+  })();
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center flex-wrap justify-between  mb-6">
+        <h2 className="text-lg md:text-2xl font-semibold text-gray-900 dark:text-white ">
+          {title}
+        </h2>
+
+        <div className="flex gap-2 mb-4 md:mb-0">
+          {type !== 'application' ? (
+            <div className="flex gap-2">
+              {/* GENERATED BUTTON */}
+              <button
+                onClick={() => {
+                  setDocState('generated');
+                  const params = new URLSearchParams(window.location.search);
+                  params.delete('q');
+                  window.history.replaceState(
+                    null,
+                    '',
+                    `?${params.toString()}`,
+                  );
+                }}
+                className={`px-4 py-2 rounded-md flex items-center gap-2 ${
+                  docState === 'generated'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+              >
+                Generated
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    docState === 'generated'
+                      ? 'bg-white text-blue-600'
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  {countsForType?.generated || 0}
+                </span>
+              </button>
+
+              {/* SAVED BUTTON */}
+              <button
+                onClick={() => {
+                  setDocState('saved');
+                  const params = new URLSearchParams(window.location.search);
+                  params.set('q', 'saved');
+                  window.history.replaceState(
+                    null,
+                    '',
+                    `?${params.toString()}`,
+                  );
+                }}
+                className={`px-4 py-2 rounded-md flex items-center gap-2 ${
+                  docState === 'saved'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+              >
+                Saved
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    docState === 'saved'
+                      ? 'bg-white text-blue-600'
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  {countsForType?.saved || 0}
+                </span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setDocState('generated');
+                const params = new URLSearchParams(window.location.search);
+                params.delete('q');
+                window.history.replaceState(null, '', `?${params.toString()}`);
+              }}
+              className={`px-4 py-2 rounded-md flex items-center gap-2 ${
+                docState === 'generated'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Generated
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  docState === 'generated'
+                    ? 'bg-white text-blue-600'
+                    : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              >
+                {countsForType?.generated || 0}
+              </span>
+            </button>
+          )}
+        </div>
+        <div className="flex items-center">
+          {/* Input + X inside */}
+          <div className="relative">
+            <input
+              type="text"
+              className="p-1 pr-8 border border-gray-300 dark:border-gray-600 rounded-md"
+              placeholder="Search Doc"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearch();
+              }}
+            />
+
+            {/* X Button inside input */}
+            {searchTerm && (
+              <button
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                onClick={() => {
+                  setSearchTerm('');
+                  setFinalSearchTerm('');
+                }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Button OUTSIDE */}
+          <button
+            className="ml-2 p-1 border border-gray-300 dark:border-gray-600 rounded-md"
+            onClick={handleSearch}
+          >
+            <Search className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {listToRender?.length === 0 ? (
+        <div className="text-center py-12">
+          <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No{' '}
+            {type === 'cv'
+              ? 'CVs'
+              : type === 'coverLetter'
+                ? 'Cover Letters'
+                : 'Applications'}{' '}
+            Found
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            {type === 'cv'
+              ? 'Generate your first CV to get started'
+              : type === 'coverLetter'
+                ? 'Create your first cover letter to see it here'
+                : 'Create your first tailored application to see it here'}
+          </p>
+        </div>
+      ) : filteredItems?.length === 0 ? (
+        // This shows if there are items, but none match the search
+        <div className="text-center py-12">
+          <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No Results Found
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Your search for "{searchTerm}" did not match any documents.
+          </p>
+        </div>
+      ) : (
+        // This shows the filtered results
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 5. Map over the filtered list */}
+          {filteredItems
+            .slice(0, visibleCount)
+            .map((item: any, index: number) => (
+              <DocumentCard
+                key={item._id}
+                index={index + 1}
+                item={item}
+                type={type}
+                onDelete={onDelete}
+                onDeleteSaved={onDeleteSaved}
+                onRenameSaved={onRenameSaved}
+                onRename={handleRenameDocument}
+                onCopy={onCopy}
+                onDownload={onDownload}
+                copiedId={copiedId}
+                getStatusIcon={getStatusIcon}
+                getStatusColor={getStatusColor}
+                formatDate={formatDate}
+                docState={docState}
+              />
+            ))}
+        </div>
+      )}
+
+      {/* Show "See More" only if not all items are visible */}
+      {visibleCount < filteredItems?.length && (
+        <div className="text-center mt-4">
+          <button
+            onClick={() => setVisibleCount(visibleCount + 10)}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            See More
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};

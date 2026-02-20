@@ -240,7 +240,7 @@ export default function DashboardLayoutClient({
   }, []);
 
   const toggle = () => setIsOpen(!isOpen);
-
+ 
   const handleMouseEnter = () => {
     if (isDesktop && !isPinned) {
       setIsHovered(true);
