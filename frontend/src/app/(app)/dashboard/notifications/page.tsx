@@ -2,6 +2,7 @@
 
 'use client';
 
+import { Loader } from '@/components/Loader';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import { RefreshCcw, Bell, Sparkles, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
@@ -49,21 +50,7 @@ const NotificationsPage = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center flex-col justify-center min-h-[80vh]">
-        <div>
-          <Image
-            width={100}
-            height={100}
-            src="/logo.png"
-            alt=""
-            className="w-10 h-10 animate-bounce"
-          />
-        </div>
-
-        <div className="text-lg">Loading Notifications...</div>
-      </div>
-    );
+    return <Loader message="Loading notifications..." />;
   }
 
   return (

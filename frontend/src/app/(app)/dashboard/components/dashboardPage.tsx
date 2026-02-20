@@ -55,6 +55,7 @@ import Image from 'next/image';
 import OnboardingExperienceFeedback from '../onboarding-tour/OnboardingExperienceFeedback';
 import { RootState } from '@/redux/rootReducer';
 import { getStudentStatsRequest } from '@/redux/reducers/studentReducer';
+import { Loader } from '@/components/Loader';
 
 export function StatCard({
   title,
@@ -173,14 +174,7 @@ export function ProfileReadinessCard() {
   const router = useRouter();
 
   if (isLoading || !data) {
-    return (
-      <div className="bg-white rounded-lg p-6">
-        <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 border-2 border-dashed rounded-lg">
-          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
-          <p className="font-medium">Loading profile data...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   if (error) {

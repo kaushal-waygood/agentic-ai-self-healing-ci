@@ -11,6 +11,7 @@ import {
   Clock,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
+import { Loader } from '../Loader';
 
 const ClGenerator = ({
   selectedSavedCvId,
@@ -110,18 +111,7 @@ const ClGenerator = ({
               </div>
 
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-10 text-slate-500">
-                  {/* <Loader2 className="w-6 h-6 animate-spin mb-2 text-purple-500" /> */}
-                  <div>
-                    <img
-                      src="/logo.png"
-                      alt=""
-                      className="w-10 h-10 animate-bounce"
-                    />
-                  </div>
-
-                  <p>Fetching saved CVs...</p>
-                </div>
+                <Loader message="Fetching saved CVs" />
               ) : (
                 <div>
                   {cvs?.length > 0 ? (
