@@ -10,6 +10,8 @@ import apiInstance from '@/services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { getStudentStatsRequest } from '@/redux/reducers/studentReducer';
+import Image from 'next/image';
+import { Loader } from '@/components/Loader';
 
 interface Application {
   id: string;
@@ -235,18 +237,7 @@ export default function ApplicationsPage() {
 
         <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4 rounded-lg border border-gray-200 dark:border-gray-800">
           {isLoading ? (
-            <div className="flex flex-col justify-center items-center py-20">
-              {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
-              <div>
-                <img
-                  src="/logo.png"
-                  alt=""
-                  className="w-10 h-10 animate-bounce"
-                />
-              </div>
-
-              <div className="text-lg">LOADING...</div>
-            </div>
+            <Loader />
           ) : applications.length > 0 ? (
             <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
               {applications.map((app, index) => (

@@ -9,6 +9,7 @@ import { getProfileRequest } from '@/redux/reducers/authReducer';
 import type { Organization } from '@/lib/data/user';
 import { RootState } from '@/redux/rootReducer';
 import Image from 'next/image';
+import { Loader } from '@/components/Loader';
 
 export default function OrganizationPage() {
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -53,20 +54,7 @@ export default function OrganizationPage() {
   }, [user]);
 
   if (loading) {
-    return (
-      <div className="flex items-center flex-col justify-center min-h-screen">
-        <div>
-          <Image
-            src="/logo.png"
-            alt="zobsai logo"
-            width={100}
-            height={100}
-            className="w-10 h-10 animate-bounce"
-          />
-        </div>
-        <div className="text-lg">LOADING...</div>
-      </div>
-    );
+    return <Loader />;
   }
 
   if (!organization) {

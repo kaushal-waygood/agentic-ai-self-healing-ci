@@ -15,6 +15,7 @@ import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
 import Image from 'next/image';
 import OnboardingExperienceFeedback from '@/app/(app)/dashboard/onboarding-tour/OnboardingExperienceFeedback';
+import { Loader } from '../Loader';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
@@ -193,18 +194,7 @@ export default function JobsPage() {
               )} */}
 
               {loading && jobs.length === 0 && (
-                <div className="flex flex-col items-center justify-center min-h-[400px] ">
-                  <div>
-                    <Image
-                      src="/logo.png"
-                      alt="zobsai logo"
-                      width={100}
-                      height={100}
-                      className="w-10 h-10 animate-bounce"
-                    />
-                  </div>
-                  <div className="text-md font-semibold">LOADING...</div>
-                </div>
+                <Loader message="Loading Jobs" />
               )}
 
               {/* ❌ No Jobs Found UI */}
@@ -247,14 +237,7 @@ export default function JobsPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
-                <div className="h-full flex flex-col items-center justify-center bg-white border rounded-lg">
-                  <img
-                    src="/logo.png"
-                    alt="zobsAi"
-                    className="w-10 h-10 animate-bounce"
-                  />
-                  <p className="font-medium">Loading Job data...</p>
-                </div>
+                <Loader message="Loading Job data..." />
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (

@@ -5,6 +5,7 @@ import { Bell as BellIcon, Circle, RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import Image from 'next/image';
+import { Loader } from '../Loader';
 
 export function NotificationBell() {
   const router = useRouter();
@@ -44,20 +45,7 @@ export function NotificationBell() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 ">
-          <Image
-            src="/logo.png"
-            alt=""
-            width={100}
-            height={100}
-            className="w-10 h-10 animate-bounce"
-          />
-          <p className="font-medium">Loading Notifications...</p>
-        </div>
-      </div>
-    );
+    return <Loader message="Loading Notifications..." />;
   }
 
   return (

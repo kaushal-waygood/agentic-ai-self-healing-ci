@@ -14,7 +14,7 @@ export const StatCard = ({
   onClick: () => void;
 }) => (
   <div
-    className={`p-6 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${
+    className={`p-4 md:p-6 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
       isActive
         ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-lg scale-105'
         : 'border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 hover:scale-102'
@@ -30,7 +30,9 @@ export const StatCard = ({
           {value}
         </p>
       </div>
-      <div className={`p-3 rounded-xl bg-gradient-to-r ${color}`}>
+      <div
+        className={`hidden md:block p-3 rounded-lg bg-gradient-to-r ${color}`}
+      >
         <Icon className="h-6 w-6 text-white" />
       </div>
     </div>

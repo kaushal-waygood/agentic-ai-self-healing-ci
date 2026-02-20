@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
+import { Loader } from '../Loader';
 
 const CVGeneratorClient = ({
   handleFileInputUploadClick,
@@ -136,19 +137,7 @@ const CVGeneratorClient = ({
             {/* render CV list */}
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-10 text-slate-500">
-                <div>
-                  <Image
-                    src="/logo.png"
-                    alt=""
-                    className="w-10 h-10 animate-bounce"
-                    width={100}
-                    height={100}
-                  />
-                </div>
-
-                <p>Fetching saved CVs...</p>
-              </div>
+              <Loader message="Fetching saved CVs" />
             ) : (
               <div>
                 {cvs?.length > 0 ? (
@@ -352,8 +341,8 @@ const CVGeneratorClient = ({
                   isLoading
                     ? 'border-blue-300 bg-blue-50'
                     : dragActive
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -388,8 +377,8 @@ const CVGeneratorClient = ({
                       {isLoading && loadingMessage
                         ? loadingMessage
                         : dragActive
-                        ? 'Drop file here!'
-                        : 'Upload New CV'}
+                          ? 'Drop file here!'
+                          : 'Upload New CV'}
                     </h4>
                     <p className="text-sm text-gray-500 mt-1">
                       {isLoading
