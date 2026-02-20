@@ -542,7 +542,13 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 />
               </div>
             ) : (
-              <Loader />
+              <Image
+                src="/placeholder-logo.png"
+                alt="Company Logo"
+                fill
+                sizes="48px"
+                className="object-contain"
+              />
             )}
           </div>
 

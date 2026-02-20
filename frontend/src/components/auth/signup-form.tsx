@@ -480,6 +480,7 @@ export function SignupForm() {
           Already have an account?&nbsp;
           <Link
             href="/login"
+            prefetch={false}
             className="font-medium text-primary hover:underline"
           >
             Login

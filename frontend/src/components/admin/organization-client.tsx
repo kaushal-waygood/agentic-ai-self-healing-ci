@@ -147,12 +147,15 @@ export function OrganizationClient({
   });
 
   const memberCounts = useMemo(() => {
-    return initialUsers.reduce((acc, user) => {
-      if (user.organizationId) {
-        acc[user.organizationId] = (acc[user.organizationId] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    return initialUsers.reduce(
+      (acc, user) => {
+        if (user.organizationId) {
+          acc[user.organizationId] = (acc[user.organizationId] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }, [initialUsers]);
 
   const getOrgAdmin = (orgId: string): UserProfile | undefined => {
@@ -352,6 +355,7 @@ export function OrganizationClient({
                       <TableCell className="font-medium">
                         <Link
                           href={`/primary-admin/organizations/${org.id}`}
+                          prefetch={false}
                           className="hover:underline text-primary"
                         >
                           {org.name || 'Unnamed Organization'}

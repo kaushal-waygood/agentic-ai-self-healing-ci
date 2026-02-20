@@ -225,6 +225,7 @@ export const TotalCredit = () => {
         <Tooltip label={'Credits'}>
           <Link
             href="/dashboard/credits"
+            prefetch={false}
             className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
           >
             <Coins className="w-6 h-6 text-yellow-500" />
@@ -559,6 +560,7 @@ const AppHeader = ({
                     )}
                     <Link
                       href="/dashboard/profile"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <UserCircle className="w-4 h-4 text-slate-600" />{' '}
@@ -566,6 +568,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/settings"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <Settings className="w-4 h-4 text-slate-600" />{' '}
@@ -573,6 +576,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/billing"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <CreditCard className="w-4 h-4 text-slate-600" />{' '}
@@ -580,6 +584,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/support"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <HelpCircle className="w-4 h-4 text-slate-600" />{' '}

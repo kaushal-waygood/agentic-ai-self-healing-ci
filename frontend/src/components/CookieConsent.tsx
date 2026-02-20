@@ -96,6 +96,7 @@ export default function CookieConsent() {
               cookies. Read our{' '}
               <Link
                 href="/privacy-policy"
+                prefetch={false}
                 className="text-purple-600 hover:underline font-medium"
               >
                 Privacy Policy

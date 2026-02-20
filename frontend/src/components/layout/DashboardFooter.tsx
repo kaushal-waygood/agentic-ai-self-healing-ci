@@ -52,6 +52,7 @@ const DashboardFooter = () => {
               ].map((link) => (
                 <Link
                   key={link.name}
+                  prefetch={false}
                   href={link.href}
                   className="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
                 >

@@ -94,6 +94,7 @@ export function StatCard({
           {actionLink && (
             <Link
               href={actionLink}
+              prefetch={false}
               className="text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center group-hover:underline"
             >
               {actionText}
@@ -128,7 +129,7 @@ export function ToolkitButton({
   };
 
   return (
-    <Link href={href} passHref>
+    <Link href={href} passHref prefetch={false}>
       <button
         className={cn(
           'relative w-full p-4 rounded-lg border-2 border-dashed transition-all duration-200 hover:border-solid group',
@@ -234,7 +235,7 @@ export function ProfileReadinessCard() {
             className="group bg-buttonPrimary hover:bg-blue-700 
                      text-white flex items-center gap-2"
           >
-            <Link href="/dashboard/profile">
+            <Link href="/dashboard/profile" prefetch={false}>
               View Profile
               <ArrowRight
                 className="h-4 w-4 transition-transform 
@@ -337,7 +338,7 @@ export function ProfileReadinessCard() {
             asChild
             className="bg-buttonPrimary hover:bg-blue-700 text-white"
           >
-            <Link href="/dashboard/profile">
+            <Link href="/dashboard/profile" prefetch={false}>
               Go to Profile
               <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
@@ -370,7 +371,7 @@ export function ActionItemCard({ item, onMarkAsRead }: any) {
     }
   };
   return (
-    <Link href={item.href} passHref>
+    <Link href={item.href} passHref prefetch={false}>
       <div
         className={cn(
           'p-4 rounded-r-xl border-l-4 cursor-pointer transition-all duration-200 hover:',
@@ -483,6 +484,7 @@ function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
   return (
     <Link
       href={href}
+      prefetch={false}
       className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition"
     >
       <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
@@ -513,7 +515,9 @@ export function SubscriptionStatusCard({ plan }: any) {
           You do not have an active subscription.
         </p>
         <Button asChild className="w-full bg-buttonPrimary hover:bg-blue-700">
-          <Link href="/dashboard/subscriptions">View Plans</Link>
+          <Link href="/dashboard/subscriptions" prefetch={false}>
+            View Plans
+          </Link>
         </Button>
       </div>
     );
@@ -563,7 +567,9 @@ export function SubscriptionStatusCard({ plan }: any) {
 
       {pathname === '/dashboard' && (
         <Button variant="outline" className="w-full" asChild>
-          <Link href="/dashboard/billing">Manage Subscription</Link>
+          <Link href="/dashboard/billing" prefetch={false}>
+            Manage Subscription
+          </Link>
         </Button>
       )}
     </div>
@@ -574,6 +580,7 @@ function TopJobCard({ job }: { job: TopJob }) {
   return (
     <Link
       href={`/jobs/${job.slug}`}
+      prefetch={false}
       className="group block bg-white border rounded-lg p-4 hover:shadow-md transition"
     >
       <div className="flex gap-4">
@@ -892,7 +899,7 @@ export default function DashboardPage() {
 
                   {/* Button pinned bottom */}
                   <div className="mt-auto">
-                    <Link href="/dashboard/cv-generator">
+                    <Link href="/dashboard/cv-generator" prefetch={false}>
                       <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
                         Generate CV
                       </Button>
@@ -928,7 +935,10 @@ export default function DashboardPage() {
 
                   {/* Button pinned bottom */}
                   <div className="mt-auto">
-                    <Link href="/dashboard/cover-letter-generator">
+                    <Link
+                      href="/dashboard/cover-letter-generator"
+                      prefetch={false}
+                    >
                       <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
                         Generate Cover Letter
                       </Button>
@@ -964,7 +974,7 @@ export default function DashboardPage() {
 
                   {/* Button pinned bottom */}
                   <div className="mt-auto">
-                    <Link href="/dashboard/apply">
+                    <Link href="/dashboard/apply" prefetch={false}>
                       <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
                         Start Application
                       </Button>
@@ -1082,8 +1092,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {console.log('planDetails', planDetails)}
-
           <div className="space-y-8">
             <div id="plan-driver">
               <SubscriptionStatusCard plan={planDetails} />
@@ -1097,6 +1105,7 @@ export default function DashboardPage() {
                   </h3>
                   <Link
                     href="/dashboard/search-jobs"
+                    prefetch={false}
                     className="text-sm font-medium text-purple-600 hover:underline"
                   >
                     View all
