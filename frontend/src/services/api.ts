@@ -12,6 +12,8 @@ export const API_BASE_URL =
 
 const token = getToken();
 
+console.log(token);
+
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     try {
