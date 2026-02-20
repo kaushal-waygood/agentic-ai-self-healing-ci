@@ -193,13 +193,16 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
     // daily checkin - one per 24 hours
     case 'DAILY_CHECKIN':
       amount = CREDIT_EARN.DAILY_CHECKIN;
-      {
-        const last = lastTxOfKind(user, kind);
-        if (
-          last &&
-          Date.now() - new Date(last.createdAt).getTime() < 24 * 60 * 60 * 1000
-        )
+
+      const last = lastTxOfKind(user, kind);
+
+      if (last) {
+        const today = dayjs().tz('Asia/Kolkata');
+        const lastDay = dayjs(last.createdAt).tz('Asia/Kolkata');
+
+        if (lastDay.isSame(today, 'day')) {
           allow = false;
+        }
       }
       break;
 

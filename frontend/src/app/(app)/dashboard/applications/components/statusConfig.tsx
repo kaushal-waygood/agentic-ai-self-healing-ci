@@ -112,7 +112,10 @@ export const ApplicationRow = ({ app, isSelected, onSelect, index }) => {
 
       {/* Actions */}
       <div className="flex-shrink-0 ">
-        <Link href={`/dashboard/search-jobs?job=${app.job.slug}`}>
+        <Link
+          href={`/dashboard/search-jobs?job=${app.job.slug}`}
+          prefetch={false}
+        >
           <button className="p-2 border border-gray-200 dark:border-gray-700 hover:bg-blue-300 dark:hover:bg-gray-800 rounded-lg transition-all duration-300">
             <ArrowRight className="h-4 w-4" />
           </button>

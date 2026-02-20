@@ -108,9 +108,8 @@ export default function DashboardLayoutClient({
       timerRef.current = setTimeout(() => {
         setShowImprovementPopup(true);
         sessionStorage.setItem('improvement_popup_shown', 'true');
-      }, 1);
+      }, 120000);
     }
-120000;
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
@@ -134,17 +133,10 @@ export default function DashboardLayoutClient({
 
     const timer = setTimeout(() => {
       setShowImprovementPopup(true);
-    }, 1);
+    }, 120000);
 
     return () => clearTimeout(timer);
   }, [pathname]);
-
-  // const handleDismissPopup = () => {
-  //   setShowImprovementPopup(false);
-  //   setLastDismissedPath(pathname);
-  //   setLastDismissedTime(Date.now());
-  //   setGlobalLastDismissTime(Date.now());
-  // };
 
   const handleYesInteraction = () => {
     setShowImprovementPopup(false);

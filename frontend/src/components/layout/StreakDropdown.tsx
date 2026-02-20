@@ -1,7 +1,6 @@
 'use client';
 
 import { Flame, ArrowBigRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 type StreakDropdownProps = {
   streak: number;
@@ -14,11 +13,8 @@ type StreakDropdownProps = {
 
 const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-// JS getDay: 0=Sun..6=Sat
-// Your UI: 0=Mon..6=Sun
 function getTodayIndex(): number {
-  const jsDay = new Date().getDay(); // 0..6 (Sun..Sat)
-  // map: Sun(0)->6, Mon(1)->0, Tue(2)->1, ... Sat(6)->5
+  const jsDay = new Date().getDay();
   const map = [6, 0, 1, 2, 3, 4, 5];
   return map[jsDay];
 }
@@ -100,14 +96,14 @@ export default function StreakDropdown({
         </span>
 
         <button
-          onClick={canClaimToday && !isClaiming ? onCheckIn : undefined}
+          onClick={canClaimToday ? onCheckIn : undefined}
           disabled={!canClaimToday || isClaiming}
           className={`
             px-3 py-1 rounded-lg text-sm flex items-center gap-1
             ${
               canClaimToday && !isClaiming
-                ? 'bg-pink-500 text-white'
-                : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                ? 'bg-pink-500 text-white' // Active style
+                : 'bg-gray-300 text-gray-600 cursor-not-allowed' // Disabled style
             }
           `}
         >
