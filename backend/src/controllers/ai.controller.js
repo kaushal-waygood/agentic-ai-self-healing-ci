@@ -1421,3 +1421,54 @@ export const calculateATS = async (req, res) => {
     return res.status(500).json({ error: 'ATS scoring failed' });
   }
 };
+
+export const getDocumentCounts = async (req, res) => {
+  const { _id: studentId } = req.user;
+
+  try {
+    const [
+      generatedCVCount,
+      savedCVCount,
+      generatedCLCount,
+      savedCLCount,
+      tailoredCount,
+    ] = await Promise.all([
+      // CV Counts
+      StudentCV.countDocuments({ student: studentId }),
+      StudentHtmlCV.countDocuments({ student: studentId }),
+
+      // Cover Letter Counts
+      StudentCL.countDocuments({ student: studentId }),
+      StudentCoverLetter.countDocuments({ student: studentId }),
+
+      // Tailored Application Counts
+      StudentTailoredApplication.countDocuments({ student: studentId }),
+    ]);
+
+    const stats = {
+      cv: {
+        generated: generatedCVCount,
+        saved: savedCVCount,
+        total: generatedCVCount + savedCVCount,
+      },
+      cl: {
+        // Fixed key name from 'cv' to 'cl' based on your requirement logic
+        generated: generatedCLCount,
+        saved: savedCLCount,
+        total: generatedCLCount + savedCLCount,
+      },
+      tailored: {
+        generated: tailoredCount,
+        total: tailoredCount,
+      },
+    };
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    console.error('Error fetching document counts:', error);
+    res.status(500).json({ error: 'Failed to fetch document statistics' });
+  }
+};

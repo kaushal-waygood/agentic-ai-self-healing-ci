@@ -139,13 +139,6 @@ export default function DashboardLayoutClient({
     return () => clearTimeout(timer);
   }, [pathname]);
 
-  const handleDismissPopup = () => {
-    setShowImprovementPopup(false);
-    setLastDismissedPath(pathname);
-    setLastDismissedTime(Date.now());
-    setGlobalLastDismissTime(Date.now());
-  };
-
   const handleYesInteraction = () => {
     setShowImprovementPopup(false);
     popupShownForPathRef.current.add('/dashboard/*');

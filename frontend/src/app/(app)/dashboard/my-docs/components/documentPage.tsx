@@ -20,6 +20,7 @@ import { RootState } from '@/redux/rootReducer';
 import {
   deleteSavedCoverLetterRequest,
   deleteSavedResumeRequest,
+  getDocumentCountsRequest,
   renameSavedCoverLetterRequest,
   renameSavedResumeRequest,
   savedStudentCoverLetterRequest,
@@ -94,6 +95,14 @@ export default function DocumentsPage() {
     tailoredApplicationsCount: 0,
   });
 
+  const dispatch = useDispatch();
+  const { documentCounts, loading } = useSelector(
+    (state: RootState) => state.ai,
+  );
+  useEffect(() => {
+    dispatch(getDocumentCountsRequest());
+  }, [dispatch]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -106,7 +115,6 @@ export default function DocumentsPage() {
   } | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
-  const dispatch = useDispatch();
 
   // Update the URL whenever tab changes
   useEffect(() => {
@@ -115,31 +123,27 @@ export default function DocumentsPage() {
     router.replace(`${window.location.pathname}?${params.toString()}`);
   }, [activeTab, router]);
 
-  // Fetch all data on mount
+  // Fetch data only for the active tab
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    const fetchTabData = async () => {
+      setIsLoading(true);
+      try {
+        if (activeTab === 'cvs') {
+          await fetchCVs();
+        } else if (activeTab === 'cover-letters') {
+          await fetchCoverLetters();
+        } else if (activeTab === 'applications') {
+          await fetchApplications();
+        }
+      } catch (error) {
+        console.error('Failed to fetch tab data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    dispatch(savedStudentResumeRequest());
-    dispatch(savedStudentCoverLetterRequest());
-  }, [dispatch]);
-
-  const fetchAllData = async () => {
-    setIsLoading(true);
-    try {
-      await Promise.all([fetchCVs(), fetchCoverLetters(), fetchApplications()]);
-    } catch (error) {
-      console.error('Failed to fetch documents:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to load your documents',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    fetchTabData();
+  }, [activeTab]); // This runs every time activeTab changes
 
   const fetchCVs = async () => {
     try {
@@ -485,7 +489,7 @@ export default function DocumentsPage() {
         <div className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <StatCard
             label="Curiculums Vitae"
-            value={stats.cvsCount}
+            value={documentCounts?.cv?.total}
             icon={FileText}
             color="from-blue-500 to-blue-600"
             isActive={activeTab === 'cvs'}
@@ -493,7 +497,7 @@ export default function DocumentsPage() {
           />
           <StatCard
             label="Cover Letters"
-            value={stats.coverLettersCount}
+            value={documentCounts?.cl?.total}
             icon={Bookmark}
             color="from-purple-500 to-pink-500"
             isActive={activeTab === 'cover-letters'}
@@ -501,7 +505,7 @@ export default function DocumentsPage() {
           />
           <StatCard
             label="Tailored Applications "
-            value={stats.tailoredApplicationsCount}
+            value={documentCounts?.tailored?.total}
             icon={Send}
             color="from-green-500 to-emerald-500"
             isActive={activeTab === 'applications'}
@@ -528,6 +532,7 @@ export default function DocumentsPage() {
                 <DocumentSection
                   title="CVs"
                   items={cvs}
+                  documentCounts={documentCounts}
                   refreshGeneratedDocs={refreshGeneratedDocs}
                   onDelete={deleteCV}
                   onDeleteSaved={deleteSavedCV}
@@ -548,6 +553,7 @@ export default function DocumentsPage() {
                   title="Cover Letters"
                   refreshGeneratedDocs={refreshGeneratedDocs}
                   items={coverLetters}
+                  documentCounts={documentCounts}
                   onDelete={deleteCoverLetter}
                   onDeleteSaved={deleteSavedCoverLetter}
                   onRename={handleRename}
@@ -566,6 +572,7 @@ export default function DocumentsPage() {
                 <DocumentSection
                   title="Tailored Applications"
                   items={applications}
+                  documentCounts={documentCounts}
                   onDelete={deleteApplication}
                   onCopy={copyToClipboard}
                   onDownload={downloadAsFile}
@@ -687,6 +694,7 @@ const StatCard = ({
 );
 
 const DocumentSection = ({
+  documentCounts,
   title,
   items,
   onDelete,
@@ -726,7 +734,19 @@ const DocumentSection = ({
       setFinalSearchTerm('');
     }
   }, [searchTerm]);
-
+  // Inside DocumentSection component
+  useEffect(() => {
+    // Only trigger dispatch if the user has toggled to the 'saved' view
+    if (docState === 'saved') {
+      if (type === 'cv') {
+        console.log('Fetching saved CVs only now...');
+        dispatch(savedStudentResumeRequest());
+      } else if (type === 'coverLetter') {
+        console.log('Fetching saved Cover Letters only now...');
+        dispatch(savedStudentCoverLetterRequest());
+      }
+    }
+  }, [docState, type, dispatch]);
   useEffect(() => {
     if (type === 'application') {
       setDocState('generated');
@@ -758,18 +778,12 @@ const DocumentSection = ({
 
     // Collect all searchable text safely
     const searchableText = [
-      // item.title,
-      // item.jobTitle,
-      // item.companyName,
-      // item.jobContextString,
-      // item.name,
-      // item.description,
       item.clTitle,
       item.coverLetterTitle,
       item.cvTitle,
       item.htmlCVTitle,
     ]
-      .filter(Boolean) // remove undefined/null
+      .filter(Boolean)
       .join(' ')
       .toLowerCase();
 
@@ -817,22 +831,20 @@ const DocumentSection = ({
     }
   };
 
-  // ... existing hooks
+  const countsForType = (() => {
+    if (!documentCounts) return { generated: 0, saved: 0, total: 0 };
 
-  // 1. Calculate Generated Count
-  const generatedCount = Array.isArray(items) ? items.length : 0;
-
-  // 2. Calculate Saved Count based on type
-  const savedCount =
-    type === 'cv'
-      ? Array.isArray(resume?.html)
-        ? resume.html.length
-        : 0
-      : type === 'coverLetter'
-        ? Array.isArray(coverLetter?.html)
-          ? coverLetter.html.length
-          : 0
-        : 0;
+    switch (type) {
+      case 'cv':
+        return documentCounts.cv;
+      case 'coverLetter':
+        return documentCounts.cl;
+      case 'application':
+        return documentCounts.tailored;
+      default:
+        return { generated: 0, saved: 0, total: 0 };
+    }
+  })();
 
   return (
     <div className="p-6">
@@ -870,7 +882,7 @@ const DocumentSection = ({
                       : 'bg-gray-300 dark:bg-gray-600'
                   }`}
                 >
-                  {generatedCount}
+                  {countsForType?.generated || 0}
                 </span>
               </button>
 
@@ -900,12 +912,11 @@ const DocumentSection = ({
                       : 'bg-gray-300 dark:bg-gray-600'
                   }`}
                 >
-                  {savedCount}
+                  {countsForType?.saved || 0}
                 </span>
               </button>
             </div>
           ) : (
-            // APPLICATION BUTTON (Only Generated exists here)
             <button
               onClick={() => {
                 setDocState('generated');
@@ -927,7 +938,7 @@ const DocumentSection = ({
                     : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               >
-                {generatedCount}
+                {countsForType?.generated || 0}
               </span>
             </button>
           )}
@@ -970,10 +981,7 @@ const DocumentSection = ({
         </div>
       </div>
 
-      {/* 4. Update conditional rendering logic */}
-      {/* {items.length === 0 ? ( */}
       {listToRender?.length === 0 ? (
-        // This shows if there are NO items at all
         <div className="text-center py-12">
           <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -1026,7 +1034,6 @@ const DocumentSection = ({
                 getStatusIcon={getStatusIcon}
                 getStatusColor={getStatusColor}
                 formatDate={formatDate}
-                // onRenameSavedCv={handleRenameSavedCV}
                 docState={docState}
               />
             ))}
