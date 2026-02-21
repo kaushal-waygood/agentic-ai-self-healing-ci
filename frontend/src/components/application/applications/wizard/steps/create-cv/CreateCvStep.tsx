@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import { useSearchParams } from 'next/navigation';
+import { Loader } from '@/components/Loader';
 
 const SleekCvStep = ({
   mockUserProfile,
@@ -220,18 +221,7 @@ const SleekCvStep = ({
 
               <div className="max-h-[35vh] overflow-y-auto border border-slate-200 rounded-lg bg-slate-50/50">
                 {loading ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-slate-500">
-                    {/* <Loader2 className="w-6 h-6 animate-spin mb-2 text-purple-500" /> */}
-                    <div>
-                      <img
-                        src="/logo.png"
-                        alt=""
-                        className="w-10 h-10 animate-bounce"
-                      />
-                    </div>
-
-                    <p>Fetching saved CVs...</p>
-                  </div>
+                  <Loader message="Fetching saved CVs" />
                 ) : (
                   <div>
                     {cvs?.length > 0 ? (

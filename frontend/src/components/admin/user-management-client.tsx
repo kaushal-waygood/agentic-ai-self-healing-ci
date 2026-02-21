@@ -1,11 +1,10 @@
+'use client';
 
-"use client";
-
-import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { mockUsers } from "@/lib/data/user";
-import type { UserProfile } from "@/lib/data/user";
-import type { SubscriptionPlan } from "@/lib/data/subscriptions";
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { mockUsers } from '@/lib/data/user';
+import type { UserProfile } from '@/lib/data/user';
+import type { SubscriptionPlan } from '@/lib/data/subscriptions';
 import {
   Card,
   CardContent,
@@ -13,7 +12,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -21,13 +20,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Eye, ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface UserManagementClientProps {
   plans: SubscriptionPlan[];
@@ -37,18 +36,18 @@ const USERS_PER_PAGE = 10;
 
 export function UserManagementClient({ plans }: UserManagementClientProps) {
   const searchParams = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState("all");
-  
+  const [activeTab, setActiveTab] = useState('all');
+
   // Effect to update search term if the query param changes
   useEffect(() => {
-    setSearchTerm(searchParams.get("q") || "");
+    setSearchTerm(searchParams.get('q') || '');
     setCurrentPage(1);
   }, [searchParams]);
 
   const getPlanName = (planId: string) => {
-    return plans.find((p) => p.id === planId)?.name || "N/A";
+    return plans.find((p) => p.id === planId)?.name || 'N/A';
   };
 
   // Memoized calculations for performance
@@ -56,30 +55,30 @@ export function UserManagementClient({ plans }: UserManagementClientProps) {
     return mockUsers.filter(
       (user) =>
         user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [searchTerm]);
 
   const individualUsers = useMemo(
-    () => searchedUsers.filter((u) => u.role === "Individual"),
-    [searchedUsers]
+    () => searchedUsers.filter((u) => u.role === 'Individual'),
+    [searchedUsers],
   );
   const orgUsers = useMemo(
     () =>
       searchedUsers.filter(
-        (u) => u.role === "OrgMember" || u.role === "OrgAdmin"
+        (u) => u.role === 'OrgMember' || u.role === 'OrgAdmin',
       ),
-    [searchedUsers]
+    [searchedUsers],
   );
   const adminUsers = useMemo(
-    () => searchedUsers.filter((u) => u.role === "PrimaryAdmin"),
-    [searchedUsers]
+    () => searchedUsers.filter((u) => u.role === 'PrimaryAdmin'),
+    [searchedUsers],
   );
 
   const displayedUsers = useMemo(() => {
-    if (activeTab === "individual") return individualUsers;
-    if (activeTab === "organization") return orgUsers;
-    if (activeTab === "admin") return adminUsers;
+    if (activeTab === 'individual') return individualUsers;
+    if (activeTab === 'organization') return orgUsers;
+    if (activeTab === 'admin') return adminUsers;
     return searchedUsers;
   }, [activeTab, individualUsers, orgUsers, adminUsers, searchedUsers]);
 
@@ -114,12 +113,19 @@ export function UserManagementClient({ plans }: UserManagementClientProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">{user.role}</Badge>
-                <Badge variant="secondary">{getPlanName(user.currentPlanId)}</Badge>
-                <Badge variant="default" className="bg-green-500/80">Active</Badge>
+                <Badge variant="secondary">
+                  {getPlanName(user.currentPlanId)}
+                </Badge>
+                <Badge variant="default" className="bg-green-500/80">
+                  Active
+                </Badge>
               </div>
               <div className="flex justify-end">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href={`/primary-admin/users/${user.id}`}>
+                  <Link
+                    href={`/primary-admin/users/${user.id}`}
+                    prefetch={false}
+                  >
                     <Eye className="mr-2 h-4 w-4" /> View Details
                   </Link>
                 </Button>
@@ -154,7 +160,9 @@ export function UserManagementClient({ plans }: UserManagementClientProps) {
                   <Badge variant="outline">{user.role}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{getPlanName(user.currentPlanId)}</Badge>
+                  <Badge variant="secondary">
+                    {getPlanName(user.currentPlanId)}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant="default" className="bg-green-500/80">
@@ -163,7 +171,10 @@ export function UserManagementClient({ plans }: UserManagementClientProps) {
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/primary-admin/users/${user.id}`}>
+                    <Link
+                      href={`/primary-admin/users/${user.id}`}
+                      prefetch={false}
+                    >
                       <Eye className="mr-2 h-4 w-4" /> View Details
                     </Link>
                   </Button>
@@ -175,14 +186,14 @@ export function UserManagementClient({ plans }: UserManagementClientProps) {
       </div>
 
       {users.length === 0 && (
-          <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
-              No users found for this filter.
-          </div>
+        <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
+          No users found for this filter.
+        </div>
       )}
 
       <CardFooter className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 border-t pt-6">
         <div className="text-xs text-muted-foreground">
-          Showing <strong>{paginatedUsers.length}</strong> of{" "}
+          Showing <strong>{paginatedUsers.length}</strong> of{' '}
           <strong>{displayedUsers.length}</strong> users.
         </div>
         <div className="flex items-center gap-2">
@@ -240,7 +251,9 @@ export function UserManagementClient({ plans }: UserManagementClientProps) {
       <CardContent>
         <Tabs defaultValue="all" onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all">All Users ({searchedUsers.length})</TabsTrigger>
+            <TabsTrigger value="all">
+              All Users ({searchedUsers.length})
+            </TabsTrigger>
             <TabsTrigger value="individual">
               Individuals ({individualUsers.length})
             </TabsTrigger>
@@ -260,7 +273,7 @@ export function UserManagementClient({ plans }: UserManagementClientProps) {
           <TabsContent value="organization" className="mt-4">
             {renderUsers(paginatedUsers)}
           </TabsContent>
-           <TabsContent value="admin" className="mt-4">
+          <TabsContent value="admin" className="mt-4">
             {renderUsers(paginatedUsers)}
           </TabsContent>
         </Tabs>

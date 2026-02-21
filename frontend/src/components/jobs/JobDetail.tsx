@@ -41,6 +41,7 @@ import { JobListing } from '@/lib/data/jobs';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { divide, set } from 'lodash';
 import { getToken } from '@/hooks/useToken';
+import { Loader } from '../Loader';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -541,15 +542,13 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 relative rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-100 via-blue-100 to-cyan-100 shadow-lg ring-4 ring-purple-100/50">
-                <Image
-                  src="/logo.png"
-                  alt={job.company || 'Company Logo'}
-                  fill
-                  sizes="48px"
-                  className="object-contain"
-                />
-              </div>
+              <Image
+                src="/placeholder-logo.png"
+                alt="Company Logo"
+                fill
+                sizes="48px"
+                className="object-contain"
+              />
             )}
           </div>
 

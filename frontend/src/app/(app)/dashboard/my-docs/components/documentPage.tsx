@@ -30,6 +30,9 @@ import {
   savedStudentResumeRequest,
 } from '@/redux/reducers/aiReducer';
 import { useDispatch } from 'react-redux';
+import { Loader } from '@/components/Loader';
+import { DocumentSection } from './DocumentSection';
+import { StatCard } from './StatusCard';
 
 interface CV {
   _id: string;
@@ -504,16 +507,7 @@ export default function DocumentsPage() {
         {/* ✅ Conditional Sections */}
         <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 backdrop-blur-sm">
           {isLoading ? (
-            <div className="flex flex-col justify-center items-center py-20">
-              <div>
-                <img
-                  src="/logo.png"
-                  alt=""
-                  className="w-10 h-10 animate-bounce"
-                />
-              </div>
-              <div className="text-lg">LOADING...</div>
-            </div>
+            <Loader />
           ) : (
             <>
               {activeTab === 'cvs' && (

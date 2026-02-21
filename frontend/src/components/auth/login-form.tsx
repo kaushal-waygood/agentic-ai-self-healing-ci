@@ -103,10 +103,12 @@ const LoginForm = () => {
           deviceInfo,
         }),
       );
-      toast({
-        title: 'Login Success',
-        variant: 'success',
-      });
+      if (token && user) {
+        toast({
+          title: 'Login Success',
+          variant: 'success',
+        });
+      }
     } catch (error) {
       console.error('Login error:', error);
       NProgress.done();
@@ -356,6 +358,7 @@ const LoginForm = () => {
 
                   <Link
                     href="/signup"
+                    prefetch={false}
                     className="mt-1 inline-flex items-center gap-2
       text-sm font-semibold text-blue-700
       

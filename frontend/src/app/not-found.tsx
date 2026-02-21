@@ -39,7 +39,7 @@ const NotFoundPage = () => {
               size="lg"
               className="w-full sm:w-auto h-12 px-8 text-base font-semibold rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
             >
-              <Link href="/dashboard">
+              <Link href="/dashboard" prefetch={false}>
                 <Home className="mr-2 h-5 w-5" />
                 Go Back Home
               </Link>
@@ -50,7 +50,7 @@ const NotFoundPage = () => {
               size="lg"
               className="w-full sm:w-auto h-12 px-8 text-base rounded-xl"
             >
-              <Link href="/contact-support">
+              <Link href="/contact-support" prefetch={false}>
                 <LifeBuoy className="mr-2 h-5 w-5" />
                 Contact Support
               </Link>
