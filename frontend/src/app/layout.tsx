@@ -103,6 +103,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <meta
+          name="google-site-verification"
+          content="9trSliJlM2HKVWMlq1MfSfbYH58MtDebWTl1nHUZ_rk"
+        />
         {/* Google Analytics */}
         <Script
           async

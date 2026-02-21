@@ -71,18 +71,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const router = useRouter();
   const dispatch = useDispatch();
 
-  const { savedJobs } = useSelector((state: RootState) => state.jobs);
-
   const [matchScore, setMatchScore] = useState<MatchScore | null>(null);
   const [atsScore, setAtsScore] = useState<AtsScore | null>(null);
   const [isLoadingScore, setIsLoadingScore] = useState(false);
   const [isLoadingAtsScore, setIsLoadingAtsScore] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
-  const [isApplying, setIsApplying] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(true);
   const [activeView, setActiveView] = useState<'match' | 'ats'>('match');
   const [openCard, setOpenCard] = useState<'match' | 'ats' | null>('match');
   const [token, setToken] = useState<string | undefined>(undefined);
