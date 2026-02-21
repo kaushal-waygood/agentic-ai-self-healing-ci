@@ -77,26 +77,6 @@ const LoginForm = () => {
   );
 
   useEffect(() => {
-    if (token && user) {
-      NProgress.done();
-      router.push('/dashboard');
-      toast({ title: 'Login Success', variant: 'success' });
-    }
-  }, [token, user, router]);
-
-  // 2. Watch for Errors
-  useEffect(() => {
-    if (error) {
-      NProgress.done();
-      toast({
-        title: 'Login Failed',
-        description: error.message || 'Invalid email or password.',
-        variant: 'destructive',
-      });
-    }
-  }, [error, toast]);
-
-  useEffect(() => {
     if (!isLoading) {
       NProgress.done();
     }
@@ -141,7 +121,10 @@ const LoginForm = () => {
   // }
 
   // --- MAIN LOGIN HANDLER ---
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
   async function onSubmit(data: LoginFormValues) {
+    setIsSubmitting(true);
     NProgress.start();
 
     const deviceInfo = {
@@ -158,6 +141,28 @@ const LoginForm = () => {
       }),
     );
   }
+
+  useEffect(() => {
+    if (isSubmitting && error && !isLoading) {
+      NProgress.done();
+      toast({
+        title: 'Login Failed',
+        description: error.message || 'Invalid email or password.',
+        variant: 'destructive',
+      });
+
+      setIsSubmitting(false);
+    }
+  }, [error, isSubmitting, isLoading, toast]);
+
+  useEffect(() => {
+    if (token && user && isSubmitting) {
+      NProgress.done();
+      router.push('/dashboard');
+      toast({ title: 'Login Success', variant: 'success' });
+      setIsSubmitting(false);
+    }
+  }, [token, user, router, isSubmitting, toast]);
 
   async function onForgotPasswordSubmit(data: ForgotPasswordValues) {
     setIsForgotPasswordSubmitting(true);
