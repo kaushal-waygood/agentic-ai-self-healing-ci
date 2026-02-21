@@ -1,40 +1,44 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// src/app/page.tsx
+import dynamic from 'next/dynamic';
 import { Navigation } from '@/components/layout/site-header';
 import { Footer } from '@/components/layout/footer';
 import { Hero } from '@/components/home/Hero';
-import BeforeAfter from '@/components/home/BeforeAfter';
-import { CTA } from '@/components/home/CTA';
-import { HowItWorks } from '@/components/home/HowItWorks';
-import { PainPoints } from '@/components/home/PainPoints';
-import { Pricing } from '@/components/home/Pricing';
-import { Testimonials } from '@/components/home/Testimonials';
-import { Platforms } from '@/components/home/Platforms';
-import { Solutions } from '@/components/home/Solutions';
-import { getToken } from '@/hooks/useToken';
+import RedirectGuard from '@/hooks/useHome';
+
+// HIGH PERFORMANCE: Lazily load heavy sections below the fold
+const PainPoints = dynamic(() =>
+  import('@/components/home/PainPoints').then((mod) => mod.PainPoints),
+);
+const Solutions = dynamic(() =>
+  import('@/components/home/Solutions').then((mod) => mod.Solutions),
+);
+const BeforeAfter = dynamic(() => import('@/components/home/BeforeAfter'));
+const HowItWorks = dynamic(() =>
+  import('@/components/home/HowItWorks').then((mod) => mod.HowItWorks),
+);
+const Platforms = dynamic(() =>
+  import('@/components/home/Platforms').then((mod) => mod.Platforms),
+);
+const Pricing = dynamic(() =>
+  import('@/components/home/Pricing').then((mod) => mod.Pricing),
+);
+const Testimonials = dynamic(() =>
+  import('@/components/home/Testimonials').then((mod) => mod.Testimonials),
+);
 
 export default function HomePage() {
-  const router = useRouter();
-  const token = getToken();
-
-  useEffect(() => {
-    try {
-      if (token) {
-        router.push('/dashboard');
-      }
-    } catch (error) {
-      console.error('Error parsing persistence layer:', error);
-    }
-  }, [router]);
-
   return (
-    <div>
+    <>
+      {/* Logic-only client component */}
+      <RedirectGuard />
+
       <Navigation />
       <div className="flex flex-col min-h-screen">
         <main className="flex-1">
+          {/* Hero is imported normally because it's at the top (LCP) */}
           <Hero />
+
+          {/* These are now code-split and loaded only when needed */}
           <PainPoints />
           <Solutions />
           <BeforeAfter />
@@ -42,10 +46,9 @@ export default function HomePage() {
           <Platforms />
           <Pricing />
           <Testimonials />
-          {/* <CTA /> */}
         </main>
       </div>
       <Footer />
-    </div>
+    </>
   );
 }
