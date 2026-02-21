@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: uni-company-panel-config # Changed _ to -
-  namespace: dev-zobsai
-data:
-  NEXT_PUBLIC_NODE_ENV: 'development'
