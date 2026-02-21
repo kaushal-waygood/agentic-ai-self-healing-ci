@@ -377,7 +377,11 @@ const JobWizard = ({
               {/* Enhanced Select Tab */}
 
               {loading ? (
-                <Loader message="Fetching saved Jobs" />
+                <Loader
+                  message="Fetching saved Jobs"
+                  imageClassName="w-6 h-6"
+                  textClassName="text-sm"
+                />
               ) : (
                 <TabsContent
                   value="select"

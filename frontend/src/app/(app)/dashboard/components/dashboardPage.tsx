@@ -175,7 +175,7 @@ export function ProfileReadinessCard() {
   const router = useRouter();
 
   if (isLoading || !data) {
-    return <Loader />;
+    return <Loader imageClassName="w-6 h-6" textClassName="text-sm" />;
   }
 
   if (error) {
@@ -636,6 +636,7 @@ function TopJobCard({ job }: { job: TopJob }) {
 
 export default function DashboardPage() {
   const [recentAI, setRecentAI] = useState<any>(null);
+  const [billingData, setBillingData] = useState<any[]>([]);
   const { balance, spending, checkout } = useCredits();
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
 
@@ -657,12 +658,32 @@ export default function DashboardPage() {
   );
   const { user: authUser } = useSelector((state: RootState) => state.auth);
 
+  useEffect(() => {
+    const fetchBillingData = async () => {
+      try {
+        const res = await apiInstance.get('/plan/perchased');
+        if (res.data.success) {
+          setBillingData(res.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching billing data:', error);
+      }
+    };
+
+    if (authUser) {
+      fetchBillingData();
+    }
+  }, [authUser]);
+
+  const activeRecord = billingData.find((record) => record.isActive);
+
   const planDetails = {
     planType,
     isActive,
     usageData,
     usageLimits,
     user: authUser,
+    endDate: activeRecord?.endDate,
   };
   // const [planDetails, setPlanDetails] = useState(null);
 
