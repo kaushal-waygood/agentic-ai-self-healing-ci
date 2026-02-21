@@ -1,8 +1,16 @@
 import Image from 'next/image';
 
-export const Loader = ({ message = 'LOADING...' }: { message?: string }) => {
+export const Loader = ({
+  message = 'LOADING...',
+  classStyle = '',
+}: {
+  message?: string;
+  classStyle?: string;
+}) => {
   return (
-    <div className="flex flex-col justify-center items-center py-20">
+    <div
+      className={`flex flex-col justify-center items-center py-20 ${classStyle}`}
+    >
       <div>
         <Image
           src="/logo.png"

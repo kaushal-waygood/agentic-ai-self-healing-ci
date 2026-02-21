@@ -182,12 +182,13 @@ export default function ApplicationsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6 mb-6 cursor-pointer md:p-2">
+        <div className="grid grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6 mb-6 md:p-2">
           <StatCard
             label="Applied Jobs"
             value={jobStats?.appliedJobsCount}
             icon={Send}
             // color="tabPrimary"
+            isActive={statusFilter === 'Applied'}
             onClick={() => setStatusFilter('Applied')}
           />
           <StatCard
@@ -195,6 +196,7 @@ export default function ApplicationsPage() {
             value={jobStats?.savedJobsCount}
             icon={Bookmark}
             // color="tabPrimary"
+            isActive={statusFilter === 'Saved'}
             onClick={() => setStatusFilter('Saved')}
           />
           <StatCard
@@ -202,6 +204,7 @@ export default function ApplicationsPage() {
             value={jobStats?.jobsViewed}
             icon={Eye}
             // color="tabPrimary"
+            isActive={statusFilter === 'Viewed'}
             onClick={() => setStatusFilter('Viewed')}
           />
           <StatCard
@@ -209,6 +212,7 @@ export default function ApplicationsPage() {
             value={jobStats?.jobsVisited}
             icon={Link}
             // color="tabPrimary"
+            isActive={statusFilter === 'Visited'}
             onClick={() => setStatusFilter('Visited')}
           />
         </div>
