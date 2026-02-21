@@ -1,6 +1,3 @@
-# -------------------------------
-# ZobsAI - Build & Deploy (DEV)
-# -------------------------------
 name: Build & Deploy ZobsAI (Dev)
 
 on:
@@ -80,18 +77,18 @@ jobs:
       # -------------------------------
       # 5️⃣ Build & Push Uni Company Panel Image (NEW)
       # -------------------------------
-      - name: Build & Push Uni Company Panel Image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./uni-company-panel
-          file: ./uni-company-panel/Dockerfile
-          push: true
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ env.API_URL_DEV }}
-            NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:${{ github.sha }}
+      # - name: Build & Push Uni Company Panel Image
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: ./uni-company-panel
+      #     file: ./uni-company-panel/Dockerfile
+      #     push: true
+      #     build-args: |
+      #       NEXT_PUBLIC_API_URL=${{ env.API_URL_DEV }}
+      #       NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
+      #     tags: |
+      #       ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:latest
+      #       ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:${{ github.sha }}
 
       # -------------------------------
       # 6️⃣ Debug: Show Current Images (Before Update)
@@ -101,9 +98,9 @@ jobs:
           echo "=== Backend BEFORE ==="
           grep "image:" manifests/zobsai-backend-deployment.yaml || true
           echo "=== Frontend BEFORE ==="
-          # grep "image:" manifests/zobsai-frontend-deployment.yaml || true
-          # echo "=== Uni Panel BEFORE ==="
-          # grep "image:" manifests/zobsai-uni-company-panel-deployment-dev.yaml || true
+          grep "image:" manifests/zobsai-frontend-deployment.yaml || true
+      #   echo "=== Uni Panel BEFORE ==="
+      #   grep "image:" manifests/zobsai-uni-company-panel-deployment-dev.yaml || true
 
       # -------------------------------
       # 7️⃣ Update Kubernetes Manifests (Linux-safe)
@@ -120,16 +117,13 @@ jobs:
           echo "✅ Frontend image updated"
           grep "image:" manifests/zobsai-frontend-deployment.yaml
 
-      - name: Update Uni Company Panel Deployment Manifest
-        run: |
-          sed -i -e "s#zobsai-uni-company-panel:.*#zobsai-uni-company-panel:${{ github.sha }}#g" manifests/zobsai-uni-company-panel-deployment.yaml
-          echo "✅ Uni Company Panel image updated"
-          grep "image:" manifests/zobsai-uni-company-panel-deployment.yaml
+      # - name: Update Uni Company Panel Deployment Manifest
+      #   run: |
+      #     sed -i -e "s#zobsai-uni-company-panel:.*#zobsai-uni-company-panel:${{ github.sha }}#g" manifests/zobsai-uni-company-panel-deployment.yaml
+      #     echo "✅ Uni Company Panel image updated"
+      #     grep "image:" manifests/zobsai-uni-company-panel-deployment.yaml
 
       # -------------------------------
-      # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
-      # -------------------------------
-# -------------------------------
       # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
       # -------------------------------
       - name: Commit and Push Manifest Changes
