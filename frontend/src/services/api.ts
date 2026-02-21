@@ -1,6 +1,8 @@
 'use client';
 
 import { getToken } from '@/hooks/useToken';
+import { logoutRequest } from '@/redux/reducers/authReducer';
+import store from '@/redux/store';
 import axios from 'axios';
 
 export const API_BASE_URL =
@@ -11,8 +13,6 @@ export const API_BASE_URL =
       : 'http://127.0.0.1:8080';
 
 const token = getToken();
-
-console.log(token);
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -61,5 +61,20 @@ apiInstance.interceptors.request.use((config) => {
 
   return config;
 });
+
+let isLoggingOut = false;
+
+apiInstance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 403 && !isLoggingOut) {
+      isLoggingOut = true;
+
+      delete apiInstance.defaults.headers.common['Authorization'];
+      store.dispatch(logoutRequest());
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default apiInstance;

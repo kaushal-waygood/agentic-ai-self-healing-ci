@@ -6,10 +6,7 @@ export interface AuthState {
     email: string;
     token?: string;
     accountType?: string;
-    jobPreference?: string;
     organizationName?: string;
-    dailyStreak?: any;
-    googleAuth?: any;
   };
   message: string;
   token: string | null;
