@@ -1,10 +1,12 @@
 # -------------------------------
-name: Build & Deploy ZobsAI (Main)
+# ZobsAI - Build & Deploy (DEV)
+# -------------------------------
+name: Build & Deploy ZobsAI (Dev)
 
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
 
 jobs:
@@ -15,26 +17,25 @@ jobs:
       contents: write
       packages: write
 
+    env:
+      NODE_ENV: development
+      API_URL_DEV: 'https://api.dev.zobsai.com'
+      REGISTRY: ghcr.io
+      IMAGE_OWNER: zobsai-com # MUST match your manifest image path
+
     steps:
       # -------------------------------
-      # Checkout Code
+      # 1️⃣ Checkout Repository
       # -------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # ensures all files and history are available
+          fetch-depth: 0
 
       # -------------------------------
-      # Set Repository Owner
+      # 2️⃣ Login to GitHub Container Registry
       # -------------------------------
-      - name: Set lowercase repo owner
-        id: vars
-        run: echo "repo_owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
-
-      # -------------------------------
-      # Log in to GitHub Container Registry
-      # -------------------------------
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -42,29 +43,24 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # -------------------------------
-      # Build & Push Backend Image
+      # 3️⃣ Build & Push Backend Image
       # -------------------------------
       - name: Build & Push Backend Image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: ./backend/Dockerfile
+          file: ./backend/dockerfile
           push: true
+          build-args: |
+            NODE_ENV=${{ env.NODE_ENV }}
+            MONGO_URL=${{ secrets.MONGO_URL }}
+            RAPID_API_KEY=${{ secrets.RAPID_API_KEY }}
           tags: |
-            ghcr.io/${{ env.repo_owner }}/zobsai-backend:latest
-            ghcr.io/${{ env.repo_owner }}/zobsai-backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-backend:${{ github.sha }}
 
       # -------------------------------
-      # Set Frontend Build Args
-      # -------------------------------
-      - name: Set Frontend Build Args
-        run: |
-          echo "NEXT_PUBLIC_API_URL=https://api.zobsai.com" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=<prod-client-id>" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<prod-key>" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_NODE_ENV=production" >> $GITHUB_ENV
-      # -------------------------------
-      # Build & Push Frontend Image
+      # 4️⃣ Build & Push Frontend Image
       # -------------------------------
       - name: Build & Push Frontend Image
         uses: docker/build-push-action@v6
@@ -73,45 +69,77 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ env.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
-            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
-            NEXT_PUBLIC_NODE_ENV=${{ env.NEXT_PUBLIC_NODE_ENV }}
+            NEXT_PUBLIC_API_URL=${{ env.API_URL_DEV }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_DEV }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY_DEV }}
+            NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
           tags: |
-            ghcr.io/${{ env.repo_owner }}/zobsai-frontend:latest
-            ghcr.io/${{ env.repo_owner }}/zobsai-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:${{ github.sha }}
 
       # -------------------------------
-      # Update Deployment Manifests
+      # 5️⃣ Build & Push Uni Company Panel Image (NEW)
+      # -------------------------------
+      - name: Build & Push Uni Company Panel Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./uni-company-panel
+          file: ./uni-company-panel/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ env.API_URL_DEV }}
+            NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:${{ github.sha }}
+
+      # -------------------------------
+      # 6️⃣ Debug: Show Current Images (Before Update)
+      # -------------------------------
+      - name: Debug current manifest images
+        run: |
+          echo "=== Backend BEFORE ==="
+          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml || true
+          echo "=== Frontend BEFORE ==="
+          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml || true
+          echo "=== Uni Panel BEFORE ==="
+          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml || true
+
+      # -------------------------------
+      # 7️⃣ Update Kubernetes Manifests (Linux-safe)
       # -------------------------------
       - name: Update Backend Deployment Manifest
         run: |
-          MANIFEST="manifests/zobsai-backend-deployment.yaml"
-          if [ -f "$MANIFEST" ]; then
-            sed -i'' -e "s#^\(\s*image:\s*ghcr.io/${{ env.repo_owner }}/zobsai-backend:\).*#\1${{ github.sha }}#g" "$MANIFEST"
-            echo "Backend deployment manifest updated."
-          else
-            echo "Backend manifest not found at $MANIFEST, skipping."
-          fi
+          sed -i -e "s#zobsai-backend:.*#zobsai-backend:${{ github.sha }}#g" manifests/dev/zobsai-backend-deployment-dev.yaml
+          echo "✅ Backend image updated"
+          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml
 
       - name: Update Frontend Deployment Manifest
         run: |
-          MANIFEST="manifests/zobsai-frontend-deployment.yaml"
-          if [ -f "$MANIFEST" ]; then
-            sed -i'' -e "s#^\(\s*image:\s*ghcr.io/${{ env.repo_owner }}/zobsai-frontend:\).*#\1${{ github.sha }}#g" "$MANIFEST"
-            echo "Frontend deployment manifest updated."
-          else
-            echo "Frontend manifest not found at $MANIFEST, skipping."
-          fi
+          sed -i -e "s#zobsai-frontend:.*#zobsai-frontend:${{ github.sha }}#g" manifests/dev/zobsai-frontend-deployment-dev.yaml
+          echo "✅ Frontend image updated"
+          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml
+
+      - name: Update Uni Company Panel Deployment Manifest
+        run: |
+          sed -i -e "s#zobsai-uni-company-panel:.*#zobsai-uni-company-panel:${{ github.sha }}#g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
+          echo "✅ Uni Company Panel image updated"
+          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
 
       # -------------------------------
-      # Commit & Push Manifest Changes
+      # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
       # -------------------------------
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add manifests/
-          git commit -m "Update backend/frontend images to ${{ github.sha }}" || echo "No changes to commit"
-          git push origin main
 
+          git add -f manifests/dev/*.yaml
+
+          if git diff --cached --quiet; then
+            echo "⚠️ No changes to commit"
+          else
+            git commit -m "ci(dev): update images to ${{ github.sha }}"
+            git push origin develop
+            echo "🚀 Manifests pushed. ArgoCD will auto-sync."
+          fi

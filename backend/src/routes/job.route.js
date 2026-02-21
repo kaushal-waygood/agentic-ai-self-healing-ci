@@ -23,6 +23,15 @@ import {
   getHostedJobsByAdmin,
   getHostedJobCandidates,
   generateJobDescription,
+  deleteJobByAdmin,
+  bulkDeleteJobsByAdmin,
+  jobStats,
+  getCandidatesByOrganization,
+  getOrganizationCandidateStats,
+  getOrganizationJobStats,
+  candidatesOrganization,
+  getJobCandidateStats,
+  getAllAppliedJobList,
 } from '../controllers/job.controller.js';
 import {
   authMiddleware,
@@ -36,6 +45,7 @@ import { upload } from '../middlewares/multer.js';
 
 const router = Router();
 
+router.get('/get-jobs', authMiddleware, isGeneralUser, getAllAppliedJobList);
 router.post('/mannual', authMiddleware, isAnyAdmin, postManualJob);
 router.post('/generate-jd', authMiddleware, isAnyAdmin, generateJobDescription);
 router.patch(
@@ -72,17 +82,61 @@ router.get('/search', searchJobs);
 router.post('/:id/click', authMiddleware, isGeneralUser, trackJobClick);
 router.post('/impression', authMiddleware, isGeneralUser, trackJobImpressions);
 
+router.get('/stats/:jobId', authMiddleware, isAnyAdmin, jobStats);
+router.get(
+  '/candidates-org',
+  authMiddleware,
+  isAnyAdmin,
+  getCandidatesByOrganization,
+);
+router.get(
+  '/organization-candidate-stats',
+  authMiddleware,
+  isAnyAdmin,
+  getOrganizationCandidateStats,
+);
+
+router.get(
+  '/organization-job-stats',
+  authMiddleware,
+  isAnyAdmin,
+  getOrganizationJobStats,
+);
+
 router.get('/', getAllJobs);
 router.get('/hosted', authMiddleware, isAnyAdmin, getMannualyJobs);
 router.get('/external', getRapidJobs);
 router.get('/employment-types', getAllEmploymentTypes);
 router.get('/experience-levels', getAllExperiences);
 router.get('/hosted/jobs/job-admin', authMiddleware, getHostedJobsByAdmin);
+
+router.delete('/hosted/jobs/:id', authMiddleware, isAnyAdmin, deleteJobByAdmin);
+router.post(
+  '/hosted/jobs/bulk-delete',
+  authMiddleware,
+  isAnyAdmin,
+  bulkDeleteJobsByAdmin,
+);
+
 router.get(
   '/hosted/jobs/candidates/:jobId',
   authMiddleware,
   isAnyAdmin,
   getHostedJobCandidates,
+);
+
+router.get(
+  '/hosted/jobs/candidates/stats/:jobId',
+  authMiddleware,
+  isAnyAdmin,
+  getJobCandidateStats,
+);
+
+router.get(
+  '/candidates-organization/:jobId',
+  authMiddleware,
+  isAnyAdmin,
+  candidatesOrganization,
 );
 
 router.get('/:jobId', getSingleJobDetail);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Globe, MapPin, X } from 'lucide-react';
 import CountrySelector from '../common/CountrySelector';
 import StateSelector from '../common/StateSelector';
@@ -27,19 +26,6 @@ const datePostedOptions = [
   { id: 'month', label: 'Past month' },
 ];
 
-const parseYearsFromLabel = (label: string): string | null => {
-  let match = label.match(/(\d+)\s*-\s*(\d+)\s*Years?/i);
-  if (match) return `${match[1]}-${match[2]} Years`;
-  match = label.match(/(\d+)\+\s*Year/i);
-  if (match) return `${match[1]}+ Years`;
-  match = label.match(/(\d+)\s*Year/i);
-  if (match) {
-    const years = parseInt(match[1], 10);
-    return `${years} ${years > 1 ? 'Years' : 'Year'}`;
-  }
-  return null;
-};
-
 const FilterTag = ({
   label,
   isSelected,
@@ -53,10 +39,10 @@ const FilterTag = ({
     onClick={onClick}
     role="checkbox"
     aria-checked={isSelected}
-    className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 capitalize ${
+    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full border transition-all duration-200 capitalize whitespace-nowrap ${
       isSelected
         ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
     }`}
   >
     {label}
@@ -70,12 +56,11 @@ const EducationTag = ({
   label: string;
   onRemove: () => void;
 }) => (
-  <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-medium px-2.5 py-1 rounded-md">
+  <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs sm:text-sm font-medium px-2 py-1 rounded-md">
     <span>{label}</span>
     <button
       onClick={onRemove}
-      className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-      aria-label={`Remove ${label}`}
+      className="text-gray-500 hover:text-gray-800 transition-colors"
     >
       <X size={14} />
     </button>
@@ -92,24 +77,6 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
   });
 
   const [educationInput, setEducationInput] = useState('');
-
-  const groupedExperienceLevels = useMemo(() => {
-    const groups = new Map<string, string[]>();
-    if (experienceLevels) {
-      experienceLevels
-        .filter((level) => typeof level === 'string')
-        .forEach((originalLevel) => {
-          const simplified = parseYearsFromLabel(originalLevel);
-          if (simplified !== null) {
-            if (!groups.has(simplified)) {
-              groups.set(simplified, []);
-            }
-            groups.get(simplified)!.push(originalLevel);
-          }
-        });
-    }
-    return groups;
-  }, [experienceLevels]);
 
   useEffect(() => {
     if (isOpen) {
@@ -182,91 +149,103 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl bg-white">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-headingTextPrimary ">
+      {/* sm:max-w-2xl sets the desktop width, w-[95vw] ensures it doesn't touch screen edges on mobile */}
+      <DialogContent className="w-[95vw] sm:max-w-2xl bg-white p-4 sm:p-6 rounded-xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900">
             More Filters
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Refine your job search to find the perfect fit.
           </DialogDescription>
         </DialogHeader>
 
-        {/* <div className="grid grid-cols-1 gap-4"> */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-          <div className=" input-search-box-div">
-            <Globe className="input-search-icon" />
-            <CountrySelector
-              value={localFilters.country || ''}
-              onChange={(countryCode: string) =>
-                setLocalFilters((prev: any) => ({
-                  ...prev,
-                  country: countryCode,
-                  state: '',
-                }))
-              }
-              className="input-search"
-            />
-          </div>
+        {/* Scrollable Area */}
+        <div className="flex-1 overflow-y-auto my-4 pr-2 -mr-2 scrollbar-thin">
+          <div className="space-y-6">
+            {/* Location Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="relative flex items-center border rounded-lg px-3 py-2 bg-gray-50">
+                <Globe className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+                <CountrySelector
+                  value={localFilters.country || ''}
+                  onChange={(countryCode: string) =>
+                    setLocalFilters((prev: any) => ({
+                      ...prev,
+                      country: countryCode,
+                      state: '',
+                    }))
+                  }
+                  className="w-full bg-transparent border-none focus:ring-0 text-sm"
+                />
+              </div>
 
-          <div className=" input-search-box-div">
-            <MapPin className="input-search-icon" />
-            <StateSelector
-              countryCode={localFilters.country}
-              value={localFilters.state}
-              onChange={(stateCode: string) =>
-                setLocalFilters((prev: any) => ({
-                  ...prev,
-                  state: stateCode,
-                }))
-              }
-              disabled={!localFilters.country}
-              className="input-search"
-            />
-          </div>
-        </div>
-
-        <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div className="space-y-3">
-              <h4 className="font-semibold text-gray-800">Employment Type</h4>
-              <div className="flex flex-wrap gap-2">
-                {employmentTypes
-                  .filter((type) => typeof type === 'string')
-                  .map((type) => (
-                    <FilterTag
-                      key={type}
-                      label={type.toLowerCase().replace(/_/g, ' ')}
-                      isSelected={localFilters.employmentType?.includes(type)}
-                      onClick={() =>
-                        handleSelectionChange('employmentType', type)
-                      }
-                    />
-                  ))}
+              <div className="relative flex items-center border rounded-lg px-3 py-2 bg-gray-50">
+                <MapPin className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+                <StateSelector
+                  countryCode={localFilters.country}
+                  value={localFilters.state}
+                  onChange={(stateCode: string) =>
+                    setLocalFilters((prev: any) => ({
+                      ...prev,
+                      state: stateCode,
+                    }))
+                  }
+                  disabled={!localFilters.country}
+                  className="w-full bg-transparent border-none focus:ring-0 text-sm"
+                />
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h4 className="font-semibold text-gray-800">Experience Level</h4>
-              <div className="flex flex-wrap gap-2">
-                {experienceLevels
-                  .filter((type) => typeof type === 'string')
-                  .map((type) => (
-                    <FilterTag
-                      key={type}
-                      label={type.toLowerCase().replace(/_/g, ' ')}
-                      isSelected={localFilters.employmentType?.includes(type)}
-                      onClick={() =>
-                        handleSelectionChange('employmentType', type)
-                      }
-                    />
-                  ))}
+            {/* Employment & Experience - Stacked on mobile, Grid on Tablet/Desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                  Employment Type
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {employmentTypes
+                    ?.filter((type) => typeof type === 'string')
+                    .map((type) => (
+                      <FilterTag
+                        key={type}
+                        label={type.toLowerCase().replace(/_/g, ' ')}
+                        isSelected={localFilters.employmentType?.includes(type)}
+                        onClick={() =>
+                          handleSelectionChange('employmentType', type)
+                        }
+                      />
+                    ))}
+                </div>
               </div>
+
+              {/* <div className="space-y-3">
+                <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                  Experience Level
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {experienceLevels
+                    ?.filter((level) => typeof level === 'string')
+                    .map((level) => (
+                      <FilterTag
+                        key={level}
+                        label={level.toLowerCase().replace(/_/g, ' ')}
+                        isSelected={localFilters.experience?.includes(level)} // Fixed logic here
+                        onClick={() =>
+                          handleSelectionChange('experience', level)
+                        } // Fixed logic here
+                      />
+                    ))}
+                </div>  
+              </div> */}
             </div>
 
-            <div className="space-y-3 md:col-span-2">
-              <h4 className="font-semibold text-gray-800">Education</h4>
-              <div className="flex flex-wrap items-center gap-2 w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg">
+            {/* Education Tag Input */}
+            {/* <div className="space-y-3">
+              <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                Education
+              </h4>
+              <div className="flex flex-wrap items-center gap-2 w-full p-2 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                 {localFilters.education?.map((tag: string) => (
                   <EducationTag
                     key={tag}
@@ -274,19 +253,22 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
                     onRemove={() => handleRemoveEducationTag(tag)}
                   />
                 ))}
-                <Input
+                <input
                   type="text"
                   value={educationInput}
                   onChange={(e) => setEducationInput(e.target.value)}
                   onKeyDown={handleEducationKeyDown}
-                  placeholder="e.g., Bachelors, PhD..."
-                  className="flex-1 border-none bg-transparent focus:ring-0 focus:outline-none min-w-[120px]"
+                  placeholder="e.g., Bachelors..."
+                  className="flex-1 min-w-[100px] text-sm bg-transparent outline-none p-1"
                 />
               </div>
-            </div>
+            </div> */}
 
-            <div className="space-y-3 md:col-span-2">
-              <h4 className="font-semibold text-gray-800">Date Posted</h4>
+            {/* Date Posted */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                Date Posted
+              </h4>
               <div className="flex flex-wrap gap-2">
                 {datePostedOptions.map((option) => (
                   <FilterTag
@@ -301,11 +283,19 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
           </div>
         </div>
 
-        <DialogFooter className="pt-4 border-t">
-          <Button variant="outline" onClick={handleReset}>
-            Reset Filters
+        {/* Action Buttons - Sticky at bottom */}
+        <DialogFooter className="flex-row gap-2 pt-2 sm:pt-4 border-t mt-auto">
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className="flex-1 text-gray-500 font-medium"
+          >
+            Reset
           </Button>
-          <Button onClick={handleApply} className=" ">
+          <Button
+            onClick={handleApply}
+            className="flex-2 sm:flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+          >
             Apply Filters
           </Button>
         </DialogFooter>

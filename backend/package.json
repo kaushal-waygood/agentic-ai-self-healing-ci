@@ -12,7 +12,6 @@
     "test:debug": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --runInBand",
     "test:report": "jest --coverage && node tests/reports/jest-report.cjs",
     "test:open": "node tests/reports/open-jest-report.cjs",
-    "prepare": "husky",
     "seed:jobs": "node scripts/seedExternalJobs.js",
     "k6": "k6 run --iterations 1 --vus 1 tests/k6/register_users.js",
     "k6:search": "k6 run --iterations 10 --vus 1 tests/k6/job_search.js",
@@ -44,6 +43,7 @@
     "bcryptjs": "^3.0.2",
     "bull": "^4.16.5",
     "bullmq": "^5.63.1",
+    "bun": "^1.3.8",
     "cloudinary": "^2.8.0",
     "compression": "^1.8.1",
     "connect-redis": "^9.0.0",
@@ -92,7 +92,8 @@
     "stripe": "^18.5.0",
     "tesseract.js": "^6.0.1",
     "uuid": "^11.1.0",
-    "uuidv4": "^6.2.13"
+    "uuidv4": "^6.2.13",
+    "xlsx": "^0.18.5"
   },
   "jest": {
     "testEnvironment": "node",

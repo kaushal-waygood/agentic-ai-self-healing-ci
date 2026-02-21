@@ -129,7 +129,6 @@ export const useEditableMaterial = ({
       setLoadingType(null);
     }
   };
-  console.log(template);
 
   const saveToDatabase = async () => {
     setIsLoading(true);

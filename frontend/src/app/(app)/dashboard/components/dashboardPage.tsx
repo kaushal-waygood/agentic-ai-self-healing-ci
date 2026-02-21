@@ -53,6 +53,9 @@ import { useCredits } from '@/hooks/useCredits';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import OnboardingExperienceFeedback from '../onboarding-tour/OnboardingExperienceFeedback';
+import { RootState } from '@/redux/rootReducer';
+import { getStudentStatsRequest } from '@/redux/reducers/studentReducer';
+import { Loader } from '@/components/Loader';
 
 export function StatCard({
   title,
@@ -91,6 +94,7 @@ export function StatCard({
           {actionLink && (
             <Link
               href={actionLink}
+              prefetch={false}
               className="text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center group-hover:underline"
             >
               {actionText}
@@ -125,7 +129,7 @@ export function ToolkitButton({
   };
 
   return (
-    <Link href={href} passHref>
+    <Link href={href} passHref prefetch={false}>
       <button
         className={cn(
           'relative w-full p-4 rounded-lg border-2 border-dashed transition-all duration-200 hover:border-solid group',
@@ -171,14 +175,7 @@ export function ProfileReadinessCard() {
   const router = useRouter();
 
   if (isLoading || !data) {
-    return (
-      <div className="bg-white rounded-lg p-6">
-        <div className="flex flex-col items-center justify-center h-[200px] text-center text-gray-500 border-2 border-dashed rounded-lg">
-          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
-          <p className="font-medium">Loading profile data...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   if (error) {
@@ -238,7 +235,7 @@ export function ProfileReadinessCard() {
             className="group bg-buttonPrimary hover:bg-blue-700 
                      text-white flex items-center gap-2"
           >
-            <Link href="/dashboard/profile">
+            <Link href="/dashboard/profile" prefetch={false}>
               View Profile
               <ArrowRight
                 className="h-4 w-4 transition-transform 
@@ -341,7 +338,7 @@ export function ProfileReadinessCard() {
             asChild
             className="bg-buttonPrimary hover:bg-blue-700 text-white"
           >
-            <Link href="/dashboard/profile">
+            <Link href="/dashboard/profile" prefetch={false}>
               Go to Profile
               <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
@@ -374,7 +371,7 @@ export function ActionItemCard({ item, onMarkAsRead }: any) {
     }
   };
   return (
-    <Link href={item.href} passHref>
+    <Link href={item.href} passHref prefetch={false}>
       <div
         className={cn(
           'p-4 rounded-r-xl border-l-4 cursor-pointer transition-all duration-200 hover:',
@@ -487,6 +484,7 @@ function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
   return (
     <Link
       href={href}
+      prefetch={false}
       className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition"
     >
       <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
@@ -509,7 +507,6 @@ function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
 
 export function SubscriptionStatusCard({ plan }: any) {
   const pathname = usePathname();
-  // Fallback UI if there's no active plan
   if (!plan || !plan.isActive) {
     return (
       <div className="bg-white border rounded-lg  p-6  transition-shadow duration-300">
@@ -518,7 +515,9 @@ export function SubscriptionStatusCard({ plan }: any) {
           You do not have an active subscription.
         </p>
         <Button asChild className="w-full bg-buttonPrimary hover:bg-blue-700">
-          <Link href="/dashboard/subscriptions">View Plans</Link>
+          <Link href="/dashboard/subscriptions" prefetch={false}>
+            View Plans
+          </Link>
         </Button>
       </div>
     );
@@ -554,12 +553,12 @@ export function SubscriptionStatusCard({ plan }: any) {
       </div>
 
       <div className="space-y-4 mb-6">
-        {Object.keys(plan?.usageCounters || {}).map((key) =>
+        {Object.keys(plan?.usageData || {}).map((key) =>
           key !== 'lastReset' ? (
             <UsageMeter
               key={key}
               label={key}
-              used={plan?.usageCounters?.[key] ?? 0}
+              used={plan?.usageData?.[key] ?? 0}
               limit={plan?.usageLimits?.[key] ?? 0}
             />
           ) : null,
@@ -568,7 +567,9 @@ export function SubscriptionStatusCard({ plan }: any) {
 
       {pathname === '/dashboard' && (
         <Button variant="outline" className="w-full" asChild>
-          <Link href="/dashboard/billing">Manage Subscription</Link>
+          <Link href="/dashboard/billing" prefetch={false}>
+            Manage Subscription
+          </Link>
         </Button>
       )}
     </div>
@@ -579,6 +580,7 @@ function TopJobCard({ job }: { job: TopJob }) {
   return (
     <Link
       href={`/jobs/${job.slug}`}
+      prefetch={false}
       className="group block bg-white border rounded-lg p-4 hover:shadow-md transition"
     >
       <div className="flex gap-4">
@@ -636,22 +638,7 @@ export default function DashboardPage() {
   const [recentAI, setRecentAI] = useState<any>(null);
   const { balance, spending, checkout } = useCredits();
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
-  const [stats, setStats] = useState({
-    applicationsSent: 0,
-    savedJobsCount: 0,
-    cvsGenerated: 0,
-    coverLettersGenerated: 0,
-    referralCount: 0,
-    tailoredApplications: 0,
-    jobsViewed: 0,
-    appliedJobsCount: 0,
-    jobsVisited: 0,
-  });
-  const [statusChartData, setStatusChartData] = useState<any[]>([]);
 
-  {
-    /* For Onboarding show feedback page */
-  }
   const searchParams = useSearchParams();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
   const [showFeedback, setShowFeedback] = useState(false);
@@ -660,151 +647,33 @@ export default function DashboardPage() {
     setShowFeedback(true);
   }, [fromOnboarding]);
 
+  const { stats } = useSelector((state: RootState) => state.student);
+
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [savedJobs, setSavedJobs] = useState([]);
+  const { planType, isActive, usageData, usageLimits } = useSelector(
+    (state: RootState) => state.plan,
+  );
+  const { user: authUser } = useSelector((state: RootState) => state.auth);
 
-  const [planDetails, setPlanDetails] = useState(null);
+  const planDetails = {
+    planType,
+    isActive,
+    usageData,
+    usageLimits,
+    user: authUser,
+  };
+  // const [planDetails, setPlanDetails] = useState(null);
 
   const dispatch = useDispatch();
-  // Use the user from Redux as the single source of truth for authentication
-  const { user: authUser } = useSelector((state: any) => state.auth);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        // Fetch Job Stats
-        const statsResponse = await apiInstance.get('/students/jobs/stats');
-        const apiData = statsResponse.data;
-
-        setStats({
-          applicationsSent: apiData.applicationsSent || 0,
-          savedJobsCount: apiData.savedJobsCount || 0,
-          cvsGenerated: apiData.cvsGenerated || 0,
-          coverLettersGenerated: apiData.coverLettersGenerated || 0,
-          referralCount: apiData.referralCount || 0,
-          tailoredApplications: apiData.tailoredApplications || 0,
-          jobsViewed: apiData.jobsViewed || 0,
-          appliedJobsCount: apiData.appliedJobsCount || 0,
-
-          jobsVisited: apiData.jobsVisited || 0,
-        });
-
-        const statusCounts = (apiData.applicationStats || []).reduce(
-          (acc, stat) => {
-            acc[stat.status] = stat.count;
-            return acc;
-          },
-          {},
-        );
-        setStatusChartData([
-          {
-            status: 'Sent',
-            applications: statusCounts['Sent'] || 0,
-            color: '#8b5cf6',
-          },
-          {
-            status: 'Reviewed',
-            applications: statusCounts['Reviewed'] || 0,
-            color: '#3b82f6',
-          },
-          {
-            status: 'Interview',
-            applications: statusCounts['Interview'] || 0,
-            color: '#06b6d4',
-          },
-          {
-            status: 'Rejected',
-            applications: statusCounts['Rejected'] || 0,
-            color: '#ef4444',
-          },
-        ]);
-
-        // --- Fetch Plan Details ---
-        const planResponse = await apiInstance.get('/plan/get-user-plan-type');
-        if (planResponse.data.success) {
-          setPlanDetails(planResponse.data.data);
-        }
-
-        // Mock action items
-        setActionItems(mockUserProfile.actionItems || []);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      }
-    };
-
-    if (authUser) {
-      fetchDashboardData();
-    }
-  }, [authUser]);
-
-  useEffect(() => {
+    dispatch(getStudentStatsRequest());
     if (!authUser) {
       dispatch(getProfileRequest());
     }
   }, [dispatch, authUser]);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await apiInstance.get('/students/jobs/stats');
-        const apiData = response.data;
-
-        setStats({
-          applicationsSent: apiData.applicationsSent || 0,
-          savedJobsCount: apiData.savedJobsCount || 0,
-          cvsGenerated: apiData.cvsGenerated || 0,
-          coverLettersGenerated: apiData.coverLettersGenerated || 0,
-          referralCount: apiData.referralCount || 0,
-          tailoredApplications: apiData.tailoredApplications || 0,
-          jobsViewed: apiData.jobsViewed || 0,
-          appliedJobsCount: apiData.appliedJobsCount || 0,
-
-          jobsVisited: apiData.jobsVisited || 0,
-        });
-
-        const applicationStats = apiData.applicationStats || [];
-        const statusCounts = applicationStats.reduce((acc, stat) => {
-          acc[stat.status] = stat.count;
-          return acc;
-        }, {});
-
-        const chartData = [
-          {
-            status: 'Sent',
-            applications: statusCounts['Sent'] || 0,
-            color: '#8b5cf6',
-          },
-          {
-            status: 'Reviewed',
-            applications: statusCounts['Reviewed'] || 0,
-            color: '#3b82f6',
-          },
-          {
-            status: 'Interview',
-            applications: statusCounts['Interview'] || 0,
-            color: '#06b6d4',
-          },
-          {
-            status: 'Rejected',
-            applications: statusCounts['Rejected'] || 0,
-            color: '#ef4444',
-          },
-        ];
-        setStatusChartData(chartData);
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      }
-    };
-
-    // This guard clause prevents the API call from being made without authentication.
-    if (authUser) {
-      fetchStats();
-      // Mock action items for demonstration until API is ready
-      setActionItems(mockUserProfile.actionItems || []);
-    }
-  }, [authUser]); // This dependency array solves the race condition.
 
   const handleMarkAsRead = (id: string) => {
     setActionItems((prevItems) =>
@@ -813,29 +682,6 @@ export default function DashboardPage() {
       ),
     );
   };
-
-  useEffect(() => {
-    const response = async () => {
-      const response = await apiInstance.get('/students/jobs/stats');
-    };
-
-    response();
-  }, []);
-
-  useEffect(() => {
-    const fetchSavedJobs = async () => {
-      try {
-        const response = await apiInstance.get(
-          `/students/jobs/events?type=SAVED`,
-        );
-        setSavedJobs(response.data.jobs);
-      } catch (error) {
-        console.error('Error fetching saved jobs:', error);
-      }
-    };
-
-    fetchSavedJobs();
-  }, []);
 
   const [showCompletionModal, setShowCompletionModal] =
     useState<boolean>(false);
@@ -1053,7 +899,7 @@ export default function DashboardPage() {
 
                   {/* Button pinned bottom */}
                   <div className="mt-auto">
-                    <Link href="/dashboard/cv-generator">
+                    <Link href="/dashboard/cv-generator" prefetch={false}>
                       <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
                         Generate CV
                       </Button>
@@ -1089,7 +935,10 @@ export default function DashboardPage() {
 
                   {/* Button pinned bottom */}
                   <div className="mt-auto">
-                    <Link href="/dashboard/cover-letter-generator">
+                    <Link
+                      href="/dashboard/cover-letter-generator"
+                      prefetch={false}
+                    >
                       <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
                         Generate Cover Letter
                       </Button>
@@ -1125,7 +974,7 @@ export default function DashboardPage() {
 
                   {/* Button pinned bottom */}
                   <div className="mt-auto">
-                    <Link href="/dashboard/apply">
+                    <Link href="/dashboard/apply" prefetch={false}>
                       <Button className="w-full bg-buttonPrimary hover:bg-blue-700">
                         Start Application
                       </Button>
@@ -1143,7 +992,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                   title="Applications Tracked"
-                  value={stats.tailoredApplications}
+                  value={stats?.tailoredApplications || 0}
                   icon={Send}
                   description="Total job applications currently in your pipeline."
                   color="cyan"
@@ -1152,7 +1001,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Saved CVs"
-                  value={stats.cvsGenerated}
+                  value={stats?.cvsGenerated || 0}
                   icon={FileText}
                   description="AI-generated CVs you’ve saved for future use."
                   color="purple"
@@ -1161,7 +1010,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Cover Letters"
-                  value={stats.coverLettersGenerated}
+                  value={stats?.coverLettersGenerated || 0}
                   icon={Bot}
                   description="Personalized cover letters created using AI."
                   color="blue"
@@ -1180,7 +1029,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* 🧩 JOBS SECTION */}
             <div id="my-applications">
               <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">
                 My Applications
@@ -1188,7 +1036,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <StatCard
                   title="Saved Jobs"
-                  value={stats.savedJobsCount}
+                  value={stats?.savedJobsCount || 0}
                   icon={Bookmark}
                   description="Job opportunities you’ve bookmarked for later."
                   color="cyan"
@@ -1197,7 +1045,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Viewed Jobs"
-                  value={stats.jobsViewed}
+                  value={stats?.jobsViewed || 0}
                   icon={Eye}
                   description="Jobs you’ve recently explored on the platform."
                   color="purple"
@@ -1206,7 +1054,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Visited Jobs"
-                  value={stats.jobsVisited}
+                  value={stats?.jobsVisited || 0}
                   icon={Globe}
                   description="Job listings you’ve opened but not saved or applied to."
                   color="blue"
@@ -1215,7 +1063,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                   title="Applied Jobs"
-                  value={stats.appliedJobsCount}
+                  value={stats?.appliedJobsCount || 0}
                   icon={Briefcase}
                   description="Jobs you’ve officially applied for through the platform."
                   color="green"
@@ -1233,7 +1081,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                   title="Referral Count"
-                  value={stats.referralCount}
+                  value={stats?.referralCount || 0}
                   icon={Award}
                   description="Successful referrals you’ve made to friends."
                   color="cyan"
@@ -1257,6 +1105,7 @@ export default function DashboardPage() {
                   </h3>
                   <Link
                     href="/dashboard/search-jobs"
+                    prefetch={false}
                     className="text-sm font-medium text-purple-600 hover:underline"
                   >
                     View all

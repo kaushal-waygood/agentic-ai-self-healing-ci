@@ -40,6 +40,8 @@ import {
 import { JobListing } from '@/lib/data/jobs';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { divide, set } from 'lodash';
+import { getToken } from '@/hooks/useToken';
+import { Loader } from '../Loader';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -69,18 +71,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const router = useRouter();
   const dispatch = useDispatch();
 
-  const { savedJobs } = useSelector((state: RootState) => state.jobs);
-
   const [matchScore, setMatchScore] = useState<MatchScore | null>(null);
   const [atsScore, setAtsScore] = useState<AtsScore | null>(null);
   const [isLoadingScore, setIsLoadingScore] = useState(false);
   const [isLoadingAtsScore, setIsLoadingAtsScore] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
-  const [isApplying, setIsApplying] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(true);
   const [activeView, setActiveView] = useState<'match' | 'ats'>('match');
   const [openCard, setOpenCard] = useState<'match' | 'ats' | null>('match');
   const [token, setToken] = useState<string | undefined>(undefined);
@@ -93,10 +91,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   // token lookup (SSR-safe)
   useEffect(() => {
     try {
-      const accessToken =
-        (typeof window !== 'undefined' &&
-          window.localStorage?.getItem('accessToken')) ||
-        getCookie('accessToken');
+      const accessToken = getToken();
       setToken(accessToken || undefined);
     } catch {
       setToken(undefined);
@@ -216,12 +211,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         });
       }
     } catch (error) {
-      console.log(error.response.data.message);
       toast({
         title: 'Could not calculate the AI  score.',
         description: error.response.data.message,
       });
-      console.error('Match score error:', error);
       setProgress(0);
       setScoreError('Could not calculate the AI match score.');
     } finally {
@@ -545,15 +538,13 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 relative rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-100 via-blue-100 to-cyan-100 shadow-lg ring-4 ring-purple-100/50">
-                <Image
-                  src="/logo.png"
-                  alt={job.company || 'Company Logo'}
-                  fill
-                  sizes="48px"
-                  className="object-contain"
-                />
-              </div>
+              <Image
+                src="/placeholder-logo.png"
+                alt="Company Logo"
+                fill
+                sizes="48px"
+                className="object-contain"
+              />
             )}
           </div>
 
@@ -612,7 +603,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                   >
                     <div className="relative flex items-center justify-center gap-2">
                       <ExternalLink className="w-5 h-5" />
-                      <span>Company Site</span>
+                      <span>Apply on Company Site</span>
                     </div>
                   </Link>
                 </Button>

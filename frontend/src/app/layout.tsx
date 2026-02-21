@@ -8,6 +8,8 @@ import LayoutPage from './LayoutPage';
 import Script from 'next/script';
 import { Metadata } from 'next';
 import NextTopLoader from 'nextjs-toploader';
+import Clarity from '@microsoft/clarity';
+import { Suspense } from 'react';
 
 // 1. Fully Expanded Metadata
 export const metadata: Metadata = {
@@ -93,9 +95,18 @@ export default function RootLayout({
     ],
   };
 
+  // const projectId = 'vi5ne0i7kt';
+  const projectId = 'vi4y7xtc9c';
+
+  Clarity.init(projectId);
+
   return (
     <html lang="en">
       <head>
+        <meta
+          name="google-site-verification"
+          content="9trSliJlM2HKVWMlq1MfSfbYH58MtDebWTl1nHUZ_rk"
+        />
         {/* Google Analytics */}
         <Script
           async
@@ -130,7 +141,9 @@ export default function RootLayout({
           speed={200}
           shadow="0 0 10px #2563eb,0 0 5px #2563eb"
         />
-        <LayoutPage>{children}</LayoutPage>
+        <LayoutPage>
+          <Suspense fallback={null}>{children}</Suspense>
+        </LayoutPage>
       </body>
     </html>
   );

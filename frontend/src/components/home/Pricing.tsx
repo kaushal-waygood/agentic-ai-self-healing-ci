@@ -7,6 +7,9 @@ import PlanCard from './PlanCard';
 import { ArrowRight, DollarSign, IndianRupee, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../ui/button';
+import { useSelector } from 'react-redux';
+import state from 'country-state-city/lib/state';
+import { RootState } from '@/redux/rootReducer';
 
 interface Plan {
   _id: string;
@@ -48,7 +51,10 @@ export function Pricing() {
     fetchPlan();
   }, []);
 
-  // Currency toggle handler
+  const { planType: userPlanType } = useSelector(
+    (state: RootState) => state.plan,
+  );
+
   const handleCurrencyChange = (newCurrency: 'usd' | 'inr') => {
     setCurrency(newCurrency);
   };
@@ -142,8 +148,8 @@ export function Pricing() {
                   <PlanCard
                     plan={plan}
                     currency={currency}
-                    // handlePlanSelect={handlePlanSelect}
                     isSubscriptionPage={isSubscriptionPage}
+                    userPlanType={userPlanType}
                   />
                 </div>
               ))}

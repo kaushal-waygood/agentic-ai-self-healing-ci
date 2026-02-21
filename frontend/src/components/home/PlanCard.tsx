@@ -88,30 +88,19 @@ const STUDENT_DISCOUNT_PERCENT = 50;
 
 // ✅ Define the Hierarchy of plans
 const PLAN_HIERARCHY = ['Free', 'Weekly', 'Monthly', 'Pro', 'Enterprise'];
-
-const PlanCard = ({ plan, currency }: PlanCardProps) => {
+// 1. Add userPlanType to props
+interface PlanCardProps {
+  plan: Plan;
+  currency: string;
+  handlePlanSelect: (details: { plan: Plan; period: string }) => void;
+  userPlanType?: string; // Add this
+}
+const PlanCard = ({ plan, currency, userPlanType = 'Free' }: PlanCardProps) => {
   const [selectedPeriod, setSelectedPeriod] = useState(
     () =>
       plan.billingVariants.find((v) => v.period === 'Monthly')?.period ||
       plan.billingVariants[0]?.period,
   );
-
-  const [planDetails, setPlanDetails] = useState<any>(null);
-
-  // --- Fetch Plan Details ---
-  useEffect(() => {
-    const fetchPlanDetails = async () => {
-      try {
-        const planResponse = await apiInstance.get('/plan/get-user-plan-type');
-        if (planResponse.data.success) {
-          setPlanDetails(planResponse.data.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch plan details:', error);
-      }
-    };
-    fetchPlanDetails();
-  }, []);
 
   // ✅ Student discount state
   const [studentDiscount, setStudentDiscount] = useState(false);
@@ -128,7 +117,8 @@ const PlanCard = ({ plan, currency }: PlanCardProps) => {
   const pathname = usePathname(); // ✅ Get current URL path
 
   // --- LOGIC: Plan Comparison ---
-  const userCurrentPlanType = planDetails?.planType || 'Free';
+  // const userCurrentPlanType = planDetails?.planType || 'Free';
+  const userCurrentPlanType = userPlanType;
 
   const userPlanIndex = PLAN_HIERARCHY.indexOf(userCurrentPlanType);
   const cardPlanIndex = PLAN_HIERARCHY.indexOf(plan.planType);

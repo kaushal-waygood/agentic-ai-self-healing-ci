@@ -5,7 +5,6 @@ import { User } from '../models/User.model.js';
 import { sendEmailWithRetry } from '../utils/transporter.js';
 import crypto from 'crypto';
 
-
 const normalize = (value = '') => String(value).trim();
 
 export const getBringzobs = async (req, res) => {
@@ -44,7 +43,7 @@ export const initiateOnboarding = async (req, res) => {
     authUser.accountType = 'guest-org';
     await authUser.save();
 
-    console.log('🚀 Onboarding started for:', authUser);
+    // console.log('🚀 Onboarding started for:', authUser);
 
     // 1. Create the record at Step 0
     const doc = await BringZobs.create({
@@ -121,7 +120,7 @@ export const markFreeJobPosted = async (req, res) => {
   try {
     const { bringId, jobId } = req.body; // Passed from frontend after job API success
 
-    console.log('jobId:', jobId);
+    // console.log('jobId:', jobId);
 
     const doc = await BringZobs.findById(bringId);
     if (!doc)
@@ -266,19 +265,19 @@ const approveBringZobsRequest = async (bringZobsId) => {
         request.type === 'UNIVERSITY'
           ? 'uni-admin'
           : request.type === 'COMPANY'
-          ? 'employer-admin'
-          : 'guest-org',
+            ? 'employer-admin'
+            : 'guest-org',
       accountType:
         request.type === 'UNIVERSITY'
           ? 'uni-admin'
           : request.type === 'COMPANY'
-          ? 'employer-admin'
-          : 'guest-org',
+            ? 'employer-admin'
+            : 'guest-org',
     },
     { new: true },
   );
 
-  console.log('Updated User:', user);
+  // console.log('Updated User:', user);
   request.status = 'APPROVED';
   await request.save();
 

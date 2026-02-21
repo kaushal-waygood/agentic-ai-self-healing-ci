@@ -6,66 +6,13 @@ import {
   spendCredits,
 } from '../utils/credits.js';
 
-// const USAGE_LIMIT_MAP = {
-//   'AI CV Creation': 'cvCreation',
-//   'AI Cover Letter': 'coverLetter',
-//   'AI Tailored Application': 'aiApplication',
-//   'AI Auto Application': 'aiAutoApply',
-//   'Auto-Apply Daily limit': 'aiAutoApplyDailyLimit',
-//   'AI Job Match Score': 'jobMatching',
-//   'AI ATS Score': 'atsScore',
-//   'Manual Application': 'aiMannualApplication',
-// };
+import utc from 'dayjs/plugin/utc.js';
+import timezone from 'dayjs/plugin/timezone.js';
 
-// const USAGE_LIMIT_INCREMENTS = {
-//   // AI CV Creation
-//   AI_CV_CREATION: {
-//     field: USAGE_LIMIT_MAP['AI CV Creation'], // cvCreation
-//     perUnit: 1,
-//   },
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
-//   // AI Cover Letter
-//   AI_COVER_LETTER: {
-//     field: USAGE_LIMIT_MAP['AI Cover Letter'], // coverLetter
-//     perUnit: 1,
-//   },
-
-//   // AI Tailored Application
-//   AI_TAILORED_APPLICATION: {
-//     field: USAGE_LIMIT_MAP['AI Tailored Application'], // aiApplication
-//     perUnit: 1,
-//   },
-
-//   // Manual Application
-//   MANUAL_APPLICATION: {
-//     field: USAGE_LIMIT_MAP['Manual Application'], // aiMannualApplication
-//     perUnit: 1,
-//   },
-
-//   // AI Auto Application
-//   AI_AUTO_APPLICATION: {
-//     field: USAGE_LIMIT_MAP['AI Auto Application'], // aiAutoApply
-//     perUnit: 1,
-//   },
-
-//   // Auto-Apply Daily Limit
-//   AUTO_APPLY_DAILY_LIMIT: {
-//     field: USAGE_LIMIT_MAP['Auto-Apply Daily limit'], // aiAutoApplyDailyLimit
-//     perUnit: 1,
-//   },
-
-//   // AI Job Match Score
-//   AI_JOB_MATCH_SCORE: {
-//     field: USAGE_LIMIT_MAP['AI Job Match Score'], // jobMatching
-//     perUnit: 1,
-//   },
-
-//   // AI ATS Score
-//   AI_ATS_SCORE: {
-//     field: USAGE_LIMIT_MAP['AI ATS Score'], // atsScore
-//     perUnit: 1,
-//   },
-// };
+const IST = 'Asia/Kolkata';
 
 const ITEM_IDS = {
   CV_GENERATION: 'CV_GENERATION',
@@ -316,18 +263,16 @@ export const getDailyStreak = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const streak = user.dailyStreak || {
-      current: 0,
-      longest: 0,
-      lastClaimedAt: null,
-    };
+    const streak = user.dailyStreak || {};
 
-    const today = dayjs().startOf('day');
+    const today = dayjs().tz(IST);
     const last = streak.lastClaimedAt
-      ? dayjs(streak.lastClaimedAt).startOf('day')
+      ? dayjs(streak.lastClaimedAt).tz(IST)
       : null;
 
-    const canClaimToday = !last || !last.isSame(today);
+    const canClaimToday = !last || !last.isSame(today, 'day');
+
+    console.log('canClaimToday', canClaimToday);
 
     return res.status(200).json({
       streak: {

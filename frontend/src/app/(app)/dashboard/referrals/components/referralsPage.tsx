@@ -37,7 +37,6 @@ import {
   Gem,
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/redux/rootReducer';
 import { getProfileRequest } from '@/redux/reducers/authReducer';
 
 // --- UI Components ---

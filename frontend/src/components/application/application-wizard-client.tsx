@@ -15,6 +15,7 @@ import { GenerateStep } from './applications/wizard/steps/GenerateStep';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import FinalResultView from '../cover-letter/components/FinalResultView';
+import { Loader } from '../Loader';
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -46,8 +47,6 @@ export function ApplicationWizardClient() {
     generatedData,
     jobs,
     selectedCvId,
-    rateLimited = false,
-    rateLimitMessage = null,
   } = state;
   const { navigateToStep, setGeneratedData } = actions;
 
@@ -110,14 +109,6 @@ export function ApplicationWizardClient() {
       if (isDeepInWizard) {
         // Re-push the state to stay on the page
         window.history.pushState(null, '', window.location.href);
-
-        // Optional: replace alert with a toast or your custom AlertDialog
-        // toast({
-        //   title: 'Progress will be lost',
-        //   description:
-        //     "Are you sure you want to leave? Use the 'Back' buttons inside the wizard to navigate safely.",
-        //   variant: 'destructive',
-        // });
 
         alert('Please wait until resume extraction is complete.');
       }
@@ -207,6 +198,8 @@ export function ApplicationWizardClient() {
             jobContext={state.jobContext}
             cvContext={state.cvContext}
             clContext={state.clContext}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
             handleGenerate={actions.handleGenerate}
             setWizardStep={navigateToStep}
           />
@@ -225,18 +218,7 @@ export function ApplicationWizardClient() {
         );
 
       default:
-        return (
-          <div className="min-h-screen flex flex-col justify-center items-center py-20">
-            <div>
-              <img
-                src="/logo.png"
-                alt="logo"
-                className="w-10 h-10 animate-bounce"
-              />
-            </div>
-            <div className="text-lg">LOADING...</div>
-          </div>
-        );
+        return <Loader />;
     }
   };
 

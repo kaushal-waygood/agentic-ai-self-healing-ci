@@ -1,40 +1,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zobsai-uni-company-panel
+  name: uni-company-panel # Changed _ to -
   namespace: dev-zobsai
   annotations:
     argocd.argoproj.io/compare-options: IgnoreExtraneous
   labels:
-    app: zobsai-uni-company-panel
+    app: uni-company-panel
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: zobsai-uni-company-panel
+      app: uni-company-panel
   template:
     metadata:
       labels:
-        app: zobsai-uni-company-panel
+        app: uni-company-panel
     spec:
       imagePullSecrets:
         - name: ghcr-secret
       containers:
         - name: uni-company-panel
-          image: ghcr.io/zobsai-com/zobsai-uni-company-panel:develop
+          image: ghcr.io/zobsai-com/zobsai-uni-company-panel:9afe7d59a281477f3cacce1d7aba7fcf866bf15b
           imagePullPolicy: Always
           ports:
             - containerPort: 3002
           envFrom:
             - configMapRef:
-                name: zobsai-uni-company-panel-config
+                name: uni-company-panel-config # Must match ConfigMap name above
             - secretRef:
-                name: zobsai-uni-company-panel-secrets
-          resources:
-            requests:
-              cpu: "250m"
-              memory: "512Mi"
-            limits:
-              cpu: "500m"
-              memory: "1Gi"
+                name: uni-company-panel-secrets # Ensure your Secret is also renamed to use -
+

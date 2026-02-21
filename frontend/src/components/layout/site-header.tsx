@@ -1,19 +1,11 @@
 'use client';
 import { Button } from '@/components/ui/button';
+import { getToken } from '@/hooks/useToken';
 import { Menu, X, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-
-const getCookie = (name: string): string | undefined => {
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-};
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,11 +13,11 @@ export const Navigation = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [token, setToken] = useState<string | undefined>(undefined);
   const router = useRouter();
+  const tokens = getToken();
 
   // On component mount, check if the access token cookie exists
   useEffect(() => {
-    const accessToken =
-      localStorage.getItem('accessToken') || getCookie('accessToken');
+    const accessToken = tokens;
     setToken(accessToken);
   }, []);
 
@@ -82,11 +74,10 @@ export const Navigation = () => {
                 <div className="w-8 h-8  rounded-lg flex items-center justify-center ">
                   <Image width={32} height={32} src="/logo.png" alt="abc" />
                 </div>
-                {/* <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div> */}
+
                 <Link
                   href={'/'}
+                  prefetch={false}
                   className="text-2xl font-bold bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 bg-clip-text text-transparent"
                 >
                   ZobsAI
@@ -150,7 +141,7 @@ export const Navigation = () => {
           <div className="hidden md:flex items-center space-x-3">
             {token ? (
               <>
-                <Link href="/dashboard">
+                <Link href="/dashboard" prefetch={false}>
                   <Button className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm rounded-xl px-6 py-3 font-semibold text-sm border border-white/20">
                     <span className="relative z-10">Dashboard</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -161,6 +152,7 @@ export const Navigation = () => {
               <>
                 <Link
                   href={'/login'}
+                  prefetch={false}
                   className="px-5 py-2 rounded-lg text-gray-700 hover:text-violet-600 hover:bg-white/15 backdrop-blur-sm transition-all duration-300 hover:shadow-lg font-medium text-sm border border-transparent hover:border-white/20"
                 >
                   Sign In
@@ -279,7 +271,11 @@ export const Navigation = () => {
               <div className="pt-6 border-t border-white/20 space-y-4">
                 {token ? (
                   <>
-                    <Link href="/dashboard" className="w-full block">
+                    <Link
+                      href="/dashboard"
+                      className="w-full block"
+                      prefetch={false}
+                    >
                       <Button className="w-full relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] rounded-2xl py-4 font-semibold text-base border border-white/20">
                         <span className="relative z-10">Dashboard</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -297,6 +293,7 @@ export const Navigation = () => {
                   <>
                     <Link
                       href={'/login'}
+                      prefetch={false}
                       className="w-full inline-flex items-center justify-center px-6 py-4 rounded-2xl text-gray-700 hover:text-violet-600 hover:bg-white/15 backdrop-blur-sm transition-all duration-300 hover:shadow-lg border border-white/20 font-medium text-base"
                     >
                       Sign In

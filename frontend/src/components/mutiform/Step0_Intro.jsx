@@ -236,7 +236,7 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
         </div>
 
         <div className="min-w-0">
-          <p className="text-base font-bold text-gray-800 truncate">
+          <p className="text-base font-bold text-gray-800 break-all ">
             {agent.agentName || 'Untitled Agent'}
           </p>
           <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">

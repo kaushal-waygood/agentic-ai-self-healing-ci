@@ -6,6 +6,7 @@ import React, {
   createContext,
   useContext,
   useMemo,
+  useRef,
 } from 'react';
 import { usePathname } from 'next/navigation';
 import { AppHeader, CommandPalette } from '@/components/layout/app-header';
@@ -20,6 +21,9 @@ import { FeedbackProvider } from '@/components/Feedback-context/feedbackContext'
 import logRocketAnalytics from '@/components/logrocket/logrocket';
 import { RootState } from '@/redux/rootReducer';
 import FeedbackButton from '@/components/Feedback-context/FeedbackButton';
+import ImprovementPopup from '@/components/dashboard-popup/ImprovementPopup';
+import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
+import StreakPopup from '@/components/dashboard-popup/StreakPopup';
 
 interface SidebarContextType {
   isOpen: boolean;
@@ -48,8 +52,118 @@ export default function DashboardLayoutClient({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [showImprovementPopup, setShowImprovementPopup] = useState(false);
+  const [hasUserEngaged, setHasUserEngaged] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout>();
+  const [lastDismissedPath, setLastDismissedPath] = useState<string | null>(
+    null,
+  );
+  const [lastDismissedTime, setLastDismissedTime] = useState<number>(0);
+  const popupShownForPathRef = useRef<Set<string>>(new Set());
 
   const { user } = useSelector((state: RootState) => state.auth);
+  const [globalLastDismissTime, setGlobalLastDismissTime] = useState<number>(0);
+  const { streak, claiming, claim } = useDailyStreak();
+  const [showStreakPopup, setShowStreakPopup] = useState(false);
+
+  useEffect(() => {
+    if (!streak?.canClaimToday) {
+      setShowStreakPopup(false);
+      return;
+    }
+
+    const hasShownStreak = sessionStorage.getItem('streak_popup_shown');
+    if (hasShownStreak) return;
+
+    const timer = setTimeout(() => {
+      setShowStreakPopup(true);
+      sessionStorage.setItem('streak_popup_shown', 'true');
+    }, 1);
+
+    return () => clearTimeout(timer);
+  }, [streak?.canClaimToday]);
+  const handleCloseStreakPopup = () => {
+    setShowStreakPopup(false);
+    sessionStorage.setItem('streak_popup_shown', 'true');
+  };
+
+  useEffect(() => {
+    const hasShownImprovement = sessionStorage.getItem(
+      'improvement_popup_shown',
+    );
+
+    const isPermanentlyCompleted =
+      popupShownForPathRef.current.has('/dashboard/*') &&
+      pathname.startsWith('/dashboard');
+
+    if (hasShownImprovement || isPermanentlyCompleted) {
+      return;
+    }
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    if (!hasShownImprovement && !isPermanentlyCompleted) {
+      timerRef.current = setTimeout(() => {
+        setShowImprovementPopup(true);
+        sessionStorage.setItem('improvement_popup_shown', 'true');
+      }, 120000);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    const hasShownImprovement = sessionStorage.getItem(
+      'improvement_popup_shown',
+    );
+
+    if (!hasShownImprovement) return;
+
+    if (
+      popupShownForPathRef.current.has('/dashboard/*') &&
+      pathname.startsWith('/dashboard')
+    ) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowImprovementPopup(true);
+    }, 120000);
+
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
+  const handleYesInteraction = () => {
+    setShowImprovementPopup(false);
+    popupShownForPathRef.current.add('/dashboard/*');
+    localStorage.setItem(
+      'feedback_completed',
+      JSON.stringify({
+        completed: ['/dashboard/*'],
+        expiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      }),
+    );
+    sessionStorage.setItem('improvement_popup_shown', 'true');
+  };
+
+  useEffect(() => {
+    const feedbackData = localStorage.getItem('feedback_completed');
+    if (feedbackData) {
+      const { completed, expiry } = JSON.parse(feedbackData);
+      if (Date.now() < expiry) {
+        completed.forEach((path: string) =>
+          popupShownForPathRef.current.add(path),
+        );
+      } else {
+        localStorage.removeItem('feedback_completed');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const update = () => setIsDesktop(window.innerWidth >= 1024);
@@ -118,7 +232,7 @@ export default function DashboardLayoutClient({
   }, []);
 
   const toggle = () => setIsOpen(!isOpen);
-
+ 
   const handleMouseEnter = () => {
     if (isDesktop && !isPinned) {
       setIsHovered(true);
@@ -157,30 +271,96 @@ export default function DashboardLayoutClient({
     });
   }, [user]);
 
-  return (
-    <ProtectedRoute>
-      <FeedbackProvider>
-        <SidebarContext.Provider value={contextValue}>
-          {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
+  useEffect(() => {
+    if (
+      popupShownForPathRef.current.has('/dashboard/*') &&
+      pathname.startsWith('/dashboard')
+    ) {
+      return;
+    }
 
-          <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
-            {showDashboardUI && (
-              <>
-                {/* MOBILE OVERLAY */}
-                {!isDesktop && (
-                  <div
-                    className={`fixed inset-0 z-40 bg-black/40 transition-opacity
+    let waitTime = 0;
+
+    if (globalLastDismissTime > 0) {
+      const timeSinceGlobal = Date.now() - globalLastDismissTime;
+
+      if (timeSinceGlobal < 60000) {
+        waitTime = 60000 - timeSinceGlobal;
+      }
+    }
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    if (waitTime > 0) {
+      timerRef.current = setTimeout(() => {
+        const finalTimer = setTimeout(() => {
+          setShowImprovementPopup(true);
+        }, 1);
+
+        timerRef.current = finalTimer;
+      }, waitTime);
+    } else {
+      timerRef.current = setTimeout(() => {
+        setShowImprovementPopup(true);
+      }, 1);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [pathname, globalLastDismissTime]);
+
+  const handleDismissPopup = () => {
+    setShowImprovementPopup(false);
+
+    setLastDismissedPath(pathname);
+    setLastDismissedTime(Date.now());
+    setGlobalLastDismissTime(Date.now());
+  };
+
+  useEffect(() => {
+    const handleUserActivity = () => {
+      setHasUserEngaged(true);
+    };
+
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+
+    return () => {
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+    };
+  }, []);
+
+  return (
+    <FeedbackProvider>
+      <SidebarContext.Provider value={contextValue}>
+        {isSearchOpen && <CommandPalette setIsSearchOpen={setIsSearchOpen} />}
+
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
+          {showDashboardUI && (
+            <>
+              {/* MOBILE OVERLAY */}
+              {!isDesktop && (
+                <div
+                  className={`fixed inset-0 z-40 bg-black/40 transition-opacity
           ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
-                    onClick={() => setIsOpen(false)}
-                  />
-                )}
+                  onClick={() => setIsOpen(false)}
+                />
+              )}
 
-                {/* SIDEBAR */}
-                <div
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                  className={`
+              {/* SIDEBAR */}
+              <div
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                className={`
         fixed inset-y-0 left-0 z-50
         bg-white dark:bg-gray-900 border-r
         transition-all duration-300 ease-in-out
@@ -189,40 +369,46 @@ export default function DashboardLayoutClient({
         lg:relative lg:translate-x-0
         shrink-0
       `}
-                >
-                  <AppSidebarContent isCollapsed={!sidebarVisible} />
-                </div>
-              </>
+              >
+                <AppSidebarContent isCollapsed={!sidebarVisible} />
+              </div>
+            </>
+          )}
+
+          {/* MAIN CONTENT AREA */}
+          <div className="flex flex-1 flex-col w-full min-w-0">
+            {/* HEADER */}
+            {showDashboardUI && (
+              <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                <AppHeader
+                  setIsSearchOpen={setIsSearchOpen}
+                  onMenuClick={toggle}
+                  isSidebarOpen={isOpen}
+                />
+              </header>
             )}
 
-            {/* MAIN CONTENT AREA */}
-            <div className="flex flex-1 flex-col w-full min-w-0">
-              {/* HEADER */}
-              {showDashboardUI && (
-                <header className="sticky top-0 z-40 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                  <AppHeader
-                    setIsSearchOpen={setIsSearchOpen}
-                    onMenuClick={toggle}
-                    isSidebarOpen={isOpen}
-                  />
-                </header>
-              )}
+            {/* SCROLL WRAPPER */}
+            <ScrollArea className="flex-1 min-w-0 overflow-x-hidden">
+              <main className="min-w-0 overflow-x-hidden">{children}</main>
 
-              {/* SCROLL WRAPPER */}
-              <ScrollArea className="flex-1 min-w-0 overflow-x-hidden">
-                <main className="min-w-0 overflow-x-hidden">{children}</main>
-
-                {!isDashboardPage && <Footer />}
-              </ScrollArea>
-              <FeedbackButton />
-              {/* FOOTER */}
-              {showDashboardUI && <DashboardFooter />}
-            </div>
+              {!isDashboardPage && <Footer />}
+            </ScrollArea>
+            <FeedbackButton />
+            {/* FOOTER */}
+            {showDashboardUI && <DashboardFooter />}
           </div>
-          {/* feedback popup in 1 second delay */}
-          <FeedbackPopup delay={50000} enableAutoOpen={true} />
-        </SidebarContext.Provider>
-      </FeedbackProvider>
-    </ProtectedRoute>
+        </div>
+        {/* feedback popup in 1 second delay */}
+        {showImprovementPopup && (
+          <ImprovementPopup
+            onClose={handleDismissPopup}
+            onYes={handleYesInteraction}
+          />
+        )}
+
+        <FeedbackPopup delay={50000} enableAutoOpen={true} />
+      </SidebarContext.Provider>
+    </FeedbackProvider>
   );
 }

@@ -86,6 +86,7 @@ export function Footer() {
       >
         <Link
           href={item.link ? item.link : ''}
+          prefetch={false}
           target={item.blank ? '_blank' : '_self'}
           className="group flex items-center gap-2 text-gray-400 hover:text-white transition-all duration-300 py-1 rounded-lg hover:bg-white/5 px-2 -mx-2"
           onMouseEnter={() => setHoveredLink(`${section}-${index}`)}

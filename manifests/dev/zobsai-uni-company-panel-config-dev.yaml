@@ -1,8 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: zobsai-uni-company-panel-config
+  name: uni-company-panel-config # Changed _ to -
   namespace: dev-zobsai
 data:
-  NEXT_PUBLIC_NODE_ENV: "development"
-  NEXT_PUBLIC_API_URL: "https://api.dev.zobsai.com"
+  NEXT_PUBLIC_NODE_ENV: 'development'

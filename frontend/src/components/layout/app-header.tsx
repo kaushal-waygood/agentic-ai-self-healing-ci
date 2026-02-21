@@ -37,7 +37,6 @@ import PlanDropdown from './PlanDropdown';
 import { useNotifications } from '@/hooks/notifications/useNoifications';
 import { NotificationBell } from '../notifications/NotificationBell';
 import StreakDropdown from './StreakDropdown';
-import ReminderModal from './ReminderModal';
 import { Tooltip } from './tooltip';
 import { useDailyStreak } from '@/hooks/credits/useStreakCredit';
 import ThemeToggle from '../ui/theme-toggle';
@@ -45,6 +44,7 @@ import { useFeedback } from '../Feedback-context/feedbackContext';
 import { useProfile } from '@/hooks/useProfile';
 import Image from 'next/image';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { fetchPlanRequest } from '@/redux/reducers/planReducer';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -191,8 +191,7 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 export const TotalCredit = () => {
   const [open, setOpen] = useState(false);
 
-  const { streak, loading, claiming, claim, claimCredits, credit } =
-    useDailyStreak();
+  const { streak, claiming, claim, credit } = useDailyStreak();
 
   const dropdownRef = useRef(null);
 
@@ -226,6 +225,7 @@ export const TotalCredit = () => {
         <Tooltip label={'Credits'}>
           <Link
             href="/dashboard/credits"
+            prefetch={false}
             className="flex items-center gap-1  hover:bg-gray-50 px-2 py-1  rounded-lg"
           >
             <Coins className="w-6 h-6 text-yellow-500" />
@@ -285,34 +285,14 @@ const AppHeader = ({
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
-  const [usageLimits, setUsageLimits] = useState({
-    aiJobApply: 0,
-    cvCreation: 0,
-    coverLetter: 0,
-    autoApply: 0,
-    atsScore: 0,
-    jobMatching: 0,
-    aiAutoApply: 0,
-    aiAutoApplyDailyLimit: 0,
-    aiMannualApplication: 0,
-  });
-  const [usageData, setUsageData] = useState({
-    aiJobApply: 0,
-    cvCreation: 0,
-    coverLetter: 0,
-    autoApply: 0,
-    atsScore: 0,
-    jobMatching: 0,
-    aiAutoApply: 0,
-    aiAutoApplyDailyLimit: 0,
-    aiMannualApplication: 0,
-  });
-  const [planType, setPlanType] = useState('free');
 
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { planType, usageLimits, usageData } = useSelector(
+    (state: RootState) => state.plan,
+  );
 
   const effectivePlanLimits = useMemo(
     () => ({
@@ -341,16 +321,7 @@ const AppHeader = ({
   useEffect(() => {
     const fetchUsageData = async () => {
       try {
-        const [limitsRes, planRes] = await Promise.all([
-          apiInstance.get('/plan/usage-limit'),
-          apiInstance.get('/plan/get-user-plan-type'),
-        ]);
-
-        setUsageData(limitsRes.data.data.usageCounters);
-
-        if (limitsRes.data?.success)
-          setUsageLimits(limitsRes.data.data.usageLimits);
-        if (planRes.data?.success) setPlanType(planRes.data.data.planType);
+        dispatch(fetchPlanRequest());
       } catch (error) {
         console.error('Failed to fetch user plan data:', error);
       }
@@ -416,7 +387,7 @@ const AppHeader = ({
   const handleLogout = async () => {
     try {
       // remove feedback session token
-      sessionStorage.removeItem('feedback_shown');
+      // sessionStorage.removeItem('feedback_shown');
       dispatch(logoutRequest());
       router.push('/login');
     } catch (error) {
@@ -589,6 +560,7 @@ const AppHeader = ({
                     )}
                     <Link
                       href="/dashboard/profile"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <UserCircle className="w-4 h-4 text-slate-600" />{' '}
@@ -596,6 +568,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/settings"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <Settings className="w-4 h-4 text-slate-600" />{' '}
@@ -603,6 +576,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/billing"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <CreditCard className="w-4 h-4 text-slate-600" />{' '}
@@ -610,6 +584,7 @@ const AppHeader = ({
                     </Link>
                     <Link
                       href="/dashboard/support"
+                      prefetch={false}
                       className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors duration-200 flex items-center space-x-3"
                     >
                       <HelpCircle className="w-4 h-4 text-slate-600" />{' '}

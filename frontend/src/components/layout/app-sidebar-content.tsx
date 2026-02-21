@@ -24,6 +24,7 @@ import {
   BookOpen,
   Handshake,
   Network,
+  BotMessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -43,7 +44,7 @@ export const AppSidebarContent = ({
   const router = useRouter();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [planType, setPlanType] = useState('Free');
+  // const [planType, setPlanType] = useState('Free');
 
   // --- 1. ROLE DEFINITIONS ---
   const ROLES = {
@@ -58,32 +59,15 @@ export const AppSidebarContent = ({
 
   // Safe fallback to 'user' if role is missing
   const currentRole = authUser?.role || ROLES.USER;
-
-  // --- 2. DATA FETCHING ---
-  useEffect(() => {
-    const fetchUserPlanType = async () => {
-      try {
-        const response = await apiInstance.get('/plan/get-user-plan-type');
-        if (response.data?.data?.planType) {
-          setPlanType(response.data.data.planType);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user plan:', error);
-      }
-    };
-
-    if (authUser) {
-      fetchUserPlanType();
-    }
-  }, [authUser]);
+  const { planType } = useSelector((state: RootState) => state.plan);
 
   const user = {
     role: currentRole,
     fullName: authUser?.fullName || 'Guest User',
     plan: planType,
   };
+
   const SIDEBAR_SECTIONS = [
-    // { label: 'Core', start: 0 },
     { label: 'AI Tools', start: 2 },
     { label: 'My Workspace', start: 6 },
     { label: 'More', start: 8 },
@@ -107,6 +91,12 @@ export const AppSidebarContent = ({
         icon: Search,
         allowedRoles: [ROLES.STUDENT, ROLES.UNI_STUDENT, ROLES.USER],
       },
+      // {
+      //   title: 'Chat',
+      //   href: '/dashboard/chat',
+      //   icon: BotMessageSquare,
+      // },
+
       {
         title: 'AI CV Generator',
         href: '/dashboard/cv-generator',
@@ -234,7 +224,11 @@ export const AppSidebarContent = ({
       {/* Sidebar Header */}
       <div className="relative p-2 border-b border-slate-200/50">
         <div className="flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center space-x-3 group">
+          <Link
+            href="/dashboard"
+            className="flex items-center space-x-3 group"
+            prefetch={false}
+          >
             <div className="relative p-3">
               <div className="rounded-lg flex flex-col items-center justify-center">
                 <Image
@@ -289,96 +283,8 @@ export const AppSidebarContent = ({
         </div>
       </div>
 
-      {/* Navigation Links */}
-      {/* <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
-        {siteConfig.sidebarNav.map((item, index) => {
-          if (item.allowedRoles && !item.allowedRoles.includes(currentRole)) {
-            return null;
-          }
-
-          const Icon = item.icon;
-          const isActive =
-            pathname === item.href ||
-            (item.href !== '/dashboard' && pathname.startsWith(item.href));
-          const isHovered = hoveredItem === item.href;
-
-          return (
-            <div
-              key={item.href}
-              id={`sidebar-link-${index}`}
-              className="relative"
-              style={{
-                animation: `slideInLeft 0.5s ease-out ${index * 50}ms forwards`,
-                opacity: 0,
-              }}
-            >
-              <div
-                onClick={
-                  item.comingSoon ? (e) => e.preventDefault() : undefined
-                }
-                className="group relative"
-              >
-                <Link
-                  href={item.comingSoon ? '#' : item.href}
-                  onMouseEnter={() => setHoveredItem(item.href)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  className={`group relative w-full text-xs md:text-sm flex items-center justify-center p-2 md:p-1 rounded-lg transition-all duration-300 ${
-                    isActive
-                      ? ' text-purple-700 scale-105'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-200 hover:scale-105'
-                  }`}
-                >
-                  <div
-                    className={`relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                      isActive
-                        ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-md'
-                        : isHovered
-                        ? 'bg-gradient-to-br from-purple-100 to-blue-100 text-purple-600'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </div>
-
-                  {!isCollapsed && (
-                    <span
-                      className={`flex-1 text-left pl-2 ${
-                        isActive
-                          ? 'font-extralight bg-gradient-to-r from-purple-100 via-blue-100 to-cyan-100 py-2 rounded-lg'
-                          : ''
-                      }`}
-                    >
-                      {item.title}
-                    </span>
-                  )}
-
-                  {!isCollapsed && item.comingSoon && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-400 text-white font-semibold">
-                      Coming Soon
-                    </span>
-                  )}
-
-                  {!isCollapsed &&
-                    isHovered &&
-                    !isActive &&
-                    !item.comingSoon && (
-                      <ChevronRight className="w-4 h-4 text-slate-400 animate-pulse" />
-                    )}
-                </Link>
-              </div>
-              {isCollapsed && isHovered && (
-                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-2 bg-slate-900 text-white text-sm rounded-lg shadow-xl z-50 whitespace-nowrap animate-fadeIn">
-                  {item.title}
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-slate-900 rotate-45"></div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </nav> */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-hide">
         {siteConfig.sidebarNav.map((item, index) => {
-          // 🔹 permissions stay intact
           if (item.allowedRoles && !item.allowedRoles.includes(currentRole)) {
             return null;
           }
@@ -408,6 +314,7 @@ export const AppSidebarContent = ({
                     onClick={
                       item.comingSoon ? (e) => e.preventDefault() : undefined
                     }
+                    prefetch={false}
                     className={`group w-full flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition-all ${
                       isActive
                         ? 'bg-tabPrimary  text-gray-100 hover:bg-tabPrimary'
@@ -438,6 +345,7 @@ export const AppSidebarContent = ({
           <div className="space-y-3">
             <Link
               href="/dashboard/profile"
+              prefetch={false}
               className="flex items-center space-x-3 p-3 bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl"
             >
               <div className="flex-1 min-w-0">

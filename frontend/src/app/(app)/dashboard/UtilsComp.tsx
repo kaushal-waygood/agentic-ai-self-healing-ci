@@ -18,9 +18,6 @@ import { AuthState } from '@/redux/types/authType';
 
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
-// This is a placeholder for your API instance. Ensure it's correctly configured.
-// import apiInstance from '@/services/api';
-
 interface StatCardProps {
   title: string;
   value: string;
@@ -67,7 +64,9 @@ export function StatCard({
           className="px-0 pt-2 text-primary"
           asChild
         >
-          <Link href={actionLink}>{actionText}</Link>
+          <Link href={actionLink} prefetch={false}>
+            {actionText}
+          </Link>
         </Button>
       )}
     </div>
@@ -91,7 +90,7 @@ export function ToolkitButton({
       variant="outline"
       className="h-auto p-5 text-left justify-start items-start space-x-4 border-0 hover:bg-primary/5 hover:border-primary/20 transition-all hover:text-foreground"
     >
-      <Link href={href}>
+      <Link href={href} prefetch={false}>
         <Icon className="h-7 w-7 text-primary shrink-0 mt-1" />
         <div>
           <p className="font-semibold text-lg">{title}</p>
@@ -172,7 +171,7 @@ export function UsageAndLimitsCard({
           className="w-full h-12 text-md font-semibold"
           asChild
         >
-          <Link href="/subscriptions">
+          <Link href="/subscriptions" prefetch={false}>
             <Star className="mr-2 h-4 w-4" /> View & Upgrade Plans
           </Link>
         </Button>
@@ -188,6 +187,7 @@ export const ChecklistItem = ({
 }: ChecklistItemProps) => (
   <Link
     href={link}
+    prefetch={false}
     className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors"
   >
     <div

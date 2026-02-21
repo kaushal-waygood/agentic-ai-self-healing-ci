@@ -13,14 +13,19 @@ import { Pricing } from '@/components/home/Pricing';
 import { Testimonials } from '@/components/home/Testimonials';
 import { Platforms } from '@/components/home/Platforms';
 import { Solutions } from '@/components/home/Solutions';
+import { getToken } from '@/hooks/useToken';
 
 export default function HomePage() {
   const router = useRouter();
+  const token = getToken();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      router.push('/dashboard');
+    try {
+      if (token) {
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error parsing persistence layer:', error);
     }
   }, [router]);
 

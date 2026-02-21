@@ -162,7 +162,7 @@ function StatusComponent() {
   const renderIcon = () => {
     switch (status) {
       case 'loading':
-        return <Loader />;
+        return <Loader classStyle="" />;
       case 'success':
         return <CheckCircle />;
       case 'error':

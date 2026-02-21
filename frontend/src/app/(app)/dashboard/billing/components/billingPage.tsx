@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import { SubscriptionStatusCard } from '../../components/dashboardPage';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { Loader } from '@/components/Loader';
 
 // Define the types
 interface Price {
@@ -68,15 +71,27 @@ export default function BillingPage() {
 
   const [billingData, setBillingData] = useState<BillingRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [plan, setPlan] = useState(null);
 
-  useEffect(() => {
-    const loadPlan = async () => {
-      const res = await apiInstance.get('/plan/get-user-plan-type');
-      setPlan(res.data.data);
-    };
-    loadPlan();
-  }, []);
+  const capitalisePlanDetails = (planDetails: string) => {
+    if (!planDetails) return '';
+    return planDetails.charAt(0).toUpperCase() + planDetails.slice(1);
+  };
+
+  const {
+    planType,
+    isActive,
+    usageData: usageCounters,
+    usageLimits,
+  } = useSelector((state: RootState) => state.plan);
+
+  const plan = {
+    planType,
+    isActive,
+    usageCounters,
+    usageLimits,
+  };
+
+  // console.log('PLAN...', plan);
 
   useEffect(() => {
     const fetchBillingData = async () => {
@@ -128,16 +143,7 @@ export default function BillingPage() {
   ).length;
 
   if (loading) {
-    return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center">
-        {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
-        <div>
-          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
-        </div>
-
-        <div className="text-lg">LOADING BILLING INFO... </div>
-      </div>
-    );
+    return <Loader message="BILLING INFO" />;
   }
 
   return (
@@ -275,17 +281,7 @@ export default function BillingPage() {
             {plan ? (
               <SubscriptionStatusCard plan={plan} />
             ) : (
-              <div className="flex items-center flex-col justify-center ">
-                {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
-                <div>
-                  <img
-                    src="/logo.png"
-                    alt=""
-                    className="w-10 h-10 animate-bounce"
-                  />
-                </div>
-                <div className="text-lg">LOADING SUBSCRIPTION...</div>
-              </div>
+              <Loader message="BILLING INFO" />
             )}
           </div>
         </div>

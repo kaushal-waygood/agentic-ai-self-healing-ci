@@ -190,6 +190,7 @@ export default function MembersTab({
                 You&apos;ve used all available seats.{' '}
                 <Link
                   href="/subscriptions"
+                  prefetch={false}
                   className="font-bold underline hover:text-red-950"
                 >
                   Upgrade your plan

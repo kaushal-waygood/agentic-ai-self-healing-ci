@@ -7,6 +7,11 @@ import { useToast } from '@/hooks/use-toast';
 import { ApplicationRow, StatCard } from './statusConfig';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiInstance from '@/services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/redux/rootReducer';
+import { getStudentStatsRequest } from '@/redux/reducers/studentReducer';
+import Image from 'next/image';
+import { Loader } from '@/components/Loader';
 
 interface Application {
   id: string;
@@ -30,12 +35,14 @@ const extendedApplicationStatuses = [
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [jobStats, setJobStats] = useState({
-    savedJobsCount: 0,
-    jobsViewed: 0,
-    jobsVisited: 0,
-    appliedJobsCount: 0,
-  });
+  // const [jobStats, setJobStats] = useState({
+  //   savedJobsCount: 0,
+  //   jobsViewed: 0,
+  //   jobsVisited: 0,
+  //   appliedJobsCount: 0,
+  // });
+
+  const { stats: jobStats } = useSelector((state: RootState) => state.student);
 
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -44,17 +51,11 @@ export default function ApplicationsPage() {
     searchParams.get('status') || 'Saved',
   );
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await apiInstance.get(`/students/jobs/stats`);
-        setJobStats(response.data);
-      } catch (error) {
-        console.error('Failed to fetch job stats:', error);
-      }
-    };
-    fetchStats();
-  }, []);
+    dispatch(getStudentStatsRequest());
+  }, [dispatch]);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -184,28 +185,28 @@ export default function ApplicationsPage() {
         <div className="grid grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6 mb-6 cursor-pointer md:p-2">
           <StatCard
             label="Applied Jobs"
-            value={jobStats.appliedJobsCount}
+            value={jobStats?.appliedJobsCount}
             icon={Send}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Applied')}
           />
           <StatCard
             label="Saved Jobs"
-            value={jobStats.savedJobsCount}
+            value={jobStats?.savedJobsCount}
             icon={Bookmark}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Saved')}
           />
           <StatCard
             label="Viewed Jobs"
-            value={jobStats.jobsViewed}
+            value={jobStats?.jobsViewed}
             icon={Eye}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Viewed')}
           />
           <StatCard
             label="Visited Links"
-            value={jobStats.jobsVisited}
+            value={jobStats?.jobsVisited}
             icon={Link}
             // color="tabPrimary"
             onClick={() => setStatusFilter('Visited')}
@@ -236,18 +237,7 @@ export default function ApplicationsPage() {
 
         <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4 rounded-lg border border-gray-200 dark:border-gray-800">
           {isLoading ? (
-            <div className="flex flex-col justify-center items-center py-20">
-              {/* <Loader2 className="h-12 w-12 animate-spin text-blue-500" /> */}
-              <div>
-                <img
-                  src="/logo.png"
-                  alt=""
-                  className="w-10 h-10 animate-bounce"
-                />
-              </div>
-
-              <div className="text-lg">LOADING...</div>
-            </div>
+            <Loader message="Loading applications..." />
           ) : applications.length > 0 ? (
             <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
               {applications.map((app, index) => (

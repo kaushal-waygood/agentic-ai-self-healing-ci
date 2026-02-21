@@ -4,6 +4,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getToken } from '@/hooks/useToken';
+import Image from 'next/image';
+import { Loader } from '@/components/Loader';
 
 // You can move these helpers to a shared utils file, e.g., /lib/auth.ts
 function getCookie(name: string): string | null {
@@ -35,31 +38,19 @@ export default function GuestLayout({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
+  const token = getToken();
   useEffect(() => {
-    const accessToken =
-      localStorage.getItem('accessToken') || getCookie('accessToken');
+    const accessToken = token;
 
-    // If a valid token exists, redirect to the dashboard
     if (accessToken && isTokenValid(accessToken)) {
       router.push('/dashboard');
     } else {
-      // Otherwise, the user is not authenticated, so we can show the page
       setIsLoading(false);
     }
   }, [router]);
 
-  // While checking, show a loading state to prevent flashing the login page
   if (isLoading) {
-    return (
-      <div className="flex items-center flex-col justify-center min-h-screen">
-        {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
-        <div>
-          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
-        </div>
-
-        <div className="text-lg">LOADING...</div>
-      </div>
-    );
+    return <Loader />;
   }
 
   // If not loading and not redirected, show the children (e.g., the Login page)

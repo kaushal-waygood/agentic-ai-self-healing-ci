@@ -11,7 +11,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import apiInstance from '@/services/api';
-import { Download, Loader2, Trash2, RefreshCw, Edit3, Eye } from 'lucide-react';
+import {
+  Download,
+  Loader2,
+  Trash2,
+  RefreshCw,
+  Edit3,
+  Eye,
+  Calendar,
+  CheckCircle2,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useEffect } from 'react';
@@ -100,8 +109,8 @@ export const DocumentCard = ({
       type === 'cv'
         ? 'cv'
         : type === 'coverLetter'
-        ? 'cover-letter'
-        : 'application';
+          ? 'cover-letter'
+          : 'application';
     return `${baseName}-${item._id}-${
       new Date(item.createdAt).toISOString().split('T')[0]
     }.txt`;
@@ -172,7 +181,7 @@ export const DocumentCard = ({
       if (!isRefreshing) {
         handleRefresh();
       }
-    }, 7000); // 7 seconds
+    }, 6000); // 6 seconds
 
     return () => clearInterval(interval);
   }, [status, docState, isRefreshing]);
@@ -203,25 +212,27 @@ export const DocumentCard = ({
 
   return (
     <div
-      className={`p-4 border  border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700  transition-shadow ${
+      className={`p-5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:shadow-lg transition-all duration-200 ${
         isClickable
-          ? 'cursor-pointer hover:shadow-md'
+          ? 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/50 dark:hover:bg-gray-700/50'
           : 'cursor-not-allowed opacity-70'
       } ${isProcessing ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''}`}
     >
-      <div className="flex items-center flex-wrap justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700 ">
-        <div className="flex items-center space-x-3" onClick={openContent}>
-          <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-3" onClick={openContent}>
+          <div className="flex items-center gap-2.5">
             {!isSaved && (
               <>
                 {isProcessing || isRefreshing ? (
-                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                  <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
                 ) : (
-                  getStatusIcon(status)
+                  <div className="flex items-center">
+                    {getStatusIcon(status)}
+                  </div>
                 )}
 
                 <span
-                  className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getStatusColor(
+                  className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(
                     status,
                   )}`}
                 >
@@ -229,23 +240,25 @@ export const DocumentCard = ({
                 </span>
               </>
             )}
-
             {isSaved && (
-              <span className="text-xs text-gray-500">Saved document</span>
+              <span className="px-3 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
+                Saved
+              </span>
             )}
           </div>
         </div>
-        <div className="flex items-center space-x-2 ">
+
+        <div className="flex items-center gap-1">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleRefresh();
             }}
             disabled={!canRefresh || isRefreshing}
-            className={`p-2 transition-colors ${
+            className={`p-2 rounded-lg transition-all ${
               !canRefresh || isRefreshing
                 ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                : 'text-gray-500 hover:text-green-600'
+                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600'
             }`}
             title={
               !canRefresh
@@ -265,10 +278,10 @@ export const DocumentCard = ({
             <button
               onClick={handleRenameClick}
               disabled={isProcessing || isRefreshing}
-              className={`p-2 transition-colors ${
+              className={`p-2 rounded-lg transition-all ${
                 isProcessing || isRefreshing
                   ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                  : 'text-gray-500 hover:text-yellow-600'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-yellow-600'
               }`}
               title="Rename"
             >
@@ -282,9 +295,9 @@ export const DocumentCard = ({
                 onDownload(getContent(), getFilename());
               }}
               disabled={!isClickable}
-              className={`p-2 transition-colors ${
+              className={`p-2 rounded-lg transition-all ${
                 isClickable
-                  ? 'text-gray-500 hover:text-green-600'
+                  ? 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600'
                   : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
               }`}
               title={isClickable ? 'Download' : 'Not available'}
@@ -299,10 +312,10 @@ export const DocumentCard = ({
               setIsDeleting(true);
             }}
             disabled={isProcessing || isRefreshing}
-            className={`p-2 transition-colors ${
+            className={`p-2 rounded-lg transition-all ${
               isProcessing || isRefreshing
                 ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                : 'text-gray-500 hover:text-red-600'
+                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-red-600'
             }`}
             title="Delete"
           >
@@ -310,73 +323,65 @@ export const DocumentCard = ({
           </button>
         </div>
       </div>
-      <div onClick={openContent}>
-        <div className="flex flex-col gap-2 flex-wrap  ">
+
+      <div onClick={openContent} className="space-y-3">
+        <div className="flex items-start justify-between gap-4">
           <h3
-            className={`flex items-center justify-between font-semibold text-gray-900 dark:text-white  line-clamp-1 ${
-              isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
-            }`}
+            className={`font-semibold text-gray-900 dark:text-white flex-1 ${isClickable ? 'cursor-pointer' : ''}`}
           >
-            <span className="break-all line-clamp-1">
-              <span className="text-xs md:text-sm text-gray-500   ">
-                {index}
-                {'. '}
-              </span>
-              {(item.cvTitle || getTitle()).slice(0, 30) +
-                ((item.cvTitle || getTitle()).length > 40 ? '...' : '')}
+            <span className="text-sm text-gray-500 font-normal mr-2">
+              #{index}
             </span>
-
-            <div className="hidden md:flex items-end flex-col gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openContent();
-                }}
-                className={`ml-3 px-3 py-2 border border-blue-600 text-blue-600 text-xs rounded hover:bg-blue-600 hover:text-white transition flex items-center gap-1 ${
-                  isClickable
-                    ? 'cursor-pointer'
-                    : 'cursor-not-allowed opacity-50'
-                } `}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                View Doc
-              </button>
-              {item.flag && (
-                <p className="text-xs rounded-lg text-gray-600 bg-gray-200 uppercase px-2 py-1 dark:text-gray-200 mb-2 mt-1">
-                  from: {item.flag}
-                </p>
-              )}
-            </div>
-
-            {!isClickable && status === 'failed' && (
-              <span className="text-xs text-gray-400 ml-2">
-                (Failed to generate)
-              </span>
-            )}
+            <span className="text-base">
+              {(item.cvTitle || getTitle()).slice(0, 30)}
+              {(item.cvTitle || getTitle()).length > 40 ? '...' : ''}
+            </span>
           </h3>
 
-          {/* {item.finalTouch && (
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openContent();
+              }}
+              className={`flex-shrink-0 px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1.5 ${
+                isClickable ? '' : 'opacity-50 cursor-not-allowed'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              View
+            </button>
+            {item.flag && (
+              <span className="text-xs rounded-md text-gray-600 bg-gray-100 uppercase px-2.5 py-1.5 dark:text-gray-300 font-medium">
+                from: {item.flag}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {!isClickable && status === 'failed' && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+              Failed to generate
+            </span>
+          </div>
+        )}
+
+        {/* {item.finalTouch && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
               <strong>Customization:</strong> {item.finalTouch}
             </p>
           )} */}
-
-          {item.error && status === 'failed' && (
-            <p
-              className="text-sm text-red-600 dark:text-red-400 mb-2
-    break-words break-all
-    whitespace-normal
-    max-w-full"
-            >
-              <strong>Error:</strong> {item.error}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center flex-wrap justify-between text-xs text-gray-500 dark:text-gray-400 mt-3">
-          <span>Created: {formatDate(item.createdAt)}</span>
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Created: {formatDate(item.createdAt)}</span>
+          </div>
           {item.completedAt && status !== 'pending' && (
-            <span>Completed: {formatDate(item.completedAt)}</span>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+              <span>Completed: {formatDate(item.completedAt)}</span>
+            </div>
           )}
         </div>
 

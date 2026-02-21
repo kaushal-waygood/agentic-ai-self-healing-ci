@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8'
 
 services:
   # Backend Service
@@ -44,6 +44,21 @@ services:
       - NEXT_PUBLIC_NODE_ENV=production
     ports:
       - '3000:80' # Nginx runs on 80 internally
+    depends_on:
+      - backend
+    networks:
+      - hsa-network
+
+  uni-company-panel:
+    build:
+      context: ./uni-company-panel
+      dockerfile: Dockerfile
+    container_name: hsa-uni-company-panel
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_NODE_ENV=production
+    ports:
+      - '3002:3002' # Nginx runs on 80 internally
     depends_on:
       - backend
     networks:

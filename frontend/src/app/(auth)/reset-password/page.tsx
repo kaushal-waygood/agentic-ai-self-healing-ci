@@ -30,6 +30,7 @@ import {
 import { Input } from '@/components/ui/input';
 import Cookies from 'js-cookie';
 import { useEffect } from 'react';
+import { getToken } from '@/hooks/useToken';
 
 const resetPasswordSchema = z
   .object({
@@ -103,7 +104,7 @@ export default function ResetPasswordPage() {
   }
 
   useEffect(() => {
-    const token = localStorage.get('accessToken');
+    const token = getToken();
     if (token) {
       router.push('/dashboard');
     }
@@ -168,6 +169,7 @@ export default function ResetPasswordPage() {
         <CardFooter className="flex justify-center">
           <Link
             href="/login"
+            prefetch={false}
             className="text-sm font-medium text-primary hover:underline"
           >
             Back to login
