@@ -9,6 +9,7 @@ import { findSingleJobRequest } from '@/redux/reducers/jobReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
+import { Loader } from '@/components/Loader';
 
 export default function JobDetailPage() {
   const { jobId } = useParams();
@@ -28,21 +29,7 @@ export default function JobDetailPage() {
     fetchJobDetails();
   }, [jobId]);
 
-  if (!job)
-    return (
-      <div className="flex items-center flex-col justify-center min-h-screen">
-        <div>
-          <Image
-            src="/logo.png"
-            alt="zobsai logo"
-            width={100}
-            height={100}
-            className="w-10 h-10 animate-bounce"
-          />
-        </div>
-        <p className="font-medium">Loading Job data...</p>
-      </div>
-    );
+  if (!job) return <Loader />;
 
   return <JobDetail job={job} />;
 }

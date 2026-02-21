@@ -100,12 +100,12 @@ export const useJobs = () => {
         'Contract',
         'Internship',
         'Freelance',
-        'Temporary',
-        'Seasonal',
-        'Hourly',
-        'Commission',
-        'Piecework',
-        'Other',
+        // 'Temporary',
+        // 'Seasonal',
+        // 'Hourly',
+        // 'Commission',
+        // 'Piecework',
+        // 'Other',
       ];
       const exp = [
         'Entry level',

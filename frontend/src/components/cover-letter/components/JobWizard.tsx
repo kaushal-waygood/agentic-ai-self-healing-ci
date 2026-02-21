@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import apiInstance from '@/services/api';
+import { Loader } from '@/components/Loader';
 
 // Define the structure of the job object for type safety
 interface Job {
@@ -293,8 +294,8 @@ const JobWizard = ({
                         isFocused
                           ? ''
                           : charCount < 200
-                          ? 'border-gray-300 hover:border-gray-400'
-                          : 'border-green-300 hover:border-green-400 ring-green-50'
+                            ? 'border-gray-300 hover:border-gray-400'
+                            : 'border-green-300 hover:border-green-400 ring-green-50'
                       }`}
                       value={pastedJobDescription}
                       onChange={(e) => setPastedJobDescription(e.target.value)}
@@ -376,17 +377,7 @@ const JobWizard = ({
               {/* Enhanced Select Tab */}
 
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-10 text-slate-500">
-                  <div>
-                    <img
-                      src="/logo.png"
-                      alt=""
-                      className="w-10 h-10 animate-bounce"
-                    />
-                  </div>
-
-                  <p>Fetching saved Jobs...</p>
-                </div>
+                <Loader message="Fetching saved Jobs" />
               ) : (
                 <TabsContent
                   value="select"

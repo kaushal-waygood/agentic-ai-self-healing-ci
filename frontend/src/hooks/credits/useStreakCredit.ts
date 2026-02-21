@@ -36,7 +36,7 @@ export function useDailyStreak() {
   }, [dispatch]);
 
   const streakData = useMemo(() => {
-    if (!reduxStreak?.streak) {
+    if (!reduxStreak?.data?.streak) {
       return {
         current: 0,
         longest: 0,
@@ -48,15 +48,15 @@ export function useDailyStreak() {
     }
 
     return {
-      current: reduxStreak.streak.current,
-      longest: reduxStreak.streak.longest,
-      lastClaimedAt: reduxStreak.streak.lastClaimedAt,
+      current: reduxStreak.data.streak.current,
+      longest: reduxStreak.data.streak.longest,
+      lastClaimedAt: reduxStreak.data.streak.lastClaimedAt,
       activeDays: computeActiveDays(
-        reduxStreak.streak.current,
-        reduxStreak.streak.lastClaimedAt,
+        reduxStreak.data.streak.current,
+        reduxStreak.data.streak.lastClaimedAt,
       ),
-      canClaimToday: reduxStreak.canClaimToday,
-      freezeTokens: reduxStreak.streak.freezeTokens ?? 0,
+      canClaimToday: reduxStreak.data.canClaimToday,
+      freezeTokens: reduxStreak.data.streak.freezeTokens ?? 0,
     };
   }, [reduxStreak]);
 

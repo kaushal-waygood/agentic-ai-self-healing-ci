@@ -229,6 +229,7 @@ export default function PrimaryAdminLayout({
       {navItems.map((item) => (
         <Link
           key={item.href}
+          prefetch={false}
           href={item.href}
           className={cn(
             'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
@@ -249,6 +250,7 @@ export default function PrimaryAdminLayout({
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link
               href="/primary-admin/dashboard"
+              prefetch={false}
               className="flex items-center gap-2 font-semibold"
             >
               <ShieldCheck className="h-6 w-6 text-primary" />
@@ -276,6 +278,7 @@ export default function PrimaryAdminLayout({
                 <SheetTitle asChild>
                   <Link
                     href="/primary-admin/dashboard"
+                    prefetch={false}
                     className="flex items-center gap-2 font-semibold"
                   >
                     <ShieldCheck className="h-6 w-6 text-primary" />
@@ -302,8 +305,8 @@ export default function PrimaryAdminLayout({
                   className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
                   defaultValue={
                     pathname === '/primary-admin/users'
-                      ? new URLSearchParams(window.location.search).get('q') ??
-                        ''
+                      ? (new URLSearchParams(window.location.search).get('q') ??
+                        '')
                       : ''
                   }
                 />

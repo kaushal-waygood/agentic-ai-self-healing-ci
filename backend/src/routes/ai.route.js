@@ -45,6 +45,7 @@ import {
   renameSavedStudentCV,
   getStudentCLsFromExtension,
   getStudentCVsFromExtension,
+  getDocumentCounts,
 } from '../controllers/ai.controller.js';
 import multer from 'multer';
 import {
@@ -113,6 +114,13 @@ router.get(
   authMiddleware,
   isUserOrUniStudent,
   getSingleTailoredApplication,
+);
+
+router.get(
+  '/documents/count',
+  authMiddleware,
+  isUserOrUniStudent,
+  getDocumentCounts,
 );
 
 router.delete('/cv/:cvId', authMiddleware, isUserOrUniStudent, deleteSingleCV);

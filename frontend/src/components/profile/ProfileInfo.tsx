@@ -56,13 +56,11 @@ const ProfileInfo = () => {
   const defaultTab = searchParams.get('tab') || 'education';
   const [activeTab, setActiveTab] = useState(defaultTab);
 
-  // Sync URL → State (when URL changes)
   useEffect(() => {
     const urlTab = searchParams.get('tab') || 'education';
     setActiveTab(urlTab);
   }, [searchParams]);
 
-  // Function to update BOTH UI + URL
   const handleTabChange = (tab: string) => {
     router.push(`/dashboard/profile?tab=${tab}`, { scroll: false });
     setActiveTab(tab);

@@ -169,6 +169,7 @@ export default function ResetPasswordPage() {
         <CardFooter className="flex justify-center">
           <Link
             href="/login"
+            prefetch={false}
             className="text-sm font-medium text-primary hover:underline"
           >
             Back to login

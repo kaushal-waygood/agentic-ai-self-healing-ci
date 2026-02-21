@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/hooks/useToken';
 import Image from 'next/image';
+import { Loader } from '@/components/Loader';
 
 // You can move these helpers to a shared utils file, e.g., /lib/auth.ts
 function getCookie(name: string): string | null {
@@ -49,21 +50,7 @@ export default function GuestLayout({
   }, [router]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center flex-col justify-center min-h-screen">
-        <div>
-          <Image
-            src="/logo.png"
-            alt=""
-            width={100}
-            height={100}
-            className="w-10 h-10 animate-bounce"
-          />
-        </div>
-
-        <div className="text-lg">LOADING...</div>
-      </div>
-    );
+    return <Loader />;
   }
 
   // If not loading and not redirected, show the children (e.g., the Login page)

@@ -15,6 +15,8 @@ import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
 import Image from 'next/image';
 import OnboardingExperienceFeedback from '@/app/(app)/dashboard/onboarding-tour/OnboardingExperienceFeedback';
+import { FilterPills } from './FilterPills';
+import { Loader } from '../Loader';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
@@ -149,6 +151,35 @@ export default function JobsPage() {
     }
   }, [fromOnboarding]);
 
+  // Inside JobsPage component
+  const removeFilter = (key: string, value?: any) => {
+    const newFilters = { ...filters };
+
+    if (key === 'clearAll') {
+      handleFilterChange({
+        ...filters,
+        country: '',
+        state: '',
+        datePosted: '',
+        employmentType: [],
+        experience: [],
+      });
+      return;
+    }
+
+    if (key === 'employmentType') {
+      newFilters.employmentType = newFilters.employmentType.filter(
+        (t: string) => t !== value,
+      );
+    } else if (key === 'country') {
+      newFilters.country = '';
+      newFilters.state = ''; // Reset state if country is removed
+    } else {
+      newFilters[key] = '';
+    }
+
+    handleFilterChange(newFilters);
+  };
   return (
     <div className="bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       <div className="xl:container mx-auto px-1">
@@ -162,6 +193,8 @@ export default function JobsPage() {
           onSearchChange={handleFilterChange}
           onOpenFilterModal={() => setFilterModal(true)}
         />
+
+        <FilterPills filters={filters} onRemove={removeFilter} />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
           <div>
@@ -177,34 +210,8 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {/* Loading skeleton */}
-              {/* {loading &&
-                jobs.length === 0 &&
-                Array.from({ length: 8 }).map((_, i) => (
-                  <JobCardSkeleton key={i} />
-                ))} */}
-              {/* {loading && jobs.length === 0 && (
-                <div className="flex items-center justify-center h-full">
-                  <div className="relative w-12 h-12">
-                    <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-indigo-500 border-r-blue-500 animate-spin" />
-                    <div className="absolute inset-2 rounded-full bg-white shadow-inner" />
-                  </div>
-                </div>
-              )} */}
-
               {loading && jobs.length === 0 && (
-                <div className="flex flex-col items-center justify-center min-h-[400px] ">
-                  <div>
-                    <Image
-                      src="/logo.png"
-                      alt="zobsai logo"
-                      width={100}
-                      height={100}
-                      className="w-10 h-10 animate-bounce"
-                    />
-                  </div>
-                  <div className="text-md font-semibold">LOADING...</div>
-                </div>
+                <Loader message="Loading Jobs" />
               )}
 
               {/* ❌ No Jobs Found UI */}
@@ -247,14 +254,7 @@ export default function JobsPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
-                <div className="h-full flex flex-col items-center justify-center bg-white border rounded-lg">
-                  <img
-                    src="/logo.png"
-                    alt="zobsAi"
-                    className="w-10 h-10 animate-bounce"
-                  />
-                  <p className="font-medium">Loading Job data...</p>
-                </div>
+                <Loader message="Loading Job data..." />
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (

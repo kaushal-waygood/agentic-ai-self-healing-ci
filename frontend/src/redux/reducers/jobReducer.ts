@@ -249,6 +249,7 @@ const jobSlice = createSlice({
       state.error = null;
     },
     getRecommendJobsSuccess: (state, action: PayloadAction<Job[]>) => {
+      console.log('ACTION.PAYLOAD', action.payload);
       state.loading = false;
       state.jobs = action.payload;
     },

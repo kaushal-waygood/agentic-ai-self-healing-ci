@@ -17,6 +17,7 @@ import apiInstance from '@/services/api';
 import { SubscriptionStatusCard } from '../../components/dashboardPage';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
+import { Loader } from '@/components/Loader';
 
 // Define the types
 interface Price {
@@ -138,18 +139,7 @@ export default function BillingPage() {
   ).length;
 
   if (loading) {
-    return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center">
-        {/* <Loader2 className="w-10 h-10 animate-spin" /> */}
-        <div>
-          <img src="/logo.png" alt="" className="w-10 h-10 animate-bounce" />
-        </div>
-
-        <div className="text-lg mt-4 font-medium text-gray-600">
-          LOADING BILLING INFO...
-        </div>
-      </div>
-    );
+    return <Loader message="BILLING INFO" />;
   }
 
   return (
@@ -279,14 +269,7 @@ export default function BillingPage() {
             {plan ? (
               <SubscriptionStatusCard plan={plan} />
             ) : (
-              <div className="flex items-center flex-col justify-center min-h-[300px] bg-white rounded-xl border border-gray-200">
-                <img
-                  src="/logo.png"
-                  alt="Logo"
-                  className="w-10 h-10 animate-bounce"
-                />
-                <div className="text-lg mt-4">LOADING SUBSCRIPTION...</div>
-              </div>
+              <Loader message="BILLING INFO" />
             )}
           </div>
         </div>
