@@ -120,11 +120,11 @@ jobs:
           echo "✅ Frontend image updated"
           grep "image:" manifests/zobsai-frontend-deployment.yaml
 
-      # - name: Update Uni Company Panel Deployment Manifest
-      #   run: |
-      #     sed -i -e "s#zobsai-uni-company-panel:.*#zobsai-uni-company-panel:${{ github.sha }}#g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
-      #     echo "✅ Uni Company Panel image updated"
-      #     grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
+      - name: Update Uni Company Panel Deployment Manifest
+        run: |
+          sed -i -e "s#zobsai-uni-company-panel:.*#zobsai-uni-company-panel:${{ github.sha }}#g" manifests/zobsai-uni-company-panel-deployment.yaml
+          echo "✅ Uni Company Panel image updated"
+          grep "image:" manifests/zobsai-uni-company-panel-deployment.yaml
 
       # -------------------------------
       # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
