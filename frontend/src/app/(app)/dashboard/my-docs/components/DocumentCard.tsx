@@ -11,7 +11,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import apiInstance from '@/services/api';
-import { Download, Loader2, Trash2, RefreshCw, Edit3, Eye, Calendar, CheckCircle2,} from 'lucide-react';
+import {
+  Download,
+  Loader2,
+  Trash2,
+  RefreshCw,
+  Edit3,
+  Eye,
+  Calendar,
+  CheckCircle2,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useEffect } from 'react';
@@ -172,7 +181,7 @@ export const DocumentCard = ({
       if (!isRefreshing) {
         handleRefresh();
       }
-    }, 7000); // 7 seconds
+    }, 6000); // 6 seconds
 
     return () => clearInterval(interval);
   }, [status, docState, isRefreshing]);

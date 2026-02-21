@@ -15,6 +15,7 @@ import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
 import Image from 'next/image';
 import OnboardingExperienceFeedback from '@/app/(app)/dashboard/onboarding-tour/OnboardingExperienceFeedback';
+import { FilterPills } from './FilterPills';
 
 export default function JobsPage() {
   const jobListRef = useRef<HTMLDivElement>(null);
@@ -149,6 +150,35 @@ export default function JobsPage() {
     }
   }, [fromOnboarding]);
 
+  // Inside JobsPage component
+  const removeFilter = (key: string, value?: any) => {
+    const newFilters = { ...filters };
+
+    if (key === 'clearAll') {
+      handleFilterChange({
+        ...filters,
+        country: '',
+        state: '',
+        datePosted: '',
+        employmentType: [],
+        experience: [],
+      });
+      return;
+    }
+
+    if (key === 'employmentType') {
+      newFilters.employmentType = newFilters.employmentType.filter(
+        (t: string) => t !== value,
+      );
+    } else if (key === 'country') {
+      newFilters.country = '';
+      newFilters.state = ''; // Reset state if country is removed
+    } else {
+      newFilters[key] = '';
+    }
+
+    handleFilterChange(newFilters);
+  };
   return (
     <div className="bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       <div className="xl:container mx-auto px-1">
@@ -163,6 +193,8 @@ export default function JobsPage() {
           onOpenFilterModal={() => setFilterModal(true)}
         />
 
+        <FilterPills filters={filters} onRemove={removeFilter} />
+
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
           <div>
             <div
@@ -176,21 +208,6 @@ export default function JobsPage() {
                   <p className="text-gray-600 font-semibold">{notification}</p>
                 </div>
               )}
-
-              {/* Loading skeleton */}
-              {/* {loading &&
-                jobs.length === 0 &&
-                Array.from({ length: 8 }).map((_, i) => (
-                  <JobCardSkeleton key={i} />
-                ))} */}
-              {/* {loading && jobs.length === 0 && (
-                <div className="flex items-center justify-center h-full">
-                  <div className="relative w-12 h-12">
-                    <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-indigo-500 border-r-blue-500 animate-spin" />
-                    <div className="absolute inset-2 rounded-full bg-white shadow-inner" />
-                  </div>
-                </div>
-              )} */}
 
               {loading && jobs.length === 0 && (
                 <div className="flex flex-col items-center justify-center min-h-[400px] ">

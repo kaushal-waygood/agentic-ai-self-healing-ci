@@ -20,6 +20,9 @@ import { RootState } from '@/redux/rootReducer';
 import {
   deleteSavedCoverLetterRequest,
   deleteSavedResumeRequest,
+  fetchGeneratedCLsRequest,
+  fetchGeneratedCVsRequest,
+  fetchTailoredApplicationsRequest,
   getDocumentCountsRequest,
   renameSavedCoverLetterRequest,
   renameSavedResumeRequest,
@@ -67,12 +70,6 @@ interface TailoredApplication {
   completedAt?: string;
 }
 
-interface DocumentStats {
-  cvsCount: number;
-  coverLettersCount: number;
-  tailoredApplicationsCount: number;
-}
-
 export default function DocumentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,16 +86,16 @@ export default function DocumentsPage() {
   const [cvs, setCvs] = useState<CV[]>([]);
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [applications, setApplications] = useState<TailoredApplication[]>([]);
-  const [stats, setStats] = useState<DocumentStats>({
-    cvsCount: 0,
-    coverLettersCount: 0,
-    tailoredApplicationsCount: 0,
-  });
 
   const dispatch = useDispatch();
-  const { documentCounts, loading } = useSelector(
-    (state: RootState) => state.ai,
-  );
+  const {
+    documentCounts,
+    loading,
+    generatedCVs,
+    generatedCLs,
+    tailoredApplications,
+  } = useSelector((state: RootState) => state.ai);
+
   useEffect(() => {
     dispatch(getDocumentCountsRequest());
   }, [dispatch]);
@@ -143,16 +140,19 @@ export default function DocumentsPage() {
     };
 
     fetchTabData();
-  }, [activeTab]); // This runs every time activeTab changes
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (generatedCVs) setCvs(generatedCVs || []);
+    if (generatedCLs) setCoverLetters(generatedCLs || []);
+    if (tailoredApplications) setApplications(tailoredApplications || []);
+  }, [generatedCVs, generatedCLs, tailoredApplications]);
+
+  // Api calls
 
   const fetchCVs = async () => {
     try {
-      const response = await apiInstance.get('/students/cvs');
-      setCvs(response.data.cvs || []);
-      setStats((prev) => ({
-        ...prev,
-        cvsCount: response.data.cvs?.length || 0,
-      }));
+      dispatch(fetchGeneratedCVsRequest());
     } catch (error) {
       console.error('Failed to fetch CVs:', error);
       throw error;
@@ -161,12 +161,7 @@ export default function DocumentsPage() {
 
   const fetchCoverLetters = async () => {
     try {
-      const response = await apiInstance.get('/students/cls');
-      setCoverLetters(response.data.cls || []);
-      setStats((prev) => ({
-        ...prev,
-        coverLettersCount: response.data.cls?.length || 0,
-      }));
+      dispatch(fetchGeneratedCLsRequest());
     } catch (error) {
       console.error('Failed to fetch cover letters:', error);
       throw error;
@@ -175,20 +170,13 @@ export default function DocumentsPage() {
 
   const fetchApplications = async () => {
     try {
-      const response = await apiInstance.get('/students/tailored-applications');
-      setApplications(response.data.tailoredApplications || []);
-      setStats((prev) => ({
-        ...prev,
-        tailoredApplicationsCount:
-          response.data.tailoredApplications?.length || 0,
-      }));
+      dispatch(fetchTailoredApplicationsRequest());
     } catch (error) {
       console.error('Failed to fetch applications:', error);
       throw error;
     }
   };
 
-  // Rename functionality
   const handleRename = (
     documentId: string,
     type: 'cv' | 'coverLetter',
@@ -710,7 +698,6 @@ const DocumentSection = ({
   type,
 }: any) => {
   const [visibleCount, setVisibleCount] = useState(10);
-  // const [docState, setDocState] = useState<'generated' | 'saved'>('generated');
   const dispatch = useDispatch();
 
   const searchParams = useSearchParams();
@@ -734,26 +721,49 @@ const DocumentSection = ({
       setFinalSearchTerm('');
     }
   }, [searchTerm]);
-  // Inside DocumentSection component
+
+  const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
+
+  const countsForType = (() => {
+    if (!documentCounts) return { generated: 0, saved: 0, total: 0 };
+
+    switch (type) {
+      case 'cv':
+        return documentCounts.cv;
+      case 'coverLetter':
+        return documentCounts.cl;
+      case 'application':
+        return documentCounts.tailored;
+      default:
+        return { generated: 0, saved: 0, total: 0 };
+    }
+  })();
   useEffect(() => {
-    // Only trigger dispatch if the user has toggled to the 'saved' view
     if (docState === 'saved') {
-      if (type === 'cv') {
-        console.log('Fetching saved CVs only now...');
-        dispatch(savedStudentResumeRequest());
-      } else if (type === 'coverLetter') {
-        console.log('Fetching saved Cover Letters only now...');
-        dispatch(savedStudentCoverLetterRequest());
+      const serverSavedCount = countsForType?.saved || 0;
+
+      const localItemsLoaded =
+        type === 'cv'
+          ? (resume?.html?.length ?? -1)
+          : (coverLetter?.html?.length ?? -1);
+
+      if (localItemsLoaded !== serverSavedCount) {
+        if (type === 'cv') {
+          console.log('Syncing saved CVs...');
+          dispatch(savedStudentResumeRequest());
+        } else if (type === 'coverLetter') {
+          console.log('Syncing saved Cover Letters...');
+          dispatch(savedStudentCoverLetterRequest());
+        }
       }
     }
-  }, [docState, type, dispatch]);
+  }, [docState, type, dispatch, countsForType?.saved]);
+
   useEffect(() => {
     if (type === 'application') {
       setDocState('generated');
     }
   }, [type]);
-
-  const { resume, coverLetter } = useSelector((state: RootState) => state.ai);
 
   const listToRender = (() => {
     if (docState === 'saved') {
@@ -791,7 +801,7 @@ const DocumentSection = ({
   });
 
   const handleSearch = () => {
-    setFinalSearchTerm(searchTerm); // 🔥 Search only when triggered
+    setFinalSearchTerm(searchTerm);
   };
 
   const handleRenameDocument = async (documentId: string, newTitle: string) => {
@@ -830,21 +840,6 @@ const DocumentSection = ({
       throw error;
     }
   };
-
-  const countsForType = (() => {
-    if (!documentCounts) return { generated: 0, saved: 0, total: 0 };
-
-    switch (type) {
-      case 'cv':
-        return documentCounts.cv;
-      case 'coverLetter':
-        return documentCounts.cl;
-      case 'application':
-        return documentCounts.tailored;
-      default:
-        return { generated: 0, saved: 0, total: 0 };
-    }
-  })();
 
   return (
     <div className="p-6">

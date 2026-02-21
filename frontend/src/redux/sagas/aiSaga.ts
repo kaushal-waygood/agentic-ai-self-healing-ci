@@ -26,6 +26,15 @@ import {
   getDocumentCountsSuccess,
   getDocumentCountsFailure,
   getDocumentCountsRequest,
+  fetchGeneratedCVsSuccess,
+  fetchGeneratedCVsFailure,
+  fetchGeneratedCVsRequest,
+  fetchGeneratedCLsSuccess,
+  fetchGeneratedCLsFailure,
+  fetchTailoredApplicationsSuccess,
+  fetchTailoredApplicationsFailure,
+  fetchGeneratedCLsRequest,
+  fetchTailoredApplicationsRequest,
 } from '../reducers/aiReducer';
 import {
   generateCVByJobDescription,
@@ -36,6 +45,9 @@ import {
   renameSavedResume,
   renameSavedCoverLetter,
   fetchDocumentCounts,
+  fetchCVs,
+  fetchCLs,
+  fetchTailoredApps,
 } from '@/services/api/ai';
 import { AxiosResponse } from 'axios';
 
@@ -126,7 +138,6 @@ function* renameSavedCoverLetterSaga(
 
     yield call(renameSavedCoverLetter, clId, newTitle);
 
-    // ✅ Re-fetch latest data
     yield put(savedStudentCoverLetterRequest());
   } catch (error: unknown) {
     const errorMessage =
@@ -138,7 +149,6 @@ function* renameSavedCoverLetterSaga(
 function* fetchDocumentCountsSaga() {
   try {
     const response = yield call(fetchDocumentCounts);
-    // Based on your Postman result, the data is in response.data.data
     yield put(getDocumentCountsSuccess(response.data.data));
   } catch (error: any) {
     const errorMessage =
@@ -147,6 +157,46 @@ function* fetchDocumentCountsSaga() {
   }
 }
 
+function* fetchGeneratedCVsSaga() {
+  try {
+    const response: AxiosResponse = yield call(fetchCVs);
+    yield put(fetchGeneratedCVsSuccess(response.data.cvs));
+  } catch (error: any) {
+    yield put(
+      fetchGeneratedCVsFailure(
+        error.response?.data?.message || 'Failed to fetch CVs',
+      ),
+    );
+  }
+}
+
+function* fetchGeneratedCLsSaga() {
+  try {
+    const response: AxiosResponse = yield call(fetchCLs);
+    yield put(fetchGeneratedCLsSuccess(response.data.cls));
+  } catch (error: any) {
+    yield put(
+      fetchGeneratedCLsFailure(
+        error.response?.data?.message || 'Failed to fetch Cover Letters',
+      ),
+    );
+  }
+}
+
+function* fetchTailoredAppsSaga() {
+  try {
+    const response: AxiosResponse = yield call(fetchTailoredApps);
+    yield put(
+      fetchTailoredApplicationsSuccess(response.data.tailoredApplications),
+    );
+  } catch (error: any) {
+    yield put(
+      fetchTailoredApplicationsFailure(
+        error.response?.data?.message || 'Failed to fetch Applications',
+      ),
+    );
+  }
+}
 export function* watchAI() {
   yield takeLatest(
     generateCVByJobDescriptionRequest.type,
@@ -173,4 +223,10 @@ export function* watchAI() {
   );
 
   yield takeLatest(getDocumentCountsRequest.type, fetchDocumentCountsSaga);
+  yield takeLatest(fetchGeneratedCVsRequest.type, fetchGeneratedCVsSaga);
+  yield takeLatest(fetchGeneratedCLsRequest.type, fetchGeneratedCLsSaga);
+  yield takeLatest(
+    fetchTailoredApplicationsRequest.type,
+    fetchTailoredAppsSaga,
+  );
 }
