@@ -58,7 +58,7 @@ export default function DashboardLayoutClient({
   const [lastDismissedPath, setLastDismissedPath] = useState<string | null>(
     null,
   );
-  const [lastDismissedTime, setLastDismissedTime] = useState<number>(0);
+
   const popupShownForPathRef = useRef<Set<string>>(new Set());
 
   const { user } = useSelector((state: RootState) => state.auth);
@@ -82,62 +82,51 @@ export default function DashboardLayoutClient({
 
     return () => clearTimeout(timer);
   }, [streak?.canClaimToday]);
-  const handleCloseStreakPopup = () => {
-    setShowStreakPopup(false);
-    sessionStorage.setItem('streak_popup_shown', 'true');
-  };
 
   useEffect(() => {
+    // 1. Check if user already saw it this session OR permanently
     const hasShownImprovement = sessionStorage.getItem(
       'improvement_popup_shown',
     );
 
-    const isPermanentlyCompleted =
-      popupShownForPathRef.current.has('/dashboard/*') &&
-      pathname.startsWith('/dashboard');
+    // Check local storage for permanent completion
+    const feedbackData = localStorage.getItem('feedback_completed');
+    let isPermanentlyCompleted = false;
+    if (feedbackData) {
+      const { expiry } = JSON.parse(feedbackData);
+      isPermanentlyCompleted = Date.now() < expiry;
+    }
 
+    // If they already interacted, don't start the timer
     if (hasShownImprovement || isPermanentlyCompleted) {
       return;
     }
 
+    // 2. Clear existing timers on route change to prevent "stacking"
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
 
-    if (!hasShownImprovement && !isPermanentlyCompleted) {
-      timerRef.current = setTimeout(() => {
-        setShowImprovementPopup(true);
-        sessionStorage.setItem('improvement_popup_shown', 'true');
-      }, 120000);
-    }
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [pathname]);
-
-  useEffect(() => {
-    const hasShownImprovement = sessionStorage.getItem(
-      'improvement_popup_shown',
-    );
-
-    if (!hasShownImprovement) return;
-
-    if (
-      popupShownForPathRef.current.has('/dashboard/*') &&
-      pathname.startsWith('/dashboard')
-    ) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
+    // 3. Set the 30-second timer (30,000ms)
+    timerRef.current = setTimeout(() => {
       setShowImprovementPopup(true);
-    }, 120000);
+      // Mark as shown so a refresh doesn't trigger it again instantly
+      sessionStorage.setItem('improvement_popup_shown', 'true');
+    }, 30000);
 
-    return () => clearTimeout(timer);
-  }, [pathname]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [pathname]); // Restarts the 30s clock whenever they change pages
 
+  const handleDismissPopup = () => {
+    setShowImprovementPopup(false);
+
+    sessionStorage.setItem('improvement_popup_shown', 'true');
+
+    setLastDismissedPath(pathname);
+    setGlobalLastDismissTime(Date.now());
+  };
   const handleYesInteraction = () => {
     setShowImprovementPopup(false);
     popupShownForPathRef.current.add('/dashboard/*');
@@ -232,7 +221,7 @@ export default function DashboardLayoutClient({
   }, []);
 
   const toggle = () => setIsOpen(!isOpen);
- 
+
   const handleMouseEnter = () => {
     if (isDesktop && !isPinned) {
       setIsHovered(true);
@@ -270,57 +259,6 @@ export default function DashboardLayoutClient({
       name: user.fullName,
     });
   }, [user]);
-
-  useEffect(() => {
-    if (
-      popupShownForPathRef.current.has('/dashboard/*') &&
-      pathname.startsWith('/dashboard')
-    ) {
-      return;
-    }
-
-    let waitTime = 0;
-
-    if (globalLastDismissTime > 0) {
-      const timeSinceGlobal = Date.now() - globalLastDismissTime;
-
-      if (timeSinceGlobal < 60000) {
-        waitTime = 60000 - timeSinceGlobal;
-      }
-    }
-
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    if (waitTime > 0) {
-      timerRef.current = setTimeout(() => {
-        const finalTimer = setTimeout(() => {
-          setShowImprovementPopup(true);
-        }, 1);
-
-        timerRef.current = finalTimer;
-      }, waitTime);
-    } else {
-      timerRef.current = setTimeout(() => {
-        setShowImprovementPopup(true);
-      }, 1);
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [pathname, globalLastDismissTime]);
-
-  const handleDismissPopup = () => {
-    setShowImprovementPopup(false);
-
-    setLastDismissedPath(pathname);
-    setLastDismissedTime(Date.now());
-    setGlobalLastDismissTime(Date.now());
-  };
 
   useEffect(() => {
     const handleUserActivity = () => {
@@ -406,8 +344,8 @@ export default function DashboardLayoutClient({
             onYes={handleYesInteraction}
           />
         )}
-
-        <FeedbackPopup delay={50000} enableAutoOpen={true} />
+        {/* feedback popup  */}
+        {/* <FeedbackPopup delay={50000} enableAutoOpen={true} /> */}
       </SidebarContext.Provider>
     </FeedbackProvider>
   );

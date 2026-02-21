@@ -182,12 +182,13 @@ export default function ApplicationsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6 mb-6 cursor-pointer md:p-2">
+        <div className="grid grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6 mb-6 md:p-2">
           <StatCard
             label="Applied Jobs"
             value={jobStats?.appliedJobsCount}
             icon={Send}
             // color="tabPrimary"
+            isActive={statusFilter === 'Applied'}
             onClick={() => setStatusFilter('Applied')}
           />
           <StatCard
@@ -195,6 +196,7 @@ export default function ApplicationsPage() {
             value={jobStats?.savedJobsCount}
             icon={Bookmark}
             // color="tabPrimary"
+            isActive={statusFilter === 'Saved'}
             onClick={() => setStatusFilter('Saved')}
           />
           <StatCard
@@ -202,6 +204,7 @@ export default function ApplicationsPage() {
             value={jobStats?.jobsViewed}
             icon={Eye}
             // color="tabPrimary"
+            isActive={statusFilter === 'Viewed'}
             onClick={() => setStatusFilter('Viewed')}
           />
           <StatCard
@@ -209,6 +212,7 @@ export default function ApplicationsPage() {
             value={jobStats?.jobsVisited}
             icon={Link}
             // color="tabPrimary"
+            isActive={statusFilter === 'Visited'}
             onClick={() => setStatusFilter('Visited')}
           />
         </div>
@@ -237,7 +241,11 @@ export default function ApplicationsPage() {
 
         <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4 rounded-lg border border-gray-200 dark:border-gray-800">
           {isLoading ? (
-            <Loader message="Loading applications..." />
+            <Loader
+              message="Loading applications..."
+              imageClassName="w-6 h-6"
+              textClassName="text-sm"
+            />
           ) : applications.length > 0 ? (
             <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
               {applications.map((app, index) => (

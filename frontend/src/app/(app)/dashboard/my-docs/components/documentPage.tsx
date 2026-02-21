@@ -507,7 +507,7 @@ export default function DocumentsPage() {
         {/* ✅ Conditional Sections */}
         <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 backdrop-blur-sm">
           {isLoading ? (
-            <Loader />
+            <Loader imageClassName="w-6 h-6" textClassName="text-sm" />
           ) : (
             <>
               {activeTab === 'cvs' && (

@@ -387,7 +387,8 @@ const AppHeader = ({
   const handleLogout = async () => {
     try {
       // remove feedback session token
-      // sessionStorage.removeItem('feedback_shown');
+      sessionStorage.removeItem('feedback_shown');
+      sessionStorage.removeItem('improvement_popup_shown');
       dispatch(logoutRequest());
       router.push('/login');
     } catch (error) {
