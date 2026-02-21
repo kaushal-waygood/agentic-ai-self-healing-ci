@@ -9,6 +9,7 @@ import Script from 'next/script';
 import { Metadata } from 'next';
 import NextTopLoader from 'nextjs-toploader';
 import Clarity from '@microsoft/clarity';
+import { Suspense } from 'react';
 
 // 1. Fully Expanded Metadata
 export const metadata: Metadata = {
@@ -136,7 +137,9 @@ export default function RootLayout({
           speed={200}
           shadow="0 0 10px #2563eb,0 0 5px #2563eb"
         />
-        <LayoutPage>{children}</LayoutPage>
+        <LayoutPage>
+          <Suspense fallback={null}>{children}</Suspense>
+        </LayoutPage>
       </body>
     </html>
   );
