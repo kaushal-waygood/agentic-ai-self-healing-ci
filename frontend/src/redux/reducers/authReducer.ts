@@ -24,9 +24,6 @@ const authSlice = createSlice({
       state.loading = false;
       state.isAuthenticated = true;
       state.token = action.payload.token;
-
-      // Instead of state.user = action.payload.user
-      // Pick only what you actually need for the UI
       const { _id, fullName, email, dailyStreak } = action.payload.user;
       state.user = { _id, fullName, email, dailyStreak };
     },

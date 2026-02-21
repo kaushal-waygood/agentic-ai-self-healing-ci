@@ -118,10 +118,10 @@ function* getGetMeSaga(token: string): SagaIterator {
 function* logoutSaga(): SagaIterator {
   const Router = require('next/router');
   try {
-    yield call(logout);
-
     localStorage.removeItem('persist:root');
+    localStorage.clear();
     yield put(logoutSuccess());
+    Router.push('/login');
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Logout failed';

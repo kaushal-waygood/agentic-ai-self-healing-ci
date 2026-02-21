@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import DocumentsPage from './components/documentPage';
 import { myDocsMetadata } from '@/metadata/metadata';
 
@@ -9,7 +9,11 @@ export const metadata = {
 };
 
 const page = () => {
-  return <DocumentsPage />;
+  return (
+    <Suspense fallback={<div>Loading Documents...</div>}>
+      <DocumentsPage />
+    </Suspense>
+  );
 };
 
 export default page;

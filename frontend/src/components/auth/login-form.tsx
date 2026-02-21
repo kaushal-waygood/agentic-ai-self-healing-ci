@@ -103,10 +103,12 @@ const LoginForm = () => {
           deviceInfo,
         }),
       );
-      toast({
-        title: 'Login Success',
-        variant: 'success',
-      });
+      if (token && user) {
+        toast({
+          title: 'Login Success',
+          variant: 'success',
+        });
+      }
     } catch (error) {
       console.error('Login error:', error);
       NProgress.done();

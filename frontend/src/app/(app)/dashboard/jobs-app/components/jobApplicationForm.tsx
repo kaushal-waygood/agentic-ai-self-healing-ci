@@ -28,7 +28,6 @@ const JobApplicationForm = () => {
   });
 
   const { student: user } = useSelector((state) => state.student);
-  const dispatch = useDispatch();
 
   // Monitor Firebase auth state
   useState(() => {
