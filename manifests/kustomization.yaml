@@ -8,10 +8,6 @@ resources:
   - zobsai-frontend-deployment.yaml
   - zobsai-frontend-configs.yaml
   - zobsai-frontend-secrets.yaml
-  - zobsai-uni-company-panel-config.yaml
-  - zobsai-uni-company-panel-deployment.yaml
-  - zobsai-uni-company-panel-secrets.yaml
-  - zobsai-uni-company-panel-service.yaml
   - zobsai-redis.yaml
   #- zobsai-backend-tests-job.yaml
   #- zobsai-frontend-tests-job.yaml
