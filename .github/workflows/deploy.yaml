@@ -6,7 +6,7 @@ name: Build & Deploy ZobsAI (Dev)
 on:
   push:
     branches:
-      - develop
+      - main
   workflow_dispatch:
 
 jobs:
@@ -99,32 +99,32 @@ jobs:
       - name: Debug current manifest images
         run: |
           echo "=== Backend BEFORE ==="
-          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml || true
+          grep "image:" manifests/zobsai-backend-deployment.yaml || true
           echo "=== Frontend BEFORE ==="
-          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml || true
-          echo "=== Uni Panel BEFORE ==="
-          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml || true
+          # grep "image:" manifests/zobsai-frontend-deployment.yaml || true
+          # echo "=== Uni Panel BEFORE ==="
+          # grep "image:" manifests/zobsai-uni-company-panel-deployment-dev.yaml || true
 
       # -------------------------------
       # 7️⃣ Update Kubernetes Manifests (Linux-safe)
       # -------------------------------
       - name: Update Backend Deployment Manifest
         run: |
-          sed -i -e "s#zobsai-backend:.*#zobsai-backend:${{ github.sha }}#g" manifests/dev/zobsai-backend-deployment-dev.yaml
+          sed -i -e "s#zobsai-backend:.*#zobsai-backend:${{ github.sha }}#g" manifests/zobsai-backend-deployment.yaml
           echo "✅ Backend image updated"
-          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml
+          grep "image:" manifests/zobsai-backend-deployment.yaml
 
       - name: Update Frontend Deployment Manifest
         run: |
-          sed -i -e "s#zobsai-frontend:.*#zobsai-frontend:${{ github.sha }}#g" manifests/dev/zobsai-frontend-deployment-dev.yaml
+          sed -i -e "s#zobsai-frontend:.*#zobsai-frontend:${{ github.sha }}#g" manifests/zobsai-frontend-deployment.yaml
           echo "✅ Frontend image updated"
-          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml
+          grep "image:" manifests/zobsai-frontend-deployment.yaml
 
-      - name: Update Uni Company Panel Deployment Manifest
-        run: |
-          sed -i -e "s#zobsai-uni-company-panel:.*#zobsai-uni-company-panel:${{ github.sha }}#g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
-          echo "✅ Uni Company Panel image updated"
-          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
+      # - name: Update Uni Company Panel Deployment Manifest
+      #   run: |
+      #     sed -i -e "s#zobsai-uni-company-panel:.*#zobsai-uni-company-panel:${{ github.sha }}#g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
+      #     echo "✅ Uni Company Panel image updated"
+      #     grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
 
       # -------------------------------
       # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
@@ -134,12 +134,12 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add -f manifests/dev/*.yaml
+          git add -f manifests/*.yaml
 
           if git diff --cached --quiet; then
             echo "⚠️ No changes to commit"
           else
             git commit -m "ci(dev): update images to ${{ github.sha }}"
-            git push origin develop
+            git push origin main
             echo "🚀 Manifests pushed. ArgoCD will auto-sync."
           fi
