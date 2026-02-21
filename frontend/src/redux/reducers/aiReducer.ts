@@ -25,14 +25,43 @@ type DocumentCounts = {
 type AI = {
   resume: Resume[];
   coverLetter: CoverLetter[];
+  generatedCVs: GeneratedCV[];
+  generatedCLs: GeneratedCL[];
+  tailoredApplications: TailoredApplication[];
   documentCounts: DocumentCounts | null;
   loading: boolean;
   error: string | null;
 };
 
+// Types for Generated Docs (Matching your API response)
+interface GeneratedCV {
+  _id: string;
+  cvTitle: string;
+  status: string;
+  createdAt: string;
+  // ... other fields
+}
+
+interface GeneratedCL {
+  _id: string;
+  clTitle: string;
+  status: string;
+  createdAt: string;
+}
+
+interface TailoredApplication {
+  _id: string;
+  jobTitle: string;
+  companyName: string;
+  status: string;
+  createdAt: string;
+}
 const initialState: AI = {
   resume: [],
   coverLetter: [],
+  generatedCVs: [],
+  generatedCLs: [],
+  tailoredApplications: [],
   loading: false,
   documentCounts: null,
   error: null,
@@ -42,6 +71,52 @@ const AISlice = createSlice({
   name: 'ai',
   initialState,
   reducers: {
+    // --- 2. Fetch Generated CVs (The /students/cvs API) ---
+    fetchGeneratedCVsRequest: (state) => {
+      state.loading = true;
+    },
+    fetchGeneratedCVsSuccess: (state, action: PayloadAction<GeneratedCV[]>) => {
+      state.loading = false;
+      state.generatedCVs = action.payload;
+    },
+
+    fetchGeneratedCVsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    // --- 3. Fetch Generated CLs (The /students/cover-letter API) ---
+    fetchGeneratedCLsRequest: (state) => {
+      state.loading = true;
+    },
+    fetchGeneratedCLsSuccess: (state, action: PayloadAction<GeneratedCL[]>) => {
+      state.loading = false;
+      state.generatedCLs = action.payload;
+    },
+    fetchGeneratedCLsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
+    // --- 4. Fetch Tailored Apps (The /students/applications API) ---
+    fetchTailoredApplicationsRequest: (state) => {
+      state.loading = true;
+    },
+    fetchTailoredApplicationsSuccess: (
+      state,
+      action: PayloadAction<TailoredApplication[]>,
+    ) => {
+      state.loading = false;
+      state.tailoredApplications = action.payload;
+    },
+    fetchTailoredApplicationsFailure: (
+      state,
+      action: PayloadAction<string>,
+    ) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+
     getDocumentCountsRequest: (state) => {
       state.loading = true;
       state.error = null;
@@ -230,5 +305,17 @@ export const {
   getDocumentCountsRequest,
   getDocumentCountsSuccess,
   getDocumentCountsFailure,
+
+  fetchGeneratedCVsRequest,
+  fetchGeneratedCVsSuccess,
+  fetchGeneratedCVsFailure,
+
+  fetchGeneratedCLsRequest,
+  fetchGeneratedCLsSuccess,
+  fetchGeneratedCLsFailure,
+
+  fetchTailoredApplicationsRequest,
+  fetchTailoredApplicationsSuccess,
+  fetchTailoredApplicationsFailure,
 } = AISlice.actions;
 export default AISlice.reducer;
