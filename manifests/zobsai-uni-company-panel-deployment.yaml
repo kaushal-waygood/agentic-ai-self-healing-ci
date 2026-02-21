@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: uni-company-panel # Changed _ to -
-  namespace: dev-zobsai
+  namespace: zobsai
   annotations:
     argocd.argoproj.io/compare-options: IgnoreExtraneous
   labels:
