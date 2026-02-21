@@ -129,17 +129,21 @@ jobs:
       # -------------------------------
       # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
       # -------------------------------
+# -------------------------------
+      # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
+      # -------------------------------
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          
-          # This ensures all new panel manifests are included
-          git add manifests/
-          
+
+          # Use the -f flag because 'manifests' is in your .gitignore
+          git add -f manifests/
+
           if git diff --cached --quiet; then
             echo "⚠️ No changes to commit"
           else
-            git commit -m "ci(dev): sync all manifests for ${{ github.sha }}"
+            git commit -m "ci(dev): update images and manifests for ${{ github.sha }}"
             git push origin main
+            echo "🚀 Manifests pushed. ArgoCD will auto-sync."
           fi
