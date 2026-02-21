@@ -2,26 +2,34 @@ import Image from 'next/image';
 
 export const Loader = ({
   message = 'LOADING...',
+  fullHeight = false,
   classStyle = '',
+  imageClassName = 'w-8 h-8',
+  textClassName = 'text-lg',
 }: {
   message?: string;
   classStyle?: string;
+  fullHeight?: boolean;
+  imageClassName?: string;
+  textClassName?: string;
 }) => {
   return (
     <div
-      className={`flex flex-col justify-center items-center py-20 ${classStyle}`}
+      className={`flex flex-col justify-center items-center ${
+        fullHeight ? 'h-full min-h-[200px]' : 'py-20'
+      } ${classStyle}`}
     >
       <div>
         <Image
           src="/logo.png"
           alt=""
-          className="w-10 h-10 animate-bounce"
+          className={`animate-bounce ${imageClassName}`}
           width={100}
           height={100}
         />
       </div>
 
-      <div className="text-lg">{message} ...</div>
+      <div className={`${textClassName}`}>{message} ...</div>
     </div>
   );
 };

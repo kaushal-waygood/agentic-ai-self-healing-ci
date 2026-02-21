@@ -241,7 +241,11 @@ export default function ApplicationsPage() {
 
         <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4 rounded-lg border border-gray-200 dark:border-gray-800">
           {isLoading ? (
-            <Loader message="Loading applications..." />
+            <Loader
+              message="Loading applications..."
+              imageClassName="w-6 h-6"
+              textClassName="text-sm"
+            />
           ) : applications.length > 0 ? (
             <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
               {applications.map((app, index) => (

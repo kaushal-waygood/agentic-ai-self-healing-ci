@@ -175,7 +175,7 @@ export function ProfileReadinessCard() {
   const router = useRouter();
 
   if (isLoading || !data) {
-    return <Loader />;
+    return <Loader imageClassName="w-6 h-6" textClassName="text-sm" />;
   }
 
   if (error) {
