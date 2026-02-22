@@ -31,6 +31,13 @@ spec:
                 name: zobsai-frontend-config
             - secretRef:
                 name: zobsai-frontend-secrets
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
 ---
 apiVersion: v1
 kind: Service
@@ -42,6 +49,26 @@ spec:
   selector:
     app: zobsai-frontend
   ports:
-    - port: 3000 # Service port
-      targetPort: 3000 # Container port
-      nodePort: 30030 # NodePort (optional, can be omitted)
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30030
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: zobsai-frontend-hpa
+  namespace: dev-zobsai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: zobsai-frontend
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
