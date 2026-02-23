@@ -377,51 +377,47 @@ const JobWizard = ({
                 </div>
               </TabsContent>
 
-              {loading ? (
-                <Loader
-                  message="Fetching saved Jobs"
-                  imageClassName="w-6 h-6"
-                  textClassName="text-sm"
-                />
-              ) : (
-                <div>
-                  {' '}
-                  {/* Enhanced Select Tab */}
-                  <TabsContent value="select" className="">
-                    {savedJobs.length > 0 ? (
-                      <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
-                        {savedJobs.map((job: any) => (
-                          <div
-                            key={job.job._id}
-                            onClick={() =>
-                              handleSetJobContext('select', job.job._id)
-                            }
-                            className=""
-                          >
-                            <JobCard job={job} />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-20">
-                        <div className="relative inline-block mb-6">
-                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 blur-2xl opacity-30 animate-pulse"></div>
-                          <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg mx-auto flex items-center justify-center shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-300">
-                            <Briefcase className="h-12 w-12 text-white" />
-                          </div>
+              <div>
+                <TabsContent value="select" className="">
+                  {loading ? (
+                    <Loader
+                      message="Fetching saved Jobs"
+                      imageClassName="w-6 h-6"
+                      textClassName="text-sm"
+                    />
+                  ) : savedJobs.length > 0 ? (
+                    <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+                      {savedJobs.map((job: any) => (
+                        <div
+                          key={job.job._id}
+                          onClick={() =>
+                            handleSetJobContext('select', job.job._id)
+                          }
+                          className=""
+                        >
+                          <JobCard job={job} />
                         </div>
-                        <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                          No Saved Jobs Yet
-                        </h3>
-                        <p className="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">
-                          Start saving jobs you're interested in, and they'll
-                          appear here for quick CV generation!
-                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20">
+                      <div className="relative inline-block mb-6">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 blur-2xl opacity-30 animate-pulse"></div>
+                        <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg mx-auto flex items-center justify-center shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-300">
+                          <Briefcase className="h-12 w-12 text-white" />
+                        </div>
                       </div>
-                    )}
-                  </TabsContent>
-                </div>
-              )}
+                      <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                        No Saved Jobs Yet
+                      </h3>
+                      <p className="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">
+                        Start saving jobs you're interested in, and they'll
+                        appear here for quick CV generation!
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+              </div>
 
               {/* Enhanced Title Tab */}
               <TabsContent

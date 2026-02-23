@@ -55,7 +55,6 @@ export function useCredits() {
   const [spending, setSpending] = useState(false);
 
   const data = claimCredits?.data || null;
-  console.log(data);
 
   /* ------------------ fetch ------------------ */
 
@@ -90,7 +89,8 @@ export function useCredits() {
 
   /* ------------------ actions ------------------ */
 
-  const claimCredit = async (p: PendingClaim) => {
+  const claimCredit = async (p: any) => {
+    console.log(p);
     const targetUrl = p.url;
     if (!targetUrl) return;
 
@@ -104,6 +104,8 @@ export function useCredits() {
 
     try {
       setClaiming((prev) => ({ ...prev, [p.action]: true }));
+
+      console.log(p);
       dispatch(
         earnCreditRequest({
           action: p.action,

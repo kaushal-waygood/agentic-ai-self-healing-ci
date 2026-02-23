@@ -420,6 +420,8 @@ export const checkoutCredits = async (req, res) => {
 };
 
 export const earnCredits = async (req, res) => {
+  console.log('earnCredits', req.user);
+  console.log('earnCredits', req.params);
   const { _id } = req.user || {};
   const { action } = req.params;
 

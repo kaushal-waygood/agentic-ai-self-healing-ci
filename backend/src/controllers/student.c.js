@@ -2184,7 +2184,7 @@ export const getCreditsSummary = async (req, res) => {
       { action: 'FOLLOW_INSTAGRAM', label: 'Instagram' },
       { action: 'FOLLOW_FACEBOOK', label: 'Facebook' },
       { action: 'FOLLOW_YOUTUBE', label: 'YouTube' },
-      { action: 'FOLLOW_TIKTOK', label: 'TikTok' },
+      // { action: 'FOLLOW_TIKTOK', label: 'TikTok' },
     ];
     socialPlatforms.forEach((p) => {
       if (!hasClaimedKind(p.action)) {
