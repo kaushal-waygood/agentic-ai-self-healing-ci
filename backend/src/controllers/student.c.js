@@ -1599,15 +1599,17 @@ export const completeStudentOnboarding = async (req, res) => {
   const userId = req.user?._id;
 
   try {
+    // Move data extraction to the top level of the try block
+    // so it is accessible to the email transporter later.
+    const { data, selectedOptions } = req.body;
+
+    if (!userId) throw new Error('Unauthorized');
+
+    if (!data?.fullName || !data?.email) {
+      throw new Error('Missing required fields');
+    }
+
     await session.withTransaction(async () => {
-      if (!userId) throw new Error('Unauthorized');
-
-      const { data, selectedOptions } = req.body;
-
-      if (!data?.fullName || !data?.email) {
-        throw new Error('Missing required fields');
-      }
-
       // --- Student update ---
       await Student.findByIdAndUpdate(
         userId,
@@ -1620,10 +1622,6 @@ export const completeStudentOnboarding = async (req, res) => {
 
           jobPreferences: {
             preferredJobTypes: selectedOptions?.jobType || [],
-            // preferredCountries: data?.preferredCountries
-            //   ? [data?.preferredCountries] || []
-            //   : [],
-            // preferredCities: data.preferredCities ? [data.preferredCities] : [],
             preferredCities: Array.isArray(data.preferredCities)
               ? data.preferredCities
               : [],
@@ -1648,7 +1646,6 @@ export const completeStudentOnboarding = async (req, res) => {
 
           hasCompletedOnboarding: true,
         },
-
         { session, runValidators: true },
       );
 
@@ -1690,25 +1687,48 @@ export const completeStudentOnboarding = async (req, res) => {
           { session },
         );
       }
+
+      await User.findByIdAndUpdate(
+        userId,
+        {
+          isProfileOnboardingCompleted: true,
+        },
+        { session },
+      );
     });
 
-    session.endSession();
-
-    // 🔥 IMPORTANT: invalidate Redis AFTER commit
+    // Invalidate cache after successful transaction
     await redisClient.invalidateStudentCache(userId.toString());
+
+    // Send confirmation email
+    // 'data' is now defined in this scope
+    transporter.sendMail({
+      from: data.email,
+      to: process.env.EMAIL_USER,
+      subject: 'Onboarding completed successfully',
+      text: ` 
+      Onboarding completed successfully for student ${data.fullName}
+      Email: ${data.email}
+      Phone: ${data.phone}
+      Job Role: ${data.designation}
+      Location: ${data.location}
+      `,
+    });
 
     return res.status(200).json({
       success: true,
       message: 'Onboarding completed successfully',
     });
   } catch (error) {
-    session.endSession();
     console.error('Onboarding error:', error);
 
     return res.status(500).json({
       success: false,
       message: error.message || 'Failed to complete onboarding',
     });
+  } finally {
+    // End the session regardless of success or failure
+    await session.endSession();
   }
 };
 
@@ -2139,25 +2159,25 @@ export const getCreditsSummary = async (req, res) => {
     }
 
     // Allow browser notifications (one-time)
-    if (!hasClaimedKind('ALLOW_BROWSER_NOTIF')) {
-      const allowedFlag =
-        user.settings && user.settings.allowBrowserNotifications;
-      if (!allowedFlag) {
-        pending.push({
-          action: 'ALLOW_BROWSER_NOTIF',
-          credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
-          reason: 'Enable browser notifications to claim credits.',
-          url: redirectForAction('ALLOW_BROWSER_NOTIF'),
-        });
-      } else {
-        pending.push({
-          action: 'ALLOW_BROWSER_NOTIF',
-          credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
-          reason: 'Claim credits for enabling browser notifications.',
-          url: redirectForAction('ALLOW_BROWSER_NOTIF'),
-        });
-      }
-    }
+    // if (!hasClaimedKind('ALLOW_BROWSER_NOTIF')) {
+    //   const allowedFlag =
+    //     user.settings && user.settings.allowBrowserNotifications;
+    //   if (!allowedFlag) {
+    //     pending.push({
+    //       action: 'ALLOW_BROWSER_NOTIF',
+    //       credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
+    //       reason: 'Enable browser notifications to claim credits.',
+    //       url: redirectForAction('ALLOW_BROWSER_NOTIF'),
+    //     });
+    //   } else {
+    //     pending.push({
+    //       action: 'ALLOW_BROWSER_NOTIF',
+    //       credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
+    //       reason: 'Claim credits for enabling browser notifications.',
+    //       url: redirectForAction('ALLOW_BROWSER_NOTIF'),
+    //     });
+    //   }
+    // }
 
     const socialPlatforms = [
       { action: 'FOLLOW_LINKEDIN', label: 'LinkedIn' },

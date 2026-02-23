@@ -48,22 +48,27 @@ export const statusConfig = {
     icon: '⚠️',
   },
 };
-
 export const applicationStatuses = Object.keys(statusConfig);
 
 // --- StatCard Component (Unchanged) ---
-export const StatCard = ({ label, value, icon: Icon, onClick }) => (
+export const StatCard = ({ label, value, icon: Icon, isActive, onClick }) => (
   <div
     onClick={onClick}
-    className={` group relative overflow-hidden rounded-lg border-2 border-blue-400 dark:border-gray-700 p-2 md:p-4 transition-all duration-300 hover:shadow-xl hover:scale-105 hover:border-blue-300 cursor-pointer active:scale-[0.98]`}
+    className={`p-2 md:p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+      isActive
+        ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-lg scale-105'
+        : 'border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50'
+    }`}
   >
-    <div className="relative z-10">
-      {/* Optional icon */}
-      {/* <div className="p-3 rounded-lg bg-white/20 mb-4 inline-block">
-        <Icon className="h-6 w-6 text-white" />
-      </div> */}
-      <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
-      <div className="text-gray-600 text-sm font-medium">{label}</div>
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          {label}
+        </p>
+        <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mt-1">
+          {value}
+        </p>
+      </div>
     </div>
   </div>
 );

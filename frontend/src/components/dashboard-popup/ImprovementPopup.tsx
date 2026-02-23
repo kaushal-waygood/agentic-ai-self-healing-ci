@@ -14,7 +14,6 @@ export default function ImprovementPopup({
   onClose,
   onYes,
 }: ImprovementPopupProps) {
-  const [showForm, setShowForm] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -161,14 +160,14 @@ export default function ImprovementPopup({
             placeholder="Tell us what features you'd like to see, what's not working well, or any suggestions..."
             className="w-full h-32 p-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none mb-4"
           />
-
+          {/* 
           <button
             onClick={handleCalendarClick}
             className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 mb-4 mx-auto"
           >
             <Calendar className="w-4 h-4" />
             <span>Schedule a 30-min call instead</span>
-          </button>
+          </button> */}
 
           <div className="flex gap-3">
             <Button

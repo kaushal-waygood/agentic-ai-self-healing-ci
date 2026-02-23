@@ -160,12 +160,10 @@ export const initiateCVGeneration = async (
     });
 
     // 4. Handle "First CV" Credits
-    // We count existing CVs for this student to determine if it's the first one
     const cvCount = await StudentCV.countDocuments({ student: _id });
-    const isFirstCV = cvCount === 1; // It's 1 because we just created one above
+    const isFirstCV = cvCount === 1;
 
     if (isFirstCV) {
-      // Non-blocking credit award
       (async () => {
         try {
           const earnResult = await earnCreditsForAction(user._id, 'FIRST_CV', {

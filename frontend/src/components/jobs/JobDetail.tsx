@@ -25,8 +25,6 @@ import {
   ExternalLink,
   Sparkles,
   Loader2,
-  ChevronDown,
-  ChevronUp,
   HeartOff,
   MapPin,
   Briefcase,
@@ -34,7 +32,7 @@ import {
   TrendingUp,
   Star,
   Zap,
-  Send,
+  Share2,
 } from 'lucide-react';
 
 import { JobListing } from '@/lib/data/jobs';
@@ -103,7 +101,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     if (!job?._id) return;
 
     const controller = new AbortController();
-    const { signal } = controller;
 
     try {
       const rawMatch = localStorage.getItem(MATCH_SCORE_KEY(job._id));
@@ -498,25 +495,60 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               </div>
             </div>
 
-            <Button
-              onClick={handleToggleSavedJob}
-              className={`group relative px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 ${
-                isSaved
-                  ? 'bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-lg shadow-red-500/20 border border-white/30'
-                  : 'bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/30'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm">
-                  {isSaved ? 'Saved' : 'Save Job'}
-                </span>
-                {isSaved ? (
-                  <HeartOff className="w-5 h-5 transition-transform group-hover:scale-110" />
-                ) : (
-                  <Heart className="w-5 h-5 transition-transform group-hover:scale-110 group-hover:fill-current" />
-                )}
-              </div>
-            </Button>
+            <div className="flex flex-col  justify-center  flex-wrap items-center gap-4">
+              <Button
+                onClick={handleToggleSavedJob}
+                className={`group relative px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 ${
+                  isSaved
+                    ? 'bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white shadow-lg shadow-red-500/20 border border-white/30'
+                    : 'bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/30'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">
+                    {isSaved ? 'Saved' : 'Save Job'}
+                  </span>
+                  {isSaved ? (
+                    <HeartOff className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  ) : (
+                    <Heart className="w-5 h-5 transition-transform group-hover:scale-110 group-hover:fill-current" />
+                  )}
+                </div>
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  const shareData = {
+                    title: job.title,
+                    text: `Check out this job: ${job.title}`,
+                    url: `https://zobsai.com/jobs/${job.slug}`,
+                  };
+
+                  try {
+                    // Check if the browser supports the native share menu
+                    if (navigator.share) {
+                      await navigator.share(shareData);
+                    } else {
+                      // Fallback for desktop/unsupported browsers: Copy to clipboard
+                      await navigator.clipboard.writeText(shareData.url);
+                      toast({
+                        variant: 'success',
+                        title: 'Link copied to clipboard',
+                        description: 'Share it anywhere!',
+                      });
+                    }
+                  } catch (err) {
+                    console.error('Error sharing:', err);
+                  }
+                }}
+                className="group relative px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/30"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">Share Job</span>
+                  <Share2 className="w-5 h-5 transition-transform group-hover:scale-110" />
+                </div>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -539,10 +571,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               </div>
             ) : (
               <Image
-                src="/placeholder-logo.png"
+                src="/logo.png"
                 alt="Company Logo"
-                fill
-                sizes="48px"
+                width={48}
+                height={48}
                 className="object-contain"
               />
             )}

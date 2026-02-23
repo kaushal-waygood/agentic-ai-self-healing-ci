@@ -162,6 +162,11 @@ const userSchema = new Schema(
       default: false,
     },
 
+    isProfileOnboardingCompleted: {
+      type: Boolean,
+      default: false,
+    },
+
     plan: {
       type: Schema.Types.ObjectId,
       ref: 'Plan',

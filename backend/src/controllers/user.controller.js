@@ -1441,7 +1441,7 @@ export const getVerifiedUser = async (req, res) => {
 
 export const submitFeedback = async (req, res) => {
   try {
-    const { category, message, path } = req.body;
+    const { category, feedback, path } = req.body;
     const { _id: userId } = req.user;
 
     const user = await User.findById(userId).select('email').lean();
@@ -1468,7 +1468,7 @@ export const submitFeedback = async (req, res) => {
       userId,
       email: user.email,
       category,
-      message,
+      feedback,
       path,
       attachment,
       meta: {

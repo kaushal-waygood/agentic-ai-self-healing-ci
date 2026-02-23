@@ -53,6 +53,7 @@ import {
   checkoutCredits,
   claimDailyStreak,
   getDailyStreak,
+  earnCredits,
 } from '../controllers/credit.controller.js';
 import { upload } from '../middlewares/multer.js';
 import multer from 'multer';
@@ -198,6 +199,12 @@ router.get(
 router.get('/streaks', authMiddleware, isUserOrUniStudent, getDailyStreak);
 router.post('/streaks', authMiddleware, isUserOrUniStudent, claimDailyStreak);
 router.get('/credits', authMiddleware, isUserOrUniStudent, getCreditsSummary);
+router.get(
+  '/credit/earn/:action',
+  authMiddleware,
+  isUserOrUniStudent,
+  earnCredits,
+);
 
 router.get(
   '/total-credits',
