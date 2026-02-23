@@ -480,10 +480,33 @@ function UsageMeter({ label, used, limit }: any) {
   );
 }
 
-function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
+function RecentActivityRow({
+  icon: Icon,
+  title,
+  subtitle,
+  time,
+  href,
+  id,
+  type,
+}) {
+  const getDocumentUrl = () => {
+    if (!id) return href;
+
+    switch (type) {
+      case 'cv':
+        return `/dashboard/my-docs/cv/${id}`;
+      case 'coverLetter':
+        return `/dashboard/my-docs/cl/${id}`;
+      case 'tailoredApplication':
+        return `/dashboard/my-docs/application/${id}`;
+      default:
+        return href;
+    }
+  };
+
   return (
     <Link
-      href={href}
+      href={getDocumentUrl()}
       prefetch={false}
       className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition"
     >
@@ -1154,6 +1177,8 @@ export default function DashboardPage() {
                       title="CV Generated"
                       subtitle={recentAI.cv.title}
                       time={recentAI.cv.completedAt}
+                      id={recentAI.cv.id || recentAI.cv._id}
+                      type="cv"
                       href="/dashboard/my-docs?tab=cvs"
                     />
                   )}
@@ -1164,6 +1189,8 @@ export default function DashboardPage() {
                       title="Cover Letter Generated"
                       subtitle={recentAI.coverLetter.title}
                       time={recentAI.coverLetter.completedAt}
+                      id={recentAI.coverLetter.id || recentAI.coverLetter._id}
+                      type="coverLetter"
                       href="/dashboard/my-docs?tab=cover-letters"
                     />
                   )}
@@ -1174,6 +1201,11 @@ export default function DashboardPage() {
                       title="Tailored Application Ready"
                       subtitle={`${recentAI.tailoredApplication.jobTitle} · ${recentAI.tailoredApplication.companyName}`}
                       time={recentAI.tailoredApplication.completedAt}
+                      id={
+                        recentAI.tailoredApplication.id ||
+                        recentAI.tailoredApplication._id
+                      }
+                      type="tailoredApplication"
                       href="/dashboard/my-docs?tab=applications"
                     />
                   )}
