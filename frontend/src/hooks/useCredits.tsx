@@ -55,11 +55,14 @@ export function useCredits() {
   const [spending, setSpending] = useState(false);
 
   const data = claimCredits?.data || null;
+  console.log(data);
 
   /* ------------------ fetch ------------------ */
 
   useEffect(() => {
     dispatch(getTotalCreditRequest());
+    dispatch(getCreditRequest());
+    // dispatch(earnCreditRequest());
   }, [dispatch]);
 
   useEffect(() => {
@@ -82,6 +85,7 @@ export function useCredits() {
   const refresh = useCallback(() => {
     setRefreshing(true);
     dispatch(getTotalCreditRequest());
+    dispatch(getCreditRequest());
   }, [dispatch]);
 
   /* ------------------ actions ------------------ */

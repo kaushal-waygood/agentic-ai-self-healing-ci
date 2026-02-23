@@ -50,7 +50,11 @@ export default function GuestLayout({
   }, [router]);
 
   if (isLoading) {
-    return <Loader />;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader imageClassName="w-6 h-6" textClassName="text-sm" />
+      </div>
+    );
   }
 
   // If not loading and not redirected, show the children (e.g., the Login page)
