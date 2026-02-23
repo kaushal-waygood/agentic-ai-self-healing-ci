@@ -45,7 +45,14 @@ export function NotificationBell() {
   };
 
   if (isLoading) {
-    return <Loader message="Loading Notifications..." />;
+    return (
+      <Loader
+        message="Loading Notifications..."
+        fullHeight={true}
+        imageClassName="w-6 h-6"
+        textClassName="text-sm"
+      />
+    );
   }
 
   return (

@@ -139,7 +139,7 @@ export default function BillingPage() {
   ).length;
 
   if (loading) {
-    return <Loader message="BILLING INFO" />;
+    return <Loader message="BILLING INFO" classStyle="min-h-screen -mt-16" />;
   }
 
   return (
@@ -269,7 +269,7 @@ export default function BillingPage() {
             {plan ? (
               <SubscriptionStatusCard plan={plan} />
             ) : (
-              <Loader message="BILLING INFO" />
+              <Loader message="BILLING INFO" classStyle="min-h-screen -mt-16" />
             )}
           </div>
         </div>
