@@ -4,3 +4,6 @@ manifests
 main.deploy
 /rof/*
 .github/workflows
+
+script.sh
+docker-compose.yaml
