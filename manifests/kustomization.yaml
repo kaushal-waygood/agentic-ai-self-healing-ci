@@ -9,6 +9,10 @@ resources:
   - zobsai-frontend-configs.yaml
   - zobsai-frontend-secrets.yaml
   - zobsai-redis.yaml
+  - zobsai-uni-company-panel-deployment.yaml
+  - zobsai-uni-company-panel-secret.yaml
+  - zobsai-uni-company-panel-service.yaml
+  - zobsai-uni-company-panel-config.yaml
   #- zobsai-backend-tests-job.yaml
   #- zobsai-frontend-tests-job.yaml
   # optionally: add ingress if you have one
