@@ -88,7 +88,6 @@ export const processCVGeneration = async (
         .select('profileImage fullName email phone location')
         .lean();
 
-    console.log(profileImage, fullName, email, phone, location);
 
     // 3. AI Generation Loop (Retries)
     while (attempt < MAX_RETRIES) {
