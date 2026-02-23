@@ -9,6 +9,7 @@ import {
   fetchDailyStreakRequest,
   getCreditRequest,
   claimDailyStreakRequest,
+  getTotalCreditRequest,
 } from '@/redux/reducers/creditReducer';
 
 type StreakState = {
@@ -33,6 +34,7 @@ export function useDailyStreak() {
 
   useEffect(() => {
     dispatch(fetchDailyStreakRequest());
+    dispatch(getTotalCreditRequest());
   }, [dispatch]);
 
   const streakData = useMemo(() => {

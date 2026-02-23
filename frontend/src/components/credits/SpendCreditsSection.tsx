@@ -260,7 +260,7 @@ export function SpendCreditsSection({
       </div>
 
       {/* Catalog Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2  gap-4 mb-6">
         {/* LOGIC FIX: Using filteredCatalog instead of CATALOG */}
         {filteredCatalog.map((item) => {
           const qty = cart[item.id] || 0;
@@ -269,10 +269,10 @@ export function SpendCreditsSection({
           return (
             <div
               key={item.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 flex flex-row justify-between"
+              className="flex bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 flex flex-row justify-between"
             >
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <h3 className="text-sm font-semibold text-gray-900">
                     {item.name}
                   </h3>
@@ -294,7 +294,7 @@ export function SpendCreditsSection({
                 </div>
               </div>
 
-              <div className="flex items-center flex-col justify-between">
+              <div className="flex  items-center flex-col justify-between">
                 <div className="flex items-center justify-center">
                   <button
                     onClick={() => handleRemove(item.id)}
