@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useCredits } from '@/hooks/useCredits';
 import { StatsGrid } from '@/components/credits/StatsGrid';
 import { PendingClaimsSection } from '@/components/credits/PendingClaimsSection';
@@ -8,10 +8,14 @@ import { TransactionsSection } from '@/components/credits/TransactionsSection';
 import { CreditsFooterActions } from '@/components/credits/CreditsFooterActions';
 import { HowToClaimModal } from '@/components/credits/HowToClaimModal';
 import { SpendCreditsSection } from '@/components/credits/SpendCreditsSection';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Loader } from '@/components/Loader';
 
 type TabKey = 'balance' | 'spent' | 'transactions';
 
 export default function CreditsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const {
     balance,
     totalEarned,
@@ -30,17 +34,45 @@ export default function CreditsPage() {
     checkout,
   } = useCredits();
 
-  const [activeTab, setActiveTab] = useState<TabKey>('balance');
+  const getTabFromUrl = useCallback((): TabKey => {
+    const tab = searchParams.get('tab');
+    if (tab === 'spent' || tab === 'transactions') {
+      return tab;
+    }
+    return 'balance';
+  }, [searchParams]);
+
+  const [activeTab, setActiveTab] = useState<TabKey>(getTabFromUrl);
   const [howToClaimOpen, setHowToClaimOpen] = useState(false);
   const [howToClaimData, setHowToClaimData] = useState<{
     title: string;
     steps: string[];
   } | null>(null);
 
+  const handleTabChange = (tab: TabKey) => {
+    setActiveTab(tab);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
+  useEffect(() => {
+    const urlTab = getTabFromUrl();
+    if (urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams, getTabFromUrl, activeTab]);
+
   if (loading && !transactions.length) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading Credits…
+      <div className="min-h-screen flex items-center justify-center -mt-16">
+        <Loader
+          message="Loading Credits…"
+          imageClassName="w-6 h-6"
+          textClassName="text-sm"
+        />
       </div>
     );
   }
@@ -77,7 +109,8 @@ export default function CreditsPage() {
           totalSpent={totalSpent}
           transactionsCount={transactionsCount}
           activeTab={activeTab}
-          onChange={setActiveTab}
+          // onChange={setActiveTab}
+          onChange={handleTabChange}
           pendingClaims={pendingClaims.length}
         />
 

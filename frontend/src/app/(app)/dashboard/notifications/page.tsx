@@ -50,7 +50,12 @@ const NotificationsPage = () => {
   };
 
   if (isLoading) {
-    return <Loader message="Loading notifications..." />;
+    return (
+      <Loader
+        message="Loading notifications..."
+        classStyle="min-h-screen -mt-16"
+      />
+    );
   }
 
   return (

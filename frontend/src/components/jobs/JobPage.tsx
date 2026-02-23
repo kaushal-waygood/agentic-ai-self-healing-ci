@@ -211,7 +211,12 @@ export default function JobsPage() {
               )}
 
               {loading && jobs.length === 0 && (
-                <Loader message="Loading Jobs" fullHeight={true} />
+                <Loader
+                  message="Loading Jobs"
+                  fullHeight={true}
+                  imageClassName="w-6 h-6"
+                  textClassName="text-sm"
+                />
               )}
 
               {/* ❌ No Jobs Found UI */}
@@ -254,7 +259,12 @@ export default function JobsPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
-                <Loader message="Loading Job data..." fullHeight={true} />
+                <Loader
+                  message="Loading Job data..."
+                  fullHeight={true}
+                  imageClassName="w-6 h-6"
+                  textClassName="text-sm"
+                />
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (
