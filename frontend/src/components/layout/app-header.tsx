@@ -45,6 +45,10 @@ import { useProfile } from '@/hooks/useProfile';
 import Image from 'next/image';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { fetchPlanRequest } from '@/redux/reducers/planReducer';
+import {
+  earnCreditRequest,
+  getTotalCreditRequest,
+} from '@/redux/reducers/creditReducer';
 
 const UsageTracker = ({ label, used, limit }) => {
   const percentage = limit > 0 ? (used / limit) * 100 : 0;
@@ -190,9 +194,7 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 
 export const TotalCredit = () => {
   const [open, setOpen] = useState(false);
-
   const { streak, claiming, claim, credit } = useDailyStreak();
-
   const dropdownRef = useRef(null);
 
   // Close on outside click
@@ -230,7 +232,7 @@ export const TotalCredit = () => {
           >
             <Coins className="w-6 h-6 text-yellow-500" />
             <span className="text-sm font-medium text-gray-700">
-              {credit.credits}
+              {credit?.credits || 0}
             </span>
           </Link>
         </Tooltip>
@@ -393,20 +395,6 @@ const AppHeader = ({
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
-    }
-  };
-  const getNotificationColor = (type) => {
-    switch (type) {
-      case 'application':
-        return 'from-blue-400 to-blue-600';
-      case 'recommendation':
-        return 'from-green-400 to-green-600';
-      case 'alert':
-        return 'from-yellow-400 to-yellow-600';
-      case 'reward':
-        return 'from-purple-400 to-purple-600';
-      default:
-        return 'from-slate-400 to-slate-600';
     }
   };
 

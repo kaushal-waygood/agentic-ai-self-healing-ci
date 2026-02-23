@@ -2139,25 +2139,25 @@ export const getCreditsSummary = async (req, res) => {
     }
 
     // Allow browser notifications (one-time)
-    if (!hasClaimedKind('ALLOW_BROWSER_NOTIF')) {
-      const allowedFlag =
-        user.settings && user.settings.allowBrowserNotifications;
-      if (!allowedFlag) {
-        pending.push({
-          action: 'ALLOW_BROWSER_NOTIF',
-          credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
-          reason: 'Enable browser notifications to claim credits.',
-          url: redirectForAction('ALLOW_BROWSER_NOTIF'),
-        });
-      } else {
-        pending.push({
-          action: 'ALLOW_BROWSER_NOTIF',
-          credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
-          reason: 'Claim credits for enabling browser notifications.',
-          url: redirectForAction('ALLOW_BROWSER_NOTIF'),
-        });
-      }
-    }
+    // if (!hasClaimedKind('ALLOW_BROWSER_NOTIF')) {
+    //   const allowedFlag =
+    //     user.settings && user.settings.allowBrowserNotifications;
+    //   if (!allowedFlag) {
+    //     pending.push({
+    //       action: 'ALLOW_BROWSER_NOTIF',
+    //       credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
+    //       reason: 'Enable browser notifications to claim credits.',
+    //       url: redirectForAction('ALLOW_BROWSER_NOTIF'),
+    //     });
+    //   } else {
+    //     pending.push({
+    //       action: 'ALLOW_BROWSER_NOTIF',
+    //       credits: CREDIT_EARN.ALLOW_BROWSER_NOTIF || 0,
+    //       reason: 'Claim credits for enabling browser notifications.',
+    //       url: redirectForAction('ALLOW_BROWSER_NOTIF'),
+    //     });
+    //   }
+    // }
 
     const socialPlatforms = [
       { action: 'FOLLOW_LINKEDIN', label: 'LinkedIn' },

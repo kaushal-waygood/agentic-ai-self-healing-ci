@@ -637,7 +637,6 @@ function TopJobCard({ job }: { job: TopJob }) {
 export default function DashboardPage() {
   const [recentAI, setRecentAI] = useState<any>(null);
   const { balance, spending, checkout } = useCredits();
-  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
 
   const searchParams = useSearchParams();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
@@ -674,14 +673,6 @@ export default function DashboardPage() {
       dispatch(getProfileRequest());
     }
   }, [dispatch, authUser]);
-
-  const handleMarkAsRead = (id: string) => {
-    setActionItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === id ? { ...item, isRead: true } : item,
-      ),
-    );
-  };
 
   const [showCompletionModal, setShowCompletionModal] =
     useState<boolean>(false);
