@@ -194,9 +194,19 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 
 export const TotalCredit = () => {
   const [open, setOpen] = useState(false);
+
   const { streak, claiming, claim, credit } = useDailyStreak();
   const dropdownRef = useRef(null);
 
+  useEffect(() => {
+    const openDropdown = () => setOpen(true);
+
+    window.addEventListener('open-streak-dropdown', openDropdown);
+
+    return () => {
+      window.removeEventListener('open-streak-dropdown', openDropdown);
+    };
+  }, []);
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -252,6 +262,7 @@ export const TotalCredit = () => {
     </div>
   );
 };
+
 interface AppHeaderProps {
   setIsSearchOpen: (open: boolean) => void;
   onMenuClick: () => void;

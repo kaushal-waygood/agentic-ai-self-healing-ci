@@ -797,6 +797,8 @@ export default function DashboardPage() {
     slug: string;
   };
 
+  console.log('recentAI', recentAI?.coverLetter);
+
   const [topJobsRecommendations, setTopJobsRecommendations] = useState<
     TopJob[]
   >([]);
@@ -1158,7 +1160,7 @@ export default function DashboardPage() {
                       title="CV Generated"
                       subtitle={recentAI.cv.title}
                       time={recentAI.cv.completedAt}
-                      href="/dashboard/my-docs?tab=cvs"
+                      href={`/dashboard/my-docs/cv/${recentAI?.cv?.id}`}
                     />
                   )}
 
@@ -1168,7 +1170,7 @@ export default function DashboardPage() {
                       title="Cover Letter Generated"
                       subtitle={recentAI.coverLetter.title}
                       time={recentAI.coverLetter.completedAt}
-                      href="/dashboard/my-docs?tab=cover-letters"
+                      href={`/dashboard/my-docs/cl/${recentAI?.coverLetter?.id}`}
                     />
                   )}
 
@@ -1178,7 +1180,7 @@ export default function DashboardPage() {
                       title="Tailored Application Ready"
                       subtitle={`${recentAI.tailoredApplication.jobTitle} · ${recentAI.tailoredApplication.companyName}`}
                       time={recentAI.tailoredApplication.completedAt}
-                      href="/dashboard/my-docs?tab=applications"
+                      href={`/dashboard/my-docs/application/${recentAI?.tailoredApplication?.id}`}
                     />
                   )}
 

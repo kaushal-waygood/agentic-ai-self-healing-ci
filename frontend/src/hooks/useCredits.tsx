@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
@@ -90,7 +90,10 @@ export function useCredits() {
   /* ------------------ actions ------------------ */
 
   const claimCredit = async (p: any) => {
-    console.log(p);
+    if (p.action === 'DAILY_CHECKIN') {
+      window.dispatchEvent(new CustomEvent('open-streak-dropdown'));
+    }
+
     const targetUrl = p.url;
     if (!targetUrl) return;
 
@@ -105,7 +108,6 @@ export function useCredits() {
     try {
       setClaiming((prev) => ({ ...prev, [p.action]: true }));
 
-      console.log(p);
       dispatch(
         earnCreditRequest({
           action: p.action,

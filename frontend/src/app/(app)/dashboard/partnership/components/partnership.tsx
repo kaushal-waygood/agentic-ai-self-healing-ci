@@ -59,7 +59,12 @@ const CARDS = [
 
 export default function BringZobsAI() {
   const [activeCard, setActiveCard] = useState<ActiveCard>('student');
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const requestConfirmation = (action: () => void) => {
+    setPendingAction(() => action);
+    setIsModalOpen(true);
+  };
   const [tpoData, setTpoData] = useState<TpoData>({
     name: '',
     email: '',
@@ -145,18 +150,30 @@ export default function BringZobsAI() {
       {/* FORM CONTENT */}
       <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6">
         {activeCard === 'student' && (
-          <StudentForm tpoData={tpoData} setTpoData={setTpoData} />
+          <StudentForm
+            tpoData={tpoData}
+            setTpoData={setTpoData}
+            onConfirmSubmit={requestConfirmation}
+          />
         )}
 
-        {activeCard === 'staff' && <StaffSection />}
+        {activeCard === 'staff' && (
+          <StaffSection onConfirmSubmit={requestConfirmation} />
+        )}
 
         {activeCard === 'company' && (
           <CompanyForm
             companyData={companyData}
             setCompanyData={setCompanyData}
+            onConfirmSubmit={requestConfirmation}
           />
         )}
       </div>
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={() => pendingAction?.()}
+      />
     </div>
   );
 }
@@ -164,9 +181,14 @@ export default function BringZobsAI() {
 interface StudentFormProps {
   tpoData: TpoData;
   setTpoData: React.Dispatch<React.SetStateAction<TpoData>>;
+  onConfirmSubmit: (action: () => void) => void;
 }
 
-function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
+function StudentForm({
+  tpoData,
+  setTpoData,
+  onConfirmSubmit,
+}: StudentFormProps) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,6 +253,7 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
           type="button"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
           onClick={handleSubmit}
+          // onClick={() => onConfirmSubmit(handleSubmit)}
         >
           {submitted ? (
             <>
@@ -248,7 +271,11 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
   );
 }
 
-function StaffSection() {
+function StaffSection({
+  onConfirmSubmit,
+}: {
+  onConfirmSubmit: (action: () => void) => void;
+}) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
@@ -276,6 +303,7 @@ function StaffSection() {
         type="button"
         className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
         onClick={handleSubmit}
+        // onClick={() => onConfirmSubmit(handleSubmit)}
       >
         {submitted ? (
           <>
@@ -294,9 +322,14 @@ function StaffSection() {
 interface CompanyFormProps {
   companyData: CompanyData;
   setCompanyData: React.Dispatch<React.SetStateAction<CompanyData>>;
+  onConfirmSubmit: (action: () => void) => void;
 }
 
-function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
+function CompanyForm({
+  companyData,
+  setCompanyData,
+  onConfirmSubmit,
+}: CompanyFormProps) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
@@ -308,8 +341,6 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
       setSubmitted(true);
 
       if (res.status === 200) {
-
-        
         toast({
           title: 'Registered!',
           description: 'Your company has been registered successfully.',
@@ -327,6 +358,7 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
         type="button"
         className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
         onClick={handleSubmit}
+        // onClick={() => onConfirmSubmit(handleSubmit)}
       >
         {submitted ? (
           <>
@@ -338,6 +370,47 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
           </>
         )}
       </button>
+    </div>
+  );
+}
+
+function ConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+        <h3 className="text-xl font-bold text-gray-900">Are you sure?</h3>
+        <p className="text-gray-600 mt-2">
+          By proceeding, you will no longer be a normal user. This action will
+          initiate your organization onboarding.
+        </p>
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            No, Cancel
+          </button>
+          <button
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Yes, Proceed
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
