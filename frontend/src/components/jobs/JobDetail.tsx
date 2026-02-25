@@ -37,9 +37,8 @@ import {
 
 import { JobListing } from '@/lib/data/jobs';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
-import { divide, set } from 'lodash';
+
 import { getToken } from '@/hooks/useToken';
-import { Loader } from '../Loader';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -466,9 +465,9 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   };
 
   return (
-    <div className="min-h-screen space-y-2">
+    <div className="min-h-screen space-y-2 transition-all duration-300 animate-in fade-in slide-in-from-left-5 duration-500">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-lg border border-white/20">
+      <div className="relative overflow-hidden rounded-lg border border-white/20 ">
         <div className="absolute inset-0 bg-header-gradient-primary" />
         <div className="absolute inset-0  opacity-20" />
         <div className="relative p-2 md:p-4 text-white">
@@ -484,7 +483,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                   <MapPin className="w-4 h-4" />
-                  <span>{job.country || 'Not specified'}</span>
+                  <span>
+                    {job.location.city || 'Not specified'},{' '}
+                    {job.country || 'Not specified'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                   <Briefcase className="w-4 h-4" />

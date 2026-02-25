@@ -1962,7 +1962,7 @@ export const getCreditsSummary = async (req, res) => {
           return '/dashboard/cover-letter-generator';
 
         case 'DAILY_CHECKIN':
-          return '/rewards';
+          return null;
 
         case 'FOLLOW_LINKEDIN':
           return 'https://www.linkedin.com/company/zobsai-com/';
@@ -2206,13 +2206,13 @@ export const getCreditsSummary = async (req, res) => {
       url: redirectForAction('VISITJOB_SITE'),
     });
 
-    pending.push({
-      action: 'APPLY_ON_COMPANY_SITE',
-      credits: CREDIT_EARN.APPLY_ON_COMPANY_SITE || 1,
-      reason:
-        'Visit company career page via the job listing and apply to claim credit (per job).',
-      url: redirectForAction('APPLY_ON_COMPANY_SITE'),
-    });
+    // pending.push({
+    //   action: 'APPLY_ON_COMPANY_SITE',
+    //   credits: CREDIT_EARN.APPLY_ON_COMPANY_SITE || 1,
+    //   reason:
+    //     'Visit company career page via the job listing and apply to claim credit (per job).',
+    //   url: redirectForAction('APPLY_ON_COMPANY_SITE'),
+    // });
 
     const lastDaily = lastTxOfKind('DAILY_CHECKIN');
     let dailyEligible = true;

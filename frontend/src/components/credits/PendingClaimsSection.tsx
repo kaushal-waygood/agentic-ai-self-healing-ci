@@ -87,7 +87,7 @@ export function PendingClaimsSection({
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-col  items-end gap-3">
+                  <div className="flex flex-col flex-wrap items-end gap-3">
                     <button
                       className={`
                       px-5 py-2.5 rounded-lg font-medium
@@ -114,7 +114,7 @@ export function PendingClaimsSection({
                       ) : eligible ? (
                         `Claim ${p.credits}`
                       ) : (
-                        'Not eligible'
+                        'Claimed'
                       )}
                     </button>
 
