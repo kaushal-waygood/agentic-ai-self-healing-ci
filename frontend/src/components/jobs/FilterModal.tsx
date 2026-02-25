@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Globe, MapPin, X } from 'lucide-react';
+import { Globe, Loader, MapPin, X } from 'lucide-react';
 import CountrySelector from '../common/CountrySelector';
 import StateSelector from '../common/StateSelector';
 import { useJobs } from '@/hooks/jobs/useJobs';
@@ -68,8 +68,13 @@ const EducationTag = ({
 );
 
 export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
-  const { employmentTypes, experienceLevels, filters, handleFilterChange } =
-    useJobs();
+  const {
+    employmentTypes,
+    experienceLevels,
+    filters,
+    loading,
+    handleFilterChange,
+  } = useJobs();
 
   const [localFilters, setLocalFilters] = useState<any>({
     ...filters,

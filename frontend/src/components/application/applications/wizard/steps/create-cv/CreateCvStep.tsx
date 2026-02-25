@@ -25,7 +25,6 @@ const SleekCvStep = ({
   const cvFileInputRef = useRef(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  const [cvs, setCvs] = useState([]);
   const [stats, setStats] = useState({ cvsCount: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -217,53 +216,6 @@ const SleekCvStep = ({
                 </label>
                 <p>Total CVs: {stats.cvsCount}</p>
                 {/* render CV list */}
-              </div>
-
-              <div className="max-h-[35vh] overflow-y-auto border border-slate-200 rounded-lg bg-slate-50/50">
-                {loading ? (
-                  <Loader message="Fetching saved CVs" />
-                ) : (
-                  <div>
-                    {cvs?.length > 0 ? (
-                      <div className="p-2 space-y-2">
-                        {cvs.map((cv: any, index) => (
-                          <label
-                            key={cv._id}
-                            className="radio-card flex items-center gap-4 p-4 rounded-lg cursor-pointer border-2 transition-all duration-200   border-transparent hover:border-slate-300"
-                            style={{ animationDelay: `${index * 0.1}s` }}
-                          >
-                            <input
-                              type="radio"
-                              name="cvSelection"
-                              onClick={(e) => {
-                                handleCvContextSubmit('saved', cv._id);
-                              }}
-                              className="sr-only"
-                            />
-
-                            {/* Info */}
-                            <div className="flex-1">
-                              <div className="font-medium text-slate-800">
-                                {cv.htmlCVTitle || 'N/A'}
-                              </div>
-                              <div className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                                <Clock className="w-3 h-3" />
-                                {/* {cv.status} •{' '} */}
-                                {new Date(cv.createdAt).toLocaleString()}
-                              </div>
-                            </div>
-
-                            <FileText className="w-5 h-5 transition-colors text-purple-500" />
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 text-center p-8">
-                        No saved CVs available.
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 

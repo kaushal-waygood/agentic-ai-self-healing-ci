@@ -2,8 +2,17 @@
 
 import Image from 'next/image';
 import { JobListing } from '@/lib/data/jobs';
-import { MapPin, Clock, Building, Eye, TrendingUp } from 'lucide-react';
+import {
+  MapPin,
+  Clock,
+  Building,
+  Eye,
+  TrendingUp,
+  Loader2,
+  Loader,
+} from 'lucide-react';
 import { truncate } from '@/utils/formatTitle';
+import { useJobs } from '@/hooks/jobs/useJobs';
 
 interface JobCardProps {
   job: JobListing;
@@ -36,29 +45,24 @@ const calculateJobPostedFromNow = (jobPostedAt: string) => {
 };
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
+  const {
+    employmentTypes,
+    experienceLevels,
+    filters,
+    loading,
+    handleFilterChange,
+  } = useJobs();
+
+  console.log('loading', loading);
   return (
     <div
       onClick={onClick}
       className={`group relative cursor-pointer transition-all duration-500 ease-out transform hover:-translate-y-1 ${
         isActive
-          ? 'bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 border-2 border-purple-400 shadow-2xl shadow-purple-200/50 scale-[1.02]'
-          : 'bg-white hover:bg-gradient-to-br hover:from-purple-50/50 hover:via-blue-50/30 hover:to-white border border-gray-200 hover:border-purple-300 shadow-md hover:shadow-2xl hover:shadow-purple-100/40'
+          ? 'bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 border-2 border-blue-400 shadow-2xl shadow-blue-200/50 scale-[1.02]'
+          : 'bg-white hover:bg-gradient-to-br hover:from-purple-50/50 hover:via-blue-50/30 hover:to-white border border-gray-200 hover:border-blue-300 shadow-md hover:shadow-2xl hover:shadow-blue-100/40'
       } rounded-lg p-2 px-3 overflow-hidden`}
     >
-      {/* Animated gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600/0 via-blue-600/0 to-cyan-600/0 group-hover:from-purple-600/5 group-hover:via-blue-600/5 group-hover:to-cyan-600/5 transition-all duration-700"></div>
-
-      {/* Decorative corner element */}
-      <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-
-      {/* Active indicator with pulse */}
-      {isActive && (
-        <>
-          <div className="absolute top-3 right-3 w-3 h-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full animate-pulse shadow-lg shadow-purple-500/50"></div>
-          <div className="absolute top-3 right-3 w-3 h-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full animate-ping"></div>
-        </>
-      )}
-
       <div className="relative z-10">
         <div className="flex items-start gap-4">
           {/* Logo */}

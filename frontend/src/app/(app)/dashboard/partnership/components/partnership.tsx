@@ -3,7 +3,15 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { GraduationCap, Building2, Users, Check, Send } from 'lucide-react';
+import {
+  GraduationCap,
+  Building2,
+  Users,
+  Check,
+  Send,
+  Phone,
+  Mail,
+} from 'lucide-react';
 
 import apiInstance from '@/services/api';
 import { toast } from '@/hooks/use-toast';
@@ -59,7 +67,12 @@ const CARDS = [
 
 export default function BringZobsAI() {
   const [activeCard, setActiveCard] = useState<ActiveCard>('student');
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const requestConfirmation = (action: () => void) => {
+    setPendingAction(() => action);
+    setIsModalOpen(true);
+  };
   const [tpoData, setTpoData] = useState<TpoData>({
     name: '',
     email: '',
@@ -115,7 +128,7 @@ export default function BringZobsAI() {
                 p-4
                 rounded-lg
                 text-left
-                border
+                border-2
                 bg-gradient-to-br ${card.bgGradient}
                 transition-all duration-300
                 ${
@@ -145,18 +158,30 @@ export default function BringZobsAI() {
       {/* FORM CONTENT */}
       <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6">
         {activeCard === 'student' && (
-          <StudentForm tpoData={tpoData} setTpoData={setTpoData} />
+          <StudentForm
+            tpoData={tpoData}
+            setTpoData={setTpoData}
+            onConfirmSubmit={requestConfirmation}
+          />
         )}
 
-        {activeCard === 'staff' && <StaffSection />}
+        {activeCard === 'staff' && (
+          <StaffSection onConfirmSubmit={requestConfirmation} />
+        )}
 
         {activeCard === 'company' && (
           <CompanyForm
             companyData={companyData}
             setCompanyData={setCompanyData}
+            onConfirmSubmit={requestConfirmation}
           />
         )}
       </div>
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={() => pendingAction?.()}
+      />
     </div>
   );
 }
@@ -164,15 +189,62 @@ export default function BringZobsAI() {
 interface StudentFormProps {
   tpoData: TpoData;
   setTpoData: React.Dispatch<React.SetStateAction<TpoData>>;
+  onConfirmSubmit: (action: () => void) => void;
 }
 
-function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
+function StudentForm({
+  tpoData,
+  setTpoData,
+  onConfirmSubmit,
+}: StudentFormProps) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTpoData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const validateAndConfirm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Validates exactly 10 digits. Change {10} to {7,15} for international flexibility.
+    const phoneRegex = /^\d{10}$/;
+
+    // 1. Check for empty fields
+    if (
+      !tpoData.university.trim() ||
+      !tpoData.email.trim() ||
+      !tpoData.phone.trim()
+    ) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please fill in all fields before submitting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // 2. Email Validation
+    if (!emailRegex.test(tpoData.email)) {
+      toast({
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // 3. Phone Number Validation
+    if (!phoneRegex.test(tpoData.phone)) {
+      toast({
+        title: 'Invalid Phone Number',
+        description: 'Please enter a valid 10-digit phone number.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // All checks passed
+    onConfirmSubmit(handleSubmit);
+  };
   const handleSubmit = async () => {
     try {
       const payload = {
@@ -191,64 +263,111 @@ function StudentForm({ tpoData, setTpoData }: StudentFormProps) {
   };
 
   const ROLES = ['employer-admin', 'uni-admin'];
+
   return (
-    <div className="space-y-6">
-      {/* ROW 1 */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="">
-          <Label className="">University/Company Name</Label>
-          <Input
-            name="university"
-            value={tpoData.university}
-            onChange={handleChange}
-            placeholder="Enter university/company name"
-          />
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+        {/* University/Company Name */}
+        <div className="space-y-2 group">
+          <Label className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">
+            University/Company Name
+          </Label>
+          <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4 group-focus-within:text-blue-500 transition-colors" />
+            <Input
+              name="university"
+              value={tpoData.university}
+              onChange={handleChange}
+              placeholder="Enter university/company name"
+              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
         </div>
-        <div>
-          <Label>TPO Phone</Label>
-          <Input
-            name="phone"
-            value={tpoData.phone}
-            onChange={handleChange}
-            placeholder="Enter phone number"
-          />
+
+        {/* TPO Phone */}
+        <div className="space-y-2 group">
+          <Label className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">
+            TPO Phone Number
+          </Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4 group-focus-within:text-blue-500 transition-colors" />
+            <Input
+              name="phone"
+              type="tel"
+              value={tpoData.phone}
+              onChange={handleChange}
+              placeholder="10-digit mobile number"
+              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* TPO Email */}
+        <div className="space-y-2 group md:col-span-2">
+          <Label className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">
+            TPO Email Address
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4 group-focus-within:text-blue-500 transition-colors" />
+            <Input
+              name="email"
+              type="email"
+              value={tpoData.email}
+              onChange={handleChange}
+              placeholder="example@university.edu"
+              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
         </div>
       </div>
 
-      {/* ROW 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div>
-          <Label>TPO Email</Label>
-          <Input
-            name="email"
-            value={tpoData.email}
-            onChange={handleChange}
-            placeholder="Enter email address"
-          />
-        </div>
-        {/* SUBMIT BUTTON */}
+      {/* SUBMIT BUTTON - Centered and Full Width */}
+      <div className="pt-2">
         <button
           type="button"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-          onClick={handleSubmit}
+          disabled={submitted}
+          onClick={validateAndConfirm}
+          className={`
+          w-full py-3.5 rounded-xl flex items-center justify-center gap-3 font-semibold text-white
+          transition-all duration-300 transform active:scale-[0.98]
+          ${
+            submitted
+              ? 'bg-emerald-500 shadow-lg shadow-emerald-200'
+              : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-xl shadow-blue-200 hover:-translate-y-0.5'
+          }
+          disabled:cursor-not-allowed
+        `}
         >
           {submitted ? (
             <>
-              <Check /> Submitted!
+              <div className="bg-white/20 p-1 rounded-full">
+                <Check className="size-4 text-white" />
+              </div>
+              <span className="tracking-wide">Request Submitted!</span>
             </>
           ) : (
             <>
-              <Send /> Submit
+              <Send
+                className={`size-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1`}
+              />
+              <span className="tracking-wide">Send Request</span>
             </>
           )}
         </button>
-        <div></div>
+        <p className="text-center text-xs text-gray-400 mt-4">
+          By clicking submit, you agree to our terms for institutional
+          onboarding.
+        </p>
       </div>
     </div>
   );
 }
 
-function StaffSection() {
+function StaffSection({
+  onConfirmSubmit,
+}: {
+  onConfirmSubmit: (action: () => void) => void;
+}) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
@@ -271,11 +390,12 @@ function StaffSection() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <button
         type="button"
         className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-        onClick={handleSubmit}
+        // onClick={handleSubmit}
+        onClick={() => onConfirmSubmit(handleSubmit)}
       >
         {submitted ? (
           <>
@@ -294,9 +414,14 @@ function StaffSection() {
 interface CompanyFormProps {
   companyData: CompanyData;
   setCompanyData: React.Dispatch<React.SetStateAction<CompanyData>>;
+  onConfirmSubmit: (action: () => void) => void;
 }
 
-function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
+function CompanyForm({
+  companyData,
+  setCompanyData,
+  onConfirmSubmit,
+}: CompanyFormProps) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
@@ -308,8 +433,6 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
       setSubmitted(true);
 
       if (res.status === 200) {
-
-        
         toast({
           title: 'Registered!',
           description: 'Your company has been registered successfully.',
@@ -322,11 +445,12 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <button
         type="button"
         className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-        onClick={handleSubmit}
+        // onClick={handleSubmit}
+        onClick={() => onConfirmSubmit(handleSubmit)}
       >
         {submitted ? (
           <>
@@ -338,6 +462,47 @@ function CompanyForm({ companyData, setCompanyData }: CompanyFormProps) {
           </>
         )}
       </button>
+    </div>
+  );
+}
+
+function ConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+        <h3 className="text-xl font-bold text-gray-900">Are you sure?</h3>
+        <p className="text-gray-600 mt-2">
+          By proceeding, you will no longer be a normal user. This action will
+          initiate your organization onboarding.
+        </p>
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            No, Cancel
+          </button>
+          <button
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Yes, Proceed
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

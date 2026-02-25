@@ -418,3 +418,39 @@ export const checkoutCredits = async (req, res) => {
     });
   }
 };
+
+export const earnCredits = async (req, res) => {
+  console.log('earnCredits', req.user);
+  console.log('earnCredits', req.params);
+  const { _id } = req.user || {};
+  const { action } = req.params;
+
+  if (!_id) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  if (!action) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Action is required' });
+  }
+
+  try {
+    const { tx, balance } = await earnCreditsForAction(_id, action);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Credits earned successfully',
+    });
+  } catch (err) {
+    console.error('earnCredits error:', err);
+
+    return res.status(err.status || 500).json({
+      success: false,
+      message:
+        err.status === 409
+          ? 'Action already claimed or not allowed now'
+          : err.message || 'Failed to earn credits',
+    });
+  }
+};
