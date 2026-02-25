@@ -262,7 +262,6 @@ export default function JobsPage() {
                 <Loader
                   message="Loading Jobs"
                   fullHeight={true}
-                  imageClassName="w-6 h-6"
                   textClassName="text-sm"
                 />
               )}
@@ -310,7 +309,6 @@ export default function JobsPage() {
                 <Loader
                   message="Loading Job data..."
                   fullHeight={true}
-                  imageClassName="w-6 h-6"
                   textClassName="text-sm"
                 />
               ) : selectedJob ? (
