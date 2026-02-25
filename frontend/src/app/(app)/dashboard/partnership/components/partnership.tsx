@@ -3,7 +3,15 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { GraduationCap, Building2, Users, Check, Send } from 'lucide-react';
+import {
+  GraduationCap,
+  Building2,
+  Users,
+  Check,
+  Send,
+  Phone,
+  Mail,
+} from 'lucide-react';
 
 import apiInstance from '@/services/api';
 import { toast } from '@/hooks/use-toast';
@@ -120,7 +128,7 @@ export default function BringZobsAI() {
                 p-4
                 rounded-lg
                 text-left
-                border
+                border-2
                 bg-gradient-to-br ${card.bgGradient}
                 transition-all duration-300
                 ${
@@ -195,6 +203,48 @@ function StudentForm({
     setTpoData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const validateAndConfirm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Validates exactly 10 digits. Change {10} to {7,15} for international flexibility.
+    const phoneRegex = /^\d{10}$/;
+
+    // 1. Check for empty fields
+    if (
+      !tpoData.university.trim() ||
+      !tpoData.email.trim() ||
+      !tpoData.phone.trim()
+    ) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please fill in all fields before submitting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // 2. Email Validation
+    if (!emailRegex.test(tpoData.email)) {
+      toast({
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // 3. Phone Number Validation
+    if (!phoneRegex.test(tpoData.phone)) {
+      toast({
+        title: 'Invalid Phone Number',
+        description: 'Please enter a valid 10-digit phone number.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // All checks passed
+    onConfirmSubmit(handleSubmit);
+  };
   const handleSubmit = async () => {
     try {
       const payload = {
@@ -213,59 +263,101 @@ function StudentForm({
   };
 
   const ROLES = ['employer-admin', 'uni-admin'];
+
   return (
-    <div className="space-y-6">
-      {/* ROW 1 */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="">
-          <Label className="">University/Company Name</Label>
-          <Input
-            name="university"
-            value={tpoData.university}
-            onChange={handleChange}
-            placeholder="Enter university/company name"
-          />
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+        {/* University/Company Name */}
+        <div className="space-y-2 group">
+          <Label className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">
+            University/Company Name
+          </Label>
+          <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4 group-focus-within:text-blue-500 transition-colors" />
+            <Input
+              name="university"
+              value={tpoData.university}
+              onChange={handleChange}
+              placeholder="Enter university/company name"
+              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
         </div>
-        <div>
-          <Label>TPO Phone</Label>
-          <Input
-            name="phone"
-            value={tpoData.phone}
-            onChange={handleChange}
-            placeholder="Enter phone number"
-          />
+
+        {/* TPO Phone */}
+        <div className="space-y-2 group">
+          <Label className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">
+            TPO Phone Number
+          </Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4 group-focus-within:text-blue-500 transition-colors" />
+            <Input
+              name="phone"
+              type="tel"
+              value={tpoData.phone}
+              onChange={handleChange}
+              placeholder="10-digit mobile number"
+              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* TPO Email */}
+        <div className="space-y-2 group md:col-span-2">
+          <Label className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">
+            TPO Email Address
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4 group-focus-within:text-blue-500 transition-colors" />
+            <Input
+              name="email"
+              type="email"
+              value={tpoData.email}
+              onChange={handleChange}
+              placeholder="example@university.edu"
+              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
         </div>
       </div>
 
-      {/* ROW 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div>
-          <Label>TPO Email</Label>
-          <Input
-            name="email"
-            value={tpoData.email}
-            onChange={handleChange}
-            placeholder="Enter email address"
-          />
-        </div>
-        {/* SUBMIT BUTTON */}
+      {/* SUBMIT BUTTON - Centered and Full Width */}
+      <div className="pt-2">
         <button
           type="button"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-          onClick={handleSubmit}
-          // onClick={() => onConfirmSubmit(handleSubmit)}
+          disabled={submitted}
+          onClick={validateAndConfirm}
+          className={`
+          w-full py-3.5 rounded-xl flex items-center justify-center gap-3 font-semibold text-white
+          transition-all duration-300 transform active:scale-[0.98]
+          ${
+            submitted
+              ? 'bg-emerald-500 shadow-lg shadow-emerald-200'
+              : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-xl shadow-blue-200 hover:-translate-y-0.5'
+          }
+          disabled:cursor-not-allowed
+        `}
         >
           {submitted ? (
             <>
-              <Check /> Submitted!
+              <div className="bg-white/20 p-1 rounded-full">
+                <Check className="size-4 text-white" />
+              </div>
+              <span className="tracking-wide">Request Submitted!</span>
             </>
           ) : (
             <>
-              <Send /> Submit
+              <Send
+                className={`size-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1`}
+              />
+              <span className="tracking-wide">Send Request</span>
             </>
           )}
         </button>
-        <div></div>
+        <p className="text-center text-xs text-gray-400 mt-4">
+          By clicking submit, you agree to our terms for institutional
+          onboarding.
+        </p>
       </div>
     </div>
   );
@@ -298,12 +390,12 @@ function StaffSection({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <button
         type="button"
         className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-        onClick={handleSubmit}
-        // onClick={() => onConfirmSubmit(handleSubmit)}
+        // onClick={handleSubmit}
+        onClick={() => onConfirmSubmit(handleSubmit)}
       >
         {submitted ? (
           <>
@@ -353,12 +445,12 @@ function CompanyForm({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <button
         type="button"
         className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-        onClick={handleSubmit}
-        // onClick={() => onConfirmSubmit(handleSubmit)}
+        // onClick={handleSubmit}
+        onClick={() => onConfirmSubmit(handleSubmit)}
       >
         {submitted ? (
           <>

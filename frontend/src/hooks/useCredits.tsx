@@ -63,16 +63,16 @@ export function useCredits() {
     dispatch(getCreditRequest());
     // dispatch(earnCreditRequest());
   }, [dispatch]);
-
-  useEffect(() => {
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to fetch your credits',
-      });
-    }
-  }, [error]);
+  // console.log('error from useCredits ', error);
+  // useEffect(() => {
+  //   if (error) {
+  //     toast({
+  //       variant: 'destructive',
+  //       title: 'Error',
+  //       description: 'Failed to fetch your credits',
+  //     });
+  //   }
+  // }, [error]);
 
   useEffect(() => {
     if (claimCredits) {

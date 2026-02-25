@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-import { mockUserProfile, ActionItem } from '@/lib/data/user';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -796,8 +795,6 @@ export default function DashboardPage() {
     finalScore: number;
     slug: string;
   };
-
-  console.log('recentAI', recentAI?.coverLetter);
 
   const [topJobsRecommendations, setTopJobsRecommendations] = useState<
     TopJob[]
