@@ -56,4 +56,4 @@ public
 resumes
 output
 
-./local_cache
+local_cache/*
