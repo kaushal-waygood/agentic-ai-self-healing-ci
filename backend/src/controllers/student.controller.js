@@ -13,13 +13,14 @@ import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 import redisClient from '../config/redis.js';
 import {
   normalizeSet,
-  fetchExternalJobsCached,
   transformRapidApiJob,
+  retrieveLocalCandidates,
+  buildInteractionContext,
+  applyFilters,
+  fetchExternalJobs,
   upsertExternalJobs,
-  getCTRMap,
-  getLocalRecommendedJobs,
-  fetchAndUpsertMoreExternalJobs,
-  getTop4DashboardJobs,
+  rankJobs,
+  diversify,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
@@ -1922,70 +1923,107 @@ ${JSON.stringify(profile)}
 
 const syncCooldown = new Map();
 
-export const getProfileBasedRecommendedJobs = async (req, res) => {
+export async function getProfileBasedRecommendedJobs(req, res) {
   try {
-    const userId = req.user?._id;
-    if (!userId) return res.sendStatus(401);
+    const profile = await buildUserProfileFromStudent(req.user._id);
+    const interactions = await buildInteractionContext(req.user._id);
 
-    const profile = await buildUserProfileFromStudent(userId);
-    let jobs = await getLocalRecommendedJobs(profile);
+    // Construct a context strictly targeting the profile variables for Vector Embeddings
+    const profileQuery =
+      `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() ||
+      'jobs';
 
-    const MIN_RESULTS = 10;
-    const MAX_SYNC_ROUNDS = 3;
-    const COOLDOWN_MS = 10 * 60 * 1000;
+    const context = {
+      type: 'recommendation',
+      query: profileQuery,
+      profile, // contains profile.titles, profile.skills, etc.
+      filters: {
+        country: profile.location?.country || 'IN',
+        state: profile.location?.state,
+        city: profile.location?.city,
+      },
+      userId: req.user._id,
+      interactions,
+    };
 
-    const now = Date.now();
-    const lastSync = syncCooldown.get(userId.toString());
-    const isInCooldown = lastSync && now - lastSync < COOLDOWN_MS;
+    // Use retrieveLocalCandidates to fetch purely from DB, grabbing 100 candidates
+    const candidates = await retrieveLocalCandidates(context, 100);
 
-    // -------- CRITICAL FIX --------
-    if (jobs.length < MIN_RESULTS && !isInCooldown) {
-      syncCooldown.set(userId.toString(), now);
+    const processPool = (jobsPool) => {
+      const filtered = applyFilters(jobsPool, context);
+      const ranked = rankJobs(filtered, context);
+      return diversify(ranked);
+    };
 
-      console.log('Low results. Running progressive sync...');
+    let processed = processPool(candidates);
 
-      let round = 0;
+    const limitNum = 30;
 
-      while (jobs.length < MIN_RESULTS && round < MAX_SYNC_ROUNDS) {
-        console.log(`Sync round ${round + 1}`);
+    let finalJobs = processed.slice(0, limitNum);
 
-        await fetchAndUpsertMoreExternalJobs(profile);
+    // 🔥 FAST API FALLBACK (matching Job Search API strictly)
+    if (finalJobs.length < limitNum) {
+      const apiFallbackQuery = profileQuery || 'jobs';
+      const pagesToFetch = [1, 2, 3];
 
-        jobs = await getLocalRecommendedJobs(profile);
+      const fetchPromises = pagesToFetch.map((apiPage) =>
+        fetchExternalJobs(
+          apiFallbackQuery,
+          context.filters.country || 'IN',
+          context.filters.state,
+          context.filters.city,
+          null, // datePosted
+          null, // employmentType mapping
+          null, // experience
+          apiPage,
+        ),
+      );
 
-        round++;
-      }
+      const API_TIMEOUT = 12000; // 12 seconds max waiting for RapidAPI
 
-      // -------- FALLBACK --------
-      if (jobs.length < MIN_RESULTS) {
-        console.log('Fallback to trending jobs');
+      const responsesRaw = await Promise.all(
+        fetchPromises.map((p) =>
+          Promise.race([
+            p,
+            new Promise((resolve) =>
+              setTimeout(() => resolve([]), API_TIMEOUT),
+            ),
+          ]),
+        ),
+      );
 
-        const fallback = await Job.find({
-          isActive: true,
-          country: profile.location?.country,
-        })
-          .sort({ jobPostedAt: -1 })
-          .limit(MIN_RESULTS)
-          .lean();
+      const externalRaw = responsesRaw.flat().filter(Boolean);
 
-        jobs = [...jobs, ...fallback];
+      if (externalRaw.length > 0) {
+        const formatted = externalRaw.map((j) =>
+          transformRapidApiJob(j, profileQuery || 'job'),
+        );
+        const filteredExt = processPool(formatted);
+
+        if (filteredExt.length > 0) {
+          const remainingNeeded = limitNum - finalJobs.length;
+          const toAdd = filteredExt.slice(0, remainingNeeded);
+          finalJobs = [...finalJobs, ...toAdd];
+        }
+
+        // 🛡️ DATA CONSISTENCY REQUIREMENT:
+        // We MUST await the upsert before sending the response!
+        await upsertExternalJobs(formatted).catch((e) =>
+          console.error('Sync Upsert Error', e.message),
+        );
       }
     }
 
-    // Remove duplicates
-    const unique = new Map();
-    jobs.forEach((j) => unique.set(j._id.toString(), j));
-
-    return res.json({
+    res.status(200).json({
       success: true,
-      count: unique.size,
-      jobs: Array.from(unique.values()).slice(0, 30),
+      count: finalJobs.length,
+      jobs: finalJobs,
     });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+  } catch (error) {
+    console.error('API Reco Error:', error);
+    res.status(500).json({ success: false });
   }
-};
+}
 
 export const getDashboardTopJobs = async (req, res) => {
   const userId = req.user?._id;
