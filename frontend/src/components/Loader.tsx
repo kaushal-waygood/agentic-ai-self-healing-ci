@@ -1,7 +1,7 @@
 import Image from 'next/image';
 
 export const Loader = ({
-  message = 'LOADING...',
+  message = 'LOADING',
   fullHeight = false,
   classStyle = '',
   imageClassName = 'w-8 h-8',
