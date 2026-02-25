@@ -272,8 +272,6 @@ export const getDailyStreak = async (req, res) => {
 
     const canClaimToday = !last || !last.isSame(today, 'day');
 
-    console.log('canClaimToday', canClaimToday);
-
     return res.status(200).json({
       streak: {
         current: streak.current || 0,
