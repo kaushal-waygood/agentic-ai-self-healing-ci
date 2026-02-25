@@ -2,92 +2,13 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: wp-zobsai
-  namespace: wordpress
+  namespace: monitoring
 spec:
   project: default
-
   source:
-    repoURL: https://charts.bitnami.com/bitnami
-    chart: wordpress
-    targetRevision: 27.1.8
-    helm:
-      releaseName: wp-zobsai
-      values: |
-        image:
-          registry: docker.io
-          repository: bitnami/wordpress
-          tag: "latest"
-          pullPolicy: IfNotPresent
-
-        podAnnotations:
-          prometheus.io/scrape: "false"
-
-        readinessProbe:
-          httpGet:
-            path: /resources
-            port: http
-          initialDelaySeconds: 300
-          periodSeconds: 60
-          timeoutSeconds: 60
-          failureThreshold: 10
-          successThreshold: 1
-
-        livenessProbe:
-          httpGet:
-            path: /resources
-            port: http
-          initialDelaySeconds: 600
-          periodSeconds: 60
-          timeoutSeconds: 60
-          failureThreshold: 5
-          successThreshold: 1
-
-        wordpressUsername: admin
-        wordpressPassword: "admin1234!"
-        wordpressEmail: admin@zobsai.com
-        wordpressBlogName: "Zobsai Blog"
-
-        wordpressExtraConfigContent: |
-          define( 'WP_HOME', 'https://zobsai.com/resources' );
-          define( 'WP_SITEURL', 'https://zobsai.com/resources' );
-
-        service:
-          type: ClusterIP
-
-        # Ensure WordPress Deployment is created
-        wordpressDeployment:
-          enabled: true
-
-        ingress:
-          enabled: false
-
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "1024Mi"
-            cpu: "1000m"
-
-        persistence:
-          enabled: true
-          mountPath: /bitnami/wordpress/wp-content
-          storageClass: "local-path"
-          accessMode: ReadWriteOnce
-          size: 10Gi
-
-        mariadb:
-          enabled: true
-          auth:
-            rootPassword: "admin1234!"
-            database: bitnami_wordpress
-            username: bn_wordpress
-            password: "admin1234!"
-          primary:
-            persistence:
-              enabled: true
-              storageClass: "local-path"
-              size: 10Gi
+    repoURL: https://github.com/ZobsAI-com/zobsai.git
+    path: manifests/wordpress/wp-zobsai
+    targetRevision: HEAD
 
   destination:
     server: https://kubernetes.default.svc
@@ -102,20 +23,19 @@ spec:
       - ServerSideApply=true
 
 ---
-# Middleware to rewrite /resources for public site
+# Middleware to strip /resources prefix before passing to WordPress
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: wordpress-resources-rewrite
+  name: wordpress-strip-prefix
   namespace: wordpress
 spec:
-  redirectRegex:
-    regex: ^/resources/(.*)
-    replacement: /$1
-    permanent: true
+  stripPrefix:
+    prefixes:
+      - /resources
 
 ---
-# Middleware to rewrite /wp-login.php for admin subdomain
+# Middleware for admin login (blog.zobsai.com)
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -124,63 +44,49 @@ metadata:
 spec:
   redirectRegex:
     regex: ^/wp-login.php/(.*)
-    replacement: /resources/wp-login.php/$1
+    replacement: /wp-login.php/$1
     permanent: false
 
 ---
-# Public site ingress for Zobsai WordPress
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+# Public site IngressRoute for /resources
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
 metadata:
   name: wp-public-blog
   namespace: wordpress
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: wordpress-resources-rewrite@kubernetescrd
 spec:
-  ingressClassName: traefik
-  rules:
-    - host: zobsai.com
-      http:
-        paths:
-          - path: /resources
-            pathType: Prefix
-            backend:
-              service:
-                name: wp-zobsai-wordpress
-                port:
-                  number: 80
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`zobsai.com`) && PathPrefix(`/resources`)
+      kind: Rule
+      services:
+        - name: wp-zobsai-wordpress
+          port: 80
+      middlewares:
+        - name: wordpress-strip-prefix
+          namespace: wordpress
   tls:
-    - hosts:
-        - zobsai.com
-      secretName: zobsai-tls
+    secretName: zobsai-tls
 
 ---
-# Admin subdomain ingress for Zobsai WordPress
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+# Admin subdomain IngressRoute for blog.zobsai.com
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
 metadata:
   name: wp-admin-subdomain
   namespace: wordpress
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: blog-rewrite@kubernetescrd
 spec:
-  ingressClassName: traefik
-  rules:
-    - host: blog.zobsai.com
-      http:
-        paths:
-          - path: /wp-login.php
-            pathType: Prefix
-            backend:
-              service:
-                name: wp-zobsai-wordpress
-                port:
-                  number: 80
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`blog.zobsai.com`)
+      kind: Rule
+      services:
+        - name: wp-zobsai-wordpress
+          port: 80
+      middlewares:
+        - name: blog-rewrite
+          namespace: wordpress
   tls:
-    - hosts:
-        - blog.zobsai.com
-      secretName: wp-zobsai-blog-tls
+    secretName: wp-zobsai-blog-tls
