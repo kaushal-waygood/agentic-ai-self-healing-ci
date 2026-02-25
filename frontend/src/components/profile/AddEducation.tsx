@@ -491,6 +491,9 @@ const educationSchema = z.object({
     .regex(/^[a-zA-Z\s\-'.,&]*$/, 'Only letters and spaces allowed')
     .optional()
     .nullable(),
+  startDate: z.string().min(1, 'Required'),
+  endDate: z.string().optional(),
+  isCurrent: z.boolean().optional(),
 });
 /* ---------------------------- AddEducation (refactored) ------------------------- */
 export const AddEducation: React.FC<{
