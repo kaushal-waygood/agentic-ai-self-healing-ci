@@ -71,49 +71,54 @@ export default function JobsPage() {
   }
 
   /* ===================== AUTO SELECT FIRST JOB ===================== */
-  // const autoSelectedRef = useRef<string | null>(null);
+  const autoSelectedRef = useRef<string | null>(null);
 
-  // useEffect(() => {
-  //   const slug = searchParams.get('job');
-  //   if (slug && !selectedJob && autoSelectedRef.current !== slug) {
-  //     autoSelectedRef.current = slug;
-  //     fetchJobDetails(slug);
-  //   } else if (!isMobile && jobs?.length > 0 && !isJobLoading) {
-  //     const isSelectedJobInList = selectedJob
-  //       ? jobs.some(
-  //           (j: any) =>
-  //             j.slug === selectedJob.slug ||
-  //             (j._id && j._id === selectedJob._id),
-  //         )
-  //       : false;
+  useEffect(() => {
+    const slug = searchParams.get('job');
+    if (slug && !selectedJob && autoSelectedRef.current !== slug) {
+      autoSelectedRef.current = slug;
+      fetchJobDetails(slug);
+    } else if (!isMobile && jobs?.length > 0 && !isJobLoading) {
+      const isSelectedJobInList = selectedJob
+        ? jobs.some(
+            (j: any) =>
+              j.slug === selectedJob.slug ||
+              (j._id && j._id === selectedJob._id),
+          )
+        : false;
 
-  //     // Auto-select first job if none selected, or if the current selection is no longer in the list (e.g. new search)
-  //     if (!selectedJob || !isSelectedJobInList) {
-  //       const firstJob = jobs[0];
-  //       // Prevent infinite loops caused by fetchJobDetails briefly setting selectedJob to null
-  //       if (autoSelectedRef.current !== firstJob.slug) {
-  //         autoSelectedRef.current = firstJob.slug;
-  //         setSelectedJob(firstJob);
-  //         fetchJobDetails(firstJob.slug);
-  //       }
-  //     } else if (selectedJob) {
-  //       // Keep ref updated to current legitimate selection
-  //       autoSelectedRef.current = selectedJob.slug;
-  //     }
-  //   }
-  // }, [
-  //   searchParams,
-  //   fetchJobDetails,
-  //   jobs,
-  //   isMobile,
-  //   selectedJob,
-  //   isJobLoading,
-  // ]);
+      // Auto-select first job if none selected, or if the current selection is no longer in the list (e.g. new search)
+      if (!selectedJob || !isSelectedJobInList) {
+        const firstJob = jobs[0];
+        // Prevent infinite loops caused by fetchJobDetails briefly setting selectedJob to null
+        if (autoSelectedRef.current !== firstJob.slug) {
+          autoSelectedRef.current = firstJob.slug;
+          setSelectedJob(firstJob);
+          fetchJobDetails(firstJob.slug);
+        }
+      } else if (selectedJob) {
+        // Keep ref updated to current legitimate selection
+        autoSelectedRef.current = selectedJob.slug;
+      }
+    }
+  }, [
+    searchParams,
+    fetchJobDetails,
+    jobs,
+    isMobile,
+    selectedJob,
+    isJobLoading,
+  ]);
 
-  // const handleCardClick = (job: any) => {
-  //   if (selectedJob?._id === job._id) return;
+  const handleCardClick = (job: any) => {
+    if (
+      selectedJob &&
+      (selectedJob.slug === job.slug ||
+        (selectedJob._id && selectedJob._id === job._id))
+    )
+      return;
 
-  //   trackJobClick(job._id, filters?.q);
+    trackJobClick(job._id || job.jobId, filters?.q);
 
   //   if (isMobile) {
   //     router.push(`/jobs/${job.slug}`);

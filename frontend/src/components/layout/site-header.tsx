@@ -29,18 +29,23 @@ export const Navigation = () => {
   ];
 
   const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      const encodedQuery = encodeURIComponent(searchQuery.trim());
-      setSearchQuery('');
+    const trimmedQuery = searchQuery.trim();
 
-      if (token) {
-        router.push(`/dashboard/search-jobs?query=${encodedQuery}`);
-      } else {
-        router.push(`/search-jobs?query=${encodedQuery}`);
-      }
+    const encodedQuery = trimmedQuery ? encodeURIComponent(trimmedQuery) : '';
 
-      setIsOpen(false);
+    setSearchQuery('');
+
+    if (token) {
+      router.push(
+        `/dashboard/search-jobs${encodedQuery ? `?query=${encodedQuery}` : ''}`,
+      );
+    } else {
+      router.push(
+        `/search-jobs${encodedQuery ? `?query=${encodedQuery}` : ''}`,
+      );
     }
+
+    setIsOpen(false);
   };
 
   const handleLogout = () => {
