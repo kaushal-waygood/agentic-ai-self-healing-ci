@@ -68,9 +68,7 @@ export default function JobsPage() {
       if (query) payload.query = query;
 
       dispatch(postStudentEventsRequest(payload));
-    } catch {
-      // analytics must never break UX
-    }
+    } catch {}
   }
 
   /* ===================== URL-based JOB LOAD (direct link / ?job=slug) ===================== */
@@ -115,9 +113,9 @@ export default function JobsPage() {
   }, [jobs, filters?.q]);
 
   /* ===================== SCROLL RESET ===================== */
-  useEffect(() => {
-    jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [filters]);
+  // useEffect(() => {
+  //   jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  // }, [filters]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

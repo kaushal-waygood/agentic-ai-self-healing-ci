@@ -80,7 +80,7 @@ export const FilterModal = ({
 }: FilterModalProps) => {
   const [localFilters, setLocalFilters] = useState<any>({
     ...filters,
-    education: filters.education || [],
+    education: filters?.education || [],
   });
 
   const [educationInput, setEducationInput] = useState('');
