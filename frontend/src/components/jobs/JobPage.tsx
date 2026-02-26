@@ -197,27 +197,27 @@ export default function JobsPage() {
 
   /* ===================== AUTO-SELECT FIRST JOB ===================== */
   // 1. Create a ref to track if we've already done the initial auto-selection
-  const hasAutoSelected = useRef(false);
+  // const hasAutoSelected = useRef(false);
 
-  // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
-  useEffect(() => {
-    hasAutoSelected.current = false;
-  }, [filters]);
+  // // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
+  // useEffect(() => {
+  //   hasAutoSelected.current = false;
+  // }, [filters]);
 
-  // 3. Updated selection logic
-  useEffect(() => {
-    if (
-      !isMobile &&
-      jobs?.length > 0 &&
-      !loading &&
-      !hasAutoSelected.current &&
-      !searchParams.get('job')
-    ) {
-      const firstJob = jobs[0];
-      handleCardClick(firstJob);
-      hasAutoSelected.current = true;
-    }
-  }, [jobs, isMobile, loading, searchParams, handleCardClick]);
+  // // 3. Updated selection logic
+  // useEffect(() => {
+  //   if (
+  //     !isMobile &&
+  //     jobs?.length > 0 &&
+  //     !loading &&
+  //     !hasAutoSelected.current &&
+  //     !searchParams.get('job')
+  //   ) {
+  //     const firstJob = jobs[0];
+  //     handleCardClick(firstJob);
+  //     hasAutoSelected.current = true;
+  //   }
+  // }, [jobs, isMobile, loading, searchParams, handleCardClick]);
 
   const removeFilter = (key: string, value?: any) => {
     const newFilters = { ...filters };

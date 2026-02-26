@@ -85,7 +85,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
   const ATS_SCORE_KEY = (jobId?: string) => (jobId ? `atsScore_${jobId}` : '');
 
-  // token lookup (SSR-safe)
   useEffect(() => {
     try {
       const accessToken = getToken();
@@ -95,7 +94,6 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     }
   }, []);
 
-  // load cached score and job saved/applied flags
   useEffect(() => {
     if (!job?._id) return;
 
@@ -819,8 +817,8 @@ export default function JobDetail({ job }: JobDetailClientProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 justify-end mb-3">
-        <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200 shadow-sm">
+      <div className="flex items-center justify-end ">
+        <div className="flex items-center bg-gray-100 rounded-lg  border border-gray-200 shadow-sm">
           {atsScore?.atsScore && (
             <button
               onClick={() => {
@@ -955,7 +953,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       {/* Description */}
       <div
         id="jobDescription"
-        className="bg-white/80 backdrop-blur-xl rounded-lg shadow-xl border border-white/20 p-4"
+        className="bg-white/80 rounded-lg  border border-gray-200 p-4"
       >
         <div className="flex items-center gap-3 mb-3">
           <div className="w-1.5 h-10 bg-gradient-to-b from-purple-600 via-blue-600 to-cyan-600 rounded-full shadow-lg" />

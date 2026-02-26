@@ -127,19 +127,34 @@ export function useNotifications() {
     }
   }, []);
 
+  // const markAllAsRead = useCallback(async () => {
+  //   setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  //   setUnreadCount(0);
+  //   try {
+  //     if (socketRef.current && socketRef.current.connected) {
+  //       socketRef.current.emit('mark-all-as-read');
+  //     } else {
+  //       await apiInstance.post('/notifications/mark-all-as-read');
+  //     }
+  //   } catch (err) {
+  //     console.error('markAllAsRead failed', err);
+  //   }
+  // }, []);
+
   const markAllAsRead = useCallback(async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    if (unreadCount === 0) return;
+
+    setNotifications((prev) =>
+      prev.map((n) => (n.isRead ? n : { ...n, isRead: true })),
+    );
     setUnreadCount(0);
+
     try {
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.emit('mark-all-as-read');
-      } else {
-        await apiInstance.post('/notifications/mark-all-as-read');
-      }
+      await apiInstance.patch('/notifications/mark-all-read');
     } catch (err) {
       console.error('markAllAsRead failed', err);
     }
-  }, []);
+  }, [unreadCount]);
 
   // initial fetch once
   useEffect(() => {

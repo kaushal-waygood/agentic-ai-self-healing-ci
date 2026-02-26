@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
 import {
   getRecommendJobsRequest,
@@ -14,6 +14,7 @@ export const useJobs = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
   const pathName = usePathname();
+  const router = useRouter();
 
   const {
     jobs,
@@ -132,14 +133,57 @@ export const useJobs = () => {
     [dispatch], // dispatch is stable
   );
 
-  // handleFilterChange is stable — wrapped in useCallback so SearchFilters
-  // does NOT get a new reference on every render (which would cause loops)
+  const syncFiltersToUrl = useCallback(
+    (newFilters: any) => {
+      const params = new URLSearchParams();
+
+      // Mapping of our filter keys to URL param names
+      if (newFilters.query || newFilters.q)
+        params.set('q', newFilters.query || newFilters.q);
+      if (newFilters.country) params.set('country', newFilters.country);
+      if (newFilters.countryCode)
+        params.set('countryCode', newFilters.countryCode);
+      if (newFilters.state) params.set('stateCode', newFilters.state); // store code for logic
+      if (newFilters.city) params.set('city', newFilters.city);
+      if (newFilters.datePosted)
+        params.set('datePosted', newFilters.datePosted);
+
+      if (newFilters.employmentType?.length > 0) {
+        params.set('employmentType', newFilters.employmentType.join(','));
+      }
+      if (newFilters.experience?.length > 0) {
+        params.set('experience', newFilters.experience.join(','));
+      }
+
+      // Push the URL.
+      // This will trigger the existing URL-based useEffect to fetch from Redux
+      router.push(`?${params.toString()}`, { scroll: false });
+    },
+    [router],
+  );
+
+  // ─── Modified handleFilterChange ──────────────────────────────────────────────
   const handleFilterChange = useCallback(
     (newFilters: Partial<typeof reduxFilters>) => {
-      debouncedSearch(newFilters);
+      // Merge current filters with new ones
+      const combined = { ...reduxFilters, ...newFilters };
+
+      // Update the URL
+      syncFiltersToUrl(combined);
+
+      // We don't necessarily need debouncedSearch here anymore
+      // because the URL change will trigger the existing Initial Fetch useEffect.
     },
-    [debouncedSearch],
+    [reduxFilters, syncFiltersToUrl],
   );
+  // handleFilterChange is stable — wrapped in useCallback so SearchFilters
+  // does NOT get a new reference on every render (which would cause loops)
+  // const handleFilterChange = useCallback(
+  //   (newFilters: Partial<typeof reduxFilters>) => {
+  //     debouncedSearch(newFilters);
+  //   },
+  //   [debouncedSearch],
+  // );
 
   // ─── Pagination ──────────────────────────────────────────────────────────────
   const hasNextPage =
