@@ -61,11 +61,21 @@ export function Footer() {
     e.preventDefault();
     if (!email) return;
 
-    const res = await apiInstance.post('/user/newsletter', { email });
-    if (res.status === 200) {
-      setNewsletterStatus('success');
-      setEmail('');
-      setTimeout(() => setNewsletterStatus('idle'), 3000);
+    setNewsletterStatus('loading');
+
+    try {
+      const res = await apiInstance.post('/user/newsletter', { email });
+
+      // Check for 200 or 201 (Created)
+      if (res.status === 200 || res.status === 201) {
+        setNewsletterStatus('success');
+        setEmail('');
+        setTimeout(() => setNewsletterStatus('idle'), 4000);
+      }
+    } catch (error) {
+      console.error('Newsletter error:', error);
+      setNewsletterStatus('error'); // Set error state
+      setTimeout(() => setNewsletterStatus('idle'), 4000);
     }
   };
 
@@ -196,7 +206,11 @@ export function Footer() {
             >
               {[
                 { icon: Mail, text: 'info@zobsai.com', color: 'blue' },
-                { icon: MapPin, text: 'New York, NY', color: 'purple' },
+                {
+                  icon: MapPin,
+                  text: '2nd Floor, S-05, B 14-15, Udhyog Marg, Block B, Sector 1, Noida, Uttar Pradesh 201301',
+                  color: 'purple',
+                },
               ].map((contact, index) => (
                 <div
                   key={index}
@@ -315,29 +329,39 @@ export function Footer() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            {/* Wrap the elements in a form tag */}
+            <form
+              onSubmit={handleNewsletterSubmit}
+              className="flex flex-col sm:flex-row items-center gap-4"
+            >
               <input
                 type="email"
                 value={email}
+                required // This will now trigger browser validation
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="flex-1 w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
               />
               <button
-                onClick={handleNewsletterSubmit}
+                type="submit"
                 disabled={newsletterStatus === 'loading'}
-                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-6 py-3 rounded-lg font-medium text-white flex items-center gap-2 transition-all disabled:opacity-50"
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-6 py-3 rounded-lg font-medium text-white flex items-center gap-2 transition-all disabled:opacity-50 min-w-[140px] justify-center"
               >
                 {newsletterStatus === 'loading' ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : newsletterStatus === 'success' ? (
-                  <span className="text-green-400">✓</span>
+                  <>
+                    <span className="">✓</span>
+                    <span>Subscribed!</span>
+                  </>
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <>
+                    <Send className="w-5 h-5" />
+                    <span>Subscribe</span>
+                  </>
                 )}
-                {newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
               </button>
-            </div>
+            </form>
           </div>
         </div>
 

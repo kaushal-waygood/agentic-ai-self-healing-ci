@@ -13,7 +13,6 @@ import { Search, Frown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
-import Image from 'next/image';
 import OnboardingExperienceFeedback from '@/app/(app)/dashboard/onboarding-tour/OnboardingExperienceFeedback';
 import { FilterPills } from './FilterPills';
 import { Loader } from '../Loader';
