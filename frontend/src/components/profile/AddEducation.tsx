@@ -1283,7 +1283,7 @@ export const AddExperience: React.FC<{
                           placeholder="Select start month & year"
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs text-red-600" />
                     </FormItem>
                   )}
                 />
