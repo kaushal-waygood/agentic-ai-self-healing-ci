@@ -96,6 +96,10 @@ const jobSchema = new Schema(
       type: String,
       index: true,
     },
+    needsEmbedding: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true, strict: true },
 );

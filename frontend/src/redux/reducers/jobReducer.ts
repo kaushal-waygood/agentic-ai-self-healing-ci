@@ -107,8 +107,12 @@ const jobSlice = createSlice({
       state.loading = false;
       state.pagination = action.payload.pagination;
       if (action.payload.append) {
-        const jobsMap = new Map(state.jobs.map((job) => [job._id, job]));
-        action.payload.jobs.forEach((job) => jobsMap.set(job._id, job));
+        const jobsMap = new Map(
+          state.jobs.map((job) => [job._id || (job as any).jobId, job]),
+        );
+        action.payload.jobs.forEach((job) =>
+          jobsMap.set(job._id || (job as any).jobId, job),
+        );
         state.jobs = Array.from(jobsMap.values());
       } else {
         state.jobs = action.payload.jobs;
@@ -231,8 +235,12 @@ const jobSlice = createSlice({
       state.loading = false;
       state.pagination = action.payload.pagination;
       if (action.payload.append) {
-        const jobsMap = new Map(state.jobs.map((job) => [job._id, job]));
-        action.payload.jobs.forEach((job) => jobsMap.set(job._id, job));
+        const jobsMap = new Map(
+          state.jobs.map((job) => [job._id || (job as any).jobId, job]),
+        );
+        action.payload.jobs.forEach((job) =>
+          jobsMap.set(job._id || (job as any).jobId, job),
+        );
         state.jobs = Array.from(jobsMap.values());
       } else {
         state.jobs = action.payload.jobs;
@@ -244,14 +252,34 @@ const jobSlice = createSlice({
       state.error = action.payload;
     },
 
-    getRecommendJobsRequest: (state) => {
+    getRecommendJobsRequest: (
+      state,
+      action: PayloadAction<{ page: number; append?: boolean }>,
+    ) => {
       state.loading = true;
       state.error = null;
     },
-    getRecommendJobsSuccess: (state, action: PayloadAction<Job[]>) => {
-      console.log('ACTION.PAYLOAD', action.payload);
+    getRecommendJobsSuccess: (
+      state,
+      action: PayloadAction<{
+        jobs: Job[];
+        pagination: Pagination;
+        append?: boolean;
+      }>,
+    ) => {
       state.loading = false;
-      state.jobs = action.payload;
+      state.pagination = action.payload.pagination;
+      if (action.payload.append) {
+        const jobsMap = new Map(
+          state.jobs.map((job) => [job._id || (job as any).jobId, job]),
+        );
+        action.payload.jobs.forEach((job) =>
+          jobsMap.set(job._id || (job as any).jobId, job),
+        );
+        state.jobs = Array.from(jobsMap.values());
+      } else {
+        state.jobs = action.payload.jobs;
+      }
     },
     getRecommendJobsFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

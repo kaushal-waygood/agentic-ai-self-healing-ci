@@ -67,19 +67,14 @@ export const useJobs = () => {
     // Logic: Only run if we haven't fetched for this specific mount/path combo
     // and we aren't already loading.
     if (!loading && !hasFetchedInitial.current) {
-      if (isDashboard) {
+      if (isDashboard || isPublicSearch) {
         if (empty) {
-          dispatch(getRecommendJobsRequest());
+          dispatch(getRecommendJobsRequest({ page: 1, append: false }));
         } else {
           dispatch(
             searchJobRequest({ ...filtersFromUrl, page: 1, append: false }),
           );
         }
-        hasFetchedInitial.current = true;
-      } else if (isPublicSearch) {
-        dispatch(
-          searchJobRequest({ ...filtersFromUrl, page: 1, append: false }),
-        );
         hasFetchedInitial.current = true;
       }
     }
@@ -148,23 +143,62 @@ export const useJobs = () => {
   };
 
   // 5. Pagination Logic
+  const hasNextPage =
+    pagination?.hasNextPage ?? pagination?.page < pagination?.totalPages;
+
   const loadMoreJobs = useCallback(() => {
-    if (loading || !pagination.hasNextPage) return;
-    dispatch(
-      searchJobRequest({
-        ...reduxFilters,
-        page: pagination.currentPage + 1,
-        append: true,
-      }),
-    );
-  }, [dispatch, loading, pagination, reduxFilters]);
+    if (loading || !hasNextPage) return;
+
+    const currentPage =
+      (pagination as any)?.currentPage ?? pagination?.page ?? 1;
+
+    const filtersFromUrl = {
+      query: searchParams.get('query') || searchParams.get('q') || '',
+      country: searchParams.get('country') || '',
+      state: searchParams.get('state') || '',
+      city: searchParams.get('city') || '',
+      datePosted: searchParams.get('datePosted') || '',
+      employmentType: searchParams.get('employmentType')?.split(',') || [],
+      experience: searchParams.get('experience')?.split(',') || [],
+      education: [],
+    };
+
+    const isDashboard = pathName === '/dashboard/search-jobs';
+    const isPublicSearch = pathName === '/search-jobs';
+    const empty = isEmptyFilters(filtersFromUrl);
+
+    if ((isDashboard || isPublicSearch) && empty) {
+      dispatch(
+        getRecommendJobsRequest({
+          page: currentPage + 1,
+          append: true,
+        }),
+      );
+    } else {
+      dispatch(
+        searchJobRequest({
+          ...reduxFilters,
+          page: currentPage + 1,
+          append: true,
+        }),
+      );
+    }
+  }, [
+    dispatch,
+    loading,
+    pagination,
+    reduxFilters,
+    pathName,
+    searchParams,
+    isEmptyFilters,
+  ]);
 
   return {
     jobs,
     loading,
     error,
     filters: reduxFilters,
-    pagination,
+    pagination: { ...pagination, hasNextPage },
     notification,
     employmentTypes,
     experienceLevels,

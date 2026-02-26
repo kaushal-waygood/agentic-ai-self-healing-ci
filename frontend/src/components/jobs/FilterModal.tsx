@@ -13,11 +13,14 @@ import {
 import { Globe, MapPin, X } from 'lucide-react';
 import CountrySelector from '../common/CountrySelector';
 import StateSelector from '../common/StateSelector';
-import { useJobs } from '@/hooks/jobs/useJobs';
 
 interface FilterModalProps {
   isOpen: boolean;
   onClose: () => void;
+  employmentTypes: string[];
+  experienceLevels: string[];
+  filters: any;
+  handleFilterChange: (newFilters: any) => void;
 }
 
 const datePostedOptions = [
@@ -67,10 +70,14 @@ const EducationTag = ({
   </div>
 );
 
-export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
-  const { employmentTypes, experienceLevels, filters, handleFilterChange } =
-    useJobs();
-
+export const FilterModal = ({
+  isOpen,
+  onClose,
+  employmentTypes,
+  experienceLevels,
+  filters,
+  handleFilterChange,
+}: FilterModalProps) => {
   const [localFilters, setLocalFilters] = useState<any>({
     ...filters,
     education: filters.education || [],

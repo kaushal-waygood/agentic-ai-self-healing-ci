@@ -91,7 +91,17 @@ export const searchJobs = async (params: {
   return response;
 };
 
-export const getRecommendJobs = async () => {
-  const response = await apiInstance.get('/students/jobs/recommended');
+export const getRecommendJobs = async (params: {
+  page: number;
+  limit?: number;
+}) => {
+  const { page, limit = 10 } = params;
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  const response = await apiInstance.get(
+    `/students/jobs/recommended?${queryParams.toString()}`,
+  );
   return response;
 };
