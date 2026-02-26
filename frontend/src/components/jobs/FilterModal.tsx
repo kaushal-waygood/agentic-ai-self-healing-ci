@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Globe, MapPin, X } from 'lucide-react';
+import { Globe, Loader, MapPin, X } from 'lucide-react';
 import CountrySelector from '../common/CountrySelector';
 import StateSelector from '../common/StateSelector';
 

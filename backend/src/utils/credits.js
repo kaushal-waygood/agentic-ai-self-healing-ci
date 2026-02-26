@@ -285,6 +285,7 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
         return m.blogUrl || '/blogs';
 
       case 'VISITJOB_SITE':
+
       case 'APPLY_ON_COMPANY_SITE':
         if (m && m.jobId) return `/jobs/${m.jobId}`;
         return '/jobs';
@@ -312,10 +313,7 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
   try {
     const inferred = redirectForAction(action, meta || {});
     if (inferred) finalMeta.redirectUrl = finalMeta.redirectUrl || inferred;
-  } catch (e) {
-    // never block earning credits because redirect inference failed
-    // leave meta as-is
-  }
+  } catch (e) {}
 
   const tx = await addCredits(user, amount, kind, finalMeta);
 

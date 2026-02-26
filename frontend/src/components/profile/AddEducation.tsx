@@ -7,6 +7,9 @@ import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { format } from 'date-fns';
 import {
   Form,
   FormControl,
@@ -56,6 +59,7 @@ import {
 
 import { countries } from '@/lib/data/countries';
 import ModalPortal from '../ui/modalPortal';
+import { MonthYearPicker } from '../ui/advanced-calendar';
 
 /* ---------------------------- Utilities ---------------------------------- */
 const toMonth = (iso?: string) =>
@@ -471,8 +475,27 @@ const TechnologyInput: React.FC<{
   );
 };
 
+/* ---------------------------- Education Validation Schema ------------------------- */
+const educationSchema = z.object({
+  _id: z.string().optional(),
+  institution: z
+    .string()
+    .min(1, 'Institution is required')
+    .regex(
+      /^[a-zA-Z\s\-'.,&]+$/,
+      'Only letters, spaces, and basic punctuation allowed',
+    ),
+  degree: z.string().min(1, 'Degree is required'),
+  fieldOfStudy: z
+    .string()
+    .regex(/^[a-zA-Z\s\-'.,&]*$/, 'Only letters and spaces allowed')
+    .optional()
+    .nullable(),
+  startDate: z.string().min(1, 'Required'),
+  endDate: z.string().optional(),
+  isCurrent: z.boolean().optional(),
+});
 /* ---------------------------- AddEducation (refactored) ------------------------- */
-
 export const AddEducation: React.FC<{
   onCancel: () => void;
   isEdit?: boolean;
@@ -488,6 +511,7 @@ export const AddEducation: React.FC<{
   }>;
 }> = ({ onCancel, isEdit, data }) => {
   const form = useForm({
+    resolver: zodResolver(educationSchema),
     defaultValues: {
       _id: data?._id || '',
       institution: data?.institute || '',
@@ -581,7 +605,7 @@ export const AddEducation: React.FC<{
                         required
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600 mt-1" />
                   </FormItem>
                 )}
               />
@@ -594,7 +618,7 @@ export const AddEducation: React.FC<{
                     <FormControl>
                       <DegreeSelector field={field as any} />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600" />
                   </FormItem>
                 )}
               />
@@ -611,7 +635,7 @@ export const AddEducation: React.FC<{
                     <FormControl>
                       <Input {...field} placeholder="e.g., Computer Science" />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600 mt-1" />
                   </FormItem>
                 )}
               />
@@ -651,7 +675,18 @@ export const AddEducation: React.FC<{
                     <FormItem>
                       <FormLabel>Start Date*</FormLabel>
                       <FormControl>
-                        <Input type="month" {...field} required />
+                        {/* <Input type="month" {...field} required /> */}
+                        <MonthYearPicker
+                          date={
+                            field.value
+                              ? new Date(field.value + '-01')
+                              : undefined
+                          }
+                          setDate={(date) =>
+                            field.onChange(date ? format(date, 'yyyy-MM') : '')
+                          }
+                          placeholder="Select start month & year"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -664,7 +699,18 @@ export const AddEducation: React.FC<{
                     <FormItem>
                       <FormLabel>End Date</FormLabel>
                       <FormControl>
-                        <Input type="month" {...field} placeholder="Present" />
+                        {/* <Input type="month" {...field} placeholder="Present" /> */}
+                        <MonthYearPicker
+                          date={
+                            field.value
+                              ? new Date(field.value + '-01')
+                              : undefined
+                          }
+                          setDate={(date) =>
+                            field.onChange(date ? format(date, 'yyyy-MM') : '')
+                          }
+                          placeholder="Select end month & year"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -708,7 +754,23 @@ export const AddEducation: React.FC<{
     </ModalShell>
   );
 };
-
+/* ---------------------------- Project Validation Schema ------------------------- */
+const projectSchema = z.object({
+  _id: z.string().optional(),
+  projectName: z
+    .string()
+    .min(1, 'Project name is required')
+    .regex(
+      /^[a-zA-Z0-9\s\-'.,&!?()]+$/,
+      'Only letters, numbers, spaces, and basic punctuation allowed',
+    ),
+  description: z.string().min(1, 'Description is required'),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().optional(),
+  isCurrent: z.boolean().optional(),
+  technologies: z.array(z.string()).optional(),
+  link: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+});
 /* ---------------------------- AddProject (refactored) ------------------------- */
 
 export const AddProject: React.FC<{
@@ -726,6 +788,7 @@ export const AddProject: React.FC<{
   }>;
 }> = ({ onCancel, data, isEdit }) => {
   const form = useForm({
+    resolver: zodResolver(projectSchema),
     defaultValues: {
       _id: data?._id || '',
       projectName: data?.projectName || '',
@@ -835,7 +898,7 @@ export const AddProject: React.FC<{
                         required
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600" />
                   </FormItem>
                 )}
               />
@@ -853,7 +916,7 @@ export const AddProject: React.FC<{
                         required
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600" />
                   </FormItem>
                 )}
               />
@@ -869,9 +932,20 @@ export const AddProject: React.FC<{
                     <FormItem>
                       <FormLabel>Start Date*</FormLabel>
                       <FormControl>
-                        <Input type="month" {...field} required />
+                        {/* <Input type="month" {...field} required /> */}
+                        <MonthYearPicker
+                          date={
+                            field.value
+                              ? new Date(field.value + '-01')
+                              : undefined
+                          }
+                          setDate={(date) =>
+                            field.onChange(date ? format(date, 'yyyy-MM') : '')
+                          }
+                          placeholder="Select start month & year"
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs text-red-600" />
                     </FormItem>
                   )}
                 />
@@ -882,11 +956,23 @@ export const AddProject: React.FC<{
                     <FormItem>
                       <FormLabel>End Date</FormLabel>
                       <FormControl>
-                        <Input
+                        {/* <Input
                           type="month"
                           {...field}
                           disabled={isCurrent}
                           value={isCurrent ? '' : (field.value ?? '')}
+                        /> */}
+                        <MonthYearPicker
+                          date={
+                            field.value
+                              ? new Date(field.value + '-01')
+                              : undefined
+                          }
+                          setDate={(date) =>
+                            field.onChange(date ? format(date, 'yyyy-MM') : '')
+                          }
+                          placeholder="Select end month & year"
+                          disabled={isCurrent}
                         />
                       </FormControl>
                       <FormMessage />
@@ -977,7 +1063,17 @@ const employmentTypes = [
   'Internship',
   'Apprenticeship',
 ] as const;
-
+const experienceSchema = z.object({
+  _id: z.string().optional(),
+  company: z.string().min(1, 'Company is required'),
+  designation: z.string().min(1, 'Designation is required'),
+  employmentType: z.string().optional(),
+  location: z.string().optional(),
+  isCurrent: z.boolean().optional(),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().optional(),
+  description: z.string().optional(),
+});
 export const AddExperience: React.FC<{
   onCancel: () => void;
   isEdit?: boolean;
@@ -995,6 +1091,7 @@ export const AddExperience: React.FC<{
   }>;
 }> = ({ onCancel, data, isEdit }) => {
   const form = useForm({
+    resolver: zodResolver(experienceSchema),
     defaultValues: {
       _id: data?._id || '',
       company: data?.company || '',
@@ -1096,7 +1193,7 @@ export const AddExperience: React.FC<{
                         required
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600" />
                   </FormItem>
                 )}
               />
@@ -1113,7 +1210,7 @@ export const AddExperience: React.FC<{
                         required
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600" />
                   </FormItem>
                 )}
               />
@@ -1176,9 +1273,20 @@ export const AddExperience: React.FC<{
                     <FormItem>
                       <FormLabel>Start Date*</FormLabel>
                       <FormControl>
-                        <Input type="month" {...field} required />
+                        {/* <Input type="month" {...field} required /> */}
+                        <MonthYearPicker
+                          date={
+                            field.value
+                              ? new Date(field.value + '-01')
+                              : undefined
+                          }
+                          setDate={(date) =>
+                            field.onChange(date ? format(date, 'yyyy-MM') : '')
+                          }
+                          placeholder="Select start month & year"
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs text-red-600" />
                     </FormItem>
                   )}
                 />
@@ -1189,12 +1297,24 @@ export const AddExperience: React.FC<{
                     <FormItem>
                       <FormLabel>End Date</FormLabel>
                       <FormControl>
-                        <Input
+                        {/* <Input
                           type="month"
                           {...field}
                           required
                           disabled={isCurrent}
                           value={isCurrent ? '' : (field.value ?? '')}
+                        /> */}
+                        <MonthYearPicker
+                          date={
+                            field.value
+                              ? new Date(field.value + '-01')
+                              : undefined
+                          }
+                          setDate={(date) =>
+                            field.onChange(date ? format(date, 'yyyy-MM') : '')
+                          }
+                          placeholder="Select end month & year"
+                          disabled={isCurrent}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1257,12 +1377,16 @@ export const AddExperience: React.FC<{
 /* ---------------------------- AddSkill (unchanged behaviour, small cleanup) ------------------------- */
 
 const skillTypes = ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] as const;
-
+const skillSchema = z.object({
+  skill: z.string().min(1, 'Skill is required'),
+  level: z.string().min(1, 'Level is required'),
+});
 export const AddSkill: React.FC<{
   onCancel: () => void;
   isEdit?: boolean;
 }> = ({ onCancel, isEdit }) => {
   const form = useForm<{ skill: string; level: string }>({
+    resolver: zodResolver(skillSchema),
     defaultValues: { skill: '', level: '' },
     mode: 'onSubmit',
   });
@@ -1294,21 +1418,21 @@ export const AddSkill: React.FC<{
               <FormField
                 control={control}
                 name="skill"
-                rules={{ required: 'Skill is required' }}
+                // rules={{ required: 'Skill is required' }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Skill*</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Your skill" required />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600" />
                   </FormItem>
                 )}
               />
               <FormField
                 control={control}
                 name="level"
-                rules={{ required: 'Level is required' }}
+                // rules={{ required: 'Level is required' }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Level*</FormLabel>
@@ -1326,7 +1450,7 @@ export const AddSkill: React.FC<{
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-600" />
                   </FormItem>
                 )}
               />
