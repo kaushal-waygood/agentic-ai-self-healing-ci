@@ -67,9 +67,7 @@ export default function JobsPage() {
       if (query) payload.query = query;
 
       dispatch(postStudentEventsRequest(payload));
-    } catch {
-      // analytics must never break UX
-    }
+    } catch {}
   }
 
   /* ===================== AUTO SELECT FIRST JOB ===================== */
@@ -162,9 +160,9 @@ export default function JobsPage() {
   }, [jobs, filters?.q]);
 
   /* ===================== SCROLL RESET ===================== */
-  useEffect(() => {
-    jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [filters]);
+  // useEffect(() => {
+  //   jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  // }, [filters]);
 
   /* ===================== INFINITE SCROLL ===================== */
   useEffect(() => {
@@ -205,37 +203,7 @@ export default function JobsPage() {
       setShowFeedback(true);
     }
   }, [fromOnboarding]);
-  /* ===================== AUTO-SELECT FIRST JOB ===================== */
-  /* ===================== AUTO-SELECT FIRST JOB ===================== */
-  // 1. Create a ref to track if we've already done the initial auto-selection
-  const hasAutoSelected = useRef(false);
 
-  // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
-  useEffect(() => {
-    hasAutoSelected.current = false;
-  }, [filters]);
-
-  // 3. Updated selection logic
-  useEffect(() => {
-    // Only proceed if:
-    // - Not mobile
-    // - Jobs exist
-    // - Not currently loading
-    // - We haven't auto-selected yet for this result set
-    // - There isn't already a 'job' slug in the URL (direct link)
-    if (
-      !isMobile &&
-      jobs?.length > 0 &&
-      !loading &&
-      !hasAutoSelected.current &&
-      !searchParams.get('job')
-    ) {
-      const firstJob = jobs[0];
-      handleCardClick(firstJob);
-      hasAutoSelected.current = true; // Mark as done so it doesn't fight manual clicks
-    }
-  }, [jobs, isMobile, loading, searchParams, handleCardClick]);
-  // Inside JobsPage component
   const removeFilter = (key: string, value?: any) => {
     const newFilters = { ...filters };
 
@@ -257,7 +225,7 @@ export default function JobsPage() {
       );
     } else if (key === 'country') {
       newFilters.country = '';
-      newFilters.state = ''; // Reset state if country is removed
+      newFilters.state = '';
     } else {
       newFilters[key] = '';
     }
