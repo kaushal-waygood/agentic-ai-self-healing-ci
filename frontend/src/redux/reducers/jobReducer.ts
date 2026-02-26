@@ -9,6 +9,7 @@ interface Pagination {
   page: number;
   limit: number;
   totalPages: number;
+  hasNextPage?: boolean;
 }
 
 export interface JobFilters {
@@ -33,14 +34,19 @@ interface JobState {
   error: string | null;
   pagination: Pagination;
   filters: JobFilters;
+  notification?: string;
 }
 
 const initialState: JobState = {
   jobs: [],
+  savedJobs: [],
+  viewedJobs: [],
+  visitedJobs: [],
   preferedJob: [],
   job: null,
   loading: false,
   error: null,
+  notification: undefined,
   pagination: {
     total: 0,
     page: 1,

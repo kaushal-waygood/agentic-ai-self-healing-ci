@@ -530,7 +530,7 @@ export async function retrieveCandidates(context, limit = 300) {
   const MIN_POOL = 40;
   let page = 1;
 
-  while (finalPool.length < MIN_POOL && page <= 3) {
+  while (finalPool.length < MIN_POOL && page <= 20) {
     const externalRaw = await fetchExternalJobs(
       context.query,
       context.filters?.country,
