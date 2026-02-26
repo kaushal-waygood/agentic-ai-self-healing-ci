@@ -1924,6 +1924,11 @@ ${JSON.stringify(profile)}
 const syncCooldown = new Map();
 
 export async function getProfileBasedRecommendedJobs(req, res) {
+  const { page = 1, limit = 10 } = req.query || {};
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+  const skip = (pageNum - 1) * limitNum;
+
   try {
     const profile = await buildUserProfileFromStudent(req.user._id);
     const interactions = await buildInteractionContext(req.user._id);
@@ -1946,8 +1951,11 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       interactions,
     };
 
-    // Use retrieveLocalCandidates to fetch purely from DB, grabbing 100 candidates
-    const candidates = await retrieveLocalCandidates(context, 100);
+    // Calculate how many candidates we actually need locally
+    const requiredPoolSize = pageNum * limitNum + limitNum;
+
+    // Use retrieveLocalCandidates to fetch purely from DB, grabbing enough for current page
+    const candidates = await retrieveLocalCandidates(context, requiredPoolSize);
 
     const processPool = (jobsPool) => {
       const filtered = applyFilters(jobsPool, context);
@@ -1957,14 +1965,15 @@ export async function getProfileBasedRecommendedJobs(req, res) {
 
     let processed = processPool(candidates);
 
-    const limitNum = 30;
-
-    let finalJobs = processed.slice(0, limitNum);
+    let finalJobs = processed.slice(skip, skip + limitNum);
 
     // 🔥 FAST API FALLBACK (matching Job Search API strictly)
     if (finalJobs.length < limitNum) {
       const apiFallbackQuery = profileQuery || 'jobs';
-      const pagesToFetch = [1, 2, 3];
+
+      // Calculate which RapidAPI pages map to this frontend pagination attempt
+      const startApiPage = Math.max(1, pageNum);
+      const pagesToFetch = [startApiPage, startApiPage + 1];
 
       const fetchPromises = pagesToFetch.map((apiPage) =>
         fetchExternalJobs(
@@ -1998,6 +2007,14 @@ export async function getProfileBasedRecommendedJobs(req, res) {
         const formatted = externalRaw.map((j) =>
           transformRapidApiJob(j, profileQuery || 'job'),
         );
+
+        // 🛡️ DATA CONSISTENCY REQUIREMENT (MOVED HERE):
+        // We MUST await the upsert before sending the response AND before processPool clones the objects.
+        // This ensures existing _id and slug are attached to the `formatted` array.
+        await upsertExternalJobs(formatted).catch((e) =>
+          console.error('Sync Upsert Error', e.message),
+        );
+
         const filteredExt = processPool(formatted);
 
         if (filteredExt.length > 0) {
@@ -2005,18 +2022,16 @@ export async function getProfileBasedRecommendedJobs(req, res) {
           const toAdd = filteredExt.slice(0, remainingNeeded);
           finalJobs = [...finalJobs, ...toAdd];
         }
-
-        // 🛡️ DATA CONSISTENCY REQUIREMENT:
-        // We MUST await the upsert before sending the response!
-        await upsertExternalJobs(formatted).catch((e) =>
-          console.error('Sync Upsert Error', e.message),
-        );
       }
     }
 
     res.status(200).json({
       success: true,
-      count: finalJobs.length,
+      pagination: {
+        currentPage: pageNum,
+        // Since we progressive load, we simulate there are always more pages if we hit limit
+        hasNextPage: finalJobs.length === limitNum,
+      },
       jobs: finalJobs,
     });
   } catch (error) {

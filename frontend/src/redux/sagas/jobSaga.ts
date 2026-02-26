@@ -259,11 +259,21 @@ function* searchJobsSaga(
   }
 }
 
-function* getRecommendJobsSaga() {
+function* getRecommendJobsSaga(
+  action: PayloadAction<{ page: number; append?: boolean }>,
+) {
   try {
-    const response: AxiosResponse = yield call(getRecommendJobs);
-    yield put(getRecommendJobsSuccess(response.data.jobs));
+    const { page, append } = action.payload;
+    const response: AxiosResponse = yield call(getRecommendJobs, { page });
+    yield put(
+      getRecommendJobsSuccess({
+        jobs: response.data.jobs,
+        pagination: response.data.pagination,
+        append,
+      }),
+    );
   } catch (error: unknown | Error) {
+    console.error(error);
     yield put(getRecommendJobsFailure((error as Error).message));
   }
 }
