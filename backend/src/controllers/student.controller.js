@@ -1933,7 +1933,6 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     const profile = await buildUserProfileFromStudent(req.user._id);
     const interactions = await buildInteractionContext(req.user._id);
 
-    // Construct a context strictly targeting the profile variables for Vector Embeddings
     const profileQuery =
       `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() ||
       'jobs';
@@ -1941,7 +1940,7 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     const context = {
       type: 'recommendation',
       query: profileQuery,
-      profile, // contains profile.titles, profile.skills, etc.
+      profile,
       filters: {
         country: profile.location?.country || 'IN',
         state: profile.location?.state,
@@ -1951,10 +1950,9 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       interactions,
     };
 
-    // Calculate how many candidates we actually need locally
-    const requiredPoolSize = pageNum * limitNum + limitNum;
-
-    // Use retrieveLocalCandidates to fetch purely from DB, grabbing enough for current page
+    // 1. Fetch Local Pool
+    // We increase the pool size slightly to account for deduplication/filtering
+    const requiredPoolSize = pageNum * limitNum + 20;
     const candidates = await retrieveLocalCandidates(context, requiredPoolSize);
 
     const processPool = (jobsPool) => {
@@ -1964,16 +1962,14 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     };
 
     let processed = processPool(candidates);
-
     let finalJobs = processed.slice(skip, skip + limitNum);
 
-    // 🔥 FAST API FALLBACK (matching Job Search API strictly)
+    // 2. 🔥 API FALLBACK: If local DB doesn't have enough for this specific page
     if (finalJobs.length < limitNum) {
       const apiFallbackQuery = profileQuery || 'jobs';
 
-      // Calculate which RapidAPI pages map to this frontend pagination attempt
-      const startApiPage = Math.max(1, pageNum);
-      const pagesToFetch = [startApiPage, startApiPage + 1];
+      // Start fetching from the page the user is actually on
+      const pagesToFetch = [pageNum, pageNum + 1];
 
       const fetchPromises = pagesToFetch.map((apiPage) =>
         fetchExternalJobs(
@@ -1981,15 +1977,14 @@ export async function getProfileBasedRecommendedJobs(req, res) {
           context.filters.country || 'IN',
           context.filters.state,
           context.filters.city,
-          null, // datePosted
-          null, // employmentType mapping
-          null, // experience
-          apiPage,
+          null,
+          null,
+          null,
+          apiPage, // 🔥 Fetch the page matching user's scroll depth
         ),
       );
 
-      const API_TIMEOUT = 12000; // 12 seconds max waiting for RapidAPI
-
+      const API_TIMEOUT = 12000;
       const responsesRaw = await Promise.all(
         fetchPromises.map((p) =>
           Promise.race([
@@ -2008,9 +2003,7 @@ export async function getProfileBasedRecommendedJobs(req, res) {
           transformRapidApiJob(j, profileQuery || 'job'),
         );
 
-        // 🛡️ DATA CONSISTENCY REQUIREMENT (MOVED HERE):
-        // We MUST await the upsert before sending the response AND before processPool clones the objects.
-        // This ensures existing _id and slug are attached to the `formatted` array.
+        // Save to DB so they have valid _id/slugs
         await upsertExternalJobs(formatted).catch((e) =>
           console.error('Sync Upsert Error', e.message),
         );
@@ -2025,11 +2018,13 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       }
     }
 
+    // 3. 🚀 INFINITE PAGINATION LOGIC
     res.status(200).json({
       success: true,
       pagination: {
         currentPage: pageNum,
-        // Since we progressive load, we simulate there are always more pages if we hit limit
+        // 🔥 FIX: If we found enough jobs to fill the limit, tell frontend to keep scrolling.
+        // If we found 0 or less than limit, we've likely hit the actual end of the API/DB.
         hasNextPage: finalJobs.length === limitNum,
       },
       jobs: finalJobs,

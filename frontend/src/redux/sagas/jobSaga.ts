@@ -41,8 +41,13 @@ import {
 import { AxiosResponse } from 'axios';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { recommendProfileJob } from '@/services/api/student';
-import { END, eventChannel, SagaIterator } from 'redux-saga';
-import { API_BASE_URL } from '@/services/api';
+
+import {
+  jobCache,
+  makeCacheKey,
+  pruneCache,
+  CACHE_TTL_MS,
+} from '@/lib/jobCache';
 
 function* getAllJobsSaga(
   // ADD: The 'append' flag to the action type
@@ -145,38 +150,6 @@ function* preferedJobs() {
   }
 }
 
-// --- In-memory search cache for frontend ---
-const searchCache = new Map<
-  string,
-  { data: { jobs: any[]; pagination: any }; expiresAt: number }
->();
-const SEARCH_CACHE_TTL_MS = 0; // 3 minutes
-const MAX_CACHE_ENTRIES = 50;
-
-function makeSearchCacheKey(params: Record<string, any>): string {
-  return JSON.stringify({
-    p: params.page,
-    q: params.query,
-    co: params.country,
-    st: params.state,
-    ci: params.city,
-    dp: params.datePosted,
-    et: params.employmentType,
-    ex: params.experience,
-    ed: params.education,
-  });
-}
-
-function pruneSearchCache() {
-  if (searchCache.size <= MAX_CACHE_ENTRIES) return;
-  const now = Date.now();
-  for (const [key, entry] of searchCache) {
-    if (entry.expiresAt < now || searchCache.size > MAX_CACHE_ENTRIES) {
-      searchCache.delete(key);
-    }
-  }
-}
-
 function* searchJobsSaga(
   action: PayloadAction<{
     page: number;
@@ -192,23 +165,11 @@ function* searchJobsSaga(
   }>,
 ) {
   try {
-    const {
-      append,
-      page,
-      query,
-      country,
-      city,
-      state,
-      datePosted,
-      employmentType,
-      experience,
-      education,
-    } = action.payload;
+    const { append, page, ...rest } = action.payload;
+    const cacheKey = makeCacheKey('search', action.payload);
 
-    // Try cache for non-append (fresh) searches
-    const cacheKey = makeSearchCacheKey(action.payload);
     if (!append) {
-      const cached = searchCache.get(cacheKey);
+      const cached = jobCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
         yield put(
           searchJobSuccess({
@@ -223,14 +184,10 @@ function* searchJobsSaga(
 
     const response: AxiosResponse = yield call(searchJobs, {
       page,
-      query,
-      country,
-      state,
-      city,
-      datePosted,
-      employmentType: employmentType?.join(','),
-      experience: experience?.join(','),
-      education: education?.join(','), // ADD THIS
+      ...rest,
+      employmentType: rest.employmentType?.join(','),
+      experience: rest.experience?.join(','),
+      education: rest.education?.join(','),
     });
 
     const responseData = {
@@ -238,24 +195,15 @@ function* searchJobsSaga(
       pagination: response.data.pagination,
     };
 
-    // Store in cache
-    searchCache.set(cacheKey, {
+    jobCache.set(cacheKey, {
       data: responseData,
-      expiresAt: Date.now() + SEARCH_CACHE_TTL_MS,
+      expiresAt: Date.now() + CACHE_TTL_MS,
     });
-    pruneSearchCache();
+    pruneCache();
 
-    yield put(
-      searchJobSuccess({
-        ...responseData,
-        append,
-      }),
-    );
+    yield put(searchJobSuccess({ ...responseData, append }));
   } catch (error: unknown | Error) {
-    console.error(error);
-    yield put(
-      searchJobFailure((error as Error).message || 'Failed to search for jobs'),
-    );
+    yield put(searchJobFailure((error as Error).message || 'Search failed'));
   }
 }
 
@@ -264,16 +212,37 @@ function* getRecommendJobsSaga(
 ) {
   try {
     const { page, append } = action.payload;
+    const cacheKey = makeCacheKey('recommend', { page });
+
+    if (!append) {
+      const cached = jobCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        yield put(
+          getRecommendJobsSuccess({
+            jobs: cached.data.jobs,
+            pagination: cached.data.pagination,
+            append,
+          }),
+        );
+        return;
+      }
+    }
+
     const response: AxiosResponse = yield call(getRecommendJobs, { page });
-    yield put(
-      getRecommendJobsSuccess({
-        jobs: response.data.jobs,
-        pagination: response.data.pagination,
-        append,
-      }),
-    );
+
+    const responseData = {
+      jobs: response.data.jobs,
+      pagination: response.data.pagination,
+    };
+
+    jobCache.set(cacheKey, {
+      data: responseData,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+    pruneCache();
+
+    yield put(getRecommendJobsSuccess({ ...responseData, append }));
   } catch (error: unknown | Error) {
-    console.error(error);
     yield put(getRecommendJobsFailure((error as Error).message));
   }
 }

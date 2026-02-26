@@ -2,15 +2,7 @@
 
 import Image from 'next/image';
 import { JobListing } from '@/lib/data/jobs';
-import {
-  MapPin,
-  Clock,
-  Building,
-  Eye,
-  TrendingUp,
-  Loader2,
-  Loader,
-} from 'lucide-react';
+import { MapPin, Clock, Building, Eye, TrendingUp } from 'lucide-react';
 import { truncate } from '@/utils/formatTitle';
 import { useJobs } from '@/hooks/jobs/useJobs';
 
@@ -45,15 +37,6 @@ const calculateJobPostedFromNow = (jobPostedAt: string) => {
 };
 
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
-  const {
-    employmentTypes,
-    experienceLevels,
-    filters,
-    loading,
-    handleFilterChange,
-  } = useJobs();
-
-  console.log('loading', loading);
   return (
     <div
       onClick={onClick}

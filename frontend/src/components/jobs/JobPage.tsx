@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
@@ -37,6 +36,8 @@ export default function JobsPage() {
   } = useJobs();
   const dispatch = useDispatch();
 
+  console.log('---------jobs----------', jobs);
+
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -70,64 +71,17 @@ export default function JobsPage() {
     } catch {}
   }
 
-  /* ===================== AUTO SELECT FIRST JOB ===================== */
-  const autoSelectedRef = useRef<string | null>(null);
+  /* ===================== URL-based JOB LOAD (direct link / ?job=slug) ===================== */
+  const urlJobLoadedRef = useRef<string | null>(null);
 
   useEffect(() => {
     const slug = searchParams.get('job');
-    if (slug && !selectedJob && autoSelectedRef.current !== slug) {
-      autoSelectedRef.current = slug;
+    if (slug && urlJobLoadedRef.current !== slug) {
+      urlJobLoadedRef.current = slug;
       fetchJobDetails(slug);
-    } else if (!isMobile && jobs?.length > 0 && !isJobLoading) {
-      const isSelectedJobInList = selectedJob
-        ? jobs.some(
-            (j: any) =>
-              j.slug === selectedJob.slug ||
-              (j._id && j._id === selectedJob._id),
-          )
-        : false;
-
-      // Auto-select first job if none selected, or if the current selection is no longer in the list (e.g. new search)
-      if (!selectedJob || !isSelectedJobInList) {
-        const firstJob = jobs[0];
-        // Prevent infinite loops caused by fetchJobDetails briefly setting selectedJob to null
-        if (autoSelectedRef.current !== firstJob.slug) {
-          autoSelectedRef.current = firstJob.slug;
-          setSelectedJob(firstJob);
-          fetchJobDetails(firstJob.slug);
-        }
-      } else if (selectedJob) {
-        // Keep ref updated to current legitimate selection
-        autoSelectedRef.current = selectedJob.slug;
-      }
     }
-  }, [
-    searchParams,
-    fetchJobDetails,
-    jobs,
-    isMobile,
-    selectedJob,
-    isJobLoading,
-  ]);
+  }, [searchParams, fetchJobDetails]);
 
-  const handleCardClick = (job: any) => {
-    if (
-      selectedJob &&
-      (selectedJob.slug === job.slug ||
-        (selectedJob._id && selectedJob._id === job._id))
-    )
-      return;
-
-    trackJobClick(job._id || job.jobId, filters?.q);
-
-  //   if (isMobile) {
-  //     router.push(`/jobs/${job.slug}`);
-  //   } else {
-  //     setSelectedJob(job);
-
-  //     fetchJobDetails(job.slug);
-  //   }
-  // };
   const handleCardClick = useCallback(
     (job: any) => {
       if (selectedJob?._id === job._id) return;
@@ -143,7 +97,6 @@ export default function JobsPage() {
     },
     [selectedJob, filters?.q, isMobile, router, fetchJobDetails],
   );
-  // Added dependencies so the function reference is stable
 
   /* ===================== IMPRESSION TRACKING (SAFE) ===================== */
   useEffect(() => {
@@ -164,15 +117,21 @@ export default function JobsPage() {
   //   jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   // }, [filters]);
 
-  /* ===================== INFINITE SCROLL ===================== */
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && pagination.hasNextPage && !loading) {
+          console.log(
+            'Triggering Load More for Page:',
+            (pagination.currentPage || 1) + 1,
+          );
           loadMoreJobs();
         }
       },
-      { threshold: 1.0 },
+      {
+        rootMargin: '200px', // 2. Trigger 200px BEFORE the user reaches the bottom
+        threshold: 0.1,
+      },
     );
 
     const el = observerRef.current;
@@ -181,15 +140,7 @@ export default function JobsPage() {
     return () => {
       if (el) observer.unobserve(el);
     };
-  }, [loading, pagination.hasNextPage, loadMoreJobs]);
-
-  if (error) {
-    toast({
-      variant: 'destructive',
-      title: 'Error',
-      description: error,
-    });
-  }
+  }, [loading, pagination.hasNextPage, loadMoreJobs, pagination.currentPage]); // Added currentPage to deps
 
   const fromOnboarding = searchParams.get('from') === 'onboarding';
 
@@ -203,6 +154,30 @@ export default function JobsPage() {
       setShowFeedback(true);
     }
   }, [fromOnboarding]);
+
+  /* ===================== AUTO-SELECT FIRST JOB ===================== */
+  // 1. Create a ref to track if we've already done the initial auto-selection
+  const hasAutoSelected = useRef(false);
+
+  // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
+  useEffect(() => {
+    hasAutoSelected.current = false;
+  }, [filters]);
+
+  // 3. Updated selection logic
+  useEffect(() => {
+    if (
+      !isMobile &&
+      jobs?.length > 0 &&
+      !loading &&
+      !hasAutoSelected.current &&
+      !searchParams.get('job')
+    ) {
+      const firstJob = jobs[0];
+      handleCardClick(firstJob);
+      hasAutoSelected.current = true;
+    }
+  }, [jobs, isMobile, loading, searchParams, handleCardClick]);
 
   const removeFilter = (key: string, value?: any) => {
     const newFilters = { ...filters };
@@ -233,7 +208,13 @@ export default function JobsPage() {
     handleFilterChange(newFilters);
   };
 
-  const { loading: jobLoading } = useJobs();
+  if (error) {
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: error,
+    });
+  }
 
   return (
     <div className="bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
@@ -275,15 +256,13 @@ export default function JobsPage() {
 
               {/* ❌ No Jobs Found UI */}
               {!loading && !notification && jobs.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg border ">
+                <div className="flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg border">
                   <div className="w-14 h-14 flex items-center justify-center rounded-full bg-gray-100 mb-4">
                     <Frown className="w-7 h-7 text-gray-400" />
                   </div>
-
                   <h3 className="text-lg font-semibold text-gray-800 mb-1">
                     No jobs found
                   </h3>
-
                   <p className="text-sm text-gray-500 max-w-xs">
                     Try adjusting your filters or search criteria to see more
                     results.
@@ -310,7 +289,8 @@ export default function JobsPage() {
               {/* Infinite loading */}
               {loading && jobs.length > 0 && <JobCardSkeleton />}
 
-              <div ref={observerRef} style={{ height: '1px' }} />
+              {/* <div ref={observerRef} style={{ height: '1px' }} /> */}
+              <div ref={observerRef} className="h-4 w-full" />
             </div>
           </div>
 

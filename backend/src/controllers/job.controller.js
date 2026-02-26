@@ -310,12 +310,30 @@ export async function searchJobs(req, res) {
       );
     }
 
+    // return res.status(200).json({
+    //   success: true,
+    //   jobs: paginatedJobs,
+    //   pagination: {
+    //     currentPage: pageNum,
+    //     hasNextPage: processed.length > start + limitNum,
+    //     totalJobs:
+    //       processed.length > start + limitNum
+    //         ? processed.length
+    //         : start + paginatedJobs.length,
+    //   },
+    // });
+
+    // ... (inside the try block, at the end of searchJobs)
+
     return res.status(200).json({
       success: true,
       jobs: paginatedJobs,
       pagination: {
         currentPage: pageNum,
-        hasNextPage: processed.length > start + limitNum,
+        // 🔥 FIX: If the current page is full, assume there is a next page.
+        // This keeps the frontend observer active.
+        hasNextPage: paginatedJobs.length >= limitNum,
+        // Use an estimated total or the current processed count
         totalJobs:
           processed.length > start + limitNum
             ? processed.length
