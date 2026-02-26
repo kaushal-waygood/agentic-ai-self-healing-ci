@@ -32,6 +32,8 @@ export default function JobsPage() {
     handleFilterChange,
     notification,
     loadMoreJobs,
+    employmentTypes,
+    experienceLevels,
   } = useJobs();
   const dispatch = useDispatch();
 
@@ -65,17 +67,48 @@ export default function JobsPage() {
       if (query) payload.query = query;
 
       dispatch(postStudentEventsRequest(payload));
-    } catch {
-      // analytics must never break UX
-    }
+    } catch {}
   }
 
-  useEffect(() => {
-    const slug = searchParams.get('job');
-    if (slug) {
-      fetchJobDetails(slug);
-    }
-  }, [searchParams, fetchJobDetails]);
+  /* ===================== AUTO SELECT FIRST JOB ===================== */
+  // const autoSelectedRef = useRef<string | null>(null);
+
+  // useEffect(() => {
+  //   const slug = searchParams.get('job');
+  //   if (slug && !selectedJob && autoSelectedRef.current !== slug) {
+  //     autoSelectedRef.current = slug;
+  //     fetchJobDetails(slug);
+  //   } else if (!isMobile && jobs?.length > 0 && !isJobLoading) {
+  //     const isSelectedJobInList = selectedJob
+  //       ? jobs.some(
+  //           (j: any) =>
+  //             j.slug === selectedJob.slug ||
+  //             (j._id && j._id === selectedJob._id),
+  //         )
+  //       : false;
+
+  //     // Auto-select first job if none selected, or if the current selection is no longer in the list (e.g. new search)
+  //     if (!selectedJob || !isSelectedJobInList) {
+  //       const firstJob = jobs[0];
+  //       // Prevent infinite loops caused by fetchJobDetails briefly setting selectedJob to null
+  //       if (autoSelectedRef.current !== firstJob.slug) {
+  //         autoSelectedRef.current = firstJob.slug;
+  //         setSelectedJob(firstJob);
+  //         fetchJobDetails(firstJob.slug);
+  //       }
+  //     } else if (selectedJob) {
+  //       // Keep ref updated to current legitimate selection
+  //       autoSelectedRef.current = selectedJob.slug;
+  //     }
+  //   }
+  // }, [
+  //   searchParams,
+  //   fetchJobDetails,
+  //   jobs,
+  //   isMobile,
+  //   selectedJob,
+  //   isJobLoading,
+  // ]);
 
   // const handleCardClick = (job: any) => {
   //   if (selectedJob?._id === job._id) return;
@@ -111,7 +144,7 @@ export default function JobsPage() {
   useEffect(() => {
     if (!jobs?.length) return;
 
-    const jobIds = jobs.map((j: any) => j._id);
+    const jobIds = jobs.map((j: any) => j._id || j.jobId).filter(Boolean);
 
     apiInstance
       .post('/jobs/impression', {
@@ -122,9 +155,9 @@ export default function JobsPage() {
   }, [jobs, filters?.q]);
 
   /* ===================== SCROLL RESET ===================== */
-  useEffect(() => {
-    jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [filters]);
+  // useEffect(() => {
+  //   jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  // }, [filters]);
 
   /* ===================== INFINITE SCROLL ===================== */
   useEffect(() => {
@@ -165,37 +198,7 @@ export default function JobsPage() {
       setShowFeedback(true);
     }
   }, [fromOnboarding]);
-  /* ===================== AUTO-SELECT FIRST JOB ===================== */
-  /* ===================== AUTO-SELECT FIRST JOB ===================== */
-  // 1. Create a ref to track if we've already done the initial auto-selection
-  const hasAutoSelected = useRef(false);
 
-  // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
-  useEffect(() => {
-    hasAutoSelected.current = false;
-  }, [filters]);
-
-  // 3. Updated selection logic
-  useEffect(() => {
-    // Only proceed if:
-    // - Not mobile
-    // - Jobs exist
-    // - Not currently loading
-    // - We haven't auto-selected yet for this result set
-    // - There isn't already a 'job' slug in the URL (direct link)
-    if (
-      !isMobile &&
-      jobs?.length > 0 &&
-      !loading &&
-      !hasAutoSelected.current &&
-      !searchParams.get('job')
-    ) {
-      const firstJob = jobs[0];
-      handleCardClick(firstJob);
-      hasAutoSelected.current = true; // Mark as done so it doesn't fight manual clicks
-    }
-  }, [jobs, isMobile, loading, searchParams, handleCardClick]);
-  // Inside JobsPage component
   const removeFilter = (key: string, value?: any) => {
     const newFilters = { ...filters };
 
@@ -217,7 +220,7 @@ export default function JobsPage() {
       );
     } else if (key === 'country') {
       newFilters.country = '';
-      newFilters.state = ''; // Reset state if country is removed
+      newFilters.state = '';
     } else {
       newFilters[key] = '';
     }
@@ -287,10 +290,14 @@ export default function JobsPage() {
               {!notification &&
                 jobs.map((job: any) => (
                   <JobCard
-                    key={job._id || job.jobId}
+                    key={job._id || job.jobId || job.slug}
                     job={job}
                     id={job._id || job.jobId}
-                    isActive={selectedJob?._id === job._id}
+                    isActive={
+                      !!selectedJob &&
+                      (selectedJob.slug === job.slug ||
+                        (selectedJob._id && selectedJob._id === job._id))
+                    }
                     onClick={() => handleCardClick(job)}
                   />
                 ))}
@@ -329,6 +336,10 @@ export default function JobsPage() {
         <FilterModal
           isOpen={filterModal}
           onClose={() => setFilterModal(false)}
+          employmentTypes={employmentTypes}
+          experienceLevels={experienceLevels}
+          filters={filters}
+          handleFilterChange={handleFilterChange}
         />
       </div>
     </div>

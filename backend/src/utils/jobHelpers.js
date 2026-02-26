@@ -11,6 +11,7 @@ import { stableShuffle } from './stableShuffle.js';
 import { makeTop4Key } from './dashboardKeys.js';
 import { Student } from '../models/students/student.model.js';
 import { StudentSkill } from '../models/students/studentSkill.model.js';
+import mongoose from 'mongoose';
 
 export const safeParseInt = (v, fallback = 0) => {
   const n = parseInt(v, 10);
@@ -122,16 +123,27 @@ export async function upsertExternalJobs(externalJobs) {
   const jobIds = externalJobs.map((j) => j.jobId);
 
   // 1. Quick check for existing jobs to avoid unnecessary overrides
-  // We only fetch jobId to keep the projection slim and fast
+  // We fetch jobId, slug and _id to preserve their DB links
   const existingJobs = await Job.find(
     { jobId: { $in: jobIds }, origin: 'EXTERNAL' },
-    { jobId: 1 },
+    { jobId: 1, slug: 1, _id: 1 },
   ).lean();
 
-  const existingIds = new Set(existingJobs.map((j) => j.jobId));
+  const existingMap = new Map();
+  existingJobs.forEach((j) => existingMap.set(j.jobId, j));
 
   // 2. Prepare Bulk Operations
   const ops = externalJobs.map((j) => {
+    // 🔥 FIX: Bind DB's _id and slug to the returned node so frontend doesn't 404
+    if (existingMap.has(j.jobId)) {
+      const existing = existingMap.get(j.jobId);
+      j.slug = existing.slug;
+      j._id = existing._id;
+    } else {
+      j._id = new mongoose.Types.ObjectId();
+      // slug will remain the one created by transformRapidApiJob
+    }
+
     // Generate a fresh hash for the current content
     const textToEmbed =
       `Title: ${j.title} Description: ${j.description} Company: ${j.company}`.trim();
@@ -157,7 +169,7 @@ export async function upsertExternalJobs(externalJobs) {
       embeddingHash,
       // 🚀 SPEED TRICK: Don't generate vector here.
       // Mark it as "pending" so a background job can find and vectorize it.
-      needsEmbedding: !existingIds.has(j.jobId),
+      needsEmbedding: !existingMap.has(j.jobId),
     };
 
     return {
@@ -169,7 +181,7 @@ export async function upsertExternalJobs(externalJobs) {
             tags: { $each: Array.isArray(j.tags) ? j.tags : [] },
             queries: { $each: Array.isArray(j.queries) ? j.queries : [] },
           },
-          $setOnInsert: { slug: j.slug || makeSlug(j.title) },
+          $setOnInsert: { _id: j._id, slug: j.slug },
         },
         upsert: true,
       },
@@ -215,11 +227,49 @@ export function transformRapidApiJob(apiJob, searchQuery) {
   )
     finalCountry = 'US';
 
+  let salaryObj = undefined;
+  if (apiJob.job_min_salary || apiJob.job_max_salary) {
+    let rawPeriod = (apiJob.job_salary_period || 'YEAR').toUpperCase();
+    if (!['HOUR', 'DAY', 'MONTH', 'YEAR'].includes(rawPeriod)) {
+      rawPeriod = 'YEAR'; // Fallback for 'WEEK' or other periods
+    }
+    salaryObj = {
+      min: apiJob.job_min_salary || 0,
+      max: apiJob.job_max_salary || 0,
+      period: rawPeriod,
+    };
+  }
+
+  let expArray = [];
+  if (apiJob.job_required_experience?.required_experience_in_months) {
+    const months = apiJob.job_required_experience.required_experience_in_months;
+    const years = Math.floor(months / 12);
+    if (years > 0) {
+      expArray.push(`${years} years`);
+    } else {
+      expArray.push(`${months} months`);
+    }
+  }
+
+  const jobPostedAtDate = apiJob.job_posted_at_datetime_utc
+    ? new Date(apiJob.job_posted_at_datetime_utc)
+    : new Date();
+
+  // Simple relative time calculation for jobPosted
+  const diffInMs = new Date() - jobPostedAtDate;
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  let jobPostedStr = '';
+  if (diffInDays === 0) jobPostedStr = 'Today';
+  else if (diffInDays === 1) jobPostedStr = '1 day ago';
+  else jobPostedStr = `${diffInDays} days ago`;
+
   return {
     jobId: apiJob.job_id,
     origin: 'EXTERNAL',
     title: apiJob.job_title || 'job',
     description: apiJob.job_description || '',
+    responsibilities: apiJob.job_highlights?.Responsibilities || [],
+    qualifications: apiJob.job_highlights?.Qualifications || [],
     company: apiJob.employer_name || '',
     country: finalCountry,
     logo: apiJob.employer_logo || '',
@@ -227,14 +277,15 @@ export function transformRapidApiJob(apiJob, searchQuery) {
     slug: makeSlug(apiJob.job_title || 'job'),
     applyMethod: { method: 'URL', url: apiJob.job_apply_link || '' },
     isActive: true,
-    jobPostedAt: apiJob.job_posted_at_datetime_utc
-      ? new Date(apiJob.job_posted_at_datetime_utc)
-      : new Date(),
+    jobPosted: jobPostedStr,
+    jobPostedAt: jobPostedAtDate,
     jobTypes: apiJob.job_employment_type
       ? [apiJob.job_employment_type.toUpperCase()]
       : [],
     queries: searchQuery ? [searchQuery] : [],
     remote: apiJob.job_is_remote || false,
+    salary: salaryObj,
+    experience: expArray,
   };
 }
 
@@ -496,6 +547,13 @@ export async function retrieveCandidates(context, limit = 300) {
     const formatted = externalRaw.map((j) =>
       transformRapidApiJob(j, context.query),
     );
+
+    // FIX: MUST UPSERT HERE to ensure jobs are fundamentally written and correct _id/slug mappings are hydrated!
+    // Without this, user clicks on search UI will 404 because these are "ghost" objects never placed into MongoDB.
+    await upsertExternalJobs(formatted).catch((e) =>
+      console.error('retrieveCandidates Upsert Error:', e.message),
+    );
+
     const validExternal = applyFilters(formatted, context);
 
     finalPool = dedupeByTitleCompany([...finalPool, ...validExternal]);

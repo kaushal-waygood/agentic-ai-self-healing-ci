@@ -270,6 +270,15 @@ export async function searchJobs(req, res) {
         const formatted = externalRaw.map((j) =>
           transformRapidApiJob(j, q || 'job'),
         );
+
+        // 🛡️ DATA CONSISTENCY REQUIREMENT:
+        // We MUST await the upsert before sending the response AND before cloning!
+        // If we don't, the user could click the job instantly on the frontend, triggering
+        // a 404 on `jobs/find?slug=...` because MongoDB hasn't finished its background write yet.
+        await upsertExternalJobs(formatted).catch((e) =>
+          console.error('Sync Upsert Error', e.message),
+        );
+
         const filteredExt = processPool(formatted);
 
         if (filteredExt.length > 0) {
@@ -278,14 +287,6 @@ export async function searchJobs(req, res) {
           paginatedJobs = [...paginatedJobs, ...toAdd];
           processed = [...processed, ...filteredExt];
         }
-
-        // 🛡️ DATA CONSISTENCY REQUIREMENT:
-        // We MUST await the upsert before sending the response!
-        // If we don't, the user could click the job instantly on the frontend, triggering
-        // a 404 on `jobs/find?slug=...` because MongoDB hasn't finished its background write yet.
-        await upsertExternalJobs(formatted).catch((e) =>
-          console.error('Sync Upsert Error', e.message),
-        );
       }
     }
 
