@@ -79,6 +79,7 @@ export const SearchFilters = ({
       country: country || prev.country,
       countryCode: countryCode || prev.countryCode,
       state: stateCode || prev.state,
+
       city: city || prev.city,
       datePosted: datePosted || prev.datePosted,
       employmentType: employmentType.length
