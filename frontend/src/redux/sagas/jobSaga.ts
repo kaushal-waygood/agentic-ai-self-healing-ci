@@ -145,6 +145,38 @@ function* preferedJobs() {
   }
 }
 
+// --- In-memory search cache for frontend ---
+const searchCache = new Map<
+  string,
+  { data: { jobs: any[]; pagination: any }; expiresAt: number }
+>();
+const SEARCH_CACHE_TTL_MS = 0; // 3 minutes
+const MAX_CACHE_ENTRIES = 50;
+
+function makeSearchCacheKey(params: Record<string, any>): string {
+  return JSON.stringify({
+    p: params.page,
+    q: params.query,
+    co: params.country,
+    st: params.state,
+    ci: params.city,
+    dp: params.datePosted,
+    et: params.employmentType,
+    ex: params.experience,
+    ed: params.education,
+  });
+}
+
+function pruneSearchCache() {
+  if (searchCache.size <= MAX_CACHE_ENTRIES) return;
+  const now = Date.now();
+  for (const [key, entry] of searchCache) {
+    if (entry.expiresAt < now || searchCache.size > MAX_CACHE_ENTRIES) {
+      searchCache.delete(key);
+    }
+  }
+}
+
 function* searchJobsSaga(
   action: PayloadAction<{
     page: number;
@@ -173,6 +205,22 @@ function* searchJobsSaga(
       education,
     } = action.payload;
 
+    // Try cache for non-append (fresh) searches
+    const cacheKey = makeSearchCacheKey(action.payload);
+    if (!append) {
+      const cached = searchCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        yield put(
+          searchJobSuccess({
+            jobs: cached.data.jobs,
+            pagination: cached.data.pagination,
+            append,
+          }),
+        );
+        return;
+      }
+    }
+
     const response: AxiosResponse = yield call(searchJobs, {
       page,
       query,
@@ -185,10 +233,21 @@ function* searchJobsSaga(
       education: education?.join(','), // ADD THIS
     });
 
+    const responseData = {
+      jobs: response.data.jobs,
+      pagination: response.data.pagination,
+    };
+
+    // Store in cache
+    searchCache.set(cacheKey, {
+      data: responseData,
+      expiresAt: Date.now() + SEARCH_CACHE_TTL_MS,
+    });
+    pruneSearchCache();
+
     yield put(
       searchJobSuccess({
-        jobs: response.data.jobs,
-        pagination: response.data.pagination,
+        ...responseData,
         append,
       }),
     );

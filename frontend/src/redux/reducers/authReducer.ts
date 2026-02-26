@@ -24,8 +24,28 @@ const authSlice = createSlice({
       state.loading = false;
       state.isAuthenticated = true;
       state.token = action.payload.token;
-      const { _id, fullName, email, dailyStreak } = action.payload.user;
-      state.user = { _id, fullName, email, dailyStreak };
+      const {
+        _id,
+        fullName,
+        email,
+        dailyStreak,
+        role,
+        accountType,
+        organizationName,
+        googleAuth,
+      } = action.payload.user;
+
+      console.log('action.payload.user', action.payload.user);
+      state.user = {
+        _id,
+        fullName,
+        email,
+        dailyStreak,
+        role,
+        accountType,
+        organizationName,
+        googleAuth,
+      };
     },
     loginFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

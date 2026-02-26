@@ -323,7 +323,13 @@ const DocumentPage = () => {
   }
 
   if (isLoading) {
-    return <Loader />;
+    return (
+      <Loader
+        imageClassName="w-6 h-6"
+        textClassName="text-sm"
+        classStyle="min-h-screen -mt-16"
+      />
+    );
   }
 
   if (error) {

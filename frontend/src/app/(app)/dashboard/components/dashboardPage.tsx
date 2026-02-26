@@ -34,10 +34,10 @@ import {
   CalendarClock,
   MousePointerClick,
   ScanSearch,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 
-import { mockUserProfile, ActionItem } from '@/lib/data/user';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -201,51 +201,52 @@ export function ProfileReadinessCard() {
   const checks = data.categories;
 
   if (score === 100) {
-    return (
-      <div className="bg-white relative overflow-hidden rounded-lg border border-gray-200 p-4 ">
-        <div
-          className="relative z-10 flex flex-col sm:flex-row 
-                      items-start sm:items-center 
-                      justify-between gap-4"
-        >
-          {/* Left */}
-          <div className="flex items-center gap-4">
-            <div className="relative flex items-center justify-center">
-              <div
-                className="relative flex h-12 w-12 items-center 
-                            justify-center rounded-full bg-green-100"
-              >
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
+    return null;
+    // return (
+    //   <div className="bg-white relative overflow-hidden rounded-lg border border-gray-200 p-4 ">
+    //     <div
+    //       className="relative z-10 flex flex-col sm:flex-row
+    //                   items-start sm:items-center
+    //                   justify-between gap-4"
+    //     >
+    //       {/* Left */}
+    //       <div className="flex items-center gap-4">
+    //         <div className="relative flex items-center justify-center">
+    //           <div
+    //             className="relative flex h-12 w-12 items-center
+    //                         justify-center rounded-full bg-green-100"
+    //           >
+    //             <CheckCircle2 className="h-6 w-6 text-green-600" />
+    //           </div>
+    //         </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Profile Complete
-              </h3>
-              <p className="text-sm text-gray-600">
-                Your profile is 100% ready to go 🎉
-              </p>
-            </div>
-          </div>
+    //         <div>
+    //           <h3 className="text-lg font-semibold text-gray-900">
+    //             Profile Complete
+    //           </h3>
+    //           <p className="text-sm text-gray-600">
+    //             Your profile is 100% ready to go 🎉
+    //           </p>
+    //         </div>
+    //       </div>
 
-          {/* Right */}
-          <Button
-            asChild
-            className="group bg-buttonPrimary hover:bg-blue-700 
-                     text-white flex items-center gap-2"
-          >
-            <Link href="/dashboard/profile" prefetch={false}>
-              View Profile
-              <ArrowRight
-                className="h-4 w-4 transition-transform 
-                                  group-hover:translate-x-1"
-              />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    );
+    //       {/* Right */}
+    //       <Button
+    //         asChild
+    //         className="group bg-buttonPrimary hover:bg-blue-700
+    //                  text-white flex items-center gap-2"
+    //       >
+    //         <Link href="/dashboard/profile" prefetch={false}>
+    //           View Profile
+    //           <ArrowRight
+    //             className="h-4 w-4 transition-transform
+    //                               group-hover:translate-x-1"
+    //           />
+    //         </Link>
+    //       </Button>
+    //     </div>
+    //   </div>
+    // );
   }
 
   /* =========================
@@ -480,10 +481,33 @@ function UsageMeter({ label, used, limit }: any) {
   );
 }
 
-function RecentActivityRow({ icon: Icon, title, subtitle, time, href }) {
+function RecentActivityRow({
+  icon: Icon,
+  title,
+  subtitle,
+  time,
+  href,
+  id,
+  type,
+}) {
+  const getDocumentUrl = () => {
+    if (!id) return href;
+
+    switch (type) {
+      case 'cv':
+        return `/dashboard/my-docs/cv/${id}`;
+      case 'coverLetter':
+        return `/dashboard/my-docs/cl/${id}`;
+      case 'tailoredApplication':
+        return `/dashboard/my-docs/application/${id}`;
+      default:
+        return href;
+    }
+  };
+
   return (
     <Link
-      href={href}
+      href={getDocumentUrl()}
       prefetch={false}
       className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition"
     >
@@ -848,30 +872,41 @@ export default function DashboardPage() {
 
         <div className="grid gap-8 lg:grid-cols-3 mb-8">
           <div className="lg:col-span-2 space-y-8">
-            <div id="profile-readiness">
-              <ProfileReadinessCard />
-            </div>
+            <div className="group relative flex items-center w-full gap-3 p-1.5 bg-white border border-slate-200 rounded-lg shadow-sm hover:border-slate-300 focus-within:ring-4 focus-within:ring-blue-50 focus-within:border-blue-400 transition-all duration-200">
+              {/* Icon with dynamic color based on focus */}
+              <div className="pl-3">
+                <Search className="w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+              </div>
 
-            <div className="flex gap-2 border border-slate-300 rounded-lg p-2 bg-white focus-within:ring-2 focus-within:ring-blue-400 transition">
               <Input
-                placeholder="Search applications"
+                placeholder="Search Jobs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSearch();
-                  }
-                }}
-                className="w-full border-none focus-visible:ring-0 text-gray-800 placeholder:text-gray-400"
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="flex-1 h-10 border-none bg-transparent p-0 text-slate-700 placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
               />
+
+              {/* Clear Button (Only shows when there is text) */}
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
 
               <Button
                 onClick={handleSearch}
-                className="bg-buttonPrimary hover:bg-blue-700 text-white px-4"
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 h-9 shadow-sm active:scale-95 transition-all"
               >
-                <MoveRight className="w-5 h-5" />
+                <span>Search</span>
+                <MoveRight className="ml-2 w-4 h-4" />
               </Button>
+            </div>
+            <div id="profile-readiness">
+              <ProfileReadinessCard />
             </div>
 
             <div className="mt-6">
@@ -1145,7 +1180,11 @@ export default function DashboardPage() {
                       title="CV Generated"
                       subtitle={recentAI.cv.title}
                       time={recentAI.cv.completedAt}
-                      href="/dashboard/my-docs?tab=cvs"
+                      id={recentAI.cv.id || recentAI.cv._id}
+                      type="cv"
+                     
+                   
+                      href={`/dashboard/my-docs/cv/${recentAI?.cv?.id}`}
                     />
                   )}
 
@@ -1155,7 +1194,10 @@ export default function DashboardPage() {
                       title="Cover Letter Generated"
                       subtitle={recentAI.coverLetter.title}
                       time={recentAI.coverLetter.completedAt}
-                      href="/dashboard/my-docs?tab=cover-letters"
+                      id={recentAI.coverLetter.id || recentAI.coverLetter._id}
+                      type="coverLetter"
+                     
+                      href={`/dashboard/my-docs/cl/${recentAI?.coverLetter?.id}`}
                     />
                   )}
 
@@ -1165,7 +1207,13 @@ export default function DashboardPage() {
                       title="Tailored Application Ready"
                       subtitle={`${recentAI.tailoredApplication.jobTitle} · ${recentAI.tailoredApplication.companyName}`}
                       time={recentAI.tailoredApplication.completedAt}
-                      href="/dashboard/my-docs?tab=applications"
+                      id={
+                        recentAI.tailoredApplication.id ||
+                        recentAI.tailoredApplication._id
+                      }
+                      type="tailoredApplication"
+                  
+                      href={`/dashboard/my-docs/application/${recentAI?.tailoredApplication?.id}`}
                     />
                   )}
 

@@ -1,9 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Filter, Search, SearchIcon, Loader2, Loader } from 'lucide-react';
+import {
+  Filter,
+  Search,
+  SearchIcon,
+  Loader2,
+  Loader,
+  Phone,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { State } from 'country-state-city';
+import { Input } from '../ui/input';
 
 interface FilterState {
   query: string;
@@ -227,22 +235,25 @@ export const SearchFilters = ({
   );
 
   return (
-    <div className="p-2 md:p-1 mb-2">
+    <div className="p-2 md:p-1 mb-2 transition-all duration-300 animate-in fade-in slide-in-from-top-5 duration-500">
       {/* <div className="flex items-center justify-between gap-2 "> */}
       <div className="flex flex-col lg:flex-row gap-2 ">
-        <div className="input-search-box-div w-full">
-          <Search className="w-4 h-4 input-search-icon " />
-          <input
+        {/* <div className="flex justify-center items-center p-2  rounded-lg min-w-[250px] w-full "> */}
+        <div className="relative w-full bg-white">
+          {/* <Search className="w-4 h-4 input-search-icon " /> */}
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-4 group-focus-within:text-blue-500 transition-colors" />
+          <Input
             id="search-bar"
             type="text"
             placeholder="economist in New York, NY | system design in San Francisco, CA"
             value={localFilters.query}
             onChange={(e) => handleInputChange('query', e.target.value)}
             onKeyDown={handleKeyDown}
-            className="input-search w-full"
+            className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all border-2"
             aria-label="Search jobs"
           />
         </div>
+        {/* </div> */}
 
         <div className="grid grid-cols-2 md:grid-cols-2 gap-2">
           <button
@@ -254,13 +265,13 @@ export const SearchFilters = ({
           >
             {isSearching ? (
               <>
-                <Loader
+                <Loader2
                   className="w-10 h-6
-                 animate-spin"
+                 animate-spin duration-300"
                 />
               </>
             ) : (
-              <>Search</>
+              <>Search </>
             )}
           </button>
 

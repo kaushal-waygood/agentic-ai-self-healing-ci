@@ -272,8 +272,6 @@ export const getDailyStreak = async (req, res) => {
 
     const canClaimToday = !last || !last.isSame(today, 'day');
 
-    console.log('canClaimToday', canClaimToday);
-
     return res.status(200).json({
       streak: {
         current: streak.current || 0,
@@ -420,6 +418,8 @@ export const checkoutCredits = async (req, res) => {
 };
 
 export const earnCredits = async (req, res) => {
+  console.log('earnCredits', req.user);
+  console.log('earnCredits', req.params);
   const { _id } = req.user || {};
   const { action } = req.params;
 

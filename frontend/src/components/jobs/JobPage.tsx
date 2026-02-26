@@ -13,7 +13,6 @@ import { Search, Frown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 import { useDispatch } from 'react-redux';
-import Image from 'next/image';
 import OnboardingExperienceFeedback from '@/app/(app)/dashboard/onboarding-tour/OnboardingExperienceFeedback';
 import { FilterPills } from './FilterPills';
 import { Loader } from '../Loader';
@@ -46,7 +45,7 @@ export default function JobsPage() {
   const fetchJobDetails = useCallback(async (slug: string) => {
     try {
       setIsJobLoading(true);
-      setSelectedJob(null);
+      // setSelectedJob(null);
 
       const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
       if (response.data?.singleJob) {
@@ -78,19 +77,35 @@ export default function JobsPage() {
     }
   }, [searchParams, fetchJobDetails]);
 
-  const handleCardClick = (job: any) => {
-    if (selectedJob?._id === job._id) return;
+  // const handleCardClick = (job: any) => {
+  //   if (selectedJob?._id === job._id) return;
 
-    trackJobClick(job._id, filters?.q);
+  //   trackJobClick(job._id, filters?.q);
 
-    if (isMobile) {
-      router.push(`/jobs/${job.slug}`);
-    } else {
-      setSelectedJob(job);
+  //   if (isMobile) {
+  //     router.push(`/jobs/${job.slug}`);
+  //   } else {
+  //     setSelectedJob(job);
 
-      fetchJobDetails(job.slug);
-    }
-  };
+  //     fetchJobDetails(job.slug);
+  //   }
+  // };
+  const handleCardClick = useCallback(
+    (job: any) => {
+      if (selectedJob?._id === job._id) return;
+
+      trackJobClick(job._id, filters?.q);
+
+      if (isMobile) {
+        router.push(`/jobs/${job.slug}`);
+      } else {
+        setSelectedJob(job);
+        fetchJobDetails(job.slug);
+      }
+    },
+    [selectedJob, filters?.q, isMobile, router, fetchJobDetails],
+  );
+  // Added dependencies so the function reference is stable
 
   /* ===================== IMPRESSION TRACKING (SAFE) ===================== */
   useEffect(() => {
@@ -150,7 +165,36 @@ export default function JobsPage() {
       setShowFeedback(true);
     }
   }, [fromOnboarding]);
+  /* ===================== AUTO-SELECT FIRST JOB ===================== */
+  /* ===================== AUTO-SELECT FIRST JOB ===================== */
+  // 1. Create a ref to track if we've already done the initial auto-selection
+  const hasAutoSelected = useRef(false);
 
+  // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
+  useEffect(() => {
+    hasAutoSelected.current = false;
+  }, [filters]);
+
+  // 3. Updated selection logic
+  useEffect(() => {
+    // Only proceed if:
+    // - Not mobile
+    // - Jobs exist
+    // - Not currently loading
+    // - We haven't auto-selected yet for this result set
+    // - There isn't already a 'job' slug in the URL (direct link)
+    if (
+      !isMobile &&
+      jobs?.length > 0 &&
+      !loading &&
+      !hasAutoSelected.current &&
+      !searchParams.get('job')
+    ) {
+      const firstJob = jobs[0];
+      handleCardClick(firstJob);
+      hasAutoSelected.current = true; // Mark as done so it doesn't fight manual clicks
+    }
+  }, [jobs, isMobile, loading, searchParams, handleCardClick]);
   // Inside JobsPage component
   const removeFilter = (key: string, value?: any) => {
     const newFilters = { ...filters };
@@ -180,6 +224,9 @@ export default function JobsPage() {
 
     handleFilterChange(newFilters);
   };
+
+  const { loading: jobLoading } = useJobs();
+
   return (
     <div className="bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
       <div className="xl:container mx-auto px-1">
@@ -200,7 +247,7 @@ export default function JobsPage() {
           <div>
             <div
               ref={jobListRef}
-              className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 scrollbar-thin"
+              className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto px-4 py-2 no-scrollbar"
             >
               {/* Notification state */}
               {notification && !loading && (
@@ -214,7 +261,6 @@ export default function JobsPage() {
                 <Loader
                   message="Loading Jobs"
                   fullHeight={true}
-                  imageClassName="w-6 h-6"
                   textClassName="text-sm"
                 />
               )}
@@ -262,7 +308,6 @@ export default function JobsPage() {
                 <Loader
                   message="Loading Job data..."
                   fullHeight={true}
-                  imageClassName="w-6 h-6"
                   textClassName="text-sm"
                 />
               ) : selectedJob ? (

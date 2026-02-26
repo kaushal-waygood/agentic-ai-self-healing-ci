@@ -161,11 +161,11 @@ export const AppSidebarContent = ({
       },
 
       // === EXTRAS (Visible to Everyone) ===
-      {
-        title: 'Partnership',
-        href: '/dashboard/partnership',
-        icon: Rocket,
-      },
+      // {
+      //   title: 'Partnership',
+      //   href: '/dashboard/partnership',
+      //   icon: Rocket,
+      // },
 
       {
         title: 'Refer & Earn',
