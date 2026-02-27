@@ -53,7 +53,7 @@ export const SearchFilters = ({
     const query = searchParams.get('q') || '';
     const country = searchParams.get('country') || '';
     const countryCode = searchParams.get('countryCode') || '';
-    const stateCode = searchParams.get('stateCode') || '';
+    const stateCode = searchParams.get('state') || '';
     const city = searchParams.get('city') || '';
     const datePosted = searchParams.get('datePosted') || '';
 
@@ -134,7 +134,7 @@ export const SearchFilters = ({
 
     if (stateName) {
       params.set('state', stateName); // readable in URL
-      params.set('stateCode', filters.state); // keeps code in URL too
+      params.set('state', filters.state); // keeps code in URL too
     }
 
     if (filters.city) params.set('city', filters.city);
@@ -159,16 +159,16 @@ export const SearchFilters = ({
   };
 
   const handleSearchClick = useCallback(async () => {
-    const stateName = getStateName(
-      localFilters.countryCode,
-      localFilters.state,
-    );
+    // const stateName = getStateName(
+    //   localFilters.countryCode,
+    //   localFilters.state,
+    // );
 
     const searchFilters: Partial<FilterState> = {
       query: localFilters.query,
       country: localFilters.country,
       countryCode: localFilters.countryCode,
-      state: stateName, // backend gets name
+      state: localFilters.state, // backend gets name
       city: localFilters.city,
       datePosted: localFilters.datePosted,
       employmentType: [...localFilters.employmentType],
@@ -220,8 +220,6 @@ export const SearchFilters = ({
   //   runSearch();
   // }, [isSearching]);
 
-  // Keep a stable ref to onSearchChange so the effect below doesn't re-run
-  // just because the parent re-rendered and passed a new function reference.
   const onSearchChangeRef = useRef(onSearchChange);
   useEffect(() => {
     onSearchChangeRef.current = onSearchChange;
