@@ -152,6 +152,8 @@ export const useJobs = () => {
     const currentPage =
       (pagination as any)?.currentPage ?? pagination?.page ?? 1;
 
+    console.log('currentPage', currentPage);
+
     const q = searchParams.get('query') || searchParams.get('q') || '';
     const country = searchParams.get('country') || '';
     const state = searchParams.get('state') || '';
@@ -175,6 +177,7 @@ export const useJobs = () => {
       experience.length === 0;
 
     if ((isDashboard || isPublicSearch) && isSearchEmpty) {
+      console.log('getRecommendJobsRequest');
       dispatch(
         getRecommendJobsRequest({
           page: currentPage + 1,
@@ -182,6 +185,7 @@ export const useJobs = () => {
         }),
       );
     } else {
+      console.log('reduxFilters', reduxFilters);
       dispatch(
         searchJobRequest({
           ...reduxFilters,

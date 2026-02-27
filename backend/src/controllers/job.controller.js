@@ -209,10 +209,13 @@ export async function searchJobs(req, res) {
     const pageNum = safeParseInt(page, 1);
     const limitNum = safeParseInt(limit, 30);
 
+    console.log('pageNum', pageNum);
+    console.log('limitNum', limitNum);
     // 1. Build Context & Fetch Local Candidates in Parallel
     const context = await buildSearchContext(req);
 
     const requiredPoolSize = pageNum * limitNum + limitNum;
+    console.log('requiredPoolSize', requiredPoolSize);
 
     // 🔥 OPTIMIZATION: Get local candidates FAST
     let candidates = await retrieveLocalCandidates(context, requiredPoolSize);
@@ -310,30 +313,14 @@ export async function searchJobs(req, res) {
       );
     }
 
-    // return res.status(200).json({
-    //   success: true,
-    //   jobs: paginatedJobs,
-    //   pagination: {
-    //     currentPage: pageNum,
-    //     hasNextPage: processed.length > start + limitNum,
-    //     totalJobs:
-    //       processed.length > start + limitNum
-    //         ? processed.length
-    //         : start + paginatedJobs.length,
-    //   },
-    // });
-
-    // ... (inside the try block, at the end of searchJobs)
+    console.log('paginatedJobs', paginatedJobs.length);
 
     return res.status(200).json({
       success: true,
       jobs: paginatedJobs,
       pagination: {
         currentPage: pageNum,
-        // 🔥 FIX: If the current page is full, assume there is a next page.
-        // This keeps the frontend observer active.
         hasNextPage: paginatedJobs.length >= limitNum,
-        // Use an estimated total or the current processed count
         totalJobs:
           processed.length > start + limitNum
             ? processed.length
