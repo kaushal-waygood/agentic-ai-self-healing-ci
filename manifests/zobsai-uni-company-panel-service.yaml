@@ -6,7 +6,8 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: uni-company-panel # <-- must match pod labels
+    app: uni-company-panel   # <-- must match pod labels
   ports:
     - port: 3002
       targetPort: 3002
+

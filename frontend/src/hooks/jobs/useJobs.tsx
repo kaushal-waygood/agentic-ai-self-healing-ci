@@ -150,7 +150,7 @@ export const useJobs = () => {
       if (newFilters.country) params.set('country', newFilters.country);
       if (newFilters.countryCode)
         params.set('countryCode', newFilters.countryCode);
-      if (newFilters.state) params.set('stateCode', newFilters.state); // store code for logic
+      if (newFilters.state) params.set('state', newFilters.state); // store code for logic
       if (newFilters.city) params.set('city', newFilters.city);
       if (newFilters.datePosted)
         params.set('datePosted', newFilters.datePosted);
@@ -202,8 +202,6 @@ export const useJobs = () => {
 
     const currentPage =
       (pagination as any)?.currentPage ?? pagination?.page ?? 1;
-
-    console.log('currentPage', currentPage);
 
     const q = searchParams.get('query') || searchParams.get('q') || '';
     const country = searchParams.get('country') || '';
