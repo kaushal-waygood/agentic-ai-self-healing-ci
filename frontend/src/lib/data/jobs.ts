@@ -9,18 +9,28 @@ export type JobStatus =
 
 interface Location {
   city: string;
+  state?: string;
   postalCode: string;
   lat?: number;
   lng?: number;
+  country?: string;
 }
 
 export type JobListing = {
+  _id?: string;
   id: string;
+  slug?: string;
+  jobId?: string;
+  origin?: 'HOSTED' | 'EXTERNAL';
   title: string;
   company: string;
   location: Location;
+  country?: string;
   type: string | null;
+  jobTypes?: string[];
   postedDate: string;
+  jobPosted?: string;
+  jobPostedAt?: string;
   description: string;
   status: JobStatus; // New field for moderation workflow
   postedByOrgId?: string; // New field to link to the posting organization
@@ -32,6 +42,8 @@ export type JobListing = {
   earlyApplicant: boolean;
   jobUrl?: string | null;
   publisher?: string | null;
+  remote?: boolean;
+  jobViews?: number;
   highlights?: {
     Qualifications?: string[];
     Responsibilities?: string[];
@@ -39,6 +51,11 @@ export type JobListing = {
   } | null;
   countryCode?: string | null;
   logo: string | null;
+  applyMethod?: {
+    method: string;
+    url?: string;
+    email?: string;
+  };
 };
 
 // This array acts as our in-memory database/cache for job listings.
@@ -62,7 +79,7 @@ if (process.env.NODE_ENV === 'production') {
   if (!globalThis.__mockJobListings) {
     mockJobListings = [];
   }
-  mockJobListings = globalThis.__mockJobListings;
+  mockJobListings = globalThis.__mockJobListings ?? [];
 }
 
 // Zod schema for JobListing - useful for validating API responses or flow outputs
