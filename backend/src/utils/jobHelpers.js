@@ -226,6 +226,24 @@ function buildLocationFromApiJob(apiJob) {
     state = parts[1] || '';
   }
 
+  // Sanitize: JSearch returns 'Anywhere', 'Remote', 'Worldwide', etc. for
+  // remote-only jobs. These are not real city names — clear them so the
+  // frontend can fall back to state / country or show the remote badge.
+  const MEANINGLESS_CITY_TOKENS = [
+    'anywhere',
+    'remote',
+    'worldwide',
+    'global',
+    'work from home',
+    'wfh',
+    'online',
+    'virtual',
+  ];
+  const cityLower = city.toLowerCase().trim();
+  if (MEANINGLESS_CITY_TOKENS.includes(cityLower)) {
+    city = '';
+  }
+
   return {
     city,
     state,
@@ -652,8 +670,9 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
         index: 'vector_index',
         path: 'job_embedding',
         queryVector,
-        limit: limit,
-        numCandidates: limit * 2 > 200 ? limit * 2 : 200,
+        // MongoDB Atlas hard limit: limit ∈ [1, 10000], numCandidates ∈ [limit, 10000]
+        limit: Math.min(limit, 10000),
+        numCandidates: Math.min(Math.max(limit * 2, 200), 10000),
       },
     },
     {

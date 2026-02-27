@@ -216,7 +216,7 @@ export async function searchJobs(req, res) {
 
     // 🔥 FIX: Aggressively fetch more local candidates because in-memory filtering drops many jobs.
     // Ensure we have a large enough pool to satisfy current and future pages.
-    const requiredPoolSize = pageNum * limitNum * 10 + 200;
+    const requiredPoolSize = pageNum * limitNum * 100 + 200;
     console.log('requiredPoolSize', requiredPoolSize);
 
     // 🔥 OPTIMIZATION: Get local candidates FAST

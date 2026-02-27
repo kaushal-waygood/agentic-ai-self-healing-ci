@@ -96,8 +96,10 @@ jobs:
       # -------------------------------
       # 6️⃣ Debug: Show Current Images (Before Update)
       # -------------------------------
-      - name: Debug current manifest images
+      - name: Debug current manifest images (BEFORE)
         run: |
+          echo "=== 🔍 Current SHA from GitHub: ${{ github.sha }} ==="
+          echo ""
           echo "=== Backend BEFORE ==="
           grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml || true
           echo "=== Frontend BEFORE ==="
@@ -110,20 +112,20 @@ jobs:
       # -------------------------------
       - name: Update Backend Deployment Manifest
         run: |
-          sed -i -e "s#zobsai-backend:.*#zobsai-backend:${{ github.sha }}#g" manifests/dev/zobsai-backend-deployment-dev.yaml
-          echo "✅ Backend image updated"
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-backend:.*|image: ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}|g" manifests/dev/zobsai-backend-deployment-dev.yaml
+          echo "✅ Backend image updated to:"
           grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml
 
       - name: Update Frontend Deployment Manifest
         run: |
-          sed -i -e "s#zobsai-frontend:.*#zobsai-frontend:${{ github.sha }}#g" manifests/dev/zobsai-frontend-deployment-dev.yaml
-          echo "✅ Frontend image updated"
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-frontend:.*|image: ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}|g" manifests/dev/zobsai-frontend-deployment-dev.yaml
+          echo "✅ Frontend image updated to:"
           grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml
 
       - name: Update Uni Company Panel Deployment Manifest
         run: |
-          sed -i -e "s#zobsai-uni-company-panel:.*#zobsai-uni-company-panel:${{ github.sha }}#g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
-          echo "✅ Uni Company Panel image updated"
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:.*|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:${{ github.sha }}|g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
+          echo "✅ Uni Company Panel image updated to:"
           grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
 
       # -------------------------------
@@ -136,10 +138,21 @@ jobs:
 
           git add -f manifests/dev/*.yaml
 
+          echo "=== 📋 git status ==="
+          git status
+
+          echo "=== 📋 git diff --cached ==="
+          git diff --cached
+
           if git diff --cached --quiet; then
-            echo "⚠️ No changes to commit"
+            echo ""
+            echo "⚠️  WARNING: No manifest changes detected!"
+            echo "     This means the SHA in the manifest was ALREADY set to: ${{ github.sha }}"
+            echo "     ArgoCD will NOT sync because nothing changed in Git."
+            echo "     This can happen if the same commit SHA was used in a previous run."
+            exit 0
           else
             git commit -m "ci(dev): update images to ${{ github.sha }}"
             git push origin develop
-            echo "🚀 Manifests pushed. ArgoCD will auto-sync."
+            echo "🚀 Manifests pushed to develop. ArgoCD will auto-sync shortly."
           fi

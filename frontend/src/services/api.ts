@@ -12,6 +12,12 @@ export const API_BASE_URL =
       ? 'https://api.dev.zobsai.com'
       : 'http://127.0.0.1:8080';
 
+console.log(
+  process.env.NEXT_PUBLIC_NODE_ENV,
+  'process.env.NEXT_PUBLIC_NODE_ENV',
+);
+console.log(API_BASE_URL, 'API_BASE_URL');
+
 const token = getToken();
 
 const safeLocalStorage = {
