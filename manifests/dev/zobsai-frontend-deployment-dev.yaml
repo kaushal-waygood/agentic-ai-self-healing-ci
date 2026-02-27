@@ -33,11 +33,11 @@ spec:
                 name: zobsai-frontend-secrets
           resources:
             requests:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: '500m'
+              memory: '512Mi'
             limits:
-              cpu: "1500m"
-              memory: "1Gi"
+              cpu: '1500m'
+              memory: '1Gi'
 ---
 apiVersion: v1
 kind: Service
@@ -52,4 +52,3 @@ spec:
     - port: 3000
       targetPort: 3000
       nodePort: 30030
-
