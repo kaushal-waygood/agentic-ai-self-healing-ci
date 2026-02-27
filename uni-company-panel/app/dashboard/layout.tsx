@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import { AppSidebarContent } from '@/components/dashboard/layout/sidebar';
 import { AppHeader } from '@/components/dashboard/layout/app-header';
+import { Topbar } from '@/components/dashboard/Topbar';
+import { useMultiCompanyStore } from '@/store/multi-company.store';
 
 /* -------------------------------------------------------------------------- */
 /*                                SIDEBAR CONTEXT                             */
@@ -41,6 +43,12 @@ export default function DashboardLayout({
   const handleMouseEnter = () => !isPinned && setIsOpen(true);
   const handleMouseLeave = () => !isPinned && setIsOpen(false);
 
+  const { companies, currentCompany, getCompanies } = useMultiCompanyStore();
+
+  useEffect(() => {
+    getCompanies();
+  }, []);
+
   return (
     <SidebarContext.Provider value={{ isOpen, toggle, isPinned, setPinned }}>
       <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
@@ -57,8 +65,14 @@ export default function DashboardLayout({
 
         {/* MAIN AREA */}
         <div className="flex flex-1 flex-col overflow-hidden">
+          <Topbar
+            companies={companies}
+            currentCompany={currentCompany}
+            onMenuClick={toggle}
+            isSidebarOpen={isOpen}
+          />
           {/* HEADER */}
-          <AppHeader onMenuClick={toggle} isSidebarOpen={isOpen} />
+          {/* <AppHeader onMenuClick={toggle} isSidebarOpen={isOpen} /> */}
 
           {/* PAGE CONTENT */}
           <main className="flex-1 overflow-y-auto p-6">{children}</main>

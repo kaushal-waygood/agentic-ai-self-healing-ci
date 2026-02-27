@@ -20,16 +20,35 @@ const RequestNewFeature = () => {
   const [submitted, setSubmitted] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+
+  //   try {
+  //     const response = await apiInstance.post('/new-feature', {
+  //       title: featureName,
+  //       description: description,
+  //     });
+
+  //     if (response.status === 200) {
+  //       setSubmitted(true);
+  //       setFeatureName('');
+  //       setDescription('');
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const response = await apiInstance.post('/new-feature', {
         title: featureName,
         description: description,
       });
-
       if (response.status === 200) {
         setSubmitted(true);
         setFeatureName('');
@@ -37,6 +56,8 @@ const RequestNewFeature = () => {
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -254,6 +275,7 @@ const RequestNewFeature = () => {
                   <div className="pt-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
                     <button
                       type="submit"
+                      disabled={isSubmitting}
                       className="relative w-full group overflow-hidden"
                     >
                       <div className="relative bg-buttonPrimary text-white px-8 py-4 rounded-lg font-bold flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">

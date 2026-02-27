@@ -521,7 +521,14 @@ const AppHeader = ({
                     </h3>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    <NotificationBell />
+                    {/* <NotificationBell /> */}
+                    <NotificationBell
+                      notifications={notifications}
+                      unreadCount={unreadCount}
+                      markAsRead={markAsRead}
+                      fetchNotifications={fetchNotifications}
+                      // connectionStatus={connectionStatus}
+                    />
                   </div>
                   <div className="p-4 border-t border-slate-100">
                     <button
