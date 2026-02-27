@@ -158,40 +158,40 @@ export const SearchFilters = ({
     router.push(url, { scroll: false });
   };
 
-  // const handleSearchClick = useCallback(async () => {
-  //   const stateName = getStateName(
-  //     localFilters.countryCode,
-  //     localFilters.state,
-  //   );
+  const handleSearchClick = useCallback(async () => {
+    const stateName = getStateName(
+      localFilters.countryCode,
+      localFilters.state,
+    );
 
-  //   const searchFilters: Partial<FilterState> = {
-  //     query: localFilters.query,
-  //     country: localFilters.country,
-  //     countryCode: localFilters.countryCode,
-  //     state: stateName, // backend gets name
-  //     city: localFilters.city,
-  //     datePosted: localFilters.datePosted,
-  //     employmentType: [...localFilters.employmentType],
-  //     experience: [...localFilters.experience],
-  //     education: [...localFilters.education],
-  //   };
+    const searchFilters: Partial<FilterState> = {
+      query: localFilters.query,
+      country: localFilters.country,
+      countryCode: localFilters.countryCode,
+      state: stateName, // backend gets name
+      city: localFilters.city,
+      datePosted: localFilters.datePosted,
+      employmentType: [...localFilters.employmentType],
+      experience: [...localFilters.experience],
+      education: [...localFilters.education],
+    };
 
-  //   setIsSearching(true);
-  //   try {
-  //     pushFiltersToUrl({
-  //       ...localFilters,
-  //       state: localFilters.state, // still code here
-  //       country: localFilters.country,
-  //       countryCode: localFilters.countryCode,
-  //     });
+    setIsSearching(true);
+    try {
+      pushFiltersToUrl({
+        ...localFilters,
+        state: localFilters.state, // still code here
+        country: localFilters.country,
+        countryCode: localFilters.countryCode,
+      });
 
-  //     await Promise.resolve(onSearchChange(searchFilters));
-  //   } catch (error) {
-  //     console.error('Search error:', error);
-  //   } finally {
-  //     setIsSearching(false);
-  //   }
-  // }, [localFilters, onSearchChange]);
+      await Promise.resolve(onSearchChange(searchFilters));
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [localFilters, onSearchChange]);
 
   // const handleSearchClick = useCallback(async () => {
   //   setIsSearching(true);
@@ -204,21 +204,21 @@ export const SearchFilters = ({
   //   }
   // }, [localFilters, onSearchChange]);
 
-  const handleSearchClick = useCallback(() => {
-    if (isSearching) return;
-    setIsSearching(true);
+  // const handleSearchClick = useCallback(() => {
+  //   if (isSearching) return;
+  //   setIsSearching(true);
 
-    const runSearch = async () => {
-      try {
-        pushFiltersToUrl(localFilters);
-        await Promise.resolve(onSearchChangeRef.current(localFilters));
-      } finally {
-        setIsSearching(false);
-      }
-    };
+  //   const runSearch = async () => {
+  //     try {
+  //       pushFiltersToUrl(localFilters);
+  //       await Promise.resolve(onSearchChangeRef.current(localFilters));
+  //     } finally {
+  //       setIsSearching(false);
+  //     }
+  //   };
 
-    runSearch();
-  }, [isSearching]);
+  //   runSearch();
+  // }, [isSearching]);
 
   // Keep a stable ref to onSearchChange so the effect below doesn't re-run
   // just because the parent re-rendered and passed a new function reference.
