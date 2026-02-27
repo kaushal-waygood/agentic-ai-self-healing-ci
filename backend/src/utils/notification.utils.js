@@ -119,7 +119,12 @@ export const notificationTemplates = {
     category: 'application',
     actionUrl: '/dashboard/my-docs?tab=applications',
   }),
-  GENERAL_SUCCESS: (title, message, actionUrl = '/dashboard') => ({
+
+  GENERAL_SUCCESS: (
+    title,
+    message,
+    actionUrl = '/dashboard/ai-auto-apply',
+  ) => ({
     title,
     message,
     type: 'success',
@@ -127,7 +132,7 @@ export const notificationTemplates = {
     actionUrl,
   }),
 
-  GENERAL_ERROR: (title, message, actionUrl = '/dashboard') => ({
+  GENERAL_ERROR: (title, message, actionUrl = '/dashboard/ai-auto-apply') => ({
     title,
     message,
     type: 'error',

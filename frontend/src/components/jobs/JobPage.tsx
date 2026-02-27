@@ -36,8 +36,6 @@ export default function JobsPage() {
   } = useJobs();
   const dispatch = useDispatch();
 
-  console.log('---------jobs----------', jobs);
-
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -157,9 +155,9 @@ export default function JobsPage() {
   }, [jobs, filters?.q]);
 
   /* ===================== SCROLL RESET ===================== */
-  // useEffect(() => {
-  //   jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  // }, [filters]);
+  useEffect(() => {
+    jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [filters]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -197,27 +195,27 @@ export default function JobsPage() {
 
   /* ===================== AUTO-SELECT FIRST JOB ===================== */
   // 1. Create a ref to track if we've already done the initial auto-selection
-  // const hasAutoSelected = useRef(false);
+  const hasAutoSelected = useRef(false);
 
-  // // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
-  // useEffect(() => {
-  //   hasAutoSelected.current = false;
-  // }, [filters]);
+  // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
+  useEffect(() => {
+    hasAutoSelected.current = false;
+  }, [filters]);
 
-  // // 3. Updated selection logic
-  // useEffect(() => {
-  //   if (
-  //     !isMobile &&
-  //     jobs?.length > 0 &&
-  //     !loading &&
-  //     !hasAutoSelected.current &&
-  //     !searchParams.get('job')
-  //   ) {
-  //     const firstJob = jobs[0];
-  //     handleCardClick(firstJob);
-  //     hasAutoSelected.current = true;
-  //   }
-  // }, [jobs, isMobile, loading, searchParams, handleCardClick]);
+  // 3. Updated selection logic
+  useEffect(() => {
+    if (
+      !isMobile &&
+      jobs?.length > 0 &&
+      !loading &&
+      !hasAutoSelected.current &&
+      !searchParams.get('job')
+    ) {
+      const firstJob = jobs[0];
+      handleCardClick(firstJob);
+      hasAutoSelected.current = true;
+    }
+  }, [jobs, isMobile, loading, searchParams, handleCardClick]);
 
   const removeFilter = (key: string, value?: any) => {
     const newFilters = { ...filters };

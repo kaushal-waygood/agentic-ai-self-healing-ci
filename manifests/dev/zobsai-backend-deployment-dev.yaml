@@ -40,6 +40,7 @@ spec:
             limits:
               cpu: '2000m' # Increased for better ML inference speed
               memory: '2Gi' # Increased to 2Gi (or 4Gi if OOM persists)
+
 ---
 apiVersion: v1
 kind: Service

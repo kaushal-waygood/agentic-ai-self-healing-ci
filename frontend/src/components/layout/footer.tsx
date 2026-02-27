@@ -252,11 +252,11 @@ export function Footer() {
             >
               {[
                 // { icon: Mail, text: 'info@zobsai.com', color: 'blue' },
-                {
-                  icon: MapPin,
-                  text: '2nd Floor, S-05, B 14-15, Udhyog Marg, Block B, Sector 1, Noida, Uttar Pradesh 201301',
-                  color: 'purple',
-                },
+                // {
+                //   icon: MapPin,
+                //   text: '2nd Floor, S-05, B 14-15, Udhyog Marg, Block B, Sector 1, Noida, Uttar Pradesh 201301',
+                //   color: 'purple',
+                // },
               ].map((contact, index) => (
                 <div
                   key={index}
