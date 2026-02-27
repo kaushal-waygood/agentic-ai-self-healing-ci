@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { JobCard, JobCardSkeleton } from '@/components/jobs/job-card';
 import JobDetail from '@/components/jobs/JobDetail';
@@ -32,14 +31,39 @@ export default function JobsPage() {
     handleFilterChange,
     notification,
     loadMoreJobs,
+    employmentTypes,
+    experienceLevels,
   } = useJobs();
   const dispatch = useDispatch();
+
+  console.log('---------jobs----------', jobs);
 
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isJobLoading, setIsJobLoading] = useState(false);
   const searchParams = useSearchParams();
+
+  // ===================== VIEWED JOB DEDUPLICATION =====================
+  const viewedJobsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const stored = localStorage.getItem('viewedJobIds');
+    if (stored) {
+      try {
+        viewedJobsRef.current = new Set(JSON.parse(stored));
+      } catch (e) {
+        console.warn('Failed to parse viewedJobIds', e);
+      }
+    }
+  }, []);
+
+  const markJobViewed = useCallback((jobId: string) => {
+    viewedJobsRef.current.add(jobId);
+    localStorage.setItem(
+      'viewedJobIds',
+      JSON.stringify(Array.from(viewedJobsRef.current)),
+    );
+  }, []);
 
   /* ===================== JOB DETAILS (NO ANALYTICS HERE) ===================== */
   const fetchJobDetails = useCallback(async (slug: string) => {
@@ -50,6 +74,7 @@ export default function JobsPage() {
       const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
       if (response.data?.singleJob) {
         setSelectedJob(response.data.singleJob);
+        return response.data.singleJob;
       }
     } catch (err) {
       console.error('Failed to fetch job details:', err);
@@ -59,23 +84,34 @@ export default function JobsPage() {
   }, []);
 
   /* ===================== CLICK TRACKING (SINGLE SOURCE) ===================== */
-  async function trackJobClick(jobId: string, query?: string) {
-    try {
-      const payload: any = { jobId, type: 'VIEW' };
-      if (query) payload.query = query;
+  const trackJobClick = useCallback(
+    async (jobId: string, query?: string) => {
+      if (viewedJobsRef.current.has(jobId)) return;
 
-      dispatch(postStudentEventsRequest(payload));
-    } catch {
-      // analytics must never break UX
-    }
-  }
+      try {
+        const payload: any = { jobId, type: 'VIEW' };
+        if (query) payload.query = query;
 
+        dispatch(postStudentEventsRequest(payload));
+        markJobViewed(jobId);
+      } catch {
+        // analytics must never break UX
+      }
+    },
+    [dispatch, markJobViewed],
+  );
+
+  // ===================== HANDLE JOB FROM URL =====================
   useEffect(() => {
     const slug = searchParams.get('job');
     if (slug) {
-      fetchJobDetails(slug);
+      fetchJobDetails(slug).then((job) => {
+        if (job) {
+          trackJobClick(job._id, filters?.q);
+        }
+      });
     }
-  }, [searchParams, fetchJobDetails]);
+  }, [searchParams, fetchJobDetails, filters?.q, trackJobClick]);
 
   // const handleCardClick = (job: any) => {
   //   if (selectedJob?._id === job._id) return;
@@ -103,15 +139,14 @@ export default function JobsPage() {
         fetchJobDetails(job.slug);
       }
     },
-    [selectedJob, filters?.q, isMobile, router, fetchJobDetails],
+    [selectedJob, filters?.q, isMobile, router, fetchJobDetails, trackJobClick],
   );
-  // Added dependencies so the function reference is stable
 
   /* ===================== IMPRESSION TRACKING (SAFE) ===================== */
   useEffect(() => {
     if (!jobs?.length) return;
 
-    const jobIds = jobs.map((j: any) => j._id);
+    const jobIds = jobs.map((j: any) => j._id || j.jobId).filter(Boolean);
 
     apiInstance
       .post('/jobs/impression', {
@@ -122,11 +157,10 @@ export default function JobsPage() {
   }, [jobs, filters?.q]);
 
   /* ===================== SCROLL RESET ===================== */
-  useEffect(() => {
-    jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [filters]);
+  // useEffect(() => {
+  //   jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  // }, [filters]);
 
-  /* ===================== INFINITE SCROLL ===================== */
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -134,7 +168,10 @@ export default function JobsPage() {
           loadMoreJobs();
         }
       },
-      { threshold: 1.0 },
+      {
+        rootMargin: '200px',
+        threshold: 0.1,
+      },
     );
 
     const el = observerRef.current;
@@ -143,15 +180,7 @@ export default function JobsPage() {
     return () => {
       if (el) observer.unobserve(el);
     };
-  }, [loading, pagination.hasNextPage, loadMoreJobs]);
-
-  if (error) {
-    toast({
-      variant: 'destructive',
-      title: 'Error',
-      description: error,
-    });
-  }
+  }, [loading, pagination.hasNextPage, loadMoreJobs, pagination.currentPage]);
 
   const fromOnboarding = searchParams.get('from') === 'onboarding';
 
@@ -165,37 +194,31 @@ export default function JobsPage() {
       setShowFeedback(true);
     }
   }, [fromOnboarding]);
-  /* ===================== AUTO-SELECT FIRST JOB ===================== */
+
   /* ===================== AUTO-SELECT FIRST JOB ===================== */
   // 1. Create a ref to track if we've already done the initial auto-selection
-  const hasAutoSelected = useRef(false);
+  // const hasAutoSelected = useRef(false);
 
-  // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
-  useEffect(() => {
-    hasAutoSelected.current = false;
-  }, [filters]);
+  // // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
+  // useEffect(() => {
+  //   hasAutoSelected.current = false;
+  // }, [filters]);
 
-  // 3. Updated selection logic
-  useEffect(() => {
-    // Only proceed if:
-    // - Not mobile
-    // - Jobs exist
-    // - Not currently loading
-    // - We haven't auto-selected yet for this result set
-    // - There isn't already a 'job' slug in the URL (direct link)
-    if (
-      !isMobile &&
-      jobs?.length > 0 &&
-      !loading &&
-      !hasAutoSelected.current &&
-      !searchParams.get('job')
-    ) {
-      const firstJob = jobs[0];
-      handleCardClick(firstJob);
-      hasAutoSelected.current = true; // Mark as done so it doesn't fight manual clicks
-    }
-  }, [jobs, isMobile, loading, searchParams, handleCardClick]);
-  // Inside JobsPage component
+  // // 3. Updated selection logic
+  // useEffect(() => {
+  //   if (
+  //     !isMobile &&
+  //     jobs?.length > 0 &&
+  //     !loading &&
+  //     !hasAutoSelected.current &&
+  //     !searchParams.get('job')
+  //   ) {
+  //     const firstJob = jobs[0];
+  //     handleCardClick(firstJob);
+  //     hasAutoSelected.current = true;
+  //   }
+  // }, [jobs, isMobile, loading, searchParams, handleCardClick]);
+
   const removeFilter = (key: string, value?: any) => {
     const newFilters = { ...filters };
 
@@ -217,7 +240,7 @@ export default function JobsPage() {
       );
     } else if (key === 'country') {
       newFilters.country = '';
-      newFilters.state = ''; // Reset state if country is removed
+      newFilters.state = '';
     } else {
       newFilters[key] = '';
     }
@@ -225,7 +248,13 @@ export default function JobsPage() {
     handleFilterChange(newFilters);
   };
 
-  const { loading: jobLoading } = useJobs();
+  if (error) {
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: error,
+    });
+  }
 
   return (
     <div className="bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 pt-1">
@@ -267,15 +296,13 @@ export default function JobsPage() {
 
               {/* ❌ No Jobs Found UI */}
               {!loading && !notification && jobs.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg border ">
+                <div className="flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg border">
                   <div className="w-14 h-14 flex items-center justify-center rounded-full bg-gray-100 mb-4">
                     <Frown className="w-7 h-7 text-gray-400" />
                   </div>
-
                   <h3 className="text-lg font-semibold text-gray-800 mb-1">
                     No jobs found
                   </h3>
-
                   <p className="text-sm text-gray-500 max-w-xs">
                     Try adjusting your filters or search criteria to see more
                     results.
@@ -287,10 +314,14 @@ export default function JobsPage() {
               {!notification &&
                 jobs.map((job: any) => (
                   <JobCard
-                    key={job._id || job.jobId}
+                    key={job._id || job.jobId || job.slug}
                     job={job}
                     id={job._id || job.jobId}
-                    isActive={selectedJob?._id === job._id}
+                    isActive={
+                      !!selectedJob &&
+                      (selectedJob.slug === job.slug ||
+                        (selectedJob._id && selectedJob._id === job._id))
+                    }
                     onClick={() => handleCardClick(job)}
                   />
                 ))}
@@ -298,7 +329,8 @@ export default function JobsPage() {
               {/* Infinite loading */}
               {loading && jobs.length > 0 && <JobCardSkeleton />}
 
-              <div ref={observerRef} style={{ height: '1px' }} />
+              {/* <div ref={observerRef} style={{ height: '1px' }} /> */}
+              <div ref={observerRef} className="h-4 w-full" />
             </div>
           </div>
 
@@ -329,6 +361,10 @@ export default function JobsPage() {
         <FilterModal
           isOpen={filterModal}
           onClose={() => setFilterModal(false)}
+          employmentTypes={employmentTypes}
+          experienceLevels={experienceLevels}
+          filters={filters}
+          handleFilterChange={handleFilterChange}
         />
       </div>
     </div>

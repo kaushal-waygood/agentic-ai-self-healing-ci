@@ -1924,11 +1924,15 @@ ${JSON.stringify(profile)}
 const syncCooldown = new Map();
 
 export async function getProfileBasedRecommendedJobs(req, res) {
+  const { page = 1, limit = 10 } = req.query || {};
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+  const skip = (pageNum - 1) * limitNum;
+
   try {
     const profile = await buildUserProfileFromStudent(req.user._id);
     const interactions = await buildInteractionContext(req.user._id);
 
-    // Construct a context strictly targeting the profile variables for Vector Embeddings
     const profileQuery =
       `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() ||
       'jobs';
@@ -1936,7 +1940,7 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     const context = {
       type: 'recommendation',
       query: profileQuery,
-      profile, // contains profile.titles, profile.skills, etc.
+      profile,
       filters: {
         country: profile.location?.country || 'IN',
         state: profile.location?.state,
@@ -1946,8 +1950,10 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       interactions,
     };
 
-    // Use retrieveLocalCandidates to fetch purely from DB, grabbing 100 candidates
-    const candidates = await retrieveLocalCandidates(context, 100);
+    // 1. Fetch Local Pool
+    // We increase the pool size significantly to account for deduplication/filtering drops
+    const requiredPoolSize = pageNum * limitNum * 10 + 200;
+    const candidates = await retrieveLocalCandidates(context, requiredPoolSize);
 
     const processPool = (jobsPool) => {
       const filtered = applyFilters(jobsPool, context);
@@ -1956,15 +1962,16 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     };
 
     let processed = processPool(candidates);
+    let finalJobs = processed.slice(skip, skip + limitNum);
 
-    const limitNum = 30;
-
-    let finalJobs = processed.slice(0, limitNum);
-
-    // 🔥 FAST API FALLBACK (matching Job Search API strictly)
+    // 2. 🔥 API FALLBACK: If local DB doesn't have enough for this specific page
     if (finalJobs.length < limitNum) {
-      const apiFallbackQuery = profileQuery || 'jobs';
-      const pagesToFetch = [1, 2, 3];
+      // Create a simplified fallback query for JSearch so it doesn't fail on long 30-word strings
+      const fallbackTerm = profile.titles[0] || profile.skills[0] || 'jobs';
+      const apiFallbackQuery = fallbackTerm;
+
+      // Start fetching from the page the user is actually on
+      const pagesToFetch = [pageNum, pageNum + 1, pageNum + 2];
 
       const fetchPromises = pagesToFetch.map((apiPage) =>
         fetchExternalJobs(
@@ -1972,15 +1979,14 @@ export async function getProfileBasedRecommendedJobs(req, res) {
           context.filters.country || 'IN',
           context.filters.state,
           context.filters.city,
-          null, // datePosted
-          null, // employmentType mapping
-          null, // experience
-          apiPage,
+          null,
+          null,
+          null,
+          apiPage, // 🔥 Fetch the page matching user's scroll depth
         ),
       );
 
-      const API_TIMEOUT = 12000; // 12 seconds max waiting for RapidAPI
-
+      const API_TIMEOUT = 12000;
       const responsesRaw = await Promise.all(
         fetchPromises.map((p) =>
           Promise.race([
@@ -1998,25 +2004,37 @@ export async function getProfileBasedRecommendedJobs(req, res) {
         const formatted = externalRaw.map((j) =>
           transformRapidApiJob(j, profileQuery || 'job'),
         );
+
+        // Save to DB so they have valid _id/slugs
+        await upsertExternalJobs(formatted).catch((e) =>
+          console.error('Sync Upsert Error', e.message),
+        );
+
         const filteredExt = processPool(formatted);
 
         if (filteredExt.length > 0) {
           const remainingNeeded = limitNum - finalJobs.length;
           const toAdd = filteredExt.slice(0, remainingNeeded);
           finalJobs = [...finalJobs, ...toAdd];
+          processed = [...processed, ...filteredExt];
         }
-
-        // 🛡️ DATA CONSISTENCY REQUIREMENT:
-        // We MUST await the upsert before sending the response!
-        await upsertExternalJobs(formatted).catch((e) =>
-          console.error('Sync Upsert Error', e.message),
-        );
       }
     }
 
+    // 3. 🚀 INFINITE PAGINATION LOGIC
     res.status(200).json({
       success: true,
-      count: finalJobs.length,
+      pagination: {
+        currentPage: pageNum,
+        // 🔥 FIX: If we found enough jobs to fill the limit, tell frontend to keep scrolling.
+        // Also if `candidates` reached the pool size, there might be more to fetch on next page
+        hasNextPage:
+          finalJobs.length >= limitNum || candidates.length >= requiredPoolSize,
+        totalJobs:
+          processed.length > skip + limitNum
+            ? processed.length
+            : skip + finalJobs.length,
+      },
       jobs: finalJobs,
     });
   } catch (error) {

@@ -1,14 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import {
-  Filter,
-  Search,
-  SearchIcon,
-  Loader2,
-  Loader,
-  Phone,
-} from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Filter, Search, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { State } from 'country-state-city';
 import { Input } from '../ui/input';
@@ -86,6 +79,7 @@ export const SearchFilters = ({
       country: country || prev.country,
       countryCode: countryCode || prev.countryCode,
       state: stateCode || prev.state,
+
       city: city || prev.city,
       datePosted: datePosted || prev.datePosted,
       employmentType: employmentType.length
@@ -96,8 +90,15 @@ export const SearchFilters = ({
     }));
   }, [searchParams, isSearching]);
 
+  // Sync external filter changes (e.g. filter pills remove) without looping.
+  // We JSON-stringify to compare by value, not reference — initialFilters is a
+  // new object every render from Redux, so a plain reference check would loop.
+  const prevInitialFiltersRef = useRef<string>('');
   useEffect(() => {
     if (!initialFilters) return;
+    const serialized = JSON.stringify(initialFilters);
+    if (prevInitialFiltersRef.current === serialized) return;
+    prevInitialFiltersRef.current = serialized;
     setLocalFilters((prev) => ({
       ...defaultFilters,
       ...prev,
@@ -206,23 +207,42 @@ export const SearchFilters = ({
   const handleSearchClick = useCallback(() => {
     if (isSearching) return;
     setIsSearching(true);
-  }, [isSearching]);
-
-  useEffect(() => {
-    if (!isSearching) return;
 
     const runSearch = async () => {
-      await new Promise((r) => setTimeout(r, 1000));
       try {
         pushFiltersToUrl(localFilters);
-        await Promise.resolve(onSearchChange(localFilters));
+        await Promise.resolve(onSearchChangeRef.current(localFilters));
       } finally {
         setIsSearching(false);
       }
     };
 
     runSearch();
-  }, [isSearching, localFilters, onSearchChange]);
+  }, [isSearching]);
+
+  // Keep a stable ref to onSearchChange so the effect below doesn't re-run
+  // just because the parent re-rendered and passed a new function reference.
+  const onSearchChangeRef = useRef(onSearchChange);
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange;
+  }, [onSearchChange]);
+
+  // useEffect(() => {
+  //   if (!isSearching) return;
+
+  //   const runSearch = async () => {
+  //     try {
+  //       pushFiltersToUrl(localFilters);
+  //       await Promise.resolve(onSearchChangeRef.current(localFilters));
+  //     } finally {
+  //       setIsSearching(false);
+  //     }
+  //   };
+
+  //   runSearch();
+  //   // localFilters is captured at the moment isSearching turns true — that is intentional.
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [isSearching]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {

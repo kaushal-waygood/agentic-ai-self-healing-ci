@@ -209,10 +209,15 @@ export async function searchJobs(req, res) {
     const pageNum = safeParseInt(page, 1);
     const limitNum = safeParseInt(limit, 30);
 
+    console.log('pageNum', pageNum);
+    console.log('limitNum', limitNum);
     // 1. Build Context & Fetch Local Candidates in Parallel
     const context = await buildSearchContext(req);
 
-    const requiredPoolSize = pageNum * limitNum + limitNum;
+    // 🔥 FIX: Aggressively fetch more local candidates because in-memory filtering drops many jobs.
+    // Ensure we have a large enough pool to satisfy current and future pages.
+    const requiredPoolSize = pageNum * limitNum * 10 + 200;
+    console.log('requiredPoolSize', requiredPoolSize);
 
     // 🔥 OPTIMIZATION: Get local candidates FAST
     let candidates = await retrieveLocalCandidates(context, requiredPoolSize);
@@ -270,6 +275,15 @@ export async function searchJobs(req, res) {
         const formatted = externalRaw.map((j) =>
           transformRapidApiJob(j, q || 'job'),
         );
+
+        // 🛡️ DATA CONSISTENCY REQUIREMENT:
+        // We MUST await the upsert before sending the response AND before cloning!
+        // If we don't, the user could click the job instantly on the frontend, triggering
+        // a 404 on `jobs/find?slug=...` because MongoDB hasn't finished its background write yet.
+        await upsertExternalJobs(formatted).catch((e) =>
+          console.error('Sync Upsert Error', e.message),
+        );
+
         const filteredExt = processPool(formatted);
 
         if (filteredExt.length > 0) {
@@ -278,14 +292,6 @@ export async function searchJobs(req, res) {
           paginatedJobs = [...paginatedJobs, ...toAdd];
           processed = [...processed, ...filteredExt];
         }
-
-        // 🛡️ DATA CONSISTENCY REQUIREMENT:
-        // We MUST await the upsert before sending the response!
-        // If we don't, the user could click the job instantly on the frontend, triggering
-        // a 404 on `jobs/find?slug=...` because MongoDB hasn't finished its background write yet.
-        await upsertExternalJobs(formatted).catch((e) =>
-          console.error('Sync Upsert Error', e.message),
-        );
       }
     }
 
@@ -309,12 +315,16 @@ export async function searchJobs(req, res) {
       );
     }
 
+    console.log('paginatedJobs', paginatedJobs.length);
+
     return res.status(200).json({
       success: true,
       jobs: paginatedJobs,
       pagination: {
         currentPage: pageNum,
-        hasNextPage: processed.length > start + limitNum,
+        hasNextPage:
+          paginatedJobs.length >= limitNum ||
+          candidates.length >= requiredPoolSize,
         totalJobs:
           processed.length > start + limitNum
             ? processed.length
