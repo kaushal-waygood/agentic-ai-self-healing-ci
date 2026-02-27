@@ -359,18 +359,46 @@ const AppHeader = ({
 
   const isMobile = useIsMobile();
 
+  // const handleMenuToggle = (menu) => {
+  //   // 1. Check if the action is for notifications AND if user is on mobile
+  //   if (menu === 'notification' && isMobile) {
+  //     router.push('/dashboard/notifications'); // Redirect immediately
+  //     return; // Stop function execution here
+  //   }
+
+  //   // 2. Default behavior for Desktop (or other menus)
+  //   setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
+  //   setIsNotificationOpen(
+  //     menu === 'notification' ? !isNotificationOpen : false,
+  //   );
+  //   setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
+  // };
+
   const handleMenuToggle = (menu) => {
-    // 1. Check if the action is for notifications AND if user is on mobile
-    if (menu === 'notification' && isMobile) {
-      router.push('/dashboard/notifications'); // Redirect immediately
-      return; // Stop function execution here
+    if (menu === 'notification') {
+      if (isMobile) {
+        if (unreadCount > 0) {
+          markAllAsRead(); // call saga action
+        }
+        router.push('/dashboard/notifications');
+        return;
+      }
+
+      const willOpen = !isNotificationOpen;
+
+      setIsNotificationOpen(willOpen);
+      setIsPlanOpen(false);
+      setIsUserMenuOpen(false);
+
+      if (willOpen && unreadCount > 0) {
+        markAllAsRead();
+      }
+
+      return;
     }
 
-    // 2. Default behavior for Desktop (or other menus)
+    // Other menus (unchanged)
     setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
-    setIsNotificationOpen(
-      menu === 'notification' ? !isNotificationOpen : false,
-    );
     setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
   };
 

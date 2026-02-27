@@ -13,13 +13,14 @@ import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 import redisClient from '../config/redis.js';
 import {
   normalizeSet,
-  fetchExternalJobsCached,
   transformRapidApiJob,
+  retrieveLocalCandidates,
+  buildInteractionContext,
+  applyFilters,
+  fetchExternalJobs,
   upsertExternalJobs,
-  getCTRMap,
-  getLocalRecommendedJobs,
-  fetchAndUpsertMoreExternalJobs,
-  getTop4DashboardJobs,
+  rankJobs,
+  diversify,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
@@ -1922,70 +1923,117 @@ ${JSON.stringify(profile)}
 
 const syncCooldown = new Map();
 
-export const getProfileBasedRecommendedJobs = async (req, res) => {
+export async function getProfileBasedRecommendedJobs(req, res) {
+  const { page = 1, limit = 10 } = req.query || {};
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+  const skip = (pageNum - 1) * limitNum;
+
   try {
-    const userId = req.user?._id;
-    if (!userId) return res.sendStatus(401);
+    const profile = await buildUserProfileFromStudent(req.user._id);
+    const interactions = await buildInteractionContext(req.user._id);
 
-    const profile = await buildUserProfileFromStudent(userId);
-    let jobs = await getLocalRecommendedJobs(profile);
+    const profileQuery =
+      `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() ||
+      'jobs';
 
-    const MIN_RESULTS = 10;
-    const MAX_SYNC_ROUNDS = 3;
-    const COOLDOWN_MS = 10 * 60 * 1000;
+    const context = {
+      type: 'recommendation',
+      query: profileQuery,
+      profile,
+      filters: {
+        country: profile.location?.country || 'IN',
+        state: profile.location?.state,
+        city: profile.location?.city,
+      },
+      userId: req.user._id,
+      interactions,
+    };
 
-    const now = Date.now();
-    const lastSync = syncCooldown.get(userId.toString());
-    const isInCooldown = lastSync && now - lastSync < COOLDOWN_MS;
+    // 1. Fetch Local Pool
+    // We increase the pool size slightly to account for deduplication/filtering
+    const requiredPoolSize = pageNum * limitNum + 20;
+    const candidates = await retrieveLocalCandidates(context, requiredPoolSize);
 
-    // -------- CRITICAL FIX --------
-    if (jobs.length < MIN_RESULTS && !isInCooldown) {
-      syncCooldown.set(userId.toString(), now);
+    const processPool = (jobsPool) => {
+      const filtered = applyFilters(jobsPool, context);
+      const ranked = rankJobs(filtered, context);
+      return diversify(ranked);
+    };
 
-      console.log('Low results. Running progressive sync...');
+    let processed = processPool(candidates);
+    let finalJobs = processed.slice(skip, skip + limitNum);
 
-      let round = 0;
+    // 2. 🔥 API FALLBACK: If local DB doesn't have enough for this specific page
+    if (finalJobs.length < limitNum) {
+      const apiFallbackQuery = profileQuery || 'jobs';
 
-      while (jobs.length < MIN_RESULTS && round < MAX_SYNC_ROUNDS) {
-        console.log(`Sync round ${round + 1}`);
+      // Start fetching from the page the user is actually on
+      const pagesToFetch = [pageNum, pageNum + 1];
 
-        await fetchAndUpsertMoreExternalJobs(profile);
+      const fetchPromises = pagesToFetch.map((apiPage) =>
+        fetchExternalJobs(
+          apiFallbackQuery,
+          context.filters.country || 'IN',
+          context.filters.state,
+          context.filters.city,
+          null,
+          null,
+          null,
+          apiPage, // 🔥 Fetch the page matching user's scroll depth
+        ),
+      );
 
-        jobs = await getLocalRecommendedJobs(profile);
+      const API_TIMEOUT = 12000;
+      const responsesRaw = await Promise.all(
+        fetchPromises.map((p) =>
+          Promise.race([
+            p,
+            new Promise((resolve) =>
+              setTimeout(() => resolve([]), API_TIMEOUT),
+            ),
+          ]),
+        ),
+      );
 
-        round++;
-      }
+      const externalRaw = responsesRaw.flat().filter(Boolean);
 
-      // -------- FALLBACK --------
-      if (jobs.length < MIN_RESULTS) {
-        console.log('Fallback to trending jobs');
+      if (externalRaw.length > 0) {
+        const formatted = externalRaw.map((j) =>
+          transformRapidApiJob(j, profileQuery || 'job'),
+        );
 
-        const fallback = await Job.find({
-          isActive: true,
-          country: profile.location?.country,
-        })
-          .sort({ jobPostedAt: -1 })
-          .limit(MIN_RESULTS)
-          .lean();
+        // Save to DB so they have valid _id/slugs
+        await upsertExternalJobs(formatted).catch((e) =>
+          console.error('Sync Upsert Error', e.message),
+        );
 
-        jobs = [...jobs, ...fallback];
+        const filteredExt = processPool(formatted);
+
+        if (filteredExt.length > 0) {
+          const remainingNeeded = limitNum - finalJobs.length;
+          const toAdd = filteredExt.slice(0, remainingNeeded);
+          finalJobs = [...finalJobs, ...toAdd];
+        }
       }
     }
 
-    // Remove duplicates
-    const unique = new Map();
-    jobs.forEach((j) => unique.set(j._id.toString(), j));
-
-    return res.json({
+    // 3. 🚀 INFINITE PAGINATION LOGIC
+    res.status(200).json({
       success: true,
-      count: unique.size,
-      jobs: Array.from(unique.values()).slice(0, 30),
+      pagination: {
+        currentPage: pageNum,
+        // 🔥 FIX: If we found enough jobs to fill the limit, tell frontend to keep scrolling.
+        // If we found 0 or less than limit, we've likely hit the actual end of the API/DB.
+        hasNextPage: finalJobs.length === limitNum,
+      },
+      jobs: finalJobs,
     });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+  } catch (error) {
+    console.error('API Reco Error:', error);
+    res.status(500).json({ success: false });
   }
-};
+}
 
 export const getDashboardTopJobs = async (req, res) => {
   const userId = req.user?._id;

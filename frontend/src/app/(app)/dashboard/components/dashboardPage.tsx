@@ -1182,7 +1182,8 @@ export default function DashboardPage() {
                       time={recentAI.cv.completedAt}
                       id={recentAI.cv.id || recentAI.cv._id}
                       type="cv"
-                      // <!-- href="/dashboard/my-docs?tab=cvs" -->
+                     
+                   
                       href={`/dashboard/my-docs/cv/${recentAI?.cv?.id}`}
                     />
                   )}
@@ -1195,7 +1196,7 @@ export default function DashboardPage() {
                       time={recentAI.coverLetter.completedAt}
                       id={recentAI.coverLetter.id || recentAI.coverLetter._id}
                       type="coverLetter"
-                      // <!-- href="/dashboard/my-docs?tab=cover-letters" -->
+                     
                       href={`/dashboard/my-docs/cl/${recentAI?.coverLetter?.id}`}
                     />
                   )}
@@ -1211,7 +1212,7 @@ export default function DashboardPage() {
                         recentAI.tailoredApplication._id
                       }
                       type="tailoredApplication"
-                      // <!-- href="/dashboard/my-docs?tab=applications" -->
+                  
                       href={`/dashboard/my-docs/application/${recentAI?.tailoredApplication?.id}`}
                     />
                   )}
