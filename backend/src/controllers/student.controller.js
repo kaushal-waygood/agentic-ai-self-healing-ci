@@ -30,6 +30,7 @@ import {
 import { generateEmbedding } from '../config/embedding.js';
 import { getCachedReco, makeRecoKey } from '../utils/recoCache.js';
 import { StudentSkill } from '../models/students/studentSkill.model.js';
+import { makeTop4Key } from '../utils/dashboardKeys.js';
 
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
@@ -2041,6 +2042,78 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     console.error('API Reco Error:', error);
     res.status(500).json({ success: false });
   }
+}
+
+/**
+ * Fetches 4 top-ranked job recommendations for the dashboard widget.
+ * Uses the student profile to personalise results and caches them
+ * in Redis for 10 minutes so the dashboard loads instantly on repeat visits.
+ *
+ * @param {object} profile - Output of buildUserProfileFromStudent()
+ * @returns {Promise<object[]>} Array of up to 4 job objects
+ */
+async function getTop4DashboardJobs(profile) {
+  // Build a stable bucket key from the user's primary title/location
+  // so we re-use cached results when the profile hasn't changed.
+  const bucket = [
+    (profile.titles[0] || 'any').toLowerCase().replace(/\s+/g, '-'),
+    (profile.location?.country || 'IN').toUpperCase(),
+  ].join(':');
+
+  const cacheKey = makeTop4Key(profile.userId, bucket);
+
+  // 1. Return cached results if fresh
+  const cached = await redisClient.get(cacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      // corrupt cache — fall through to re-fetch
+    }
+  }
+
+  // 2. Build search context from profile
+  const profileQuery =
+    `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() || 'jobs';
+
+  const context = {
+    type: 'recommendation',
+    query: profileQuery,
+    profile,
+    filters: {
+      country: profile.location?.country || 'IN',
+      state: profile.location?.state,
+      city: profile.location?.city,
+    },
+    userId: profile.userId,
+    interactions: null, // skip heavy interaction loads for the lightweight dashboard widget
+  };
+
+  // 3. Fetch a small local pool (40 is plenty for picking 4)
+  let candidates = [];
+  try {
+    candidates = await retrieveLocalCandidates(context, 40);
+  } catch (e) {
+    console.error(
+      '[getTop4DashboardJobs] retrieveLocalCandidates error:',
+      e.message,
+    );
+  }
+
+  // 4. Filter → rank → take 4
+  const filtered = applyFilters(candidates, {
+    ...context,
+    interactions: { applied: new Set(), saved: new Set(), views: {} },
+  });
+  const ranked = rankJobs(filtered, context);
+  const top4 = ranked.slice(0, 4);
+
+  // 5. Store in Redis for 10 min
+  if (top4.length > 0) {
+    await redisClient.set(cacheKey, JSON.stringify(top4), 600);
+  }
+
+  return top4;
 }
 
 export const getDashboardTopJobs = async (req, res) => {
