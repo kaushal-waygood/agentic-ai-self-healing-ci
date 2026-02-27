@@ -7,4 +7,3 @@ data:
   NEXT_PUBLIC_NODE_ENV: 'production'
   REACT_APP_API_URL: 'http://zobsai-backend.zobsai.svc.cluster.local:8000'
   NEXT_PUBLIC_SOCKET_URL: 'https://api.zobsai.com'
-
