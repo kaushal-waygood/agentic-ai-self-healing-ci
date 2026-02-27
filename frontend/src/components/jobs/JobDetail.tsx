@@ -482,8 +482,31 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                   <MapPin className="w-4 h-4" />
                   <span>
-                    {job.location.city || 'Not specified'},{' '}
-                    {job.country || 'Not specified'}
+                    {(() => {
+                      const NOISE = [
+                        'anywhere',
+                        'remote',
+                        'worldwide',
+                        'global',
+                        'online',
+                        'virtual',
+                      ];
+                      const rawCity = job.location?.city?.trim() ?? '';
+                      const city = NOISE.includes(rawCity.toLowerCase())
+                        ? ''
+                        : rawCity;
+                      const state =
+                        (job.location as any)?.state?.trim?.() ?? '';
+                      const country =
+                        (job.country as string | undefined)?.trim() ?? '';
+                      const parts: string[] = [];
+                      if (city) parts.push(city);
+                      if (state && state !== city) parts.push(state);
+                      if (country) parts.push(country);
+                      if (parts.length > 0) return parts.join(', ');
+                      if ((job as any).remote) return '🌐 Remote';
+                      return 'Location not specified';
+                    })()}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
