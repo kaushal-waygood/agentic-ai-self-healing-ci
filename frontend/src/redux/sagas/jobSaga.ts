@@ -8,7 +8,7 @@ import {
   getRecommendJobs,
   findSingleJob,
 } from '@/services/api/job';
-import { call, put, take, takeLatest } from 'redux-saga/effects';
+import { call, put, takeLatest } from 'redux-saga/effects';
 import {
   getAllJobsRequest,
   getAllJobsSuccess,
@@ -37,20 +37,15 @@ import {
   findSingleJobRequest,
   findSingleJobSuccess,
   findSingleJobFailure,
+  setCacheHit,
 } from '../reducers/jobReducer';
 import { AxiosResponse } from 'axios';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { recommendProfileJob } from '@/services/api/student';
 
-import {
-  jobCache,
-  makeCacheKey,
-  pruneCache,
-  CACHE_TTL_MS,
-} from '@/lib/jobCache';
+import { makeCacheKey, getCache, setCache } from '@/lib/jobCache';
 
 function* getAllJobsSaga(
-  // ADD: The 'append' flag to the action type
   action: PayloadAction<{
     page: number;
     append?: boolean;
@@ -64,7 +59,6 @@ function* getAllJobsSaga(
 ) {
   try {
     const {
-      // ADD: Destructure the 'append' flag
       append,
       page,
       query,
@@ -75,7 +69,6 @@ function* getAllJobsSaga(
       experience,
     } = action.payload;
 
-    // No change to the API call itself
     const response: AxiosResponse = yield call(getAllJobs, {
       page,
       query,
@@ -86,12 +79,11 @@ function* getAllJobsSaga(
       experience: experience?.join(','),
     });
 
-    // CHANGED: Pass the 'append' flag to the success action
     yield put(
       getAllJobsSuccess({
         jobs: response.data.jobs,
         pagination: response.data.pagination,
-        append: append, // Pass the flag along to the reducer
+        append: append,
       }),
     );
   } catch (error: unknown | Error) {
@@ -168,18 +160,19 @@ function* searchJobsSaga(
     const { append, page, ...rest } = action.payload;
     const cacheKey = makeCacheKey('search', action.payload);
 
-    if (!append) {
-      const cached = jobCache.get(cacheKey);
-      if (cached && cached.expiresAt > Date.now()) {
-        yield put(
-          searchJobSuccess({
-            jobs: cached.data.jobs,
-            pagination: cached.data.pagination,
-            append,
-          }),
-        );
-        return;
-      }
+    // ── Check cache for ALL requests (including paginated/append) ──
+    const cached = getCache(cacheKey);
+    if (cached) {
+      // Signal to reducer that this is a cache hit (skip loading flash)
+      yield put(setCacheHit(true));
+      yield put(
+        searchJobSuccess({
+          jobs: cached.jobs,
+          pagination: cached.pagination,
+          append,
+        }),
+      );
+      return;
     }
 
     const response: AxiosResponse = yield call(searchJobs, {
@@ -195,11 +188,8 @@ function* searchJobsSaga(
       pagination: response.data.pagination,
     };
 
-    jobCache.set(cacheKey, {
-      data: responseData,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    });
-    pruneCache();
+    // Store in cache
+    setCache(cacheKey, responseData);
 
     yield put(searchJobSuccess({ ...responseData, append }));
   } catch (error: unknown | Error) {
@@ -214,18 +204,19 @@ function* getRecommendJobsSaga(
     const { page, append } = action.payload;
     const cacheKey = makeCacheKey('recommend', { page });
 
-    if (!append) {
-      const cached = jobCache.get(cacheKey);
-      if (cached && cached.expiresAt > Date.now()) {
-        yield put(
-          getRecommendJobsSuccess({
-            jobs: cached.data.jobs,
-            pagination: cached.data.pagination,
-            append,
-          }),
-        );
-        return;
-      }
+    // ── Check cache for ALL requests (including paginated/append) ──
+    const cached = getCache(cacheKey);
+    if (cached) {
+      // Signal to reducer that this is a cache hit (skip loading flash)
+      yield put(setCacheHit(true));
+      yield put(
+        getRecommendJobsSuccess({
+          jobs: cached.jobs,
+          pagination: cached.pagination,
+          append,
+        }),
+      );
+      return;
     }
 
     const response: AxiosResponse = yield call(getRecommendJobs, { page });
@@ -235,11 +226,8 @@ function* getRecommendJobsSaga(
       pagination: response.data.pagination,
     };
 
-    jobCache.set(cacheKey, {
-      data: responseData,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    });
-    pruneCache();
+    // Store in cache
+    setCache(cacheKey, responseData);
 
     yield put(getRecommendJobsSuccess({ ...responseData, append }));
   } catch (error: unknown | Error) {
@@ -257,7 +245,6 @@ function* findSingleJobSaga(action: PayloadAction<string>) {
 }
 
 export function* jobsWatcher() {
-  // yield takeLatest(fetchJobsStream.type, handleJobStreamSaga);
   yield takeLatest(getAllJobsRequest.type, getAllJobsSaga);
   yield takeLatest(getJobBySlugRequest.type, getJobBySlugSaga);
   yield takeLatest(

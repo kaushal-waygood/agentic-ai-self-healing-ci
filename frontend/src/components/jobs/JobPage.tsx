@@ -113,6 +113,19 @@ export default function JobsPage() {
     }
   }, [searchParams, fetchJobDetails, filters?.q, trackJobClick]);
 
+  // const handleCardClick = (job: any) => {
+  //   if (selectedJob?._id === job._id) return;
+
+  //   trackJobClick(job._id, filters?.q);
+
+  //   if (isMobile) {
+  //     router.push(`/jobs/${job.slug}`);
+  //   } else {
+  //     setSelectedJob(job);
+
+  //     fetchJobDetails(job.slug);
+  //   }
+  // };
   const handleCardClick = useCallback(
     (job: any) => {
       if (selectedJob?._id === job._id) return;
@@ -152,15 +165,11 @@ export default function JobsPage() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && pagination.hasNextPage && !loading) {
-          console.log(
-            'Triggering Load More for Page:',
-            (pagination.currentPage || 1) + 1,
-          );
           loadMoreJobs();
         }
       },
       {
-        rootMargin: '200px', // 2. Trigger 200px BEFORE the user reaches the bottom
+        rootMargin: '200px',
         threshold: 0.1,
       },
     );
@@ -171,7 +180,7 @@ export default function JobsPage() {
     return () => {
       if (el) observer.unobserve(el);
     };
-  }, [loading, pagination.hasNextPage, loadMoreJobs, pagination.currentPage]); // Added currentPage to deps
+  }, [loading, pagination.hasNextPage, loadMoreJobs, pagination.currentPage]);
 
   const fromOnboarding = searchParams.get('from') === 'onboarding';
 

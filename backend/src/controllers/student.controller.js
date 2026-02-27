@@ -1951,8 +1951,8 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     };
 
     // 1. Fetch Local Pool
-    // We increase the pool size slightly to account for deduplication/filtering
-    const requiredPoolSize = pageNum * limitNum + 20;
+    // We increase the pool size significantly to account for deduplication/filtering drops
+    const requiredPoolSize = pageNum * limitNum * 10 + 200;
     const candidates = await retrieveLocalCandidates(context, requiredPoolSize);
 
     const processPool = (jobsPool) => {
@@ -1966,10 +1966,12 @@ export async function getProfileBasedRecommendedJobs(req, res) {
 
     // 2. 🔥 API FALLBACK: If local DB doesn't have enough for this specific page
     if (finalJobs.length < limitNum) {
-      const apiFallbackQuery = profileQuery || 'jobs';
+      // Create a simplified fallback query for JSearch so it doesn't fail on long 30-word strings
+      const fallbackTerm = profile.titles[0] || profile.skills[0] || 'jobs';
+      const apiFallbackQuery = fallbackTerm;
 
       // Start fetching from the page the user is actually on
-      const pagesToFetch = [pageNum, pageNum + 1];
+      const pagesToFetch = [pageNum, pageNum + 1, pageNum + 2];
 
       const fetchPromises = pagesToFetch.map((apiPage) =>
         fetchExternalJobs(
@@ -2014,6 +2016,7 @@ export async function getProfileBasedRecommendedJobs(req, res) {
           const remainingNeeded = limitNum - finalJobs.length;
           const toAdd = filteredExt.slice(0, remainingNeeded);
           finalJobs = [...finalJobs, ...toAdd];
+          processed = [...processed, ...filteredExt];
         }
       }
     }
@@ -2024,8 +2027,13 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       pagination: {
         currentPage: pageNum,
         // 🔥 FIX: If we found enough jobs to fill the limit, tell frontend to keep scrolling.
-        // If we found 0 or less than limit, we've likely hit the actual end of the API/DB.
-        hasNextPage: finalJobs.length === limitNum,
+        // Also if `candidates` reached the pool size, there might be more to fetch on next page
+        hasNextPage:
+          finalJobs.length >= limitNum || candidates.length >= requiredPoolSize,
+        totalJobs:
+          processed.length > skip + limitNum
+            ? processed.length
+            : skip + finalJobs.length,
       },
       jobs: finalJobs,
     });
