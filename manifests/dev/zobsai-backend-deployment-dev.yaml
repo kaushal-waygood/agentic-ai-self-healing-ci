@@ -35,11 +35,12 @@ spec:
                 name: zobsai-backend-secrets
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              cpu: '500m'
+              memory: '1Gi' # Increased to 1Gi
             limits:
-              memory: "512Mi"
-              cpu: "1000m"
+              cpu: '2000m' # Increased for better ML inference speed
+              memory: '2Gi' # Increased to 2Gi (or 4Gi if OOM persists)
+
 ---
 apiVersion: v1
 kind: Service
