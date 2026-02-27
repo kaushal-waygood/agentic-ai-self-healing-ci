@@ -214,7 +214,9 @@ export async function searchJobs(req, res) {
     // 1. Build Context & Fetch Local Candidates in Parallel
     const context = await buildSearchContext(req);
 
-    const requiredPoolSize = pageNum * limitNum + limitNum;
+    // 🔥 FIX: Aggressively fetch more local candidates because in-memory filtering drops many jobs.
+    // Ensure we have a large enough pool to satisfy current and future pages.
+    const requiredPoolSize = pageNum * limitNum * 10 + 200;
     console.log('requiredPoolSize', requiredPoolSize);
 
     // 🔥 OPTIMIZATION: Get local candidates FAST
@@ -320,7 +322,9 @@ export async function searchJobs(req, res) {
       jobs: paginatedJobs,
       pagination: {
         currentPage: pageNum,
-        hasNextPage: paginatedJobs.length >= limitNum,
+        hasNextPage:
+          paginatedJobs.length >= limitNum ||
+          candidates.length >= requiredPoolSize,
         totalJobs:
           processed.length > start + limitNum
             ? processed.length

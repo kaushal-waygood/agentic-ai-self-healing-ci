@@ -90,26 +90,47 @@ async function getExistingExternalJobMap(jobIds = []) {
 // --------------------
 
 export async function retrieveLocalCandidates(context, limit = 100) {
-  // Parallelize keyword and vector search
-  const tasks = [];
+  const queryPart = context.query || 'recent';
+  const countryPart = context.filters?.country || 'IN';
+  const contextType = context.type || 'search';
+  const cacheKey = `jobs:local:${crypto.createHash('md5').update(`${contextType}:${queryPart}:${countryPart}:${limit}`).digest('hex')}`;
 
-  if (context.query) {
-    tasks.push(keywordSearch(context, limit));
-    tasks.push(vectorSearch(context, limit));
-  } else {
-    // If no query, fallback to recent active jobs in the desired country
-    tasks.push(
-      Job.find({ isActive: true, country: context.filters?.country || 'IN' })
-        .sort({ jobPostedAt: -1 })
-        .limit(limit)
-        .lean(),
-    );
-  }
+  return await redisClient.withCache(cacheKey, 600, async () => {
+    // Parallelize keyword and vector search
+    const tasks = [];
 
-  const results = await Promise.all(tasks);
-  const combined = results.flat();
+    // Use 30 days for recommendations (profile-specific queries have fewer recent results),
+    // and 10 days for search (user typed common terms with lots of hits)
+    const maxAgeDays = contextType === 'recommendation' ? 30 : 10;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
+    const dateFilter = { jobPostedAt: { $gte: cutoffDate } };
 
-  return dedupeByTitleCompany(combined);
+    if (context.query) {
+      tasks.push(keywordSearch(context, limit, dateFilter));
+      tasks.push(vectorSearch(context, limit, dateFilter));
+    } else {
+      // If no query, fallback to recent active jobs in the desired country
+      tasks.push(
+        Job.find({
+          isActive: true,
+          country: context.filters?.country || 'IN',
+          ...dateFilter,
+        })
+          .sort({ jobPostedAt: -1 })
+          .limit(limit)
+          .lean(),
+      );
+    }
+
+    const results = await Promise.all(tasks);
+    const combined = results.flat();
+
+    // Re-sort combined results by jobPostedAt (most recent first)
+    combined.sort((a, b) => new Date(b.jobPostedAt) - new Date(a.jobPostedAt));
+
+    return dedupeByTitleCompany(combined);
+  });
 }
 
 /**
@@ -302,49 +323,54 @@ export async function fetchExternalJobs(
   experience,
   page = 1,
 ) {
-  try {
-    let query = apiQuery;
+  const cacheKeyStr = `${apiQuery || 'jobs'}:${country}:${state || 'none'}:${city || 'none'}:${datePosted || 'none'}:${employmentType || 'none'}:${experience || 'none'}:${page}`;
+  const cacheKey = `jobs:rapid:${crypto.createHash('md5').update(cacheKeyStr).digest('hex')}`;
 
-    // Inject location with "India" as fallback for "IN"
-    const locParts = [
-      city,
-      state,
-      country === 'IN' ? 'India' : country === 'US' ? 'USA' : country,
-    ].filter(Boolean);
+  return await redisClient.withCache(cacheKey, 3600, async () => {
+    try {
+      let query = apiQuery;
 
-    if (locParts.length > 0) {
-      query += ` in ${locParts.join(', ')}`;
+      // Inject location with "India" as fallback for "IN"
+      const locParts = [
+        city,
+        state,
+        country === 'IN' ? 'India' : country === 'US' ? 'USA' : country,
+      ].filter(Boolean);
+
+      if (locParts.length > 0) {
+        query += ` in ${locParts.join(', ')}`;
+      }
+
+      const params = { query, page: String(page), num_pages: '1' };
+
+      if (employmentType) {
+        // RapidAPI JSearch accepts format: FULLTIME, CONTRACTOR, PARTTIME, INTERNSHIP
+        params.employment_types = employmentType;
+      }
+
+      if (experience) {
+        // e.g. "under_3_years_experience,more_than_3_years_experience,no_experience"
+        params.job_requirements = experience;
+      }
+
+      if (datePosted) {
+        // e.g. "today", "3days", "week", "month"
+        params.date_posted = datePosted;
+      }
+      const response = await axios.get(config.rapidJobApi, {
+        params,
+        headers: {
+          'X-RapidAPI-Key': config.rapidApiKey,
+          'X-RapidAPI-Host': config.rapidApiHost,
+        },
+      });
+
+      return response?.data?.data || [];
+    } catch (e) {
+      console.error('RapidAPI error:', e.message);
+      return [];
     }
-
-    const params = { query, page: String(page), num_pages: '1' };
-
-    if (employmentType) {
-      // RapidAPI JSearch accepts format: FULLTIME, CONTRACTOR, PARTTIME, INTERNSHIP
-      params.employment_types = employmentType;
-    }
-
-    if (experience) {
-      // e.g. "under_3_years_experience,more_than_3_years_experience,no_experience"
-      params.job_requirements = experience;
-    }
-
-    if (datePosted) {
-      // e.g. "today", "3days", "week", "month"
-      params.date_posted = datePosted;
-    }
-    const response = await axios.get(config.rapidJobApi, {
-      params,
-      headers: {
-        'X-RapidAPI-Key': config.rapidApiKey,
-        'X-RapidAPI-Host': config.rapidApiHost,
-      },
-    });
-
-    return response?.data?.data || [];
-  } catch (e) {
-    console.error('RapidAPI error:', e.message);
-    return [];
-  }
+  });
 }
 
 // --------------------
@@ -570,20 +596,37 @@ export async function retrieveCandidates(context, limit = 300) {
 // --------------------
 // 8. SEARCH DRIVERS & SCORING
 // --------------------
-async function keywordSearch(context, limit = 100) {
+async function keywordSearch(context, limit = 100, dateFilter = {}) {
   if (!context.query) return [];
 
-  // Use regex search instead of $text since the index is missing
-  const regex = new RegExp(context.query, 'i');
+  // Tokenize the query into individual keywords (handles both short search
+  // queries like "react" AND long recommendation queries like
+  // "software engineer react nodejs express").
+  // Match ANY individual keyword so we actually find results.
+  const tokens = context.query
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2); // ignore single-char noise
+
+  if (!tokens.length) return [];
+
+  // Build $or conditions: each token matches title OR queries
+  const orConditions = tokens.flatMap((token) => {
+    const regex = new RegExp(token, 'i');
+    return [{ title: regex }, { queries: regex }];
+  });
+
   return Job.find({
-    $or: [{ title: regex }, { queries: regex }],
+    $or: orConditions,
     isActive: true,
+    ...dateFilter,
   })
+    .sort({ jobPostedAt: -1 })
     .limit(limit)
     .lean();
 }
 
-async function vectorSearch(context, limit = 100) {
+async function vectorSearch(context, limit = 100, dateFilter = {}) {
   const titles = context.profile?.titles?.join(' ') || '';
   const skills = context.profile?.skills?.join(' ') || '';
   const input = context.query || `${titles} ${skills}`.trim();
@@ -592,6 +635,16 @@ async function vectorSearch(context, limit = 100) {
 
   const queryVector = await generateEmbedding(input);
   if (!queryVector) return [];
+
+  const filterParam = {
+    $and: [{ score: { $gte: 0.935 } }],
+  };
+
+  // Vector Search inside MongoDB Atlas doesn't play perfectly with standard Aggregation Match sometimes,
+  // But we'll enforce the date filter inside vectorSearch as part of the pipeline Match phase.
+  if (dateFilter.jobPostedAt) {
+    filterParam.$and.push({ jobPostedAt: dateFilter.jobPostedAt });
+  }
 
   return Job.aggregate([
     {
@@ -607,7 +660,10 @@ async function vectorSearch(context, limit = 100) {
       $project: { job_embedding: 0, score: { $meta: 'vectorSearchScore' } },
     },
     {
-      $match: { score: { $gte: 0.935 } },
+      $match: filterParam,
+    },
+    {
+      $sort: { jobPostedAt: -1 },
     },
   ]);
 }
@@ -615,16 +671,20 @@ async function vectorSearch(context, limit = 100) {
 export function rankJobs(jobs, context) {
   return jobs
     .map((job) => {
+      // More aggressive decay: score drops off rapidly if it's over a few days old
       const freshness = Math.exp(
-        -(Date.now() - new Date(job.jobPostedAt)) / (86400000 * 15),
+        -(Date.now() - new Date(job.jobPostedAt)) / (86400000 * 5),
       );
       const isTargetCountry =
         job.country === (context.filters?.country || 'IN');
       const geo = job.remote || isTargetCountry ? 1 : 0.1;
 
-      return { ...job, score: freshness * 0.4 + geo * 0.6 };
+      // Add a tiny bit of vector score correlation if available, otherwise just rely on freshness
+      const vectorBonus = job.score && job.score > 0.9 ? job.score * 0.2 : 0;
+
+      return { ...job, rankScore: freshness * 0.6 + geo * 0.4 + vectorBonus };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.rankScore - a.rankScore);
 }
 
 export function diversify(jobs) {

@@ -7,8 +7,10 @@ import { debounce } from 'lodash';
 import {
   getRecommendJobsRequest,
   searchJobRequest,
+  setCacheHit,
 } from '@/redux/reducers/jobReducer';
 import { RootState } from '@/redux/rootReducer';
+import { makeCacheKey, getCache } from '@/lib/jobCache';
 
 export const useJobs = () => {
   const dispatch = useDispatch();
@@ -89,22 +91,27 @@ export const useJobs = () => {
     fetchedKeyRef.current = key;
 
     if (isEmpty) {
+      // Pre-check cache before dispatching to avoid loading flash
+      const cacheKey = makeCacheKey('recommend', { page: 1 });
+      if (getCache(cacheKey)) dispatch(setCacheHit(true));
       dispatch(getRecommendJobsRequest({ page: 1, append: false }));
     } else {
-      dispatch(
-        searchJobRequest({
-          query: q,
-          country,
-          state,
-          city,
-          datePosted,
-          employmentType,
-          experience,
-          education: [],
-          page: 1,
-          append: false,
-        }),
-      );
+      const payload = {
+        query: q,
+        country,
+        state,
+        city,
+        datePosted,
+        employmentType,
+        experience,
+        education: [] as string[],
+        page: 1,
+        append: false,
+      };
+      // Pre-check cache before dispatching to avoid loading flash
+      const cacheKey = makeCacheKey('search', payload);
+      if (getCache(cacheKey)) dispatch(setCacheHit(true));
+      dispatch(searchJobRequest(payload));
     }
     // Remove loading/redux dependencies from the array to prevent the loop
   }, [dispatch, pathName, searchParams]);
@@ -221,7 +228,8 @@ export const useJobs = () => {
       experience.length === 0;
 
     if ((isDashboard || isPublicSearch) && isSearchEmpty) {
-      console.log('getRecommendJobsRequest');
+      const cacheKey = makeCacheKey('recommend', { page: currentPage + 1 });
+      if (getCache(cacheKey)) dispatch(setCacheHit(true));
       dispatch(
         getRecommendJobsRequest({
           page: currentPage + 1,
@@ -229,14 +237,14 @@ export const useJobs = () => {
         }),
       );
     } else {
-      console.log('reduxFilters', reduxFilters);
-      dispatch(
-        searchJobRequest({
-          ...reduxFilters,
-          page: currentPage + 1,
-          append: true,
-        }),
-      );
+      const payload = {
+        ...reduxFilters,
+        page: currentPage + 1,
+        append: true,
+      };
+      const cacheKey = makeCacheKey('search', payload);
+      if (getCache(cacheKey)) dispatch(setCacheHit(true));
+      dispatch(searchJobRequest(payload));
     }
   }, [hasNextPage, pagination, dispatch, reduxFilters, pathName, searchParams]);
 
