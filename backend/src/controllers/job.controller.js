@@ -16,6 +16,7 @@ import {
   transformRapidApiJob,
   upsertExternalJobs,
   retrieveLocalCandidates,
+  dedupeByTitleCompany,
 } from '../utils/jobHelpers.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { JobInteraction } from '../models/jobInteraction.model.js';
@@ -284,14 +285,9 @@ export async function searchJobs(req, res) {
           console.error('Sync Upsert Error', e.message),
         );
 
-        const filteredExt = processPool(formatted);
-
-        if (filteredExt.length > 0) {
-          const remainingNeeded = limitNum - paginatedJobs.length;
-          const toAdd = filteredExt.slice(0, remainingNeeded);
-          paginatedJobs = [...paginatedJobs, ...toAdd];
-          processed = [...processed, ...filteredExt];
-        }
+        candidates = dedupeByTitleCompany([...candidates, ...formatted]);
+        processed = processPool(candidates);
+        paginatedJobs = processed.slice(start, start + limitNum);
       }
     }
 
