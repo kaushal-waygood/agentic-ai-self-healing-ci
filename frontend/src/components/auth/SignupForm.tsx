@@ -647,6 +647,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                 By signing up, you agree to our{' '}
                 <Link
                   href="/terms-of-service"
+                  target="_blank"
                   className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
                 >
                   Terms of Service
@@ -654,6 +655,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                 and{' '}
                 <Link
                   href="/privacy-policy"
+                  target="_blank"
                   className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
                 >
                   Privacy Policy
