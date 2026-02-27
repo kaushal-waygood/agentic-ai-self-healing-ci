@@ -628,14 +628,22 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
 
   if (!tokens.length) return [];
 
-  // Build $or conditions: each token matches title OR queries
-  const orConditions = tokens.flatMap((token) => {
-    const regex = new RegExp(token, 'i');
-    return [{ title: regex }, { queries: regex }];
+  // Build $and conditions: each token must match at least one field (title, queries, tags, company)
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const andConditions = tokens.map((token) => {
+    const regex = new RegExp(escapeRegex(token), 'i');
+    return {
+      $or: [
+        { title: regex },
+        { queries: regex },
+        { tags: regex },
+        { company: regex },
+      ],
+    };
   });
 
   return Job.find({
-    $or: orConditions,
+    $and: andConditions,
     isActive: true,
     ...dateFilter,
   })
@@ -688,6 +696,9 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
 }
 
 export function rankJobs(jobs, context) {
+  const query = context.query?.toLowerCase().trim() || '';
+  const queryTokens = query.split(/\s+/).filter((t) => t.length > 2);
+
   return jobs
     .map((job) => {
       // More aggressive decay: score drops off rapidly if it's over a few days old
@@ -701,7 +712,26 @@ export function rankJobs(jobs, context) {
       // Add a tiny bit of vector score correlation if available, otherwise just rely on freshness
       const vectorBonus = job.score && job.score > 0.9 ? job.score * 0.2 : 0;
 
-      return { ...job, rankScore: freshness * 0.6 + geo * 0.4 + vectorBonus };
+      // RELEVANCE BONUS
+      let relevanceBonus = 0;
+      if (query && job.title) {
+        const titleLower = job.title.toLowerCase();
+        if (titleLower === query) {
+          relevanceBonus = 1.0; // Exact title match
+        } else if (titleLower.includes(query)) {
+          relevanceBonus = 0.5; // Title contains query exactly
+        } else if (queryTokens.length > 0) {
+          const matchCount = queryTokens.filter((token) =>
+            titleLower.includes(token),
+          ).length;
+          relevanceBonus = (matchCount / queryTokens.length) * 0.3; // Partial match
+        }
+      }
+
+      return {
+        ...job,
+        rankScore: freshness * 0.6 + geo * 0.4 + vectorBonus + relevanceBonus,
+      };
     })
     .sort((a, b) => b.rankScore - a.rankScore);
 }

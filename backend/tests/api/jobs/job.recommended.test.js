@@ -26,6 +26,15 @@ import { Student } from '../../../src/models/student.model.js';
 import connectDB, { disconnectDB } from '../../../src/config/db.js';
 
 // ─────────────────────────────────────────────────────────────
+// Environment helpers
+// ─────────────────────────────────────────────────────────────
+/**
+ * If RECO_TEST_TOKEN env var is set (useful in CI), we skip DB seed
+ * and use that pre-minted token directly.
+ */
+const ENV_TOKEN = process.env.RECO_TEST_TOKEN || '';
+
+// ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
 const BASE = '/api/v1/students/jobs/recommended';
@@ -82,6 +91,15 @@ describe('Recommended Jobs API — GET /api/v1/students/jobs/recommended', () =>
   let emptyUserId;
 
   beforeAll(async () => {
+    if (ENV_TOKEN) {
+      // CI or remote-server mode: skip DB seed, use pre-minted token
+      fullProfileToken = ENV_TOKEN;
+      emptyProfileToken = ENV_TOKEN; // same token is fine for remote runs
+      constants.ACCESS_TOKEN = fullProfileToken;
+      return;
+    }
+
+    // Local mode: seed DB and generate fresh tokens
     await connectDB();
 
     // Rich-profile user
@@ -125,6 +143,7 @@ describe('Recommended Jobs API — GET /api/v1/students/jobs/recommended', () =>
   });
 
   afterAll(async () => {
+    if (ENV_TOKEN) return; // nothing to clean up in CI/remote mode
     await User.deleteMany({
       email: { $in: [fullProfileUser.email, emptyProfileUser.email] },
     });
