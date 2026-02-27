@@ -198,53 +198,50 @@ function StudentForm({
   onConfirmSubmit,
 }: StudentFormProps) {
   const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState({
+    university: '',
+    email: '',
+    phone: '',
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTpoData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    // Clear error when user starts typing
+    if (errors[e.target.name as keyof typeof errors]) {
+      setErrors((prev) => ({ ...prev, [e.target.name]: '' }));
+    }
   };
 
   const validateAndConfirm = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    // Validates exactly 10 digits. Change {10} to {7,15} for international flexibility.
     const phoneRegex = /^\d{10}$/;
 
-    // 1. Check for empty fields
-    if (
-      !tpoData.university.trim() ||
-      !tpoData.email.trim() ||
-      !tpoData.phone.trim()
-    ) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please fill in all fields before submitting.',
-        variant: 'destructive',
-      });
+    const newErrors = {
+      university: !tpoData.university.trim()
+        ? 'University/Company name is required'
+        : '',
+      email: !tpoData.email.trim()
+        ? 'Email is required'
+        : !emailRegex.test(tpoData.email)
+          ? 'Please enter a valid email address'
+          : '',
+      phone: !tpoData.phone.trim()
+        ? 'Phone number is required'
+        : !phoneRegex.test(tpoData.phone)
+          ? 'Please enter a valid 10-digit phone number'
+          : '',
+    };
+
+    setErrors(newErrors);
+
+    // If any errors exist, don't proceed
+    if (Object.values(newErrors).some((error) => error)) {
       return;
     }
 
-    // 2. Email Validation
-    if (!emailRegex.test(tpoData.email)) {
-      toast({
-        title: 'Invalid Email',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // 3. Phone Number Validation
-    if (!phoneRegex.test(tpoData.phone)) {
-      toast({
-        title: 'Invalid Phone Number',
-        description: 'Please enter a valid 10-digit phone number.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // All checks passed
     onConfirmSubmit(handleSubmit);
   };
+
   const handleSubmit = async () => {
     try {
       const payload = {
@@ -255,14 +252,26 @@ function StudentForm({
 
       const res = await apiInstance.post('/bring-zobs/student', payload);
 
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 1500);
+      if (res.status === 200 || res.status === 201) {
+        toast({
+          title: 'Success!',
+          description: 'Your request has been submitted successfully.',
+          variant: 'success',
+        });
+        setSubmitted(true);
+        setTimeout(() => setSubmitted(false), 3000);
+      }
     } catch (err: any) {
       console.error('Student submit error:', err?.response?.data || err);
+      toast({
+        title: 'Submission Failed',
+        description:
+          err?.response?.data?.message ||
+          'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
-
-  const ROLES = ['employer-admin', 'uni-admin'];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -279,9 +288,14 @@ function StudentForm({
               value={tpoData.university}
               onChange={handleChange}
               placeholder="Enter university/company name"
-              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className={`pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                errors.university ? 'border-red-500 focus:ring-red-500/20' : ''
+              }`}
             />
           </div>
+          {errors.university && (
+            <p className="text-sm text-red-500 mt-1">{errors.university}</p>
+          )}
         </div>
 
         {/* TPO Phone */}
@@ -297,9 +311,14 @@ function StudentForm({
               value={tpoData.phone}
               onChange={handleChange}
               placeholder="10-digit mobile number"
-              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className={`pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                errors.phone ? 'border-red-500 focus:ring-red-500/20' : ''
+              }`}
             />
           </div>
+          {errors.phone && (
+            <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
+          )}
         </div>
 
         {/* TPO Email */}
@@ -315,28 +334,33 @@ function StudentForm({
               value={tpoData.email}
               onChange={handleChange}
               placeholder="example@university.edu"
-              className="pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className={`pl-10 bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                errors.email ? 'border-red-500 focus:ring-red-500/20' : ''
+              }`}
             />
           </div>
+          {errors.email && (
+            <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+          )}
         </div>
       </div>
 
-      {/* SUBMIT BUTTON - Centered and Full Width */}
+      {/* SUBMIT BUTTON */}
       <div className="pt-2">
         <button
           type="button"
           disabled={submitted}
           onClick={validateAndConfirm}
           className={`
-          w-full py-3.5 rounded-xl flex items-center justify-center gap-3 font-semibold text-white
-          transition-all duration-300 transform active:scale-[0.98]
-          ${
-            submitted
-              ? 'bg-emerald-500 shadow-lg shadow-emerald-200'
-              : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-xl shadow-blue-200 hover:-translate-y-0.5'
-          }
-          disabled:cursor-not-allowed
-        `}
+            w-full py-3.5 rounded-xl flex items-center justify-center gap-3 font-semibold text-white
+            transition-all duration-300 transform active:scale-[0.98]
+            ${
+              submitted
+                ? 'bg-emerald-500 shadow-lg shadow-emerald-200'
+                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-xl shadow-blue-200 hover:-translate-y-0.5'
+            }
+            disabled:cursor-not-allowed
+          `}
         >
           {submitted ? (
             <>
@@ -347,9 +371,7 @@ function StudentForm({
             </>
           ) : (
             <>
-              <Send
-                className={`size-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1`}
-              />
+              <Send className="size-4" />
               <span className="tracking-wide">Send Request</span>
             </>
           )}
@@ -368,24 +390,36 @@ function StaffSection({
 }: {
   onConfirmSubmit: (action: () => void) => void;
 }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
       const res = await apiInstance.post('/user/onboard/initiate', {
         type: 'university',
       });
 
-      setSubmitted(true);
-
       if (res.status === 200) {
         toast({
           title: 'Registration Link Sent',
           description: 'Please check your email for the registration link.',
+          variant: 'success',
         });
+        setSubmitted(true);
+        setTimeout(() => setSubmitted(false), 3000);
       }
     } catch (err: any) {
-      console.error('Company submit error:', err?.response?.data || err);
+      console.error('Staff submit error:', err?.response?.data || err);
+      toast({
+        title: 'Submission Failed',
+        description:
+          err?.response?.data?.message ||
+          'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -393,17 +427,23 @@ function StaffSection({
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <button
         type="button"
-        className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-        // onClick={handleSubmit}
+        disabled={isSubmitting || submitted}
+        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={() => onConfirmSubmit(handleSubmit)}
       >
-        {submitted ? (
+        {isSubmitting ? (
           <>
-            <Check /> Registered!
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            Processing...
+          </>
+        ) : submitted ? (
+          <>
+            <Check className="size-4" /> Registered!
           </>
         ) : (
           <>
-            <Send /> I Want to Register as Organisation for posting jobs
+            <Send className="size-4" /> I Want to Register as Organisation for
+            posting jobs
           </>
         )}
       </button>
@@ -422,15 +462,15 @@ function CompanyForm({
   setCompanyData,
   onConfirmSubmit,
 }: CompanyFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
       const res = await apiInstance.post('/user/onboard/initiate', {
         type: 'company',
       });
-
-      setSubmitted(true);
 
       if (res.status === 200) {
         toast({
@@ -438,9 +478,20 @@ function CompanyForm({
           description: 'Your company has been registered successfully.',
           variant: 'success',
         });
+        setSubmitted(true);
+        setTimeout(() => setSubmitted(false), 3000);
       }
     } catch (err: any) {
       console.error('Company submit error:', err?.response?.data || err);
+      toast({
+        title: 'Registration Failed',
+        description:
+          err?.response?.data?.message ||
+          'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -448,17 +499,23 @@ function CompanyForm({
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <button
         type="button"
-        className="w-full bg-buttonPrimary hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-        // onClick={handleSubmit}
+        disabled={isSubmitting || submitted}
+        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={() => onConfirmSubmit(handleSubmit)}
       >
-        {submitted ? (
+        {isSubmitting ? (
           <>
-            <Check /> Registered!
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            Processing...
+          </>
+        ) : submitted ? (
+          <>
+            <Check className="size-4" /> Registered!
           </>
         ) : (
           <>
-            <Send /> I Want to Register as Organisation for posting jobs
+            <Send className="size-4" /> I Want to Register as Organisation for
+            posting jobs
           </>
         )}
       </button>

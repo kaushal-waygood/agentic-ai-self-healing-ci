@@ -44,6 +44,27 @@ export default function JobsPage() {
   const [isJobLoading, setIsJobLoading] = useState(false);
   const searchParams = useSearchParams();
 
+  // ===================== VIEWED JOB DEDUPLICATION =====================
+  const viewedJobsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const stored = localStorage.getItem('viewedJobIds');
+    if (stored) {
+      try {
+        viewedJobsRef.current = new Set(JSON.parse(stored));
+      } catch (e) {
+        console.warn('Failed to parse viewedJobIds', e);
+      }
+    }
+  }, []);
+
+  const markJobViewed = useCallback((jobId: string) => {
+    viewedJobsRef.current.add(jobId);
+    localStorage.setItem(
+      'viewedJobIds',
+      JSON.stringify(Array.from(viewedJobsRef.current)),
+    );
+  }, []);
+
   /* ===================== JOB DETAILS (NO ANALYTICS HERE) ===================== */
   const fetchJobDetails = useCallback(async (slug: string) => {
     try {
@@ -53,6 +74,7 @@ export default function JobsPage() {
       const response = await apiInstance.get(`/jobs/find?slug=${slug}`);
       if (response.data?.singleJob) {
         setSelectedJob(response.data.singleJob);
+        return response.data.singleJob;
       }
     } catch (err) {
       console.error('Failed to fetch job details:', err);
@@ -62,26 +84,48 @@ export default function JobsPage() {
   }, []);
 
   /* ===================== CLICK TRACKING (SINGLE SOURCE) ===================== */
-  async function trackJobClick(jobId: string, query?: string) {
-    try {
-      const payload: any = { jobId, type: 'VIEW' };
-      if (query) payload.query = query;
+  const trackJobClick = useCallback(
+    async (jobId: string, query?: string) => {
+      if (viewedJobsRef.current.has(jobId)) return;
 
-      dispatch(postStudentEventsRequest(payload));
-    } catch {}
-  }
+      try {
+        const payload: any = { jobId, type: 'VIEW' };
+        if (query) payload.query = query;
 
-  /* ===================== URL-based JOB LOAD (direct link / ?job=slug) ===================== */
-  const urlJobLoadedRef = useRef<string | null>(null);
+        dispatch(postStudentEventsRequest(payload));
+        markJobViewed(jobId);
+      } catch {
+        // analytics must never break UX
+      }
+    },
+    [dispatch, markJobViewed],
+  );
 
+  // ===================== HANDLE JOB FROM URL =====================
   useEffect(() => {
     const slug = searchParams.get('job');
-    if (slug && urlJobLoadedRef.current !== slug) {
-      urlJobLoadedRef.current = slug;
-      fetchJobDetails(slug);
+    if (slug) {
+      fetchJobDetails(slug).then((job) => {
+        if (job) {
+          trackJobClick(job._id, filters?.q);
+        }
+      });
     }
   }, [searchParams, fetchJobDetails]);
 
+  // const handleCardClick = (job: any) => {
+  //   if (selectedJob?._id === job._id) return;
+
+  //   trackJobClick(job._id, filters?.q);
+
+  //   if (isMobile) {
+  //     router.push(`/jobs/${job.slug}`);
+  //   } else {
+  //     setSelectedJob(job);
+
+  //     fetchJobDetails(job.slug);
+  //   }
+  // };
   const handleCardClick = useCallback(
     (job: any) => {
       if (selectedJob?._id === job._id) return;
@@ -95,7 +139,7 @@ export default function JobsPage() {
         fetchJobDetails(job.slug);
       }
     },
-    [selectedJob, filters?.q, isMobile, router, fetchJobDetails],
+    [selectedJob, filters?.q, isMobile, router, fetchJobDetails, trackJobClick],
   );
 
   /* ===================== IMPRESSION TRACKING (SAFE) ===================== */

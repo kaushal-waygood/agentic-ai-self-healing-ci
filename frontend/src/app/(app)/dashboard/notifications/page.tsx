@@ -42,11 +42,24 @@ const NotificationsPage = () => {
     setIsRefreshing(false);
   };
 
+  // const handleNotificationClick = (notification) => {
+  //   if (!notification.isRead) {
+  //     markAsRead(notification._id);
+  //   }
+  //   router.push(`${notification.actionUrl}`);
+  // };
   const handleNotificationClick = (notification) => {
+    let url = notification.actionUrl;
+    if (url) {
+      if (notification.category === 'feature') {
+        url = '/dashboard/request-new-feature';
+      }
+      router.push(url.startsWith('/') ? url : `/dashboard/${url}`);
+    }
     if (!notification.isRead) {
       markAsRead(notification._id);
     }
-    router.push(`${notification.actionUrl}`);
+    // router.push(`${notification.actionUrl}`);
   };
 
   if (isLoading) {

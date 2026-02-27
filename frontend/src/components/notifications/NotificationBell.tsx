@@ -1,49 +1,56 @@
-// components/notifications/NotificationBell.tsx
-'use client';
-import React, { useEffect, useState } from 'react';
-import { Bell as BellIcon, Circle, RefreshCcw } from 'lucide-react';
+import React from 'react';
+import { Bell as BellIcon, RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useNotifications } from '@/hooks/notifications/useNoifications';
-import Image from 'next/image';
 import { Loader } from '../Loader';
 
-export function NotificationBell() {
+type Notification = {
+  _id: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  actionUrl?: string;
+  category?: string;
+};
+
+// 2. ✅ PROPS INTERFACE banaya - ab component PROPS leta hai
+interface NotificationBellProps {
+  notifications: Notification[]; // ➕ PARENT se aayega
+  unreadCount: number; // ➕ PARENT se aayega
+  markAsRead: (id: string) => void; // ➕ PARENT se aayega
+  fetchNotifications: () => Promise<void>; // ➕ PARENT se aayega
+  connectionStatus?: string; // ➕ PARENT se aayega
+  isLoading?: boolean; // ➕ PARENT se aayega (optional)
+}
+
+// 3. ✅ Component AB PROPS leta hai, khud hook call nahi karta
+export function NotificationBell({
+  notifications,
+  unreadCount,
+  markAsRead,
+  fetchNotifications,
+  connectionStatus,
+  isLoading = false, // default false
+}: NotificationBellProps) {
   const router = useRouter();
-  const {
-    notifications,
-    unreadCount,
-    markAsRead,
-    fetchNotifications,
-    fetchUnreadCount,
-    connectionStatus,
-  } = useNotifications();
 
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        await fetchNotifications();
-        await fetchUnreadCount();
-      } finally {
-        if (mounted) setIsLoading(false);
+  // 4. ✅ handleClick MEIN FEATURE REDIRECT LOGIC ADD KIYA
+  const handleClick = (n: Notification) => {
+    let url = n.actionUrl;
+    if (url) {
+      // 🔥 FIX: agar category 'feature' hai to correct page par bhejo
+      if (n.category === 'feature') {
+        url = '/dashboard/request-new-feature'; // CORRECT ROUTE
       }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [fetchNotifications, fetchUnreadCount]);
-
-  const handleClick = (n) => {
-    if (n.actionUrl)
-      router.push(
-        n.actionUrl.startsWith('/') ? n.actionUrl : `/dashboard/${n.actionUrl}`,
-      );
+      router.push(url.startsWith('/') ? url : `/dashboard/${url}`);
+    }
     if (!n.isRead) markAsRead(n._id);
   };
 
+  // 5. ✅ REMOVED: internal useState, useEffect, fetch calls
+  //    Ab data parent se props mein aa raha hai
+
+  // 6. ✅ UI SAME RAHA - bas data source change hua
   if (isLoading) {
     return (
       <Loader

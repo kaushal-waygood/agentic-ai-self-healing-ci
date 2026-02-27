@@ -58,12 +58,35 @@ const signupFormSchema = z
     }),
     fullName: z
       .string()
-      .min(2, { message: 'Full name must be at least 2 characters.' }),
-    email: z.string().email({ message: 'Invalid email address.' }),
+      .min(1, { message: 'Full name is required' })
+      .min(2, { message: 'Full name must be at least 2 characters.' })
+      .max(50, { message: 'Full name cannot exceed 50 characters' }),
+    email: z
+      .string()
+      .min(1, { message: 'Email is required' })
+      .email({ message: 'Invalid email address.' }),
     password: z
       .string()
-      .min(8, { message: 'Password must be at least 8 characters.' }),
-    confirmPassword: z.string().min(1, { message: 'Passwords do not match.' }),
+      .min(1, { message: 'Password is required' })
+      .min(8, { message: 'Password must be at least 8 characters.' })
+      .refine(
+        (password) => {
+          const hasUppercase = /[A-Z]/.test(password);
+          const hasLowercase = /[a-z]/.test(password);
+          const hasNumber = /[0-9]/.test(password);
+          const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(
+            password,
+          );
+          return hasUppercase && hasLowercase && hasNumber && hasSpecial;
+        },
+        {
+          message:
+            'Password must include uppercase, lowercase, number and special character',
+        },
+      ),
+    confirmPassword: z
+      .string()
+      .min(1, { message: 'Please confirm your password' }),
     organizationName: z.string().optional(),
     referredBy: z.string().optional(),
   })
@@ -93,16 +116,46 @@ const SignupForm = () => {
     (state: RootState) => state.auth,
   );
 
+  // const form = useForm<SignupFormValues>({
+  //   resolver: zodResolver(signupFormSchema),
+  //   defaultValues: {
+  //     accountType: 'individual',
+  //     fullName: '',
+  //     email: '',
+  //     password: '',
+  //     confirmPassword: '',
+  //     organizationName: '',
+  //     referredBy: '',
+  //   },
+  // });
+
+  // Load saved form data from sessionStorage
+  const loadSavedFormData = () => {
+    if (typeof window !== 'undefined') {
+      const savedData = sessionStorage.getItem('signupFormDraft'); // sessionStorage
+      if (savedData) {
+        try {
+          return JSON.parse(savedData);
+        } catch (e) {
+          return {};
+        }
+      }
+    }
+    return {};
+  };
+
+  const savedData = loadSavedFormData(); // ⭐ IMPORTANT: Call the function
+
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
-      accountType: 'individual',
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      organizationName: '',
-      referredBy: '',
+      accountType: savedData.accountType || 'individual',
+      fullName: savedData.fullName || '',
+      email: savedData.email || '',
+      password: '', // Always empty for security
+      confirmPassword: '', // Always empty for security
+      organizationName: savedData.organizationName || '',
+      referredBy: savedData.referredBy || '',
     },
   });
 
@@ -110,6 +163,25 @@ const SignupForm = () => {
     control: form.control,
     name: 'accountType',
   });
+
+  // Save to sessionStorage
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name && !['password', 'confirmPassword'].includes(name)) {
+        const currentValues = form.getValues();
+        const dataToSave = {
+          accountType: currentValues.accountType,
+          fullName: currentValues.fullName,
+          email: currentValues.email,
+          organizationName: currentValues.organizationName,
+          referredBy: currentValues.referredBy,
+        };
+        sessionStorage.setItem('signupFormDraft', JSON.stringify(dataToSave)); // sessionStorage
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   useEffect(() => {
     const refCode = searchParams.get('ref');
@@ -156,6 +228,7 @@ const SignupForm = () => {
       const response = await apiInstance.post('/user/signup', data);
 
       if (response.status === 201) {
+        sessionStorage.removeItem('signupFormDraft'); // sessionStorage
         successToast(
           'Account created! Please check your email for a verification code.',
         );
@@ -517,7 +590,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                               >
                                 <FileText className="h-5 w-5" />
                               </div>
-                              <input
+                              <Input
                                 className="w-full pl-10 text-sm sm:pl-12 pr-3 py-2 bg-white/50 border border-gray-300 rounded-lg
                           text-gray-900 placeholder-gray-400 transition-all"
                                 placeholder="Enter code here"

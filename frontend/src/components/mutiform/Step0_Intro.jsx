@@ -267,13 +267,13 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
-          <button
+          {/* <button
             onClick={() => onEdit(id)}
             className="p-2 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
             title="Edit Agent"
           >
             <Edit className="w-4 h-4" />
-          </button>
+          </button> */}
 
           <button
             onClick={() => onDelete(id)}

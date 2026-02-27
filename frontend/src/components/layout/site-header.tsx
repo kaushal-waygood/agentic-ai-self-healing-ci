@@ -23,7 +23,7 @@ export const Navigation = () => {
 
   const navItems = [
     { name: 'Features', href: '/#platforms' },
-    { name: 'How it Works', href: '/#how-it-works' },
+    { name: 'How it Works', href: '#how-it-works' },
     { name: 'Pricing', href: '/#pricing' },
     { name: 'Success Stories', href: '/#testimonials' },
   ];
