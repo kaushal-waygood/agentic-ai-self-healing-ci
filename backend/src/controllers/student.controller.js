@@ -21,6 +21,7 @@ import {
   upsertExternalJobs,
   rankJobs,
   diversify,
+  dedupeByTitleCompany,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
@@ -1951,9 +1952,8 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       interactions,
     };
 
-    // 1. Fetch Local Pool
-    // We increase the pool size significantly to account for deduplication/filtering drops
-    const requiredPoolSize = pageNum * limitNum * 100 + 200;
+    // 1. Fetch Local Pool — scale pool with page depth, no hard cap
+    const requiredPoolSize = (pageNum + 3) * limitNum * 6;
     const candidates = await retrieveLocalCandidates(context, requiredPoolSize);
 
     const processPool = (jobsPool) => {
@@ -1965,29 +1965,33 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     let processed = processPool(candidates);
     let finalJobs = processed.slice(skip, skip + limitNum);
 
-    // 2. 🔥 API FALLBACK: If local DB doesn't have enough for this specific page
-    if (finalJobs.length < limitNum) {
-      // Create a simplified fallback query for JSearch so it doesn't fail on long 30-word strings
-      const fallbackTerm = profile.titles[0] || profile.skills[0] || 'jobs';
-      const apiFallbackQuery = fallbackTerm;
+    // 2. EXTERNAL API FALLBACK
+    // Trigger when page can't be filled OR deep page with thin pool
+    const needsFallback =
+      finalJobs.length < limitNum ||
+      (pageNum > 3 && processed.length < skip + limitNum * 2);
 
-      // Start fetching from the page the user is actually on
-      const pagesToFetch = [pageNum, pageNum + 1, pageNum + 2];
+    if (needsFallback) {
+      const fallbackTerm = profile.titles[0] || profile.skills[0] || 'jobs';
+
+      // Fetch external pages matching scroll depth (not page 1 which is cached)
+      const apiStartPage = Math.max(1, pageNum);
+      const pagesToFetch = [apiStartPage, apiStartPage + 1, apiStartPage + 2];
 
       const fetchPromises = pagesToFetch.map((apiPage) =>
         fetchExternalJobs(
-          apiFallbackQuery,
+          fallbackTerm,
           context.filters.country || 'IN',
           context.filters.state,
           context.filters.city,
           null,
           null,
           null,
-          apiPage, // 🔥 Fetch the page matching user's scroll depth
+          apiPage,
         ),
       );
 
-      const API_TIMEOUT = 12000;
+      const API_TIMEOUT = 8000;
       const responsesRaw = await Promise.all(
         fetchPromises.map((p) =>
           Promise.race([
@@ -2006,35 +2010,27 @@ export async function getProfileBasedRecommendedJobs(req, res) {
           transformRapidApiJob(j, profileQuery || 'job'),
         );
 
-        // Save to DB so they have valid _id/slugs
         await upsertExternalJobs(formatted).catch((e) =>
           console.error('Sync Upsert Error', e.message),
         );
 
-        const filteredExt = processPool(formatted);
-
-        if (filteredExt.length > 0) {
-          const remainingNeeded = limitNum - finalJobs.length;
-          const toAdd = filteredExt.slice(0, remainingNeeded);
-          finalJobs = [...finalJobs, ...toAdd];
-          processed = [...processed, ...filteredExt];
-        }
+        // Merge external with existing candidates, re-process, re-paginate
+        const allCandidates = dedupeByTitleCompany([
+          ...candidates,
+          ...formatted,
+        ]);
+        processed = processPool(allCandidates);
+        finalJobs = processed.slice(skip, skip + limitNum);
       }
     }
 
-    // 3. 🚀 INFINITE PAGINATION LOGIC
+    // 3. TRULY INFINITE PAGINATION — only stop when zero results
     res.status(200).json({
       success: true,
       pagination: {
         currentPage: pageNum,
-        // 🔥 FIX: If we found enough jobs to fill the limit, tell frontend to keep scrolling.
-        // Also if `candidates` reached the pool size, there might be more to fetch on next page
-        hasNextPage:
-          finalJobs.length >= limitNum || candidates.length >= requiredPoolSize,
-        totalJobs:
-          processed.length > skip + limitNum
-            ? processed.length
-            : skip + finalJobs.length,
+        hasNextPage: finalJobs.length > 0,
+        totalJobs: Math.max(processed.length, skip + finalJobs.length),
       },
       jobs: finalJobs,
     });

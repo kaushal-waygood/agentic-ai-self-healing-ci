@@ -72,27 +72,27 @@ apiInstance.interceptors.request.use((config) => {
 
 let isLoggingOut = false;
 
-apiInstance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    // if (error.response?.status === 403 && !isLoggingOut) {
-    //   isLoggingOut = true;
+// apiInstance.interceptors.response.use(
+//   (response) => response,
+//   async (error) => {
+//     // if (error.response?.status === 403 && !isLoggingOut) {
+//     //   isLoggingOut = true;
 
-    //   delete apiInstance.defaults.headers.common['Authorization'];
-    //   store.dispatch(logoutRequest());
-    // }
-    // return Promise.reject(error);
-    if (
-      error.response?.status === 403 &&
-      !isLoggingOut &&
-      error.response?.data?.message?.toLowerCase().includes('token')
-    ) {
-      isLoggingOut = true;
-      delete apiInstance.defaults.headers.common['Authorization'];
-      store.dispatch(logoutRequest());
-    }
-    return Promise.reject(error);
-  },
-);
+//     //   delete apiInstance.defaults.headers.common['Authorization'];
+//     //   store.dispatch(logoutRequest());
+//     // }
+//     // return Promise.reject(error);
+//     if (
+//       error.response?.status === 403 &&
+//       !isLoggingOut &&
+//       error.response?.data?.message?.toLowerCase().includes('token')
+//     ) {
+//       isLoggingOut = true;
+//       delete apiInstance.defaults.headers.common['Authorization'];
+//       store.dispatch(logoutRequest());
+//     }
+//     return Promise.reject(error);
+//   },
+// );
 
 export default apiInstance;
