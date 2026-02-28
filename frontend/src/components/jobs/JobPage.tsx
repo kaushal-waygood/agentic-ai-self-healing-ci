@@ -167,8 +167,8 @@ export default function JobsPage() {
         }
       },
       {
-        rootMargin: '200px',
-        threshold: 0.1,
+        rootMargin: '400px',
+        threshold: 0,
       },
     );
 
@@ -178,7 +178,7 @@ export default function JobsPage() {
     return () => {
       if (el) observer.unobserve(el);
     };
-  }, [loading, pagination.hasNextPage, loadMoreJobs, pagination.currentPage]);
+  }, [loading, pagination.hasNextPage, loadMoreJobs]);
 
   const fromOnboarding = searchParams.get('from') === 'onboarding';
 

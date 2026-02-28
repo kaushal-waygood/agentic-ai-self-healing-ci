@@ -253,18 +253,164 @@ function buildLocationFromApiJob(apiJob) {
   };
 }
 
+// --- Country normalization maps ---
+const ISO3_TO_ISO2 = {
+  IND: 'IN',
+  USA: 'US',
+  GBR: 'GB',
+  JPN: 'JP',
+  DEU: 'DE',
+  FRA: 'FR',
+  CAN: 'CA',
+  AUS: 'AU',
+  BRA: 'BR',
+  CHN: 'CN',
+  KOR: 'KR',
+  SGP: 'SG',
+  ARE: 'AE',
+  SAU: 'SA',
+  NLD: 'NL',
+  ESP: 'ES',
+  ITA: 'IT',
+  CHE: 'CH',
+  SWE: 'SE',
+  NOR: 'NO',
+  DNK: 'DK',
+  FIN: 'FI',
+  IRL: 'IE',
+  NZL: 'NZ',
+  ZAF: 'ZA',
+  MEX: 'MX',
+  ARG: 'AR',
+  COL: 'CO',
+  CHL: 'CL',
+  PHL: 'PH',
+  MYS: 'MY',
+  IDN: 'ID',
+  THA: 'TH',
+  VNM: 'VN',
+  POL: 'PL',
+  ROU: 'RO',
+  PRT: 'PT',
+  AUT: 'AT',
+  BEL: 'BE',
+  ISR: 'IL',
+  TUR: 'TR',
+  RUS: 'RU',
+  UKR: 'UA',
+  EGY: 'EG',
+  NGA: 'NG',
+  KEN: 'KE',
+  PAK: 'PK',
+  BGD: 'BD',
+  LKA: 'LK',
+  NPL: 'NP',
+  HKG: 'HK',
+  TWN: 'TW',
+  QAT: 'QA',
+  KWT: 'KW',
+  OMN: 'OM',
+  BHR: 'BH',
+};
+
+const COUNTRY_NAME_TO_ISO2 = {
+  india: 'IN',
+  usa: 'US',
+  'united states': 'US',
+  'united states of america': 'US',
+  japan: 'JP',
+  germany: 'DE',
+  france: 'FR',
+  canada: 'CA',
+  australia: 'AU',
+  brazil: 'BR',
+  china: 'CN',
+  'south korea': 'KR',
+  korea: 'KR',
+  singapore: 'SG',
+  'united arab emirates': 'AE',
+  uae: 'AE',
+  dubai: 'AE',
+  'saudi arabia': 'SA',
+  netherlands: 'NL',
+  holland: 'NL',
+  spain: 'ES',
+  italy: 'IT',
+  switzerland: 'CH',
+  sweden: 'SE',
+  norway: 'NO',
+  denmark: 'DK',
+  finland: 'FI',
+  ireland: 'IE',
+  'new zealand': 'NZ',
+  'south africa': 'ZA',
+  mexico: 'MX',
+  argentina: 'AR',
+  colombia: 'CO',
+  chile: 'CL',
+  philippines: 'PH',
+  malaysia: 'MY',
+  indonesia: 'ID',
+  thailand: 'TH',
+  vietnam: 'VN',
+  poland: 'PL',
+  romania: 'RO',
+  portugal: 'PT',
+  austria: 'AT',
+  belgium: 'BE',
+  israel: 'IL',
+  turkey: 'TR',
+  russia: 'RU',
+  ukraine: 'UA',
+  egypt: 'EG',
+  nigeria: 'NG',
+  kenya: 'KE',
+  pakistan: 'PK',
+  bangladesh: 'BD',
+  'sri lanka': 'LK',
+  nepal: 'NP',
+  'hong kong': 'HK',
+  taiwan: 'TW',
+  qatar: 'QA',
+  kuwait: 'KW',
+  oman: 'OM',
+  bahrain: 'BH',
+  'united kingdom': 'GB',
+  uk: 'GB',
+  england: 'GB',
+  britain: 'GB',
+  'great britain': 'GB',
+};
+
+function normalizeCountryCode(raw, locationStr) {
+  if (!raw && !locationStr) return '';
+
+  // 1. Already a valid ISO-2
+  if (raw && raw.length === 2) return raw.toUpperCase();
+
+  // 2. ISO-3 → ISO-2
+  if (raw && raw.length === 3) {
+    const mapped = ISO3_TO_ISO2[raw.toUpperCase()];
+    if (mapped) return mapped;
+  }
+
+  // 3. Fuzzy match country name in location string
+  const searchStr = `${raw || ''} ${locationStr || ''}`.toLowerCase();
+  for (const [name, code] of Object.entries(COUNTRY_NAME_TO_ISO2)) {
+    if (searchStr.includes(name)) return code;
+  }
+
+  return raw ? raw.toUpperCase() : '';
+}
+
 export function transformRapidApiJob(apiJob, searchQuery) {
   const loc = buildLocationFromApiJob(apiJob);
 
-  // Repair Country Code - Defaulting to IN if India is mentioned
-  let finalCountry = loc.country;
-  const rawLocStr = (apiJob.job_location || '').toLowerCase();
-  if (!finalCountry && rawLocStr.includes('india')) finalCountry = 'IN';
-  if (
-    !finalCountry &&
-    (rawLocStr.includes('usa') || rawLocStr.includes('united states'))
-  )
-    finalCountry = 'US';
+  // Normalize country code from any format (ISO-3, full name, etc.) → ISO-2
+  const finalCountry = normalizeCountryCode(
+    apiJob.job_country || loc.country,
+    apiJob.job_location,
+  );
 
   let salaryObj = undefined;
   if (apiJob.job_min_salary || apiJob.job_max_salary) {
@@ -344,16 +490,75 @@ export async function fetchExternalJobs(
   const cacheKeyStr = `${apiQuery || 'jobs'}:${country}:${state || 'none'}:${city || 'none'}:${datePosted || 'none'}:${employmentType || 'none'}:${experience || 'none'}:${page}`;
   const cacheKey = `jobs:rapid:${crypto.createHash('md5').update(cacheKeyStr).digest('hex')}`;
 
+  console.log('employmentType', employmentType, country);
+
   return await redisClient.withCache(cacheKey, 3600, async () => {
     try {
       let query = apiQuery;
 
-      // Inject location with "India" as fallback for "IN"
-      const locParts = [
-        city,
-        state,
-        country === 'IN' ? 'India' : country === 'US' ? 'USA' : country,
-      ].filter(Boolean);
+      // Inject location with full country name (RapidAPI needs names, not ISO codes)
+      const ISO2_TO_NAME = {
+        IN: 'India',
+        US: 'USA',
+        GB: 'United Kingdom',
+        JP: 'Japan',
+        DE: 'Germany',
+        FR: 'France',
+        CA: 'Canada',
+        AU: 'Australia',
+        BR: 'Brazil',
+        CN: 'China',
+        KR: 'South Korea',
+        SG: 'Singapore',
+        AE: 'UAE',
+        SA: 'Saudi Arabia',
+        NL: 'Netherlands',
+        ES: 'Spain',
+        IT: 'Italy',
+        CH: 'Switzerland',
+        SE: 'Sweden',
+        NO: 'Norway',
+        DK: 'Denmark',
+        FI: 'Finland',
+        IE: 'Ireland',
+        NZ: 'New Zealand',
+        ZA: 'South Africa',
+        MX: 'Mexico',
+        AR: 'Argentina',
+        CO: 'Colombia',
+        CL: 'Chile',
+        PH: 'Philippines',
+        MY: 'Malaysia',
+        ID: 'Indonesia',
+        TH: 'Thailand',
+        VN: 'Vietnam',
+        PL: 'Poland',
+        RO: 'Romania',
+        PT: 'Portugal',
+        AT: 'Austria',
+        BE: 'Belgium',
+        IL: 'Israel',
+        TR: 'Turkey',
+        RU: 'Russia',
+        UA: 'Ukraine',
+        EG: 'Egypt',
+        NG: 'Nigeria',
+        KE: 'Kenya',
+        PK: 'Pakistan',
+        BD: 'Bangladesh',
+        LK: 'Sri Lanka',
+        NP: 'Nepal',
+        HK: 'Hong Kong',
+        TW: 'Taiwan',
+        QA: 'Qatar',
+        KW: 'Kuwait',
+        OM: 'Oman',
+        BH: 'Bahrain',
+      };
+      const countryName = ISO2_TO_NAME[country?.toUpperCase()] || country;
+      const locParts = [city, state, countryName].filter(Boolean);
+
+      console.log('locParts', locParts);
 
       if (locParts.length > 0) {
         query += ` in ${locParts.join(', ')}`;
@@ -375,6 +580,8 @@ export async function fetchExternalJobs(
         // e.g. "today", "3days", "week", "month"
         params.date_posted = datePosted;
       }
+
+      console.log('params', params);
       const response = await axios.get(config.rapidJobApi, {
         params,
         headers: {
@@ -449,13 +656,20 @@ export function applyFilters(jobs, context) {
       if (!typeMatch) return false;
     }
 
-    if (job.remote === true && !targetCity && !targetState) return true;
-
     const jLoc = job.location || {};
     const jobCountry = job.country?.toUpperCase().trim();
     const jobCity =
       (typeof jLoc === 'string' ? jLoc : jLoc.city)?.toLowerCase() || '';
     const jobState = (jLoc.state || '').toLowerCase();
+
+    // Remote jobs: only bypass location checks for recommendations (no explicit search),
+    // or when the job's country actually matches the target country.
+    // For explicit country searches (search context), remote jobs must still match the country.
+    if (job.remote === true && !targetCity && !targetState) {
+      const isRecommendation = context.type === 'recommendation';
+      const countryMatches = !jobCountry || jobCountry === targetCountry;
+      if (isRecommendation || countryMatches) return true;
+    }
 
     const locationBlob =
       `${jobCity} ${jobState} ${job.description?.slice(0, 150).toLowerCase()}`.trim();
@@ -463,19 +677,26 @@ export function applyFilters(jobs, context) {
     if (targetCountry) {
       const isISOPerfect = Boolean(jobCountry && jobCountry === targetCountry);
 
-      const isCountryNameMatch =
-        (targetCountry === 'IN' && locationBlob.includes('india')) ||
-        (targetCountry === 'US' &&
-          (locationBlob.includes('usa') ||
-            locationBlob.includes('united states')));
+      // Universal fuzzy match: derive ISO-2 from location text
+      let isCountryNameMatch = false;
+      if (!isISOPerfect) {
+        for (const [name, code] of Object.entries(COUNTRY_NAME_TO_ISO2)) {
+          if (code === targetCountry && locationBlob.includes(name)) {
+            isCountryNameMatch = true;
+            break;
+          }
+        }
+      }
 
       if (!isISOPerfect && !isCountryNameMatch) {
-        // If the API didn't provide a country code, but provided a city, we shouldn't necessarily drop it
-        // if we suspect it's the target country. If origin is EXTERNAL and we lack the ISO code, we tentatively allow it
-        // UNLESS it explicitly mentions another known country (advanced NLP needed, but for now we fallback allow).
-        const hasAnyLocationData = !!(jobCountry || jobCity || jobState);
-        if (hasAnyLocationData && jobCountry) {
-          // We only definitively reject if a DIFFERENT explicit country is found
+        // Reject if the job has a different explicit country code
+        if (jobCountry) {
+          return false;
+        }
+        // Also reject if the job has NO country at all and no location data
+        // (can't verify it belongs to the target country)
+        const hasAnyLocationData = !!(jobCity || jobState);
+        if (!hasAnyLocationData) {
           return false;
         }
       }
