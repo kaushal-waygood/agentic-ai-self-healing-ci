@@ -1,11 +1,12 @@
-# -------------------------------
-# ZobsAI - Build & Deploy (DEV)
-# -------------------------------
-name: Build & Deploy ZobsAI (Dev)
+# ─────────────────────────────────────────────────
+# ZobsAI - Unified Build & Deploy (main + develop)
+# ─────────────────────────────────────────────────
+name: Build & Deploy ZobsAI
 
 on:
   push:
     branches:
+      - main
       - develop
   workflow_dispatch:
 
@@ -18,23 +19,61 @@ jobs:
       packages: write
 
     env:
-      NODE_ENV: development
-      API_URL_DEV: 'https://api.dev.zobsai.com'
       REGISTRY: ghcr.io
-      IMAGE_OWNER: zobsai-com # MUST match your manifest image path
+      IMAGE_OWNER: zobsai-com
+      # Global secrets (shared across dev/prod)
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_LOGROCKET_ID: ${{ secrets.LOGROCKET_ID }}
+      NEXT_PUBLIC_SOCKET_URL: ${{ secrets.SOCKET_URL }}
+      NEXT_PUBLIC_LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SITEMAP_API_KEY: ${{ secrets.SITEMAP_API_KEY }}
 
     steps:
-      # -------------------------------
-      # 1️⃣ Checkout Repository
-      # -------------------------------
+      # ─────────────────────────────────────────────
+      # 0️⃣  Set Environment Variables Based on Branch
+      # ─────────────────────────────────────────────
+      - name: Set environment based on branch
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+          if [ "$BRANCH" = "main" ]; then
+            echo "NODE_ENV=production"                    >> $GITHUB_ENV
+            echo "API_URL=https://api.zobsai.com"         >> $GITHUB_ENV
+            echo "MANIFEST_DIR=manifests"                 >> $GITHUB_ENV
+            echo "MANIFEST_SUFFIX=-deployment.yaml"       >> $GITHUB_ENV
+            echo "CI_LABEL=prod"                          >> $GITHUB_ENV
+          else
+            echo "NODE_ENV=development"                   >> $GITHUB_ENV
+            echo "API_URL=https://api.dev.zobsai.com"     >> $GITHUB_ENV
+            echo "MANIFEST_DIR=manifests/dev"             >> $GITHUB_ENV
+            echo "MANIFEST_SUFFIX=-deployment-dev.yaml"   >> $GITHUB_ENV
+            echo "CI_LABEL=dev"                           >> $GITHUB_ENV
+          fi
+
+      - name: Print resolved config
+        run: |
+          echo "══════════════════════════════════════════"
+          echo "🔀 Branch       : ${{ env.BRANCH }}"
+          echo "🌐 NODE_ENV     : ${{ env.NODE_ENV }}"
+          echo "🔗 API_URL      : ${{ env.API_URL }}"
+          echo "📂 MANIFEST_DIR : ${{ env.MANIFEST_DIR }}"
+          echo "🏷️  CI_LABEL     : ${{ env.CI_LABEL }}"
+          echo "══════════════════════════════════════════"
+
+      # ─────────────────────────────────────────────
+      # 1️⃣  Checkout Repository
+      # ─────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # -------------------------------
-      # 2️⃣ Login to GitHub Container Registry
-      # -------------------------------
+      # ─────────────────────────────────────────────
+      # 2️⃣  Login to GitHub Container Registry
+      # ─────────────────────────────────────────────
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -42,9 +81,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # -------------------------------
-      # 3️⃣ Build & Push Backend Image
-      # -------------------------------
+      # ─────────────────────────────────────────────
+      # 3️⃣  Build & Push Backend Image
+      # ─────────────────────────────────────────────
       - name: Build & Push Backend Image
         uses: docker/build-push-action@v6
         with:
@@ -59,9 +98,9 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-backend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-backend:${{ github.sha }}
 
-      # -------------------------------
-      # 4️⃣ Build & Push Frontend Image
-      # -------------------------------
+      # ─────────────────────────────────────────────
+      # 4️⃣  Build & Push Frontend Image
+      # ─────────────────────────────────────────────
       - name: Build & Push Frontend Image
         uses: docker/build-push-action@v6
         with:
@@ -69,20 +108,22 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ env.API_URL_DEV }}
-            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_DEV }}
-            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY_DEV }}
+            NEXT_PUBLIC_API_URL=${{ env.API_URL }}
             NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
-            NEXT_PUBLIC_LOGROCKET_ID=${{ secrets.LOGROCKET_ID_DEV }}
-            NEXT_PUBLIC_SOCKET_URL=${{ secrets.SOCKET_URL_DEV }}
-            NEXT_PUBLIC_LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID_DEV }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ env.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+            NEXT_PUBLIC_LOGROCKET_ID=${{ env.NEXT_PUBLIC_LOGROCKET_ID }}
+            NEXT_PUBLIC_SOCKET_URL=${{ env.NEXT_PUBLIC_SOCKET_URL }}
+            NEXT_PUBLIC_LINKEDIN_CLIENT_ID=${{ env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID }}
+            GEMINI_API_KEY=${{ env.GEMINI_API_KEY }}
+            SITEMAP_API_KEY=${{ env.SITEMAP_API_KEY }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:${{ github.sha }}
 
-      # -------------------------------
-      # 5️⃣ Build & Push Uni Company Panel Image (NEW)
-      # -------------------------------
+      # ─────────────────────────────────────────────
+      # 5️⃣  Build & Push Uni Company Panel Image
+      # ─────────────────────────────────────────────
       - name: Build & Push Uni Company Panel Image
         uses: docker/build-push-action@v6
         with:
@@ -90,72 +131,41 @@ jobs:
           file: ./uni-company-panel/Dockerfile
           push: true
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ env.API_URL_DEV }}
+            NEXT_PUBLIC_API_URL=${{ env.API_URL }}
             NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:${{ github.sha }}
 
-      # -------------------------------
-      # 6️⃣ Debug: Show Current Images (Before Update)
-      # -------------------------------
-      - name: Debug current manifest images (BEFORE)
+      # ─────────────────────────────────────────────
+      # 6️⃣  Update Kubernetes Manifests
+      # ─────────────────────────────────────────────
+      - name: Update Manifests
         run: |
-          echo "=== 🔍 Current SHA from GitHub: ${{ github.sha }} ==="
-          echo ""
-          echo "=== Backend BEFORE ==="
-          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml || true
-          echo "=== Frontend BEFORE ==="
-          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml || true
-          echo "=== Uni Panel BEFORE ==="
-          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml || true
+          # Backend
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-backend:.*|image: ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/zobsai-backend${{ env.MANIFEST_SUFFIX }}
+          
+          # Frontend
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-frontend:.*|image: ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/zobsai-frontend${{ env.MANIFEST_SUFFIX }}
+          
+          # Uni Panel
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:.*|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:${{ github.sha }}|g" ${{ env.MANIFEST_DIR }}/zobsai-uni-company-panel${{ env.MANIFEST_SUFFIX }}
 
-      # -------------------------------
-      # 7️⃣ Update Kubernetes Manifests (Linux-safe)
-      # -------------------------------
-      - name: Update Backend Deployment Manifest
-        run: |
-          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-backend:.*|image: ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}|g" manifests/dev/zobsai-backend-deployment-dev.yaml
-          echo "✅ Backend image updated to:"
-          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml
-
-      - name: Update Frontend Deployment Manifest
-        run: |
-          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-frontend:.*|image: ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}|g" manifests/dev/zobsai-frontend-deployment-dev.yaml
-          echo "✅ Frontend image updated to:"
-          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml
-
-      - name: Update Uni Company Panel Deployment Manifest
-        run: |
-          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:.*|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:${{ github.sha }}|g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
-          echo "✅ Uni Company Panel image updated to:"
-          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
-
-      # -------------------------------
-      # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
-      # -------------------------------
+      # ─────────────────────────────────────────────
+      # 7️⃣  Commit & Push Manifest Changes
+      # ─────────────────────────────────────────────
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add -f manifests/dev/*.yaml
-
-          echo "=== 📋 git status ==="
-          git status
-
-          echo "=== 📋 git diff --cached ==="
-          git diff --cached
+          git add -f ${{ env.MANIFEST_DIR }}/*.yaml
 
           if git diff --cached --quiet; then
-            echo ""
-            echo "⚠️  WARNING: No manifest changes detected!"
-            echo "     This means the SHA in the manifest was ALREADY set to: ${{ github.sha }}"
-            echo "     ArgoCD will NOT sync because nothing changed in Git."
-            echo "     This can happen if the same commit SHA was used in a previous run."
+            echo "⚠️ No changes detected in manifests."
             exit 0
           else
-            git commit -m "ci(dev): update images to ${{ github.sha }}"
-            git push origin develop
-            echo "🚀 Manifests pushed to main. ArgoCD will auto-sync shortly."
+            git commit -m "ci(${{ env.CI_LABEL }}): update images to ${{ github.sha }}"
+            git push origin ${{ env.BRANCH }}
+            echo "🚀 Manifests pushed to ${{ env.BRANCH }}. ArgoCD will auto-sync shortly."
           fi
