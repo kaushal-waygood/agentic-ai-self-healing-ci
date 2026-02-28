@@ -8,8 +8,8 @@ const API_BASE_URL =
   process.env.NODE_ENV === 'production'
     ? 'https://api.zobsai.com/api/v1'
     : process.env.NODE_ENV === 'development'
-    ? 'https://api.dev.zobsai.com/api/v1'
-    : 'http://localhost:8080/api/v1';
+      ? 'https://api.dev.zobsai.com/api/v1'
+      : 'http://127.0.0.1:8080/api/v1';
 
 type PageProps = {
   params: Promise<{ jobId: string }>;
