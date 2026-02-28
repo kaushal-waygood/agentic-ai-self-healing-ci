@@ -12,7 +12,7 @@ export const API_BASE_URL =
     ? 'https://api.zobsai.com'
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
       ? 'https://api.dev.zobsai.com'
-      : 'http://127.0.0.1:8080';
+      : 'https://api.zobsai.com';
 
 const token = getToken();
 
