@@ -213,109 +213,134 @@ export async function searchJobs(req, res) {
     // 1. Build Context & Fetch Local Candidates
     const context = await buildSearchContext(req);
 
-    // Scale pool size with page depth — no hard cap.
-    // Early pages need small pools (fast), deep pages fetch more.
-    const requiredPoolSize = (pageNum + 3) * limitNum * 6;
+    const country = context.filters?.country;
+    const state = context.filters?.state;
+    const city = context.filters?.city;
 
-    let candidates = await retrieveLocalCandidates(context, requiredPoolSize);
+    // ── Helper: build a context with varying filter strictness ──────────────
+    const makeContext = (filterOverride) => ({
+      ...context,
+      filters: { ...context.filters, ...filterOverride },
+    });
 
-    const processPool = (jobsPool) => {
-      const filtered = applyFilters(jobsPool, context);
-      const ranked = rankJobs(filtered, context);
+    const processPool = (jobsPool, ctx) => {
+      const filtered = applyFilters(jobsPool, ctx);
+      const ranked = rankJobs(filtered, ctx);
       return diversify(ranked);
     };
 
-    let processed = processPool(candidates);
+    const API_TIMEOUT = 8000;
+    const apiFallbackQuery = q || 'jobs';
+    const apiStartPage = Math.max(1, pageNum);
+    const normalizedType = normalizeEmploymentTypeForApi(
+      req.query.employmentType,
+    );
 
-    const start = (pageNum - 1) * limitNum;
-    let paginatedJobs = processed.slice(start, start + limitNum);
-
-    // 2. EXTERNAL API FALLBACK
-    // Trigger when: page can't be filled OR we're deep (page > 3) and pool is thin
-    const needsFallback =
-      paginatedJobs.length < limitNum ||
-      (pageNum > 3 && processed.length < start + limitNum * 2);
-
-    if (needsFallback) {
-      // Use actual search query; employment type is sent as a filter param, not query text
-      const apiFallbackQuery = q || 'jobs';
-
-      const apiStartPage = Math.max(1, pageNum);
+    // ── Fetch from RapidAPI (concurrent pages) ───────────────────────────────
+    const fetchExternal = async (
+      extCountry,
+      extState,
+      extCity,
+      useType = true,
+    ) => {
       const pagesToFetch = [apiStartPage, apiStartPage + 1, apiStartPage + 2];
-      const normalizedType = normalizeEmploymentTypeForApi(
-        req.query.employmentType,
-      );
-
-      const fetchPromises = pagesToFetch.map((apiPage) =>
-        fetchExternalJobs(
-          apiFallbackQuery,
-          context.filters?.country || 'IN',
-          context.filters?.state,
-          context.filters?.city,
-          null,
-          normalizedType,
-          null,
-          apiPage,
-        ),
-      );
-
-      const API_TIMEOUT = 8000;
-
-      let responsesRaw = await Promise.all(
-        fetchPromises.map((p) =>
+      const raw = await Promise.all(
+        pagesToFetch.map((apiPage) =>
           Promise.race([
-            p,
-            new Promise((resolve) =>
-              setTimeout(() => resolve([]), API_TIMEOUT),
+            fetchExternalJobs(
+              apiFallbackQuery,
+              extCountry,
+              extState,
+              extCity,
+              null,
+              useType ? normalizedType : null,
+              null,
+              apiPage,
             ),
+            new Promise((r) => setTimeout(() => r([]), API_TIMEOUT)),
           ]),
         ),
       );
+      return raw.flat().filter(Boolean);
+    };
 
-      let externalRaw = responsesRaw.flat().filter(Boolean);
+    // ── Upsert and re-process after getting external results ─────────────────
+    const mergeExternal = async (externalRaw, localCandidates, ctx) => {
+      if (!externalRaw.length)
+        return {
+          processed: processPool(localCandidates, ctx),
+          merged: localCandidates,
+        };
+      const formatted = externalRaw.map((j) =>
+        transformRapidApiJob(j, q || 'job'),
+      );
+      await upsertExternalJobs(formatted).catch((e) =>
+        console.error('Upsert err', e.message),
+      );
+      const all = dedupeByTitleCompany([...localCandidates, ...formatted]);
+      return { processed: processPool(all, ctx), merged: all };
+    };
 
-      // If we got 0 results with the employment type filter, retry WITHOUT it
-      // to at least show some results for the country
-      if (externalRaw.length === 0 && normalizedType) {
-        const broaderPromises = pagesToFetch.slice(0, 2).map((apiPage) =>
-          fetchExternalJobs(
-            apiFallbackQuery,
-            context.filters?.country || 'IN',
-            context.filters?.state,
-            context.filters?.city,
-            null,
-            null, // no employment type restriction
-            null,
-            apiPage,
-          ),
+    // ════════════════════════════════════════════════════════════════════
+    // PROGRESSIVE FILTER RELAXATION — try city → state → country → global
+    // Each level fetches both local DB and external API.
+    // ════════════════════════════════════════════════════════════════════
+
+    const levels = [
+      ...(city ? [{ country, state, city }] : []),
+      ...(state ? [{ country, state, city: null }] : []),
+      ...(country ? [{ country, state: null, city: null }] : []),
+      { country: null, state: null, city: null },
+    ];
+
+    let paginatedJobs = [];
+    let processed = [];
+    const start = (pageNum - 1) * limitNum;
+
+    for (const filterSet of levels) {
+      const ctx = makeContext(filterSet);
+
+      // Pool size scales with page depth
+      const poolSize = (pageNum + 3) * limitNum * 6;
+      const localCandidates = await retrieveLocalCandidates(ctx, poolSize);
+      processed = processPool(localCandidates, ctx);
+      paginatedJobs = processed.slice(start, start + limitNum);
+
+      // Fetch external if page can't be filled or we're going deep
+      const needsExternal =
+        paginatedJobs.length < limitNum ||
+        (pageNum > 2 && processed.length < start + limitNum * 2);
+
+      if (needsExternal) {
+        let externalRaw = await fetchExternal(
+          filterSet.country || 'IN',
+          filterSet.state,
+          filterSet.city,
+          true,
         );
 
-        const broaderRaw = await Promise.all(
-          broaderPromises.map((p) =>
-            Promise.race([
-              p,
-              new Promise((resolve) =>
-                setTimeout(() => resolve([]), API_TIMEOUT),
-              ),
-            ]),
-          ),
-        );
+        // If we got 0 results with the employment type filter, retry WITHOUT it
+        if (externalRaw.length === 0 && normalizedType) {
+          externalRaw = await fetchExternal(
+            filterSet.country || 'IN',
+            filterSet.state,
+            filterSet.city,
+            false,
+          );
+        }
 
-        externalRaw = broaderRaw.flat().filter(Boolean);
+        const { processed: merged } = await mergeExternal(
+          externalRaw,
+          localCandidates,
+          ctx,
+        );
+        processed = merged;
+        paginatedJobs = processed.slice(start, start + limitNum);
       }
 
-      if (externalRaw.length > 0) {
-        const formatted = externalRaw.map((j) =>
-          transformRapidApiJob(j, q || 'job'),
-        );
-
-        await upsertExternalJobs(formatted).catch((e) =>
-          console.error('Sync Upsert Error', e.message),
-        );
-
-        candidates = dedupeByTitleCompany([...candidates, ...formatted]);
-        processed = processPool(candidates);
-        paginatedJobs = processed.slice(start, start + limitNum);
+      // If we have enough jobs, stop relaxing
+      if (paginatedJobs.length > 0) {
+        break;
       }
     }
 
