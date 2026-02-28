@@ -12,13 +12,7 @@ export const API_BASE_URL =
     ? 'https://api.zobsai.com'
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
       ? 'https://api.dev.zobsai.com'
-      : 'https://api.dev.zobsai.com';
-
-console.log(
-  process.env.NEXT_PUBLIC_NODE_ENV,
-  'process.env.NEXT_PUBLIC_NODE_ENV',
-);
-console.log(API_BASE_URL, 'API_BASE_URL');
+      : 'https://api.zobsai.com';
 
 const token = getToken();
 
