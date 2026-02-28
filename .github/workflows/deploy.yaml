@@ -6,7 +6,7 @@ name: Build & Deploy ZobsAI (Dev)
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
 
 jobs:
@@ -156,6 +156,6 @@ jobs:
             exit 0
           else
             git commit -m "ci(dev): update images to ${{ github.sha }}"
-            git push origin main
+            git push origin develop
             echo "🚀 Manifests pushed to main. ArgoCD will auto-sync shortly."
           fi
