@@ -73,6 +73,9 @@ jobs:
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_DEV }}
             NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY_DEV }}
             NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
+            NEXT_PUBLIC_LOGROCKET_ID=${{ secrets.LOGROCKET_ID_DEV }}
+            NEXT_PUBLIC_SOCKET_URL=${{ secrets.SOCKET_URL_DEV }}
+            NEXT_PUBLIC_LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID_DEV }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:${{ github.sha }}
