@@ -18,8 +18,8 @@ jobs:
       packages: write
 
     env:
-      NODE_ENV: development
-      API_URL_DEV: 'https://api.dev.zobsai.com'
+      NODE_ENV: production
+      API_URL_DEV: 'https://api.zobsai.com'
       REGISTRY: ghcr.io
       IMAGE_OWNER: zobsai-com # MUST match your manifest image path
 
@@ -104,32 +104,32 @@ jobs:
           echo "=== 🔍 Current SHA from GitHub: ${{ github.sha }} ==="
           echo ""
           echo "=== Backend BEFORE ==="
-          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml || true
+          grep "image:" manifests/zobsai-backend-deployment.yaml || true
           echo "=== Frontend BEFORE ==="
-          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml || true
+          grep "image:" manifests/zobsai-frontend-deployment.yaml || true
           echo "=== Uni Panel BEFORE ==="
-          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml || true
+          grep "image:" manifests/zobsai-uni-company-panel-deployment.yaml || true
 
       # -------------------------------
       # 7️⃣ Update Kubernetes Manifests (Linux-safe)
       # -------------------------------
       - name: Update Backend Deployment Manifest
         run: |
-          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-backend:.*|image: ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}|g" manifests/dev/zobsai-backend-deployment-dev.yaml
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-backend:.*|image: ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}|g" manifests/zobsai-backend-deployment.yaml
           echo "✅ Backend image updated to:"
-          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml
+          grep "image:" manifests/zobsai-backend-deployment.yaml
 
       - name: Update Frontend Deployment Manifest
         run: |
-          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-frontend:.*|image: ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}|g" manifests/dev/zobsai-frontend-deployment-dev.yaml
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-frontend:.*|image: ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}|g" manifests/zobsai-frontend-deployment.yaml
           echo "✅ Frontend image updated to:"
-          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml
+          grep "image:" manifests/zobsai-frontend-deployment.yaml
 
       - name: Update Uni Company Panel Deployment Manifest
         run: |
-          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:.*|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:${{ github.sha }}|g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:.*|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:${{ github.sha }}|g" manifests/zobsai-uni-company-panel-deployment.yaml
           echo "✅ Uni Company Panel image updated to:"
-          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
+          grep "image:" manifests/zobsai-uni-company-panel-deployment.yaml
 
       # -------------------------------
       # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
@@ -139,7 +139,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add -f manifests/dev/*.yaml
+          git add -f manifests/*.yaml
 
           echo "=== 📋 git status ==="
           git status
