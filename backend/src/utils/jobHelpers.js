@@ -91,16 +91,13 @@ async function getExistingExternalJobMap(jobIds = []) {
 
 export async function retrieveLocalCandidates(context, limit = 100) {
   const queryPart = context.query || 'recent';
-  const countryPart = context.filters?.country || 'IN';
+  const countryPart = context.filters?.country || 'GLOBAL';
   const contextType = context.type || 'search';
   const cacheKey = `jobs:local:${crypto.createHash('md5').update(`${contextType}:${queryPart}:${countryPart}:${limit}`).digest('hex')}`;
 
   return await redisClient.withCache(cacheKey, 600, async () => {
-    // Parallelize keyword and vector search
     const tasks = [];
 
-    // Use 30 days for recommendations (profile-specific queries have fewer recent results),
-    // and 10 days for search (user typed common terms with lots of hits)
     const maxAgeDays = contextType === 'recommendation' ? 30 : 10;
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
@@ -110,25 +107,19 @@ export async function retrieveLocalCandidates(context, limit = 100) {
       tasks.push(keywordSearch(context, limit, dateFilter));
       tasks.push(vectorSearch(context, limit, dateFilter));
     } else {
-      // If no query, fallback to recent active jobs in the desired country
+      // No query — fetch recent active jobs, respecting country only if provided
+      const baseFilter = { isActive: true, ...dateFilter };
+      if (context.filters?.country) {
+        baseFilter.country = context.filters.country;
+      }
       tasks.push(
-        Job.find({
-          isActive: true,
-          country: context.filters?.country || 'IN',
-          ...dateFilter,
-        })
-          .sort({ jobPostedAt: -1 })
-          .limit(limit)
-          .lean(),
+        Job.find(baseFilter).sort({ jobPostedAt: -1 }).limit(limit).lean(),
       );
     }
 
     const results = await Promise.all(tasks);
     const combined = results.flat();
-
-    // Re-sort combined results by jobPostedAt (most recent first)
     combined.sort((a, b) => new Date(b.jobPostedAt) - new Date(a.jobPostedAt));
-
     return dedupeByTitleCompany(combined);
   });
 }
@@ -490,8 +481,6 @@ export async function fetchExternalJobs(
   const cacheKeyStr = `${apiQuery || 'jobs'}:${country}:${state || 'none'}:${city || 'none'}:${datePosted || 'none'}:${employmentType || 'none'}:${experience || 'none'}:${page}`;
   const cacheKey = `jobs:rapid:${crypto.createHash('md5').update(cacheKeyStr).digest('hex')}`;
 
-  console.log('employmentType', employmentType, country);
-
   return await redisClient.withCache(cacheKey, 3600, async () => {
     try {
       let query = apiQuery;
@@ -558,8 +547,6 @@ export async function fetchExternalJobs(
       const countryName = ISO2_TO_NAME[country?.toUpperCase()] || country;
       const locParts = [city, state, countryName].filter(Boolean);
 
-      console.log('locParts', locParts);
-
       if (locParts.length > 0) {
         query += ` in ${locParts.join(', ')}`;
       }
@@ -581,7 +568,6 @@ export async function fetchExternalJobs(
         params.date_posted = datePosted;
       }
 
-      console.log('params', params);
       const response = await axios.get(config.rapidJobApi, {
         params,
         headers: {
@@ -611,11 +597,11 @@ export function applyFilters(jobs, context) {
   };
   const { applied, saved, views } = interactions;
 
-  // 1. Normalize target inputs for comparison
-  const targetCountry = country?.toUpperCase().trim() || 'IN';
+  // When country is null/undefined/empty → no country filter (global mode)
+  const targetCountry = country ? country.toUpperCase().trim() : '';
   const targetState = state?.toLowerCase().trim();
   const targetCity = city?.toLowerCase().trim();
-  const targetType = employmentType?.toUpperCase().trim(); // e.g., "INTERNSHIP"
+  const targetType = employmentType?.toUpperCase().trim();
 
   return jobs.filter((job) => {
     if (!job || !job.isActive) return false;
@@ -662,18 +648,20 @@ export function applyFilters(jobs, context) {
       (typeof jLoc === 'string' ? jLoc : jLoc.city)?.toLowerCase() || '';
     const jobState = (jLoc.state || '').toLowerCase();
 
-    // Remote jobs: only bypass location checks for recommendations (no explicit search),
-    // or when the job's country actually matches the target country.
-    // For explicit country searches (search context), remote jobs must still match the country.
+    // Remote jobs: bypass location in global mode or recommendation mode,
+    // or when job country matches target.
     if (job.remote === true && !targetCity && !targetState) {
+      const isGlobal = !targetCountry;
       const isRecommendation = context.type === 'recommendation';
-      const countryMatches = !jobCountry || jobCountry === targetCountry;
-      if (isRecommendation || countryMatches) return true;
+      const countryMatches =
+        !targetCountry || !jobCountry || jobCountry === targetCountry;
+      if (isGlobal || isRecommendation || countryMatches) return true;
     }
 
     const locationBlob =
       `${jobCity} ${jobState} ${job.description?.slice(0, 150).toLowerCase()}`.trim();
 
+    // Skip country check entirely in global mode (targetCountry = '')
     if (targetCountry) {
       const isISOPerfect = Boolean(jobCountry && jobCountry === targetCountry);
 
@@ -689,16 +677,9 @@ export function applyFilters(jobs, context) {
       }
 
       if (!isISOPerfect && !isCountryNameMatch) {
-        // Reject if the job has a different explicit country code
-        if (jobCountry) {
-          return false;
-        }
-        // Also reject if the job has NO country at all and no location data
-        // (can't verify it belongs to the target country)
+        if (jobCountry) return false;
         const hasAnyLocationData = !!(jobCity || jobState);
-        if (!hasAnyLocationData) {
-          return false;
-        }
+        if (!hasAnyLocationData) return false;
       }
     }
 
@@ -849,16 +830,20 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
 
   if (!tokens.length) return [];
 
-  // Build $and conditions: each token must match at least one field (title, queries, tags, company)
+  // Build $and conditions: each token must match at least one field (title, tags, company)
   const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const andConditions = tokens.map((token) => {
-    const regex = new RegExp(escapeRegex(token), 'i');
+    // For short tokens (like "HR" or "IT") or standard words, use word boundaries
+    // so we don't match "hr" inside "chrome", "threads", "three", etc.
+    const pattern = `\\b${escapeRegex(token)}`;
+    const regex = new RegExp(pattern, 'i');
     return {
       $or: [
         { title: regex },
-        { queries: regex },
         { tags: regex },
         { company: regex },
+        // intentionally omitting `queries` because previous garbage API results
+        // might have permanently saved irrelevant queries into the DB
       ],
     };
   });
