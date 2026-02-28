@@ -47,22 +47,14 @@ export const useJobs = () => {
   ]);
 
   // Track the last fetch key so identical requests are never duplicated.
-  // Key = "<pathName>|<serialized searchParams>"
   const fetchedKeyRef = useRef<string>('');
   const loadingRef = useRef(loading);
   useEffect(() => {
     loadingRef.current = loading;
   }, [loading]);
 
-  // ─── Initial Fetch (fires when URL / path changes) ───────────────────────────
-  useEffect(() => {
-    const isDashboard = pathName === '/dashboard/search-jobs';
-    const isPublicSearch = pathName === '/search-jobs';
-    if (!isDashboard && !isPublicSearch) return;
-
-    // 1. EXTRA GUARD: If we are already loading, don't initiate a duplicate call
-    if (loadingRef.current) return;
-
+  // ─── Helper: extract all URL search params into a consistent object ──────────
+  const extractFiltersFromUrl = useCallback(() => {
     const q = searchParams.get('query') || searchParams.get('q') || '';
     const country = searchParams.get('country') || '';
     const state = searchParams.get('state') || '';
@@ -82,16 +74,47 @@ export const useJobs = () => {
       employmentType.length === 0 &&
       experience.length === 0;
 
+    return {
+      q,
+      country,
+      state,
+      city,
+      datePosted,
+      employmentType,
+      experience,
+      isEmpty,
+    };
+  }, [searchParams]);
+
+  // ─── Initial Fetch (fires when URL / path changes) ───────────────────────────
+  useEffect(() => {
+    const isDashboard = pathName === '/dashboard/search-jobs';
+    const isPublicSearch = pathName === '/search-jobs';
+    if (!isDashboard && !isPublicSearch) return;
+
+    // EXTRA GUARD: If we are already loading, don't initiate a duplicate call
+    if (loadingRef.current) return;
+
+    const {
+      q,
+      country,
+      state,
+      city,
+      datePosted,
+      employmentType,
+      experience,
+      isEmpty,
+    } = extractFiltersFromUrl();
+
     const key = `${pathName}|${searchParams.toString()}`;
 
-    // 2. STAGE GUARD: Only fire if the URL key has actually changed
+    // STAGE GUARD: Only fire if the URL key has actually changed
     if (fetchedKeyRef.current === key) return;
 
     // Update ref IMMEDIATELY before dispatching
     fetchedKeyRef.current = key;
 
     if (isEmpty) {
-      // Pre-check cache before dispatching to avoid loading flash
       const cacheKey = makeCacheKey('recommend', { page: 1 });
       if (getCache(cacheKey)) dispatch(setCacheHit(true));
       dispatch(getRecommendJobsRequest({ page: 1, append: false }));
@@ -108,13 +131,11 @@ export const useJobs = () => {
         page: 1,
         append: false,
       };
-      // Pre-check cache before dispatching to avoid loading flash
       const cacheKey = makeCacheKey('search', payload);
       if (getCache(cacheKey)) dispatch(setCacheHit(true));
       dispatch(searchJobRequest(payload));
     }
-    // Remove loading/redux dependencies from the array to prevent the loop
-  }, [dispatch, pathName, searchParams]);
+  }, [dispatch, pathName, searchParams, extractFiltersFromUrl]);
 
   // ─── Debounced search (called by SearchFilters / FilterModal directly) ───────
   const latestFiltersRef = useRef(reduxFilters);
@@ -122,12 +143,10 @@ export const useJobs = () => {
     latestFiltersRef.current = reduxFilters;
   }, [reduxFilters]);
 
-  // debouncedSearch is stable — it never changes reference
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
     debounce((newFilters: Partial<typeof reduxFilters>) => {
       const payload = { ...latestFiltersRef.current, ...newFilters };
-      // Reset the key so the next URL-driven effect can also fire if needed
       fetchedKeyRef.current = '';
       dispatch(
         searchJobRequest({
@@ -137,20 +156,19 @@ export const useJobs = () => {
         }),
       );
     }, 500),
-    [dispatch], // dispatch is stable
+    [dispatch],
   );
 
   const syncFiltersToUrl = useCallback(
     (newFilters: any) => {
       const params = new URLSearchParams();
 
-      // Mapping of our filter keys to URL param names
       if (newFilters.query || newFilters.q)
         params.set('q', newFilters.query || newFilters.q);
       if (newFilters.country) params.set('country', newFilters.country);
       if (newFilters.countryCode)
         params.set('countryCode', newFilters.countryCode);
-      if (newFilters.state) params.set('state', newFilters.state); // store code for logic
+      if (newFilters.state) params.set('state', newFilters.state);
       if (newFilters.city) params.set('city', newFilters.city);
       if (newFilters.datePosted)
         params.set('datePosted', newFilters.datePosted);
@@ -162,81 +180,62 @@ export const useJobs = () => {
         params.set('experience', newFilters.experience.join(','));
       }
 
-      // Push the URL.
-      // This will trigger the existing URL-based useEffect to fetch from Redux
       router.push(`?${params.toString()}`, { scroll: false });
     },
     [router],
   );
 
-  // ─── Modified handleFilterChange ──────────────────────────────────────────────
   const handleFilterChange = useCallback(
     (newFilters: Partial<typeof reduxFilters>) => {
-      // Merge current filters with new ones
       const combined = { ...reduxFilters, ...newFilters };
-
-      // Update the URL
       syncFiltersToUrl(combined);
-
-      // We don't necessarily need debouncedSearch here anymore
-      // because the URL change will trigger the existing Initial Fetch useEffect.
     },
     [reduxFilters, syncFiltersToUrl],
   );
-  // handleFilterChange is stable — wrapped in useCallback so SearchFilters
-  // does NOT get a new reference on every render (which would cause loops)
-  // const handleFilterChange = useCallback(
-  //   (newFilters: Partial<typeof reduxFilters>) => {
-  //     debouncedSearch(newFilters);
-  //   },
-  //   [debouncedSearch],
-  // );
 
   // ─── Pagination ──────────────────────────────────────────────────────────────
-  const hasNextPage =
-    pagination?.hasNextPage ??
-    (pagination?.page ?? 1) < (pagination?.totalPages ?? 1);
+  // Use hasNextPage directly from backend — it's the single source of truth.
+  // Default to true so we always attempt at least one load-more.
+  const hasNextPage = pagination?.hasNextPage !== false;
 
   const loadMoreJobs = useCallback(() => {
     if (loadingRef.current || !hasNextPage) return;
 
+    // Use `currentPage` from backend response; fall back to `page` from state
     const currentPage =
       (pagination as any)?.currentPage ?? pagination?.page ?? 1;
 
-    const q = searchParams.get('query') || searchParams.get('q') || '';
-    const country = searchParams.get('country') || '';
-    const state = searchParams.get('state') || '';
-    const city = searchParams.get('city') || '';
-    const datePosted = searchParams.get('datePosted') || '';
-    const employmentType =
-      searchParams.get('employmentType')?.split(',').filter(Boolean) ?? [];
-    const experience =
-      searchParams.get('experience')?.split(',').filter(Boolean) ?? [];
+    const {
+      q,
+      country,
+      state,
+      city,
+      datePosted,
+      employmentType,
+      experience,
+      isEmpty,
+    } = extractFiltersFromUrl();
 
-    const isDashboard = pathName === '/dashboard/search-jobs';
-    const isPublicSearch = pathName === '/search-jobs';
-
-    const isSearchEmpty =
-      !q &&
-      !country &&
-      !state &&
-      !city &&
-      !datePosted &&
-      employmentType.length === 0 &&
-      experience.length === 0;
-
-    if ((isDashboard || isPublicSearch) && isSearchEmpty) {
-      const cacheKey = makeCacheKey('recommend', { page: currentPage + 1 });
+    if (isEmpty) {
+      const nextPage = currentPage + 1;
+      const cacheKey = makeCacheKey('recommend', { page: nextPage });
       if (getCache(cacheKey)) dispatch(setCacheHit(true));
       dispatch(
         getRecommendJobsRequest({
-          page: currentPage + 1,
+          page: nextPage,
           append: true,
         }),
       );
     } else {
       const payload = {
-        ...reduxFilters,
+        query: q,
+        country,
+        state,
+        city,
+        datePosted,
+        employmentType,
+        experience,
+        education: [] as string[],
         page: currentPage + 1,
         append: true,
       };
@@ -244,7 +243,7 @@ export const useJobs = () => {
       if (getCache(cacheKey)) dispatch(setCacheHit(true));
       dispatch(searchJobRequest(payload));
     }
-  }, [hasNextPage, pagination, dispatch, reduxFilters, pathName, searchParams]);
+  }, [hasNextPage, pagination, dispatch, extractFiltersFromUrl]);
 
   return {
     jobs,

@@ -21,6 +21,7 @@ import {
   upsertExternalJobs,
   rankJobs,
   diversify,
+  dedupeByTitleCompany,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
@@ -1938,103 +1939,134 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() ||
       'jobs';
 
-    const context = {
+    const country = profile.location?.country || 'IN';
+    const state = profile.location?.state;
+    const city = profile.location?.city;
+
+    // ── Helper: build a context with varying filter strictness ──────────────
+    const makeContext = (filterOverride) => ({
       type: 'recommendation',
       query: profileQuery,
       profile,
-      filters: {
-        country: profile.location?.country || 'IN',
-        state: profile.location?.state,
-        city: profile.location?.city,
-      },
+      filters: filterOverride,
       userId: req.user._id,
       interactions,
-    };
+    });
 
-    // 1. Fetch Local Pool
-    // We increase the pool size significantly to account for deduplication/filtering drops
-    const requiredPoolSize = pageNum * limitNum * 100 + 200;
-    const candidates = await retrieveLocalCandidates(context, requiredPoolSize);
-
-    const processPool = (jobsPool) => {
-      const filtered = applyFilters(jobsPool, context);
-      const ranked = rankJobs(filtered, context);
+    const processPool = (jobsPool, ctx) => {
+      const filtered = applyFilters(jobsPool, ctx);
+      const ranked = rankJobs(filtered, ctx);
       return diversify(ranked);
     };
 
-    let processed = processPool(candidates);
-    let finalJobs = processed.slice(skip, skip + limitNum);
+    const API_TIMEOUT = 8000;
+    const apiTerm = profile.titles[0] || profile.skills[0] || 'jobs';
+    const apiStartPage = Math.max(1, pageNum);
 
-    // 2. 🔥 API FALLBACK: If local DB doesn't have enough for this specific page
-    if (finalJobs.length < limitNum) {
-      // Create a simplified fallback query for JSearch so it doesn't fail on long 30-word strings
-      const fallbackTerm = profile.titles[0] || profile.skills[0] || 'jobs';
-      const apiFallbackQuery = fallbackTerm;
-
-      // Start fetching from the page the user is actually on
-      const pagesToFetch = [pageNum, pageNum + 1, pageNum + 2];
-
-      const fetchPromises = pagesToFetch.map((apiPage) =>
-        fetchExternalJobs(
-          apiFallbackQuery,
-          context.filters.country || 'IN',
-          context.filters.state,
-          context.filters.city,
-          null,
-          null,
-          null,
-          apiPage, // 🔥 Fetch the page matching user's scroll depth
-        ),
-      );
-
-      const API_TIMEOUT = 12000;
-      const responsesRaw = await Promise.all(
-        fetchPromises.map((p) =>
+    // ── Fetch from RapidAPI (concurrent pages) ───────────────────────────────
+    const fetchExternal = async (extCountry, extState, extCity) => {
+      const pagesToFetch = [apiStartPage, apiStartPage + 1, apiStartPage + 2];
+      const raw = await Promise.all(
+        pagesToFetch.map((apiPage) =>
           Promise.race([
-            p,
-            new Promise((resolve) =>
-              setTimeout(() => resolve([]), API_TIMEOUT),
+            fetchExternalJobs(
+              apiTerm,
+              extCountry,
+              extState,
+              extCity,
+              null,
+              null,
+              null,
+              apiPage,
             ),
+            new Promise((r) => setTimeout(() => r([]), API_TIMEOUT)),
           ]),
         ),
       );
+      return raw.flat().filter(Boolean);
+    };
 
-      const externalRaw = responsesRaw.flat().filter(Boolean);
+    // ── Upsert and re-process after getting external results ─────────────────
+    const mergeExternal = async (externalRaw, localCandidates, ctx) => {
+      if (!externalRaw.length)
+        return {
+          processed: processPool(localCandidates, ctx),
+          merged: localCandidates,
+        };
+      const formatted = externalRaw.map((j) =>
+        transformRapidApiJob(j, profileQuery || 'job'),
+      );
+      await upsertExternalJobs(formatted).catch((e) =>
+        console.error('Upsert err', e.message),
+      );
+      const all = dedupeByTitleCompany([...localCandidates, ...formatted]);
+      return { processed: processPool(all, ctx), merged: all };
+    };
 
-      if (externalRaw.length > 0) {
-        const formatted = externalRaw.map((j) =>
-          transformRapidApiJob(j, profileQuery || 'job'),
+    // ════════════════════════════════════════════════════════════════════
+    // PROGRESSIVE FILTER RELAXATION — try city → state → country → global
+    // Each level fetches both local DB and external API.
+    // ════════════════════════════════════════════════════════════════════
+
+    const levels = [
+      // Level 0: City-specific (most precise)
+      ...(city ? [{ country, state, city }] : []),
+      // Level 1: State-level (no city)
+      ...(state ? [{ country, state, city: null }] : []),
+      // Level 2: Country-level (no city, no state)
+      { country, state: null, city: null },
+      // Level 3: Global fallback (no location at all)
+      { country: null, state: null, city: null },
+    ];
+
+    let finalJobs = [];
+    let processed = [];
+    let usedLevel = -1;
+
+    for (const filterSet of levels) {
+      const ctx = makeContext(filterSet);
+
+      // Pool size scales with page depth
+      const poolSize = (pageNum + 3) * limitNum * 6;
+      const localCandidates = await retrieveLocalCandidates(ctx, poolSize);
+      processed = processPool(localCandidates, ctx);
+      finalJobs = processed.slice(skip, skip + limitNum);
+
+      // Fetch external if page can't be filled or we're going deep
+      const needsExternal =
+        finalJobs.length < limitNum ||
+        (pageNum > 2 && processed.length < skip + limitNum * 2);
+
+      if (needsExternal) {
+        const externalRaw = await fetchExternal(
+          filterSet.country || 'IN',
+          filterSet.state,
+          filterSet.city,
         );
-
-        // Save to DB so they have valid _id/slugs
-        await upsertExternalJobs(formatted).catch((e) =>
-          console.error('Sync Upsert Error', e.message),
+        const { processed: merged } = await mergeExternal(
+          externalRaw,
+          localCandidates,
+          ctx,
         );
+        processed = merged;
+        finalJobs = processed.slice(skip, skip + limitNum);
+      }
 
-        const filteredExt = processPool(formatted);
-
-        if (filteredExt.length > 0) {
-          const remainingNeeded = limitNum - finalJobs.length;
-          const toAdd = filteredExt.slice(0, remainingNeeded);
-          finalJobs = [...finalJobs, ...toAdd];
-          processed = [...processed, ...filteredExt];
-        }
+      // If we have enough jobs, stop relaxing
+      if (finalJobs.length > 0) {
+        usedLevel = levels.indexOf(filterSet);
+        break;
       }
     }
 
-    // 3. 🚀 INFINITE PAGINATION LOGIC
+    // ── ALWAYS hasNextPage=true when we returned any jobs ───────────────────
+    // The frontend stops only when we send 0 jobs.
     res.status(200).json({
       success: true,
       pagination: {
         currentPage: pageNum,
-        // 🔥 FIX: If we found enough jobs to fill the limit, tell frontend to keep scrolling.
-        // Also if `candidates` reached the pool size, there might be more to fetch on next page
-        hasNextPage:
-          finalJobs.length >= limitNum || candidates.length >= requiredPoolSize,
-        totalJobs:
-          processed.length > skip + limitNum
-            ? processed.length
-            : skip + finalJobs.length,
+        hasNextPage: finalJobs.length > 0,
+        totalJobs: Math.max(processed.length, skip + finalJobs.length),
       },
       jobs: finalJobs,
     });
