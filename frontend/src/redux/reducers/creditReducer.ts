@@ -27,7 +27,6 @@ const creditSlice = createSlice({
       state.error = null;
     },
     getCreditSuccess: (state, action: PayloadAction<number>) => {
-      console.log('ACTION>PAYLOAD', action.payload);
       state.loading = false;
       state.error = null;
       state.claimCredits = action.payload;

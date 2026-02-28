@@ -320,3 +320,14 @@ h6 {
 .hide-editor-images .profile-image {
   display: none !important;
 }
+
+/* Add this to your globals.css */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}

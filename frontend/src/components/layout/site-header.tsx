@@ -29,18 +29,23 @@ export const Navigation = () => {
   ];
 
   const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      const encodedQuery = encodeURIComponent(searchQuery.trim());
-      setSearchQuery('');
+    const trimmedQuery = searchQuery.trim();
 
-      if (token) {
-        router.push(`/dashboard/search-jobs?query=${encodedQuery}`);
-      } else {
-        router.push(`/search-jobs?query=${encodedQuery}`);
-      }
+    const encodedQuery = trimmedQuery ? encodeURIComponent(trimmedQuery) : '';
 
-      setIsOpen(false);
+    setSearchQuery('');
+
+    if (token) {
+      router.push(
+        `/dashboard/search-jobs${encodedQuery ? `?query=${encodedQuery}` : ''}`,
+      );
+    } else {
+      router.push(
+        `/search-jobs${encodedQuery ? `?query=${encodedQuery}` : ''}`,
+      );
     }
+
+    setIsOpen(false);
   };
 
   const handleLogout = () => {
@@ -120,9 +125,10 @@ export const Navigation = () => {
           {/* Enhanced Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item, index) => (
-              <a
+              <Link
                 key={item.name}
                 href={item.href}
+                scroll={true} // Ensures the scroll to hash happens
                 className="relative px-4 py-2 text-gray-700 hover:text-violet-600 transition-all duration-300 font-medium group rounded-xl"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -133,7 +139,7 @@ export const Navigation = () => {
 
                 {/* Enhanced underline animation */}
                 <div className="absolute inset-x-2 -bottom-0.5 h-0.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-400 origin-center rounded-full"></div>
-              </a>
+              </Link>
             ))}
           </div>
 

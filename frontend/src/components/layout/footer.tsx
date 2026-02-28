@@ -23,7 +23,10 @@ export function Footer() {
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredLink, setHoveredLink] = useState(null);
   const [email, setEmail] = useState('');
-  const [newsletterStatus, setNewsletterStatus] = useState('idle');
+  const [newsletterStatus, setNewsletterStatus] = useState({
+    status: 'idle',
+    message: '',
+  });
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [showScrollTop, setShowScrollTop] = useState(false);
   const footerRef = useRef(null);
@@ -57,15 +60,68 @@ export function Footer() {
     }
   }, []);
 
+  // const handleNewsletterSubmit = async (e) => {
+  //   e.preventDefault();
+  //   if (!email) return;
+
+  //   setNewsletterStatus({ status: 'loading', message: 'Loading...' });
+
+  //   try {
+  //     const res = await apiInstance.post('/user/newsletter', { email });
+
+  //     // Check for 200 or 201 (Created)
+  //     if (res.status === 200 || res.status === 201) {
+  //       setNewsletterStatus({ status: 'success', message: 'Success' });
+  //       setEmail('');
+  //       setTimeout(
+  //         () => setNewsletterStatus({ status: 'idle', message: '' }),
+  //         4000,
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error('Newsletter error:', error);
+  //     setNewsletterStatus({ status: 'error', message: error }); // Set error state
+  //     setTimeout(
+  //       () => setNewsletterStatus({ status: 'idle', message: '' }),
+  //       4000,
+  //     );
+  //   }
+  // };
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
     if (!email) return;
 
-    const res = await apiInstance.post('/user/newsletter', { email });
-    if (res.status === 200) {
-      setNewsletterStatus('success');
-      setEmail('');
-      setTimeout(() => setNewsletterStatus('idle'), 3000);
+    setNewsletterStatus({ status: 'loading', message: 'Loading...' });
+
+    try {
+      const res = await apiInstance.post('/user/newsletter', { email });
+
+      if (res.status === 200 || res.status === 201) {
+        setNewsletterStatus({ status: 'success', message: 'Success' });
+        setEmail('');
+        setTimeout(
+          () => setNewsletterStatus({ status: 'idle', message: '' }),
+          4000,
+        );
+      }
+    } catch (error: any) {
+      // Extract the human-readable message from the backend response
+
+      console.log(error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Something went wrong';
+
+      setNewsletterStatus({
+        status: 'error',
+        message: errorMessage,
+      });
+
+      setTimeout(
+        () => setNewsletterStatus({ status: 'idle', message: '' }),
+        5000,
+      );
     }
   };
 
@@ -195,8 +251,12 @@ export function Footer() {
               }}
             >
               {[
-                { icon: Mail, text: 'info@zobsai.com', color: 'blue' },
-                { icon: MapPin, text: 'New York, NY', color: 'purple' },
+                // { icon: Mail, text: 'info@zobsai.com', color: 'blue' },
+                // {
+                //   icon: MapPin,
+                //   text: '2nd Floor, S-05, B 14-15, Udhyog Marg, Block B, Sector 1, Noida, Uttar Pradesh 201301',
+                //   color: 'purple',
+                // },
               ].map((contact, index) => (
                 <div
                   key={index}
@@ -280,7 +340,7 @@ export function Footer() {
               Contact Us
             </h4>
             <a
-              href="mailto:zobaai@gmail.com"
+              href="mailto: info@zobsai.com"
               className="flex items-center gap-3 group"
             >
               <div className="p-2 bg-blue-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
@@ -315,29 +375,46 @@ export function Footer() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            {/* Wrap the elements in a form tag */}
+            <form
+              onSubmit={handleNewsletterSubmit}
+              className="flex flex-col sm:flex-row items-center gap-4"
+            >
               <input
                 type="email"
                 value={email}
+                required // This will now trigger browser validation
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="flex-1 w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
               />
               <button
-                onClick={handleNewsletterSubmit}
-                disabled={newsletterStatus === 'loading'}
-                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-6 py-3 rounded-lg font-medium text-white flex items-center gap-2 transition-all disabled:opacity-50"
+                type="submit"
+                disabled={newsletterStatus.status === 'loading'}
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-6 py-3 rounded-lg font-medium text-white flex items-center gap-2 transition-all disabled:opacity-50 min-w-[140px] justify-center"
               >
-                {newsletterStatus === 'loading' ? (
+                {newsletterStatus.status === 'loading' ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : newsletterStatus === 'success' ? (
-                  <span className="text-green-400">✓</span>
+                ) : newsletterStatus.status === 'success' ? (
+                  <>
+                    <span className="">✓</span>
+                    <span>Subscribed!</span>
+                  </>
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <>
+                    <Send className="w-5 h-5" />
+                    <span>Subscribe</span>
+                  </>
                 )}
-                {newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
               </button>
-            </div>
+              <div className="flex items-center gap-2">
+                {newsletterStatus?.status === 'error' && (
+                  <p className="text-red-500 text-sm mt-2">
+                    {newsletterStatus?.message}
+                  </p>
+                )}
+              </div>
+            </form>
           </div>
         </div>
 

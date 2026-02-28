@@ -9,6 +9,7 @@ interface Pagination {
   page: number;
   limit: number;
   totalPages: number;
+  hasNextPage?: boolean;
 }
 
 export interface JobFilters {
@@ -30,17 +31,24 @@ interface JobState {
   job: Job | null;
   preferedJob: Job[];
   loading: boolean;
+  cacheHit: boolean;
   error: string | null;
   pagination: Pagination;
   filters: JobFilters;
+  notification?: string;
 }
 
 const initialState: JobState = {
   jobs: [],
+  savedJobs: [],
+  viewedJobs: [],
+  visitedJobs: [],
   preferedJob: [],
   job: null,
   loading: false,
+  cacheHit: false,
   error: null,
+  notification: undefined,
   pagination: {
     total: 0,
     page: 1,
@@ -107,8 +115,12 @@ const jobSlice = createSlice({
       state.loading = false;
       state.pagination = action.payload.pagination;
       if (action.payload.append) {
-        const jobsMap = new Map(state.jobs.map((job) => [job._id, job]));
-        action.payload.jobs.forEach((job) => jobsMap.set(job._id, job));
+        const jobsMap = new Map(
+          state.jobs.map((job) => [job._id || (job as any).jobId, job]),
+        );
+        action.payload.jobs.forEach((job) =>
+          jobsMap.set(job._id || (job as any).jobId, job),
+        );
         state.jobs = Array.from(jobsMap.values());
       } else {
         state.jobs = action.payload.jobs;
@@ -204,7 +216,13 @@ const jobSlice = createSlice({
         education?: string[];
       }>,
     ) => {
-      state.loading = true;
+      // Only show loading spinner if we don't expect a cache hit.
+      // The saga will dispatch setCacheHit(true) before the success action
+      // when returning cached data, so `loading` will be immediately
+      // overridden to false by the success reducer.
+      if (!state.cacheHit) {
+        state.loading = true;
+      }
       state.error = null;
       if (!action.payload.append) {
         state.filters = {
@@ -229,10 +247,15 @@ const jobSlice = createSlice({
       }>,
     ) => {
       state.loading = false;
+      state.cacheHit = false; // reset for next request
       state.pagination = action.payload.pagination;
       if (action.payload.append) {
-        const jobsMap = new Map(state.jobs.map((job) => [job._id, job]));
-        action.payload.jobs.forEach((job) => jobsMap.set(job._id, job));
+        const jobsMap = new Map(
+          state.jobs.map((job) => [job._id || (job as any).jobId, job]),
+        );
+        action.payload.jobs.forEach((job) =>
+          jobsMap.set(job._id || (job as any).jobId, job),
+        );
         state.jobs = Array.from(jobsMap.values());
       } else {
         state.jobs = action.payload.jobs;
@@ -241,20 +264,45 @@ const jobSlice = createSlice({
     // --- FIX: Added the missing comma ---
     searchJobFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
+      state.cacheHit = false;
       state.error = action.payload;
     },
 
-    getRecommendJobsRequest: (state) => {
-      state.loading = true;
+    getRecommendJobsRequest: (
+      state,
+      action: PayloadAction<{ page: number; append?: boolean }>,
+    ) => {
+      if (!state.cacheHit) {
+        state.loading = true;
+      }
       state.error = null;
     },
-    getRecommendJobsSuccess: (state, action: PayloadAction<Job[]>) => {
-      console.log('ACTION.PAYLOAD', action.payload);
+    getRecommendJobsSuccess: (
+      state,
+      action: PayloadAction<{
+        jobs: Job[];
+        pagination: Pagination;
+        append?: boolean;
+      }>,
+    ) => {
       state.loading = false;
-      state.jobs = action.payload;
+      state.cacheHit = false; // reset for next request
+      state.pagination = action.payload.pagination;
+      if (action.payload.append) {
+        const jobsMap = new Map(
+          state.jobs.map((job) => [job._id || (job as any).jobId, job]),
+        );
+        action.payload.jobs.forEach((job) =>
+          jobsMap.set(job._id || (job as any).jobId, job),
+        );
+        state.jobs = Array.from(jobsMap.values());
+      } else {
+        state.jobs = action.payload.jobs;
+      }
     },
     getRecommendJobsFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
+      state.cacheHit = false;
       state.error = action.payload;
     },
 
@@ -309,6 +357,11 @@ const jobSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+
+    // ── Cache control ──────────────────────────────────────────────
+    setCacheHit: (state, action: PayloadAction<boolean>) => {
+      state.cacheHit = action.payload;
+    },
   },
 });
 
@@ -350,6 +403,7 @@ export const {
   findSingleJobRequest,
   findSingleJobSuccess,
   findSingleJobFailure,
+  setCacheHit,
 } = jobSlice.actions;
 
 export default jobSlice.reducer;

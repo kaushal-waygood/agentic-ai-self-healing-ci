@@ -1,26 +1,41 @@
-// src/utils/embedding.js
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// src/config/embedding.js
+import { FlagEmbedding, EmbeddingModel } from 'fastembed';
+import crypto from 'crypto';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_KEY);
-// Initialize ONCE outside the function
-const model = genAI.getGenerativeModel({ model: 'embedding-001' });
+let model = null;
+
+// Persistent Init: Prevents race conditions during multiple searches
+async function getModel() {
+  if (!model) {
+    console.log('Downloading/Initializing local model...');
+    model = await FlagEmbedding.init({
+      model: EmbeddingModel.BGEBaseEN, // 768 dimensions
+    });
+  }
+  return model;
+}
+
+const embeddingCache = new Map();
 
 export const generateEmbedding = async (text) => {
   try {
     if (!text || typeof text !== 'string') return null;
 
-    const cleanText = text.replace(/\s+/g, ' ').trim().substring(0, 8000);
+    const cleanText = text.replace(/\s+/g, ' ').trim().toLowerCase();
+    const cacheKey = crypto.createHash('md5').update(cleanText).digest('hex');
 
-    // Reusing the 'model' instance
-    const result = await model.embedContent(cleanText);
+    if (embeddingCache.has(cacheKey)) return embeddingCache.get(cacheKey);
 
-    if (result?.embedding?.values) {
-      return result.embedding.values;
-    }
+    const embeddingModel = await getModel();
 
-    return null;
+    const rawEmbedding = await embeddingModel.queryEmbed(cleanText);
+    const embedding = Array.from(rawEmbedding);
+
+    embeddingCache.set(cacheKey, embedding);
+    return embedding;
   } catch (error) {
-    console.error('Gemini Embedding Error:', error.message);
+    console.error('Local Embedding Error:', error.message);
+    // If you see zlib error again, your internet might be blocking the download
     return null;
   }
 };

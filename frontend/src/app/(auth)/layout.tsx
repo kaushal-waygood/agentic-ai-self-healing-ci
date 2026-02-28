@@ -52,7 +52,7 @@ export default function GuestLayout({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader imageClassName="w-6 h-6" textClassName="text-sm" />
+        <Loader textClassName="text-sm" />
       </div>
     );
   }

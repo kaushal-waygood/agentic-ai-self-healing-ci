@@ -291,14 +291,6 @@ export function CvGeneratorClient() {
         // Re-push the state to stay on the page
         window.history.pushState(null, '', window.location.href);
 
-        // Optional: replace alert with a toast or your custom AlertDialog
-        // toast({
-        //   title: 'Progress will be lost',
-        //   description:
-        //     "Are you sure you want to leave? Use the 'Back' buttons inside the wizard to navigate safely.",
-        //   variant: 'destructive',
-        // });
-
         alert('Please wait until resume extraction is complete.');
       }
     };
@@ -398,14 +390,6 @@ export function CvGeneratorClient() {
         return;
       }
 
-      // toast({
-      //   variant: 'destructive',
-      //   title: 'Generation Failed',
-      //   description:
-      //     error?.response?.data?.reasons[0] ||
-      //     error?.message ||
-      //     'Something went wrong.',
-      // });
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
@@ -424,19 +408,6 @@ export function CvGeneratorClient() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const regenerateCv = async () => {
-    await handleGenerate();
-  };
-
-  /* ---------- save ---------- */
-
-  const handleInitiateSave = () => {
-    if (!generatedCvOutput) return;
-    setActiveCvToSave({ ...generatedCvOutput, cv: currentCvContent });
-    setCvNameForSavingInput(`CV for ${jobContext?.title || 'Job'}`);
-    setIsNamingDialogDisplayed(true);
   };
 
   const confirmSaveNamedCv = async () => {

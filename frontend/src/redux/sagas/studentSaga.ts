@@ -157,9 +157,6 @@ import {
 } from '../reducers/jobReducer';
 import { get } from 'lodash';
 
-/* ============================================================
-   Local types (align with your slice)
-============================================================ */
 type ID = string;
 
 type Education = {

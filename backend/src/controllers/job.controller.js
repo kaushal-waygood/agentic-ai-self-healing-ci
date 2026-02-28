@@ -5,15 +5,18 @@ import redisClient from '../config/redis.js';
 import { config } from '../config/config.js';
 import { fetchAndSaveJobsService } from '../utils/fetchAndSaveJobsService.js';
 import {
-  escapeRegex,
-  normalizeEmploymentTypeForDbFilter,
-  normalizeEmploymentTypeForApi,
-  sortJobsByPostedDateDesc,
-  transformRapidApiJob,
-  fetchExternalJobs,
   safeParseInt,
-  isObjectId,
-  makeSearchCacheKey,
+  buildSearchContext,
+  retrieveCandidates,
+  applyFilters,
+  rankJobs,
+  diversify,
+  normalizeEmploymentTypeForApi,
+  fetchExternalJobs,
+  transformRapidApiJob,
+  upsertExternalJobs,
+  retrieveLocalCandidates,
+  dedupeByTitleCompany,
 } from '../utils/jobHelpers.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { JobInteraction } from '../models/jobInteraction.model.js';
@@ -200,312 +203,135 @@ export const getAllAppliedJobList = async (req, res) => {
   });
 };
 
-export const searchJobs = async (req, res) => {
-  const {
-    q,
-    page = 1,
-    limit = 10,
-    country,
-    state,
-    city = '',
-    employmentType,
-    experience,
-    datePosted,
-  } = req.query || {};
-
-  const pageNum = safeParseInt(page, 1);
-  const limitNum = safeParseInt(limit, 10);
-  const skip = (pageNum - 1) * limitNum;
-
-  const cacheKey = makeSearchCacheKey({
-    q,
-    pageNum,
-    limitNum,
-    country,
-    state,
-    city,
-    employmentType,
-    experience,
-    datePosted,
-  });
-
+export async function searchJobs(req, res) {
+  const startTime = Date.now();
   try {
-    /* ===================== 1) CACHE READ ===================== */
-    try {
-      const cachedRaw = await redisClient.get(cacheKey);
-      if (cachedRaw) {
-        const cached = JSON.parse(cachedRaw);
+    const { q, page = 1, limit = 30 } = req.query || {};
+    const pageNum = safeParseInt(page, 1);
+    const limitNum = safeParseInt(limit, 30);
 
-        // ✅ FIXED: Proper impression tracking
-        await JobInteraction.insertMany(
-          cached.jobs.map((job) => ({
-            job: job._id,
-            user: req.user?._id || null,
-            type: 'IMPRESSION',
-            meta: {
-              query: q || null,
-              source: 'search',
-            },
-          })),
-          { ordered: false },
+    console.log('pageNum', pageNum);
+    console.log('limitNum', limitNum);
+    // 1. Build Context & Fetch Local Candidates in Parallel
+    const context = await buildSearchContext(req);
+
+    // 🔥 FIX: Aggressively fetch more local candidates because in-memory filtering drops many jobs.
+    // Ensure we have a large enough pool to satisfy current and future pages.
+    const requiredPoolSize = pageNum * limitNum * 100 + 200;
+    console.log('requiredPoolSize', requiredPoolSize);
+
+    // 🔥 OPTIMIZATION: Get local candidates FAST
+    let candidates = await retrieveLocalCandidates(context, requiredPoolSize);
+
+    const processPool = (jobsPool) => {
+      const filtered = applyFilters(jobsPool, context);
+      const ranked = rankJobs(filtered, context);
+      return diversify(ranked);
+    };
+
+    let processed = processPool(candidates);
+
+    const start = (pageNum - 1) * limitNum;
+    let paginatedJobs = processed.slice(start, start + limitNum);
+
+    // 2. 🚀 FAST FALLBACK: Ensure we fill up to the requested limit, even if 'q' is missing
+    if (paginatedJobs.length < limitNum) {
+      const apiFallbackQuery =
+        q || req.query.employmentType || req.query.experience || 'jobs';
+
+      // Parallelize fetching to avoid 60 second response times from sequential API calls
+      const pagesToFetch = [pageNum, pageNum + 1, pageNum + 2];
+
+      const fetchPromises = pagesToFetch.map((apiPage) =>
+        fetchExternalJobs(
+          apiFallbackQuery,
+          context.filters?.country || 'IN',
+          context.filters?.state,
+          context.filters?.city,
+          null, // datePosted
+          normalizeEmploymentTypeForApi(req.query.employmentType),
+          null, // experience
+          apiPage,
+        ),
+      );
+
+      const API_TIMEOUT = 12000; // 12 seconds max waiting for RapidAPI
+
+      // Wait for all 3 requests to finish concurrently OR timeout
+      const responsesRaw = await Promise.all(
+        fetchPromises.map((p) =>
+          Promise.race([
+            p,
+            new Promise((resolve) =>
+              setTimeout(() => resolve([]), API_TIMEOUT),
+            ),
+          ]),
+        ),
+      );
+
+      // Flatten arrays and filter out nulls
+      const externalRaw = responsesRaw.flat().filter(Boolean);
+
+      if (externalRaw.length > 0) {
+        const formatted = externalRaw.map((j) =>
+          transformRapidApiJob(j, q || 'job'),
         );
 
-        return res.status(200).json({
-          jobs: cached.jobs,
-          pagination: {
-            totalJobs: cached.totalJobs || 0,
-            totalPages: Math.ceil((cached.totalJobs || 0) / limitNum),
-            currentPage: pageNum,
-            hasNextPage:
-              pageNum < Math.ceil((cached.totalJobs || 0) / limitNum),
-          },
-          notification: cached.notification || null,
-          fromCache: true,
-        });
-      }
-    } catch (e) {
-      console.warn('searchJobs: cache read failed', e?.message);
-    }
-
-    /* ===================== 2) LOCK ===================== */
-    const lockKey = `${cacheKey}:lock`;
-    const lockAcquired = await redisClient.setNxWithTtl(lockKey, '1', LOCK_TTL);
-
-    /* ===================== 3) KEYWORD SEARCH ===================== */
-    const searchCriteria = {};
-
-    if (q) {
-      const regex = new RegExp(escapeRegex(q), 'i');
-      searchCriteria.$or = [{ title: regex }, { queries: regex }];
-    }
-
-    if (country) searchCriteria.country = country;
-    if (state) searchCriteria['location.state'] = state;
-    if (city) searchCriteria['location.city'] = city;
-
-    if (employmentType) {
-      const normalized = normalizeEmploymentTypeForDbFilter(employmentType);
-      if (normalized?.length) {
-        searchCriteria.jobTypes = { $in: normalized };
-      }
-    }
-
-    if (experience) {
-      searchCriteria.experience = {
-        $in: experience.split(',').map((v) => v.trim()),
-      };
-    }
-
-    let [totalJobs, jobs] = await Promise.all([
-      Job.countDocuments(searchCriteria),
-      Job.find(searchCriteria)
-        .sort({ jobPostedAt: -1, createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-    ]);
-
-    let notification = null;
-
-    /* ===================== 4) VECTOR SEARCH BOOST ===================== */
-    if (q && jobs.length < limitNum) {
-      try {
-        const queryVector = await generateEmbedding(q);
-
-        if (queryVector) {
-          const filters = [{ isActive: true }];
-
-          if (country) filters.push({ country });
-          if (state) filters.push({ 'location.state': state });
-          if (city) filters.push({ 'location.city': city });
-
-          if (employmentType) {
-            const normalized =
-              normalizeEmploymentTypeForDbFilter(employmentType);
-            if (normalized?.length) {
-              filters.push({ jobTypes: { $in: normalized } });
-            }
-          }
-
-          const vectorResults = await Job.aggregate([
-            {
-              $vectorSearch: {
-                index: 'vector_index',
-                path: 'job_embedding',
-                queryVector,
-                numCandidates: 150,
-                limit: limitNum,
-                filter: { $and: filters },
-              },
-            },
-            {
-              $project: {
-                job_embedding: 0,
-                __v: 0,
-              },
-            },
-          ]);
-
-          if (vectorResults?.length) {
-            const seen = new Set(jobs.map((j) => String(j._id)));
-            for (const v of vectorResults) {
-              if (!seen.has(String(v._id)) && jobs.length < limitNum) {
-                jobs.push(v);
-                seen.add(String(v._id));
-              }
-            }
-            totalJobs = Math.max(totalJobs, jobs.length);
-          }
-        }
-      } catch (e) {
-        console.warn('Vector search failed:', e?.message);
-      }
-    }
-
-    /* ===================== 5) EXTERNAL API FALLBACK ===================== */
-    if ((jobs.length === 0 || totalJobs === 0) && q && pageNum === 1) {
-      let externalJobsRaw = [];
-
-      try {
-        const normalizedEmploymentType =
-          normalizeEmploymentTypeForApi(employmentType);
-
-        externalJobsRaw = await fetchExternalJobs(
-          q,
-          country,
-          state,
-          city,
-          datePosted,
-          normalizedEmploymentType,
-          experience,
-        );
-      } catch (e) {
-        console.warn('External fetch failed:', e?.message);
-      }
-
-      if (externalJobsRaw?.length) {
-        const externalJobsFormatted = externalJobsRaw.map((apiJob) =>
-          transformRapidApiJob(apiJob, q),
+        // 🛡️ DATA CONSISTENCY REQUIREMENT:
+        // We MUST await the upsert before sending the response AND before cloning!
+        // If we don't, the user could click the job instantly on the frontend, triggering
+        // a 404 on `jobs/find?slug=...` because MongoDB hasn't finished its background write yet.
+        await upsertExternalJobs(formatted).catch((e) =>
+          console.error('Sync Upsert Error', e.message),
         );
 
-        try {
-          const ops = externalJobsFormatted.map((job) => ({
-            updateOne: {
-              filter: { jobId: job.jobId, origin: 'EXTERNAL' },
-              update: {
-                $set: job,
-                $addToSet: {
-                  queries: { $each: job.queries || [q] },
-                },
-                $setOnInsert: { slug: job.slug },
-              },
-              upsert: true,
-            },
-          }));
-
-          await Job.bulkWrite(ops, { ordered: false });
-        } catch (e) {
-          console.warn('Background DB save failed:', e?.message);
-        }
-
-        jobs = await Job.find({
-          jobId: { $in: externalJobsFormatted.map((j) => j.jobId) },
-        })
-          .limit(limitNum)
-          .lean();
-
-        totalJobs = jobs.length;
-      } else {
-        const locationString = [city, state, country]
-          .filter(Boolean)
-          .join(', ');
-        notification = locationString
-          ? `We couldn't find any jobs for "${q}" in ${locationString}.`
-          : `We couldn't find any jobs matching "${q}".`;
+        candidates = dedupeByTitleCompany([...candidates, ...formatted]);
+        processed = processPool(candidates);
+        paginatedJobs = processed.slice(start, start + limitNum);
       }
     }
 
-    /* ===================== 6) FINAL SORT ===================== */
-    jobs = sortJobsByPostedDateDesc(jobs);
-
-    /* ===================== 7) AGGREGATE JOB VIEWS ===================== */
-    const jobIds = jobs.map((j) => j._id);
-
-    const viewCounts = await JobInteraction.aggregate([
-      {
-        $match: {
-          job: { $in: jobIds },
-          type: 'VIEW',
-        },
-      },
-      {
-        $group: {
-          _id: '$job',
-          views: { $sum: 1 },
-        },
-      },
-    ]);
-
-    const viewsMap = Object.fromEntries(
-      viewCounts.map((v) => [String(v._id), v.views]),
-    );
-
-    jobs = jobs.map((job) => ({
-      ...job,
-      jobViews: viewsMap[String(job._id)] || 0,
-    }));
-
-    /* ===================== 8) CACHE WRITE ===================== */
-    try {
-      if (lockAcquired) {
-        await redisClient.set(
-          cacheKey,
-          JSON.stringify({ jobs, totalJobs, notification }),
-          SEARCH_TTL,
-        );
-      }
-    } catch (e) {
-      console.warn('searchJobs: cache write failed', e?.message);
-    } finally {
-      if (lockAcquired) await redisClient.del(lockKey);
-    }
-
-    /* ===================== 9) IMPRESSION TRACKING ===================== */
-    await JobInteraction.insertMany(
-      jobs.map((job) => ({
-        job: job._id,
+    // 3. Track Impression
+    const activeJobIds = paginatedJobs
+      .filter((j) => j._id)
+      .map((j) => String(j._id));
+    if (activeJobIds.length > 0) {
+      const impressionDocs = activeJobIds.map((jobId) => ({
+        job: jobId,
         user: req.user?._id || null,
         type: 'IMPRESSION',
         meta: {
           query: q || null,
           source: 'search',
         },
-      })),
-      { ordered: false },
-    );
+      }));
 
-    /* ===================== 10) RESPONSE ===================== */
-    const totalPages = Math.ceil((totalJobs || 0) / limitNum);
+      JobInteraction.insertMany(impressionDocs, { ordered: false }).catch((e) =>
+        console.error('Impression error', e.message),
+      );
+    }
+
+    console.log('paginatedJobs', paginatedJobs.length);
 
     return res.status(200).json({
-      jobs,
+      success: true,
+      jobs: paginatedJobs,
       pagination: {
-        totalJobs: totalJobs || 0,
-        totalPages,
         currentPage: pageNum,
-        hasNextPage: pageNum < totalPages,
+        hasNextPage:
+          paginatedJobs.length >= limitNum ||
+          candidates.length >= requiredPoolSize,
+        totalJobs:
+          processed.length > start + limitNum
+            ? processed.length
+            : start + paginatedJobs.length,
       },
-      notification,
-      fromCache: false,
     });
   } catch (error) {
-    console.error('Error in searchJobs:', error);
-    return res.status(500).json({
-      message: 'Server Error',
-      error: error.message,
-    });
+    console.error('error', error);
+    return res.status(500).json({ success: false, message: 'Server Error' });
   }
-};
+}
 
 export const postManualJob = async (req, res) => {
   const { organization: organizationId } = req.user;
@@ -976,8 +802,6 @@ export const getHostedJobsByAdmin = async (req, res) => {
   try {
     const organizationId = new mongoose.Types.ObjectId(organization);
 
-    console.log('QUERY', query);
-
     // pagination params
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.max(parseInt(req.query.limit) || 10, 1);
@@ -1102,8 +926,6 @@ export const candidatesOrganization = async (req, res) => {
       jobId,
     }).select('_id');
 
-    console.log(candidates);
-
     return res.status(200).json({
       success: true,
       candidates,
@@ -1199,8 +1021,6 @@ export const getJobCandidateStats = async (req, res) => {
 
     const defaultStats = { total: 0, shortlisted: 0, selected: 0, rejected: 0 };
 
-    console.log(defaultStats);
-
     return res.status(200).json(stats[0] || defaultStats);
   } catch (error) {
     return res.status(500).json({ message: 'Internal Server Error' });
@@ -1264,8 +1084,6 @@ export const updateJobDescription = async (req, res) => {
     screeningQuestions,
   } = req.body;
 
-  console.log('resumeRequired', resumeRequired);
-
   try {
     const job = await Job.findById(jobId);
     if (!job) {
@@ -1284,7 +1102,6 @@ export const updateJobDescription = async (req, res) => {
     job.qualifications = qualifications || job.qualifications;
     job.screeningQuestions = screeningQuestions || job.screeningQuestions;
 
-    console.log('job', job);
     await job.save();
 
     // 2. 🔥 Invalidate ALL job-related caches (single + lists)
@@ -1666,7 +1483,6 @@ export const getJobFromJobId = async (req, res) => {
 
 export const getSingleJobDetail = async (req, res) => {
   const { jobId } = req.params;
-  console.log(jobId);
 
   try {
     const cacheKey = `job:${jobId}`;

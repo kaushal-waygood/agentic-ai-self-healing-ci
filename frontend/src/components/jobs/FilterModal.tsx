@@ -10,14 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Globe, MapPin, X } from 'lucide-react';
+import { Globe, Loader, MapPin, X } from 'lucide-react';
 import CountrySelector from '../common/CountrySelector';
 import StateSelector from '../common/StateSelector';
-import { useJobs } from '@/hooks/jobs/useJobs';
 
 interface FilterModalProps {
   isOpen: boolean;
   onClose: () => void;
+  employmentTypes: string[];
+  experienceLevels: string[];
+  filters: any;
+  handleFilterChange: (newFilters: any) => void;
 }
 
 const datePostedOptions = [
@@ -67,13 +70,17 @@ const EducationTag = ({
   </div>
 );
 
-export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
-  const { employmentTypes, experienceLevels, filters, handleFilterChange } =
-    useJobs();
-
+export const FilterModal = ({
+  isOpen,
+  onClose,
+  employmentTypes,
+  experienceLevels,
+  filters,
+  handleFilterChange,
+}: FilterModalProps) => {
   const [localFilters, setLocalFilters] = useState<any>({
     ...filters,
-    education: filters.education || [],
+    education: filters?.education || [],
   });
 
   const [educationInput, setEducationInput] = useState('');
@@ -85,7 +92,7 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
         education: filters.education || [],
       });
     }
-  }, [isOpen, filters]);
+  }, [isOpen]);
 
   const handleSelectionChange = (
     filterKey: 'employmentType' | 'experience',
@@ -127,10 +134,12 @@ export const FilterModal = ({ isOpen, onClose }: FilterModalProps) => {
   };
 
   const handleApply = () => {
-    handleFilterChange(localFilters);
     onClose();
-  };
 
+    setTimeout(() => {
+      handleFilterChange(localFilters);
+    }, 100);
+  };
   const handleReset = () => {
     const resetState = {
       query: filters.query || '',

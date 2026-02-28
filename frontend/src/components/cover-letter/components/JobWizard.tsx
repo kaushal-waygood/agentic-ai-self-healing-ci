@@ -180,6 +180,7 @@ const JobWizard = ({
     const fetchSavedJobs = async () => {
       try {
         setLoading(true);
+
         const response = await apiInstance.get(
           '/students/jobs/events?type=SAVED',
         );
@@ -376,18 +377,18 @@ const JobWizard = ({
 
               {/* Enhanced Select Tab */}
 
-              {loading ? (
-                <Loader
-                  message="Fetching saved Jobs"
-                  imageClassName="w-6 h-6"
-                  textClassName="text-sm"
-                />
-              ) : (
+              <div>
                 <TabsContent
                   value="select"
                   className="space-y-6 animate-in fade-in duration-500"
                 >
-                  {savedJobs.length > 0 ? (
+                  {loading ? (
+                    <Loader
+                      message="Fetching saved Jobs"
+                      imageClassName="w-6 h-6"
+                      textClassName="text-sm"
+                    />
+                  ) : savedJobs.length > 0 ? (
                     <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
                       {savedJobs.map((job: any) => (
                         <div
@@ -419,8 +420,7 @@ const JobWizard = ({
                     </div>
                   )}
                 </TabsContent>
-              )}
-
+              </div>
               {/* Enhanced Title Tab */}
               <TabsContent
                 value="title"

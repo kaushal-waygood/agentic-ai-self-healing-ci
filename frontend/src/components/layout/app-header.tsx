@@ -194,9 +194,19 @@ export const CommandPalette = ({ setIsSearchOpen }) => {
 
 export const TotalCredit = () => {
   const [open, setOpen] = useState(false);
+
   const { streak, claiming, claim, credit } = useDailyStreak();
   const dropdownRef = useRef(null);
 
+  useEffect(() => {
+    const openDropdown = () => setOpen(true);
+
+    window.addEventListener('open-streak-dropdown', openDropdown);
+
+    return () => {
+      window.removeEventListener('open-streak-dropdown', openDropdown);
+    };
+  }, []);
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -252,6 +262,7 @@ export const TotalCredit = () => {
     </div>
   );
 };
+
 interface AppHeaderProps {
   setIsSearchOpen: (open: boolean) => void;
   onMenuClick: () => void;
@@ -348,18 +359,46 @@ const AppHeader = ({
 
   const isMobile = useIsMobile();
 
+  // const handleMenuToggle = (menu) => {
+  //   // 1. Check if the action is for notifications AND if user is on mobile
+  //   if (menu === 'notification' && isMobile) {
+  //     router.push('/dashboard/notifications'); // Redirect immediately
+  //     return; // Stop function execution here
+  //   }
+
+  //   // 2. Default behavior for Desktop (or other menus)
+  //   setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
+  //   setIsNotificationOpen(
+  //     menu === 'notification' ? !isNotificationOpen : false,
+  //   );
+  //   setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
+  // };
+
   const handleMenuToggle = (menu) => {
-    // 1. Check if the action is for notifications AND if user is on mobile
-    if (menu === 'notification' && isMobile) {
-      router.push('/dashboard/notifications'); // Redirect immediately
-      return; // Stop function execution here
+    if (menu === 'notification') {
+      if (isMobile) {
+        if (unreadCount > 0) {
+          markAllAsRead(); // call saga action
+        }
+        router.push('/dashboard/notifications');
+        return;
+      }
+
+      const willOpen = !isNotificationOpen;
+
+      setIsNotificationOpen(willOpen);
+      setIsPlanOpen(false);
+      setIsUserMenuOpen(false);
+
+      if (willOpen && unreadCount > 0) {
+        markAllAsRead();
+      }
+
+      return;
     }
 
-    // 2. Default behavior for Desktop (or other menus)
+    // Other menus (unchanged)
     setIsPlanOpen(menu === 'plan' ? !isPlanOpen : false);
-    setIsNotificationOpen(
-      menu === 'notification' ? !isNotificationOpen : false,
-    );
     setIsUserMenuOpen(menu === 'user' ? !isUserMenuOpen : false);
   };
 
@@ -482,7 +521,14 @@ const AppHeader = ({
                     </h3>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    <NotificationBell />
+                    {/* <NotificationBell /> */}
+                    <NotificationBell
+                      notifications={notifications}
+                      unreadCount={unreadCount}
+                      markAsRead={markAsRead}
+                      fetchNotifications={fetchNotifications}
+                      // connectionStatus={connectionStatus}
+                    />
                   </div>
                   <div className="p-4 border-t border-slate-100">
                     <button

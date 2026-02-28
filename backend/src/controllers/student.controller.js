@@ -13,13 +13,14 @@ import { generatePdfFromHtml } from '../utils/generatePdfFromHtml.js';
 import redisClient from '../config/redis.js';
 import {
   normalizeSet,
-  fetchExternalJobsCached,
   transformRapidApiJob,
+  retrieveLocalCandidates,
+  buildInteractionContext,
+  applyFilters,
+  fetchExternalJobs,
   upsertExternalJobs,
-  getCTRMap,
-  getLocalRecommendedJobs,
-  fetchAndUpsertMoreExternalJobs,
-  getTop4DashboardJobs,
+  rankJobs,
+  diversify,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
@@ -29,6 +30,7 @@ import {
 import { generateEmbedding } from '../config/embedding.js';
 import { getCachedReco, makeRecoKey } from '../utils/recoCache.js';
 import { StudentSkill } from '../models/students/studentSkill.model.js';
+import { makeTop4Key } from '../utils/dashboardKeys.js';
 
 const PROFILE_SECTION_ACTIONS = {
   PERSONAL: 'PROFILE_COMPLETE_PERSONAL',
@@ -1922,70 +1924,197 @@ ${JSON.stringify(profile)}
 
 const syncCooldown = new Map();
 
-export const getProfileBasedRecommendedJobs = async (req, res) => {
+export async function getProfileBasedRecommendedJobs(req, res) {
+  const { page = 1, limit = 10 } = req.query || {};
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+  const skip = (pageNum - 1) * limitNum;
+
   try {
-    const userId = req.user?._id;
-    if (!userId) return res.sendStatus(401);
+    const profile = await buildUserProfileFromStudent(req.user._id);
+    const interactions = await buildInteractionContext(req.user._id);
 
-    const profile = await buildUserProfileFromStudent(userId);
-    let jobs = await getLocalRecommendedJobs(profile);
+    const profileQuery =
+      `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() ||
+      'jobs';
 
-    const MIN_RESULTS = 10;
-    const MAX_SYNC_ROUNDS = 3;
-    const COOLDOWN_MS = 10 * 60 * 1000;
+    const context = {
+      type: 'recommendation',
+      query: profileQuery,
+      profile,
+      filters: {
+        country: profile.location?.country || 'IN',
+        state: profile.location?.state,
+        city: profile.location?.city,
+      },
+      userId: req.user._id,
+      interactions,
+    };
 
-    const now = Date.now();
-    const lastSync = syncCooldown.get(userId.toString());
-    const isInCooldown = lastSync && now - lastSync < COOLDOWN_MS;
+    // 1. Fetch Local Pool
+    // We increase the pool size significantly to account for deduplication/filtering drops
+    const requiredPoolSize = pageNum * limitNum * 100 + 200;
+    const candidates = await retrieveLocalCandidates(context, requiredPoolSize);
 
-    // -------- CRITICAL FIX --------
-    if (jobs.length < MIN_RESULTS && !isInCooldown) {
-      syncCooldown.set(userId.toString(), now);
+    const processPool = (jobsPool) => {
+      const filtered = applyFilters(jobsPool, context);
+      const ranked = rankJobs(filtered, context);
+      return diversify(ranked);
+    };
 
-      console.log('Low results. Running progressive sync...');
+    let processed = processPool(candidates);
+    let finalJobs = processed.slice(skip, skip + limitNum);
 
-      let round = 0;
+    // 2. 🔥 API FALLBACK: If local DB doesn't have enough for this specific page
+    if (finalJobs.length < limitNum) {
+      // Create a simplified fallback query for JSearch so it doesn't fail on long 30-word strings
+      const fallbackTerm = profile.titles[0] || profile.skills[0] || 'jobs';
+      const apiFallbackQuery = fallbackTerm;
 
-      while (jobs.length < MIN_RESULTS && round < MAX_SYNC_ROUNDS) {
-        console.log(`Sync round ${round + 1}`);
+      // Start fetching from the page the user is actually on
+      const pagesToFetch = [pageNum, pageNum + 1, pageNum + 2];
 
-        await fetchAndUpsertMoreExternalJobs(profile);
+      const fetchPromises = pagesToFetch.map((apiPage) =>
+        fetchExternalJobs(
+          apiFallbackQuery,
+          context.filters.country || 'IN',
+          context.filters.state,
+          context.filters.city,
+          null,
+          null,
+          null,
+          apiPage, // 🔥 Fetch the page matching user's scroll depth
+        ),
+      );
 
-        jobs = await getLocalRecommendedJobs(profile);
+      const API_TIMEOUT = 12000;
+      const responsesRaw = await Promise.all(
+        fetchPromises.map((p) =>
+          Promise.race([
+            p,
+            new Promise((resolve) =>
+              setTimeout(() => resolve([]), API_TIMEOUT),
+            ),
+          ]),
+        ),
+      );
 
-        round++;
-      }
+      const externalRaw = responsesRaw.flat().filter(Boolean);
 
-      // -------- FALLBACK --------
-      if (jobs.length < MIN_RESULTS) {
-        console.log('Fallback to trending jobs');
+      if (externalRaw.length > 0) {
+        const formatted = externalRaw.map((j) =>
+          transformRapidApiJob(j, profileQuery || 'job'),
+        );
 
-        const fallback = await Job.find({
-          isActive: true,
-          country: profile.location?.country,
-        })
-          .sort({ jobPostedAt: -1 })
-          .limit(MIN_RESULTS)
-          .lean();
+        // Save to DB so they have valid _id/slugs
+        await upsertExternalJobs(formatted).catch((e) =>
+          console.error('Sync Upsert Error', e.message),
+        );
 
-        jobs = [...jobs, ...fallback];
+        const filteredExt = processPool(formatted);
+
+        if (filteredExt.length > 0) {
+          const remainingNeeded = limitNum - finalJobs.length;
+          const toAdd = filteredExt.slice(0, remainingNeeded);
+          finalJobs = [...finalJobs, ...toAdd];
+          processed = [...processed, ...filteredExt];
+        }
       }
     }
 
-    // Remove duplicates
-    const unique = new Map();
-    jobs.forEach((j) => unique.set(j._id.toString(), j));
-
-    return res.json({
+    // 3. 🚀 INFINITE PAGINATION LOGIC
+    res.status(200).json({
       success: true,
-      count: unique.size,
-      jobs: Array.from(unique.values()).slice(0, 30),
+      pagination: {
+        currentPage: pageNum,
+        // 🔥 FIX: If we found enough jobs to fill the limit, tell frontend to keep scrolling.
+        // Also if `candidates` reached the pool size, there might be more to fetch on next page
+        hasNextPage:
+          finalJobs.length >= limitNum || candidates.length >= requiredPoolSize,
+        totalJobs:
+          processed.length > skip + limitNum
+            ? processed.length
+            : skip + finalJobs.length,
+      },
+      jobs: finalJobs,
     });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false });
+  } catch (error) {
+    console.error('API Reco Error:', error);
+    res.status(500).json({ success: false });
   }
-};
+}
+
+/**
+ * Fetches 4 top-ranked job recommendations for the dashboard widget.
+ * Uses the student profile to personalise results and caches them
+ * in Redis for 10 minutes so the dashboard loads instantly on repeat visits.
+ *
+ * @param {object} profile - Output of buildUserProfileFromStudent()
+ * @returns {Promise<object[]>} Array of up to 4 job objects
+ */
+async function getTop4DashboardJobs(profile) {
+  // Build a stable bucket key from the user's primary title/location
+  // so we re-use cached results when the profile hasn't changed.
+  const bucket = [
+    (profile.titles[0] || 'any').toLowerCase().replace(/\s+/g, '-'),
+    (profile.location?.country || 'IN').toUpperCase(),
+  ].join(':');
+
+  const cacheKey = makeTop4Key(profile.userId, bucket);
+
+  // 1. Return cached results if fresh
+  const cached = await redisClient.get(cacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      // corrupt cache — fall through to re-fetch
+    }
+  }
+
+  // 2. Build search context from profile
+  const profileQuery =
+    `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() || 'jobs';
+
+  const context = {
+    type: 'recommendation',
+    query: profileQuery,
+    profile,
+    filters: {
+      country: profile.location?.country || 'IN',
+      state: profile.location?.state,
+      city: profile.location?.city,
+    },
+    userId: profile.userId,
+    interactions: null, // skip heavy interaction loads for the lightweight dashboard widget
+  };
+
+  // 3. Fetch a small local pool (40 is plenty for picking 4)
+  let candidates = [];
+  try {
+    candidates = await retrieveLocalCandidates(context, 40);
+  } catch (e) {
+    console.error(
+      '[getTop4DashboardJobs] retrieveLocalCandidates error:',
+      e.message,
+    );
+  }
+
+  // 4. Filter → rank → take 4
+  const filtered = applyFilters(candidates, {
+    ...context,
+    interactions: { applied: new Set(), saved: new Set(), views: {} },
+  });
+  const ranked = rankJobs(filtered, context);
+  const top4 = ranked.slice(0, 4);
+
+  // 5. Store in Redis for 10 min
+  if (top4.length > 0) {
+    await redisClient.set(cacheKey, JSON.stringify(top4), 600);
+  }
+
+  return top4;
+}
 
 export const getDashboardTopJobs = async (req, res) => {
   const userId = req.user?._id;

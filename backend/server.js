@@ -53,8 +53,14 @@ async function startHttpServer() {
   process.once('SIGINT', () => shutdown('SIGINT'));
   process.once('SIGTERM', () => shutdown('SIGTERM'));
 }
+import { generateEmbedding } from './src/config/embedding.js';
 
-startHttpServer().catch((err) => {
-  console.error('❌ Server failed to start:', err);
-  process.exit(1);
-});
+startHttpServer()
+  .then(() => {
+    // Pre-load the Vector Machine Learning Model into memory in the background
+    generateEmbedding('Init').catch(() => {});
+  })
+  .catch((err) => {
+    console.error('❌ Server failed to start:', err);
+    process.exit(1);
+  });

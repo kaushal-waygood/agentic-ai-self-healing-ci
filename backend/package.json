@@ -54,6 +54,7 @@
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
+    "fastembed": "^2.1.0",
     "firebase-admin": "^13.4.0",
     "generic-pool": "^3.9.0",
     "google-auth-library": "^10.3.0",

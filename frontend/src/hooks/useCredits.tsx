@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
@@ -55,7 +55,6 @@ export function useCredits() {
   const [spending, setSpending] = useState(false);
 
   const data = claimCredits?.data || null;
-  console.log(data);
 
   /* ------------------ fetch ------------------ */
 
@@ -64,16 +63,16 @@ export function useCredits() {
     dispatch(getCreditRequest());
     // dispatch(earnCreditRequest());
   }, [dispatch]);
-
-  useEffect(() => {
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to fetch your credits',
-      });
-    }
-  }, [error]);
+  // console.log('error from useCredits ', error);
+  // useEffect(() => {
+  //   if (error) {
+  //     toast({
+  //       variant: 'destructive',
+  //       title: 'Error',
+  //       description: 'Failed to fetch your credits',
+  //     });
+  //   }
+  // }, [error]);
 
   useEffect(() => {
     if (claimCredits) {
@@ -90,7 +89,11 @@ export function useCredits() {
 
   /* ------------------ actions ------------------ */
 
-  const claimCredit = async (p: PendingClaim) => {
+  const claimCredit = async (p: any) => {
+    if (p.action === 'DAILY_CHECKIN') {
+      window.dispatchEvent(new CustomEvent('open-streak-dropdown'));
+    }
+
     const targetUrl = p.url;
     if (!targetUrl) return;
 
@@ -104,6 +107,7 @@ export function useCredits() {
 
     try {
       setClaiming((prev) => ({ ...prev, [p.action]: true }));
+
       dispatch(
         earnCreditRequest({
           action: p.action,

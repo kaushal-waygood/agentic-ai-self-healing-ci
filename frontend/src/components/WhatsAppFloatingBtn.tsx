@@ -15,20 +15,20 @@ const WhatsAppFloatingBtn = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-1">
+    <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-1">
       {/* Interactive Text Bubble */}
       <a
         href={communityLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative mb-1 mr-1 cursor-pointer rounded-xl bg-white px-4 py-2 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-gray-800"
+        className="group relative mb-1 ml-1 cursor-pointer rounded-xl bg-white px-4 py-2 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-gray-800"
       >
         <p className="whitespace-nowrap text-sm font-semibold text-gray-800 dark:text-gray-100">
           Join ZobsAI Community 👋
         </p>
 
         {/* Little triangle pointer for the bubble */}
-        <div className="absolute -bottom-1.5 right-4 h-3 w-3 rotate-45 bg-white dark:bg-gray-800"></div>
+        <div className="absolute -bottom-1.5 left-4 h-3 w-3 rotate-45 bg-white dark:bg-gray-800"></div>
       </a>
 
       {/* Main WhatsApp Button */}

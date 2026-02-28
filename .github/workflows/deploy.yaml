@@ -1,9 +1,12 @@
+# -------------------------------
+# ZobsAI - Build & Deploy (DEV)
+# -------------------------------
 name: Build & Deploy ZobsAI (Dev)
 
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
 
 jobs:
@@ -18,16 +21,20 @@ jobs:
       NODE_ENV: development
       API_URL_DEV: 'https://api.dev.zobsai.com'
       REGISTRY: ghcr.io
-      IMAGE_OWNER: zobsai-com
+      IMAGE_OWNER: zobsai-com # MUST match your manifest image path
 
     steps:
+      # -------------------------------
       # 1️⃣ Checkout Repository
+      # -------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2️⃣ Login to GHCR
+      # -------------------------------
+      # 2️⃣ Login to GitHub Container Registry
+      # -------------------------------
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -35,7 +42,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # -------------------------------
       # 3️⃣ Build & Push Backend Image
+      # -------------------------------
       - name: Build & Push Backend Image
         uses: docker/build-push-action@v6
         with:
@@ -47,10 +56,12 @@ jobs:
             MONGO_URL=${{ secrets.MONGO_URL }}
             RAPID_API_KEY=${{ secrets.RAPID_API_KEY }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-backend:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-backend:${{ github.sha }}
 
+      # -------------------------------
       # 4️⃣ Build & Push Frontend Image
+      # -------------------------------
       - name: Build & Push Frontend Image
         uses: docker/build-push-action@v6
         with:
@@ -63,10 +74,12 @@ jobs:
             NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY_DEV }}
             NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-frontend:${{ github.sha }}
 
-      # 5️⃣ Build & Push Uni Company Panel Image (FIXED - ENABLED)
+      # -------------------------------
+      # 5️⃣ Build & Push Uni Company Panel Image (NEW)
+      # -------------------------------
       - name: Build & Push Uni Company Panel Image
         uses: docker/build-push-action@v6
         with:
@@ -77,50 +90,69 @@ jobs:
             NEXT_PUBLIC_API_URL=${{ env.API_URL_DEV }}
             NEXT_PUBLIC_NODE_ENV=${{ env.NODE_ENV }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:${{ github.sha }}
 
-      # 6️⃣ Debug Current Images
-      - name: Debug current manifest images
+      # -------------------------------
+      # 6️⃣ Debug: Show Current Images (Before Update)
+      # -------------------------------
+      - name: Debug current manifest images (BEFORE)
         run: |
+          echo "=== 🔍 Current SHA from GitHub: ${{ github.sha }} ==="
+          echo ""
           echo "=== Backend BEFORE ==="
-          grep "image:" manifests/zobsai-backend-deployment.yaml || true
+          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml || true
           echo "=== Frontend BEFORE ==="
-          grep "image:" manifests/zobsai-frontend-deployment.yaml || true
+          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml || true
           echo "=== Uni Panel BEFORE ==="
-          grep "image:" manifests/zobsai-uni-company-panel-deployment.yaml || true
+          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml || true
 
-      # 7️⃣ Update Kubernetes Manifests (MORE ROBUST)
+      # -------------------------------
+      # 7️⃣ Update Kubernetes Manifests (Linux-safe)
+      # -------------------------------
       - name: Update Backend Deployment Manifest
         run: |
-          sed -i "s#ghcr.io/${{ env.IMAGE_OWNER }}/zobsai-backend:.*#ghcr.io/${{ env.IMAGE_OWNER }}/zobsai-backend:${{ github.sha }}#g" manifests/zobsai-backend-deployment.yaml
-          echo "✅ Backend image updated"
-          grep "image:" manifests/zobsai-backend-deployment.yaml
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-backend:.*|image: ghcr.io/zobsai-com/zobsai-backend:${{ github.sha }}|g" manifests/dev/zobsai-backend-deployment-dev.yaml
+          echo "✅ Backend image updated to:"
+          grep "image:" manifests/dev/zobsai-backend-deployment-dev.yaml
 
       - name: Update Frontend Deployment Manifest
         run: |
-          sed -i "s#ghcr.io/${{ env.IMAGE_OWNER }}/zobsai-frontend:.*#ghcr.io/${{ env.IMAGE_OWNER }}/zobsai-frontend:${{ github.sha }}#g" manifests/zobsai-frontend-deployment.yaml
-          echo "✅ Frontend image updated"
-          grep "image:" manifests/zobsai-frontend-deployment.yaml
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-frontend:.*|image: ghcr.io/zobsai-com/zobsai-frontend:${{ github.sha }}|g" manifests/dev/zobsai-frontend-deployment-dev.yaml
+          echo "✅ Frontend image updated to:"
+          grep "image:" manifests/dev/zobsai-frontend-deployment-dev.yaml
 
       - name: Update Uni Company Panel Deployment Manifest
         run: |
-          sed -i "s#ghcr.io/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:.*#ghcr.io/${{ env.IMAGE_OWNER }}/zobsai-uni-company-panel:${{ github.sha }}#g" manifests/zobsai-uni-company-panel-deployment.yaml
-          echo "✅ Uni Panel image updated"
-          grep "image:" manifests/zobsai-uni-company-panel-deployment.yaml
+          sed -i -e "s|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:.*|image: ghcr.io/zobsai-com/zobsai-uni-company-panel:${{ github.sha }}|g" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
+          echo "✅ Uni Company Panel image updated to:"
+          grep "image:" manifests/dev/zobsai-uni-company-panel-deployment-dev.yaml
 
-      # 8️⃣ Commit & Push (ArgoCD Auto Sync)
+      # -------------------------------
+      # 8️⃣ Commit & Push Manifest Changes (For ArgoCD)
+      # -------------------------------
       - name: Commit and Push Manifest Changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add -f manifests/
+          git add -f manifests/dev/*.yaml
+
+          echo "=== 📋 git status ==="
+          git status
+
+          echo "=== 📋 git diff --cached ==="
+          git diff --cached
 
           if git diff --cached --quiet; then
-            echo "⚠️ No changes to commit"
+            echo ""
+            echo "⚠️  WARNING: No manifest changes detected!"
+            echo "     This means the SHA in the manifest was ALREADY set to: ${{ github.sha }}"
+            echo "     ArgoCD will NOT sync because nothing changed in Git."
+            echo "     This can happen if the same commit SHA was used in a previous run."
+            exit 0
           else
-            git commit -m "ci(dev): update images for ${{ github.sha }}"
-            git push origin main
-            echo "🚀 Manifests pushed. ArgoCD will auto-sync."
+            git commit -m "ci(dev): update images to ${{ github.sha }}"
+            git push origin develop
+            echo "🚀 Manifests pushed to develop. ArgoCD will auto-sync shortly."
           fi

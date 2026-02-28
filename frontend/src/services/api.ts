@@ -5,6 +5,8 @@ import { logoutRequest } from '@/redux/reducers/authReducer';
 import store from '@/redux/store';
 import axios from 'axios';
 
+console.log("TEST", process.env.NEXT_PUBLIC_NODE_ENV);
+
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
@@ -67,9 +69,19 @@ let isLoggingOut = false;
 apiInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 403 && !isLoggingOut) {
-      isLoggingOut = true;
+    // if (error.response?.status === 403 && !isLoggingOut) {
+    //   isLoggingOut = true;
 
+    //   delete apiInstance.defaults.headers.common['Authorization'];
+    //   store.dispatch(logoutRequest());
+    // }
+    // return Promise.reject(error);
+    if (
+      error.response?.status === 403 &&
+      !isLoggingOut &&
+      error.response?.data?.message?.toLowerCase().includes('token')
+    ) {
+      isLoggingOut = true;
       delete apiInstance.defaults.headers.common['Authorization'];
       store.dispatch(logoutRequest());
     }

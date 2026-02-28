@@ -13,7 +13,7 @@ spec:
   replicas: 1
   revisionHistoryLimit: 2
   selector:
-    matchLabels:  
+    matchLabels:
       app: zobsai-backend
   template:
     metadata:
@@ -24,7 +24,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend
-          image: ghcr.io/zobsai-com/zobsai-backend:2481bc43c6976586916788c36c97f8cfe9468a6c
+          image: ghcr.io/zobsai-com/zobsai-backend:5270827d94e12b4b5d1ffb5d86fb44fad2a49076
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -35,11 +35,12 @@ spec:
                 name: zobsai-backend-secrets
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              cpu: '500m'
+              memory: '1Gi' # Increased to 1Gi
             limits:
-              memory: "512Mi"
-              cpu: "1000m"
+              cpu: '2000m' # Increased for better ML inference speed
+              memory: '2Gi' # Increased to 2Gi (or 4Gi if OOM persists)
+
 ---
 apiVersion: v1
 kind: Service

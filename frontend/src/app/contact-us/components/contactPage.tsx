@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Facebook,
   Twitter,
+  AlertCircle,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import { Navigation } from '@/components/layout/site-header';
@@ -24,16 +25,68 @@ export default function ContactPage() {
     mobile: '',
     message: '',
   });
+  const [errors, setErrors] = useState({
+    name: '',
+    mobile: '',
+    email: '',
+  });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const validateName = (name) => {
+    const nameRegex = /^[a-zA-Z\s'-]+$/;
+    if (!name.trim()) return 'Name is required';
+    if (!nameRegex.test(name)) return 'Name should only contain letters';
+    if (name.trim().length < 2)
+      return 'Name must be at least 2 characters long';
+    return '';
+  };
+
+  const validateMobile = (mobile) => {
+    const digitsOnly = mobile.replace(/\D/g, '');
+    if (!mobile.trim()) return 'Phone number is required';
+    if (digitsOnly.length < 10) return 'Number must be at least 10 digits';
+    if (digitsOnly.length > 15) return 'Phone number is too long';
+    const invalidChars = /[^\d+\s\-()]/g;
+    if (invalidChars.test(mobile))
+      return 'Phone number can only contain digits, +, -, spaces, and parentheses';
+    return '';
+  };
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) return 'Email is required';
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return '';
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
+  const validateForm = () => {
+    const nameError = validateName(formData.name);
+    const mobileError = validateMobile(formData.mobile);
+    const emailError = validateEmail(formData.email);
+
+    setErrors({
+      name: nameError,
+      mobile: mobileError,
+      email: emailError,
+    });
+
+    return !nameError && !mobileError && !emailError;
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     setIsLoading(true);
 
     await apiInstance.post('/form/contact', {
@@ -50,7 +103,30 @@ export default function ContactPage() {
     setTimeout(() => {
       setIsSubmitted(false);
       setFormData({ name: '', email: '', mobile: '', message: '' });
+      setErrors({ name: '', mobile: '', email: '' });
     }, 3000);
+  };
+
+  const formatPhoneNumber = (value) => {
+    const digits = value.replace(/\D/g, '');
+
+    if (digits.length <= 3) {
+      return digits;
+    } else if (digits.length <= 6) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    } else {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    }
+  };
+
+  const handleMobileChange = (e) => {
+    const { value } = e.target;
+    const formattedValue = formatPhoneNumber(value);
+    setFormData((prev) => ({ ...prev, mobile: formattedValue }));
+
+    if (errors.mobile) {
+      setErrors((prev) => ({ ...prev, mobile: '' }));
+    }
   };
 
   return (
@@ -123,18 +199,31 @@ export default function ContactPage() {
 
               {/* Social Media Cards */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 text-center group cursor-pointer">
+                <a
+                  href="https://facebook.com/zobsai.co/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white/70 backdrop-blur-lg rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 text-center group cursor-pointer"
+                >
                   <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-400 rounded-xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                     <Facebook className="w-8 h-8 text-white" />
                   </div>
                   <p className="text-gray-800 font-medium">Facebook</p>
-                </div>
+                </a>
 
                 <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 text-center group cursor-pointer">
+                  {/* <a
+                  href="https://twitter.com/zobsai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white/70 backdrop-blur-lg rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 text-center group cursor-pointer"
+                > */}
+
                   <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-green-400 rounded-xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                     <Twitter className="w-8 h-8 text-white" />
                   </div>
                   <p className="text-gray-800 font-medium">Twitter</p>
+                  {/* </a> */}
                 </div>
               </div>
             </div>
@@ -144,44 +233,93 @@ export default function ContactPage() {
               {!isSubmitted ? (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
-                    <div className="relative group">
-                      <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-purple-500 transition-colors duration-300" />
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        placeholder="Your Name"
-                        className="w-full pl-12 pr-4 py-4 bg-gray-100 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-600 focus:outline-none focus:border-purple-400 focus:bg-white transition-all duration-300"
-                        required
-                      />
+                    <div className="relative">
+                      <div className="relative group">
+                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-purple-500 transition-colors duration-300" />
+                        <input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          onBlur={() => {
+                            const error = validateName(formData.name);
+                            setErrors((prev) => ({ ...prev, name: error }));
+                          }}
+                          placeholder="Your Name"
+                          className={`w-full pl-12 pr-4 py-4 bg-gray-100 border rounded-xl text-gray-900 placeholder-gray-600 focus:outline-none focus:bg-white transition-all duration-300 ${
+                            errors.name
+                              ? 'border-red-500 focus:border-red-500'
+                              : 'border-gray-300 focus:border-purple-400'
+                          }`}
+                          // required
+                        />
+                      </div>
+                      {errors.name && (
+                        <div className="absolute -bottom-5 left-0 flex items-center gap-1 text-red-500 text-xs mt-1">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>{errors.name}</span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="relative group">
-                      <MessageCircle className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-purple-500 transition-colors duration-300" />
-                      <input
-                        type="tel"
-                        name="mobile"
-                        value={formData.mobile}
-                        onChange={handleInputChange}
-                        placeholder="Phone Number"
-                        className="w-full pl-12 pr-4 py-4 bg-gray-100 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-600 focus:outline-none focus:border-purple-400 focus:bg-white transition-all duration-300"
-                        required
-                      />
+                    <div className="relative">
+                      <div className="relative group">
+                        <MessageCircle className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-purple-500 transition-colors duration-300" />
+                        <input
+                          type="tel"
+                          name="mobile"
+                          value={formData.mobile}
+                          // onChange={handleInputChange}
+                          onChange={handleMobileChange}
+                          onBlur={() => {
+                            const error = validateMobile(formData.mobile);
+                            setErrors((prev) => ({ ...prev, mobile: error }));
+                          }}
+                          placeholder="Phone Number"
+                          className={`w-full pl-12 pr-4 py-4 bg-gray-100 border rounded-xl text-gray-900 placeholder-gray-600 focus:outline-none focus:bg-white transition-all duration-300 ${
+                            errors.mobile
+                              ? 'border-red-500 focus:border-red-500'
+                              : 'border-gray-300 focus:border-purple-400'
+                          }`}
+                          // required
+                        />
+                      </div>
+                      {errors.mobile && (
+                        <div className="absolute -bottom-5 left-0 flex items-center gap-1 text-red-500 text-xs mt-1">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>{errors.mobile}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="relative group">
-                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-purple-500 transition-colors duration-300" />
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="Your Email"
-                      className="w-full pl-12 pr-4 py-4 bg-gray-100 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-600 focus:outline-none focus:border-purple-400 focus:bg-white transition-all duration-300"
-                      required
-                    />
+                  <div className="relative">
+                    <div className="relative group">
+                      <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-purple-500 transition-colors duration-300" />
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        onBlur={() => {
+                          const error = validateEmail(formData.email);
+                          setErrors((prev) => ({ ...prev, email: error }));
+                        }}
+                        placeholder="Your Email"
+                        className={`w-full pl-12 pr-4 py-4 bg-gray-100 border rounded-xl text-gray-900 placeholder-gray-600 focus:outline-none focus:bg-white transition-all duration-300 ${
+                          errors.email
+                            ? 'border-red-500 focus:border-red-500'
+                            : 'border-gray-300 focus:border-purple-400'
+                        }`}
+                        // required
+                      />
+                    </div>
+                    {errors.email && (
+                      <div className="absolute -bottom-5 left-0 flex items-center gap-1 text-red-500 text-xs mt-1">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>{errors.email}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="relative">

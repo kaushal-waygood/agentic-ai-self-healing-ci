@@ -1,30 +1,30 @@
 import { PageHeader } from '@/components/common/page-header';
 import { JobCard } from '@/components/jobs/job-card';
 import { Search } from 'lucide-react';
-import { searchJobsFlow } from '@/ai/flows/search-jobs-flow';
-import { JobSearchFlowInput } from '@/lib/schemas/job-search-schema';
+import { searchJobs } from '@/services/api/job';
 import Link from 'next/link';
 
-async function fetchJobs(searchParams: JobSearchFlowInput) {
-  // Process params safely
-  const processedParams: JobSearchFlowInput = {
-    ...searchParams,
-    employmentTypes: Array.isArray(searchParams.employmentTypes)
-      ? searchParams.employmentTypes
-      : searchParams.employmentTypes
-        ? [searchParams.employmentTypes]
-        : [],
-    jobRequirements: Array.isArray(searchParams.jobRequirements)
-      ? searchParams.jobRequirements
-      : searchParams.jobRequirements
-        ? [searchParams.jobRequirements]
-        : [],
-    radius: searchParams.radius ? Number(searchParams.radius) : undefined,
-  };
+interface SearchParams {
+  query?: string;
+  country?: string;
+  page?: number;
+  employmentTypes?: string | string[];
+  jobRequirements?: string | string[];
+  radius?: string | number;
+  datePosted?: string;
+  workFromHome?: boolean;
+}
 
+async function fetchJobs(searchParams: SearchParams) {
   try {
-    const jobs = await searchJobsFlow(processedParams);
-    return jobs || [];
+    const response = await searchJobs({
+      page: searchParams.page || 1,
+      query: searchParams.query,
+      country: searchParams.country,
+      datePosted: searchParams.datePosted,
+      limit: 20,
+    });
+    return response?.data?.jobs || [];
   } catch (error) {
     console.error('Error fetching jobs:', error);
     return [];
@@ -34,7 +34,7 @@ async function fetchJobs(searchParams: JobSearchFlowInput) {
 export default async function SearchJobsPage({
   searchParams,
 }: {
-  searchParams: JobSearchFlowInput;
+  searchParams: SearchParams;
 }) {
   const hasQuery = !!searchParams?.query;
   const jobs = hasQuery ? await fetchJobs(searchParams) : [];
@@ -69,8 +69,11 @@ export default async function SearchJobsPage({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {jobs.map((job) => (
-                <Link href={`/jobs/${job.id}`} key={job.id}>
+              {jobs.map((job: any) => (
+                <Link
+                  href={`/jobs/${job._id || job.id}`}
+                  key={job._id || job.id}
+                >
                   <JobCard job={job} />
                 </Link>
               ))}
