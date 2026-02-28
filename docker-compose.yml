@@ -11,10 +11,10 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=8080
-      - MONGO_URI=mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot
+      - MONGO_URL=mongodb+srv://arsalan:n3nq9IZZJsOOC5Cl@careerpilot.zysihya.mongodb.net/careerpilot?retryWrites=true&w=majority&appName=careerpilot
       - REDIS_URL=redis://redis:6379
       - GOOGLE_API_KEY=AIzaSyBV9zLT9YX8b7NVNbxM8YDgiRwsNANJRJs
-      - REDIS_HOST=127.0.0.1
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
       - EMAIL_HOST=smtp.gmail.com
       - EMAIL_PORT=2525
@@ -24,6 +24,13 @@ services:
       - CLIENT_ID=584491493872-83pvhlcutmll768clf3bom050882n3ur.apps.googleusercontent.com
       - CLIENT_SECRET=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
       - REDIRECT_URI=http://localhost:8080/oauth2callback
+      - ACCESS_TOKEN_SECRET=a11d913c91c854d9122d42c2855f20f4cea45d465ec0bc155a7f952d8f32bb7815d202b7a070b0387548db0b6f2da50c6253
+      - RAPID_API_KEY=e181f48f77msh3138245c94a6f01p197d40jsn0ae1e0afe85c
+      - GOOGLE_GENERATIVE_AI_KEY=AIzaSyBgE-nvjKEF_I0r87axPylb0abKxWq7K9M
+      - STRIPE_SECRET_KEY=sk_test_51P9LpzRk1I3BflpJdPQJH8oIUiO9OzYgcDQ7s9jfM0J2iVTAFRWm2o4ZKx6wxUldltqsujiskWhs7w3kCdTkAUXK00nsJPmZVh
+      - STRIPE_WEBHOOK_SECRET=whsec_6c59f923af5ef54bca0e1bb1ccdf04a8a0261e02ab12dd2a372ab0779492b3a9
+      - RAZORPAY_KEY_ID=rzp_test_S1l5Ld6XaitMdS
+      - RAZORPAY_KEY_SECRET=PZ1qZqZcsYlCtKaJWWu5LQKY
 
     ports:
       - '8080:8080'
@@ -85,7 +92,7 @@ services:
     container_name: hsa-redis
     restart: always
     ports:
-      - '6379:6379'
+      - '6380:6379'
     volumes:
       - redis_data:/data
     networks:
