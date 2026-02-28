@@ -8,7 +8,7 @@ import {
   getRecommendJobs,
   findSingleJob,
 } from '@/services/api/job';
-import { call, put, takeLatest } from 'redux-saga/effects';
+import { call, put, takeLatest, takeEvery } from 'redux-saga/effects';
 import {
   getAllJobsRequest,
   getAllJobsSuccess,
@@ -44,6 +44,9 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import { recommendProfileJob } from '@/services/api/student';
 
 import { makeCacheKey, getCache, setCache } from '@/lib/jobCache';
+
+// Lock to prevent truly duplicate in-flight requests for the same cache key
+const inflightKeys = new Set<string>();
 
 function* getAllJobsSaga(
   action: PayloadAction<{
@@ -156,14 +159,18 @@ function* searchJobsSaga(
     education?: string[];
   }>,
 ) {
-  try {
-    const { append, page, ...rest } = action.payload;
-    const cacheKey = makeCacheKey('search', action.payload);
+  const { append, page, ...rest } = action.payload;
+  const cacheKey = makeCacheKey('search', action.payload);
 
-    // ── Check cache for ALL requests (including paginated/append) ──
+  // Prevent duplicate in-flight requests for the same key
+  if (inflightKeys.has(cacheKey)) return;
+
+  try {
+    inflightKeys.add(cacheKey);
+
+    // Check cache for ALL requests (including paginated/append)
     const cached = getCache(cacheKey);
     if (cached) {
-      // Signal to reducer that this is a cache hit (skip loading flash)
       yield put(setCacheHit(true));
       yield put(
         searchJobSuccess({
@@ -188,26 +195,30 @@ function* searchJobsSaga(
       pagination: response.data.pagination,
     };
 
-    // Store in cache
     setCache(cacheKey, responseData);
 
     yield put(searchJobSuccess({ ...responseData, append }));
   } catch (error: unknown | Error) {
     yield put(searchJobFailure((error as Error).message || 'Search failed'));
+  } finally {
+    inflightKeys.delete(cacheKey);
   }
 }
 
 function* getRecommendJobsSaga(
   action: PayloadAction<{ page: number; append?: boolean }>,
 ) {
-  try {
-    const { page, append } = action.payload;
-    const cacheKey = makeCacheKey('recommend', { page });
+  const { page, append } = action.payload;
+  const cacheKey = makeCacheKey('recommend', { page });
 
-    // ── Check cache for ALL requests (including paginated/append) ──
+  // Prevent duplicate in-flight requests for the same key
+  if (inflightKeys.has(cacheKey)) return;
+
+  try {
+    inflightKeys.add(cacheKey);
+
     const cached = getCache(cacheKey);
     if (cached) {
-      // Signal to reducer that this is a cache hit (skip loading flash)
       yield put(setCacheHit(true));
       yield put(
         getRecommendJobsSuccess({
@@ -226,12 +237,13 @@ function* getRecommendJobsSaga(
       pagination: response.data.pagination,
     };
 
-    // Store in cache
     setCache(cacheKey, responseData);
 
     yield put(getRecommendJobsSuccess({ ...responseData, append }));
   } catch (error: unknown | Error) {
     yield put(getRecommendJobsFailure((error as Error).message));
+  } finally {
+    inflightKeys.delete(cacheKey);
   }
 }
 
@@ -257,7 +269,7 @@ export function* jobsWatcher() {
   );
   yield takeLatest(updateJobStatusRequest.type, updateJobStatusSaga);
   yield takeLatest(getJobPreferenceRequest.type, preferedJobs);
-  yield takeLatest(searchJobRequest.type, searchJobsSaga);
-  yield takeLatest(getRecommendJobsRequest.type, getRecommendJobsSaga);
+  yield takeEvery(searchJobRequest.type, searchJobsSaga);
+  yield takeEvery(getRecommendJobsRequest.type, getRecommendJobsSaga);
   yield takeLatest(findSingleJobRequest.type, findSingleJobSaga);
 }

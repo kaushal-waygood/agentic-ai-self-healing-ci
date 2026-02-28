@@ -7,8 +7,10 @@ import { Job } from '../types/jobType';
 interface Pagination {
   total: number;
   page: number;
+  currentPage?: number;
   limit: number;
   totalPages: number;
+  totalJobs?: number;
   hasNextPage?: boolean;
 }
 
@@ -52,8 +54,11 @@ const initialState: JobState = {
   pagination: {
     total: 0,
     page: 1,
+    currentPage: 1,
     limit: 10,
     totalPages: 0,
+    totalJobs: 0,
+    hasNextPage: true,
   },
   filters: {
     query: '',
