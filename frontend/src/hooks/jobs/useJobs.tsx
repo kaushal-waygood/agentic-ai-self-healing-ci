@@ -33,7 +33,7 @@ export const useJobs = () => {
     'Part-time',
     'Contract',
     'Internship',
-    'Freelance',
+    // 'Freelance',
   ]);
   const [experienceLevels] = useState<string[]>([
     'Entry level',
