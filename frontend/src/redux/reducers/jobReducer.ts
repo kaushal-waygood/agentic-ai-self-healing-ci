@@ -221,10 +221,6 @@ const jobSlice = createSlice({
         education?: string[];
       }>,
     ) => {
-      // Only show loading spinner if we don't expect a cache hit.
-      // The saga will dispatch setCacheHit(true) before the success action
-      // when returning cached data, so `loading` will be immediately
-      // overridden to false by the success reducer.
       if (!state.cacheHit) {
         state.loading = true;
       }
