@@ -95,10 +95,10 @@ export const processTailoredApplication = async (
       { _id: applicationId },
       {
         $set: {
-          tailoredCV: tailoredCV,
-          tailoredCoverLetter: tailoredCoverLetter,
+          cvContent: tailoredCV,
+          coverLetterContent: tailoredCoverLetter,
           emailContent: applicationEmail, // Ensure field name matches schema (emailContent vs applicationEmail)
-          status: 'completed', // Matches worker status flow
+          status: 'Applied', // Matches worker status flow
           completedAt: new Date(),
         },
       },
@@ -121,6 +121,8 @@ export const processTailoredApplication = async (
         notifyErr?.message || notifyErr,
       );
     }
+
+    return true;
   } catch (error) {
     console.error(
       `[TAILORED] FAIL user=${userId} app=${applicationId}:`,
@@ -137,7 +139,7 @@ export const processTailoredApplication = async (
         },
         {
           $set: {
-            status: 'failed',
+            status: 'Failed',
             error: errorMessage, // Ensure schema has 'error' field if you want to save this
             completedAt: new Date(),
           },
@@ -167,5 +169,7 @@ export const processTailoredApplication = async (
         notifyErr?.message || notifyErr,
       );
     }
+
+    return false;
   }
 };
