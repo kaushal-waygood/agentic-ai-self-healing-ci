@@ -16,7 +16,7 @@ type Props = {
 
 export default function FinalResultView({
   cvlink,
-  rateLimited = false,
+  rateLimited,
   rateLimitMessage = null,
   planPath = '/dashboard/plans',
   title,
