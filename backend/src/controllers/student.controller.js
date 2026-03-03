@@ -22,6 +22,8 @@ import {
   rankJobs,
   diversify,
   dedupeByTitleCompany,
+  rankJobsWithIntentBoost,
+  fetchExternalDeep,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
@@ -1935,18 +1937,23 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     const profile = await buildUserProfileFromStudent(req.user._id);
     const interactions = await buildInteractionContext(req.user._id);
 
-    const profileQuery =
-      `${profile.titles.join(' ')} ${profile.skills.join(' ')}`.trim() ||
-      'jobs';
+    // ===============================
+    // 🔥 1. CLEAN PRIMARY INTENT
+    // ===============================
+    const primaryTitles = normalizeSet(profile.titles || []);
+    const primaryIntent = primaryTitles.join(' ').trim() || 'jobs';
+
+    const secondarySkills = normalizeSet(profile.skills || []).slice(0, 5);
+    const vectorQuery = `${primaryIntent} ${secondarySkills.join(' ')}`.trim();
 
     const country = profile.location?.country || 'IN';
     const state = profile.location?.state;
     const city = profile.location?.city;
 
-    // ── Helper: build a context with varying filter strictness ──────────────
     const makeContext = (filterOverride) => ({
       type: 'recommendation',
-      query: profileQuery,
+      query: primaryIntent, // 🔥 keyword only from titles
+      vectorQuery, // 🔥 full profile only for vector
       profile,
       filters: filterOverride,
       userId: req.user._id,
@@ -1955,17 +1962,26 @@ export async function getProfileBasedRecommendedJobs(req, res) {
 
     const processPool = (jobsPool, ctx) => {
       const filtered = applyFilters(jobsPool, ctx);
-      const ranked = rankJobs(filtered, ctx);
-      return diversify(ranked);
+      const ranked = rankJobsWithIntentBoost(filtered, ctx);
+      return ranked;
     };
 
     const API_TIMEOUT = 8000;
-    const apiTerm = profile.titles[0] || profile.skills[0] || 'jobs';
+    const apiTerm = primaryTitles[0] || 'jobs';
     const apiStartPage = Math.max(1, pageNum);
 
-    // ── Fetch from RapidAPI (concurrent pages) ───────────────────────────────
     const fetchExternal = async (extCountry, extState, extCity) => {
-      const pagesToFetch = [apiStartPage, apiStartPage + 1, apiStartPage + 2];
+      const pagesToFetch = [apiStartPage, apiStartPage + 1];
+
+      const externalRaw = await fetchExternalDeep({
+        apiTerm,
+        country: extCountry || 'IN',
+        state: extState,
+        city: extCity,
+        minRequired: 2000,
+        maxPages: 40,
+      });
+
       const raw = await Promise.all(
         pagesToFetch.map((apiPage) =>
           Promise.race([
@@ -1983,107 +1999,87 @@ export async function getProfileBasedRecommendedJobs(req, res) {
           ]),
         ),
       );
+
       return raw.flat().filter(Boolean);
     };
 
-    // ── Upsert and re-process after getting external results ─────────────────
     const mergeExternal = async (externalRaw, localCandidates, ctx) => {
-      if (!externalRaw.length)
-        return {
-          processed: processPool(localCandidates, ctx),
-          merged: localCandidates,
-        };
+      if (!externalRaw.length) {
+        return processPool(localCandidates, ctx);
+      }
+
       const formatted = externalRaw.map((j) =>
-        transformRapidApiJob(j, profileQuery || 'job'),
+        transformRapidApiJob(j, primaryIntent),
       );
-      await upsertExternalJobs(formatted).catch((e) =>
-        console.error('Upsert err', e.message),
-      );
-      const all = dedupeByTitleCompany([...localCandidates, ...formatted]);
-      return { processed: processPool(all, ctx), merged: all };
+
+      // await upsertExternalJobs(formatted).catch((e) =>
+      //   console.error('Upsert err', e.message),
+      // );
+
+      await upsertExternalJobs(formatted);
+
+      // const all = dedupeByTitleCompany([...localCandidates, ...formatted]);
+      const merged = dedupeByTitleCompany([...localCandidates, ...formatted]);
+      return processPool(merged, ctx);
     };
 
-    // ════════════════════════════════════════════════════════════════════
-    // PROGRESSIVE FILTER RELAXATION — try city → state → country → global
-    // Each level fetches both local DB and external API.
-    // ════════════════════════════════════════════════════════════════════
-
     const levels = [
-      // Level 0: City-specific (most precise)
       ...(city ? [{ country, state, city }] : []),
-      // Level 1: State-level (no city)
       ...(state ? [{ country, state, city: null }] : []),
-      // Level 2: Country-level (no city, no state)
       { country, state: null, city: null },
-      // Level 3: Global fallback (no location at all)
       { country: null, state: null, city: null },
     ];
 
     let finalJobs = [];
     let processed = [];
-    let usedLevel = -1;
 
     for (const filterSet of levels) {
       const ctx = makeContext(filterSet);
 
-      // Pool size scales with page depth
-      const poolSize = (pageNum + 3) * limitNum * 6;
+      const poolSize = 3000;
       const localCandidates = await retrieveLocalCandidates(ctx, poolSize);
+
       processed = processPool(localCandidates, ctx);
       finalJobs = processed.slice(skip, skip + limitNum);
 
-      // Fetch external if page can't be filled or we're going deep
       const needsExternal =
-        finalJobs.length < limitNum ||
-        (pageNum > 2 && processed.length < skip + limitNum * 2);
+        finalJobs.length < limitNum || processed.length < skip + limitNum;
 
       if (needsExternal) {
-        const externalRaw = await fetchExternal(
-          filterSet.country || 'IN',
-          filterSet.state,
-          filterSet.city,
-        );
-        const { processed: merged } = await mergeExternal(
-          externalRaw,
+        processed = await mergeExternal(
+          await fetchExternal(
+            filterSet.country || 'IN',
+            filterSet.state,
+            filterSet.city,
+          ),
           localCandidates,
           ctx,
         );
-        processed = merged;
+
         finalJobs = processed.slice(skip, skip + limitNum);
       }
 
-      // If we have enough jobs, stop relaxing
-      if (finalJobs.length > 0) {
-        usedLevel = levels.indexOf(filterSet);
-        break;
-      }
+      if (processed.length >= skip + limitNum) break;
     }
 
-    // ── ALWAYS hasNextPage=true when we returned any jobs ───────────────────
-    // The frontend stops only when we send 0 jobs.
-    res.status(200).json({
+    // 🔥 Diversify only visible page
+    finalJobs = diversify(finalJobs);
+
+    return res.status(200).json({
       success: true,
       pagination: {
         currentPage: pageNum,
-        hasNextPage: finalJobs.length > 0,
-        totalJobs: Math.max(processed.length, skip + finalJobs.length),
+        hasNextPage: processed.length > skip + finalJobs.length,
+        totalJobs: processed.length,
       },
       jobs: finalJobs,
     });
   } catch (error) {
     console.error('API Reco Error:', error);
-    res.status(500).json({ success: false });
+    return res.status(500).json({ success: false });
   }
 }
 
-/**
- * Fetches 4 top-ranked job recommendations for the dashboard widget.
- * Uses the student profile to personalise results and caches them
- * in Redis for 10 minutes so the dashboard loads instantly on repeat visits.
- *
- * @param {object} profile - Output of buildUserProfileFromStudent()
- * @returns {Promise<object[]>} Array of up to 4 job objects
- */
 async function getTop4DashboardJobs(profile) {
   // Build a stable bucket key from the user's primary title/location
   // so we re-use cached results when the profile hasn't changed.
