@@ -303,6 +303,9 @@ const AppHeader = ({
   const pathname = usePathname();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const studentWrapper = useSelector(
+    (state: RootState) => state.student.students?.[0],
+  );
   const { planType, usageLimits, usageData } = useSelector(
     (state: RootState) => state.plan,
   );
@@ -576,7 +579,8 @@ const AppHeader = ({
 
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-slate-900 truncate">
-                          {user?.fullName || 'Guest'}
+                          {/* {user?.fullName || 'Guest'} */}
+                          {studentWrapper?.student.fullName || 'Guest'}
                         </p>
                         <p className="text-sm text-slate-500 truncate">
                           {user?.email || ''}
