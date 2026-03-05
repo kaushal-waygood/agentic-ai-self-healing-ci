@@ -30,6 +30,7 @@ import loginHistoryRoutes from './routes/loginHistory.route.js';
 import chatRoutes from './routes/chatRoutes.js';
 
 import { startCronsRenew } from './config/renew-cron/cron.js';
+import { startPrefetchCron } from './config/cron-prefetch.js';
 
 import {
   handleStripeWebhook,
@@ -108,6 +109,7 @@ app.get('/health-check', (req, res) => {
 });
 
 startCronsRenew();
+startPrefetchCron();
 
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/bring-zobs', bringZobsRoutes);

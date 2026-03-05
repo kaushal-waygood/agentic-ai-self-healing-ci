@@ -203,6 +203,7 @@ const findAndProcessJobs = async () => {
               // Create Draft Application
               const application = await StudentApplication.create({
                 student: student._id,
+                job: job._id,
                 jobTitle: job.title,
                 jobCompany: job.company,
                 jobDescription: job.description,
@@ -216,12 +217,19 @@ const findAndProcessJobs = async () => {
               );
 
               // Process AI Generation
-              await processTailoredApplication(
+              const success = await processTailoredApplication(
                 student._id,
                 application._id,
                 applicationData,
                 null, // No socket in worker
               );
+
+              if (!success) {
+                console.log(
+                  `[Worker] Generation failed for ${job.title}, skipping duplicate job mark & credit usage.`,
+                );
+                return;
+              }
 
               // ✅ IMPORTANT: Increment the Usage Counter
               await User.updateOne(
@@ -231,6 +239,14 @@ const findAndProcessJobs = async () => {
 
               // Decrement local counter
               remainingForStudent--;
+
+              // Record job as applied so it is not picked up again
+              await AppliedJob.create({
+                student: student._id,
+                job: job._id,
+                applicationMethod: 'AUTOPILOT',
+                status: 'APPLIED',
+              });
 
               console.log(
                 `[Worker] Tailored application created: ${application._id} for ${job.title}. Remaining: ${remainingForStudent}`,
