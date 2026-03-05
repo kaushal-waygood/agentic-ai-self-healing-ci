@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 import {
-  User,
   ChevronRight,
   Package,
-  Heart,
   MapPin,
   GraduationCap,
   Briefcase,
@@ -49,6 +47,10 @@ const navItems = [
     gradient: 'tabPrimary',
   },
 ];
+
+const ProfileSidebar = () => {
+  return <SideSectionProfile />;
+};
 const ProfileInfo = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,10 +66,6 @@ const ProfileInfo = () => {
   const handleTabChange = (tab: string) => {
     router.push(`/dashboard/profile?tab=${tab}`, { scroll: false });
     setActiveTab(tab);
-  };
-
-  const ProfileSidebar = () => {
-    return <SideSectionProfile />;
   };
 
   const renderContent = () => {

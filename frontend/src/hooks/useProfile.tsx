@@ -87,7 +87,6 @@ export const useProfile = () => {
   const [preview, setPreview] = useState<string>(dummyAvatar);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
 
@@ -99,21 +98,18 @@ export const useProfile = () => {
 
   useEffect(() => {
     if (!studentData) return;
+    setProfile({
+      fullName: studentData.fullName ?? '',
+      email: studentData.email ?? '',
+      phone: studentData.phone ?? '',
+      jobRole: studentData.jobRole ?? '',
+      location: studentData.location ?? '',
+      avatar: studentData.profileImage ?? '',
+      uploadedCV: studentData.resumeUrl ?? '',
+    });
 
-    if (!isModalOpen) {
-      setProfile({
-        fullName: studentData.fullName ?? '',
-        email: studentData.email ?? '',
-        phone: studentData.phone ?? '',
-        jobRole: studentData.jobRole ?? '',
-        location: studentData.location ?? '',
-        avatar: studentData.profileImage ?? '',
-        uploadedCV: studentData.resumeUrl ?? '',
-      });
-
-      setPreview(studentData.profileImage || dummyAvatar);
-    }
-  }, [studentData, isModalOpen]);
+    setPreview(studentData.profileImage || dummyAvatar);
+  }, [studentData]);
 
   /* -----------------------------
      Input handlers
@@ -195,37 +191,6 @@ export const useProfile = () => {
   }, [file, dispatch, toast]);
 
   /* -----------------------------
-     Update profile
-  ------------------------------ */
-  // const updateProfile = useCallback(async () => {
-  //   try {
-  //     const formData = new FormData();
-
-  //     formData.append('fullName', profile.fullName);
-  //     formData.append('phone', profile.phone);
-  //     formData.append('jobRole', profile.jobRole);
-  //     formData.append('location', profile.location);
-
-  //     if (profileImageFile) {
-  //       formData.append('profileImage', profileImageFile);
-  //     }
-
-  //     await apiInstance.patch('/students/profile/update', formData, {
-  //       headers: { 'Content-Type': 'multipart/form-data' },
-  //     });
-
-  //     dispatch(getStudentDetailsRequest());
-  //     toast({ title: 'Profile updated' });
-
-  //     // cleanup
-  //     setProfileImageFile(null);
-  //   } catch {
-  //     toast({ title: 'Profile update failed', variant: 'destructive' });
-  //   }
-  // }, [profile, profileImageFile, dispatch, toast]);
-  // Inside useProfile.tsx
-
-  /* -----------------------------
     Update profile
 ------------------------------ */
   // Add 'data?: ProfileState' as an optional parameter
@@ -255,11 +220,15 @@ export const useProfile = () => {
 
         // cleanup
         setProfileImageFile(null);
-      } catch {
-        toast({ title: 'Profile update failed', variant: 'destructive' });
+      } catch (error) {
+        toast({
+          title: 'Profile update failed',
+          variant: 'destructive',
+          description: `${error?.response.data.error.message}`,
+        });
       }
     },
-    [profile, profileImageFile, dispatch, toast],
+    [profile, profileImageFile, dispatch],
   );
   return {
     profile,
@@ -273,10 +242,6 @@ export const useProfile = () => {
     setFile,
     progress,
     isUploading,
-
-    isModalOpen,
-    setIsModalOpen,
-
     isDragging,
     setIsDragging,
 

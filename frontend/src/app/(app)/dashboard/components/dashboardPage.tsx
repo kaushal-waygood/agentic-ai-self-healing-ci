@@ -202,51 +202,6 @@ export function ProfileReadinessCard() {
 
   if (score === 100) {
     return null;
-    // return (
-    //   <div className="bg-white relative overflow-hidden rounded-lg border border-gray-200 p-4 ">
-    //     <div
-    //       className="relative z-10 flex flex-col sm:flex-row
-    //                   items-start sm:items-center
-    //                   justify-between gap-4"
-    //     >
-    //       {/* Left */}
-    //       <div className="flex items-center gap-4">
-    //         <div className="relative flex items-center justify-center">
-    //           <div
-    //             className="relative flex h-12 w-12 items-center
-    //                         justify-center rounded-full bg-green-100"
-    //           >
-    //             <CheckCircle2 className="h-6 w-6 text-green-600" />
-    //           </div>
-    //         </div>
-
-    //         <div>
-    //           <h3 className="text-lg font-semibold text-gray-900">
-    //             Profile Complete
-    //           </h3>
-    //           <p className="text-sm text-gray-600">
-    //             Your profile is 100% ready to go 🎉
-    //           </p>
-    //         </div>
-    //       </div>
-
-    //       {/* Right */}
-    //       <Button
-    //         asChild
-    //         className="group bg-buttonPrimary hover:bg-blue-700
-    //                  text-white flex items-center gap-2"
-    //       >
-    //         <Link href="/dashboard/profile" prefetch={false}>
-    //           View Profile
-    //           <ArrowRight
-    //             className="h-4 w-4 transition-transform
-    //                               group-hover:translate-x-1"
-    //           />
-    //         </Link>
-    //       </Button>
-    //     </div>
-    //   </div>
-    // );
   }
 
   /* =========================
@@ -1182,8 +1137,6 @@ export default function DashboardPage() {
                       time={recentAI.cv.completedAt}
                       id={recentAI.cv.id || recentAI.cv._id}
                       type="cv"
-                     
-                   
                       href={`/dashboard/my-docs/cv/${recentAI?.cv?.id}`}
                     />
                   )}
@@ -1196,7 +1149,6 @@ export default function DashboardPage() {
                       time={recentAI.coverLetter.completedAt}
                       id={recentAI.coverLetter.id || recentAI.coverLetter._id}
                       type="coverLetter"
-                     
                       href={`/dashboard/my-docs/cl/${recentAI?.coverLetter?.id}`}
                     />
                   )}
@@ -1212,7 +1164,6 @@ export default function DashboardPage() {
                         recentAI.tailoredApplication._id
                       }
                       type="tailoredApplication"
-                  
                       href={`/dashboard/my-docs/application/${recentAI?.tailoredApplication?.id}`}
                     />
                   )}
