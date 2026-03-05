@@ -172,6 +172,11 @@ const FIELD_MAPPINGS = [
   { patterns: ['email'], field: 'email' },
   { patterns: ['phone', 'mobile'], field: 'phone' },
 
+  {
+    patterns: ['resume', 'cv', 'upload file', 'upload resume', 'upload cv'],
+    field: 'resumeUrl',
+  },
+
   // Education (Using the new normalized keys)
   {
     patterns: ['school', 'university', 'college', 'institution'],
@@ -201,11 +206,20 @@ const FIELD_MAPPINGS = [
 function resolveIdentityValue(descriptor, student) {
   const normalizedKey =
     descriptor.normalizedKey || normalizeKeyForMatching(descriptor.inputKey);
+
+  if (
+    normalizedKey.includes('file') ||
+    normalizedKey.includes('resume') ||
+    normalizedKey.includes('cv') ||
+    normalizedKey.includes('upload')
+  ) {
+    return student.resumeUrl || '';
+  }
+
   const keyWithLabel = normalizeKeyForMatching(
     `${descriptor.inputKey} ${descriptor.label || ''}`,
   );
 
-  // Try to find matching pattern
   for (const mapping of FIELD_MAPPINGS) {
     for (const pattern of mapping.patterns) {
       const normalizedPattern = normalizeKeyForMatching(pattern);
@@ -216,15 +230,7 @@ function resolveIdentityValue(descriptor, student) {
       ) {
         let value = student[mapping.field];
 
-        // Handle array fields
-        if (Array.isArray(value) && value.length > 0) {
-          value = value[0];
-        }
-
-        // Handle defaults
-        if (!value && mapping.default !== undefined) {
-          value = mapping.default;
-        }
+        if (Array.isArray(value)) value = value[0];
 
         return value || '';
       }
@@ -287,6 +293,9 @@ function buildAIPrompt(student, aiTargetInputs) {
 router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
   const studentId = req.user?._id;
   let { inputs } = req.body;
+
+  console.log('studentId', studentId);
+  console.log('inputs', inputs);
 
   if (!studentId) return res.status(400).json({ error: 'User not found' });
   if (!inputs || !Array.isArray(inputs)) {
