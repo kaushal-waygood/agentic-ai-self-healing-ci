@@ -1,5 +1,11 @@
 import apiInstance from '@/services/api';
-import { ArrowLeft, ArrowRight, UploadCloud } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  UploadCloud,
+  X,
+} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 const Step2ChooseCV = ({
@@ -11,7 +17,16 @@ const Step2ChooseCV = ({
   const [dragActive, setDragActive] = useState(false);
   const [cvs, setCvs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const inputRef = useRef(null);
+
+  // Configuration for valid formats
+  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx'];
+  const ALLOWED_MIME_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +48,24 @@ const Step2ChooseCV = ({
     };
   }, []);
 
+  // Centralized Validation Function
+  const validateFile = (file) => {
+    if (!file) return false;
+
+    const fileName = file.name.toLowerCase();
+    const isValidExtension = ALLOWED_EXTENSIONS.some((ext) =>
+      fileName.endsWith(ext),
+    );
+    const isValidMime = ALLOWED_MIME_TYPES.includes(file.type);
+
+    if (!isValidExtension && !isValidMime) {
+      setError('Invalid document. Please upload a valid CV (PDF/DOC/DOCX).');
+      return false;
+    }
+
+    setError(null); // Clear error if valid
+    return true;
+  };
   // Drag handlers
   const handleDrag = (e) => {
     e.preventDefault();
@@ -47,34 +80,34 @@ const Step2ChooseCV = ({
     setDragActive(false);
     const files = e.dataTransfer?.files;
     if (files && files[0]) {
-      // notify parent then advance step
-      handleFileChange({ target: { files } });
-      nextStep();
+      if (validateFile(files[0])) {
+        handleFileChange({ target: { files } });
+        nextStep();
+      }
     }
   };
 
-  // When user picks a file via input
   const onSelectFile = (e) => {
     const files = e.target.files;
-    handleFileChange(e);
     if (files && files[0]) {
-      nextStep();
+      if (validateFile(files[0])) {
+        handleFileChange(e);
+        nextStep();
+      } else {
+        e.target.value = '';
+      }
     }
   };
 
-  // When user selects a saved CV from the list
   const onSelectSavedCv = (cv) => {
-    // Create a lightweight "file-like" object so parent can handle saved CVs similarly to uploaded files.
-    // We attach a custom marker __savedCvId so backend can detect it if needed.
+    setError(null);
     const fakeFile = {
       name: cv.htmlCVTitle || 'Saved CV',
       size: 0,
       type: 'text/html',
       __savedCvId: cv._id ?? cv.id ?? null,
     };
-    // Pass to parent
     handleFileChange({ target: { files: [fakeFile] } });
-    // Immediately go to next step
     nextStep();
   };
 
@@ -167,7 +200,18 @@ const Step2ChooseCV = ({
             <span className="bg-white px-3 text-xs text-slate-500">OR</span>
           </div>
         </div>
-
+        {/* Error Message Display */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md flex items-center justify-between animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <span>{error}</span>
+            </div>
+            <button onClick={() => setError(null)}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         {/* Upload area */}
         <div
           onDragEnter={handleDrag}
@@ -184,7 +228,7 @@ const Step2ChooseCV = ({
             ref={inputRef}
             id="cv-upload"
             type="file"
-            accept=".pdf,.doc,.docx,.png,.jpg"
+            accept=".pdf,.doc,.docx"
             onChange={onSelectFile}
             className="hidden"
           />
@@ -253,7 +297,7 @@ const Step2ChooseCV = ({
     ${
       values?.cvFile
         ? 'bg-buttonPrimary text-white shadow-lg hover:scale-105'
-        : 'bg-gray-300 text-gray-500' 
+        : 'bg-gray-300 text-gray-500'
     }`}
           >
             Next <ArrowRight className="w-4 h-4" />

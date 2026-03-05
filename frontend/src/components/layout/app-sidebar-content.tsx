@@ -44,6 +44,9 @@ export const AppSidebarContent = ({
   const router = useRouter();
   const { user: authUser } = useSelector((state: RootState) => state.auth);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const studentWrapper = useSelector(
+    (state: RootState) => state.student.students?.[0],
+  );
   // const [planType, setPlanType] = useState('Free');
 
   // --- 1. ROLE DEFINITIONS ---
@@ -350,7 +353,7 @@ export const AppSidebarContent = ({
             >
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-900 truncate text-sm capitalize">
-                  {user.fullName}
+                  {studentWrapper?.student.fullName || 'Guest'}
                 </p>
                 {/* Role Badge Component */}
                 <p className="text-xs text-slate-500">Welcome back!</p>
