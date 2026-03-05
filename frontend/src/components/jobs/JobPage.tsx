@@ -36,8 +36,6 @@ export default function JobsPage() {
   } = useJobs();
   const dispatch = useDispatch();
 
-  console.log('---------jobs----------', jobs);
-
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -113,6 +111,19 @@ export default function JobsPage() {
     }
   }, [searchParams, fetchJobDetails, filters?.q, trackJobClick]);
 
+  // const handleCardClick = (job: any) => {
+  //   if (selectedJob?._id === job._id) return;
+
+  //   trackJobClick(job._id, filters?.q);
+
+  //   if (isMobile) {
+  //     router.push(`/jobs/${job.slug}`);
+  //   } else {
+  //     setSelectedJob(job);
+
+  //     fetchJobDetails(job.slug);
+  //   }
+  // };
   const handleCardClick = useCallback(
     (job: any) => {
       if (selectedJob?._id === job._id) return;
@@ -144,24 +155,20 @@ export default function JobsPage() {
   }, [jobs, filters?.q]);
 
   /* ===================== SCROLL RESET ===================== */
-  // useEffect(() => {
-  //   jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  // }, [filters]);
+  useEffect(() => {
+    jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [filters]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && pagination.hasNextPage && !loading) {
-          console.log(
-            'Triggering Load More for Page:',
-            (pagination.currentPage || 1) + 1,
-          );
           loadMoreJobs();
         }
       },
       {
-        rootMargin: '200px', // 2. Trigger 200px BEFORE the user reaches the bottom
-        threshold: 0.1,
+        rootMargin: '400px',
+        threshold: 0,
       },
     );
 
@@ -171,7 +178,7 @@ export default function JobsPage() {
     return () => {
       if (el) observer.unobserve(el);
     };
-  }, [loading, pagination.hasNextPage, loadMoreJobs, pagination.currentPage]); // Added currentPage to deps
+  }, [loading, pagination.hasNextPage, loadMoreJobs]);
 
   const fromOnboarding = searchParams.get('from') === 'onboarding';
 
@@ -188,27 +195,27 @@ export default function JobsPage() {
 
   /* ===================== AUTO-SELECT FIRST JOB ===================== */
   // 1. Create a ref to track if we've already done the initial auto-selection
-  // const hasAutoSelected = useRef(false);
+  const hasAutoSelected = useRef(false);
 
-  // // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
-  // useEffect(() => {
-  //   hasAutoSelected.current = false;
-  // }, [filters]);
+  // 2. Reset the ref whenever the jobs list changes significantly (like a new search)
+  useEffect(() => {
+    hasAutoSelected.current = false;
+  }, [filters]);
 
-  // // 3. Updated selection logic
-  // useEffect(() => {
-  //   if (
-  //     !isMobile &&
-  //     jobs?.length > 0 &&
-  //     !loading &&
-  //     !hasAutoSelected.current &&
-  //     !searchParams.get('job')
-  //   ) {
-  //     const firstJob = jobs[0];
-  //     handleCardClick(firstJob);
-  //     hasAutoSelected.current = true;
-  //   }
-  // }, [jobs, isMobile, loading, searchParams, handleCardClick]);
+  // 3. Updated selection logic
+  useEffect(() => {
+    if (
+      !isMobile &&
+      jobs?.length > 0 &&
+      !loading &&
+      !hasAutoSelected.current &&
+      !searchParams.get('job')
+    ) {
+      const firstJob = jobs[0];
+      handleCardClick(firstJob);
+      hasAutoSelected.current = true;
+    }
+  }, [jobs, isMobile, loading, searchParams, handleCardClick]);
 
   const removeFilter = (key: string, value?: any) => {
     const newFilters = { ...filters };

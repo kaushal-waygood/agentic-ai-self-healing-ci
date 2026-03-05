@@ -157,9 +157,6 @@ import {
 } from '../reducers/jobReducer';
 import { get } from 'lodash';
 
-/* ============================================================
-   Local types (align with your slice)
-============================================================ */
 type ID = string;
 
 type Education = {
@@ -516,6 +513,7 @@ function* updateJobPreferedByStudentSaga(
 function* savedJobsSaga(action: PayloadAction<Record<string, any>>) {
   try {
     const response: AxiosResponse = yield call(saveJob, action.payload);
+    console.log('response', response);
     yield put(savedStudentJobsSuccess(response.data));
     yield put(getStudentDetailsRequest());
   } catch (error) {

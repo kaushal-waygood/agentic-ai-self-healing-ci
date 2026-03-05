@@ -109,6 +109,7 @@ const SignupForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [focusedField, setFocusedField] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const dispatch = useDispatch();
 
   // Added isAuthenticated to selector
@@ -116,20 +117,6 @@ const SignupForm = () => {
     (state: RootState) => state.auth,
   );
 
-  // const form = useForm<SignupFormValues>({
-  //   resolver: zodResolver(signupFormSchema),
-  //   defaultValues: {
-  //     accountType: 'individual',
-  //     fullName: '',
-  //     email: '',
-  //     password: '',
-  //     confirmPassword: '',
-  //     organizationName: '',
-  //     referredBy: '',
-  //   },
-  // });
-
-  // Load saved form data from sessionStorage
   const loadSavedFormData = () => {
     if (typeof window !== 'undefined') {
       const savedData = sessionStorage.getItem('signupFormDraft'); // sessionStorage
@@ -206,21 +193,25 @@ const SignupForm = () => {
 
   // NEW: Effect to handle successful verification redirect
   useEffect(() => {
-    if (isAuthenticated && !loading) {
-      // Clean up local storage
-      localStorage.removeItem('pendingVerificationEmail');
+    // Only proceed if the user is actively attempting verification
+    if (isVerifying) {
+      if (isAuthenticated && !loading) {
+        // Clean up local storage
+        localStorage.removeItem('pendingVerificationEmail');
 
-      // Only show toast and redirect if we are in the signup flow
-      if (signupSuccess) {
-        successToast('Your account has been verified successfully!');
-        router.push('/dashboard/onboarding-tour');
+        // Only show toast and redirect if we are in the signup flow
+        if (signupSuccess) {
+          successToast('Your account has been verified successfully!');
+          router.push('/dashboard/onboarding-tour');
+        }
+      }
+
+      if (error) {
+        errorToast(error);
+        setIsVerifying(false);
       }
     }
-
-    if (error) {
-      errorToast(error);
-    }
-  }, [isAuthenticated, loading, error, router, signupSuccess]);
+  }, [isAuthenticated, loading, error, router, signupSuccess, isVerifying]);
 
   async function onSubmit(data: SignupFormValues) {
     try {
@@ -247,6 +238,7 @@ const SignupForm = () => {
   const handleVerification = () => {
     if (!verificationCode || !storedEmail) return;
 
+    setIsVerifying(true);
     // Dispatch the action. The useEffect above will handle the result.
     // Mapping 'verificationCode' to 'otp' to match API expectation
     dispatch(verifyEmailRequest({ storedEmail, verificationCode }));
@@ -335,6 +327,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                     localStorage.removeItem('pendingVerificationEmail');
                     setSignupSuccess(false);
                     setStoredEmail('');
+                    setIsVerifying(false);
                   }}
                   className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
                 >
@@ -638,8 +631,8 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
             </div>
 
             <div className="flex flex-col gap-4">
-              <GoogleSignInButton form={form} />
-              <LinkedInSignInButton form={form} />
+              <GoogleSignInButton authType="signup" />
+              <LinkedInSignInButton authType="signup" />
             </div>
 
             <div className="mt-5 text-center text-sm">
@@ -647,6 +640,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                 By signing up, you agree to our{' '}
                 <Link
                   href="/terms-of-service"
+                  target="_blank"
                   className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
                 >
                   Terms of Service
@@ -654,6 +648,7 @@ flex items-center justify-center px-3 sm:px-4 md:px-6 py-2 overflow-y-auto relat
                 and{' '}
                 <Link
                   href="/privacy-policy"
+                  target="_blank"
                   className="font-medium text-blue-600 hover:text-blue-500 hover:underline"
                 >
                   Privacy Policy

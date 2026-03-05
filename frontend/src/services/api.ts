@@ -5,12 +5,20 @@ import { logoutRequest } from '@/redux/reducers/authReducer';
 import store from '@/redux/store';
 import axios from 'axios';
 
+console.log('TEST', process.env.NEXT_PUBLIC_NODE_ENV);
+
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
       ? 'https://api.dev.zobsai.com'
       : 'http://127.0.0.1:8080';
+
+console.log(
+  process.env.NEXT_PUBLIC_NODE_ENV,
+  'process.env.NEXT_PUBLIC_NODE_ENV',
+);
+console.log(API_BASE_URL, 'API_BASE_URL');
 
 const token = getToken();
 
@@ -64,27 +72,27 @@ apiInstance.interceptors.request.use((config) => {
 
 let isLoggingOut = false;
 
-apiInstance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    // if (error.response?.status === 403 && !isLoggingOut) {
-    //   isLoggingOut = true;
+// apiInstance.interceptors.response.use(
+//   (response) => response,
+//   async (error) => {
+//     // if (error.response?.status === 403 && !isLoggingOut) {
+//     //   isLoggingOut = true;
 
-    //   delete apiInstance.defaults.headers.common['Authorization'];
-    //   store.dispatch(logoutRequest());
-    // }
-    // return Promise.reject(error);
-    if (
-      error.response?.status === 403 &&
-      !isLoggingOut &&
-      error.response?.data?.message?.toLowerCase().includes('token')
-    ) {
-      isLoggingOut = true;
-      delete apiInstance.defaults.headers.common['Authorization'];
-      store.dispatch(logoutRequest());
-    }
-    return Promise.reject(error);
-  },
-);
+//     //   delete apiInstance.defaults.headers.common['Authorization'];
+//     //   store.dispatch(logoutRequest());
+//     // }
+//     // return Promise.reject(error);
+//     if (
+//       error.response?.status === 403 &&
+//       !isLoggingOut &&
+//       error.response?.data?.message?.toLowerCase().includes('token')
+//     ) {
+//       isLoggingOut = true;
+//       delete apiInstance.defaults.headers.common['Authorization'];
+//       store.dispatch(logoutRequest());
+//     }
+//     return Promise.reject(error);
+//   },
+// );
 
 export default apiInstance;

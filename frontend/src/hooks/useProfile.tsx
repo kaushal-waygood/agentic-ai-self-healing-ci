@@ -96,21 +96,24 @@ export const useProfile = () => {
   /* -----------------------------
      Sync Profile
   ------------------------------ */
+
   useEffect(() => {
     if (!studentData) return;
 
-    setProfile({
-      fullName: studentData.fullName ?? '',
-      email: studentData.email ?? '',
-      phone: studentData.phone ?? '',
-      jobRole: studentData.jobRole ?? '',
-      location: studentData.location ?? '',
-      avatar: studentData.profileImage ?? '',
-      uploadedCV: studentData.resumeUrl ?? '',
-    });
+    if (!isModalOpen) {
+      setProfile({
+        fullName: studentData.fullName ?? '',
+        email: studentData.email ?? '',
+        phone: studentData.phone ?? '',
+        jobRole: studentData.jobRole ?? '',
+        location: studentData.location ?? '',
+        avatar: studentData.profileImage ?? '',
+        uploadedCV: studentData.resumeUrl ?? '',
+      });
 
-    setPreview(studentData.profileImage || dummyAvatar);
-  }, [studentData]);
+      setPreview(studentData.profileImage || dummyAvatar);
+    }
+  }, [studentData, isModalOpen]);
 
   /* -----------------------------
      Input handlers
@@ -194,33 +197,70 @@ export const useProfile = () => {
   /* -----------------------------
      Update profile
   ------------------------------ */
-  const updateProfile = useCallback(async () => {
-    try {
-      const formData = new FormData();
+  // const updateProfile = useCallback(async () => {
+  //   try {
+  //     const formData = new FormData();
 
-      formData.append('fullName', profile.fullName);
-      formData.append('phone', profile.phone);
-      formData.append('jobRole', profile.jobRole);
-      formData.append('location', profile.location);
+  //     formData.append('fullName', profile.fullName);
+  //     formData.append('phone', profile.phone);
+  //     formData.append('jobRole', profile.jobRole);
+  //     formData.append('location', profile.location);
 
-      if (profileImageFile) {
-        formData.append('profileImage', profileImageFile);
+  //     if (profileImageFile) {
+  //       formData.append('profileImage', profileImageFile);
+  //     }
+
+  //     await apiInstance.patch('/students/profile/update', formData, {
+  //       headers: { 'Content-Type': 'multipart/form-data' },
+  //     });
+
+  //     dispatch(getStudentDetailsRequest());
+  //     toast({ title: 'Profile updated' });
+
+  //     // cleanup
+  //     setProfileImageFile(null);
+  //   } catch {
+  //     toast({ title: 'Profile update failed', variant: 'destructive' });
+  //   }
+  // }, [profile, profileImageFile, dispatch, toast]);
+  // Inside useProfile.tsx
+
+  /* -----------------------------
+    Update profile
+------------------------------ */
+  // Add 'data?: ProfileState' as an optional parameter
+  const updateProfile = useCallback(
+    async (data?: ProfileState) => {
+      try {
+        const formData = new FormData();
+
+        // Use the passed data if available, otherwise fallback to current state
+        const payload = data || profile;
+
+        formData.append('fullName', payload.fullName);
+        formData.append('phone', payload.phone);
+        formData.append('jobRole', payload.jobRole);
+        formData.append('location', payload.location);
+
+        if (profileImageFile) {
+          formData.append('profileImage', profileImageFile);
+        }
+
+        await apiInstance.patch('/students/profile/update', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        dispatch(getStudentDetailsRequest());
+        toast({ title: 'Profile updated' });
+
+        // cleanup
+        setProfileImageFile(null);
+      } catch {
+        toast({ title: 'Profile update failed', variant: 'destructive' });
       }
-
-      await apiInstance.patch('/students/profile/update', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      dispatch(getStudentDetailsRequest());
-      toast({ title: 'Profile updated' });
-
-      // cleanup
-      setProfileImageFile(null);
-    } catch {
-      toast({ title: 'Profile update failed', variant: 'destructive' });
-    }
-  }, [profile, profileImageFile, dispatch, toast]);
-
+    },
+    [profile, profileImageFile, dispatch, toast],
+  );
   return {
     profile,
     setProfile,

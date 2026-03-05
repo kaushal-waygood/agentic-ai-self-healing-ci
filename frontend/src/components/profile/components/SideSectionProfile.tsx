@@ -47,17 +47,18 @@ const SideSectionProfile = () => {
     fileInputRef,
     updateProfile,
     setProfileImageFile,
+    isModalOpen,
+    setIsModalOpen,
   } = useProfile();
 
+  const [localFormData, setLocalFormData] = useState({ ...profile });
   const [isDragging, setIsDragging] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [preview, setPreview] = useState<string>('');
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
-
+  const dispatch = useDispatch();
   /* -----------------------------
      Sync avatar preview
   ------------------------------ */
@@ -66,6 +67,20 @@ const SideSectionProfile = () => {
       setPreview(profile.avatar);
     }
   }, [profile.avatar]);
+  // Sync local state whenever the modal opens or profile changes externally
+  useEffect(() => {
+    if (isModalOpen) {
+      setLocalFormData({
+        fullName: profile.fullName || '',
+        phone: profile.phone || '',
+        jobRole: profile.jobRole || '',
+        location: profile.location || '',
+        email: profile.email || '',
+        avatar: profile.avatar || '',
+      });
+      setPreview(profile.avatar || '');
+    }
+  }, [isModalOpen]);
 
   useEffect(() => {
     if (profile && !originalProfile) {
@@ -78,7 +93,7 @@ const SideSectionProfile = () => {
   ------------------------------ */
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProfile((p) => ({ ...p, [name]: value }));
+    setLocalFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const onAvatarChange = useCallback(
@@ -96,8 +111,6 @@ const SideSectionProfile = () => {
     },
     [],
   );
-
-  const dispatch = useDispatch();
 
   const handleRemoveFile = useCallback(() => {
     setFile(null);
@@ -183,30 +196,74 @@ const SideSectionProfile = () => {
     fileInputRef.current?.click();
   }, []);
 
-  const handleDragEnter = useCallback((e: DragEvt) => {
+  // const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   setIsDragging(true);
+  // }, []);
+
+  // const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   // setIsDragging(false);
+  // }, []);
+
+  // const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  // }, []);
+
+  // const handleDrop = useCallback(
+  //   (e: React.DragEvent<HTMLDivElement>, cb: (f: File) => void) => {
+  //     e.preventDefault();
+  //     e.stopPropagation();
+  //     setIsDragging(false);
+  //     const files = e.dataTransfer?.files;
+  //     if (files && files.length > 0) cb(files[0]);
+  //   },
+  //   [],
+  // );
+
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: DragEvt) => {
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault(); // MANDATORY: This prevents the flicker/reset
+      e.stopPropagation();
+      if (!isDragging) setIsDragging(true);
+    },
+    [isDragging],
+  );
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (
+      e.clientX <= rect.left ||
+      e.clientX >= rect.right ||
+      e.clientY <= rect.top ||
+      e.clientY >= rect.bottom
+    ) {
+      setIsDragging(false);
+    }
   }, []);
 
-  const handleDragOver = useCallback((e: DragEvt) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback((e: DragEvt, cb: (f: File) => void) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) cb(files[0]);
-  }, []);
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, cb: (f: File) => void) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) cb(files[0]);
+    },
+    [],
+  );
 
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -265,19 +322,16 @@ const SideSectionProfile = () => {
     if (locationError || phoneValidationError) return;
     try {
       setIsLoading(true);
-      await updateProfile(); // Wait for the API call
-      setOriginalProfile(profile);
-      setIsModalOpen(false); // Only close on success
+      setProfile(localFormData);
+      await updateProfile(localFormData);
+      setIsModalOpen(false);
     } catch (error) {
       console.error('Failed to save profile:', error);
-      // Optional: Add a toast notification here for error
     } finally {
-      setIsLoading(false); // Stop loading regardless of success/failure
+      setIsLoading(false);
     }
   };
-  /* -----------------------------
-     Render
-  ------------------------------ */
+
   return (
     <aside className="w-full lg:w-80 space-y-4 p-3 max-h-[80vh] overflow-y-auto">
       {/* ================= Profile Card ================= */}
@@ -424,12 +478,25 @@ const SideSectionProfile = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-gray-700 mb-1">
-              {isDragging ? 'Drop your file here' : 'Drag & drop your CV'}
+              {isDragging ? 'Drop your file here' : 'Drop CV'}
             </p>
-            <p className="text-sm text-gray-500">or click to browse</p>
-            <p className="text-xs text-gray-400 mt-2">
-              Supports PDF, DOC, DOCX, TXT
-            </p>
+
+            {/* If NOT dragging, show the instructions */}
+            {!isDragging && (
+              <>
+                <p className="text-sm text-gray-500">or click to browse</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Supports PDF, DOC, DOCX, TXT
+                </p>
+              </>
+            )}
+
+            {/* If dragging, you could show a "Release to upload" message instead */}
+            {isDragging && (
+              <p className="text-sm text-blue-600 font-bold animate-pulse">
+                Release to capture file
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -440,9 +507,6 @@ const SideSectionProfile = () => {
       {file && (
         <div className="mt-6 flex flex-col items-center gap-4">
           <div className="flex items-center gap-3 p-3 bg-white rounded-lg  border border-gray-200 w-full max-w-md">
-            {/* <div className="p-2 bg-blue-100 rounded-lg">
-              <Sparkles className="w-6 h-6 text-blue-600" />
-            </div> */}
             <div className="flex-1 overflow-hidden">
               <p className="font-xs text-gray-800 ">{file.name}</p>
               <p className="text-xs text-gray-500">
@@ -531,8 +595,8 @@ const SideSectionProfile = () => {
               <Input
                 id="fullName"
                 name="fullName"
-                value={profile.fullName}
-                onChange={onChange}
+                value={localFormData.fullName}
+                onChange={handleLocalChange}
                 placeholder="John Doe"
               />
             </div>
@@ -586,8 +650,8 @@ const SideSectionProfile = () => {
               <Input
                 id="jobRole"
                 name="jobRole"
-                value={profile.jobRole}
-                onChange={onChange}
+                value={localFormData.jobRole}
+                onChange={handleLocalChange}
                 placeholder="Frontend Developer"
               />
             </div>
@@ -624,10 +688,7 @@ const SideSectionProfile = () => {
               Cancel
             </Button>
 
-            <Button
-              onClick={handleSave}
-              disabled={isLoading} // Disable save to prevent double-clicks
-            >
+            <Button onClick={handleSave} disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -642,7 +703,7 @@ const SideSectionProfile = () => {
       </Dialog>
 
       <Dialog open={isImageViewerOpen} onOpenChange={setIsImageViewerOpen}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] bg-black border-none p-0">
+        <DialogContent className=" max-w-[90vw] max-h-[90vh] bg-black border-none p-0">
           <div className="relative w-full h-[80vh] flex items-center justify-center">
             <button
               onClick={() => setIsImageViewerOpen(false)}

@@ -1,31 +1,30 @@
-FROM node:20-alpine
+FROM node:20-slim
 
-# Install required packages for Chromium/Puppeteer
-RUN apk add --no-cache \
+# Install required packages for Chromium/Puppeteer + PDF tools
+# node:20-slim is Debian-based (glibc) so apt-get is available
+RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
-    nss \
-    freetype \
-    harfbuzz \
+    chromium-sandbox \
     ca-certificates \
-    ttf-freefont \
+    fonts-freefont-ttf \
     dumb-init \
     pandoc \
-    && rm -rf /var/cache/apk/*
-
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set Puppeteer to use system Chromium
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /app
 
 # Copy package files first for better caching
 COPY package*.json ./
 
-
-
 # Install production dependencies only
-RUN npm install --production && \
+# node:20-slim is glibc — matches GitHub Actions runner, so
+# @anush008/tokenizers-linux-x64-gnu (used by fastembed) resolves correctly
+RUN npm install --omit=dev && \
     npm install pm2 -g && \
     npm cache clean --force
 

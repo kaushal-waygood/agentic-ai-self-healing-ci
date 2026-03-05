@@ -4,10 +4,9 @@ metadata:
   name: zobsai-ingress-dev
   namespace: dev-zobsai
   annotations:
-   # kubernetes.io/ingress.class: traefik
     ingressClassName: traefik
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    cert-manager.io/cluster-issuer: letsencrypt-prod # <-- switch to prod after testing
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.tls: 'true'
 spec:
   tls:
@@ -23,6 +22,18 @@ spec:
     - host: dev.zobsai.com
       http:
         paths:
+          # Uni Company Panel  →  /uni-com/*
+          # NOTE: Next.js basePath is set to /uni-com so do NOT use StripPrefix here.
+          # Traefik must forward the full path (with /uni-com) to the panel service.
+          - path: /uni-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: zobsai-uni-company-panel
+                port:
+                  number: 3002
+
+          # Main Frontend  →  everything else
           - path: /
             pathType: Prefix
             backend:
@@ -31,9 +42,18 @@ spec:
                 port:
                   number: 3000
 
+    # www redirect also serves frontend + panel
     - host: www.dev.zobsai.com
       http:
         paths:
+          - path: /uni-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: zobsai-uni-company-panel
+                port:
+                  number: 3002
+
           - path: /
             pathType: Prefix
             backend:
@@ -53,4 +73,3 @@ spec:
                 name: zobsai-backend
                 port:
                   number: 8080
-

@@ -90,26 +90,38 @@ async function getExistingExternalJobMap(jobIds = []) {
 // --------------------
 
 export async function retrieveLocalCandidates(context, limit = 100) {
-  // Parallelize keyword and vector search
-  const tasks = [];
+  const queryPart = context.query || 'recent';
+  const countryPart = context.filters?.country || 'GLOBAL';
+  const contextType = context.type || 'search';
+  const cacheKey = `jobs:local:${crypto.createHash('md5').update(`${contextType}:${queryPart}:${countryPart}:${limit}`).digest('hex')}`;
 
-  if (context.query) {
-    tasks.push(keywordSearch(context, limit));
-    tasks.push(vectorSearch(context, limit));
-  } else {
-    // If no query, fallback to recent active jobs in the desired country
-    tasks.push(
-      Job.find({ isActive: true, country: context.filters?.country || 'IN' })
-        .sort({ jobPostedAt: -1 })
-        .limit(limit)
-        .lean(),
-    );
-  }
+  return await redisClient.withCache(cacheKey, 600, async () => {
+    const tasks = [];
 
-  const results = await Promise.all(tasks);
-  const combined = results.flat();
+    const maxAgeDays = contextType === 'recommendation' ? 30 : 10;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
+    const dateFilter = { jobPostedAt: { $gte: cutoffDate } };
 
-  return dedupeByTitleCompany(combined);
+    if (context.query) {
+      tasks.push(keywordSearch(context, limit, dateFilter));
+      tasks.push(vectorSearch(context, limit, dateFilter));
+    } else {
+      // No query — fetch recent active jobs, respecting country only if provided
+      const baseFilter = { isActive: true, ...dateFilter };
+      if (context.filters?.country) {
+        baseFilter.country = context.filters.country;
+      }
+      tasks.push(
+        Job.find(baseFilter).sort({ jobPostedAt: -1 }).limit(limit).lean(),
+      );
+    }
+
+    const results = await Promise.all(tasks);
+    const combined = results.flat();
+    combined.sort((a, b) => new Date(b.jobPostedAt) - new Date(a.jobPostedAt));
+    return dedupeByTitleCompany(combined);
+  });
 }
 
 /**
@@ -205,6 +217,24 @@ function buildLocationFromApiJob(apiJob) {
     state = parts[1] || '';
   }
 
+  // Sanitize: JSearch returns 'Anywhere', 'Remote', 'Worldwide', etc. for
+  // remote-only jobs. These are not real city names — clear them so the
+  // frontend can fall back to state / country or show the remote badge.
+  const MEANINGLESS_CITY_TOKENS = [
+    'anywhere',
+    'remote',
+    'worldwide',
+    'global',
+    'work from home',
+    'wfh',
+    'online',
+    'virtual',
+  ];
+  const cityLower = city.toLowerCase().trim();
+  if (MEANINGLESS_CITY_TOKENS.includes(cityLower)) {
+    city = '';
+  }
+
   return {
     city,
     state,
@@ -214,18 +244,164 @@ function buildLocationFromApiJob(apiJob) {
   };
 }
 
+// --- Country normalization maps ---
+const ISO3_TO_ISO2 = {
+  IND: 'IN',
+  USA: 'US',
+  GBR: 'GB',
+  JPN: 'JP',
+  DEU: 'DE',
+  FRA: 'FR',
+  CAN: 'CA',
+  AUS: 'AU',
+  BRA: 'BR',
+  CHN: 'CN',
+  KOR: 'KR',
+  SGP: 'SG',
+  ARE: 'AE',
+  SAU: 'SA',
+  NLD: 'NL',
+  ESP: 'ES',
+  ITA: 'IT',
+  CHE: 'CH',
+  SWE: 'SE',
+  NOR: 'NO',
+  DNK: 'DK',
+  FIN: 'FI',
+  IRL: 'IE',
+  NZL: 'NZ',
+  ZAF: 'ZA',
+  MEX: 'MX',
+  ARG: 'AR',
+  COL: 'CO',
+  CHL: 'CL',
+  PHL: 'PH',
+  MYS: 'MY',
+  IDN: 'ID',
+  THA: 'TH',
+  VNM: 'VN',
+  POL: 'PL',
+  ROU: 'RO',
+  PRT: 'PT',
+  AUT: 'AT',
+  BEL: 'BE',
+  ISR: 'IL',
+  TUR: 'TR',
+  RUS: 'RU',
+  UKR: 'UA',
+  EGY: 'EG',
+  NGA: 'NG',
+  KEN: 'KE',
+  PAK: 'PK',
+  BGD: 'BD',
+  LKA: 'LK',
+  NPL: 'NP',
+  HKG: 'HK',
+  TWN: 'TW',
+  QAT: 'QA',
+  KWT: 'KW',
+  OMN: 'OM',
+  BHR: 'BH',
+};
+
+const COUNTRY_NAME_TO_ISO2 = {
+  india: 'IN',
+  usa: 'US',
+  'united states': 'US',
+  'united states of america': 'US',
+  japan: 'JP',
+  germany: 'DE',
+  france: 'FR',
+  canada: 'CA',
+  australia: 'AU',
+  brazil: 'BR',
+  china: 'CN',
+  'south korea': 'KR',
+  korea: 'KR',
+  singapore: 'SG',
+  'united arab emirates': 'AE',
+  uae: 'AE',
+  dubai: 'AE',
+  'saudi arabia': 'SA',
+  netherlands: 'NL',
+  holland: 'NL',
+  spain: 'ES',
+  italy: 'IT',
+  switzerland: 'CH',
+  sweden: 'SE',
+  norway: 'NO',
+  denmark: 'DK',
+  finland: 'FI',
+  ireland: 'IE',
+  'new zealand': 'NZ',
+  'south africa': 'ZA',
+  mexico: 'MX',
+  argentina: 'AR',
+  colombia: 'CO',
+  chile: 'CL',
+  philippines: 'PH',
+  malaysia: 'MY',
+  indonesia: 'ID',
+  thailand: 'TH',
+  vietnam: 'VN',
+  poland: 'PL',
+  romania: 'RO',
+  portugal: 'PT',
+  austria: 'AT',
+  belgium: 'BE',
+  israel: 'IL',
+  turkey: 'TR',
+  russia: 'RU',
+  ukraine: 'UA',
+  egypt: 'EG',
+  nigeria: 'NG',
+  kenya: 'KE',
+  pakistan: 'PK',
+  bangladesh: 'BD',
+  'sri lanka': 'LK',
+  nepal: 'NP',
+  'hong kong': 'HK',
+  taiwan: 'TW',
+  qatar: 'QA',
+  kuwait: 'KW',
+  oman: 'OM',
+  bahrain: 'BH',
+  'united kingdom': 'GB',
+  uk: 'GB',
+  england: 'GB',
+  britain: 'GB',
+  'great britain': 'GB',
+};
+
+function normalizeCountryCode(raw, locationStr) {
+  if (!raw && !locationStr) return '';
+
+  // 1. Already a valid ISO-2
+  if (raw && raw.length === 2) return raw.toUpperCase();
+
+  // 2. ISO-3 → ISO-2
+  if (raw && raw.length === 3) {
+    const mapped = ISO3_TO_ISO2[raw.toUpperCase()];
+    if (mapped) return mapped;
+  }
+
+  // 3. Fuzzy match country name in location string
+  const searchStr = `${raw || ''} ${locationStr || ''}`.toLowerCase();
+  for (const [name, code] of Object.entries(COUNTRY_NAME_TO_ISO2)) {
+    if (searchStr.includes(name)) return code;
+  }
+
+  return raw ? raw.toUpperCase() : '';
+}
+
 export function transformRapidApiJob(apiJob, searchQuery) {
   const loc = buildLocationFromApiJob(apiJob);
 
-  // Repair Country Code - Defaulting to IN if India is mentioned
-  let finalCountry = loc.country;
-  const rawLocStr = (apiJob.job_location || '').toLowerCase();
-  if (!finalCountry && rawLocStr.includes('india')) finalCountry = 'IN';
-  if (
-    !finalCountry &&
-    (rawLocStr.includes('usa') || rawLocStr.includes('united states'))
-  )
-    finalCountry = 'US';
+  // Normalize country code from any format (ISO-3, full name, etc.) → ISO-2
+  const finalCountry = normalizeCountryCode(
+    apiJob.job_country || loc.country,
+    apiJob.job_location,
+  );
 
   let salaryObj = undefined;
   if (apiJob.job_min_salary || apiJob.job_max_salary) {
@@ -302,49 +478,110 @@ export async function fetchExternalJobs(
   experience,
   page = 1,
 ) {
-  try {
-    let query = apiQuery;
+  const cacheKeyStr = `${apiQuery || 'jobs'}:${country}:${state || 'none'}:${city || 'none'}:${datePosted || 'none'}:${employmentType || 'none'}:${experience || 'none'}:${page}`;
+  const cacheKey = `jobs:rapid:${crypto.createHash('md5').update(cacheKeyStr).digest('hex')}`;
 
-    // Inject location with "India" as fallback for "IN"
-    const locParts = [
-      city,
-      state,
-      country === 'IN' ? 'India' : country === 'US' ? 'USA' : country,
-    ].filter(Boolean);
+  return await redisClient.withCache(cacheKey, 3600, async () => {
+    try {
+      let query = apiQuery;
 
-    if (locParts.length > 0) {
-      query += ` in ${locParts.join(', ')}`;
+      // Inject location with full country name (RapidAPI needs names, not ISO codes)
+      const ISO2_TO_NAME = {
+        IN: 'India',
+        US: 'USA',
+        GB: 'United Kingdom',
+        JP: 'Japan',
+        DE: 'Germany',
+        FR: 'France',
+        CA: 'Canada',
+        AU: 'Australia',
+        BR: 'Brazil',
+        CN: 'China',
+        KR: 'South Korea',
+        SG: 'Singapore',
+        AE: 'UAE',
+        SA: 'Saudi Arabia',
+        NL: 'Netherlands',
+        ES: 'Spain',
+        IT: 'Italy',
+        CH: 'Switzerland',
+        SE: 'Sweden',
+        NO: 'Norway',
+        DK: 'Denmark',
+        FI: 'Finland',
+        IE: 'Ireland',
+        NZ: 'New Zealand',
+        ZA: 'South Africa',
+        MX: 'Mexico',
+        AR: 'Argentina',
+        CO: 'Colombia',
+        CL: 'Chile',
+        PH: 'Philippines',
+        MY: 'Malaysia',
+        ID: 'Indonesia',
+        TH: 'Thailand',
+        VN: 'Vietnam',
+        PL: 'Poland',
+        RO: 'Romania',
+        PT: 'Portugal',
+        AT: 'Austria',
+        BE: 'Belgium',
+        IL: 'Israel',
+        TR: 'Turkey',
+        RU: 'Russia',
+        UA: 'Ukraine',
+        EG: 'Egypt',
+        NG: 'Nigeria',
+        KE: 'Kenya',
+        PK: 'Pakistan',
+        BD: 'Bangladesh',
+        LK: 'Sri Lanka',
+        NP: 'Nepal',
+        HK: 'Hong Kong',
+        TW: 'Taiwan',
+        QA: 'Qatar',
+        KW: 'Kuwait',
+        OM: 'Oman',
+        BH: 'Bahrain',
+      };
+      const countryName = ISO2_TO_NAME[country?.toUpperCase()] || country;
+      const locParts = [city, state, countryName].filter(Boolean);
+
+      if (locParts.length > 0) {
+        query += ` in ${locParts.join(', ')}`;
+      }
+
+      const params = { query, page: String(page), num_pages: '1' };
+
+      if (employmentType) {
+        // RapidAPI JSearch accepts format: FULLTIME, CONTRACTOR, PARTTIME, INTERNSHIP
+        params.employment_types = employmentType;
+      }
+
+      if (experience) {
+        // e.g. "under_3_years_experience,more_than_3_years_experience,no_experience"
+        params.job_requirements = experience;
+      }
+
+      if (datePosted) {
+        // e.g. "today", "3days", "week", "month"
+        params.date_posted = datePosted;
+      }
+
+      const response = await axios.get(config.rapidJobApi, {
+        params,
+        headers: {
+          'X-RapidAPI-Key': config.rapidApiKey,
+          'X-RapidAPI-Host': config.rapidApiHost,
+        },
+      });
+
+      return response?.data?.data || [];
+    } catch (e) {
+      console.error('RapidAPI error:', e.message);
+      return [];
     }
-
-    const params = { query, page: String(page), num_pages: '1' };
-
-    if (employmentType) {
-      // RapidAPI JSearch accepts format: FULLTIME, CONTRACTOR, PARTTIME, INTERNSHIP
-      params.employment_types = employmentType;
-    }
-
-    if (experience) {
-      // e.g. "under_3_years_experience,more_than_3_years_experience,no_experience"
-      params.job_requirements = experience;
-    }
-
-    if (datePosted) {
-      // e.g. "today", "3days", "week", "month"
-      params.date_posted = datePosted;
-    }
-    const response = await axios.get(config.rapidJobApi, {
-      params,
-      headers: {
-        'X-RapidAPI-Key': config.rapidApiKey,
-        'X-RapidAPI-Host': config.rapidApiHost,
-      },
-    });
-
-    return response?.data?.data || [];
-  } catch (e) {
-    console.error('RapidAPI error:', e.message);
-    return [];
-  }
+  });
 }
 
 // --------------------
@@ -360,11 +597,11 @@ export function applyFilters(jobs, context) {
   };
   const { applied, saved, views } = interactions;
 
-  // 1. Normalize target inputs for comparison
-  const targetCountry = country?.toUpperCase().trim() || 'IN';
+  // When country is null/undefined/empty → no country filter (global mode)
+  const targetCountry = country ? country.toUpperCase().trim() : '';
   const targetState = state?.toLowerCase().trim();
   const targetCity = city?.toLowerCase().trim();
-  const targetType = employmentType?.toUpperCase().trim(); // e.g., "INTERNSHIP"
+  const targetType = employmentType?.toUpperCase().trim();
 
   return jobs.filter((job) => {
     if (!job || !job.isActive) return false;
@@ -405,35 +642,44 @@ export function applyFilters(jobs, context) {
       if (!typeMatch) return false;
     }
 
-    if (job.remote === true && !targetCity && !targetState) return true;
-
     const jLoc = job.location || {};
     const jobCountry = job.country?.toUpperCase().trim();
     const jobCity =
       (typeof jLoc === 'string' ? jLoc : jLoc.city)?.toLowerCase() || '';
     const jobState = (jLoc.state || '').toLowerCase();
 
+    // Remote jobs: bypass location in global mode or recommendation mode,
+    // or when job country matches target.
+    if (job.remote === true && !targetCity && !targetState) {
+      const isGlobal = !targetCountry;
+      const isRecommendation = context.type === 'recommendation';
+      const countryMatches =
+        !targetCountry || !jobCountry || jobCountry === targetCountry;
+      if (isGlobal || isRecommendation || countryMatches) return true;
+    }
+
     const locationBlob =
       `${jobCity} ${jobState} ${job.description?.slice(0, 150).toLowerCase()}`.trim();
 
+    // Skip country check entirely in global mode (targetCountry = '')
     if (targetCountry) {
       const isISOPerfect = Boolean(jobCountry && jobCountry === targetCountry);
 
-      const isCountryNameMatch =
-        (targetCountry === 'IN' && locationBlob.includes('india')) ||
-        (targetCountry === 'US' &&
-          (locationBlob.includes('usa') ||
-            locationBlob.includes('united states')));
+      // Universal fuzzy match: derive ISO-2 from location text
+      let isCountryNameMatch = false;
+      if (!isISOPerfect) {
+        for (const [name, code] of Object.entries(COUNTRY_NAME_TO_ISO2)) {
+          if (code === targetCountry && locationBlob.includes(name)) {
+            isCountryNameMatch = true;
+            break;
+          }
+        }
+      }
 
       if (!isISOPerfect && !isCountryNameMatch) {
-        // If the API didn't provide a country code, but provided a city, we shouldn't necessarily drop it
-        // if we suspect it's the target country. If origin is EXTERNAL and we lack the ISO code, we tentatively allow it
-        // UNLESS it explicitly mentions another known country (advanced NLP needed, but for now we fallback allow).
-        const hasAnyLocationData = !!(jobCountry || jobCity || jobState);
-        if (hasAnyLocationData && jobCountry) {
-          // We only definitively reject if a DIFFERENT explicit country is found
-          return false;
-        }
+        if (jobCountry) return false;
+        const hasAnyLocationData = !!(jobCity || jobState);
+        if (!hasAnyLocationData) return false;
       }
     }
 
@@ -570,20 +816,49 @@ export async function retrieveCandidates(context, limit = 300) {
 // --------------------
 // 8. SEARCH DRIVERS & SCORING
 // --------------------
-async function keywordSearch(context, limit = 100) {
+async function keywordSearch(context, limit = 100, dateFilter = {}) {
   if (!context.query) return [];
 
-  // Use regex search instead of $text since the index is missing
-  const regex = new RegExp(context.query, 'i');
+  // Tokenize the query into individual keywords (handles both short search
+  // queries like "react" AND long recommendation queries like
+  // "software engineer react nodejs express").
+  // Match ANY individual keyword so we actually find results.
+  const tokens = context.query
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2); // ignore single-char noise
+
+  if (!tokens.length) return [];
+
+  // Build $and conditions: each token must match at least one field (title, tags, company)
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const andConditions = tokens.map((token) => {
+    // For short tokens (like "HR" or "IT") or standard words, use word boundaries
+    // so we don't match "hr" inside "chrome", "threads", "three", etc.
+    const pattern = `\\b${escapeRegex(token)}`;
+    const regex = new RegExp(pattern, 'i');
+    return {
+      $or: [
+        { title: regex },
+        { tags: regex },
+        { company: regex },
+        // intentionally omitting `queries` because previous garbage API results
+        // might have permanently saved irrelevant queries into the DB
+      ],
+    };
+  });
+
   return Job.find({
-    $or: [{ title: regex }, { queries: regex }],
+    $and: andConditions,
     isActive: true,
+    ...dateFilter,
   })
+    .sort({ jobPostedAt: -1 })
     .limit(limit)
     .lean();
 }
 
-async function vectorSearch(context, limit = 100) {
+async function vectorSearch(context, limit = 100, dateFilter = {}) {
   const titles = context.profile?.titles?.join(' ') || '';
   const skills = context.profile?.skills?.join(' ') || '';
   const input = context.query || `${titles} ${skills}`.trim();
@@ -593,38 +868,78 @@ async function vectorSearch(context, limit = 100) {
   const queryVector = await generateEmbedding(input);
   if (!queryVector) return [];
 
+  const filterParam = {
+    $and: [{ score: { $gte: 0.935 } }],
+  };
+
+  // Vector Search inside MongoDB Atlas doesn't play perfectly with standard Aggregation Match sometimes,
+  // But we'll enforce the date filter inside vectorSearch as part of the pipeline Match phase.
+  if (dateFilter.jobPostedAt) {
+    filterParam.$and.push({ jobPostedAt: dateFilter.jobPostedAt });
+  }
+
   return Job.aggregate([
     {
       $vectorSearch: {
         index: 'vector_index',
         path: 'job_embedding',
         queryVector,
-        limit: limit,
-        numCandidates: limit * 2 > 200 ? limit * 2 : 200,
+        // MongoDB Atlas hard limit: limit ∈ [1, 10000], numCandidates ∈ [limit, 10000]
+        limit: Math.min(limit, 10000),
+        numCandidates: Math.min(Math.max(limit * 2, 200), 10000),
       },
     },
     {
       $project: { job_embedding: 0, score: { $meta: 'vectorSearchScore' } },
     },
     {
-      $match: { score: { $gte: 0.935 } },
+      $match: filterParam,
+    },
+    {
+      $sort: { jobPostedAt: -1 },
     },
   ]);
 }
 
 export function rankJobs(jobs, context) {
+  const query = context.query?.toLowerCase().trim() || '';
+  const queryTokens = query.split(/\s+/).filter((t) => t.length > 2);
+
   return jobs
     .map((job) => {
+      // More aggressive decay: score drops off rapidly if it's over a few days old
       const freshness = Math.exp(
-        -(Date.now() - new Date(job.jobPostedAt)) / (86400000 * 15),
+        -(Date.now() - new Date(job.jobPostedAt)) / (86400000 * 5),
       );
       const isTargetCountry =
         job.country === (context.filters?.country || 'IN');
       const geo = job.remote || isTargetCountry ? 1 : 0.1;
 
-      return { ...job, score: freshness * 0.4 + geo * 0.6 };
+      // Add a tiny bit of vector score correlation if available, otherwise just rely on freshness
+      const vectorBonus = job.score && job.score > 0.9 ? job.score * 0.2 : 0;
+
+      // RELEVANCE BONUS
+      let relevanceBonus = 0;
+      if (query && job.title) {
+        const titleLower = job.title.toLowerCase();
+        if (titleLower === query) {
+          relevanceBonus = 1.0; // Exact title match
+        } else if (titleLower.includes(query)) {
+          relevanceBonus = 0.5; // Title contains query exactly
+        } else if (queryTokens.length > 0) {
+          const matchCount = queryTokens.filter((token) =>
+            titleLower.includes(token),
+          ).length;
+          relevanceBonus = (matchCount / queryTokens.length) * 0.3; // Partial match
+        }
+      }
+
+      return {
+        ...job,
+        rankScore: freshness * 0.6 + geo * 0.4 + vectorBonus + relevanceBonus,
+      };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.rankScore - a.rankScore);
 }
 
 export function diversify(jobs) {

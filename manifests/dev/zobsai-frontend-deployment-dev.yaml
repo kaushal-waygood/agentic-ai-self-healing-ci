@@ -22,7 +22,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: frontend
-          image: ghcr.io/zobsai-com/zobsai-frontend:1e17c417a9df325d7f891df3232fd042247693c9
+          image: ghcr.io/zobsai-com/zobsai-frontend:f6d7b168ec6131ed8685d28c6964d38c6ce12430
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -31,6 +31,13 @@ spec:
                 name: zobsai-frontend-config
             - secretRef:
                 name: zobsai-frontend-secrets
+          resources:
+            requests:
+              cpu: '500m'
+              memory: '512Mi'
+            limits:
+              cpu: '1500m'
+              memory: '1Gi'
 ---
 apiVersion: v1
 kind: Service
@@ -42,6 +49,6 @@ spec:
   selector:
     app: zobsai-frontend
   ports:
-    - port: 3000 # Service port
-      targetPort: 3000 # Container port
-      nodePort: 30030 # NodePort (optional, can be omitted)
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30030

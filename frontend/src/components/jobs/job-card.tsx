@@ -36,6 +36,26 @@ const calculateJobPostedFromNow = (jobPostedAt: string) => {
   return `${diffInDays} days ago`;
 };
 
+/**
+ * Build the best possible one-line location label for a job.
+ * Priority: city > state > country. Falls back to "Remote" for remote jobs
+ * with no location, and "Location N/A" only as a last resort.
+ */
+function formatLocation(job: any): string {
+  const city = job.location?.city?.trim();
+  const state = job.location?.state?.trim();
+  const country = (job.country || job.location?.country)?.trim();
+
+  const parts: string[] = [];
+  if (city) parts.push(city);
+  if (state && state !== city) parts.push(state);
+  if (country && parts.length === 0) parts.push(country); // only add country when nothing else
+
+  if (parts.length > 0) return parts.join(', ');
+  if (job.remote) return 'Remote';
+  return 'Location N/A';
+}
+
 export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
   return (
     <div
@@ -92,7 +112,14 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
             <div className="flex items-center gap-1.5 text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
               <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-blue-500" />
               <span className="truncate">
-                {job.location?.city || 'Unknown'}
+                {job.remote && !job.location?.city && !job.location?.state ? (
+                  <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                    Remote
+                  </span>
+                ) : (
+                  formatLocation(job)
+                )}
               </span>
             </div>
 
@@ -101,7 +128,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               <div className="flex items-center gap-1.5 text-xs text-gray-500 group-hover:text-gray-600 transition-colors">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0 text-purple-400" />
                 <span className="font-medium">
-                  {calculateJobPostedFromNow(job.jobPostedAt)}
+                  {calculateJobPostedFromNow(job.jobPostedAt ?? '')}
                 </span>
               </div>
 
@@ -113,7 +140,7 @@ export function JobCard({ job, isActive = false, onClick }: JobCardProps) {
               </div>
             </div>
 
-            {job.jobViews > 100 && (
+            {(job.jobViews ?? 0) > 100 && (
               <div className="flex items-center gap-1 text-xs font-semibold text-green-600 animate-in fade-in duration-500">
                 <TrendingUp className="w-3 h-3" />
                 <span>Trending</span>

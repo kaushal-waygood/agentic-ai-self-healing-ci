@@ -1,5 +1,11 @@
 import express from 'express';
-import * as notificationController from '../controllers/notification.controller.js';
+import {
+  getUserNotifications,
+  getUnreadCount,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+} from '../controllers/notification.controller.js';
 import { authMiddleware, isStudent } from '../middlewares/auth.middleware.js';
 import { sendRealTimeNotification } from '../socket/notification.socket.js';
 
@@ -8,11 +14,11 @@ const router = express.Router();
 // All routes require authentication
 router.use(authMiddleware);
 
-router.get('/', notificationController.getUserNotifications);
-router.get('/unread-count', notificationController.getUnreadCount);
-router.patch('/:notificationId/read', notificationController.markAsRead);
-router.patch('/mark-all-read', notificationController.markAllAsRead);
-router.delete('/:notificationId', notificationController.deleteNotification);
+router.get('/', authMiddleware, getUserNotifications);
+router.get('/unread-count', authMiddleware, getUnreadCount);
+router.patch('/:notificationId/read', authMiddleware, markAsRead);
+router.patch('/mark-all-read', authMiddleware, markAllAsRead);
+router.delete('/:notificationId', authMiddleware, deleteNotification);
 
 router.post('/test-notification', authMiddleware, async (req, res) => {
   try {

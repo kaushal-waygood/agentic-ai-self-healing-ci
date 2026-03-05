@@ -92,7 +92,7 @@ export const FilterModal = ({
         education: filters.education || [],
       });
     }
-  }, [isOpen, filters]);
+  }, [isOpen]);
 
   const handleSelectionChange = (
     filterKey: 'employmentType' | 'experience',
@@ -134,10 +134,12 @@ export const FilterModal = ({
   };
 
   const handleApply = () => {
-    handleFilterChange(localFilters);
     onClose();
-  };
 
+    setTimeout(() => {
+      handleFilterChange(localFilters);
+    }, 100);
+  };
   const handleReset = () => {
     const resetState = {
       query: filters.query || '',

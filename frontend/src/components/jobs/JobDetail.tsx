@@ -1,18 +1,16 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { MatchScoreModal } from './MatchScoreModal';
 
-import { RootState } from '@/redux/rootReducer';
 import {
   savedStudentJobsRequest,
   visitedJobsRequest,
@@ -77,6 +75,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'match' | 'ats'>('match');
+  const [isApplying, setIsApplying] = useState(false);
   const [openCard, setOpenCard] = useState<'match' | 'ats' | null>('match');
   const [token, setToken] = useState<string | undefined>(undefined);
 
@@ -137,6 +136,60 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     setIsLoadingAtsScore(false);
     setProgress(0);
 
+    return () => controller.abort();
+  }, [job?._id]);
+
+  // token lookup (SSR-safe)
+  // useEffect(() => {
+  //   try {
+  //     const accessToken =
+  //       (typeof window !== 'undefined' &&
+  //         window.localStorage?.getItem('accessToken')) ||
+  //       getCookie('accessToken');
+  //     setToken(accessToken || undefined);
+  //   } catch {
+  //     setToken(undefined);
+  //   }
+  // }, []);
+
+  // load cached score and job saved/applied flags
+  useEffect(() => {
+    if (!job?._id) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const savedScore = localStorage.getItem(`matchScore_${job._id}`);
+    setMatchScore(savedScore ? (JSON.parse(savedScore) as MatchScore) : null);
+    setIsLoadingScore(false);
+    setProgress(0);
+
+    const checkJobStatus = async () => {
+      try {
+        const [savedRes, appliedRes] = await Promise.all([
+          apiInstance.get('students/jobs/intraction-status', {
+            params: { jobId: job._id },
+            signal,
+          }),
+          // apiInstance.get('/students/job/isapplied', {
+          //   params: { jobId: job._id },
+          //   signal,
+          // }),
+        ]);
+
+        if (signal.aborted) return;
+        console.log('data', savedRes.data);
+        setIsSaved(Boolean(savedRes?.data?.isSaved));
+        // setIsApplying(Boolean(appliedRes?.data?.isApplied));
+      } catch (error) {
+        if (!signal.aborted) {
+          // quiet log; don’t spam the UI
+          console.error('Failed to check job status:', error);
+        }
+      }
+    };
+
+    checkJobStatus();
     return () => controller.abort();
   }, [job?._id]);
 
@@ -482,8 +535,31 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                   <MapPin className="w-4 h-4" />
                   <span>
-                    {job.location.city || 'Not specified'},{' '}
-                    {job.country || 'Not specified'}
+                    {(() => {
+                      const NOISE = [
+                        'anywhere',
+                        'remote',
+                        'worldwide',
+                        'global',
+                        'online',
+                        'virtual',
+                      ];
+                      const rawCity = job.location?.city?.trim() ?? '';
+                      const city = NOISE.includes(rawCity.toLowerCase())
+                        ? ''
+                        : rawCity;
+                      const state =
+                        (job.location as any)?.state?.trim?.() ?? '';
+                      const country =
+                        (job.country as string | undefined)?.trim() ?? '';
+                      const parts: string[] = [];
+                      if (city) parts.push(city);
+                      if (state && state !== city) parts.push(state);
+                      if (country) parts.push(country);
+                      if (parts.length > 0) return parts.join(', ');
+                      if ((job as any).remote) return '🌐 Remote';
+                      return 'Location not specified';
+                    })()}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
