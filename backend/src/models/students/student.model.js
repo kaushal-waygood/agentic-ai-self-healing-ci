@@ -29,6 +29,11 @@ const studentSchema = new Schema(
       default: null,
     },
 
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
+
     hasCompletedOnboarding: { type: Boolean, default: false },
 
     jobPreferences: {
