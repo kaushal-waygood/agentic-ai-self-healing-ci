@@ -1,16 +1,10 @@
 'use client';
+
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { getAllSavedJobs } from '@/services/api/student';
 import {
   Briefcase,
   ChevronsRight,
@@ -19,17 +13,14 @@ import {
   Sparkles,
   Target,
   User,
-  Zap,
   CheckCircle2,
   MapPin,
   DollarSign,
-  FileText,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import apiInstance from '@/services/api';
 import { Loader } from '@/components/Loader';
 
-// Define the structure of the job object for type safety
 interface Job {
   _id: string;
   title: string;
@@ -42,14 +33,16 @@ interface Job {
     period: string;
   };
   jobTypes: string[];
+  location?: {
+    city?: string;
+  };
 }
 
 interface JobCardProps {
   job: Job;
 }
 
-// Helper function to format the salary range
-const formatSalary = (salary: JobDetails['salary']) => {
+const formatSalary = (salary: Job['salary']) => {
   if (!salary || (salary.min === 0 && salary.max === 0)) {
     return 'Not Disclosed';
   }
@@ -59,7 +52,6 @@ const formatSalary = (salary: JobDetails['salary']) => {
     MONTH: 'mo',
     HOUR: 'hr',
   };
-
   return `${formatValue(salary.min)} - ${formatValue(salary.max)} / ${
     periodMap[salary.period] || 'yr'
   }`;
@@ -71,16 +63,12 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
 
   return (
     <div
-      className=" bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-lg p-4 transition-all duration-500 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:-translate-y-1 cursor-pointer group relative overflow-hidden"
+      className="bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-lg p-4 transition-all duration-500 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:-translate-y-1 cursor-pointer group relative overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-start gap-4 relative z-10">
-        {/* Company Logo with enhanced animation */}
-        <div
-          className=" hidden
-    sm:flex flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white"
-        >
+        <div className="hidden sm:flex flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg items-center justify-center shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all duration-300 border-2 border-white">
           {job.logo ? (
             <img
               src={job.logo}
@@ -94,18 +82,13 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
           )}
         </div>
 
-        {/* Job Details */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-500 truncate mb-1">
             {job.company}
           </p>
-          {/* <h3 className="text-xl font-bold text-gray-900 truncate mb-3 group-hover:text-purple-600 transition-colors duration-300">
-            {job.title  }
-          </h3> */}
           <p className="font-semibold text-gray-900">
             {job.title.length > 45 ? job.title.slice(0, 35) + '…' : job.title}
           </p>
-
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             {job.location?.city && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm group-hover:shadow-md transition-shadow duration-300 border border-gray-100">
@@ -115,7 +98,6 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
                 </span>
               </div>
             )}
-
             {job.salary && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow-sm group-hover:shadow-md transition-shadow duration-300 border border-green-100">
                 <DollarSign className="w-4 h-4 text-green-600" />
@@ -124,7 +106,6 @@ export const JobCard = ({ job: savedJob }: JobCardProps) => {
                 </span>
               </div>
             )}
-
             {job.jobTypes && job.jobTypes.length > 0 && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg shadow-sm group-hover:shadow-md transition-shadow duration-300 border border-blue-100">
                 <Briefcase className="w-4 h-4 text-blue-600" />
@@ -149,67 +130,103 @@ const JobWizard = ({
   setEnteredJobTitle,
 }: any) => {
   const [activeTab, setActiveTab] = useState('paste');
-  const [savedJobs, setSavedJobs] = useState([]);
+  const [savedJobs, setSavedJobs] = useState<any[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [loading, setLoading] = useState(false);
-  const tabData = [
-    {
-      value: 'paste',
-      icon: FileSignature,
-      label: 'Paste JD',
-      // description: 'Full job description',
-      gradient: 'tabPrimary',
-    },
-    {
-      value: 'select',
-      icon: Briefcase,
-      label: 'Saved Job',
-      // description: 'Choose from saved',
-      gradient: 'tabPrimary',
-    },
-    {
-      value: 'title',
-      icon: User,
-      label: 'Job Title',
-      // description: 'Quick setup',
-      gradient: 'tabPrimary',
-    },
-  ];
+  // const tabData = [
+  //   {
+  //     value: 'paste',
+  //     icon: FileSignature,
+  //     label: 'Paste JD',
+  //     // description: 'Full job description',
+  //     gradient: 'tabPrimary',
+  //   },
+  //   {
+  //     value: 'select',
+  //     icon: Briefcase,
+  //     label: 'Saved Job',
+  //     // description: 'Choose from saved',
+  //     gradient: 'tabPrimary',
+  //   },
+  //   {
+  //     value: 'title',
+  //     icon: User,
+  //     label: 'Job Title',
+  //     // description: 'Quick setup',
+  //     gradient: 'tabPrimary',
+  //   },
+  // ];
+
+  // ─── Job Title Validation ─────────────────────────────────────
+  const [jobTitleError, setJobTitleError] = useState<string | null>(null);
+
+  const validateJobTitle = (value: string): string | null => {
+    const trimmed = value.trim();
+
+    if (trimmed.length === 0) return null;
+
+    if (trimmed.length > 100) {
+      return 'Job title cannot exceed 100 characters';
+    }
+
+    const allowedPattern = /^[a-zA-Z0-9\s\-&,./'():+]+$/;
+    if (!allowedPattern.test(trimmed)) {
+      return "Only letters, numbers, spaces and - & , . / ' ( ) + allowed";
+    }
+
+    return null;
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setEnteredJobTitle(newValue);
+    setJobTitleError(validateJobTitle(newValue));
+  };
 
   useEffect(() => {
     const fetchSavedJobs = async () => {
       try {
         setLoading(true);
-
         const response = await apiInstance.get(
           '/students/jobs/events?type=SAVED',
         );
-        setSavedJobs(response.data.jobs);
+        setSavedJobs(response.data.jobs || []);
       } catch (error) {
         console.error('Error fetching saved jobs:', error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchSavedJobs();
   }, []);
 
   const charCount = pastedJobDescription.trim().length;
   const charProgress = Math.min((charCount / 200) * 100, 100);
 
+  const tabData = [
+    {
+      value: 'paste',
+      icon: FileSignature,
+      label: 'Paste JD',
+      gradient: 'tabPrimary',
+    },
+    {
+      value: 'select',
+      icon: Briefcase,
+      label: 'Saved Job',
+      gradient: 'tabPrimary',
+    },
+    { value: 'title', icon: User, label: 'Job Title', gradient: 'tabPrimary' },
+  ];
+
   return (
-    <div className="p-3 sm:p-4 md:p-6 lg:p-8  ">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Enhanced Header */}
         <div className="text-center mb-4 relative">
-          <div className="inline-block relative ">
-            <div className="absolute inset-0 "></div>
-            <h1 className="text-2xl uppercase font-semibold sm:text-3xl md:text-4xl bg-headingTextPrimary text-foreground bg-clip-text text-transparent relative z-10">
-              AI Cover Letter Generator
-            </h1>
-          </div>
-          <p className="text-gray-600 text-sm max-w-2xl mx-auto leading-relaxed">
+          <h1 className="text-2xl uppercase font-semibold sm:text-3xl md:text-4xl bg-headingTextPrimary text-foreground bg-clip-text text-transparent relative z-10">
+            AI Cover Letter Generator
+          </h1>
+          <p className="text-gray-600 text-sm max-w-2xl mx-auto leading-relaxed mt-2">
             Transform your Cover Letter with AI-powered insights tailored to
             your dream jobddsfs
           </p>
@@ -224,7 +241,7 @@ const JobWizard = ({
                   <Target className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-semoibold">
+                  <CardTitle className="text-xl font-semibold">
                     Step 1: Provide Job Context
                   </CardTitle>
                   <p className="text-white/80 text-sm mt-1">
@@ -257,24 +274,13 @@ const JobWizard = ({
                       }`}
                     >
                       <Icon
-                        className={`h-6 w-6 transition-transform duration-300 ${
-                          isActive ? 'scale-110' : ''
-                        }`}
+                        className={`h-6 w-6 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`}
                       />
                       <div className="text-center">
                         <div
-                          className={`text-sm font-medium mb-0.5 ${
-                            isActive ? 'text-white' : 'text-gray-600'
-                          }`}
+                          className={`text-sm font-medium mb-0.5 ${isActive ? 'text-white' : 'text-gray-600'}`}
                         >
                           {tab.label}
-                        </div>
-                        <div
-                          className={`text-xs ${
-                            isActive ? 'text-white/90' : 'text-gray-500'
-                          }`}
-                        >
-                          {tab.description}
                         </div>
                       </div>
                     </TabsTrigger>
@@ -303,7 +309,6 @@ const JobWizard = ({
                       onFocus={() => setIsFocused(true)}
                       onBlur={() => setIsFocused(false)}
                     />
-
                     {/* Progress indicator */}
                     {charCount > 0 && (
                       <div className="absolute bottom-3 left-3 right-3">
@@ -321,12 +326,13 @@ const JobWizard = ({
                     )}
                   </div>
 
-                  {/* Enhanced Character Counter */}
-                  <div className="flex  flex-wrap justify-between items-center">
+                  <div className="flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-3">
                       <div
                         className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
-                          charCount < 200 ? 'text-red-700 ' : 'text-green-700 '
+                          charCount < 200
+                            ? 'text-red-700 bg-red-50'
+                            : 'text-green-700 bg-green-50'
                         }`}
                       >
                         {charCount} / 200 characters
@@ -348,9 +354,9 @@ const JobWizard = ({
                     )}
 
                     <Button
-                      className={`h-16 text-lg  font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
+                      className={`h-16 text-lg font-bold rounded-lg transition-all duration-500 transform hover:scale-[1.02] active:scale-95 shadow-xl ${
                         charCount >= 200 && !isLoading
-                          ? 'hover:shadow-2xl hover:shadow-pink-500/50 text-white'
+                          ? 'bg-buttonPrimary hover:shadow-2xl hover:shadow-pink-500/50 text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                       onClick={() => handleSetJobContext('paste')}
@@ -365,9 +371,9 @@ const JobWizard = ({
                         </>
                       ) : (
                         <>
-                          <Sparkles className=" h-6 w-6 animate-pulse" />
+                          <Sparkles className="h-6 w-6 animate-pulse mr-2" />
                           Generate My Cover Letter
-                          <ChevronsRight className=" h-6 w-6" />
+                          <ChevronsRight className="h-6 w-6 ml-2" />
                         </>
                       )}
                     </Button>
@@ -376,52 +382,52 @@ const JobWizard = ({
               </TabsContent>
 
               {/* Enhanced Select Tab */}
-
-              <div>
-                <TabsContent
-                  value="select"
-                  className="space-y-6 animate-in fade-in duration-500"
-                >
-                  {loading ? (
-                    <Loader
-                      message="Fetching saved Jobs"
-                      imageClassName="w-6 h-6"
-                      textClassName="text-sm"
-                    />
-                  ) : savedJobs.length > 0 ? (
-                    <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
-                      {savedJobs.map((job: any) => (
-                        <div
-                          key={job.job._id}
-                          onClick={() =>
-                            handleSetJobContext('select', job.job._id)
-                          }
-                          className=""
-                        >
-                          <JobCard job={job} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-20">
-                      <div className="relative inline-block mb-6">
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 blur-2xl opacity-30 animate-pulse"></div>
-                        <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg mx-auto flex items-center justify-center shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-300">
-                          <Briefcase className="h-12 w-12 text-white" />
-                        </div>
+              <TabsContent
+                value="select"
+                className="space-y-6 animate-in fade-in duration-500"
+              >
+                {loading ? (
+                  <Loader
+                    message="Fetching saved Jobs"
+                    imageClassName="w-6 h-6"
+                    textClassName="text-sm"
+                  />
+                ) : savedJobs.length > 0 ? (
+                  <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+                    {savedJobs.map((job: any) => (
+                      <div
+                        // key={job.job._id}
+                        key={job.job?._id || job._id}
+                        onClick={() =>
+                          //  handleSetJobContext('select', job.job._id)
+                          handleSetJobContext('select', job.job?._id || job._id)
+                        }
+                        className="cursor-pointer transition-transform hover:scale-[1.01]"
+                      >
+                        <JobCard job={job} />
                       </div>
-                      <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                        No Saved Jobs Yet
-                      </h3>
-                      <p className="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">
-                        Start saving jobs you're interested in, and they'll
-                        appear here for quick cover letter generation!
-                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20">
+                    <div className="relative inline-block mb-6">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 blur-2xl opacity-30 animate-pulse"></div>
+                      <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg mx-auto flex items-center justify-center shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-300">
+                        <Briefcase className="h-12 w-12 text-white" />
+                      </div>
                     </div>
-                  )}
-                </TabsContent>
-              </div>
-              {/* Enhanced Title Tab */}
+                    <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                      No Saved Jobs Yet
+                    </h3>
+                    <p className="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">
+                      Start saving jobs you're interested in, and they'll appear
+                      here for quick cover letter generation!
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Job Title Tab – with validation */}
               <TabsContent
                 value="title"
                 className="space-y-6 animate-in fade-in duration-500"
@@ -492,58 +498,78 @@ const JobWizard = ({
                   </div>
                 </div> */}
                 <div className="space-y-4">
-                  {/* Input + Button Row */}
                   <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
-                    {/* Input Wrapper */}
                     <div className="relative">
                       <Input
                         placeholder="e.g., Senior Software Engineer, Product Manager..."
-                        className="h-14 md:h-16 border-2 border-gray-300 rounded-lg px-5 pr-14 text-md focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-300 bg-gradient-to-br from-gray-50 to-white shadow-inner"
+                        className={`h-14 md:h-16 border-2 rounded-lg px-5 pr-14 text-md transition-all duration-300 bg-gradient-to-br from-gray-50 to-white shadow-inner ${
+                          jobTitleError
+                            ? 'border-red-400 focus:border-red-400 focus:ring-red-200'
+                            : 'border-gray-300 focus:border-green-500 focus:ring-green-100'
+                        }`}
                         value={enteredJobTitle}
-                        onChange={(e) => setEnteredJobTitle(e.target.value)}
+                        // onChange={(e) => setEnteredJobTitle(e.target.value)}
+                        onChange={handleTitleChange}
                       />
-
-                      {/* Icon */}
                       <div className="absolute top-1/2 right-4 -translate-y-1/2">
                         <div className="p-2 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg">
                           <User
                             className={`h-5 w-5 ${
-                              enteredJobTitle
+                              //  enteredJobTitle
+                              enteredJobTitle && !jobTitleError
                                 ? 'text-green-600'
-                                : 'text-gray-400'
+                                : jobTitleError
+                                  ? 'text-red-500'
+                                  : 'text-gray-400'
                             }`}
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Button */}
                     <Button
-                      className={`h-14 md:h-16 px-6 md:px-8 text-base md:text-lg font-semibold rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-95  whitespace-nowrap ${
-                        enteredJobTitle && !isLoading
-                          ? 'bg-buttonPrimary over:shadow-2xl hover:shadow-green-500/50 text-white'
+                      className={`h-14 md:h-16 px-6 md:px-8 text-base md:text-lg font-semibold rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-95 whitespace-nowrap ${
+                        //  enteredJobTitle && !isLoading
+                        enteredJobTitle.trim() && !jobTitleError && !isLoading
+                          ? 'bg-buttonPrimary hover:shadow-2xl hover:shadow-green-500/50 text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      // onClick={() => handleSetJobContext('title')}
+                      onClick={() => {
+                        const error = validateJobTitle(enteredJobTitle);
+                        if (error) {
+                          setJobTitleError(error);
+                          return;
+                        }
+                        handleSetJobContext('title');
+                      }}
+                      // disabled={!enteredJobTitle || isLoading}
+                      disabled={
+                        !enteredJobTitle.trim() || !!jobTitleError || isLoading
                       }
-      `}
-                      onClick={() => handleSetJobContext('title')}
-                      disabled={!enteredJobTitle || isLoading}
                     >
                       {isLoading ? (
                         <>
-                          <Loader2 className="animate-spin h-5 w-5" />
+                          <Loader2 className="animate-spin h-5 w-5 mr-2" />
                           Preparing...
                         </>
                       ) : (
                         <>
                           Start Cover Letter Optimization
-                          <ChevronsRight className=" " />
+                          <ChevronsRight className="ml-2" />
                         </>
                       )}
                     </Button>
                   </div>
 
+                  {jobTitleError && (
+                    <p className="text-sm text-red-600 font-medium pl-1.5 mt-1">
+                      {jobTitleError}
+                    </p>
+                  )}
+
                   {/* Info Box */}
-                  <div className="flex items-start gap-3  p-4 rounded-lg border-2 border-green-100">
+                  <div className="flex items-start gap-3 p-4 rounded-lg border-2 border-green-100 shadow-sm">
                     <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg flex-shrink-0">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>

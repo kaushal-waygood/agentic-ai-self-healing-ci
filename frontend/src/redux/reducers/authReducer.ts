@@ -111,6 +111,10 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+    clearAuthMessages: (state) => {
+      state.message = '';
+      state.error = null;
+    },
 
     logoutRequest: (state) => {
       state.loading = true;
@@ -225,5 +229,6 @@ export const {
   loginHistoryFailure,
 
   googleLoginSuccess,
+  clearAuthMessages,
 } = authSlice.actions;
 export default authSlice.reducer;

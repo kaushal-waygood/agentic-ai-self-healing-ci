@@ -135,6 +135,9 @@ const Skills = () => {
       {isAddOpen && (
         <AddSkill
           onCancel={() => setIsAddOpen(false)}
+          existingSkills={skills}
+          skillCount={skills.length}
+          maxSkillLimit={20}
           onSave={(data) => {
             createSkill(data);
             setIsAddOpen(false);

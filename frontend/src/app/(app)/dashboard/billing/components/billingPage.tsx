@@ -18,6 +18,7 @@ import { SubscriptionStatusCard } from '../../components/dashboardPage';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { Loader } from '@/components/Loader';
+import { useRouter } from 'next/navigation';
 
 // Define the types
 interface Price {
@@ -62,6 +63,7 @@ export default function BillingPage() {
   const [isLoading, setIsLoading] = useState(false); // For a sleek loading state example
   const [billingData, setBillingData] = useState<BillingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const {
     planType,
@@ -155,13 +157,13 @@ export default function BillingPage() {
               Manage your plans and payment history
             </p>
           </div>
-          <button
+          {/* <button
             onClick={() => setIsLoading(true)} // Example interactive element
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh Data
-          </button>
+          </button> */}
         </div>
 
         {/* Stats Section - Elevated and Modern */}
@@ -258,7 +260,10 @@ export default function BillingPage() {
               </p>
             </div>
             {/* Button */}
-            <button className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-400 rounded-lg hover:bg-blue-50 transition font-semibold">
+            <button
+              onClick={() => router.push('/dashboard/subscriptions')}
+              className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-400 rounded-lg hover:bg-blue-50 transition font-semibold"
+            >
               Manage Subscription
               <ArrowRight className="w-4 h-4" />
             </button>
