@@ -67,6 +67,12 @@ const SideSectionProfile = () => {
     }
   }, [profile.avatar]);
 
+  useEffect(() => {
+    if (profile && !originalProfile) {
+      setOriginalProfile(profile);
+    }
+  }, [profile]);
+
   /* -----------------------------
      Handlers
   ------------------------------ */
@@ -216,12 +222,51 @@ const SideSectionProfile = () => {
 
   // Add this state
   const [isLoading, setIsLoading] = useState(false);
+  const LOCATION_REGEX = /^[a-zA-Z\s,.'-]+$/;
+  const [locationError, setLocationError] = useState('');
+  const [originalProfile, setOriginalProfile] = useState<ProfileState | null>(
+    null,
+  );
+  const [fileError, setFileError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const PHONE_REGEX = /^[0-9]{10}$/;
+
+  const validateLocation = (value: string) => {
+    if (!value) return '';
+    return LOCATION_REGEX.test(value)
+      ? ''
+      : 'Please enter a valid city or region';
+  };
+  const validatePhone = (value: string) => {
+    if (!value) return '';
+    return PHONE_REGEX.test(value)
+      ? ''
+      : 'Please enter a valid 10-digit phone number';
+  };
+
+  const handleCancel = () => {
+    if (originalProfile) {
+      setProfile(originalProfile);
+      setPreview(originalProfile.avatar);
+    }
+    setLocationError('');
+    setIsModalOpen(false);
+  };
 
   // Create a dedicated handler function
   const handleSave = async () => {
+    // Validate location
+    const error = validateLocation(profile.location);
+    setLocationError(error);
+    // Validate phone
+    const phoneValidationError = validatePhone(profile.phone);
+    setPhoneError(phoneValidationError);
+    // if (error) return;
+    if (locationError || phoneValidationError) return;
     try {
       setIsLoading(true);
       await updateProfile(); // Wait for the API call
+      setOriginalProfile(profile);
       setIsModalOpen(false); // Only close on success
     } catch (error) {
       console.error('Failed to save profile:', error);
@@ -248,7 +293,7 @@ const SideSectionProfile = () => {
               alt="Avatar"
               width={96}
               height={96}
-              className="w-full h-full rounded-full object-cover"
+              className="rounded-full object-cover"
             />
           ) : (
             getInitials(profile.fullName)
@@ -312,8 +357,25 @@ const SideSectionProfile = () => {
         ref={fileInputRef}
         type="file"
         className="hidden"
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
+        // accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+        accept=".pdf,.doc,.docx,.txt"
+        // onChange={(e) => setFile(e.target.files?.[0] || null)}
+        onChange={(e) => {
+          const selectedFile = e.target.files?.[0];
+          if (selectedFile) {
+            const fileExtension =
+              '.' + selectedFile.name.split('.').pop()?.toLowerCase();
+            const supportedTypes = ['.pdf', '.doc', '.docx', '.txt'];
+
+            if (supportedTypes.includes(fileExtension)) {
+              setFile(selectedFile);
+              setFileError('');
+            } else {
+              setFileError('Only PDF, DOC, DOCX, and TXT files are supported');
+              e.target.value = '';
+            }
+          }
+        }}
       />
 
       <div
@@ -327,6 +389,28 @@ const SideSectionProfile = () => {
         // onDragLeave={handleDragLeave}
         // onDragOver={handleDragOver}
         // onDrop={handleDrop}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragging(false);
+          const files = e.dataTransfer?.files;
+          if (files && files.length > 0) {
+            const file = files[0];
+            const supportedTypes = ['.pdf', '.doc', '.docx', '.txt'];
+            const fileExtension =
+              '.' + file.name.split('.').pop()?.toLowerCase();
+
+            if (supportedTypes.includes(fileExtension)) {
+              setFile(file);
+              setFileError('');
+            } else {
+              alert('Only PDF, DOC, DOCX, and TXT files are supported');
+            }
+          }
+        }}
       >
         <div className="flex flex-col items-center justify-center gap-3 h-full">
           <div
@@ -349,6 +433,9 @@ const SideSectionProfile = () => {
           </div>
         </div>
       </div>
+      {fileError && (
+        <div className="text-sm text-red-500 text-center mt-2">{fileError}</div>
+      )}
 
       {file && (
         <div className="mt-6 flex flex-col items-center gap-4">
@@ -471,9 +558,25 @@ const SideSectionProfile = () => {
                 id="phone"
                 name="phone"
                 value={profile.phone}
-                onChange={onChange}
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                  onChange({
+                    ...e,
+                    target: {
+                      ...e.target,
+                      name: 'phone',
+                      value: numericValue,
+                    },
+                  });
+                  setPhoneError('');
+                }}
                 placeholder="+91 98765 43210"
+                maxLength={10}
+                className={phoneError ? 'border-red-500' : ''}
               />
+              {phoneError && (
+                <p className="text-sm text-red-500 mt-1">{phoneError}</p>
+              )}
             </div>
 
             <div>
@@ -497,16 +600,25 @@ const SideSectionProfile = () => {
                 id="location"
                 name="location"
                 value={profile.location}
-                onChange={onChange}
+                // onChange={onChange}
+                onChange={(e) => {
+                  onChange(e);
+                  setLocationError('');
+                }}
                 placeholder="Bangalore"
+                className={locationError ? 'border-red-500' : ''}
               />
+              {locationError && (
+                <p className="text-sm text-red-500 mt-1">{locationError}</p>
+              )}
             </div>
           </form>
 
           <DialogFooter className="mt-4">
             <Button
               variant="outline"
-              onClick={() => setIsModalOpen(false)}
+              // onClick={() => setIsModalOpen(false)}
+              onClick={handleCancel}
               disabled={isLoading} // Disable cancel while saving
             >
               Cancel
