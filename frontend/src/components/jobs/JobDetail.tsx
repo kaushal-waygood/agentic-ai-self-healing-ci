@@ -179,7 +179,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
         if (signal.aborted) return;
         console.log('data', savedRes.data);
-        setIsSaved(Boolean(savedRes?.data?.isSaved));
+        setIsSaved(Boolean(savedRes?.data?.saved));
         // setIsApplying(Boolean(appliedRes?.data?.isApplied));
       } catch (error) {
         if (!signal.aborted) {

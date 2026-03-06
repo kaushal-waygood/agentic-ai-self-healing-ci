@@ -739,10 +739,9 @@ export async function buildInteractionContext(userId) {
 // 6. CONTEXT BUILDERS (INDIA DEFAULT)
 // --------------------
 export async function buildSearchContext(req) {
-  // Default to IN if no country provided in query
-  let country = req.query.country || 'IN';
-  let state = req.query.state;
-  let city = req.query.city;
+  let country = (req.query.country || 'IN').toUpperCase().trim();
+  let state = req.query.state?.trim() || undefined;
+  let city = req.query.city?.trim() || undefined;
 
   const interactions = await buildInteractionContext(req.user?._id);
 
@@ -812,13 +811,18 @@ export async function retrieveCandidates(context, limit = 300) {
   return output;
 }
 
+const SEARCH_STOP_WORDS = new Set([
+  'in', 'at', 'on', 'to', 'for', 'the', 'and', 'or', 'of',
+  'is', 'it', 'an', 'as', 'by', 'be', 'near', 'from', 'with',
+]);
+
 async function keywordSearch(context, limit = 100, dateFilter = {}) {
   if (!context.query) return [];
 
   const tokens = context.query
     .split(/\s+/)
     .map((t) => t.trim())
-    .filter((t) => t.length >= 2); // ignore single-char noise
+    .filter((t) => t.length >= 2 && !SEARCH_STOP_WORDS.has(t.toLowerCase()));
 
   if (!tokens.length) return [];
 
@@ -831,11 +835,17 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
     };
   });
 
-  return Job.find({
+  const filter = {
     $and: andConditions,
     isActive: true,
     ...dateFilter,
-  })
+  };
+
+  if (context.filters?.country) {
+    filter.country = context.filters.country.toUpperCase();
+  }
+
+  return Job.find(filter)
     .sort({ jobPostedAt: -1 })
     .limit(limit)
     .lean();
@@ -851,14 +861,17 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
   const queryVector = await generateEmbedding(input);
   if (!queryVector) return [];
 
-  const filterParam = {
-    $and: [{ score: { $gte: 0.7 } }],
+  const preFilter = [{ isActive: true }];
+  if (context.filters?.country) {
+    preFilter.push({ country: context.filters.country.toUpperCase() });
+  }
+
+  const postMatch = {
+    $and: [{ score: { $gte: 0.65 } }],
   };
 
-  // Vector Search inside MongoDB Atlas doesn't play perfectly with standard Aggregation Match sometimes,
-  // But we'll enforce the date filter inside vectorSearch as part of the pipeline Match phase.
   if (dateFilter.jobPostedAt) {
-    filterParam.$and.push({ jobPostedAt: dateFilter.jobPostedAt });
+    postMatch.$and.push({ jobPostedAt: dateFilter.jobPostedAt });
   }
 
   return Job.aggregate([
@@ -867,16 +880,16 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
         index: 'vector_index',
         path: 'job_embedding',
         queryVector,
-        // MongoDB Atlas hard limit: limit ∈ [1, 10000], numCandidates ∈ [limit, 10000]
         limit: Math.min(limit, 10000),
-        numCandidates: Math.min(Math.max(limit * 2, 200), 10000),
+        numCandidates: Math.min(Math.max(limit * 3, 300), 10000),
+        filter: { $and: preFilter },
       },
     },
     {
       $project: { job_embedding: 0, score: { $meta: 'vectorSearchScore' } },
     },
     {
-      $match: filterParam,
+      $match: postMatch,
     },
     {
       $sort: { jobPostedAt: -1 },
@@ -887,15 +900,14 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
 export function rankJobs(jobs, context) {
   const query = context.query?.toLowerCase().trim() || '';
   const queryTokens = query.split(/\s+/).filter((t) => t.length > 2);
+  const targetCountry = context.filters?.country?.toUpperCase();
 
   return jobs
     .map((job) => {
-      // 1️⃣ Freshness (half-life 14 days)
       const freshness = freshnessScore(job.jobPostedAt, 14);
 
-      // 2️⃣ Geo relevance
       const isTargetCountry =
-        job.country === (context.filters?.country || 'IN');
+        !targetCountry || job.country === targetCountry;
       const geo = job.remote || isTargetCountry ? 1 : 0.2;
 
       // 3️⃣ Vector score (continuous, no threshold)
@@ -951,12 +963,13 @@ export function diversify(jobs) {
 export function rankJobsWithIntentBoost(jobs, context) {
   const primaryTitles = normalizeSet(context.profile?.titles || []);
   const query = context.vectorQuery?.toLowerCase() || '';
+  const targetCountry = context.filters?.country?.toUpperCase();
 
   return jobs
     .map((job) => {
       const freshness = freshnessScore(job.jobPostedAt, 14);
       const geo =
-        job.remote || job.country === (context.filters?.country || 'IN')
+        job.remote || !targetCountry || job.country === targetCountry
           ? 1
           : 0.2;
 

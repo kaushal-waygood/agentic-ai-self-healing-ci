@@ -93,6 +93,7 @@ const userSchema = new Schema(
 
     otp: { type: String, select: false },
     otpExpires: { type: Date, select: false },
+    tempEmail: { type: String, select: false },
 
     isEmailVerified: {
       type: Boolean,
@@ -238,6 +239,7 @@ const userSchema = new Schema(
       transform(_, ret) {
         delete ret.password;
         delete ret.otp;
+        delete ret.tempEmail;
         delete ret.passwordResetToken;
         delete ret.passwordResetExpires;
         return ret;
