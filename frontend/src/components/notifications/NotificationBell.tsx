@@ -13,17 +13,15 @@ type Notification = {
   category?: string;
 };
 
-// 2. ✅ PROPS INTERFACE banaya - ab component PROPS leta hai
 interface NotificationBellProps {
-  notifications: Notification[]; // ➕ PARENT se aayega
-  unreadCount: number; // ➕ PARENT se aayega
-  markAsRead: (id: string) => void; // ➕ PARENT se aayega
-  fetchNotifications: () => Promise<void>; // ➕ PARENT se aayega
-  connectionStatus?: string; // ➕ PARENT se aayega
-  isLoading?: boolean; // ➕ PARENT se aayega (optional)
+  notifications: Notification[];
+  unreadCount: number;
+  markAsRead: (id: string) => void;
+  fetchNotifications: () => Promise<void>;
+  connectionStatus?: string;
+  isLoading?: boolean;
 }
 
-// 3. ✅ Component AB PROPS leta hai, khud hook call nahi karta
 export function NotificationBell({
   notifications,
   unreadCount,
@@ -34,11 +32,9 @@ export function NotificationBell({
 }: NotificationBellProps) {
   const router = useRouter();
 
-  // 4. ✅ handleClick MEIN FEATURE REDIRECT LOGIC ADD KIYA
   const handleClick = (n: Notification) => {
     let url = n.actionUrl;
     if (url) {
-      // 🔥 FIX: agar category 'feature' hai to correct page par bhejo
       if (n.category === 'feature') {
         url = '/dashboard/request-new-feature'; // CORRECT ROUTE
       }
@@ -46,21 +42,6 @@ export function NotificationBell({
     }
     if (!n.isRead) markAsRead(n._id);
   };
-
-  // 5. ✅ REMOVED: internal useState, useEffect, fetch calls
-  //    Ab data parent se props mein aa raha hai
-
-  // 6. ✅ UI SAME RAHA - bas data source change hua
-  if (isLoading) {
-    return (
-      <Loader
-        message="Loading Notifications..."
-        fullHeight={true}
-        imageClassName="w-6 h-6"
-        textClassName="text-sm"
-      />
-    );
-  }
 
   return (
     <div className="p-4 max-w-sm">
@@ -73,38 +54,62 @@ export function NotificationBell({
             </span>
           )}
         </div>
-        <div className="text-sm">{connectionStatus}</div>
+        {/* <div className="text-sm">{connectionStatus}</div> */}
+        <div className=" border-b border-slate-100 flex justify-between items-center">
+          <h3 className="font-semibold text-slate-900">Notifications</h3>
+        </div>
+
         <RefreshCcw
-          className="w-5 h-5 cursor-pointer"
-          onClick={() => fetchNotifications()}
+          className={`w-5 h-5 cursor-pointer transition-all ${
+            isLoading ? 'animate-spin text-blue-500' : 'text-slate-600'
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            fetchNotifications();
+          }}
         />
       </div>
 
-      <div className="space-y-3">
-        {notifications.slice(0, 5).map((n) => (
-          <div
-            key={n._id}
-            onClick={() => handleClick(n)}
-            className={`p-3 rounded-lg border transition cursor-pointer ${
-              n.isRead
-                ? 'bg-white border-gray-100'
-                : 'bg-blue-50 border-blue-100'
-            }`}
-          >
-            <div className="flex justify-between items-center">
-              <strong className="truncate">{n.title}</strong>
-              <small className="text-xs text-gray-400">
-                {new Date(n.createdAt).toLocaleString()}
-              </small>
-            </div>
-            <p className="text-sm mt-1 truncate">{n.message}</p>
+      <div className="space-y-3 min-h-[200px] relative">
+        {isLoading ? (
+          <div className="py-10">
+            <Loader
+              message="Refreshing..."
+              fullHeight={false}
+              imageClassName="w-6 h-6"
+              textClassName="text-sm"
+            />
           </div>
-        ))}
+        ) : (
+          <>
+            {notifications.slice(0, 5).map((n) => (
+              <div
+                key={n._id}
+                onClick={() => handleClick(n)}
+                className={`p-3 rounded-lg border transition cursor-pointer ${
+                  n.isRead
+                    ? 'bg-white border-gray-100'
+                    : 'bg-blue-50 border-blue-100'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <strong className="truncate text-sm">{n.title}</strong>
+                  <small className="text-[10px] text-gray-400">
+                    {new Date(n.createdAt).toLocaleTimeString()}
+                  </small>
+                </div>
+                <p className="text-xs mt-1 text-slate-600 truncate">
+                  {n.message}
+                </p>
+              </div>
+            ))}
 
-        {notifications.length === 0 && (
-          <div className="text-center text-sm text-gray-500 p-4">
-            No notifications
-          </div>
+            {notifications.length === 0 && (
+              <div className="text-center text-sm text-gray-500 p-4">
+                No notifications
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
