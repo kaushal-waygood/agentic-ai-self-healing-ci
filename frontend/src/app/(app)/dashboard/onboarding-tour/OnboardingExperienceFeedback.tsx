@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'; // Make sure to import Text
 import { useState } from 'react';
 import { Star } from 'lucide-react';
 import apiInstance from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 export default function OnboardingExperienceFeedback({
   onClose,
@@ -19,10 +20,23 @@ export default function OnboardingExperienceFeedback({
 
   const handleSubmit = async () => {
     localStorage.setItem('onboarding_feedback_done', '1');
-    const response = await apiInstance.post('/user/feedback', {
-      rating,
-      message: feedback,
-    });
+    try {
+      const response = await apiInstance.post('/user/feedback', {
+        rating,
+        message: feedback,
+      });
+      toast({
+        title: 'Feedback submitted',
+        description: 'Thanks for letting us know!',
+      });
+    } catch (err) {
+      console.error('Failed to submit onboarding feedback', err);
+      toast({
+        variant: 'destructive',
+        title: 'Submission error',
+        description: 'Could not send feedback. Try again later.',
+      });
+    }
     onClose();
   };
 

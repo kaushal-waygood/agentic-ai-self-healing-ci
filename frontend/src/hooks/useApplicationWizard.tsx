@@ -414,9 +414,15 @@ export const useApplicationWizard = () => {
           jobDescription: selectedJob.description,
         });
         navigateToStep('cv');
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('step', 'cv');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
       } else if (!stepFromUrl) {
         // 2. Only go to 'job' if there's no step in URL AND we aren't in 'result'
-        navigateToStep('job');
+        // navigateToStep('job');
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('step', 'job');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
       }
       isInitialized.current = true;
     }
