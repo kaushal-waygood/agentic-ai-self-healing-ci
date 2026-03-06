@@ -320,8 +320,8 @@ export const firebaseAuth = async (req, res) => {
         fullName: name || 'Anonymous',
         avatar: picture || '',
         isEmailVerified: true,
-        role: 'student',
-        accountType: 'individual',
+        role: 'user',
+        accountType: 'user',
         referralCode: generateReferralCode(email.toLowerCase()),
         usageLimits: {
           cvCreation: 1,
@@ -403,7 +403,7 @@ export const firebaseGoogleSignup = async (req, res) => {
         fullName: name || 'Anonymous',
         avatar: picture || '',
         isEmailVerified: true,
-        role: 'student',
+        role: 'user',
         accountType: 'individual',
         referralCode: generateReferralCode(emailLower),
         usageLimits: {
@@ -517,23 +517,19 @@ export const linkedInCallback = async (req, res) => {
     const { sub: uid, email, name, picture } = userData;
 
     let user = await User.findOne({ email: email.toLowerCase() });
-
-    if (user && !user.linkedInUid && user.email === email.toLowerCase()) {
-      return res.redirect(
-        `${FRONTEND_URL}/login?token=failed&error=account_exists&email=${email}`,
-      );
-    }
+    let isNewUser = false;
 
     if (!user) {
+      isNewUser = true;
       user = await User.create({
-        firebaseUid: uid, // storing as generic UID
+        firebaseUid: uid,
         linkedInUid: uid,
         authMethod: 'linkedin',
         email: email.toLowerCase(),
         fullName: name || 'Anonymous',
         avatar: picture || '',
         isEmailVerified: true,
-        role: 'student',
+        role: 'user',
         accountType: 'individual',
         referralCode: generateReferralCode(email.toLowerCase()),
         usageLimits: {
@@ -546,19 +542,44 @@ export const linkedInCallback = async (req, res) => {
           atsScore: 1,
           jobMatching: 1,
         },
+        freeCreditsGranted: true,
+      });
+
+      await sendTemplatedEmail({
+        to: user.email,
+        templateName: 'welcome_zobsai',
+        templateVars: {
+          name: user.fullName,
+          dashboardUrl: process.env.DASHBOARD_URL,
+        },
       });
     } else if (!user.linkedInUid) {
       user.linkedInUid = uid;
-      user.authMethod = 'linkedin';
       await user.save();
     }
 
-    const accessToken = user.generateAccessToken();
-    // Redirect to frontend with token
-    res.redirect(`${FRONTEND_URL}/auth/google/callback?token=${accessToken}`);
+    const sessionId = uuidv4();
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      config.accessTokenSecret,
+      { expiresIn: '7d' },
+    );
+
+    await LoginHistory.create({
+      userId: user._id,
+      sessionId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      loginMethod: 'linkedin',
+      status: 'SUCCESS',
+    });
+
+    return res.redirect(
+      `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,
+    );
   } catch (error) {
     console.error('LinkedIn callback error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).redirect(`${FRONTEND_URL}/login?error=auth_failed`);
   }
 };
 
@@ -1364,11 +1385,21 @@ export const handleGoogleCallback = async (req, res) => {
       });
     }
 
+    const sessionId = uuidv4();
     const token = jwt.sign(
       { id: user._id, email: user.email },
       config.accessTokenSecret,
       { expiresIn: '7d' },
     );
+
+    await LoginHistory.create({
+      userId: user._id,
+      sessionId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      loginMethod: 'google',
+      status: 'SUCCESS',
+    });
 
     return res.redirect(
       `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,
