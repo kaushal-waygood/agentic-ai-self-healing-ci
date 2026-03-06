@@ -173,10 +173,9 @@ const oauth2Client = new google.auth.OAuth2(
 
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
 const oauth2ClientRedirect = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID_REDIRECT ||
-    '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
+  process.env.GOOGLE_CLIENT_ID_REDIRECT || process.env.GOOGLE_AUTH_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET_REDIRECT ||
-    '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',
+    process.env.GOOGLE_AUTH_CLIENT_SECRET,
   `${BACKEND_API_BASE_URL}${redirectURI}`,
 );
 

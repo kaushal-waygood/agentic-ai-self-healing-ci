@@ -41,15 +41,15 @@ export function normalizeSet(arr = []) {
 }
 
 export function dedupeByTitleCompany(jobs) {
-  const seen = new Set();
-  const out = [];
+  const seen = new Map();
   for (const j of jobs) {
     const key = `${(j.title || '').toLowerCase()}|${(j.company || '').toLowerCase()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(j);
+    const existing = seen.get(key);
+    if (!existing || (j.score && (!existing.score || j.score > existing.score))) {
+      seen.set(key, j);
+    }
   }
-  return out;
+  return Array.from(seen.values());
 }
 
 // --------------------
@@ -816,6 +816,21 @@ const SEARCH_STOP_WORDS = new Set([
   'is', 'it', 'an', 'as', 'by', 'be', 'near', 'from', 'with',
 ]);
 
+const YEAR_PATTERN = /^(20\d{2}|19\d{2})$/;
+
+function isYearToken(token) {
+  return YEAR_PATTERN.test(token);
+}
+
+export function stripYearTokens(query) {
+  if (!query) return query;
+  return query
+    .split(/\s+/)
+    .filter((t) => !isYearToken(t.trim()))
+    .join(' ')
+    .trim();
+}
+
 async function keywordSearch(context, limit = 100, dateFilter = {}) {
   if (!context.query) return [];
 
@@ -826,8 +841,11 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
 
   if (!tokens.length) return [];
 
+  const meaningfulTokens = tokens.filter((t) => !isYearToken(t));
+  if (!meaningfulTokens.length) return [];
+
   const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const andConditions = tokens.map((token) => {
+  const andConditions = meaningfulTokens.map((token) => {
     const pattern = `\\b${escapeRegex(token)}`;
     const regex = new RegExp(pattern, 'i');
     return {
@@ -854,7 +872,8 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
 async function vectorSearch(context, limit = 100, dateFilter = {}) {
   const titles = context.profile?.titles?.join(' ') || '';
   const skills = context.profile?.skills?.join(' ') || '';
-  const input = context.query || `${titles} ${skills}`.trim();
+  const rawInput = context.query || `${titles} ${skills}`.trim();
+  const input = stripYearTokens(rawInput) || rawInput;
 
   if (!input) return [];
 
@@ -899,7 +918,8 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
 
 export function rankJobs(jobs, context) {
   const query = context.query?.toLowerCase().trim() || '';
-  const queryTokens = query.split(/\s+/).filter((t) => t.length > 2);
+  const cleanedQuery = stripYearTokens(query) || query;
+  const queryTokens = cleanedQuery.split(/\s+/).filter((t) => t.length >= 2);
   const targetCountry = context.filters?.country?.toUpperCase();
 
   return jobs
@@ -910,19 +930,17 @@ export function rankJobs(jobs, context) {
         !targetCountry || job.country === targetCountry;
       const geo = job.remote || isTargetCountry ? 1 : 0.2;
 
-      // 3️⃣ Vector score (continuous, no threshold)
-      const vectorScore = job.score || 0;
+      const rawVectorScore = job.score || 0;
 
-      // 4️⃣ Title relevance
       let titleMatchScore = 0;
 
-      if (query && job.title) {
+      if (cleanedQuery && job.title) {
         const titleLower = job.title.toLowerCase();
 
-        if (titleLower === query) {
+        if (titleLower === cleanedQuery) {
           titleMatchScore = 1;
-        } else if (titleLower.includes(query)) {
-          titleMatchScore = 0.6;
+        } else if (titleLower.includes(cleanedQuery)) {
+          titleMatchScore = 0.8;
         } else if (queryTokens.length > 0) {
           const matchCount = queryTokens.filter((token) =>
             titleLower.includes(token),
@@ -932,11 +950,15 @@ export function rankJobs(jobs, context) {
         }
       }
 
-      // 5️⃣ Final relevance blend
-      const relevance = vectorScore * 0.7 + titleMatchScore * 0.3;
+      // Keyword-matched results lack a vector score — impute a baseline
+      // proportional to their title relevance so they aren't penalised.
+      const vectorScore = rawVectorScore > 0
+        ? rawVectorScore
+        : titleMatchScore * 0.75;
 
-      // 6️⃣ Final rank score (balanced weights)
-      const rankScore = relevance * 0.5 + freshness * 0.25 + geo * 0.15;
+      const relevance = vectorScore * 0.5 + titleMatchScore * 0.5;
+
+      const rankScore = relevance * 0.6 + freshness * 0.25 + geo * 0.15;
 
       return {
         ...job,
@@ -962,7 +984,6 @@ export function diversify(jobs) {
 
 export function rankJobsWithIntentBoost(jobs, context) {
   const primaryTitles = normalizeSet(context.profile?.titles || []);
-  const query = context.vectorQuery?.toLowerCase() || '';
   const targetCountry = context.filters?.country?.toUpperCase();
 
   return jobs
@@ -973,21 +994,18 @@ export function rankJobsWithIntentBoost(jobs, context) {
           ? 1
           : 0.2;
 
-      const vectorScore = job.score || 0;
-
       let primaryBoost = 0;
-      if (primaryTitles.length && job.title) {
-        const jobTitleLower = job.title.toLowerCase();
-        const match = primaryTitles.some((t) =>
-          jobTitleLower.includes(t.toLowerCase()),
-        );
+      const isRelevantDomain = primaryTitles.some((t) => {
+        const match = job.title?.toLowerCase().includes(t.toLowerCase());
         if (match) primaryBoost = 1;
-      }
+        return match;
+      });
 
-      // 🚨 Heavy penalty for completely unrelated domains
-      const isRelevantDomain = primaryTitles.some((t) =>
-        job.title?.toLowerCase().includes(t.toLowerCase()),
-      );
+      // Impute baseline for keyword results that lack a vector score
+      const rawVectorScore = job.score || 0;
+      const vectorScore = rawVectorScore > 0
+        ? rawVectorScore
+        : (primaryBoost > 0 ? 0.7 : 0);
 
       const domainPenalty = isRelevantDomain ? 1 : 0.3;
 

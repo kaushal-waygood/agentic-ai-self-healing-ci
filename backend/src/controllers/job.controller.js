@@ -18,6 +18,7 @@ import {
   retrieveLocalCandidates,
   dedupeByTitleCompany,
   fetchExternalDeep,
+  stripYearTokens,
 } from '../utils/jobHelpers.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { JobInteraction } from '../models/jobInteraction.model.js';
@@ -107,7 +108,8 @@ async function vectorJobSearch({
   city,
   employmentType,
 }) {
-  const queryVector = await generateEmbedding(query);
+  const cleanedQuery = stripYearTokens(query) || query;
+  const queryVector = await generateEmbedding(cleanedQuery);
   if (!queryVector) return [];
 
   const filters = [{ isActive: true }];
@@ -548,12 +550,13 @@ export const getAllJobs = async (req, res) => {
       else fetchAndSaveJobsService(query);
     }
 
-    // Build filter
+    // Build filter — strip year tokens so "QA 2025" matches "QA Engineer"
+    const cleanedQuery = stripYearTokens(query) || query;
     const filter = {};
-    if (query)
+    if (cleanedQuery)
       filter.$or = [
-        { title: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } },
+        { title: { $regex: cleanedQuery, $options: 'i' } },
+        { description: { $regex: cleanedQuery, $options: 'i' } },
       ];
     if (country) filter.country = { $regex: country, $options: 'i' };
     if (city) filter['location.city'] = { $regex: city, $options: 'i' };
