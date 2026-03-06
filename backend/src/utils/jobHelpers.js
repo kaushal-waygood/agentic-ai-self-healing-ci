@@ -103,7 +103,7 @@ export async function retrieveLocalCandidates(context, limit = 100) {
   return await redisClient.withCache(cacheKey, 600, async () => {
     const tasks = [];
 
-    const maxAgeDays = contextType === 'recommendation' ? 90 : 10;
+    const maxAgeDays = 90;
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
     const dateFilter = { jobPostedAt: { $gte: cutoffDate } };
@@ -473,6 +473,68 @@ export function transformRapidApiJob(apiJob, searchQuery) {
 // --------------------
 // 4. EXTERNAL FETCH (IN-DEFAULTED)
 // --------------------
+let _rapidApiDownSince = 0;
+const RAPID_API_COOLDOWN_MS = 5 * 60 * 1000;
+
+const ISO2_TO_NAME = {
+  IN: 'India',
+  US: 'USA',
+  GB: 'United Kingdom',
+  JP: 'Japan',
+  DE: 'Germany',
+  FR: 'France',
+  CA: 'Canada',
+  AU: 'Australia',
+  BR: 'Brazil',
+  CN: 'China',
+  KR: 'South Korea',
+  SG: 'Singapore',
+  AE: 'UAE',
+  SA: 'Saudi Arabia',
+  NL: 'Netherlands',
+  ES: 'Spain',
+  IT: 'Italy',
+  CH: 'Switzerland',
+  SE: 'Sweden',
+  NO: 'Norway',
+  DK: 'Denmark',
+  FI: 'Finland',
+  IE: 'Ireland',
+  NZ: 'New Zealand',
+  ZA: 'South Africa',
+  MX: 'Mexico',
+  AR: 'Argentina',
+  CO: 'Colombia',
+  CL: 'Chile',
+  PH: 'Philippines',
+  MY: 'Malaysia',
+  ID: 'Indonesia',
+  TH: 'Thailand',
+  VN: 'Vietnam',
+  PL: 'Poland',
+  RO: 'Romania',
+  PT: 'Portugal',
+  AT: 'Austria',
+  BE: 'Belgium',
+  IL: 'Israel',
+  TR: 'Turkey',
+  RU: 'Russia',
+  UA: 'Ukraine',
+  EG: 'Egypt',
+  NG: 'Nigeria',
+  KE: 'Kenya',
+  PK: 'Pakistan',
+  BD: 'Bangladesh',
+  LK: 'Sri Lanka',
+  NP: 'Nepal',
+  HK: 'Hong Kong',
+  TW: 'Taiwan',
+  QA: 'Qatar',
+  KW: 'Kuwait',
+  OM: 'Oman',
+  BH: 'Bahrain',
+};
+
 export async function fetchExternalJobs(
   apiQuery,
   country = 'IN',
@@ -483,6 +545,10 @@ export async function fetchExternalJobs(
   experience,
   page = 1,
 ) {
+  if (_rapidApiDownSince && Date.now() - _rapidApiDownSince < RAPID_API_COOLDOWN_MS) {
+    return [];
+  }
+
   const cacheKeyStr = `${apiQuery || 'jobs'}:${country}:${state || 'none'}:${city || 'none'}:${datePosted || 'none'}:${employmentType || 'none'}:${experience || 'none'}:${page}`;
   const cacheKey = `jobs:rapid:${crypto.createHash('md5').update(cacheKeyStr).digest('hex')}`;
 
@@ -490,65 +556,6 @@ export async function fetchExternalJobs(
     try {
       let query = apiQuery;
 
-      // Inject location with full country name (RapidAPI needs names, not ISO codes)
-      const ISO2_TO_NAME = {
-        IN: 'India',
-        US: 'USA',
-        GB: 'United Kingdom',
-        JP: 'Japan',
-        DE: 'Germany',
-        FR: 'France',
-        CA: 'Canada',
-        AU: 'Australia',
-        BR: 'Brazil',
-        CN: 'China',
-        KR: 'South Korea',
-        SG: 'Singapore',
-        AE: 'UAE',
-        SA: 'Saudi Arabia',
-        NL: 'Netherlands',
-        ES: 'Spain',
-        IT: 'Italy',
-        CH: 'Switzerland',
-        SE: 'Sweden',
-        NO: 'Norway',
-        DK: 'Denmark',
-        FI: 'Finland',
-        IE: 'Ireland',
-        NZ: 'New Zealand',
-        ZA: 'South Africa',
-        MX: 'Mexico',
-        AR: 'Argentina',
-        CO: 'Colombia',
-        CL: 'Chile',
-        PH: 'Philippines',
-        MY: 'Malaysia',
-        ID: 'Indonesia',
-        TH: 'Thailand',
-        VN: 'Vietnam',
-        PL: 'Poland',
-        RO: 'Romania',
-        PT: 'Portugal',
-        AT: 'Austria',
-        BE: 'Belgium',
-        IL: 'Israel',
-        TR: 'Turkey',
-        RU: 'Russia',
-        UA: 'Ukraine',
-        EG: 'Egypt',
-        NG: 'Nigeria',
-        KE: 'Kenya',
-        PK: 'Pakistan',
-        BD: 'Bangladesh',
-        LK: 'Sri Lanka',
-        NP: 'Nepal',
-        HK: 'Hong Kong',
-        TW: 'Taiwan',
-        QA: 'Qatar',
-        KW: 'Kuwait',
-        OM: 'Oman',
-        BH: 'Bahrain',
-      };
       const countryName = ISO2_TO_NAME[country?.toUpperCase()] || country;
       const locParts = [city, state, countryName].filter(Boolean);
 
@@ -559,17 +566,14 @@ export async function fetchExternalJobs(
       const params = { query, page: String(page), num_pages: '1' };
 
       if (employmentType) {
-        // RapidAPI JSearch accepts format: FULLTIME, CONTRACTOR, PARTTIME, INTERNSHIP
         params.employment_types = employmentType;
       }
 
       if (experience) {
-        // e.g. "under_3_years_experience,more_than_3_years_experience,no_experience"
         params.job_requirements = experience;
       }
 
       if (datePosted) {
-        // e.g. "today", "3days", "week", "month"
         params.date_posted = datePosted;
       }
 
@@ -579,11 +583,19 @@ export async function fetchExternalJobs(
           'X-RapidAPI-Key': config.rapidApiKey,
           'X-RapidAPI-Host': config.rapidApiHost,
         },
+        timeout: 10_000,
       });
 
+      _rapidApiDownSince = 0;
       return response?.data?.data || [];
     } catch (e) {
-      console.error('RapidAPI error:', e.message);
+      const status = e.response?.status;
+      if (status === 403 || status === 429) {
+        _rapidApiDownSince = Date.now();
+        console.error(`RapidAPI circuit open (${status}) — skipping for ${RAPID_API_COOLDOWN_MS / 1000}s`);
+      } else {
+        console.error('RapidAPI error:', e.message);
+      }
       return [];
     }
   });
@@ -849,7 +861,13 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
     const pattern = `\\b${escapeRegex(token)}`;
     const regex = new RegExp(pattern, 'i');
     return {
-      $or: [{ title: regex }, { tags: regex }, { company: regex }],
+      $or: [
+        { title: regex },
+        { tags: regex },
+        { company: regex },
+        { description: regex },
+        { queries: regex },
+      ],
     };
   });
 
@@ -886,7 +904,7 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
   }
 
   const postMatch = {
-    $and: [{ score: { $gte: 0.65 } }],
+    $and: [{ score: { $gte: 0.55 } }],
   };
 
   if (dateFilter.jobPostedAt) {
@@ -965,7 +983,15 @@ export function rankJobs(jobs, context) {
         rankScore,
       };
     })
-    .sort((a, b) => b.rankScore - a.rankScore);
+    .sort((a, b) => {
+      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+      const dateA = new Date(a.jobPostedAt || 0).getTime();
+      const dateB = new Date(b.jobPostedAt || 0).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      return String(a._id || a.jobId || '').localeCompare(
+        String(b._id || b.jobId || ''),
+      );
+    });
 }
 
 const processPool = (jobsPool, ctx) => {
@@ -1015,7 +1041,15 @@ export function rankJobsWithIntentBoost(jobs, context) {
 
       return { ...job, rankScore };
     })
-    .sort((a, b) => b.rankScore - a.rankScore);
+    .sort((a, b) => {
+      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+      const dateA = new Date(a.jobPostedAt || 0).getTime();
+      const dateB = new Date(b.jobPostedAt || 0).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      return String(a._id || a.jobId || '').localeCompare(
+        String(b._id || b.jobId || ''),
+      );
+    });
 }
 
 export async function fetchExternalDeep({

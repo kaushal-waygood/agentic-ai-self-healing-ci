@@ -218,6 +218,7 @@ export async function searchJobs(req, res) {
     const country = context.filters?.country;
     const state = context.filters?.state;
     const city = context.filters?.city;
+    const employmentType = context.filters?.employmentType;
 
     const makeContext = (filterOverride) => ({
       ...context,
@@ -232,6 +233,7 @@ export async function searchJobs(req, res) {
 
     const apiTerm = q || 'jobs';
 
+    // Strict levels: all user-supplied filters, progressively relax geography
     const levels = [
       ...(city ? [{ country, state, city }] : []),
       ...(state ? [{ country, state, city: null }] : []),
@@ -239,21 +241,42 @@ export async function searchJobs(req, res) {
       { country: null, state: null, city: null },
     ];
 
-    let processed = [];
+    // Relaxed levels: drop employmentType, cascade geo again so the user
+    // still sees relevant jobs rather than an empty page.
+    // retrieveLocalCandidates caches by query+country so these extra levels
+    // only re-filter the already-cached pool — no extra DB/API cost.
+    if (employmentType) {
+      levels.push(
+        ...(state
+          ? [{ country, state, city: null, employmentType: null }]
+          : []),
+        ...(country
+          ? [{ country, state: null, city: null, employmentType: null }]
+          : []),
+        { country: null, state: null, city: null, employmentType: null },
+      );
+    }
+
+    let diversifiedPool = [];
     let finalJobs = [];
 
     for (const filterSet of levels) {
       const ctx = makeContext(filterSet);
 
-      // 🔥 Hard large pool
       const poolSize = 3000;
       const localCandidates = await retrieveLocalCandidates(ctx, poolSize);
 
-      processed = processPool(localCandidates, ctx);
-      finalJobs = processed.slice(skip, skip + limitNum);
+      let processed = processPool(localCandidates, ctx);
+      diversifiedPool = diversify(processed);
+      finalJobs = diversifiedPool.slice(skip, skip + limitNum);
 
+      // Relaxed levels (employmentType dropped) only re-filter the cached
+      // pool — skip the expensive external fetch entirely.
+      const isRelaxedLevel = 'employmentType' in filterSet;
       const needsExternal =
-        finalJobs.length < limitNum || processed.length < skip + limitNum;
+        !isRelaxedLevel &&
+        (finalJobs.length < limitNum ||
+          diversifiedPool.length < skip + limitNum);
 
       if (needsExternal) {
         const externalRaw = await fetchExternalDeep({
@@ -278,22 +301,21 @@ export async function searchJobs(req, res) {
           ]);
 
           processed = processPool(merged, ctx);
-          finalJobs = processed.slice(skip, skip + limitNum);
+          diversifiedPool = diversify(processed);
+          finalJobs = diversifiedPool.slice(skip, skip + limitNum);
         }
       }
 
-      if (processed.length >= skip + limitNum) break;
+      if (diversifiedPool.length >= skip + limitNum) break;
     }
-
-    finalJobs = diversify(finalJobs);
 
     return res.status(200).json({
       success: true,
       jobs: finalJobs,
       pagination: {
         currentPage: pageNum,
-        hasNextPage: processed.length > skip + finalJobs.length,
-        totalJobs: processed.length,
+        hasNextPage: skip + limitNum < diversifiedPool.length,
+        totalJobs: diversifiedPool.length,
       },
     });
   } catch (error) {
