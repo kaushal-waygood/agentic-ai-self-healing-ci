@@ -7,9 +7,9 @@ let model = null;
 // Persistent Init: Prevents race conditions during multiple searches
 async function getModel() {
   if (!model) {
-    console.log('Downloading/Initializing local model...');
+    console.log('Downloading/Initializing local model (BGESmallENV15)...');
     model = await FlagEmbedding.init({
-      model: EmbeddingModel.BGEBaseEN, // 768 dimensions
+      model: EmbeddingModel.BGESmallENV15, // 384 dims, ~133MB (vs BGEBaseEN 768 dims, ~438MB)
     });
   }
   return model;

@@ -1,49 +1,39 @@
 // src/config/autopilotCron.js
 import cron from 'node-cron';
-import { Student } from '../models/students/student.model.js';
-import { Job } from '../models/jobs.model.js'; // Import the new Job model
+import { StudentAgent } from '../models/students/studentAgent.model.js';
+import jobDiscoveryQueue from '../queues/jobDiscoveryQueue.js';
 
 export const runAutopilotTask = async () => {
   console.log('🚀 [Task] Finding students for job discovery...');
   try {
-    const studentsWithAgents = await Student.find({
-      'autopilotAgent.autopilotEnabled': true,
-      isActive: true,
-    }).select('_id autopilotAgent');
+    const activeAgents = await StudentAgent.find({
+      isAgentActive: true,
+      status: 'completed',
+    })
+      .select('student agentId agentName')
+      .lean();
 
-    if (!studentsWithAgents || studentsWithAgents.length === 0) {
+    if (!activeAgents || activeAgents.length === 0) {
       console.log('[Task] No students with active autopilot agents found.');
       return;
     }
 
-    const newJobs = [];
-    for (const student of studentsWithAgents) {
-      for (const agent of student.autopilotAgent) {
-        if (agent.autopilotEnabled) {
-          // Create a job document instead of a queue payload
-          newJobs.push({
-            studentId: student._id,
-            agentId: agent.agentId,
-            agentName: agent.agentName,
-          });
-        }
-      }
-    }
+    const tasks = activeAgents.map((agent) => ({
+      studentId: agent.student,
+      agentId: agent.agentId,
+      agentName: agent.agentName || agent.agentId,
+    }));
 
-    if (newJobs.length > 0) {
-      // Use insertMany to efficiently add all new jobs to the database
-      await Job.insertMany(newJobs, { ordered: false });
+    if (tasks.length > 0) {
+      await jobDiscoveryQueue.addBulk(
+        tasks.map((t) => ({ data: t })),
+      );
       console.log(
-        `✅ [Task] Successfully created ${newJobs.length} jobs in the database.`,
+        `✅ [Task] Successfully queued ${tasks.length} autopilot tasks for job discovery.`,
       );
     }
   } catch (error) {
-    // Prevents duplicate key errors from stopping the process
-    if (error.code === 11000) {
-      console.warn('[Task] Some duplicate jobs were ignored.');
-    } else {
-      console.error('❌ [Task] Error creating jobs:', error);
-    }
+    console.error('❌ [Task] Error queuing autopilot tasks:', error);
   }
 };
 

@@ -1,6 +1,5 @@
 import Queue from 'bull';
-import mongoose from 'mongoose';
-import { Student } from '../models/student.model.js';
+import { StudentAgent } from '../models/students/studentAgent.model.js';
 import { AppliedJob } from '../models/AppliedJob.js';
 import { sendJobApplicationEmail } from '../services/emailService.js';
 
@@ -50,12 +49,13 @@ jobApplyQueue.process(async (job) => {
 
     // --- 2. Check if Autopilot is still enabled ---
     // This check remains important as a final safeguard.
-    const student = await Student.findById(studentId)
-      .select('autopilotAgent')
-      .lean();
-    const agent = student?.autopilotAgent?.find((a) => a.agentId === agentId);
+    const agent = await StudentAgent.findOne({
+      agentId,
+      student: studentId,
+      isAgentActive: true,
+    }).lean();
 
-    if (!agent || !agent.autopilotEnabled) {
+    if (!agent) {
       console.log(
         `[JobApplyQueue] Autopilot disabled for agent ${agentId}. Skipping application.`,
       );

@@ -7,6 +7,7 @@ import { StudentEducation } from '../models/students/studentEducation.model.js';
 import { StudentExperience } from '../models/students/studentExperience.model.js';
 import { StudentProject } from '../models/students/studentProject.model.js';
 import { StudentCV } from '../models/students/studentCV.model.js';
+import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
 import { StudentCL } from '../models/students/studentCL.model.js';
 import { Student } from '../models/students/student.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
@@ -17,6 +18,7 @@ import { User } from '../models/User.model.js';
 
 // Job Models
 import { JobInteraction } from '../models/jobInteraction.model.js';
+import { AppliedJob } from '../models/AppliedJob.js';
 
 // import calculateExperience from '../utils/calculateExperience.js';
 import redisClient from '../config/redis.js';
@@ -29,7 +31,7 @@ import {
   safeGetVariant,
 } from './plan.controller.js';
 import { Purchase } from '../models/Purchase.js';
-import { addCredits, CREDIT_EARN } from '../utils/credits.js';
+import { addCredits, earnCreditsForAction, CREDIT_EARN } from '../utils/credits.js';
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
@@ -1211,15 +1213,19 @@ export const getJobInteractionStatus = async (req, res) => {
   const userId = req.user._id;
   const { jobId } = req.query;
 
-  const interactions = await JobInteraction.find({
-    user: userId,
-    job: jobId,
-    type: { $in: ['SAVED', 'APPLIED'] },
-  }).lean();
+  const [interactions, appliedJob] = await Promise.all([
+    JobInteraction.find({
+      user: userId,
+      job: jobId,
+      type: { $in: ['SAVED', 'APPLIED'] },
+    }).lean(),
+    AppliedJob.findOne({ student: userId, job: jobId }).lean(),
+  ]);
 
   res.json({
     saved: interactions.some((i) => i.type === 'SAVED'),
-    applied: interactions.some((i) => i.type === 'APPLIED'),
+    applied:
+      interactions.some((i) => i.type === 'APPLIED') || !!appliedJob,
   });
 };
 
@@ -1914,18 +1920,22 @@ export const getCreditsSummary = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const [user, student, eduCount, expCount, skillCount, projCount, cvCount, clCount, agentCount] =
+    const [user, student, eduCount, expCount, skillCount, projCount, cvCount, htmlCvCount, clCount, agentCount, jobInteractionAppliedCount, appliedJobAutoCount] =
       await Promise.all([
         User.findById(userId).lean(),
-        Student.findById(userId).select('phone profileImage resumeUrl').lean(),
+        Student.findById(userId).select('phone profileImage resumeUrl fullName email jobRole').lean(),
         StudentEducation.countDocuments({ student: userId }),
         StudentExperience.countDocuments({ student: userId }),
         StudentSkill.countDocuments({ student: userId }),
         StudentProject.countDocuments({ student: userId }),
         StudentCV.countDocuments({ student: userId, status: 'completed' }),
+        StudentHtmlCV.countDocuments({ student: userId }),
         StudentCL.countDocuments({ student: userId, status: 'completed' }),
         StudentAgent.countDocuments({ student: userId }),
+        JobInteraction.countDocuments({ user: userId, type: 'APPLIED' }),
+        AppliedJob.countDocuments({ student: userId, applicationMethod: 'AUTOPILOT' }),
       ]);
+    const appliedCount = jobInteractionAppliedCount + appliedJobAutoCount;
 
     if (!user) {
       res.status(404);
@@ -2027,8 +2037,8 @@ export const getCreditsSummary = async (req, res) => {
     const firstTimeChecks = [
       {
         kind: 'FIRST_CV',
-        done: cvCount > 0,
-        pendingReason: 'Generate your first CV to claim these credits.',
+        done: cvCount > 0 || htmlCvCount > 0 || !!student?.resumeUrl,
+        pendingReason: 'Generate your first CV or upload a resume to claim these credits.',
       },
       {
         kind: 'FIRST_CL',
@@ -2047,12 +2057,14 @@ export const getCreditsSummary = async (req, res) => {
 
       if (check.done) {
         try {
-          await addCredits(userId, CREDIT_EARN[check.kind] || 10, check.kind, {
+          await earnCreditsForAction(userId, check.kind, {
             redirectUrl: redirectForAction(check.kind),
             autoClaimed: true,
           });
         } catch (e) {
-          console.error(`Auto-claim ${check.kind} failed:`, e);
+          if (e?.status !== 409) {
+            console.error(`Auto-claim ${check.kind} failed:`, e);
+          }
         }
       } else {
         pending.push({
@@ -2065,18 +2077,16 @@ export const getCreditsSummary = async (req, res) => {
     }
 
     if (!hasClaimedKind('FIRST_AUTO_APPLICATION_SENT')) {
-      const appliedCount = await JobInteraction.countDocuments({
-        user: userId,
-        type: 'APPLIED',
-      });
       if (appliedCount > 0) {
         try {
-          await addCredits(userId, CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 10, 'FIRST_AUTO_APPLICATION_SENT', {
+          await earnCreditsForAction(userId, 'FIRST_AUTO_APPLICATION_SENT', {
             redirectUrl: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
             autoClaimed: true,
           });
         } catch (e) {
-          console.error('Auto-claim FIRST_AUTO_APPLICATION_SENT failed:', e);
+          if (e?.status !== 409) {
+            console.error('Auto-claim FIRST_AUTO_APPLICATION_SENT failed:', e);
+          }
         }
       } else {
         pending.push({
@@ -2091,8 +2101,8 @@ export const getCreditsSummary = async (req, res) => {
     const profileChecks = [
       {
         kind: 'PROFILE_COMPLETE_PERSONAL',
-        done: !!(student?.phone || student?.profileImage),
-        pendingReason: 'Add phone number or profile image to complete personal details.',
+        done: !!(student?.fullName && student?.phone && student?.jobRole),
+        pendingReason: 'Add full name, phone number, and job role to complete personal details.',
       },
       {
         kind: 'PROFILE_COMPLETE_EDUCATION',
@@ -2121,12 +2131,14 @@ export const getCreditsSummary = async (req, res) => {
 
       if (check.done) {
         try {
-          await addCredits(userId, CREDIT_EARN[check.kind] || 10, check.kind, {
+          await earnCreditsForAction(userId, check.kind, {
             redirectUrl: redirectForAction(check.kind),
             autoClaimed: true,
           });
         } catch (e) {
-          console.error(`Auto-claim ${check.kind} failed:`, e);
+          if (e?.status !== 409) {
+            console.error(`Auto-claim ${check.kind} failed:`, e);
+          }
         }
       } else {
         pending.push({
@@ -2159,6 +2171,44 @@ export const getCreditsSummary = async (req, res) => {
     //   }
     // }
 
+    // Re-fetch user to get updated creditTransactions and balance after auto-claims
+    const updatedUser = await User.findById(userId).select('credits creditTransactions').lean();
+    const updatedTxs = updatedUser?.creditTransactions || [];
+    const claimedKinds = new Set(
+      updatedTxs.filter((t) => t?.kind && t?.type === 'EARN').map((t) => t.kind),
+    );
+    // Filter out any pending items that have been claimed (safety net for edge cases)
+    const oneTimeClaimKinds = [
+      'FIRST_CV',
+      'FIRST_CL',
+      'FIRST_AUTO_AGENT_SETUP',
+      'FIRST_AUTO_APPLICATION_SENT',
+      'PROFILE_COMPLETE_PERSONAL',
+      'PROFILE_COMPLETE_EDUCATION',
+      'PROFILE_COMPLETE_EXPERIENCE',
+      'PROFILE_COMPLETE_PROJECT',
+      'PROFILE_COMPLETE_SKILL',
+    ];
+    const completionByAction = {
+      FIRST_CV: cvCount > 0 || htmlCvCount > 0 || !!student?.resumeUrl,
+      FIRST_CL: clCount > 0,
+      FIRST_AUTO_AGENT_SETUP: agentCount > 0,
+      FIRST_AUTO_APPLICATION_SENT: appliedCount > 0,
+      PROFILE_COMPLETE_PERSONAL: !!(student?.fullName && student?.phone && student?.jobRole),
+      PROFILE_COMPLETE_EDUCATION: eduCount > 0,
+      PROFILE_COMPLETE_EXPERIENCE: expCount > 0,
+      PROFILE_COMPLETE_PROJECT: projCount > 0,
+      PROFILE_COMPLETE_SKILL: skillCount > 0,
+    };
+    const filteredPending = pending.filter((p) => {
+      if (oneTimeClaimKinds.includes(p.action)) {
+        if (claimedKinds.has(p.action)) return false;
+        if (completionByAction[p.action]) return false;
+        return true;
+      }
+      return true;
+    });
+
     const socialPlatforms = [
       { action: 'FOLLOW_LINKEDIN', label: 'LinkedIn' },
       { action: 'FOLLOW_INSTAGRAM', label: 'Instagram' },
@@ -2167,8 +2217,8 @@ export const getCreditsSummary = async (req, res) => {
       // { action: 'FOLLOW_TIKTOK', label: 'TikTok' },
     ];
     socialPlatforms.forEach((p) => {
-      if (!hasClaimedKind(p.action)) {
-        pending.push({
+      if (!claimedKinds.has(p.action)) {
+        filteredPending.push({
           action: p.action,
           credits: CREDIT_EARN.FOLLOW_SOCIAL || 0,
           reason: `Follow us on ${p.label} and then claim this credit (server verification recommended).`,
@@ -2178,7 +2228,7 @@ export const getCreditsSummary = async (req, res) => {
     });
 
     // generic job visit / apply pending items (no specific jobId available here)
-    pending.push({
+    filteredPending.push({
       action: 'VISITJOB_SITE',
       credits: CREDIT_EARN.VISITJOB_SITE || 0,
       reason:
@@ -2194,7 +2244,13 @@ export const getCreditsSummary = async (req, res) => {
     //   url: redirectForAction('APPLY_ON_COMPANY_SITE'),
     // });
 
-    const lastDaily = lastTxOfKind('DAILY_CHECKIN');
+    const lastTxOfKindFromTxs = (txList, kind) => {
+      const filtered = (txList || [])
+        .filter((t) => t?.kind === kind)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return filtered.length ? filtered[0] : null;
+    };
+    const lastDaily = lastTxOfKindFromTxs(updatedTxs, 'DAILY_CHECKIN');
     let dailyEligible = true;
     let lastDailyAt = null;
     if (lastDaily) {
@@ -2202,7 +2258,7 @@ export const getCreditsSummary = async (req, res) => {
       const elapsed = Date.now() - new Date(lastDailyAt).getTime();
       if (elapsed < 24 * 60 * 60 * 1000) dailyEligible = false;
     }
-    pending.push({
+    filteredPending.push({
       action: 'DAILY_CHECKIN',
       credits: CREDIT_EARN.DAILY_CHECKIN || 0,
       reason: dailyEligible
@@ -2217,8 +2273,8 @@ export const getCreditsSummary = async (req, res) => {
       url: redirectForAction('DAILY_CHECKIN'),
     });
 
-    // Prepare response: include redirectUrl on each tx (if present in tx.meta)
-    const recentTxs = txs
+    // Prepare response: use updated transactions to include newly auto-claimed credits
+    const recentTxs = updatedTxs
       .slice()
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 50)
@@ -2236,12 +2292,12 @@ export const getCreditsSummary = async (req, res) => {
       success: true,
       data: {
         userId: user._id,
-        balance: Number(user.credits || 0),
-        totalEarned,
-        totalSpent,
-        transactionsCount: txs.length,
+        balance: Number(updatedUser?.credits ?? user.credits ?? 0),
+        totalEarned: updatedTxs.reduce((sum, t) => (t?.type === 'EARN' ? sum + (t?.amount || 0) : sum), 0),
+        totalSpent: updatedTxs.reduce((sum, t) => (t?.type === 'SPEND' ? sum + (t?.amount || 0) : sum), 0),
+        transactionsCount: updatedTxs.length,
         transactions: recentTxs,
-        pendingClaims: pending,
+        pendingClaims: filteredPending,
       },
     });
   } catch (error) {

@@ -551,18 +551,13 @@ export const activateAgent = async (req, res) => {
       });
     }
 
-    const updatedStudent = await Student.findOneAndUpdate(
-      { _id: studentId, 'autopilotAgent.agentId': agentId },
-      {
-        $set: {
-          'autopilotAgent.$.autopilotEnabled': isActive,
-          'autopilotAgent.$.updatedAt': new Date(),
-        },
-      },
+    const updatedAgent = await StudentAgent.findOneAndUpdate(
+      { agentId, student: studentId },
+      { $set: { isAgentActive: isActive } },
       { new: true },
     );
 
-    if (!updatedStudent) {
+    if (!updatedAgent) {
       return res.status(404).json({
         success: false,
         message: 'Agent not found',
@@ -570,16 +565,12 @@ export const activateAgent = async (req, res) => {
       });
     }
 
-    const updatedAgent = updatedStudent.autopilotAgent.find(
-      (a) => a.agentId === agentId,
-    );
-
     return res.status(200).json({
       success: true,
       message: `Agent ${isActive ? 'activated' : 'deactivated'} successfully`,
       data: {
         agentId: updatedAgent.agentId,
-        autopilotEnabled: updatedAgent.autopilotEnabled,
+        autopilotEnabled: updatedAgent.isAgentActive,
       },
     });
   } catch (error) {

@@ -1995,6 +1995,19 @@ export const applyJob = async (req, res) => {
       screeningAnswers,
     });
 
+    // Track APPLIED in JobInteraction (required for StudentAnalytics / dashboard count)
+    await JobInteraction.updateOne(
+      { user: studentId, job: jobId, type: 'APPLIED' },
+      {
+        $setOnInsert: {
+          user: studentId,
+          job: jobId,
+          type: 'APPLIED',
+        },
+      },
+      { upsert: true },
+    );
+
     // 6. Send Confirmation Email
     await sendTemplatedEmail({
       to: student.email,

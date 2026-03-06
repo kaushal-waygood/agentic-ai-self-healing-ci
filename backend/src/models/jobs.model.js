@@ -115,6 +115,11 @@ jobSchema.index({
 jobSchema.index({ origin: 1, isActive: 1, jobTypes: 1 });
 jobSchema.index({ origin: 1, isActive: 1, tags: 1 });
 jobSchema.index({ origin: 1, isActive: 1, jobPostedAt: -1 });
+// Text index for $text search in getRecommendedJobs (autopilot, job discovery)
+jobSchema.index(
+  { title: 'text', description: 'text', qualifications: 'text' },
+  { name: 'jobs_text_search' },
+);
 
 // --- Slug Middleware ---
 jobSchema.pre('save', function (next) {
