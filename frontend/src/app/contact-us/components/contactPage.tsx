@@ -211,20 +211,20 @@ export default function ContactPage() {
                   <p className="text-gray-800 font-medium">Facebook</p>
                 </a>
 
-                <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 text-center group cursor-pointer">
-                  {/* <a
+                {/* <div className="bg-white/70 backdrop-blur-lg rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 text-center group cursor-pointer">
+                  <a
                   href="https://twitter.com/zobsai"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-white/70 backdrop-blur-lg rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 text-center group cursor-pointer"
-                > */}
+                >
 
                   <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-green-400 rounded-xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                     <Twitter className="w-8 h-8 text-white" />
                   </div>
                   <p className="text-gray-800 font-medium">Twitter</p>
-                  {/* </a> */}
-                </div>
+                  </a>
+                </div> */}
               </div>
             </div>
 

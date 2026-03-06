@@ -569,7 +569,7 @@ export default function CheckoutPage() {
   //   0;
 
   // const displayDiscount = appliedPricing?.discountAmount?.[currency] ?? 0;
-  const displayOriginal = checkout.basePrice;
+  const displayOriginal = checkout?.basePrice;
   const displayDiscount = checkout.discountAmount;
   const displayPrice = checkout.finalPrice;
   const currencySymbol = getCurrencySymbol(checkout.currency);
