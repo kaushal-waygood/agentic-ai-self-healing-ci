@@ -179,6 +179,9 @@ export const useJobs = () => {
       if (newFilters.experience?.length > 0) {
         params.set('experience', newFilters.experience.join(','));
       }
+      if (newFilters.education?.length > 0) {
+        params.set('education', newFilters.education.join(','));
+      }
 
       router.push(`?${params.toString()}`, { scroll: false });
     },
@@ -193,15 +196,14 @@ export const useJobs = () => {
     [reduxFilters, syncFiltersToUrl],
   );
 
-  // ─── Pagination ──────────────────────────────────────────────────────────────
-  // Use hasNextPage directly from backend — it's the single source of truth.
-  // Default to true so we always attempt at least one load-more.
   const hasNextPage = pagination?.hasNextPage !== false;
 
   const loadMoreJobs = useCallback(() => {
     if (loadingRef.current || !hasNextPage) return;
 
-    // Use `currentPage` from backend response; fall back to `page` from state
+    // Lock immediately to prevent re-entry before React re-renders
+    loadingRef.current = true;
+
     const currentPage =
       (pagination as any)?.currentPage ?? pagination?.page ?? 1;
 

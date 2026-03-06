@@ -2,11 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { Send, User, Loader2, Sparkles, Bot, Zap } from 'lucide-react';
-import {
-  aiAssistant,
-  AIAssistantInput,
-  AIAssistantOutput,
-} from '@/ai/flows/ai-assistant'; // Using your actual Genkit flow
+import apiInstance from '@/services/api';
 
 interface Message {
   id: string;
@@ -56,27 +52,30 @@ export function AiAssistantClient() {
     setIsTyping(true);
 
     try {
-      // Using the actual aiAssistant function from your code
-      const aiInput: AIAssistantInput = { query: userMessage.text };
-      const aiResponse: AIAssistantOutput = await aiAssistant(aiInput);
+      const { data } = await apiInstance.post('/students/assistant/chat', {
+        query: userMessage.text,
+      });
 
-      setIsTyping(false); // AI is done "thinking"
+      setIsTyping(false);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: aiResponse.answer,
+        text: data.answer,
         sender: 'ai',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Assistant error:', error);
       setIsTyping(false);
+      const msg =
+        error?.response?.data?.message ||
+        'Sorry, I encountered an error. Please try again.';
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Sorry, I encountered an error. Please try again.',
+        text: msg,
         sender: 'ai',
-        timestamp: new new Date()(),
+        timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {

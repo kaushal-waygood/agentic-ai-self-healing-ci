@@ -166,21 +166,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
     const checkJobStatus = async () => {
       try {
-        const [savedRes, appliedRes] = await Promise.all([
-          apiInstance.get('students/jobs/intraction-status', {
-            params: { jobId: job._id },
-            signal,
-          }),
-          // apiInstance.get('/students/job/isapplied', {
-          //   params: { jobId: job._id },
-          //   signal,
-          // }),
-        ]);
+        const savedRes = await apiInstance.get(
+          '/students/jobs/intraction-status',
+          { params: { jobId: job._id }, signal },
+        );
 
         if (signal.aborted) return;
-        console.log('data', savedRes.data);
         setIsSaved(Boolean(savedRes?.data?.saved));
-        // setIsApplying(Boolean(appliedRes?.data?.isApplied));
+        setIsApplying(Boolean(savedRes?.data?.applied));
       } catch (error) {
         if (!signal.aborted) {
           // quiet log; don’t spam the UI
@@ -667,7 +660,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
-                      job._id,
+                      job._id ?? '',
                     )}&step=cv`}
                   >
                     <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -684,7 +677,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
-                      job._id,
+                      job._id ?? '',
                     )}&step=cv`}
                   >
                     <div className="relative flex items-center justify-center gap-2">
@@ -715,18 +708,27 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     </div>
                   </Link>
                 </Button>
+              ) : isApplying ? (
+                <Button
+                  disabled
+                  className="px-5 py-3 rounded-lg font-semibold bg-green-600 text-white flex items-center justify-center cursor-not-allowed opacity-90"
+                >
+                  <div className="relative flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Applied</span>
+                  </div>
+                </Button>
               ) : (
                 <Button
                   onClick={handleApplyNow}
+                  asChild
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
                   <Link
                     href={`/dashboard/jobs/${job._id}/apply`}
-                    // target="_blank"
                     rel="noopener noreferrer"
                   >
                     <div className="relative flex items-center justify-center gap-2">
-                      {/* <Send className="w-5 h-5" /> */}
                       <span>Apply Now</span>
                     </div>
                   </Link>

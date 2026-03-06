@@ -181,10 +181,10 @@ export const getRecommendedJobs = async ({
   const searchString = generateSearchTerms(student);
   const preferences = student.jobPreferences || {};
 
-  // Build filter from agentConfig
+  // Build filter from agentConfig (Job schema uses 'remote')
   const filter = { isActive: true };
   if (agentConfig.country) filter.country = agentConfig.country;
-  if (agentConfig.isRemote) filter.isRemote = true;
+  if (agentConfig.isRemote) filter.remote = true;
   if (agentConfig.employmentType)
     filter.jobTypes = { $in: [agentConfig.employmentType] };
   if (agentConfig.jobTitle)
@@ -193,8 +193,8 @@ export const getRecommendedJobs = async ({
   if (appliedJobIds?.length) filter._id = { $nin: appliedJobIds };
   if (searchString) filter.$text = { $search: searchString };
 
-  // Preferences
-  if (preferences.isRemote) filter.isRemote = true;
+  // Preferences (Job schema uses 'remote')
+  if (preferences.isRemote) filter.remote = true;
   if (preferences.preferredCountries?.length)
     filter.country = { $in: preferences.preferredCountries };
   if (preferences.preferredJobTypes?.length) {
@@ -212,16 +212,34 @@ export const getRecommendedJobs = async ({
     filter['salary.min'] = { $gte: minSalary };
   }
 
-  // Query local
-  let query = Job.find(filter);
-  if (filter.$text) {
-    query = query
-      .select({ score: { $meta: 'textScore' } })
-      .sort({ score: { $meta: 'textScore' } });
-  } else {
-    query = query.sort({ postedAt: -1, createdAt: -1 });
+  // Query local (with fallback if text index is missing)
+  let finalJobs;
+  try {
+    let query = Job.find(filter);
+    if (filter.$text) {
+      query = query
+        .select({ score: { $meta: 'textScore' } })
+        .sort({ score: { $meta: 'textScore' } });
+    } else {
+      query = query.sort({ jobPostedAt: -1, createdAt: -1 });
+    }
+    finalJobs = await query.limit(limit).lean();
+  } catch (err) {
+    if (
+      err?.message?.includes('text index') ||
+      err?.code === 67 ||
+      err?.codeName === 'IndexNotFound'
+    ) {
+      delete filter.$text;
+      const fallbackQuery = Job.find(filter).sort({
+        jobPostedAt: -1,
+        createdAt: -1,
+      });
+      finalJobs = await fallbackQuery.limit(limit).lean();
+    } else {
+      throw err;
+    }
   }
-  let finalJobs = await query.limit(limit).lean();
 
   // Optional: show local titles
   if (process.env.DEBUG_JOBS === '1') {
