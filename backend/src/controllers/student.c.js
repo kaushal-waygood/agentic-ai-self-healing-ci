@@ -10,7 +10,7 @@ import { StudentCV } from '../models/students/studentCV.model.js';
 import { StudentCL } from '../models/students/studentCL.model.js';
 import { Student } from '../models/students/student.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
-import { StudentAgent } from '../models/students/studentAgent.model.js';
+// import { StudentAgent } from '../models/students/studentAgent.model.js';
 
 // User Models
 import { User } from '../models/User.model.js';
@@ -29,7 +29,11 @@ import {
   safeGetVariant,
 } from './plan.controller.js';
 import { Purchase } from '../models/Purchase.js';
-import { addCredits, CREDIT_EARN } from '../utils/credits.js';
+import {
+  addCredits,
+  CREDIT_EARN,
+  earnCreditsForAction,
+} from '../utils/credits.js';
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
@@ -399,51 +403,105 @@ export const getProfileCompletion = async (req, res) => {
           ),
         };
 
+        // if (completionStatus.coreProfile) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_PERSONAL,
+        //     'Core Profile Update',
+        //   );
+        // }
+        // if (completionStatus.education) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_EDUCATION,
+        //     'Education Completed',
+        //   );
+        // }
+
+        // if (completionStatus.workExperience) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE,
+        //     'Experience Completed',
+        //   );
+        // }
+
+        // if (completionStatus.skills) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_SKILL,
+        //     'Skills Completed',
+        //   );
+        // }
+
+        // if (completionStatus.projects) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_PROJECT,
+        //     'Project Completed',
+        //   );
+        // }
+
+        // if (completionStatus.jobPreferences) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_JOB_PREFERENCES,
+        //     'Job Preferences Completed',
+        //   );
+        // }
+
+        // award credits only once per category – earnCreditsForAction throws 409 if already claimed
         if (completionStatus.coreProfile) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_PERSONAL,
-            'Core Profile Update',
-          );
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_PERSONAL');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
         if (completionStatus.education) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_EDUCATION,
-            'Education Completed',
-          );
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_EDUCATION');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         if (completionStatus.workExperience) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE,
-            'Experience Completed',
-          );
+          try {
+            await earnCreditsForAction(
+              studentId,
+              'PROFILE_COMPLETE_EXPERIENCE',
+            );
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         if (completionStatus.skills) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_SKILL,
-            'Skills Completed',
-          );
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_SKILL');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         if (completionStatus.projects) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_PROJECT,
-            'Project Completed',
-          );
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_PROJECT');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         if (completionStatus.jobPreferences) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_JOB_PREFERENCES,
-            'Job Preferences Completed',
-          );
+          try {
+            await earnCreditsForAction(
+              studentId,
+              'PROFILE_COMPLETE_JOB_PREFERENCES',
+            );
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         const completedCategories =
@@ -993,7 +1051,6 @@ export const getProjects = async (req, res) => {
     res.json({ success: true, projects });
   }
 };
-
 export const addProject = async (req, res) => {
   const studentId = req.user._id;
   const {
@@ -1209,7 +1266,8 @@ export const updateApplicationStatus = async (req, res) => {
 
 export const getJobInteractionStatus = async (req, res) => {
   const userId = req.user._id;
-  const { jobId } = req.query;
+  // const { jobId } = req.query;
+  const { jobId } = req.params;
 
   const interactions = await JobInteraction.find({
     user: userId,
@@ -1914,19 +1972,30 @@ export const getCreditsSummary = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const [user, student, eduCount, expCount, skillCount, projCount, cvCount, clCount, agentCount] =
-      await Promise.all([
-        User.findById(userId).lean(),
-        Student.findById(userId).select('phone profileImage resumeUrl').lean(),
-        StudentEducation.countDocuments({ student: userId }),
-        StudentExperience.countDocuments({ student: userId }),
-        StudentSkill.countDocuments({ student: userId }),
-        StudentProject.countDocuments({ student: userId }),
-        StudentCV.countDocuments({ student: userId, status: 'completed' }),
-        StudentCL.countDocuments({ student: userId, status: 'completed' }),
-        StudentAgent.countDocuments({ student: userId }),
-      ]);
-
+    const user = await User.findById(userId).lean();
+    // const [
+    //   user,
+    //   student,
+    //   eduCount,
+    //   expCount,
+    //   skillCount,
+    //   projCount,
+    //   cvCount,
+    //   clCount,
+    //   agentCount,
+    // ] = await Promise.all([
+    //   User.findById(userId).lean(),
+    //   Student.findById(userId)
+    //     .select('phone profileImage resumeUrl')
+    //     .lean(),
+    //   StudentEducation.countDocuments({ student: userId }),
+    //   StudentExperience.countDocuments({ student: userId }),
+    //   StudentSkill.countDocuments({ student: userId }),
+    //   StudentProject.countDocuments({ student: userId }),
+    //   StudentCV.countDocuments({ student: userId, status: 'completed' }),
+    //   StudentCL.countDocuments({ student: userId, status: 'completed' }),
+    //   StudentAgent.countDocuments({ student: userId }),
+    // ]);
     if (!user) {
       res.status(404);
       throw new Error('User not found');
@@ -1996,7 +2065,7 @@ export const getCreditsSummary = async (req, res) => {
           return '/dashboard/search-jobs';
 
         case 'PROFILE_COMPLETE_PERSONAL':
-          return '/dashboard/profile';
+        // return '/dashboard/profile';
 
         case 'PROFILE_COMPLETE_EDUCATION':
           return '/dashboard/profile?tab=education';
@@ -2024,116 +2093,270 @@ export const getCreditsSummary = async (req, res) => {
 
     const pending = [];
 
-    const firstTimeChecks = [
-      {
-        kind: 'FIRST_CV',
-        done: cvCount > 0,
-        pendingReason: 'Generate your first CV to claim these credits.',
-      },
-      {
-        kind: 'FIRST_CL',
-        done: clCount > 0,
-        pendingReason: 'Generate your first cover letter to claim these credits.',
-      },
-      {
-        kind: 'FIRST_AUTO_AGENT_SETUP',
-        done: agentCount > 0,
-        pendingReason: 'Set up your first Auto-Apply agent.',
-      },
-    ];
+    // const firstTimeChecks = [
+    //   {
+    //     kind: 'FIRST_CV',
+    //     done: cvCount > 0,
+    //     pendingReason: 'Generate your first CV to claim these credits.',
+    //   },
+    //   {
+    //     kind: 'FIRST_CL',
+    //     done: clCount > 0,
+    //     pendingReason: 'Generate your first cover letter to claim these credits.',
+    //   },
+    //   {
+    //     kind: 'FIRST_AUTO_AGENT_SETUP',
+    //     done: agentCount > 0,
+    //     pendingReason: 'Set up your first Auto-Apply agent.',
+    //   },
+    // ];
 
-    for (const check of firstTimeChecks) {
-      if (hasClaimedKind(check.kind)) continue;
+    // for (const check of firstTimeChecks) {
+    //   if (hasClaimedKind(check.kind)) continue;
 
-      if (check.done) {
-        try {
-          await addCredits(userId, CREDIT_EARN[check.kind] || 10, check.kind, {
-            redirectUrl: redirectForAction(check.kind),
-            autoClaimed: true,
-          });
-        } catch (e) {
-          console.error(`Auto-claim ${check.kind} failed:`, e);
-        }
-      } else {
-        pending.push({
-          action: check.kind,
-          credits: CREDIT_EARN[check.kind] || 0,
-          reason: check.pendingReason,
-          url: redirectForAction(check.kind),
-        });
-      }
-    }
+    //   if (check.done) {
+    //     try {
+    //       await addCredits(userId, CREDIT_EARN[check.kind] || 10, check.kind, {
+    //         redirectUrl: redirectForAction(check.kind),
+    //         autoClaimed: true,
+    //       });
+    //     } catch (e) {
+    //       console.error(`Auto-claim ${check.kind} failed:`, e);
+    //     }
+    //   } else {
+    //     pending.push({
+    //       action: check.kind,
+    //       credits: CREDIT_EARN[check.kind] || 0,
+    //       reason: check.pendingReason,
+    //       url: redirectForAction(check.kind),
+    //     });
+    //   }
+    // }
 
-    if (!hasClaimedKind('FIRST_AUTO_APPLICATION_SENT')) {
-      const appliedCount = await JobInteraction.countDocuments({
-        user: userId,
-        type: 'APPLIED',
+    // if (!hasClaimedKind('FIRST_AUTO_APPLICATION_SENT')) {
+    //   const appliedCount = await JobInteraction.countDocuments({
+    //     user: userId,
+    //     type: 'APPLIED',
+    //   });
+    //   if (appliedCount > 0) {
+    //     try {
+    //       await addCredits(
+    //         userId,
+    //         CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 10,
+    //         'FIRST_AUTO_APPLICATION_SENT',
+    //         {
+    //           redirectUrl: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
+    //           autoClaimed: true,
+    //         },
+    //       );
+    //     } catch (e) {
+    //       console.error('Auto-claim FIRST_AUTO_APPLICATION_SENT failed:', e);
+    //     }
+    //   } else {
+    //     pending.push({
+    //       action: 'FIRST_AUTO_APPLICATION_SENT',
+    //       credits: CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 0,
+    //       reason: 'Send your first auto-application to claim credits.',
+    //       url: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
+    //     });
+    //   }
+    // }
+
+    // const profileChecks = [
+    //   {
+    //     kind: 'PROFILE_COMPLETE_PERSONAL',
+    //     done: !!(student?.phone || student?.profileImage),
+    //     pendingReason:
+    //       'Add phone number or profile image to complete personal details.',
+    //   },
+    //   {
+    //     kind: 'PROFILE_COMPLETE_EDUCATION',
+    //     done: eduCount > 0,
+    //     pendingReason: 'Add education details to claim credits.',
+    //   },
+    //   {
+    //     kind: 'PROFILE_COMPLETE_EXPERIENCE',
+    //     done: expCount > 0,
+    //     pendingReason: 'Add work experience to claim credits.',
+    //   },
+    //   {
+    //     kind: 'PROFILE_COMPLETE_PROJECT',
+    //     done: projCount > 0,
+    //     pendingReason: 'Add project details to claim credits.',
+    //   },
+    //   {
+    //     kind: 'PROFILE_COMPLETE_SKILL',
+    //     done: skillCount > 0,
+    //     pendingReason: 'Add skills to claim credits.',
+    //   },
+    // ];
+
+    // for (const check of profileChecks) {
+    //   if (hasClaimedKind(check.kind)) continue;
+
+    //   if (check.done) {
+    //     try {
+    //       await addCredits(userId, CREDIT_EARN[check.kind] || 10, check.kind, {
+    //         redirectUrl: redirectForAction(check.kind),
+    //         autoClaimed: true,
+    //       });
+    //     } catch (e) {
+    //       console.error(`Auto-claim ${check.kind} failed:`, e);
+    //     }
+    //   } else {
+    //     pending.push({
+    //       action: check.kind,
+    //       credits: CREDIT_EARN[check.kind] || 0,
+    //       reason: check.pendingReason,
+    //       url: redirectForAction(check.kind),
+    //     });
+    //   }
+    // }
+
+    // FIRST_CV: keep your original logic but add url (client decides whether to show claim button)
+    if (
+      !hasClaimedKind('FIRST_CV') &&
+      !(Array.isArray(user.htmlCV) && user.htmlCV.length > 0)
+    ) {
+      pending.push({
+        action: 'FIRST_CV',
+        credits: CREDIT_EARN.FIRST_CV || 0,
+        reason: 'Generate your first CV to claim these credits.',
+        url: redirectForAction('FIRST_CV'),
       });
-      if (appliedCount > 0) {
-        try {
-          await addCredits(userId, CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 10, 'FIRST_AUTO_APPLICATION_SENT', {
-            redirectUrl: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
-            autoClaimed: true,
-          });
-        } catch (e) {
-          console.error('Auto-claim FIRST_AUTO_APPLICATION_SENT failed:', e);
-        }
+    }
+
+    if (
+      !hasClaimedKind('FIRST_CL') &&
+      !(Array.isArray(user.coverLetter) && user.coverLetter.length > 0)
+    ) {
+      pending.push({
+        action: 'FIRST_CL',
+        credits: CREDIT_EARN.FIRST_CL || 0,
+        reason: 'Generate your first cover letter to claim these credits.',
+        url: redirectForAction('FIRST_CL'),
+      });
+    }
+
+    if (
+      !hasClaimedKind('FIRST_AUTO_AGENT_SETUP') &&
+      (!Array.isArray(user.autopilotAgent) || user.autopilotAgent.length === 0)
+    ) {
+      pending.push({
+        action: 'FIRST_AUTO_AGENT_SETUP',
+        credits: CREDIT_EARN.FIRST_AUTO_AGENT_SETUP || 0,
+        reason: 'Set up your first Auto-Apply agent.',
+        url: redirectForAction('FIRST_AUTO_AGENT_SETUP'),
+      });
+    }
+
+    if (
+      !hasClaimedKind('FIRST_AUTO_APPLICATION_SENT') &&
+      Array.isArray(user.appliedJobs) &&
+      user.appliedJobs.length === 0
+    ) {
+      pending.push({
+        action: 'FIRST_AUTO_APPLICATION_SENT',
+        credits: CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 0,
+        reason: 'Send your first auto-application to claim credits.',
+        url: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
+      });
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_PERSONAL')) {
+      const hasPersonal = !!(user.phone || user.profileImage);
+      if (!hasPersonal) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PERSONAL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PERSONAL || 0,
+          reason:
+            'Add phone number or profile image to complete personal details.',
+          url: redirectForAction('PROFILE_COMPLETE_PERSONAL'),
+        });
       } else {
         pending.push({
-          action: 'FIRST_AUTO_APPLICATION_SENT',
-          credits: CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 0,
-          reason: 'Send your first auto-application to claim credits.',
-          url: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
+          action: 'PROFILE_COMPLETE_PERSONAL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PERSONAL || 0,
+          reason: 'Claim credits for completing personal details.',
+          url: redirectForAction('PROFILE_COMPLETE_PERSONAL'),
         });
       }
     }
 
-    const profileChecks = [
-      {
-        kind: 'PROFILE_COMPLETE_PERSONAL',
-        done: !!(student?.phone || student?.profileImage),
-        pendingReason: 'Add phone number or profile image to complete personal details.',
-      },
-      {
-        kind: 'PROFILE_COMPLETE_EDUCATION',
-        done: eduCount > 0,
-        pendingReason: 'Add education details to claim credits.',
-      },
-      {
-        kind: 'PROFILE_COMPLETE_EXPERIENCE',
-        done: expCount > 0,
-        pendingReason: 'Add work experience to claim credits.',
-      },
-      {
-        kind: 'PROFILE_COMPLETE_PROJECT',
-        done: projCount > 0,
-        pendingReason: 'Add project details to claim credits.',
-      },
-      {
-        kind: 'PROFILE_COMPLETE_SKILL',
-        done: skillCount > 0,
-        pendingReason: 'Add skills to claim credits.',
-      },
-    ];
-
-    for (const check of profileChecks) {
-      if (hasClaimedKind(check.kind)) continue;
-
-      if (check.done) {
-        try {
-          await addCredits(userId, CREDIT_EARN[check.kind] || 10, check.kind, {
-            redirectUrl: redirectForAction(check.kind),
-            autoClaimed: true,
-          });
-        } catch (e) {
-          console.error(`Auto-claim ${check.kind} failed:`, e);
-        }
+    if (!hasClaimedKind('PROFILE_COMPLETE_EDUCATION')) {
+      const hasEducation =
+        Array.isArray(user.education) && user.education.length > 0;
+      if (!hasEducation) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EDUCATION',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EDUCATION || 0,
+          reason: 'Add education details to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_EDUCATION'),
+        });
       } else {
         pending.push({
-          action: check.kind,
-          credits: CREDIT_EARN[check.kind] || 0,
-          reason: check.pendingReason,
-          url: redirectForAction(check.kind),
+          action: 'PROFILE_COMPLETE_EDUCATION',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EDUCATION || 0,
+          reason: 'Claim credits for your education details.',
+          url: redirectForAction('PROFILE_COMPLETE_EDUCATION'),
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_EXPERIENCE')) {
+      const hasExp =
+        Array.isArray(user.experience) && user.experience.length > 0;
+      if (!hasExp) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EXPERIENCE',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE || 0,
+          reason: 'Add work experience to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_EXPERIENCE'),
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_EXPERIENCE',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE || 0,
+          reason: 'Claim credits for your experience details.',
+          url: redirectForAction('PROFILE_COMPLETE_EXPERIENCE'),
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_PROJECT')) {
+      const hasProj = Array.isArray(user.projects) && user.projects.length > 0;
+      if (!hasProj) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PROJECT',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PROJECT || 0,
+          reason: 'Add project details to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_PROJECT'),
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_PROJECT',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_PROJECT || 0,
+          reason: 'Claim credits for your project details.',
+          url: redirectForAction('PROFILE_COMPLETE_PROJECT'),
+        });
+      }
+    }
+
+    if (!hasClaimedKind('PROFILE_COMPLETE_SKILL')) {
+      const hasSkill = Array.isArray(user.skills) && user.skills.length > 0;
+      if (!hasSkill) {
+        pending.push({
+          action: 'PROFILE_COMPLETE_SKILL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_SKILL || 0,
+          reason: 'Add skills to claim credits.',
+          url: redirectForAction('PROFILE_COMPLETE_SKILL'),
+        });
+      } else {
+        pending.push({
+          action: 'PROFILE_COMPLETE_SKILL',
+          credits: CREDIT_EARN.PROFILE_COMPLETE_SKILL || 0,
+          reason: 'Claim credits for adding skills.',
+          url: redirectForAction('PROFILE_COMPLETE_SKILL'),
         });
       }
     }

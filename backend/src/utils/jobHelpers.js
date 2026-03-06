@@ -745,9 +745,21 @@ export async function buildSearchContext(req) {
 
   const interactions = await buildInteractionContext(req.user?._id);
 
+  let rawQuery = req.query.q || '';
+  if (typeof rawQuery === 'string') {
+    try {
+      rawQuery = decodeURIComponent(rawQuery);
+    } catch (e) {
+      // ignore if it's not encoded
+    }
+    // '+' should be treated as space as well
+    rawQuery = rawQuery.replace(/\+/g, ' ');
+  }
+
   return {
     type: 'search',
-    query: req.query.q?.toLowerCase().trim() || '',
+    // query: req.query.q?.toLowerCase().trim() || '',
+    query: rawQuery.toLowerCase().trim() || '',
     filters: { country, state, city, employmentType: req.query.employmentType },
     userId: req.user?._id,
     interactions,
@@ -812,8 +824,24 @@ export async function retrieveCandidates(context, limit = 300) {
 }
 
 const SEARCH_STOP_WORDS = new Set([
-  'in', 'at', 'on', 'to', 'for', 'the', 'and', 'or', 'of',
-  'is', 'it', 'an', 'as', 'by', 'be', 'near', 'from', 'with',
+  'in',
+  'at',
+  'on',
+  'to',
+  'for',
+  'the',
+  'and',
+  'or',
+  'of',
+  'is',
+  'it',
+  'an',
+  'as',
+  'by',
+  'be',
+  'near',
+  'from',
+  'with',
 ]);
 
 async function keywordSearch(context, limit = 100, dateFilter = {}) {

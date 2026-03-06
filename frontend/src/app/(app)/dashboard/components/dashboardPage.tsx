@@ -739,7 +739,8 @@ export default function DashboardPage() {
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
 
-    const encodedQuery = encodeURIComponent(trimmed.replace(/\s+/g, '+'));
+    //  const encodedQuery = encodeURIComponent(trimmed.replace(/\s+/g, '+'));
+    const encodedQuery = encodeURIComponent(trimmed);
     router.push(`/dashboard/search-jobs?q=${encodedQuery}`);
   };
 
