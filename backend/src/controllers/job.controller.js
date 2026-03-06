@@ -254,10 +254,9 @@ export async function searchJobs(req, res) {
         finalJobs.length < limitNum || processed.length < skip + limitNum;
 
       if (needsExternal) {
-        // 🔥 Deep external fetch
         const externalRaw = await fetchExternalDeep({
           apiTerm,
-          country: filterSet.country || 'IN',
+          country: filterSet.country || country || 'IN',
           state: filterSet.state,
           city: filterSet.city,
           minRequired: 2000,

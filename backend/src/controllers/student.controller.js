@@ -1921,7 +1921,7 @@ ${JSON.stringify(profile)}
 
     fs.appendFile(PROMPT_LOG_FILE, entry, () => {});
   } catch {
-    // Silent failure. Logging must never break generation.
+    // alralkjsfd
   }
 }
 
@@ -1975,7 +1975,7 @@ export async function getProfileBasedRecommendedJobs(req, res) {
 
       const externalRaw = await fetchExternalDeep({
         apiTerm,
-        country: extCountry || 'IN',
+        country: extCountry || country || 'IN',
         state: extState,
         city: extCity,
         minRequired: 2000,
