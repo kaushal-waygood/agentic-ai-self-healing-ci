@@ -45,7 +45,10 @@ export function dedupeByTitleCompany(jobs) {
   for (const j of jobs) {
     const key = `${(j.title || '').toLowerCase()}|${(j.company || '').toLowerCase()}`;
     const existing = seen.get(key);
-    if (!existing || (j.score && (!existing.score || j.score > existing.score))) {
+    if (
+      !existing ||
+      (j.score && (!existing.score || j.score > existing.score))
+    ) {
       seen.set(key, j);
     }
   }
@@ -139,8 +142,6 @@ export async function upsertExternalJobs(externalJobs) {
   const startTime = Date.now();
   const jobIds = externalJobs.map((j) => j.jobId);
 
-  // 1. Quick check for existing jobs to avoid unnecessary overrides
-  // We fetch jobId, slug and _id to preserve their DB links
   const existingJobs = await Job.find(
     { jobId: { $in: jobIds }, origin: 'EXTERNAL' },
     { jobId: 1, slug: 1, _id: 1 },
@@ -184,8 +185,6 @@ export async function upsertExternalJobs(externalJobs) {
       jobPosted: j.jobPosted,
       jobPostedAt: j.jobPostedAt,
       embeddingHash,
-      // 🚀 SPEED TRICK: Don't generate vector here.
-      // Mark it as "pending" so a background job can find and vectorize it.
       needsEmbedding: !existingMap.has(j.jobId),
     };
 
@@ -545,7 +544,10 @@ export async function fetchExternalJobs(
   experience,
   page = 1,
 ) {
-  if (_rapidApiDownSince && Date.now() - _rapidApiDownSince < RAPID_API_COOLDOWN_MS) {
+  if (
+    _rapidApiDownSince &&
+    Date.now() - _rapidApiDownSince < RAPID_API_COOLDOWN_MS
+  ) {
     return [];
   }
 
@@ -556,14 +558,17 @@ export async function fetchExternalJobs(
     try {
       let query = apiQuery;
 
-      const countryName = ISO2_TO_NAME[country?.toUpperCase()] || country;
-      const locParts = [city, state, countryName].filter(Boolean);
-
+      const locParts = [city, state].filter(Boolean);
       if (locParts.length > 0) {
         query += ` in ${locParts.join(', ')}`;
       }
 
-      const params = { query, page: String(page), num_pages: '1' };
+      const params = {
+        query,
+        page: String(page),
+        num_pages: '1',
+        country: country?.toLowerCase() || 'us',
+      };
 
       if (employmentType) {
         params.employment_types = employmentType;
@@ -577,13 +582,14 @@ export async function fetchExternalJobs(
         params.date_posted = datePosted;
       }
 
+      console.log(params);
+
       const response = await axios.get(config.rapidJobApi, {
         params,
         headers: {
           'X-RapidAPI-Key': config.rapidApiKey,
           'X-RapidAPI-Host': config.rapidApiHost,
         },
-        timeout: 10_000,
       });
 
       _rapidApiDownSince = 0;
@@ -592,7 +598,9 @@ export async function fetchExternalJobs(
       const status = e.response?.status;
       if (status === 403 || status === 429) {
         _rapidApiDownSince = Date.now();
-        console.error(`RapidAPI circuit open (${status}) — skipping for ${RAPID_API_COOLDOWN_MS / 1000}s`);
+        console.error(
+          `RapidAPI circuit open (${status}) — skipping for ${RAPID_API_COOLDOWN_MS / 1000}s`,
+        );
       } else {
         console.error('RapidAPI error:', e.message);
       }
@@ -780,52 +788,85 @@ export async function retrieveCandidates(context, limit = 300) {
   }
 
   const tasks = [keywordSearch(context), vectorSearch(context)];
+
   const results = await Promise.allSettled(tasks);
+
   let jobs = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 
   let finalPool = dedupeByTitleCompany(jobs);
 
   const MIN_POOL = 40;
-  let page = 1;
 
-  while (finalPool.length < MIN_POOL && page <= 20) {
-    const externalRaw = await fetchExternalJobs(
-      context.query,
-      context.filters?.country,
-      context.filters?.state,
-      context.filters?.city,
-      null,
-      context.filters?.employmentType,
-      null,
-      page,
-    );
+  // Only fetch external if local pool is too small
+  if (finalPool.length < MIN_POOL) {
+    const MAX_PAGES = 5; // fetch multiple pages in parallel
+    const pagePromises = [];
 
-    if (!externalRaw.length) break;
+    for (let p = 1; p <= MAX_PAGES; p++) {
+      pagePromises.push(
+        fetchExternalJobs(
+          context.query,
+          context.filters?.country,
+          context.filters?.state,
+          context.filters?.city,
+          null,
+          context.filters?.employmentType,
+          null,
+          p,
+        ),
+      );
+    }
 
-    const formatted = externalRaw.map((j) =>
-      transformRapidApiJob(j, context.query),
-    );
+    const pages = await Promise.allSettled(pagePromises);
 
-    await upsertExternalJobs(formatted).catch((e) =>
-      console.error('retrieveCandidates Upsert Error:', e.message),
-    );
+    const externalRaw = pages
+      .filter((p) => p.status === 'fulfilled')
+      .flatMap((p) => p.value);
 
-    const validExternal = applyFilters(formatted, context);
+    if (externalRaw.length) {
+      const formatted = externalRaw.map((j) =>
+        transformRapidApiJob(j, context.query),
+      );
 
-    finalPool = dedupeByTitleCompany([...finalPool, ...validExternal]);
-    page++;
+      // NON-BLOCKING DB WRITE
+      upsertExternalJobs(formatted).catch((e) =>
+        console.error('retrieveCandidates Upsert Error:', e.message),
+      );
+
+      const validExternal = applyFilters(formatted, context);
+
+      finalPool = dedupeByTitleCompany([...finalPool, ...validExternal]);
+    }
   }
 
   const output = finalPool.slice(0, limit);
-  if (cacheKey && output.length > 0)
+
+  if (cacheKey && output.length > 0) {
     await redisClient.set(cacheKey, JSON.stringify(output), 600);
+  }
 
   return output;
 }
 
 const SEARCH_STOP_WORDS = new Set([
-  'in', 'at', 'on', 'to', 'for', 'the', 'and', 'or', 'of',
-  'is', 'it', 'an', 'as', 'by', 'be', 'near', 'from', 'with',
+  'in',
+  'at',
+  'on',
+  'to',
+  'for',
+  'the',
+  'and',
+  'or',
+  'of',
+  'is',
+  'it',
+  'an',
+  'as',
+  'by',
+  'be',
+  'near',
+  'from',
+  'with',
 ]);
 
 const YEAR_PATTERN = /^(20\d{2}|19\d{2})$/;
@@ -881,10 +922,7 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
     filter.country = context.filters.country.toUpperCase();
   }
 
-  return Job.find(filter)
-    .sort({ jobPostedAt: -1 })
-    .limit(limit)
-    .lean();
+  return Job.find(filter).sort({ jobPostedAt: -1 }).limit(limit).lean();
 }
 
 async function vectorSearch(context, limit = 100, dateFilter = {}) {
@@ -944,8 +982,7 @@ export function rankJobs(jobs, context) {
     .map((job) => {
       const freshness = freshnessScore(job.jobPostedAt, 14);
 
-      const isTargetCountry =
-        !targetCountry || job.country === targetCountry;
+      const isTargetCountry = !targetCountry || job.country === targetCountry;
       const geo = job.remote || isTargetCountry ? 1 : 0.2;
 
       const rawVectorScore = job.score || 0;
@@ -970,9 +1007,8 @@ export function rankJobs(jobs, context) {
 
       // Keyword-matched results lack a vector score — impute a baseline
       // proportional to their title relevance so they aren't penalised.
-      const vectorScore = rawVectorScore > 0
-        ? rawVectorScore
-        : titleMatchScore * 0.75;
+      const vectorScore =
+        rawVectorScore > 0 ? rawVectorScore : titleMatchScore * 0.75;
 
       const relevance = vectorScore * 0.5 + titleMatchScore * 0.5;
 
@@ -1016,9 +1052,7 @@ export function rankJobsWithIntentBoost(jobs, context) {
     .map((job) => {
       const freshness = freshnessScore(job.jobPostedAt, 14);
       const geo =
-        job.remote || !targetCountry || job.country === targetCountry
-          ? 1
-          : 0.2;
+        job.remote || !targetCountry || job.country === targetCountry ? 1 : 0.2;
 
       let primaryBoost = 0;
       const isRelevantDomain = primaryTitles.some((t) => {
@@ -1029,9 +1063,8 @@ export function rankJobsWithIntentBoost(jobs, context) {
 
       // Impute baseline for keyword results that lack a vector score
       const rawVectorScore = job.score || 0;
-      const vectorScore = rawVectorScore > 0
-        ? rawVectorScore
-        : (primaryBoost > 0 ? 0.7 : 0);
+      const vectorScore =
+        rawVectorScore > 0 ? rawVectorScore : primaryBoost > 0 ? 0.7 : 0;
 
       const domainPenalty = isRelevantDomain ? 1 : 0.3;
 
@@ -1060,28 +1093,21 @@ export async function fetchExternalDeep({
   minRequired = 1500,
   maxPages = 30,
 }) {
-  let pageCursor = 1;
-  let externalRaw = [];
+  const pagePromises = [];
 
-  while (externalRaw.length < minRequired && pageCursor <= maxPages) {
-    const batch = await fetchExternalJobs(
-      apiTerm,
-      country,
-      state,
-      city,
-      null,
-      null,
-      null,
-      pageCursor,
+  for (let page = 1; page <= maxPages; page++) {
+    pagePromises.push(
+      fetchExternalJobs(apiTerm, country, state, city, null, null, null, page),
     );
-
-    if (!batch.length) break;
-
-    externalRaw.push(...batch);
-    pageCursor++;
   }
 
-  return externalRaw;
+  const results = await Promise.allSettled(pagePromises);
+
+  const externalRaw = results
+    .filter((r) => r.status === 'fulfilled')
+    .flatMap((r) => r.value);
+
+  return externalRaw.slice(0, minRequired);
 }
 
 export const fetchExternal = async (extCountry, extState, extCity) => {

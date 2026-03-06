@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/students/student.model.js';
@@ -220,6 +221,9 @@ export async function searchJobs(req, res) {
     const city = context.filters?.city;
     const employmentType = context.filters?.employmentType;
 
+    // When the user explicitly provided a country, never fall back to global
+    const userExplicitCountry = !!req.query.country;
+
     const makeContext = (filterOverride) => ({
       ...context,
       filters: { ...context.filters, ...filterOverride },
@@ -233,18 +237,51 @@ export async function searchJobs(req, res) {
 
     const apiTerm = q || 'jobs';
 
-    // Strict levels: all user-supplied filters, progressively relax geography
+    // Cache key for the search pool — all pages of the same search
+    // share the same diversified pool so pagination is consistent.
+    const poolCacheKey = `search:pool:${crypto
+      .createHash('md5')
+      .update(
+        `${context.query}:${country || ''}:${state || ''}:${city || ''}:${employmentType || ''}`,
+      )
+      .digest('hex')}`;
+
+    // Pages 2+: serve from the cached pool built on page 1
+    if (pageNum > 1) {
+      try {
+        const cached = await redisClient.get(poolCacheKey);
+        if (cached) {
+          const pool = JSON.parse(cached);
+          const jobs = pool.slice(skip, skip + limitNum);
+          console.log('JOB', job.length);
+          return res.status(200).json({
+            success: true,
+            jobs,
+            pagination: {
+              currentPage: pageNum,
+              // hasNextPage: skip + limitNum < pool.length,
+              hasNextPage: true,
+              totalJobs: pool.length,
+            },
+          });
+        }
+      } catch (_) {
+        // cache miss — fall through and rebuild
+      }
+    }
+
+    // Progressively relax geography, but keep the country filter when
+    // the user explicitly requested one so we never return irrelevant results.
     const levels = [
       ...(city ? [{ country, state, city }] : []),
       ...(state ? [{ country, state, city: null }] : []),
       ...(country ? [{ country, state: null, city: null }] : []),
-      { country: null, state: null, city: null },
     ];
 
-    // Relaxed levels: drop employmentType, cascade geo again so the user
-    // still sees relevant jobs rather than an empty page.
-    // retrieveLocalCandidates caches by query+country so these extra levels
-    // only re-filter the already-cached pool — no extra DB/API cost.
+    if (!userExplicitCountry) {
+      levels.push({ country: null, state: null, city: null });
+    }
+
     if (employmentType) {
       levels.push(
         ...(state
@@ -253,30 +290,32 @@ export async function searchJobs(req, res) {
         ...(country
           ? [{ country, state: null, city: null, employmentType: null }]
           : []),
-        { country: null, state: null, city: null, employmentType: null },
       );
+
+      if (!userExplicitCountry) {
+        levels.push({
+          country: null,
+          state: null,
+          city: null,
+          employmentType: null,
+        });
+      }
     }
 
     let diversifiedPool = [];
     let finalJobs = [];
+    const poolSize = 3000;
 
     for (const filterSet of levels) {
       const ctx = makeContext(filterSet);
-
-      const poolSize = 3000;
       const localCandidates = await retrieveLocalCandidates(ctx, poolSize);
 
       let processed = processPool(localCandidates, ctx);
       diversifiedPool = diversify(processed);
       finalJobs = diversifiedPool.slice(skip, skip + limitNum);
 
-      // Relaxed levels (employmentType dropped) only re-filter the cached
-      // pool — skip the expensive external fetch entirely.
       const isRelaxedLevel = 'employmentType' in filterSet;
-      const needsExternal =
-        !isRelaxedLevel &&
-        (finalJobs.length < limitNum ||
-          diversifiedPool.length < skip + limitNum);
+      const needsExternal = diversifiedPool.length < skip + limitNum;
 
       if (needsExternal) {
         const externalRaw = await fetchExternalDeep({
@@ -284,8 +323,8 @@ export async function searchJobs(req, res) {
           country: filterSet.country || country || 'IN',
           state: filterSet.state,
           city: filterSet.city,
-          minRequired: 2000,
-          maxPages: 40,
+          minRequired: 200,
+          maxPages: 8,
         });
 
         if (externalRaw.length) {
@@ -309,12 +348,20 @@ export async function searchJobs(req, res) {
       if (diversifiedPool.length >= skip + limitNum) break;
     }
 
+    // Cache the full pool so pages 2+ get consistent results
+    if (diversifiedPool.length > skip + limitNum) {
+      await redisClient.set(poolCacheKey, JSON.stringify(diversifiedPool), 300);
+    }
+
+    console.log('FINAL JOBS', finalJobs.length);
+
     return res.status(200).json({
       success: true,
       jobs: finalJobs,
       pagination: {
         currentPage: pageNum,
-        hasNextPage: skip + limitNum < diversifiedPool.length,
+        // hasNextPage: skip + limitNum < diversifiedPool.length,
+        hasNextPage: true,
         totalJobs: diversifiedPool.length,
       },
     });
