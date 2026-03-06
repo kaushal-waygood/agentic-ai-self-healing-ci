@@ -70,8 +70,8 @@ export const buildUsageLimitsFromFeatures = (features = []) => {
   return limits;
 };
 
-export const calculateEndDate = (period) => {
-  const date = new Date();
+export const calculateEndDate = (period, startDate) => {
+  const date = startDate ? new Date(startDate) : new Date();
   switch (period) {
     case 'Weekly':
       date.setDate(date.getDate() + 7);
@@ -89,7 +89,6 @@ export const calculateEndDate = (period) => {
       date.setFullYear(date.getFullYear() + 1);
       break;
     default:
-      // default to 1 month if a weird period slips through
       date.setMonth(date.getMonth() + 1);
       break;
   }
@@ -1277,38 +1276,32 @@ export const createSimplePurchaseDev = async (req, res) => {
         throw new Error('Invalid billing period for this plan.');
       }
 
-      if (purchaseType !== 'renewal') {
-        await Purchase.updateMany(
-          { user: userId, isActive: true },
-          { $set: { isActive: false } },
-          { session },
-        );
-      }
+      await Purchase.updateMany(
+        { user: userId, isActive: true },
+        { $set: { isActive: false } },
+        { session },
+      );
 
+      const startDate = new Date();
       const newPurchase = new Purchase({
         user: userId,
         plan: planId,
-        purchaseType, // 👈 ADD THIS
+        purchaseType: 'new',
         billingVariant: {
-          period: billingPeriod,
+          period,
           price: {
             inr: variant.price.effective.inr,
             usd: variant.price.effective.usd ?? null,
           },
         },
-        amountPaid,
-        currency: order.currency.toLowerCase(),
+        amountPaid: 0,
+        currency: 'inr',
         paymentStatus: 'completed',
-        paymentGateway: 'razorpay',
-        paymentId: razorpay_payment_id,
-        orderId: razorpay_order_id,
-        couponCode: couponCode || null,
-
-        // 👇 FIXED
+        paymentGateway: 'dev',
+        paymentId: `dev_${Date.now()}`,
         startDate,
-        endDate: calculateEndDate(billingPeriod, startDate),
-
-        isActive: purchaseType !== 'renewal',
+        endDate: calculateEndDate(period, startDate),
+        isActive: true,
       });
 
       await newPurchase.save({ session });
@@ -1320,18 +1313,16 @@ export const createSimplePurchaseDev = async (req, res) => {
       user.currentPlan = planId;
       user.currentPurchase = newPurchase._id;
       user.usageLimits = newUsageLimits;
-      if (purchaseType !== 'renewal') {
-        user.usageCounters = {
-          cvCreation: 0,
-          coverLetter: 0,
-          aiApplication: 0,
-          aiAutoApplyDailyLimit: 0,
-          aiAutoApply: 0,
-          atsScore: 0,
-          jobMatching: 0,
-          lastReset: new Date(),
-        };
-      }
+      user.usageCounters = {
+        cvCreation: 0,
+        coverLetter: 0,
+        aiApplication: 0,
+        aiAutoApplyDailyLimit: 0,
+        aiAutoApply: 0,
+        atsScore: 0,
+        jobMatching: 0,
+        lastReset: new Date(),
+      };
 
       await user.save({ session });
 
@@ -1351,7 +1342,6 @@ export const createSimplePurchaseDev = async (req, res) => {
       await session.abortTransaction();
       session.endSession();
 
-      // Retry only for transient transaction errors
       if (
         error &&
         error.errorLabels &&
@@ -1361,7 +1351,6 @@ export const createSimplePurchaseDev = async (req, res) => {
         console.log(
           `Transient transaction error encountered. Retrying... (${attempt}/${maxRetries})`,
         );
-        // loop will retry
       } else {
         console.error('Error creating simple purchase:', error);
         return res.status(500).json({

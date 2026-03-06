@@ -35,6 +35,7 @@ await tm.init();
    Constants & Configuration
    ------------------------- */
 const DEFAULT_OTP_EXP_MS = 15 * 60 * 1000; // 15 minutes
+const EMAIL_CHANGE_OTP_EXP_MS = 10 * 60 * 1000; // 10 minutes
 const DEFAULT_RESET_EXP_MS = 60 * 60 * 1000; // 1 hour
 
 const BACKEND_API_BASE_URL =
@@ -766,12 +767,12 @@ export const resendVerificationEmail = async (req, res) => {
 
     const otp = generateOtp();
     user.otp = otp;
-    user.tempEmail = newEmail.toLowerCase(); // SECURE: Store pending email in DB
-    user.otpExpires = new Date(Date.now() + DEFAULT_OTP_EXP_MS);
+    user.tempEmail = newEmail.toLowerCase();
+    user.otpExpires = new Date(Date.now() + EMAIL_CHANGE_OTP_EXP_MS);
     await user.save();
 
     await sendTemplatedEmail({
-      to: newEmail, // Send to new email
+      to: newEmail,
       templateName: 'verify',
       templateVars: {
         name: user.fullName,
@@ -809,10 +810,18 @@ export const verifyUpdateEmail = async (req, res) => {
         .json({ message: 'No pending email change request found.' });
     }
 
+    if (user.otpExpires < new Date()) {
+      user.tempEmail = undefined;
+      user.otp = undefined;
+      user.otpExpires = undefined;
+      await user.save();
+      return res.status(400).json({
+        message: 'OTP expired. Please request a new email change.',
+      });
+    }
+
     if (user.otp !== otp)
       return res.status(400).json({ message: 'Invalid OTP' });
-    if (user.otpExpires < new Date())
-      return res.status(400).json({ message: 'OTP expired' });
 
     // Commit Change
     user.email = user.tempEmail;

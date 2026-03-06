@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { User } from '../models/User.model.js';
 
 export const removeExpiredUnverifiedUsers = () => {
-  console.log('🕒 Registering cron: removeExpiredUnverifiedUsers'); // <= runs at startup
+  console.log('🕒 Registering cron: removeExpiredUnverifiedUsers');
 
   return cron.schedule('*/15 * * * *', async () => {
     const cutoff = dayjs().subtract(15, 'minute').toDate();
@@ -20,5 +20,25 @@ export const removeExpiredUnverifiedUsers = () => {
         result.deletedCount
       } expired unverified users at ${new Date().toISOString()}`,
     );
+  });
+};
+
+export const clearExpiredEmailChangeRequests = () => {
+  console.log('🕒 Registering cron: clearExpiredEmailChangeRequests');
+
+  return cron.schedule('*/10 * * * *', async () => {
+    const result = await User.updateMany(
+      {
+        tempEmail: { $exists: true, $ne: null },
+        otpExpires: { $lt: new Date() },
+      },
+      { $unset: { tempEmail: '', otp: '', otpExpires: '' } },
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log(
+        `🧹 Cleared ${result.modifiedCount} expired email change request(s) at ${new Date().toISOString()}`,
+      );
+    }
   });
 };
