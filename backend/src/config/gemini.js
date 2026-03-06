@@ -1,5 +1,5 @@
 import { GeminiUsage } from '../models/GeminiUsage.js';
-import { getLLMProvider } from '../llm/providerFactory.js';
+import { getLLMProvider, generateWithFallback } from '../llm/providerFactory.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -101,12 +101,38 @@ export async function generateContent(
     const start = Date.now();
 
     try {
-      const { text, usage } = await provider.generate(prompt, {
-        temperature,
-        topK,
-        topP,
-      });
+      let result;
+      try {
+        result = await provider.generate(prompt, {
+          temperature,
+          topK,
+          topP,
+        });
+      } catch (primaryErr) {
+        const status = primaryErr?.status ?? primaryErr?.response?.status;
+        const msg = String(primaryErr?.message || '').toLowerCase();
+        const isQuota =
+          [429, 502, 503].includes(status) ||
+          msg.includes('quota') ||
+          msg.includes('rate limit') ||
+          msg.includes('exceeded') ||
+          msg.includes('resource exhausted');
 
+        if (isQuota) {
+          console.warn(
+            `Primary LLM failed (quota/unavailable), trying fallback chain...`,
+          );
+          result = await generateWithFallback(prompt, {
+            temperature,
+            topK,
+            topP,
+          });
+        } else {
+          throw primaryErr;
+        }
+      }
+
+      const { text, usage } = result;
       const latencyMs = Date.now() - start;
 
       GeminiUsage.create({

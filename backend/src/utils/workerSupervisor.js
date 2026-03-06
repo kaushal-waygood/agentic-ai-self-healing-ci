@@ -162,13 +162,13 @@ function stopWorker() {
   }
 }
 
-// --- Agent detection ---
+// --- Agent detection (StudentAgent collection) ---
 async function checkAgentsCount() {
   try {
     const db = mongoose.connection.db;
-    const students = db.collection('students');
-    const one = await students.findOne(
-      { 'autopilotAgent.0': { $exists: true } },
+    const studentAgents = db.collection('studentagents');
+    const one = await studentAgents.findOne(
+      { isAgentActive: true, status: 'completed' },
       { projection: { _id: 1 } },
     );
     return !!one;
@@ -181,18 +181,22 @@ async function checkAgentsCount() {
 async function setupAgentWatcher() {
   try {
     const db = mongoose.connection.db;
-    const students = db.collection('students');
-    agentStream = students.watch(
+    const studentAgents = db.collection('studentagents');
+    agentStream = studentAgents.watch(
       [
         {
           $match: {
             $or: [
               {
-                'updateDescription.updatedFields.autopilotAgent': {
+                'updateDescription.updatedFields.isAgentActive': {
                   $exists: true,
                 },
               },
-              { 'fullDocument.autopilotAgent': { $exists: true } },
+              {
+                'updateDescription.updatedFields.status': {
+                  $exists: true,
+                },
+              },
               { operationType: 'insert' },
               { operationType: 'update' },
               { operationType: 'replace' },

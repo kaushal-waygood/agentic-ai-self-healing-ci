@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Job } from '../models/jobs.model.js';
 import { Student } from '../models/students/student.model.js';
@@ -18,6 +19,7 @@ import {
   retrieveLocalCandidates,
   dedupeByTitleCompany,
   fetchExternalDeep,
+  stripYearTokens,
 } from '../utils/jobHelpers.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { JobInteraction } from '../models/jobInteraction.model.js';
@@ -107,7 +109,8 @@ async function vectorJobSearch({
   city,
   employmentType,
 }) {
-  const queryVector = await generateEmbedding(query);
+  const cleanedQuery = stripYearTokens(query) || query;
+  const queryVector = await generateEmbedding(cleanedQuery);
   if (!queryVector) return [];
 
   const filters = [{ isActive: true }];
@@ -216,6 +219,10 @@ export async function searchJobs(req, res) {
     const country = context.filters?.country;
     const state = context.filters?.state;
     const city = context.filters?.city;
+    const employmentType = context.filters?.employmentType;
+
+    // When the user explicitly provided a country, never fall back to global
+    const userExplicitCountry = !!req.query.country;
 
     const makeContext = (filterOverride) => ({
       ...context,
@@ -230,28 +237,85 @@ export async function searchJobs(req, res) {
 
     const apiTerm = q || 'jobs';
 
+    // Cache key for the search pool — all pages of the same search
+    // share the same diversified pool so pagination is consistent.
+    const poolCacheKey = `search:pool:${crypto
+      .createHash('md5')
+      .update(
+        `${context.query}:${country || ''}:${state || ''}:${city || ''}:${employmentType || ''}`,
+      )
+      .digest('hex')}`;
+
+    // Pages 2+: serve from the cached pool built on page 1
+    if (pageNum > 1) {
+      try {
+        const cached = await redisClient.get(poolCacheKey);
+        if (cached) {
+          const pool = JSON.parse(cached);
+          const jobs = pool.slice(skip, skip + limitNum);
+          console.log('JOB', job.length);
+          return res.status(200).json({
+            success: true,
+            jobs,
+            pagination: {
+              currentPage: pageNum,
+              // hasNextPage: skip + limitNum < pool.length,
+              hasNextPage: true,
+              totalJobs: pool.length,
+            },
+          });
+        }
+      } catch (_) {
+        // cache miss — fall through and rebuild
+      }
+    }
+
+    // Progressively relax geography, but keep the country filter when
+    // the user explicitly requested one so we never return irrelevant results.
     const levels = [
       ...(city ? [{ country, state, city }] : []),
       ...(state ? [{ country, state, city: null }] : []),
       ...(country ? [{ country, state: null, city: null }] : []),
-      { country: null, state: null, city: null },
     ];
 
-    let processed = [];
+    if (!userExplicitCountry) {
+      levels.push({ country: null, state: null, city: null });
+    }
+
+    if (employmentType) {
+      levels.push(
+        ...(state
+          ? [{ country, state, city: null, employmentType: null }]
+          : []),
+        ...(country
+          ? [{ country, state: null, city: null, employmentType: null }]
+          : []),
+      );
+
+      if (!userExplicitCountry) {
+        levels.push({
+          country: null,
+          state: null,
+          city: null,
+          employmentType: null,
+        });
+      }
+    }
+
+    let diversifiedPool = [];
     let finalJobs = [];
+    const poolSize = 3000;
 
     for (const filterSet of levels) {
       const ctx = makeContext(filterSet);
-
-      // 🔥 Hard large pool
-      const poolSize = 3000;
       const localCandidates = await retrieveLocalCandidates(ctx, poolSize);
 
-      processed = processPool(localCandidates, ctx);
-      finalJobs = processed.slice(skip, skip + limitNum);
+      let processed = processPool(localCandidates, ctx);
+      diversifiedPool = diversify(processed);
+      finalJobs = diversifiedPool.slice(skip, skip + limitNum);
 
-      const needsExternal =
-        finalJobs.length < limitNum || processed.length < skip + limitNum;
+      const isRelaxedLevel = 'employmentType' in filterSet;
+      const needsExternal = diversifiedPool.length < skip + limitNum;
 
       if (needsExternal) {
         const externalRaw = await fetchExternalDeep({
@@ -259,8 +323,8 @@ export async function searchJobs(req, res) {
           country: filterSet.country || country || 'IN',
           state: filterSet.state,
           city: filterSet.city,
-          minRequired: 2000,
-          maxPages: 40,
+          minRequired: 200,
+          maxPages: 8,
         });
 
         if (externalRaw.length) {
@@ -276,22 +340,29 @@ export async function searchJobs(req, res) {
           ]);
 
           processed = processPool(merged, ctx);
-          finalJobs = processed.slice(skip, skip + limitNum);
+          diversifiedPool = diversify(processed);
+          finalJobs = diversifiedPool.slice(skip, skip + limitNum);
         }
       }
 
-      if (processed.length >= skip + limitNum) break;
+      if (diversifiedPool.length >= skip + limitNum) break;
     }
 
-    finalJobs = diversify(finalJobs);
+    // Cache the full pool so pages 2+ get consistent results
+    if (diversifiedPool.length > skip + limitNum) {
+      await redisClient.set(poolCacheKey, JSON.stringify(diversifiedPool), 300);
+    }
+
+    console.log('FINAL JOBS', finalJobs.length);
 
     return res.status(200).json({
       success: true,
       jobs: finalJobs,
       pagination: {
         currentPage: pageNum,
-        hasNextPage: processed.length > skip + finalJobs.length,
-        totalJobs: processed.length,
+        // hasNextPage: skip + limitNum < diversifiedPool.length,
+        hasNextPage: true,
+        totalJobs: diversifiedPool.length,
       },
     });
   } catch (error) {
@@ -548,12 +619,13 @@ export const getAllJobs = async (req, res) => {
       else fetchAndSaveJobsService(query);
     }
 
-    // Build filter
+    // Build filter — strip year tokens so "QA 2025" matches "QA Engineer"
+    const cleanedQuery = stripYearTokens(query) || query;
     const filter = {};
-    if (query)
+    if (cleanedQuery)
       filter.$or = [
-        { title: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } },
+        { title: { $regex: cleanedQuery, $options: 'i' } },
+        { description: { $regex: cleanedQuery, $options: 'i' } },
       ];
     if (country) filter.country = { $regex: country, $options: 'i' };
     if (city) filter['location.city'] = { $regex: city, $options: 'i' };
@@ -1969,6 +2041,19 @@ export const applyJob = async (req, res) => {
       coverLetterLink: letterPdfUrl,
       screeningAnswers,
     });
+
+    // Track APPLIED in JobInteraction (required for StudentAnalytics / dashboard count)
+    await JobInteraction.updateOne(
+      { user: studentId, job: jobId, type: 'APPLIED' },
+      {
+        $setOnInsert: {
+          user: studentId,
+          job: jobId,
+          type: 'APPLIED',
+        },
+      },
+      { upsert: true },
+    );
 
     // 6. Send Confirmation Email
     await sendTemplatedEmail({

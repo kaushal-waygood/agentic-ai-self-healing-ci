@@ -1,7 +1,8 @@
 import Queue from 'bull';
 import { AppliedJob } from '../models/AppliedJob.js';
-import { Student } from '../models/student.model.js';
-import { calculateMatchScore } from '../utils/jobUtils.js';
+import { StudentAgent } from '../models/students/studentAgent.model.js';
+import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
+import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
 import aiTaskQueue from './aiTaskQueue.js';
 import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
 
@@ -50,8 +51,22 @@ jobDiscoveryQueue.process(async (job) => {
   );
 
   try {
-    // 2. Fetch the complete, up-to-date student profile.
-    const studentProfile = await Student.findById(studentId).lean();
+    // 2. Fetch the agent from StudentAgent collection.
+    const agent = await StudentAgent.findOne({
+      agentId,
+      student: studentId,
+      isAgentActive: true,
+      status: 'completed',
+    }).lean();
+    if (!agent) {
+      console.warn(
+        `[JobDiscoveryQueue] Agent ${agentId} not found or inactive for student ${studentId}. Skipping.`,
+      );
+      return { skipped: true, reason: 'Agent not found or inactive' };
+    }
+
+    // 3. Fetch the complete student profile (Student + Education, Experience, Skills, Projects).
+    const studentProfile = await getStudentProfileSnapshot(studentId);
     if (!studentProfile) {
       console.warn(
         `[JobDiscoveryQueue] Student ${studentId} not found. Skipping.`,
@@ -59,20 +74,17 @@ jobDiscoveryQueue.process(async (job) => {
       return { skipped: true, reason: 'Student not found' };
     }
 
-    // 3. Find the specific agent's configuration within the student's profile.
-    const agent = studentProfile.autopilotAgent?.find(
-      (a) => a.agentId === agentId,
-    );
-    if (!agent) {
-      console.warn(
-        `[JobDiscoveryQueue] Agent ${agentId} not found for student ${studentId}. Skipping.`,
-      );
-      return { skipped: true, reason: 'Agent not found' };
-    }
+    // 4. Build effective profile merging student + agent (e.g. agent's uploaded CV data).
+    const effectiveProfile = buildEffectiveStudentProfile(studentProfile, agent);
 
-    // 4. Extract the necessary configuration from the fetched agent data.
-    const applicationsToFind = agent.dailyApplicationLimit || 5;
-    const agentConfig = agent.filters || {};
+    // 5. Extract configuration from agent.
+    const applicationsToFind = agent.agentDailyLimit || 5;
+    const agentConfig = {
+      jobTitle: agent.jobTitle,
+      country: agent.country,
+      isRemote: agent.isRemote,
+      employmentType: agent.employmentType,
+    };
 
     // 5. Get all jobs this student has ever applied to, to avoid duplicates.
     const appliedJobIds = (
@@ -83,7 +95,7 @@ jobDiscoveryQueue.process(async (job) => {
     const recommendedJobs = await getRecommendedJobs({
       studentId,
       agentConfig,
-      studentProfile,
+      studentProfile: effectiveProfile,
       appliedJobIds,
     });
 
@@ -111,7 +123,7 @@ jobDiscoveryQueue.process(async (job) => {
           studentId,
           agentId,
           jobData: { job: plainJobObject },
-          studentData: studentProfile,
+          studentData: effectiveProfile,
         },
         opts: { attempts: 3, backoff: { type: 'exponential', delay: 5000 } },
       };

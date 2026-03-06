@@ -62,7 +62,6 @@ export default function JobsPage() {
       JSON.stringify(Array.from(viewedJobsRef.current)),
     );
   }, []);
-
   /* ===================== JOB DETAILS (NO ANALYTICS HERE) ===================== */
   const fetchJobDetails = useCallback(async (slug: string) => {
     try {
@@ -154,9 +153,10 @@ export default function JobsPage() {
       .catch(() => {});
   }, [jobs, filters?.q]);
 
-  /* ===================== SCROLL RESET ===================== */
+  /* ===================== SCROLL RESET + CLEAR STALE DETAIL ===================== */
   useEffect(() => {
     jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    setSelectedJob(null);
   }, [filters]);
 
   useEffect(() => {
@@ -284,12 +284,42 @@ export default function JobsPage() {
                 </div>
               )}
 
+              {/* 🚀 Active AI Processing State */}
               {loading && jobs.length === 0 && (
-                <Loader
-                  message="Loading Jobs"
-                  fullHeight={true}
-                  textClassName="text-sm"
-                />
+                <div className="flex flex-col items-center justify-center h-[calc(100vh-250px)] px-6 text-center animate-in fade-in zoom-in duration-500">
+                  <div className="relative mb-8">
+                    {/* Outer spinning ring */}
+                    <div className="w-20 h-20 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin"></div>
+                    {/* Inner Icon */}
+                    <Search className="w-8 h-8 text-purple-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                  </div>
+
+                  <h2 className="text-xl font-bold text-slate-800 mb-3">
+                    Fetching the best jobs for you...
+                  </h2>
+
+                  <div className="space-y-4 max-w-sm">
+                    <p className="text-slate-600 font-medium">
+                      Wait just 5s while our AI scans the internet to find your
+                      perfect match.
+                    </p>
+
+                    <div className="flex flex-col gap-2 text-sm text-slate-500 bg-white/50 p-4 rounded-xl border border-purple-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <span>Searching 100+ job boards...</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-400" />
+                        <span>Preparing to generate your 1-click CV & CL</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-400" />
+                        <span>Drafting personalized application emails</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* ❌ No Jobs Found UI */}
@@ -325,7 +355,18 @@ export default function JobsPage() {
                 ))}
 
               {/* Infinite loading */}
-              {loading && jobs.length > 0 && <JobCardSkeleton />}
+              {loading && jobs.length > 0 && (
+                <div className="flex flex-col items-center justify-center p-8 text-center">
+                  <div className="w-12 h-12 border-4 border-slate-200 border-t-purple-500 rounded-full animate-spin mb-4" />
+                  <p className="text-slate-700 font-semibold">
+                    Load More Jobs Just for you
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Our AI is preparing your tailored CV and Cover Letter
+                    draft...
+                  </p>
+                </div>
+              )}
 
               {/* <div ref={observerRef} style={{ height: '1px' }} /> */}
               <div ref={observerRef} className="h-4 w-full" />
@@ -335,11 +376,16 @@ export default function JobsPage() {
           <div className="hidden lg:block">
             <div className="sticky top-6 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-thin">
               {isJobLoading ? (
-                <Loader
-                  message="Loading Job data..."
-                  fullHeight={true}
-                  textClassName="text-sm"
-                />
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                  <div className="w-12 h-12 border-4 border-slate-200 border-t-purple-500 rounded-full animate-spin mb-4" />
+                  <p className="text-slate-700 font-semibold">
+                    Analyzing Job Requirements
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Our AI is preparing your tailored CV and Cover Letter
+                    draft...
+                  </p>
+                </div>
               ) : selectedJob ? (
                 <JobDetail job={selectedJob} />
               ) : (
