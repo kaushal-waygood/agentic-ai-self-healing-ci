@@ -1885,6 +1885,56 @@ export const getProfileCompletion = async (req, res) => {
           Object.values(completionStatus).filter(Boolean).length;
         const totalCategories = Object.keys(completionStatus).length;
 
+        // award credits once per true status
+        if (completionStatus.coreProfile) {
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_PERSONAL');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
+        }
+        if (completionStatus.education) {
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_EDUCATION');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
+        }
+        if (completionStatus.workExperience) {
+          try {
+            await earnCreditsForAction(
+              studentId,
+              'PROFILE_COMPLETE_EXPERIENCE',
+            );
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
+        }
+        if (completionStatus.skills) {
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_SKILL');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
+        }
+        if (completionStatus.projects) {
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_PROJECT');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
+        }
+        if (completionStatus.jobPreferences) {
+          try {
+            await earnCreditsForAction(
+              studentId,
+              'PROFILE_COMPLETE_JOB_PREFERENCES',
+            );
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
+        }
+
         // This object is what gets returned by the API and stored in the cache.
         return {
           percentage: Math.round((completedCategories / totalCategories) * 100),
@@ -1975,7 +2025,8 @@ export async function getProfileBasedRecommendedJobs(req, res) {
 
       const externalRaw = await fetchExternalDeep({
         apiTerm,
-        country: extCountry || country || 'IN',
+        // country: extCountry || country || 'IN',
+        country: extCountry || 'IN',
         state: extState,
         city: extCity,
         minRequired: 2000,

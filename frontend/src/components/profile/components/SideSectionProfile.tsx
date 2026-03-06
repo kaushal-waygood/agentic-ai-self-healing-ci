@@ -224,7 +224,17 @@ const SideSectionProfile = () => {
       isValid = false;
     }
 
-    if (!/^\d{10}$/.test(localFormData.phone)) {
+    // if (!/^\d{10}$/.test(localFormData.phone)) {
+    //   newErrors.phone = 'Phone must be exactly 10 digits.';
+    //   isValid = false;
+    // }
+    if (!localFormData.phone.trim()) {
+      newErrors.phone = 'Phone number is required.';
+      isValid = false;
+    } else if (!/^\d+$/.test(localFormData.phone)) {
+      newErrors.phone = 'Phone number must contain only digits.';
+      isValid = false;
+    } else if (localFormData.phone.length !== 10) {
       newErrors.phone = 'Phone must be exactly 10 digits.';
       isValid = false;
     }
@@ -237,11 +247,25 @@ const SideSectionProfile = () => {
       isValid = false;
     }
 
-    if (localFormData.location.trim().length < 2) {
+    // if (localFormData.location.trim().length < 2) {
+    //   newErrors.location = 'Location is required (e.g., City, Country).';
+    //   isValid = false;
+    // } else if (localFormData.location.trim().length > 30) {
+    //   newErrors.location = 'Location must be at least 30 characters.';
+    //   isValid = false;
+    // }
+    if (!localFormData.location.trim()) {
       newErrors.location = 'Location is required (e.g., City, Country).';
       isValid = false;
-    } else if (localFormData.location.trim().length > 30) {
-      newErrors.location = 'Location must be at least 30 characters.';
+    } else if (localFormData.location.trim().length < 2) {
+      newErrors.location = 'Location must be at least 2 characters.';
+      isValid = false;
+    } else if (localFormData.location.trim().length > 50) {
+      newErrors.location = 'Location must not exceed 50 characters.';
+      isValid = false;
+    } else if (!/^[a-zA-Z\s,.'-]+$/.test(localFormData.location)) {
+      newErrors.location =
+        'Please enter a valid city or region (letters, spaces, commas, periods, apostrophes, and hyphens only).';
       isValid = false;
     }
 

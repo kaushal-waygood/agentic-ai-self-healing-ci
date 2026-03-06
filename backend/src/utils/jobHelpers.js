@@ -765,9 +765,21 @@ export async function buildSearchContext(req) {
 
   const interactions = await buildInteractionContext(req.user?._id);
 
+  let rawQuery = req.query.q || '';
+  if (typeof rawQuery === 'string') {
+    try {
+      rawQuery = decodeURIComponent(rawQuery);
+    } catch (e) {
+      // ignore if it's not encoded
+    }
+    // '+' should be treated as space as well
+    rawQuery = rawQuery.replace(/\+/g, ' ');
+  }
+
   return {
     type: 'search',
-    query: req.query.q?.toLowerCase().trim() || '',
+    // query: req.query.q?.toLowerCase().trim() || '',
+    query: rawQuery.toLowerCase().trim() || '',
     filters: { country, state, city, employmentType: req.query.employmentType },
     userId: req.user?._id,
     interactions,
