@@ -1264,8 +1264,7 @@ export const updateApplicationStatus = async (req, res) => {
 
 export const getJobInteractionStatus = async (req, res) => {
   const userId = req.user._id;
-  // const { jobId } = req.query;
-  const { jobId } = req.params;
+  const { jobId } = req.query;
 
   const [interactions, appliedJob] = await Promise.all([
     JobInteraction.find({
@@ -1296,7 +1295,17 @@ export const getSavedJobs = async (req, res) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  res.json({ success: true, jobs: saved });
+  const filtered = saved.filter((entry) => entry.job != null);
+
+  const seen = new Set();
+  const deduplicated = filtered.filter((entry) => {
+    const jobId = entry.job._id.toString();
+    if (seen.has(jobId)) return false;
+    seen.add(jobId);
+    return true;
+  });
+
+  res.json({ success: true, jobs: deduplicated });
 };
 
 export const getAppliedJobs = async (req, res) => {
@@ -1343,15 +1352,13 @@ export const StudentAnalytics = async (req, res) => {
       tailoredCount,
       user,
     ] = await Promise.all([
-      JobInteraction.countDocuments({
-        user: userId,
-        type: 'VIEW',
-      }),
+      JobInteraction.distinct('job', { user: userId, type: 'VIEW' }).then(
+        (ids) => ids.length,
+      ),
 
-      JobInteraction.countDocuments({
-        user: userId,
-        type: 'VISIT',
-      }),
+      JobInteraction.distinct('job', { user: userId, type: 'VISIT' }).then(
+        (ids) => ids.length,
+      ),
 
       JobInteraction.countDocuments({
         user: userId,
@@ -2403,15 +2410,15 @@ export const getCreditsSummary = async (req, res) => {
       'PROFILE_COMPLETE_SKILL',
     ];
     const completionByAction = {
-      FIRST_CV: cvCount > 0 || htmlCvCount > 0 || !!student?.resumeUrl,
-      FIRST_CL: clCount > 0,
-      FIRST_AUTO_AGENT_SETUP: agentCount > 0,
-      FIRST_AUTO_APPLICATION_SENT: appliedCount > 0,
-      PROFILE_COMPLETE_PERSONAL: !!(student?.fullName && student?.phone && student?.jobRole),
-      PROFILE_COMPLETE_EDUCATION: eduCount > 0,
-      PROFILE_COMPLETE_EXPERIENCE: expCount > 0,
-      PROFILE_COMPLETE_PROJECT: projCount > 0,
-      PROFILE_COMPLETE_SKILL: skillCount > 0,
+      FIRST_CV: Array.isArray(user.htmlCV) && user.htmlCV.length > 0,
+      FIRST_CL: Array.isArray(user.coverLetter) && user.coverLetter.length > 0,
+      FIRST_AUTO_AGENT_SETUP: Array.isArray(user.autopilotAgent) && user.autopilotAgent.length > 0,
+      FIRST_AUTO_APPLICATION_SENT: Array.isArray(user.appliedJobs) && user.appliedJobs.length > 0,
+      PROFILE_COMPLETE_PERSONAL: !!(user.phone || user.profileImage),
+      PROFILE_COMPLETE_EDUCATION: Array.isArray(user.education) && user.education.length > 0,
+      PROFILE_COMPLETE_EXPERIENCE: Array.isArray(user.experience) && user.experience.length > 0,
+      PROFILE_COMPLETE_PROJECT: Array.isArray(user.projects) && user.projects.length > 0,
+      PROFILE_COMPLETE_SKILL: Array.isArray(user.skills) && user.skills.length > 0,
     };
     const filteredPending = pending.filter((p) => {
       if (oneTimeClaimKinds.includes(p.action)) {

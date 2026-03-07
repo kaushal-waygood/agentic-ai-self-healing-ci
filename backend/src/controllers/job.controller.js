@@ -20,6 +20,7 @@ import {
   dedupeByTitleCompany,
   fetchExternalDeep,
   stripYearTokens,
+  attachJobViews,
 } from '../utils/jobHelpers.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { JobInteraction } from '../models/jobInteraction.model.js';
@@ -252,8 +253,7 @@ export async function searchJobs(req, res) {
         const cached = await redisClient.get(poolCacheKey);
         if (cached) {
           const pool = JSON.parse(cached);
-          const jobs = pool.slice(skip, skip + limitNum);
-          console.log('JOB', job.length);
+          const jobs = await attachJobViews(pool.slice(skip, skip + limitNum));
           return res.status(200).json({
             success: true,
             jobs,
@@ -353,11 +353,11 @@ export async function searchJobs(req, res) {
       await redisClient.set(poolCacheKey, JSON.stringify(diversifiedPool), 300);
     }
 
-    console.log('FINAL JOBS', finalJobs.length);
+    const jobsWithViews = await attachJobViews(finalJobs);
 
     return res.status(200).json({
       success: true,
-      jobs: finalJobs,
+      jobs: jobsWithViews,
       pagination: {
         currentPage: pageNum,
         // hasNextPage: skip + limitNum < diversifiedPool.length,

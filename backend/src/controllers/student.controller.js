@@ -24,6 +24,7 @@ import {
   dedupeByTitleCompany,
   rankJobsWithIntentBoost,
   fetchExternalDeep,
+  attachJobViews,
 } from '../utils/jobHelpers.js';
 import {
   addCredits,
@@ -2113,17 +2114,17 @@ export async function getProfileBasedRecommendedJobs(req, res) {
       if (processed.length >= skip + limitNum) break;
     }
 
-    // 🔥 Diversify only visible page
     finalJobs = diversify(finalJobs);
+    const jobsWithViews = await attachJobViews(finalJobs);
 
     return res.status(200).json({
       success: true,
       pagination: {
         currentPage: pageNum,
-        hasNextPage: processed.length > skip + finalJobs.length,
+        hasNextPage: processed.length > skip + jobsWithViews.length,
         totalJobs: processed.length,
       },
-      jobs: finalJobs,
+      jobs: jobsWithViews,
     });
   } catch (error) {
     console.error('API Reco Error:', error);

@@ -250,8 +250,13 @@ const jobSlice = createSlice({
       }>,
     ) => {
       state.loading = false;
-      state.cacheHit = false; // reset for next request
-      state.pagination = action.payload.pagination;
+      state.cacheHit = false;
+      state.pagination = {
+        ...action.payload.pagination,
+        hasNextPage:
+          action.payload.jobs.length > 0 &&
+          action.payload.pagination.hasNextPage,
+      };
       if (action.payload.append) {
         const jobsMap = new Map(
           state.jobs.map((job) => [job._id || (job as any).jobId, job]),
@@ -293,8 +298,13 @@ const jobSlice = createSlice({
       }>,
     ) => {
       state.loading = false;
-      state.cacheHit = false; // reset for next request
-      state.pagination = action.payload.pagination;
+      state.cacheHit = false;
+      state.pagination = {
+        ...action.payload.pagination,
+        hasNextPage:
+          action.payload.jobs.length > 0 &&
+          action.payload.pagination.hasNextPage,
+      };
       if (action.payload.append) {
         const jobsMap = new Map(
           state.jobs.map((job) => [job._id || (job as any).jobId, job]),

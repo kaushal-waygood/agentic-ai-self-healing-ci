@@ -10,7 +10,6 @@ import apiInstance from '@/services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/rootReducer';
 import { getStudentStatsRequest } from '@/redux/reducers/studentReducer';
-import Image from 'next/image';
 import { Loader } from '@/components/Loader';
 
 interface Application {
@@ -35,12 +34,6 @@ const extendedApplicationStatuses = [
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // const [jobStats, setJobStats] = useState({
-  //   savedJobsCount: 0,
-  //   jobsViewed: 0,
-  //   jobsVisited: 0,
-  //   appliedJobsCount: 0,
-  // });
 
   const { stats: jobStats } = useSelector((state: RootState) => state.student);
 
