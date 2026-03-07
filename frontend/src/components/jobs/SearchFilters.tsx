@@ -79,7 +79,8 @@ export const SearchFilters = ({
 
     setLocalFilters((prev) => ({
       ...prev,
-      query: query || prev.query,
+      // query: query || prev.query,
+      query: query,
       country: country || prev.country,
       countryCode: countryCode || prev.countryCode,
       state: stateCode || prev.state,
@@ -94,9 +95,6 @@ export const SearchFilters = ({
     }));
   }, [searchParams, isSearching]);
 
-  // Sync external filter changes (e.g. filter pills remove) without looping.
-  // We JSON-stringify to compare by value, not reference — initialFilters is a
-  // new object every render from Redux, so a plain reference check would loop.
   const prevInitialFiltersRef = useRef<string>('');
   useEffect(() => {
     if (!initialFilters) return;

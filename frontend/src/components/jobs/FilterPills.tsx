@@ -68,6 +68,7 @@
 //     </div>
 //   );
 // };
+
 import { X, MapPin, Calendar, Briefcase, Trash2 } from 'lucide-react';
 
 export const FilterPills = ({
@@ -153,8 +154,19 @@ export const FilterPills = ({
       </div>
 
       {/* Clear All Button */}
-      <button
+      {/* <button
         onClick={() => onRemove('clearAll')}
+        className="flex items-center gap-1.5 ml-2 px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+      >
+        <Trash2 size={13} />
+        Clear All
+      </button> */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault(); // Prevent any form submission
+          onRemove('clearAll');
+        }}
         className="flex items-center gap-1.5 ml-2 px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
       >
         <Trash2 size={13} />
