@@ -217,12 +217,40 @@ export default function JobsPage() {
     }
   }, [jobs, isMobile, loading, searchParams, handleCardClick]);
 
-  const removeFilter = (key: string, value?: any) => {
-    const newFilters = { ...filters };
+  // const removeFilter = (key: string, value?: any) => {
+  //   const newFilters = { ...filters };
 
+  //   if (key === 'clearAll') {
+  //     handleFilterChange({
+  //       ...filters,
+  //       country: '',
+  //       state: '',
+  //       datePosted: '',
+  //       employmentType: [],
+  //       experience: [],
+  //     });
+  //     return;
+  //   }
+
+  //   if (key === 'employmentType') {
+  //     newFilters.employmentType = newFilters.employmentType.filter(
+  //       (t: string) => t !== value,
+  //     );
+  //   } else if (key === 'country') {
+  //     newFilters.country = '';
+  //     newFilters.state = '';
+  //   } else {
+  //     newFilters[key ] = '';
+  //   }
+
+  //   handleFilterChange(newFilters);
+  // };
+  const removeFilter = (key: string, value?: any) => {
     if (key === 'clearAll') {
+      // We create an object that keeps the search query 'q'
+      // but resets all other specific filters
       handleFilterChange({
-        ...filters,
+        ...filters, // Keep existing values (including 'q')
         country: '',
         state: '',
         datePosted: '',
@@ -232,20 +260,26 @@ export default function JobsPage() {
       return;
     }
 
+    // Logic for individual pill removal
+    const newFilters = { ...filters };
+
     if (key === 'employmentType') {
-      newFilters.employmentType = newFilters.employmentType.filter(
+      newFilters.employmentType = (newFilters.employmentType || []).filter(
         (t: string) => t !== value,
       );
     } else if (key === 'country') {
+      // If country is removed, state must be cleared as well
       newFilters.country = '';
       newFilters.state = '';
+    } else if (key === 'state') {
+      newFilters.state = '';
     } else {
+      // Generic reset for other string-based filters (like datePosted)
       newFilters[key] = '';
     }
 
     handleFilterChange(newFilters);
   };
-
   if (error) {
     toast({
       variant: 'destructive',
