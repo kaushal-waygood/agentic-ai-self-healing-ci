@@ -158,6 +158,10 @@ export async function earnCreditsForAction(userOrId, action, meta = {}) {
       amount = CREDIT_EARN.PROFILE_COMPLETE_SKILL;
       if (lastTxOfKind(user, kind)) allow = false;
       break;
+    case 'PROFILE_COMPLETE_JOB_PREFERENCES':
+      amount = CREDIT_EARN.PROFILE_COMPLETE_JOB_PREFERENCES;
+      if (lastTxOfKind(user, kind)) allow = false;
+      break;
     case 'COMPLETE_JOB_SEARCH_SETTINGS':
       amount = 10;
       if (lastTxOfKind(user, kind)) allow = false;
