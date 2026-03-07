@@ -582,8 +582,6 @@ export async function fetchExternalJobs(
         params.date_posted = datePosted;
       }
 
-      console.log(params);
-
       const response = await axios.get(config.rapidJobApi, {
         params,
         headers: {
@@ -1134,3 +1132,28 @@ export const fetchExternal = async (extCountry, extState, extCity) => {
 
   return externalRaw;
 };
+
+/**
+ * Batch-attach jobViews (VIEW count) to an array of job objects.
+ * Mutates nothing — returns a new array with `jobViews` set on each job.
+ */
+export async function attachJobViews(jobs) {
+  if (!jobs.length) return jobs;
+
+  const jobIds = jobs.map((j) => j._id).filter(Boolean);
+  if (!jobIds.length) return jobs;
+
+  const counts = await JobInteraction.aggregate([
+    { $match: { job: { $in: jobIds }, type: 'VIEW' } },
+    { $group: { _id: '$job', count: { $sum: 1 } } },
+  ]);
+
+  const viewMap = Object.fromEntries(
+    counts.map((r) => [String(r._id), r.count]),
+  );
+
+  return jobs.map((job) => ({
+    ...job,
+    jobViews: viewMap[String(job._id)] || 0,
+  }));
+}
