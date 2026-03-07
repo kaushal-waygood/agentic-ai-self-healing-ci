@@ -98,11 +98,17 @@ function computeLocalPricing(
 
   if (coupon.discountType === 'percentage' && coupon.discountValue != null) {
     discountAmt = (basePrice * coupon.discountValue) / 100;
-  } else if (coupon.discountType === 'fixed' && coupon.discountValue != null) {
-    // Assuming fixed value matches the currency context or is handled by backend logic
-    discountAmt = coupon.discountValue;
-  } else if (coupon.discountAmount != null) {
-    discountAmt = coupon.discountAmount;
+  } else if (coupon.discountType === 'flat') {
+    if (
+      coupon.discountAmount != null &&
+      typeof coupon.discountAmount === 'object'
+    ) {
+      discountAmt = Number(
+        (coupon.discountAmount as Record<string, number>)[currency] ?? 0,
+      );
+    } else if (coupon.discountValue != null) {
+      discountAmt = Number(coupon.discountValue);
+    }
   }
 
   if (discountAmt < 0) discountAmt = 0;
@@ -279,32 +285,53 @@ export default function CheckoutPage() {
       // 1. Validate Coupon
       const resp = await apiInstance.post('/coupons/redeem-coupon', {
         code: couponCode.trim().toUpperCase(),
+        planId,
+        period: selectedPeriod,
       });
       if (!resp.data.success) throw new Error(resp.data.message);
 
       const coupon: CouponShape = resp.data.data;
+      const serverPricing = resp.data.pricing;
       const activeVariant = plan.billingVariants.find(
         (v) => v.period === selectedPeriod,
       );
       if (!activeVariant) throw new Error('Variant not found');
 
-      // 2. Compute Preview
+      // 2. Compute Preview (prefer server-computed pricing when available)
       const basePrice =
         currency === 'usd'
           ? activeVariant.price.effective.usd
           : activeVariant.price.effective.inr;
-      const preview = computeLocalPricing(basePrice, currency, coupon);
 
+      let preview: PricingResponse;
+      if (serverPricing) {
+        preview = {
+          period: selectedPeriod,
+          original: serverPricing.original,
+          discounted: serverPricing.discounted,
+          discountAmount: serverPricing.discountAmount,
+          appliedCoupon: {
+            _id: coupon._id,
+            code: coupon.code,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue ?? null,
+            discountAmount: coupon.discountAmount ?? null,
+          },
+        };
+      } else {
+        preview = computeLocalPricing(basePrice, currency, coupon);
+        preview.period = selectedPeriod;
+      }
+
+      const discountAmt = preview.discountAmount[currency] ?? 0;
       dispatch(
         setCheckoutRequest({
           ...checkout,
           finalPrice: preview.discounted[currency],
-          discountAmount:
-            checkout.discountAmount + preview.discountAmount[currency],
+          discountAmount: checkout.discountAmount + discountAmt,
           couponCode: coupon.code,
         }),
       );
-      preview.period = selectedPeriod;
       setAppliedPricing(preview);
 
       // 3. If Stripe, we must update the Intent
@@ -329,9 +356,11 @@ export default function CheckoutPage() {
         description: `Code ${coupon.code} active.`,
       });
     } catch (err: any) {
+      const msg =
+        err?.response?.data?.message || err.message || 'Invalid coupon';
       toast({
         title: 'Coupon Failed',
-        description: err.message,
+        description: msg,
         variant: 'destructive',
       });
     } finally {
@@ -483,9 +512,14 @@ export default function CheckoutPage() {
       rzp.open();
     } catch (err: any) {
       console.error(err);
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err.message ||
+        'Payment could not be initiated';
       toast({
-        title: 'Payment Init Failed',
-        description: err.message,
+        title: 'Payment Failed',
+        description: msg,
         variant: 'destructive',
       });
       setRazorpayLoading(false);
@@ -535,7 +569,7 @@ export default function CheckoutPage() {
   //   0;
 
   // const displayDiscount = appliedPricing?.discountAmount?.[currency] ?? 0;
-  const displayOriginal = checkout.basePrice;
+  const displayOriginal = checkout?.basePrice;
   const displayDiscount = checkout.discountAmount;
   const displayPrice = checkout.finalPrice;
   const currencySymbol = getCurrencySymbol(checkout.currency);

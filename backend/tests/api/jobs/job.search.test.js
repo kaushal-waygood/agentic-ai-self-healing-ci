@@ -48,6 +48,28 @@ const safeGet = async (path) => {
 describe('Job Search API — GET /api/v1/jobs/search', () => {
   jest.setTimeout(25_000);
 
+  let seededJobId;
+  beforeAll(async () => {
+    const { Job } = await import('../../../src/models/jobs.model.js');
+    const job = new Job({
+      jobId: `test-${Date.now()}`,
+      origin: 'HOSTED',
+      title: 'Software Engineer',
+      description: 'Seed job for multi-word search test',
+      isActive: true,
+      jobPostedAt: new Date(),
+    });
+    await job.save();
+    seededJobId = job._id;
+  });
+
+  afterAll(async () => {
+    if (seededJobId) {
+      const { Job } = await import('../../../src/models/jobs.model.js');
+      await Job.deleteOne({ _id: seededJobId });
+    }
+  });
+
   // ──────────────────────────────────────────────────
   // 1. POSITIVE SCENARIOS
   // ──────────────────────────────────────────────────
@@ -58,10 +80,23 @@ describe('Job Search API — GET /api/v1/jobs/search', () => {
       expect(Array.isArray(res.data.jobs)).toBe(true);
     });
 
-    it('1.2 should return 200 with jobs array when q is provided', async () => {
+    //  it('1.2 should return 200 with jobs array when q is provided', async () => {
+    it('1.2 should return 200 with jobs array when q is provided (space-separated query)', async () => {
       const res = await safeGet(url({ q: 'software engineer' }));
       expect(res.status).toBe(200);
       expect(Array.isArray(res.data.jobs)).toBe(true);
+      // should include the seeded job
+      const found = res.data.jobs.some((j) => j.title === 'Software Engineer');
+      expect(found).toBe(true);
+    });
+
+    it('1.2b should also handle plus-encoded query (software+engineer) correctly', async () => {
+      const res = await safeGet(`${BASE}?q=software+engineer&page=1&limit=5`);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.data.jobs)).toBe(true);
+      // should still return our seeded job
+      const found = res.data.jobs.some((j) => j.title === 'Software Engineer');
+      expect(found).toBe(true);
     });
 
     it('1.3 response envelope should contain success, jobs, and pagination', async () => {

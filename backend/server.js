@@ -6,6 +6,7 @@ import connectDb from './src/config/db.js';
 import { setupNotificationSocket } from './src/socket/notification.socket.js';
 import { socketHandler } from './src/socket/socketHandler.js'; // <--- IMPORT ADDED
 import { config as appConfig } from './src/config/config.js';
+import { generateEmbedding } from './src/config/embedding.js';
 
 dotenv.config();
 
@@ -53,11 +54,9 @@ async function startHttpServer() {
   process.once('SIGINT', () => shutdown('SIGINT'));
   process.once('SIGTERM', () => shutdown('SIGTERM'));
 }
-import { generateEmbedding } from './src/config/embedding.js';
 
 startHttpServer()
   .then(() => {
-    // Pre-load the Vector Machine Learning Model into memory in the background
     generateEmbedding('Init').catch(() => {});
   })
   .catch((err) => {

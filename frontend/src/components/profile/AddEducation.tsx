@@ -60,6 +60,7 @@ import {
 import { countries } from '@/lib/data/countries';
 import ModalPortal from '../ui/modalPortal';
 import { MonthYearPicker } from '../ui/advanced-calendar';
+import { validateEndDate } from '@/utils/dateValidation';
 
 /* ---------------------------- Utilities ---------------------------------- */
 const toMonth = (iso?: string) =>
@@ -476,25 +477,28 @@ const TechnologyInput: React.FC<{
 };
 
 /* ---------------------------- Education Validation Schema ------------------------- */
-const educationSchema = z.object({
-  _id: z.string().optional(),
-  institution: z
-    .string()
-    .min(1, 'Institution is required')
-    .regex(
-      /^[a-zA-Z\s\-'.,&]+$/,
-      'Only letters, spaces, and basic punctuation allowed',
-    ),
-  degree: z.string().min(1, 'Degree is required'),
-  fieldOfStudy: z
-    .string()
-    .regex(/^[a-zA-Z\s\-'.,&]*$/, 'Only letters and spaces allowed')
-    .optional()
-    .nullable(),
-  startDate: z.string().min(1, 'Required'),
-  endDate: z.string().optional(),
-  isCurrent: z.boolean().optional(),
-});
+const educationSchema = z
+  .object({
+    _id: z.string().optional(),
+    institution: z
+      .string()
+      .min(1, 'Institution is required')
+      .regex(
+        /^[a-zA-Z\s\-'.,&]+$/,
+        'Only letters, spaces, and basic punctuation allowed',
+      ),
+    degree: z.string().min(1, 'Degree is required'),
+    fieldOfStudy: z
+      .string()
+      .regex(/^[a-zA-Z\s\-'.,&]*$/, 'Only letters and spaces allowed')
+      .optional()
+      .nullable(),
+    startDate: z.string().min(1, 'Required'),
+    endDate: z.string().optional(),
+    isCurrent: z.boolean().optional(),
+  })
+  .superRefine(validateEndDate);
+
 /* ---------------------------- AddEducation (refactored) ------------------------- */
 export const AddEducation: React.FC<{
   onCancel: () => void;
@@ -710,9 +714,10 @@ export const AddEducation: React.FC<{
                             field.onChange(date ? format(date, 'yyyy-MM') : '')
                           }
                           placeholder="Select end month & year"
+                          maxDate={new Date()}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs text-red-500 mt-1" />
                     </FormItem>
                   )}
                 />
@@ -769,7 +774,16 @@ const projectSchema = z.object({
   endDate: z.string().optional(),
   isCurrent: z.boolean().optional(),
   technologies: z.array(z.string()).optional(),
-  link: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  // link: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  link: z
+    .union([
+      z
+        .string()
+        .url('Please enter a valid URL starting with http:// or https://')
+        .regex(/^https?:\/\//, 'URL must start with http:// or https://'),
+      z.literal(''),
+    ])
+    .optional(),
 });
 /* ---------------------------- AddProject (refactored) ------------------------- */
 
@@ -973,9 +987,10 @@ export const AddProject: React.FC<{
                           }
                           placeholder="Select end month & year"
                           disabled={isCurrent}
+                          maxDate={new Date()}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs text-red-500 mt-1" />
                     </FormItem>
                   )}
                 />
@@ -1030,7 +1045,7 @@ export const AddProject: React.FC<{
                         />
                       </FormControl>
                     </div>
-                    <FormMessage />
+                    <FormMessage className="text-xs text-red-500 mt-1" />
                   </FormItem>
                 )}
               />
@@ -1053,7 +1068,6 @@ export const AddProject: React.FC<{
 };
 
 /* ---------------------------- AddExperience (refactored) ------------------------- */
-
 const employmentTypes = [
   'Full-time',
   'Part-time',
@@ -1063,17 +1077,19 @@ const employmentTypes = [
   'Internship',
   'Apprenticeship',
 ] as const;
-const experienceSchema = z.object({
-  _id: z.string().optional(),
-  company: z.string().min(1, 'Company is required'),
-  designation: z.string().min(1, 'Designation is required'),
-  employmentType: z.string().optional(),
-  location: z.string().optional(),
-  isCurrent: z.boolean().optional(),
-  startDate: z.string().min(1, 'Start date is required'),
-  endDate: z.string().optional(),
-  description: z.string().optional(),
-});
+const experienceSchema = z
+  .object({
+    _id: z.string().optional(),
+    company: z.string().min(1, 'Company is required'),
+    designation: z.string().min(1, 'Designation is required'),
+    employmentType: z.string().optional(),
+    location: z.string().optional(),
+    isCurrent: z.boolean().optional(),
+    startDate: z.string().min(1, 'Start date is required'),
+    endDate: z.string().optional(),
+    description: z.string().optional(),
+  })
+  .superRefine(validateEndDate);
 export const AddExperience: React.FC<{
   onCancel: () => void;
   isEdit?: boolean;
@@ -1315,9 +1331,10 @@ export const AddExperience: React.FC<{
                           }
                           placeholder="Select end month & year"
                           disabled={isCurrent}
+                          maxDate={new Date()}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs text-red-500 mt-1" />
                     </FormItem>
                   )}
                 />
@@ -1376,15 +1393,52 @@ export const AddExperience: React.FC<{
 
 /* ---------------------------- AddSkill (unchanged behaviour, small cleanup) ------------------------- */
 
-const skillTypes = ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] as const;
-const skillSchema = z.object({
-  skill: z.string().min(1, 'Skill is required'),
-  level: z.string().min(1, 'Level is required'),
-});
 export const AddSkill: React.FC<{
   onCancel: () => void;
   isEdit?: boolean;
-}> = ({ onCancel, isEdit }) => {
+  existingSkills?: Array<{ skill: string; level: string }>;
+  skillCount?: number;
+  maxSkillLimit?: number;
+}> = ({
+  onCancel,
+  isEdit,
+  existingSkills = [],
+  skillCount = 0,
+  maxSkillLimit = 20,
+}) => {
+  const skillTypes = ['BEGINNER', 'INTERMEDIATE', 'EXPERT'] as const;
+
+  // Check if max limit reached
+  const [limitError, setLimitError] = useState<string>('');
+
+  useEffect(() => {
+    if (skillCount >= maxSkillLimit) {
+      setLimitError(
+        `You have reached the maximum allowed skills (${maxSkillLimit}). Please delete some skills to add new ones.`,
+      );
+    } else {
+      setLimitError('');
+    }
+  }, [skillCount, maxSkillLimit]);
+  const skillSchema = z
+    .object({
+      skill: z.string().min(1, 'Skill is required'),
+      level: z.string().min(1, 'Level is required'),
+    })
+    .superRefine((data, ctx) => {
+      const isDuplicate = existingSkills.some(
+        (s) => s.skill.toLowerCase() === data.skill.toLowerCase(),
+      );
+
+      if (isDuplicate) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'This skill has already been added',
+          path: ['skill'],
+        });
+      }
+    });
+
   const form = useForm<{ skill: string; level: string }>({
     resolver: zodResolver(skillSchema),
     defaultValues: { skill: '', level: '' },
@@ -1397,9 +1451,38 @@ export const AddSkill: React.FC<{
   const { handleSubmit, control } = form;
 
   const handleFormSubmit = (data: { skill: string; level: string }) => {
+    if (skillCount >= maxSkillLimit) {
+      return;
+    }
     dispatch(addStudentSkillRequest(data));
     onCancel();
   };
+
+  if (skillCount >= maxSkillLimit) {
+    return (
+      <ModalShell
+        title="Add Skills"
+        icon={Briefcase}
+        onClose={onCancel}
+        headerGradient="from-purple-500 to-indigo-500"
+      >
+        <div className="p-6">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <p className="text-yellow-800 font-medium"> Limit Reached</p>
+            <p className="text-yellow-700 text-sm mt-1">
+              You have reached the maximum allowed skills ({maxSkillLimit}).
+              Please delete some skills to add new ones.
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={onCancel}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </ModalShell>
+    );
+  }
 
   return (
     <ModalShell
@@ -1455,6 +1538,12 @@ export const AddSkill: React.FC<{
                 )}
               />
             </div>
+
+            {limitError && (
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                {limitError}
+              </div>
+            )}
 
             <div className="flex justify-end gap-4">
               <Button type="button" variant="outline" onClick={onCancel}>

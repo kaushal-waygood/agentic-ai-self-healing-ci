@@ -1,16 +1,21 @@
 import { google } from 'googleapis';
+import dotenv from 'dotenv';
+dotenv.config({ quiet: true });
 
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/gmail.send',
 ];
 
-// CORRECTED CONSTRUCTOR: Remove the third argument
-export const oauth2Client = new google.auth.OAuth2(
-  '433624775795-8jhe519p7bncje5e7hl17m3rh5ttmkng.apps.googleusercontent.com',
-  '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',
-  'https://api.zobsai.com/api/v1/user/oauth2callback',
-);
+const BACKEND_API_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://api.zobsai.com'
+    : process.env.NODE_ENV === 'development'
+      ? 'https://api.dev.zobsai.com'
+      : 'http://127.0.0.1:8080';
 
-// You no longer need the googleRedirectURI array here
+export const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${BACKEND_API_BASE_URL}/api/v1/user/oauth2callback`,
+);

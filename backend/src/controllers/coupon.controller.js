@@ -517,15 +517,90 @@ export const redeemCoupon = async (req, res) => {
 
 export const redeemCouponByCode = async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, planId, period } = req.body;
 
     if (!code) {
-      return res.status(400).json({ message: 'Coupon code is required.' });
+      return res.status(400).json({ success: false, message: 'Coupon code is required.' });
     }
 
     const coupon = await Coupon.findOne({ code: code.trim().toUpperCase() });
     if (!coupon) {
-      return res.status(404).json({ message: 'Coupon not found.' });
+      return res.status(404).json({ success: false, message: 'Coupon not found.' });
+    }
+
+    if (!coupon.isActive) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Coupon is not active.' });
+    }
+
+    const now = new Date();
+    if (coupon.startsAt && coupon.startsAt > now) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Coupon is not yet valid.' });
+    }
+    if (coupon.expiresAt && coupon.expiresAt < now) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Coupon has expired.' });
+    }
+
+    if (coupon.maxUses != null && coupon.usedCount >= coupon.maxUses) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Coupon usage limit reached.' });
+    }
+
+    if (planId) {
+      if (!mongoose.Types.ObjectId.isValid(planId)) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Invalid plan ID.' });
+      }
+
+      if (coupon.plansApplicable && coupon.plansApplicable.length) {
+        const allowed = coupon.plansApplicable.some(
+          (p) => p.toString() === planId.toString(),
+        );
+        if (!allowed) {
+          return res.status(400).json({
+            success: false,
+            message: 'Coupon is not applicable for the selected plan.',
+          });
+        }
+      }
+
+      if (period) {
+        const plan = await Plan.findById(planId).lean();
+        if (!plan) {
+          return res
+            .status(404)
+            .json({ success: false, message: 'Plan not found.' });
+        }
+        const variant = plan.billingVariants.find((bv) => bv.period === period);
+        if (!variant) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid billing period for this plan.',
+          });
+        }
+
+        const priceObj = variant.price && variant.price.effective;
+        if (priceObj) {
+          const computed = computeDiscountedPriceForPriceObj(priceObj, coupon);
+          return res.status(200).json({
+            success: true,
+            data: coupon,
+            pricing: {
+              period,
+              original: computed.original,
+              discounted: computed.final,
+              discountAmount: computed.discount,
+            },
+          });
+        }
+      }
     }
 
     res.status(200).json({ success: true, data: coupon });

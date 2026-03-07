@@ -236,6 +236,8 @@ class RedisClient {
       `jobs:viewed:${studentId}:*`,
       `jobs:visited:${studentId}:*`,
       `stats:${studentId}:*`,
+      `autofill:student:${studentId}`,
+      `autofill:ai:${studentId}:*`,
     ];
 
     try {

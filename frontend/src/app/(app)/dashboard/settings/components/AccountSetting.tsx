@@ -29,9 +29,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useTheme } from 'next-themes';
 import { useDispatch, useSelector } from 'react-redux';
-import { changePasswordRequest } from '@/redux/reducers/authReducer';
+import {
+  changePasswordRequest,
+  clearAuthMessages,
+} from '@/redux/reducers/authReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 /* ===========================
    SECURITY SETTINGS (self-contained)
@@ -40,13 +44,16 @@ import { useToast } from '@/hooks/use-toast';
 export const SecuritySetting = () => {
   const dispatch = useDispatch();
   const { toast } = useToast();
-  const { message, error } = useSelector((state: RootState) => state.auth);
+  const { message, error, isLoading } = useSelector(
+    (state: RootState) => state.auth,
+  );
 
   const [showPassword, setShowPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const calculateStrength = (password: string) => {
@@ -63,15 +70,30 @@ export const SecuritySetting = () => {
   useEffect(() => {
     if (message) {
       toast({ title: 'Success', description: message });
+      // Clear all fields on success
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setIsSubmitting(false);
+      // Clear the message from Redux store
+      dispatch(clearAuthMessages());
     }
+
     if (error) {
       toast({
         title: 'Error',
         description: String(error),
         variant: 'destructive',
       });
+      setIsSubmitting(false);
+      // Clear the error from Redux store
+      dispatch(clearAuthMessages());
     }
-  }, [message, error, toast]);
+  }, [message, error, toast, dispatch]);
+
+  useEffect(() => {
+    setIsSubmitting(isLoading);
+  }, [isLoading]);
 
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword || !confirmNewPassword) {
@@ -90,6 +112,16 @@ export const SecuritySetting = () => {
       });
       return;
     }
+    if (passwordStrength < 50) {
+      toast({
+        title: 'Error',
+        description: 'Password is too weak. Please use a stronger password.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     dispatch(
       changePasswordRequest({
         currentPassword,
@@ -132,6 +164,7 @@ export const SecuritySetting = () => {
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter current password"
+                  value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="pr-10"
                 />
@@ -172,15 +205,15 @@ export const SecuritySetting = () => {
                           passwordStrength < 50
                             ? 'text-red-500'
                             : passwordStrength < 75
-                            ? 'text-amber-500'
-                            : 'text-emerald-500'
+                              ? 'text-amber-500'
+                              : 'text-emerald-500'
                         }`}
                       >
                         {passwordStrength < 50
                           ? 'Weak'
                           : passwordStrength < 75
-                          ? 'Medium'
-                          : 'Strong'}
+                            ? 'Medium'
+                            : 'Strong'}
                       </span>
                     </div>
                     <span className="text-gray-400 dark:text-gray-500">
@@ -193,8 +226,8 @@ export const SecuritySetting = () => {
                         passwordStrength < 50
                           ? 'bg-red-500'
                           : passwordStrength < 75
-                          ? 'bg-amber-500'
-                          : 'bg-emerald-500'
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
                       }`}
                       style={{ width: `${Math.min(passwordStrength, 100)}%` }}
                     />
@@ -211,6 +244,7 @@ export const SecuritySetting = () => {
               <Input
                 type="password"
                 placeholder="Confirm new password"
+                value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
               />
             </div>
@@ -233,9 +267,17 @@ export const SecuritySetting = () => {
 
             <Button
               onClick={handleChangePassword}
+              disabled={isSubmitting || isLoading}
               className="w-full mt-2 hover:from-emerald-600 hover:to-teal-700 shadow-md shadow-emerald-500/20"
             >
-              Update Password
+              {isSubmitting || isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Updating...
+                </span>
+              ) : (
+                'Update Password'
+              )}
             </Button>
           </div>
         </div>

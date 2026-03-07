@@ -281,7 +281,9 @@ const AppHeader = ({
     markAsRead,
     markAllAsRead,
     fetchNotifications,
+    isLoading,
     fetchUnreadCount,
+    connectionStatus,
     socket,
   } = useNotifications();
 
@@ -303,6 +305,9 @@ const AppHeader = ({
   const pathname = usePathname();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const studentWrapper = useSelector(
+    (state: RootState) => state.student.students?.[0],
+  );
   const { planType, usageLimits, usageData } = useSelector(
     (state: RootState) => state.plan,
   );
@@ -512,19 +517,19 @@ const AppHeader = ({
                 )}
               </button>
 
-              {/* Dropdown only renders if isNotificationOpen is true (which never happens on mobile now) */}
               {isNotificationOpen && (
                 <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                  <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+                  {/* <div className="p-4 border-b border-slate-100 flex justify-between items-center">
                     <h3 className="font-semibold text-slate-900">
                       Notifications
                     </h3>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
+                  </div> */}
+                  <div className=" overflow-y-auto">
                     {/* <NotificationBell /> */}
                     <NotificationBell
                       notifications={notifications}
                       unreadCount={unreadCount}
+                      isLoading={isLoading}
                       markAsRead={markAsRead}
                       fetchNotifications={fetchNotifications}
                       // connectionStatus={connectionStatus}
@@ -541,6 +546,7 @@ const AppHeader = ({
                 </div>
               )}
             </div>
+
             <div id="user-driver" className="relative" ref={userRef}>
               <button
                 onClick={() => handleMenuToggle('user')}
@@ -576,7 +582,8 @@ const AppHeader = ({
 
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-slate-900 truncate">
-                          {user?.fullName || 'Guest'}
+                          {/* {user?.fullName || 'Guest'} */}
+                          {studentWrapper?.student.fullName || 'Guest'}
                         </p>
                         <p className="text-sm text-slate-500 truncate">
                           {user?.email || ''}

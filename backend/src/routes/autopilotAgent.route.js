@@ -11,6 +11,8 @@ import {
   isGeneralUser,
 } from '../middlewares/auth.middleware.js';
 import { upload } from '../middlewares/multer.js';
+import { requireCompleteProfile } from '../middlewares/profileComplete.js';
+import { checkCredits } from '../middlewares/checkCredits.js';
 
 const router = express.Router();
 
@@ -18,6 +20,8 @@ router.post(
   '/create',
   authMiddleware,
   isGeneralUser,
+  checkCredits('AI_AUTO_APPLY'),
+  requireCompleteProfile,
   upload.single('cv'),
   createAutopilotAgent,
 );

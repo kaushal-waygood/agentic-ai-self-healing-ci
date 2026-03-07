@@ -58,8 +58,58 @@ import {
 } from '../controllers/rough.js';
 import { checkCredits } from '../middlewares/checkCredits.js';
 import { requireCompleteProfile } from '../middlewares/profileComplete.js';
+import { generateContent } from '../config/gemini.js';
 
 const router = Router();
+
+const AI_ASSISTANT_SYSTEM_PROMPT = `You are a helpful AI assistant for the ZobsAI platform. Your goal is to answer user questions about the platform and guide them on how to use its features.
+
+Key features of ZobsAI include:
+- Profile creation and management.
+- AI-powered CV generation (from uploaded documents or forms) and editing.
+- Tailored cover letter and email draft generation for job applications.
+- Job listings and an application tracking system.
+- Tiered subscription model with varying features.
+- Referral program for earning application credits.
+- Self-help documentation and this AI assistant for support.
+
+When answering, be clear, concise, and helpful. If you don't know the answer or if the question is too complex, politely suggest checking the FAQ page or contacting support.`;
+
+router.post(
+  '/assistant/chat',
+  authMiddleware,
+  isUserOrUniStudent,
+  async (req, res) => {
+    try {
+      const { query } = req.body;
+      if (!query || typeof query !== 'string' || !query.trim()) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Query is required.' });
+      }
+
+      const prompt = `${AI_ASSISTANT_SYSTEM_PROMPT}\n\nUser Query: ${query.trim()}\n\nAnswer:`;
+      const answer = await generateContent(prompt, {
+        userId: req.user?._id?.toString(),
+        endpoint: 'ai-assistant-chat',
+        temperature: 0.4,
+      });
+
+      return res.status(200).json({ success: true, answer: answer.trim() });
+    } catch (err) {
+      console.error('AI assistant chat error:', err);
+      const status = err?.status || 500;
+      const msg =
+        status === 429
+          ? 'AI service is temporarily busy. Please try again in a moment.'
+          : 'Sorry, the AI assistant is currently unavailable. Please try again later.';
+      return res.status(status >= 500 ? 503 : status).json({
+        success: false,
+        message: msg,
+      });
+    }
+  },
+);
 
 router.post(
   '/resume/extract',

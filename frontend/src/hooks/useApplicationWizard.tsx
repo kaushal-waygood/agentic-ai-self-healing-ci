@@ -287,17 +287,59 @@ export const useApplicationWizard = () => {
     savedClId: string;
   }>({ defaultValues: { clSource: 'skip', pastedCl: '', savedClId: '' } });
 
+  // changes 1
+  // const navigateToStep = useCallback(
+  //   (
+  //     step: WizardStep,
+  //     options?: { jobId?: string; mode?: 'paste' | 'upload' | 'select' },
+  //   ) => {
+  //     const params = new URLSearchParams(searchParams.toString());
+
+  //     // Always update step
+  //     params.set('step', step);
+
+  //     // ----- MODE -----
+  //     if (options?.mode) {
+  //       params.set('mode', options.mode);
+  //       console.log('mode', options.mode);
+  //     } else {
+  //       const existingMode = params.get('mode');
+  //       if (!existingMode || existingMode === 'undefined') {
+  //         params.delete('mode');
+  //       }
+  //     }
+
+  //     if (options?.mode === 'select' && options.jobId) {
+  //       params.set('slug', options.jobId);
+  //     } else if (options?.mode && options.mode !== 'select') {
+  //       params.delete('slug');
+  //     }
+
+  //     router.push(`${pathname}?${params.toString()}`, {
+  //       scroll: false,
+  //     });
+  //   },
+  //   [pathname, router, searchParams],
+  // );
+
+  //--- Effects ---
+
   const navigateToStep = useCallback(
     (
       step: WizardStep,
       options?: { jobId?: string; mode?: 'paste' | 'upload' | 'select' },
     ) => {
-      const params = new URLSearchParams(searchParams.toString());
+      // 1. Check if we are moving to the final step
+      if (step === 'result') {
+        setWizardStep('result'); // Update UI manually
+        router.push(pathname, { scroll: false }); // Clean the URL
+        return;
+      }
 
-      // Always update step
+      const params = new URLSearchParams(searchParams.toString());
       params.set('step', step);
 
-      // ----- MODE -----
+      // ----- MODE Logic -----
       if (options?.mode) {
         params.set('mode', options.mode);
       } else {
@@ -319,20 +361,49 @@ export const useApplicationWizard = () => {
     },
     [pathname, router, searchParams],
   );
-
-  //--- Effects ---
   useEffect(() => {
     dispatch(getStudentDetailsRequest());
     dispatch(savedStudentResumeRequest());
   }, [dispatch]);
 
   // Sync wizard step with URL
+  // useEffect(() => {
+  //   const stepFromUrl = searchParams.get('step') as WizardStep;
+  //   if (jobsLoading) {
+  //     setWizardStep('loading');
+  //     return;
+  //   }
+  //   if (!jobsLoading && !isInitialized.current) {
+  //     if (selectedJob) {
+  //       setJobContext({
+  //         mode: 'select',
+  //         jobId: selectedJob._id,
+  //         jobTitle: selectedJob.title,
+  //         companyName: selectedJob.company,
+  //         jobDescription: selectedJob.description,
+  //       });
+  //       navigateToStep('cv');
+  //     } else if (!stepFromUrl) {
+  //       navigateToStep('job');
+  //     }
+  //     isInitialized.current = true;
+  //   }
+  //   if (stepFromUrl && stepFromUrl !== wizardStep) {
+  //     setWizardStep(stepFromUrl);
+  //   }
+  // }, [searchParams, jobsLoading, selectedJob, navigateToStep, wizardStep]);
   useEffect(() => {
     const stepFromUrl = searchParams.get('step') as WizardStep;
+
+    // 1. If we are on 'result', ignore the URL entirely.
+    // This stops the URL-sync logic from resetting the UI on the first click.
+    if (wizardStep === 'result') return;
+
     if (jobsLoading) {
       setWizardStep('loading');
       return;
     }
+
     if (!jobsLoading && !isInitialized.current) {
       if (selectedJob) {
         setJobContext({
@@ -343,16 +414,24 @@ export const useApplicationWizard = () => {
           jobDescription: selectedJob.description,
         });
         navigateToStep('cv');
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('step', 'cv');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
       } else if (!stepFromUrl) {
-        navigateToStep('job');
+        // 2. Only go to 'job' if there's no step in URL AND we aren't in 'result'
+        // navigateToStep('job');
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('step', 'job');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
       }
       isInitialized.current = true;
     }
+
     if (stepFromUrl && stepFromUrl !== wizardStep) {
       setWizardStep(stepFromUrl);
     }
-  }, [searchParams, jobsLoading, selectedJob, navigateToStep, wizardStep]);
-
+    // Remove navigateToStep from dependencies to prevent infinite loops
+  }, [searchParams, jobsLoading, selectedJob, wizardStep]);
   // Engaging loading messages effect
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -523,6 +602,7 @@ export const useApplicationWizard = () => {
   const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
     null,
   );
+
   const handleGenerate = useCallback(async () => {
     // 🔒 HARD GUARD (this is the fix)
     setIsLoading(true);
@@ -626,13 +706,27 @@ export const useApplicationWizard = () => {
         return;
       }
       const status = error?.response?.status;
+      // changes 2
+      // if (status === 429) {
+      //   setRateLimitMessage(error?.response?.data?.message || null);
+      //   setRateLimited(true);
 
+      //   // 🔒 single source of truth
+      //   navigateToStep('result');
+      //   return;
+      // }
       if (status === 429) {
-        setRateLimitMessage(error?.response?.data?.message || null);
-        setRateLimited(true);
+        const errorMessage = error?.response?.data?.message || 'Limit reached';
+        console.log('hello');
 
-        // 🔒 single source of truth
-        navigateToStep('result');
+        setRateLimited(true);
+        setRateLimitMessage(errorMessage);
+        setWizardStep('result');
+
+        // 2. Explicitly navigate with the result step
+        // Using a clean path as we discussed to handle the refresh issue
+        router.replace(pathname, { scroll: false });
+
         return;
       }
 

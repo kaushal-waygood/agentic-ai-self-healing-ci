@@ -16,6 +16,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { logoutRequest } from '@/redux/reducers/authReducer';
 import { Loader } from '@/components/Loader';
+import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 
 const DocumentPage = () => {
   const { type, id } = useParams();
@@ -158,7 +159,9 @@ const DocumentPage = () => {
         setDocumentData(transformed);
       } catch (err) {
         console.error(err);
-        setError('Failed to load document');
+        setError(
+          `${err?.response?.data?.error}\nUnable to load the document. Please try again later.`,
+        );
       } finally {
         setIsLoading(false);
       }
@@ -334,12 +337,51 @@ const DocumentPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-red-500">
-        {error}
+      <div className="min-h-[80vh] flex items-center justify-center p-6 bg-slate-50/50">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl shadow-slate-200/60 border border-slate-100 p-10 text-center animate-in fade-in zoom-in duration-300">
+          {/* Icon with a soft background pulse */}
+          <div className="mx-auto w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6 relative">
+            <div className="absolute inset-0 rounded-full bg-red-100 animate-ping opacity-20"></div>
+            <AlertTriangle className="w-10 h-10 text-red-500 relative z-10" />
+          </div>
+
+          {/* Error Text Section */}
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">
+            Content Unavailable
+          </h2>
+
+          <div className="bg-red-50/50 rounded-lg p-4 border border-red-100/50">
+            <p className="text-red-600 font-medium whitespace-pre-line leading-relaxed">
+              {error}
+            </p>
+          </div>
+
+          <p className="mt-6 text-slate-500 text-sm">
+            If this persists, please contact support or check your connection.
+          </p>
+
+          {/* Action Buttons */}
+          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="flex-1 flex items-center justify-center gap-2 bg-buttonPrimary text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-slate-200"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </button>
+
+            <button
+              onClick={() => window.history.back()}
+              className="flex-1 flex items-center justify-center gap-2 bg-white text-slate-600 border border-slate-200 px-6 py-3 rounded-lg font-semibold hover:bg-slate-50 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Go Back
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
-
   // ---------------- RENDER ----------------
   switch (type) {
     case 'cv':
