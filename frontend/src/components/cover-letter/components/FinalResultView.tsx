@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, FileText, Loader2 } from 'lucide-react';
+import { CheckCircle, FileText, ListRestart, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type Props = {
@@ -143,35 +143,38 @@ export default function FinalResultView({
               </p>
             </>
           ) : (
-            /* SUCCESS */
+            /* SUCCESS / ADDED TO QUEUE */
             <>
               <div className="mb-6">
                 <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
               </div>
+
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {title} Ready!
+                Document is being generated
               </h2>
-              <p className="text-gray-600 mb-8">
-                Your {title} has been successfully generated and is ready to
-                view.
+
+              <p className="text-gray-600 mb-2">
+                Your request has been added to the queue successfully.
+              </p>
+
+              <p className="text-sm text-indigo-600 bg-indigo-50 py-2 px-4 rounded-full inline-block mb-8">
+                You can safely continue with other operations.
               </p>
 
               <div className="flex gap-3 flex-col">
                 <button
                   onClick={handleRedirectDocs}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
                 >
-                  View {title}
+                  View Document Status
                 </button>
 
-                {cvlink && (
-                  <button
-                    onClick={() => window.open(cvlink, '_blank')}
-                    className="w-full border border-gray-200 bg-white text-gray-700 font-medium py-3 px-6 rounded-lg"
-                  >
-                    Open Document
-                  </button>
-                )}
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full border border-gray-200 bg-white text-gray-700 font-medium py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Continue Other Operations
+                </button>
               </div>
             </>
           )}
