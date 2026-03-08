@@ -293,4 +293,7 @@ userSchema.methods.generatePasswordResetToken = function () {
   return rawToken;
 };
 
-export const User = model('User', userSchema);
+const User = model('User', userSchema);
+
+export { User };
+export default User;

@@ -8,6 +8,8 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "test": "jest --coverage",
+    "test:unit": "jest tests/utils tests/worker tests/unit --coverage",
+    "test:api": "jest tests/api --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:debug": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --runInBand",
     "test:report": "jest --coverage && node tests/reports/jest-report.cjs",
