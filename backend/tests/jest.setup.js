@@ -1,8 +1,21 @@
-// Example: Mocking environment variables or setting up global tokens before all tests
-const constants = require('./config/constants');
+import constants from './config/constants.js';
+import mongoose from 'mongoose';
 
 beforeAll(() => {
-    // You could dynamically fetch tokens here if needed or mock API responses
-    constants.ACCESS_TOKEN = 'some-valid-token';  // Example of setting a global token
-    constants.REFRESH_TOKEN = 'some-refresh-token';
+  constants.ACCESS_TOKEN = 'some-valid-token';
+  constants.REFRESH_TOKEN = 'some-refresh-token';
+});
+
+afterAll(async () => {
+  // Close Mongoose connection (prevents "worker failed to exit" when API tests run)
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.connection.close();
+  }
+  // Close Redis if it was loaded (e.g. by jobHelpers, controllers)
+  try {
+    const redis = (await import('../src/config/redis.js')).default;
+    if (redis?.disconnect) await redis.disconnect();
+  } catch {
+    // Redis may not be loaded in this worker
+  }
 });

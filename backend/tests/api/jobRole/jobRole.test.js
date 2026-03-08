@@ -1,6 +1,6 @@
 import constants from '../../config/constants.js';
 import axios from '../../utils/axiosConfig.js';
-import { User } from '../../../src/models/User.model.js';
+import User from '../../../src/models/User.model.js';
 import { JobRole } from '../../../src/models/JobRole.model.js';
 import connectDB, { disconnectDB } from '../../../src/config/db.js';
 
@@ -12,6 +12,7 @@ describe('JobRole Module Tests', () => {
     fullName: 'Role Admin',
     authMethod: 'local',
     isEmailVerified: true,
+    role: 'user',
   };
   let roleId;
 
@@ -21,7 +22,6 @@ describe('JobRole Module Tests', () => {
     await user.save();
 
     await User.findByIdAndUpdate(user._id, { role: 'super-admin' });
-
     const updatedUser = await User.findById(user._id);
     constants.ACCESS_TOKEN = updatedUser.generateAccessToken();
   });
@@ -34,18 +34,17 @@ describe('JobRole Module Tests', () => {
 
   it('should create a new job role (super-admin only)', async () => {
     const roleData = {
-      name: `Software Engineer ${Date.now()}`, // Changed 'role' to 'name' and made unique
+      name: `Software Engineer ${Date.now()}`,
     };
     const res = await axios.post('/api/v1/job-role', roleData);
     expect(res.status).toBe(201);
-    expect(res.data._id).toBeDefined(); // It returns the object directly
+    expect(res.data._id).toBeDefined();
     roleId = res.data._id;
   });
 
   it('should get all job roles', async () => {
     const res = await axios.get('/api/v1/job-role');
     expect(res.status).toBe(200);
-    // Returns the array directly
     expect(Array.isArray(res.data)).toBe(true);
   });
 });
