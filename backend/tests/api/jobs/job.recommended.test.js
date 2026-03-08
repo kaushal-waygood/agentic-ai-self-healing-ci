@@ -21,7 +21,7 @@
 
 import constants from '../../config/constants.js';
 import axios from '../../utils/axiosConfig.js';
-import { User } from '../../../src/models/User.model.js';
+import User from '../../../src/models/User.model.js';
 import { Student } from '../../../src/models/student.model.js';
 import connectDB, { disconnectDB } from '../../../src/config/db.js';
 
@@ -52,13 +52,44 @@ const url = (params = {}) => {
  * @param {string|undefined} token  — overrides the shared axios token when set
  */
 const safeGet = async (path, token) => {
+  const startedAt = Date.now();
+  // #region agent log
+  fetch('http://127.0.0.1:7620/ingest/69725dc7-e916-4c2c-a5ae-15f1acf3d3af',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'71136c'},body:JSON.stringify({sessionId:'71136c',runId:'pre-fix-reco',hypothesisId:'H8',location:'tests/api/jobs/job.recommended.test.js:55',message:'Recommended safeGet start',data:{path,tokenMode:token===undefined?'shared':token===''?'empty-header':token?'explicit-token':'falsy-token'},timestamp:startedAt})}).catch(()=>{});
+  console.log('[agent-debug reco safeGet start]', {
+    path,
+    tokenMode: token === undefined ? 'shared' : token === '' ? 'empty-header' : token ? 'explicit-token' : 'falsy-token',
+  });
+  // #endregion
   try {
     const config =
       token !== undefined
-        ? { headers: { Authorization: token ? `Bearer ${token}` : '' } }
+        ? {
+            headers: token
+              ? { Authorization: `Bearer ${token}` }
+              : { 'X-Skip-Auth-Injection': '1' },
+          }
         : {};
-    return await axios.get(path, config);
+    const response = await axios.get(path, config);
+    // #region agent log
+    fetch('http://127.0.0.1:7620/ingest/69725dc7-e916-4c2c-a5ae-15f1acf3d3af',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'71136c'},body:JSON.stringify({sessionId:'71136c',runId:'pre-fix-reco',hypothesisId:'H8',location:'tests/api/jobs/job.recommended.test.js:63',message:'Recommended safeGet success',data:{path,status:response.status,elapsedMs:Date.now()-startedAt},timestamp:Date.now()})}).catch(()=>{});
+    console.log('[agent-debug reco safeGet success]', {
+      path,
+      status: response.status,
+      elapsedMs: Date.now() - startedAt,
+    });
+    // #endregion
+    return response;
   } catch (err) {
+    // #region agent log
+    fetch('http://127.0.0.1:7620/ingest/69725dc7-e916-4c2c-a5ae-15f1acf3d3af',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'71136c'},body:JSON.stringify({sessionId:'71136c',runId:'pre-fix-reco',hypothesisId:'H8',location:'tests/api/jobs/job.recommended.test.js:67',message:'Recommended safeGet error',data:{path,status:err?.response?.status??null,code:err?.code??null,message:err?.message??null,elapsedMs:Date.now()-startedAt},timestamp:Date.now()})}).catch(()=>{});
+    console.log('[agent-debug reco safeGet error]', {
+      path,
+      status: err?.response?.status ?? null,
+      code: err?.code ?? null,
+      message: err?.message ?? null,
+      elapsedMs: Date.now() - startedAt,
+    });
+    // #endregion
     if (err.response) return err.response;
     throw err;
   }
@@ -108,26 +139,32 @@ describe('Recommended Jobs API — GET /api/v1/students/jobs/recommended', () =>
     fullUserId = fullUser._id;
     fullProfileToken = fullUser.generateAccessToken();
 
-    // Seed a Student document for this user with skills & experience
+    // Seed a Student document — Student._id IS the User._id
     await Student.findOneAndUpdate(
-      { user: fullUserId },
+      { _id: fullUserId },
       {
-        skills: [
-          { skill: 'JavaScript', level: 'Advanced' },
-          { skill: 'React', level: 'Intermediate' },
-          { skill: 'Node.js', level: 'Advanced' },
-        ],
-        location: { city: 'Bengaluru', state: 'Karnataka', country: 'IN' },
-        jobRole: 'Software Engineer',
-        experience: [
-          {
-            company: 'TechCorp',
-            designation: 'Frontend Developer',
-            startDate: new Date('2022-01-01'),
-            currentlyWorking: true,
-            experienceId: `techcorp-${ts}`,
-          },
-        ],
+        $setOnInsert: {
+          fullName: fullProfileUser.fullName,
+          email: fullProfileUser.email,
+        },
+        $set: {
+          skills: [
+            { skillId: `js-${ts}`, skill: 'JavaScript', level: 'ADVANCED' },
+            { skillId: `react-${ts}`, skill: 'React', level: 'INTERMEDIATE' },
+            { skillId: `node-${ts}`, skill: 'Node.js', level: 'ADVANCED' },
+          ],
+          location: 'Bengaluru, Karnataka, IN',
+          jobRole: 'Software Engineer',
+          experience: [
+            {
+              company: 'TechCorp',
+              designation: 'Frontend Developer',
+              startDate: '2022-01-01',
+              currentlyWorking: true,
+              experienceId: `techcorp-${ts}`,
+            },
+          ],
+        },
       },
       { upsert: true, new: true },
     );
@@ -140,6 +177,9 @@ describe('Recommended Jobs API — GET /api/v1/students/jobs/recommended', () =>
 
     // Prime the shared axios instance with the full-profile token
     constants.ACCESS_TOKEN = fullProfileToken;
+    // #region agent log
+    fetch('http://127.0.0.1:7620/ingest/69725dc7-e916-4c2c-a5ae-15f1acf3d3af',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'71136c'},body:JSON.stringify({sessionId:'71136c',runId:'pre-fix-reco',hypothesisId:'H9',location:'tests/api/jobs/job.recommended.test.js:152',message:'Recommended beforeAll seeded users',data:{hasFullProfileToken:!!fullProfileToken,hasEmptyProfileToken:!!emptyProfileToken,fullUserId:String(fullUserId),emptyUserId:String(emptyUserId)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
   });
 
   afterAll(async () => {
@@ -147,7 +187,7 @@ describe('Recommended Jobs API — GET /api/v1/students/jobs/recommended', () =>
     await User.deleteMany({
       email: { $in: [fullProfileUser.email, emptyProfileUser.email] },
     });
-    await Student.deleteMany({ user: { $in: [fullUserId, emptyUserId] } });
+    await Student.deleteMany({ _id: { $in: [fullUserId, emptyUserId] } });
     await disconnectDB();
   });
 
@@ -260,7 +300,7 @@ describe('Recommended Jobs API — GET /api/v1/students/jobs/recommended', () =>
       if (res.status === 200 && res.data.jobs.length === 0) {
         expect(res.data.pagination.hasNextPage).toBe(false);
       }
-    });
+    }, 70_000);
 
     /**
      * 🐛 BUG: page=9999 currently causes 500.

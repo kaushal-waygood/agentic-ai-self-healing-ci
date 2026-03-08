@@ -1,6 +1,6 @@
 import constants from "../../config/constants.js";
 import axios from "../../utils/axiosConfig.js";
-import { User } from "../../../src/models/User.model.js";
+import User from "../../../src/models/User.model.js";
 import connectDB, { disconnectDB } from "../../../src/config/db.js";
 
 describe("User API Tests", () => {
@@ -10,7 +10,8 @@ describe("User API Tests", () => {
         password: "password123",
         fullName: "User Test",
         authMethod: 'local',
-        isEmailVerified: true
+        isEmailVerified: true,
+        role: 'user',
     };
 
     beforeAll(async () => {
@@ -35,7 +36,6 @@ describe("User API Tests", () => {
         expect(res.status).toBe(200);
         expect(res.data.message).toContain("Password changed successfully");
 
-        // Update local record for cleanup (though not strictly needed as unique email is used)
         testUser.password = payload.newPassword;
     });
 
@@ -43,7 +43,6 @@ describe("User API Tests", () => {
         const res = await axios.post("/api/v1/user/forgot-password", {
             email: testUser.email
         });
-        // The API returns 200 whether user exists or not, but with a specific message
         expect(res.status).toBe(200);
         expect(res.data.message).toContain("password reset link has been sent");
     });

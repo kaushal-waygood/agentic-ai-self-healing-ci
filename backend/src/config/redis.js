@@ -312,6 +312,17 @@ class RedisClient {
       console.error('invalidateAllJobsCache error:', err);
     }
   }
+
+  /** Gracefully disconnect (for test teardown) */
+  async disconnect() {
+    try {
+      if (this.client?.isReady) {
+        await this.client.quit();
+      }
+    } catch (err) {
+      console.error('Redis disconnect error:', err);
+    }
+  }
 }
 
 const redisClient = new RedisClient();
