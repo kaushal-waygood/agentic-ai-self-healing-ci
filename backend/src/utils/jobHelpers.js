@@ -60,7 +60,11 @@ export function dedupeByTitleCompany(jobs) {
 // --------------------
 const EMPLOYMENT_TYPE_MAP = {
   'FULL-TIME': 'FULLTIME',
+  FULL_TIME: 'FULLTIME',
+  FULLTIME: 'FULLTIME',
   'PART-TIME': 'PARTTIME',
+  PART_TIME: 'PARTTIME',
+  PARTTIME: 'PARTTIME',
   CONTRACTOR: 'CONTRACTOR',
   CONTRACT: 'CONTRACTOR',
   INTERN: 'INTERN',
@@ -807,20 +811,25 @@ export async function retrieveCandidates(context, limit = 300) {
 
   const MIN_POOL = 40;
 
-  // Only fetch external if local pool is too small
-  if (finalPool.length < MIN_POOL) {
+  // Only fetch external if local pool is too small (skip when batch/autopilot to avoid 429)
+  if (!context.skipExternalFetch && finalPool.length < MIN_POOL) {
     const MAX_PAGES = 5; // fetch multiple pages in parallel
     const pagePromises = [];
+
+    const employmentType = normalizeEmploymentTypeForApi(
+      context.filters?.employmentType,
+    );
+    const apiQuery = (context.query || 'Software Engineer').slice(0, 200);
 
     for (let p = 1; p <= MAX_PAGES; p++) {
       pagePromises.push(
         fetchExternalJobs(
-          context.query,
+          apiQuery,
           context.filters?.country,
           context.filters?.state,
           context.filters?.city,
           null,
-          context.filters?.employmentType,
+          employmentType,
           null,
           p,
         ),

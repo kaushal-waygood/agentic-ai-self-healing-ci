@@ -66,6 +66,7 @@ apiInstance.interceptors.request.use((config) => {
   }
 
   const accessToken = getToken();
+
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`;
   } else {
@@ -88,16 +89,6 @@ const onRefreshed = (token: string | null) => {
   refreshSubscribers = [];
 };
 
-const isTokenError = (error: {
-  response?: { status?: number; data?: { message?: string } };
-}) => {
-  const status = error.response?.status;
-  const message = error.response?.data?.message?.toLowerCase() ?? '';
-  if (status === 401) return true;
-  if (status === 403 && message.includes('token')) return true;
-  return false;
-};
-
 apiInstance.interceptors.response.use(
   (response) => {
     isLoggingOut = false;
@@ -105,11 +96,6 @@ apiInstance.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
-
-    if (!isTokenError(error)) {
-      return Promise.reject(error);
-    }
-
     const refreshToken = getRefreshToken();
 
     if (!refreshToken) {
@@ -148,21 +134,30 @@ apiInstance.interceptors.response.use(
 
     try {
       const data = await refreshTokensApi(refreshToken);
+
       store.dispatch(
-        setTokens({ token: data.accessToken, refreshToken: data.refreshToken }),
+        setTokens({
+          token: data.accessToken,
+          refreshToken: data.refreshToken,
+        }),
       );
+
       isRefreshing = false;
       onRefreshed(data.accessToken);
+
       originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
+
       return apiInstance(originalRequest);
     } catch (refreshError) {
       isRefreshing = false;
       onRefreshed(null);
+
       if (!isLoggingOut) {
         isLoggingOut = true;
         delete apiInstance.defaults.headers.common['Authorization'];
         store.dispatch(logoutRequest());
       }
+
       return Promise.reject(refreshError);
     }
   },
