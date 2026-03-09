@@ -25,14 +25,14 @@ export async function prefetchRecommendedJobsForUser(userId) {
   if (!userId) return null;
 
   const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Prefetch timeout')), PREFETCH_TIMEOUT_MS),
+    setTimeout(
+      () => reject(new Error('Prefetch timeout')),
+      PREFETCH_TIMEOUT_MS,
+    ),
   );
 
   try {
-    const result = await Promise.race([
-      doPrefetch(userId),
-      timeoutPromise,
-    ]);
+    const result = await Promise.race([doPrefetch(userId), timeoutPromise]);
     return result;
   } catch (err) {
     console.warn('Prefetch recommended jobs:', err?.message || err);
@@ -72,7 +72,7 @@ async function doPrefetch(userId) {
     jobs: jobsWithViews,
     pagination: {
       currentPage: 1,
-      hasNextPage: ranked.length > PREFETCH_LIMIT,
+      hasNextPage: true,
       totalJobs: ranked.length,
     },
   };
