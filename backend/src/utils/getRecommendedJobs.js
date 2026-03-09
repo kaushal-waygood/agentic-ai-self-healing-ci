@@ -1,6 +1,6 @@
 // src/utils/getRecommendedJobs.js
 import mongoose from 'mongoose';
-import { Student } from '../models/student.model.js';
+import { Student } from '../models/students/student.model.js';
 import {
   retrieveCandidates,
   applyFilters,
@@ -121,8 +121,19 @@ export const getRecommendedJobs = async ({
     context.interactions.views = interactionCtx.views;
   }
 
-  const candidates = await retrieveCandidates(context, poolSize);
-  let filtered = applyFilters(candidates, context);
+  let candidates = await retrieveCandidates(context, poolSize);
+  let filterContext = context;
+
+  // When autopilot gets 0 local jobs, retry with relaxed country filter (DB may have jobs from other regions)
+  if (skipExternalFetch && candidates.length === 0 && context.filters?.country) {
+    const relaxedContext = { ...context, filters: { ...context.filters } };
+    delete relaxedContext.filters.country;
+    relaxedContext.skipExternalFetch = true;
+    candidates = await retrieveCandidates(relaxedContext, poolSize);
+    filterContext = relaxedContext; // use relaxed filters so we don't filter out the fallback jobs
+  }
+
+  let filtered = applyFilters(candidates, filterContext);
 
   if (agentConfig?.isRemote || student?.jobPreferences?.isRemote) {
     filtered = filtered.filter((j) => !!j.remote);

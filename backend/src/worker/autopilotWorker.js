@@ -1,7 +1,3 @@
-/**
- * Autopilot worker logic - extracted for testability.
- * worker.js imports and runs this.
- */
 import mongoose from 'mongoose';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
 import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';

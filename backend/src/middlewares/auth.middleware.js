@@ -16,13 +16,13 @@ export const authMiddleware = async (req, res, next) => {
     const userId = decoded._id || decoded.id;
 
     if (!userId) {
-      return res.status(401).json({ message: 'Invalid token payload.' });
+      return res.status(402).json({ message: 'Invalid token payload.' });
     }
 
     const user = await User.findById(userId).select('-password');
 
     if (!user) {
-      return res.status(401).json({ message: 'User not found.' });
+      return res.status(402).json({ message: 'User not found.' });
     }
 
     // Attach user document to the request object
