@@ -33,7 +33,10 @@ import {
 } from '../utils/credits.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { getCachedReco, makeRecoKey } from '../utils/recoCache.js';
-import { getPrefetchedJobs } from '../utils/prefetchCache.js';
+import {
+  getPrefetchedJobs,
+  setPrefetchedJobs,
+} from '../utils/prefetchCache.js';
 import { StudentSkill } from '../models/students/studentSkill.model.js';
 import { makeTop4Key } from '../utils/dashboardKeys.js';
 
@@ -2130,7 +2133,7 @@ export async function getProfileBasedRecommendedJobs(req, res) {
     finalJobs = diversify(finalJobs);
     const jobsWithViews = await attachJobViews(finalJobs);
 
-    return res.status(200).json({
+    const payload = {
       success: true,
       pagination: {
         currentPage: pageNum,
@@ -2138,7 +2141,17 @@ export async function getProfileBasedRecommendedJobs(req, res) {
         totalJobs: processed.length,
       },
       jobs: jobsWithViews,
-    });
+    };
+
+    // Warm prefetch cache for page 1 so reloads are instant
+    if (pageNum === 1 && limitNum <= 10 && jobsWithViews.length > 0) {
+      void setPrefetchedJobs(req.user._id, {
+        jobs: jobsWithViews,
+        pagination: payload.pagination,
+      });
+    }
+
+    return res.status(200).json(payload);
   } catch (error) {
     console.error('API Reco Error:', error);
     return res.status(500).json({ success: false });
