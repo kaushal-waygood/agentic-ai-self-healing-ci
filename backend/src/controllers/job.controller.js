@@ -81,7 +81,7 @@ const sendRawEmail = async ({ to, subject, html }) =>
 
 // --- Functions ---
 
-export async function countJobs(filter = { published: true }) {
+export async function countJobs(filter = { isActive: true }) {
   return Job.countDocuments(filter).exec();
 }
 
