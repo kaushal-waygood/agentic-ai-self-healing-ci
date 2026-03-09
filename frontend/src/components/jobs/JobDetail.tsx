@@ -1,18 +1,16 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import apiInstance from '@/services/api';
 import { MatchScoreModal } from './MatchScoreModal';
 
-import { RootState } from '@/redux/rootReducer';
 import {
   savedStudentJobsRequest,
   visitedJobsRequest,
@@ -77,6 +75,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'match' | 'ats'>('match');
+  const [isApplying, setIsApplying] = useState(false);
   const [openCard, setOpenCard] = useState<'match' | 'ats' | null>('match');
   const [token, setToken] = useState<string | undefined>(undefined);
 
@@ -137,6 +136,53 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     setIsLoadingAtsScore(false);
     setProgress(0);
 
+    return () => controller.abort();
+  }, [job?._id]);
+
+  // token lookup (SSR-safe)
+  // useEffect(() => {
+  //   try {
+  //     const accessToken =
+  //       (typeof window !== 'undefined' &&
+  //         window.localStorage?.getItem('accessToken')) ||
+  //       getCookie('accessToken');
+  //     setToken(accessToken || undefined);
+  //   } catch {
+  //     setToken(undefined);
+  //   }
+  // }, []);
+
+  // load cached score and job saved/applied flags
+  useEffect(() => {
+    if (!job?._id) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const savedScore = localStorage.getItem(`matchScore_${job._id}`);
+    setMatchScore(savedScore ? (JSON.parse(savedScore) as MatchScore) : null);
+    setIsLoadingScore(false);
+    setProgress(0);
+
+    const checkJobStatus = async () => {
+      try {
+        const savedRes = await apiInstance.get(
+          '/students/jobs/intraction-status',
+          { params: { jobId: job._id }, signal },
+        );
+
+        if (signal.aborted) return;
+        setIsSaved(Boolean(savedRes?.data?.saved));
+        setIsApplying(Boolean(savedRes?.data?.applied));
+      } catch (error) {
+        if (!signal.aborted) {
+          // quiet log; don’t spam the UI
+          console.error('Failed to check job status:', error);
+        }
+      }
+    };
+
+    checkJobStatus();
     return () => controller.abort();
   }, [job?._id]);
 
@@ -614,7 +660,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
-                      job._id,
+                      job._id ?? '',
                     )}&step=cv`}
                   >
                     <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -631,7 +677,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
-                      job._id,
+                      job._id ?? '',
                     )}&step=cv`}
                   >
                     <div className="relative flex items-center justify-center gap-2">
@@ -662,18 +708,27 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                     </div>
                   </Link>
                 </Button>
+              ) : isApplying ? (
+                <Button
+                  disabled
+                  className="px-5 py-3 rounded-lg font-semibold bg-green-600 text-white flex items-center justify-center cursor-not-allowed opacity-90"
+                >
+                  <div className="relative flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Applied</span>
+                  </div>
+                </Button>
               ) : (
                 <Button
                   onClick={handleApplyNow}
+                  asChild
                   className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
                 >
                   <Link
                     href={`/dashboard/jobs/${job._id}/apply`}
-                    // target="_blank"
                     rel="noopener noreferrer"
                   >
                     <div className="relative flex items-center justify-center gap-2">
-                      {/* <Send className="w-5 h-5" /> */}
                       <span>Apply Now</span>
                     </div>
                   </Link>

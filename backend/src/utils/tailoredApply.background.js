@@ -18,6 +18,7 @@ import { wrapCVHtml } from '../utils/cvTemplate.js';
 import { wrapEmailHtml } from '../utils/emailTemplate.js';
 import { calculateATSScore } from '../utils/atsScore.js';
 import { Student } from '../models/student.model.js';
+import redisClient from '../config/redis.js';
 import { StudentEducation } from '../models/students/studentEducation.model.js';
 import { StudentExperience } from '../models/students/studentExperience.model.js';
 import { StudentSkill } from '../models/students/studentSkill.model.js';
@@ -175,6 +176,8 @@ export const processTailoredApplication = async (
       { _id: userId },
       { $inc: { 'usageCounters.aiApplication': 1 } },
     );
+
+    await redisClient.del(`dashboard:${userId}:ai-activity`);
 
     await sendRealTimeUserNotification(
       io,

@@ -1,13 +1,19 @@
 import { Router } from 'express';
-import mongoose from 'mongoose';
+
+import crypto from 'crypto';
 import {
   authMiddleware,
   isGeneralUser,
 } from '../middlewares/auth.middleware.js';
-import { Student } from '../models/students/student.model.js';
 import { genAIRequest as genAI } from '../config/gemini.js';
+import redisClient from '../config/redis.js';
+import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
+import { Student } from '../models/students/student.model.js';
 
 const router = Router();
+
+const STUDENT_CACHE_TTL = 600; // 10 minutes
+const AI_CACHE_TTL = 1800; // 30 minutes
 
 /* ============================================================
    FORMATTING HELPERS
@@ -88,8 +94,10 @@ function normalizeKeyForMatching(key) {
    ============================================================ */
 
 function normalizeStudent(student) {
-  let fName = student.firstName || '';
-  let lName = student.lastName || '';
+  const meta = student.metadata || {};
+
+  let fName = meta.firstName || '';
+  let lName = meta.lastName || '';
 
   if (!fName && !lName && student.fullName) {
     const parts = student.fullName.trim().split(/\s+/);
@@ -97,8 +105,8 @@ function normalizeStudent(student) {
     lName = parts.length > 1 ? parts.slice(1).join(' ') : '';
   }
 
-  let city = student.city || '';
-  let country = student.country || '';
+  let city = meta.city || '';
+  let country = meta.country || '';
 
   if (!city && !country && student.location) {
     const locParts = student.location.split(',').map((p) => p.trim());
@@ -110,53 +118,51 @@ function normalizeStudent(student) {
     }
   }
 
-  // Get Most Recent Experience (First item in array usually)
   const latestExp =
     student.experience && student.experience.length > 0
       ? student.experience[0]
       : {};
 
-  // Get Most Recent Education
   const latestEdu =
     student.education && student.education.length > 0
       ? student.education[0]
       : {};
 
-  // Get First Project
   const latestProj =
     student.projects && student.projects.length > 0 ? student.projects[0] : {};
 
-  return {
-    id: String(student._id),
-    fullName:
-      student.fullName || [fName, lName].filter(Boolean).join(' ') || '',
+  const derived = {
     firstName: fName,
     lastName: lName,
-    email: student.email || '',
-    phone: student.phone || '',
-    phoneCountryCode: student.phoneCountryCode || '',
-    city: city,
-    state: student.state || '',
-    country: country,
-    zipCode: student.zipCode || '',
-    jobRole: student.jobRole || '',
-    skills: student.skills?.map((s) => s.skill) || [],
-    resumeUrl: student.uploadedCV || student.resumeUrl || '',
-
-    // NEW FIELDS EXTRACTED FROM ARRAYS
+    phoneCountryCode: meta.phoneCountryCode || '',
+    city,
+    state: meta.state || '',
+    country,
+    zipCode: meta.zipCode || '',
     school: latestEdu.institute || '',
     degree: latestEdu.degree || '',
     fieldOfStudy: latestEdu.fieldOfStudy || '',
     graduationYear: latestEdu.endDate
       ? new Date(latestEdu.endDate).getFullYear()
       : '',
-
     company: latestExp.company || '',
     jobTitle: latestExp.title || '',
     jobDescription: latestExp.description || '',
-
     projectName: latestProj.projectName || '',
     projectDescription: latestProj.description || '',
+  };
+
+  return {
+    id: String(student._id),
+    fullName:
+      student.fullName || [fName, lName].filter(Boolean).join(' ') || '',
+    email: student.email || '',
+    phone: student.phone || '',
+    jobRole: student.jobRole || '',
+    skills: student.skills?.map((s) => s.skill) || [],
+    resumeUrl: student.uploadedCV || student.resumeUrl || '',
+    ...derived,
+    _derivedMetadata: derived,
   };
 }
 
@@ -171,6 +177,11 @@ const FIELD_MAPPINGS = [
   { patterns: ['full name', 'candidate name'], field: 'fullName' },
   { patterns: ['email'], field: 'email' },
   { patterns: ['phone', 'mobile'], field: 'phone' },
+
+  {
+    patterns: ['resume', 'cv', 'upload file', 'upload resume', 'upload cv'],
+    field: 'resumeUrl',
+  },
 
   // Education (Using the new normalized keys)
   {
@@ -201,11 +212,20 @@ const FIELD_MAPPINGS = [
 function resolveIdentityValue(descriptor, student) {
   const normalizedKey =
     descriptor.normalizedKey || normalizeKeyForMatching(descriptor.inputKey);
+
+  if (
+    normalizedKey.includes('file') ||
+    normalizedKey.includes('resume') ||
+    normalizedKey.includes('cv') ||
+    normalizedKey.includes('upload')
+  ) {
+    return student.resumeUrl || '';
+  }
+
   const keyWithLabel = normalizeKeyForMatching(
     `${descriptor.inputKey} ${descriptor.label || ''}`,
   );
 
-  // Try to find matching pattern
   for (const mapping of FIELD_MAPPINGS) {
     for (const pattern of mapping.patterns) {
       const normalizedPattern = normalizeKeyForMatching(pattern);
@@ -216,15 +236,7 @@ function resolveIdentityValue(descriptor, student) {
       ) {
         let value = student[mapping.field];
 
-        // Handle array fields
-        if (Array.isArray(value) && value.length > 0) {
-          value = value[0];
-        }
-
-        // Handle defaults
-        if (!value && mapping.default !== undefined) {
-          value = mapping.default;
-        }
+        if (Array.isArray(value)) value = value[0];
 
         return value || '';
       }
@@ -281,30 +293,95 @@ function buildAIPrompt(student, aiTargetInputs) {
 }
 
 /* ============================================================
+   CACHE HELPERS
+   ============================================================ */
+
+function buildFieldsHash(fields) {
+  const sorted = fields
+    .map((f) => f.inputKey)
+    .sort()
+    .join('|');
+  return crypto.createHash('md5').update(sorted).digest('hex').slice(0, 12);
+}
+
+async function getCachedStudent(studentId) {
+  const key = `autofill:student:${studentId}`;
+  const cached = await redisClient.get(key);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      /* corrupted entry, refetch */
+    }
+  }
+
+  const snapshot = await getStudentProfileSnapshot(studentId);
+  if (!snapshot) return null;
+
+  const normalized = normalizeStudent(snapshot);
+
+  // Persist derived fields into student.metadata (fire-and-forget)
+  if (normalized._derivedMetadata) {
+    const metaUpdate = { ...normalized._derivedMetadata };
+    Student.updateOne(
+      { _id: studentId },
+      { $set: { metadata: metaUpdate } },
+    ).catch(() => {});
+    delete normalized._derivedMetadata;
+  }
+
+  await redisClient.set(key, JSON.stringify(normalized), STUDENT_CACHE_TTL);
+  return normalized;
+}
+
+async function getCachedAIResponse(student, aiTargetInputs) {
+  const hash = buildFieldsHash(aiTargetInputs);
+  const key = `autofill:ai:${student.id}:${hash}`;
+
+  const cached = await redisClient.get(key);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      return new Map(parsed);
+    } catch {
+      /* corrupted entry, regenerate */
+    }
+  }
+
+  const prompt = buildAIPrompt(student, aiTargetInputs);
+  const raw = await genAI(prompt);
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+  if (!parsed?.outputs) return new Map();
+
+  const entries = parsed.outputs.map((o) => [
+    String(o.inputKey).toLowerCase(),
+    o.value,
+  ]);
+
+  await redisClient.set(key, JSON.stringify(entries), AI_CACHE_TTL);
+  return new Map(entries);
+}
+
+/* ============================================================
    ROUTE
    ============================================================ */
 
 router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
   const studentId = req.user?._id;
-  let { inputs } = req.body;
+  const { inputs } = req.body;
 
   if (!studentId) return res.status(400).json({ error: 'User not found' });
   if (!inputs || !Array.isArray(inputs)) {
     return res.status(400).json({ error: 'Invalid inputs format' });
   }
 
-  const studentRaw = await Student.findById(studentId).lean();
-  if (!studentRaw) return res.status(404).json({ error: 'Student not found' });
-
-  console.log(studentRaw);
-
-  const student = normalizeStudent(studentRaw);
-
-  console.log(student);
+  const student = await getCachedStudent(studentId);
+  if (!student) return res.status(404).json({ error: 'Student not found' });
 
   const normalizedInputs = normalizeInputs(inputs);
 
-  // First pass: deterministic resolution for all fields
   const deterministicOutputs = new Map();
   normalizedInputs.forEach((descriptor) => {
     if (classifyField(descriptor) !== 'SECURITY') {
@@ -315,14 +392,12 @@ router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
     }
   });
 
-  // Second pass: AI enhancement for narrative and location fields
   let aiMap = new Map();
   try {
     const aiTargetInputs = normalizedInputs.filter((d) => {
       const category = classifyField(d);
       const text = d.normalizedKey || normalizeKeyForMatching(d.inputKey);
 
-      // Include fields that need formatting or demonym conversion
       const needsEnhancement =
         category === 'NARRATIVE' ||
         text.includes('country') ||
@@ -332,47 +407,30 @@ router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
         text.includes('job title') ||
         text.includes('position');
 
-      // Only include if we don't already have a deterministic value
       return (
         needsEnhancement && !deterministicOutputs.has(d.inputKey.toLowerCase())
       );
     });
 
     if (aiTargetInputs.length) {
-      const prompt = buildAIPrompt(student, aiTargetInputs);
-      const raw = await genAI(prompt);
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-
-      if (parsed?.outputs) {
-        aiMap = new Map(
-          parsed.outputs.map((o) => [
-            String(o.inputKey).toLowerCase(),
-            o.value,
-          ]),
-        );
-      }
+      aiMap = await getCachedAIResponse(student, aiTargetInputs);
     }
   } catch (err) {
-    console.error('AI Error:', err);
+    console.error('Autofill AI error:', err.message);
   }
 
-  // Combine results
   const outputs = normalizedInputs.map((descriptor) => {
     const key = descriptor.inputKey;
     const lowerKey = key.toLowerCase();
 
     let value = '';
 
-    // Priority: AI > Deterministic > Empty string
     if (classifyField(descriptor) !== 'SECURITY') {
       value = aiMap.get(lowerKey) || deterministicOutputs.get(lowerKey) || '';
     }
 
-    // Apply formatting
     value = formatValue(value, descriptor.inputKey);
 
-    // Handle options
     if (Array.isArray(descriptor.options) && descriptor.options.length) {
       value = pickOption(descriptor.options, value);
     }
@@ -380,9 +438,90 @@ router.post('/', authMiddleware, isGeneralUser, async (req, res) => {
     return { inputKey: key, value: value ?? '' };
   });
 
-  // Log stats for debugging
   const filledCount = outputs.filter((o) => o.value && o.value !== '').length;
-  console.log(`Filled ${filledCount}/${outputs.length} fields`);
+
+  return res.json({
+    studentId: student.id,
+    outputs,
+    stats: {
+      total: outputs.length,
+      filled: filledCount,
+      empty: outputs.length - filledCount,
+    },
+  });
+});
+
+router.post('/manual', authMiddleware, isGeneralUser, async (req, res) => {
+  const studentId = req.user?._id;
+  const { fields: inputs } = req.body;
+
+  if (!studentId) return res.status(400).json({ error: 'User not found' });
+  if (!inputs || !Array.isArray(inputs)) {
+    return res.status(400).json({ error: 'Invalid inputs format' });
+  }
+
+  const student = await getCachedStudent(studentId);
+  if (!student) return res.status(404).json({ error: 'Student not found' });
+
+  const normalizedInputs = normalizeInputs(inputs);
+
+  const deterministicOutputs = new Map();
+  normalizedInputs.forEach((descriptor) => {
+    if (classifyField(descriptor) !== 'SECURITY') {
+      const value = resolveIdentityValue(descriptor, student);
+      if (value) {
+        deterministicOutputs.set(descriptor.inputKey.toLowerCase(), value);
+      }
+    }
+  });
+
+  let aiMap = new Map();
+  try {
+    const aiTargetInputs = normalizedInputs.filter((d) => {
+      const category = classifyField(d);
+      const text = d.normalizedKey || normalizeKeyForMatching(d.inputKey);
+
+      const needsEnhancement =
+        category === 'NARRATIVE' ||
+        text.includes('country') ||
+        text.includes('city') ||
+        text.includes('state') ||
+        text.includes('nationality') ||
+        text.includes('job title') ||
+        text.includes('position');
+
+      return (
+        needsEnhancement && !deterministicOutputs.has(d.inputKey.toLowerCase())
+      );
+    });
+
+    if (aiTargetInputs.length) {
+      aiMap = await getCachedAIResponse(student, aiTargetInputs);
+    }
+  } catch (err) {
+    console.error('Autofill AI error:', err.message);
+  }
+
+  const outputs = normalizedInputs.map((descriptor) => {
+    const key = descriptor.inputKey;
+    const lowerKey = key.toLowerCase();
+
+    let value = '';
+
+    if (classifyField(descriptor) !== 'SECURITY') {
+      value = aiMap.get(lowerKey) || deterministicOutputs.get(lowerKey) || '';
+    }
+
+    value = formatValue(value, descriptor.inputKey);
+
+    if (Array.isArray(descriptor.options) && descriptor.options.length) {
+      value = pickOption(descriptor.options, value);
+    }
+
+    return { inputKey: key, value: value ?? '' };
+  });
+
+  const filledCount = outputs.filter((o) => o.value && o.value !== '').length;
 
   return res.json({
     studentId: student.id,

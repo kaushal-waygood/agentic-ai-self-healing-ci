@@ -30,6 +30,9 @@ import loginHistoryRoutes from './routes/loginHistory.route.js';
 import chatRoutes from './routes/chatRoutes.js';
 
 import { startCronsRenew } from './config/renew-cron/cron.js';
+import { startPrefetchCron } from './config/cron-prefetch.js';
+import { clearExpiredEmailChangeRequests } from './utils/cron.js';
+import { startAutopilotWorkerCron } from './config/autopilotWorkerCron.js';
 
 import {
   handleStripeWebhook,
@@ -39,6 +42,10 @@ import {
 import newFeatureRoutes from './routes/newFeature.route.js';
 import { config } from './config/config.js';
 import { ensurePlanValidity } from './middlewares/ensurePlanValidity.js';
+import {
+  recordServerError,
+  successTracker,
+} from './utils/errorAlertMonitor.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -98,6 +105,7 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(ensurePlanValidity);
+app.use(successTracker);
 
 /* ---------------- ROUTES ---------------- */
 
@@ -108,6 +116,9 @@ app.get('/health-check', (req, res) => {
 });
 
 startCronsRenew();
+startPrefetchCron();
+clearExpiredEmailChangeRequests();
+// startAutopilotWorkerCron(); // Autopilot: find & process jobs for active agents (requires AUTOGEN_TAILORED=true)
 
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/bring-zobs', bringZobsRoutes);
@@ -137,9 +148,15 @@ app.use((req, res, next) => next(createHttpError(404, 'Endpoint not found')));
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(err.status || 500).json({
+  const status = err.status || 500;
+
+  if (status === 500) {
+    recordServerError(err, req);
+  }
+
+  res.status(status).json({
     error: {
-      status: err.status || 500,
+      status,
       message: err.message,
       ...(config.nodeEnv === 'local' && { stack: err.stack }),
     },

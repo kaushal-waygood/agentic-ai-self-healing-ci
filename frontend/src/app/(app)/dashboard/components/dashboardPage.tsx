@@ -42,7 +42,6 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProfileRequest } from '@/redux/reducers/authReducer';
-import apiInstance from '@/services/api';
 import useProfileCompletion from '@/hooks/useProfileCompletion';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -50,6 +49,12 @@ import CompletionModal from './CompletionModel';
 import { startDashboardTour } from './dashboardDriver';
 import { SpendCreditsSection } from '@/components/credits/SpendCreditsSection';
 import { useCredits } from '@/hooks/useCredits';
+import {
+  useCachedBillingData,
+  useCachedAIActivity,
+  useCachedTopJobs,
+  useCachedStudentDetails,
+} from '@/hooks/useCachedDashboardData';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import OnboardingExperienceFeedback from '../onboarding-tour/OnboardingExperienceFeedback';
@@ -202,51 +207,6 @@ export function ProfileReadinessCard() {
 
   if (score === 100) {
     return null;
-    // return (
-    //   <div className="bg-white relative overflow-hidden rounded-lg border border-gray-200 p-4 ">
-    //     <div
-    //       className="relative z-10 flex flex-col sm:flex-row
-    //                   items-start sm:items-center
-    //                   justify-between gap-4"
-    //     >
-    //       {/* Left */}
-    //       <div className="flex items-center gap-4">
-    //         <div className="relative flex items-center justify-center">
-    //           <div
-    //             className="relative flex h-12 w-12 items-center
-    //                         justify-center rounded-full bg-green-100"
-    //           >
-    //             <CheckCircle2 className="h-6 w-6 text-green-600" />
-    //           </div>
-    //         </div>
-
-    //         <div>
-    //           <h3 className="text-lg font-semibold text-gray-900">
-    //             Profile Complete
-    //           </h3>
-    //           <p className="text-sm text-gray-600">
-    //             Your profile is 100% ready to go 🎉
-    //           </p>
-    //         </div>
-    //       </div>
-
-    //       {/* Right */}
-    //       <Button
-    //         asChild
-    //         className="group bg-buttonPrimary hover:bg-blue-700
-    //                  text-white flex items-center gap-2"
-    //       >
-    //         <Link href="/dashboard/profile" prefetch={false}>
-    //           View Profile
-    //           <ArrowRight
-    //             className="h-4 w-4 transition-transform
-    //                               group-hover:translate-x-1"
-    //           />
-    //         </Link>
-    //       </Button>
-    //     </div>
-    //   </div>
-    // );
   }
 
   /* =========================
@@ -659,9 +619,12 @@ function TopJobCard({ job }: { job: TopJob }) {
 }
 
 export default function DashboardPage() {
-  const [recentAI, setRecentAI] = useState<any>(null);
-  const [billingData, setBillingData] = useState<any[]>([]);
+  const { user: authUser } = useSelector((state: RootState) => state.auth);
   const { balance, spending, checkout } = useCredits();
+  const { data: billingData = [] } = useCachedBillingData(!!authUser);
+  const { data: recentAI } = useCachedAIActivity(!!authUser);
+  const { data: topJobsRecommendations = [] } = useCachedTopJobs(!!authUser);
+  const { data: studentDetails } = useCachedStudentDetails();
 
   const searchParams = useSearchParams();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
@@ -679,24 +642,6 @@ export default function DashboardPage() {
   const { planType, isActive, usageData, usageLimits } = useSelector(
     (state: RootState) => state.plan,
   );
-  const { user: authUser } = useSelector((state: RootState) => state.auth);
-
-  useEffect(() => {
-    const fetchBillingData = async () => {
-      try {
-        const res = await apiInstance.get('/plan/perchased');
-        if (res.data.success) {
-          setBillingData(res.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching billing data:', error);
-      }
-    };
-
-    if (authUser) {
-      fetchBillingData();
-    }
-  }, [authUser]);
 
   const activeRecord = billingData.find((record) => record.isActive);
 
@@ -722,23 +667,7 @@ export default function DashboardPage() {
   const [showCompletionModal, setShowCompletionModal] =
     useState<boolean>(false);
 
-  useEffect(() => {
-    const run = async () => {
-      try {
-        const res = await apiInstance.get('/students/details');
-        const hasCompleted = res.data.studentDetails?.hasCompletedOnboarding;
-
-        if (hasCompleted) {
-          // Auto-start tour if onboarding already completed
-          // handleStartTour();
-        }
-      } catch (e) {
-        console.error('Error fetching:', e);
-      }
-    };
-
-    run();
-  }, []);
+  // Student details (onboarding status) now served from cache
 
   useEffect(() => {
     const btn = document.getElementById('start-tour-btn');
@@ -784,26 +713,10 @@ export default function DashboardPage() {
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
 
-    const encodedQuery = encodeURIComponent(trimmed.replace(/\s+/g, '+'));
+    //  const encodedQuery = encodeURIComponent(trimmed.replace(/\s+/g, '+'));
+    const encodedQuery = encodeURIComponent(trimmed);
     router.push(`/dashboard/search-jobs?q=${encodedQuery}`);
   };
-
-  useEffect(() => {
-    const fetchRecentAI = async () => {
-      try {
-        const res = await apiInstance.get('/students/ai-activity');
-        if (res.data.success) {
-          setRecentAI(res.data.data);
-        }
-      } catch (e) {
-        console.error('Failed to load recent AI activity', e);
-      }
-    };
-
-    if (authUser) {
-      fetchRecentAI();
-    }
-  }, [authUser]);
 
   type TopJob = {
     _id: string;
@@ -818,27 +731,6 @@ export default function DashboardPage() {
     finalScore: number;
     slug: string;
   };
-
-  const [topJobsRecommendations, setTopJobsRecommendations] = useState<
-    TopJob[]
-  >([]);
-
-  useEffect(() => {
-    if (!authUser) return;
-
-    const fetchTopJobs = async () => {
-      try {
-        const res = await apiInstance.get('/jobs/dashboard/top-jobs');
-        if (res.data?.jobs) {
-          setTopJobsRecommendations(res.data.jobs);
-        }
-      } catch (e) {
-        console.error('Top jobs fetch failed', e);
-      }
-    };
-
-    fetchTopJobs();
-  }, [authUser]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 p-6">
@@ -1182,8 +1074,6 @@ export default function DashboardPage() {
                       time={recentAI.cv.completedAt}
                       id={recentAI.cv.id || recentAI.cv._id}
                       type="cv"
-                     
-                   
                       href={`/dashboard/my-docs/cv/${recentAI?.cv?.id}`}
                     />
                   )}
@@ -1196,7 +1086,6 @@ export default function DashboardPage() {
                       time={recentAI.coverLetter.completedAt}
                       id={recentAI.coverLetter.id || recentAI.coverLetter._id}
                       type="coverLetter"
-                     
                       href={`/dashboard/my-docs/cl/${recentAI?.coverLetter?.id}`}
                     />
                   )}
@@ -1212,7 +1101,6 @@ export default function DashboardPage() {
                         recentAI.tailoredApplication._id
                       }
                       type="tailoredApplication"
-                  
                       href={`/dashboard/my-docs/application/${recentAI?.tailoredApplication?.id}`}
                     />
                   )}

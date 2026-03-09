@@ -9,6 +9,7 @@ import {
   runAutopilotTask,
   scheduleAutopilotTriggers,
 } from '../config/autopilotCron.js';
+import { findAndProcessJobs } from '../worker/autopilotWorker.js';
 
 const router = express.Router();
 
@@ -42,6 +43,20 @@ if (process.env.NODE_ENV === 'local') {
     } catch (error) {
       console.error('Error executing autopilot task:', error);
       res.status(500).send('Error executing autopilot task');
+    }
+  });
+
+  router.get('/trigger-autopilot-worker', async (req, res) => {
+    try {
+      const result = await findAndProcessJobs();
+      res.status(200).json({
+        success: true,
+        message: 'Autopilot worker executed',
+        processed: result?.processed ?? 0,
+      });
+    } catch (error) {
+      console.error('Error executing autopilot worker:', error);
+      res.status(500).send('Error executing autopilot worker');
     }
   });
 }

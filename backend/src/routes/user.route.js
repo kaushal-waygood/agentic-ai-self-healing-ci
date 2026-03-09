@@ -27,6 +27,7 @@ import {
   getVerifiedUser,
   firebaseGoogleLogin,
   submitFeedback,
+  refreshTokens,
 } from '../controllers/user.controller.js';
 import {
   authMiddleware,
@@ -71,6 +72,7 @@ router.post('/verify', verifyEmail);
 router.post('/change-email', authMiddleware, resendVerificationEmail);
 router.patch('/verify-email-otp', authMiddleware, isStudent, verifyUpdateEmail);
 router.post('/signin', signInUser);
+router.post('/refresh', refreshTokens);
 router.post('/send-email', authMiddleware, sendEmails);
 router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, isUserOrUniStudent, getUserProfile);

@@ -22,6 +22,7 @@ interface MonthYearPickerProps {
   className?: string;
   fromYear?: number;
   toYear?: number;
+  maxDate?: Date;
 }
 
 export function MonthYearPicker({
@@ -32,6 +33,7 @@ export function MonthYearPicker({
   className,
   fromYear = 1950,
   toYear = new Date().getFullYear() + 10,
+  maxDate,
 }: MonthYearPickerProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [selectedMonth, setSelectedMonth] = React.useState<number>(
@@ -58,10 +60,26 @@ export function MonthYearPicker({
     'December',
   ];
 
-  const years = Array.from(
-    { length: toYear - fromYear + 1 },
-    (_, i) => fromYear + i,
-  );
+  // const years = Array.from(
+  //   { length: toYear - fromYear + 1 },
+  //   (_, i) => fromYear + i,
+  // );
+
+  // Filter years based on maxDate
+  const years = React.useMemo(() => {
+    let maxYear = maxDate ? maxDate.getFullYear() : toYear;
+    return Array.from(
+      { length: maxYear - fromYear + 1 },
+      (_, i) => fromYear + i,
+    );
+  }, [fromYear, maxDate, toYear]);
+
+  // Validate selected date against maxDate
+  const isValidDate = (year: number, month: number) => {
+    if (!maxDate) return true;
+    const selectedDate = new Date(year, month, 1);
+    return selectedDate <= maxDate;
+  };
 
   const handleMonthChange = (month: string) => {
     setSelectedMonth(parseInt(month));
@@ -72,6 +90,10 @@ export function MonthYearPicker({
   };
 
   const handleApply = () => {
+    if (!isValidDate(selectedYear, selectedMonth)) {
+      // Show error or just don't apply
+      return;
+    }
     const newDate = new Date(selectedYear, selectedMonth, 1);
     const formatted = format(newDate, 'yyyy-MM');
     setDate(formatted);
@@ -140,7 +162,6 @@ export function MonthYearPicker({
               <div className="text-sm font-medium text-gray-700">
                 Select Month & Year
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">
@@ -160,11 +181,25 @@ export function MonthYearPicker({
                       className="bg-white max-h-60 overflow-y-auto z-[10000]"
                       align="start"
                     >
-                      {months.map((month, index) => (
+                      {/* {months.map((month, index) => (
                         <SelectItem key={index} value={index.toString()}>
                           {month}
                         </SelectItem>
-                      ))}
+                      ))} */}
+                      {months.map((month, index) => {
+                        const isDisabled = maxDate
+                          ? !isValidDate(selectedYear, index)
+                          : false;
+                        return (
+                          <SelectItem
+                            key={index}
+                            value={index.toString()}
+                            disabled={isDisabled}
+                          >
+                            {month}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -187,16 +222,34 @@ export function MonthYearPicker({
                       className="bg-white max-h-60 overflow-y-auto z-[10000]"
                       align="start"
                     >
-                      {years.map((year) => (
+                      {/* {years.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
-                      ))}
+                      ))} */}
+                      {years.map((year) => {
+                        const isDisabled = maxDate
+                          ? !isValidDate(year, selectedMonth)
+                          : false;
+                        return (
+                          <SelectItem
+                            key={year}
+                            value={year.toString()}
+                            disabled={isDisabled}
+                          >
+                            {year}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-
+              {!isValidDate(selectedYear, selectedMonth) && maxDate && (
+                <p className="text-xs text-red-500">
+                  Cannot select date after {format(maxDate, 'MMMM yyyy')}
+                </p>
+              )}{' '}
               <div className="flex justify-end gap-2 pt-2 border-t">
                 <Button
                   type="button"
@@ -206,7 +259,12 @@ export function MonthYearPicker({
                 >
                   Cancel
                 </Button>
-                <Button type="button" size="sm" onClick={handleApply}>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleApply}
+                  disabled={!isValidDate(selectedYear, selectedMonth)}
+                >
                   Apply
                 </Button>
               </div>

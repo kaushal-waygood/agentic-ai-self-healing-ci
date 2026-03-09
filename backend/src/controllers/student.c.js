@@ -7,15 +7,18 @@ import { StudentEducation } from '../models/students/studentEducation.model.js';
 import { StudentExperience } from '../models/students/studentExperience.model.js';
 import { StudentProject } from '../models/students/studentProject.model.js';
 import { StudentCV } from '../models/students/studentCV.model.js';
+import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
 import { StudentCL } from '../models/students/studentCL.model.js';
 import { Student } from '../models/students/student.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
+// import { StudentAgent } from '../models/students/studentAgent.model.js';
 
 // User Models
 import { User } from '../models/User.model.js';
 
 // Job Models
 import { JobInteraction } from '../models/jobInteraction.model.js';
+import { AppliedJob } from '../models/AppliedJob.js';
 
 // import calculateExperience from '../utils/calculateExperience.js';
 import redisClient from '../config/redis.js';
@@ -28,7 +31,7 @@ import {
   safeGetVariant,
 } from './plan.controller.js';
 import { Purchase } from '../models/Purchase.js';
-import { addCredits, CREDIT_EARN } from '../utils/credits.js';
+import { addCredits, earnCreditsForAction, CREDIT_EARN } from '../utils/credits.js';
 import {
   notificationTemplates,
   sendRealTimeUserNotification,
@@ -398,51 +401,105 @@ export const getProfileCompletion = async (req, res) => {
           ),
         };
 
+        // if (completionStatus.coreProfile) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_PERSONAL,
+        //     'Core Profile Update',
+        //   );
+        // }
+        // if (completionStatus.education) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_EDUCATION,
+        //     'Education Completed',
+        //   );
+        // }
+
+        // if (completionStatus.workExperience) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE,
+        //     'Experience Completed',
+        //   );
+        // }
+
+        // if (completionStatus.skills) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_SKILL,
+        //     'Skills Completed',
+        //   );
+        // }
+
+        // if (completionStatus.projects) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_PROJECT,
+        //     'Project Completed',
+        //   );
+        // }
+
+        // if (completionStatus.jobPreferences) {
+        //   await addCredits(
+        //     studentId,
+        //     CREDIT_EARN.PROFILE_COMPLETE_JOB_PREFERENCES,
+        //     'Job Preferences Completed',
+        //   );
+        // }
+
+        // award credits only once per category – earnCreditsForAction throws 409 if already claimed
         if (completionStatus.coreProfile) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_PERSONAL,
-            'Core Profile Update',
-          );
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_PERSONAL');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
         if (completionStatus.education) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_EDUCATION,
-            'Education Completed',
-          );
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_EDUCATION');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         if (completionStatus.workExperience) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_EXPERIENCE,
-            'Experience Completed',
-          );
+          try {
+            await earnCreditsForAction(
+              studentId,
+              'PROFILE_COMPLETE_EXPERIENCE',
+            );
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         if (completionStatus.skills) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_SKILL,
-            'Skills Completed',
-          );
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_SKILL');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         if (completionStatus.projects) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_PROJECT,
-            'Project Completed',
-          );
+          try {
+            await earnCreditsForAction(studentId, 'PROFILE_COMPLETE_PROJECT');
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         if (completionStatus.jobPreferences) {
-          await addCredits(
-            studentId,
-            CREDIT_EARN.PROFILE_COMPLETE_JOB_PREFERENCES,
-            'Job Preferences Completed',
-          );
+          try {
+            await earnCreditsForAction(
+              studentId,
+              'PROFILE_COMPLETE_JOB_PREFERENCES',
+            );
+          } catch (err) {
+            if (!err.status || err.status !== 409) throw err;
+          }
         }
 
         const completedCategories =
@@ -992,7 +1049,6 @@ export const getProjects = async (req, res) => {
     res.json({ success: true, projects });
   }
 };
-
 export const addProject = async (req, res) => {
   const studentId = req.user._id;
   const {
@@ -1208,17 +1264,21 @@ export const updateApplicationStatus = async (req, res) => {
 
 export const getJobInteractionStatus = async (req, res) => {
   const userId = req.user._id;
-  const { jobId } = req.params;
+  const { jobId } = req.query;
 
-  const interactions = await JobInteraction.find({
-    user: userId,
-    job: jobId,
-    type: { $in: ['SAVED', 'APPLIED'] },
-  }).lean();
+  const [interactions, appliedJob] = await Promise.all([
+    JobInteraction.find({
+      user: userId,
+      job: jobId,
+      type: { $in: ['SAVED', 'APPLIED'] },
+    }).lean(),
+    AppliedJob.findOne({ student: userId, job: jobId }).lean(),
+  ]);
 
   res.json({
     saved: interactions.some((i) => i.type === 'SAVED'),
-    applied: interactions.some((i) => i.type === 'APPLIED'),
+    applied:
+      interactions.some((i) => i.type === 'APPLIED') || !!appliedJob,
   });
 };
 
@@ -1235,7 +1295,17 @@ export const getSavedJobs = async (req, res) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  res.json({ success: true, jobs: saved });
+  const filtered = saved.filter((entry) => entry.job != null);
+
+  const seen = new Set();
+  const deduplicated = filtered.filter((entry) => {
+    const jobId = entry.job._id.toString();
+    if (seen.has(jobId)) return false;
+    seen.add(jobId);
+    return true;
+  });
+
+  res.json({ success: true, jobs: deduplicated });
 };
 
 export const getAppliedJobs = async (req, res) => {
@@ -1282,15 +1352,13 @@ export const StudentAnalytics = async (req, res) => {
       tailoredCount,
       user,
     ] = await Promise.all([
-      JobInteraction.countDocuments({
-        user: userId,
-        type: 'VIEW',
-      }),
+      JobInteraction.distinct('job', { user: userId, type: 'VIEW' }).then(
+        (ids) => ids.length,
+      ),
 
-      JobInteraction.countDocuments({
-        user: userId,
-        type: 'VISIT',
-      }),
+      JobInteraction.distinct('job', { user: userId, type: 'VISIT' }).then(
+        (ids) => ids.length,
+      ),
 
       JobInteraction.countDocuments({
         user: userId,
@@ -1457,12 +1525,19 @@ export const checkoutCredits = async (req, res) => {
   }
 };
 
-export const getRecentAIActivity = async (req, res) => {
-  try {
-    const studentId = req.user._id;
+const DASHBOARD_AI_ACTIVITY_TTL = 300; // 5 min
 
-    const [latestCV, latestCoverLetter, latestTailoredApplication] =
-      await Promise.all([
+export const getRecentAIActivity = async (req, res) => {
+  const studentId = req.user._id;
+  const cacheKey = `dashboard:${studentId}:ai-activity`;
+
+  try {
+    const cached = await redisClient.withCache(
+      cacheKey,
+      DASHBOARD_AI_ACTIVITY_TTL,
+      async () => {
+        const [latestCV, latestCoverLetter, latestTailoredApplication] =
+          await Promise.all([
         StudentCV.findOne({
           student: studentId,
           status: 'completed',
@@ -1485,40 +1560,44 @@ export const getRecentAIActivity = async (req, res) => {
           .lean(),
       ]);
 
+        return {
+          cv: latestCV
+            ? {
+                id: latestCV._id,
+                title: latestCV.cvTitle,
+                status: latestCV.status,
+                createdAt: latestCV.createdAt,
+                completedAt: latestCV.completedAt,
+              }
+            : null,
+
+          coverLetter: latestCoverLetter
+            ? {
+                id: latestCoverLetter._id,
+                title: latestCoverLetter.clTitle,
+                status: latestCoverLetter.status,
+                createdAt: latestCoverLetter.createdAt,
+                completedAt: latestCoverLetter.completedAt,
+              }
+            : null,
+
+          tailoredApplication: latestTailoredApplication
+            ? {
+                id: latestTailoredApplication._id,
+                jobTitle: latestTailoredApplication.jobTitle,
+                companyName: latestTailoredApplication.companyName,
+                status: latestTailoredApplication.status,
+                createdAt: latestTailoredApplication.createdAt,
+                completedAt: latestTailoredApplication.completedAt,
+              }
+            : null,
+        };
+      },
+    );
+
     return res.json({
       success: true,
-      data: {
-        cv: latestCV
-          ? {
-              id: latestCV._id,
-              title: latestCV.cvTitle,
-              status: latestCV.status,
-              createdAt: latestCV.createdAt,
-              completedAt: latestCV.completedAt,
-            }
-          : null,
-
-        coverLetter: latestCoverLetter
-          ? {
-              id: latestCoverLetter._id,
-              title: latestCoverLetter.clTitle,
-              status: latestCoverLetter.status,
-              createdAt: latestCoverLetter.createdAt,
-              completedAt: latestCoverLetter.completedAt,
-            }
-          : null,
-
-        tailoredApplication: latestTailoredApplication
-          ? {
-              id: latestTailoredApplication._id,
-              jobTitle: latestTailoredApplication.jobTitle,
-              companyName: latestTailoredApplication.companyName,
-              status: latestTailoredApplication.status,
-              createdAt: latestTailoredApplication.createdAt,
-              completedAt: latestTailoredApplication.completedAt,
-            }
-          : null,
-      },
+      data: cached,
     });
   } catch (error) {
     console.error('Recent AI Activity Error:', error);
@@ -1914,6 +1993,29 @@ export const getCreditsSummary = async (req, res) => {
     }
 
     const user = await User.findById(userId).lean();
+    // const [
+    //   user,
+    //   student,
+    //   eduCount,
+    //   expCount,
+    //   skillCount,
+    //   projCount,
+    //   cvCount,
+    //   clCount,
+    //   agentCount,
+    // ] = await Promise.all([
+    //   User.findById(userId).lean(),
+    //   Student.findById(userId)
+    //     .select('phone profileImage resumeUrl')
+    //     .lean(),
+    //   StudentEducation.countDocuments({ student: userId }),
+    //   StudentExperience.countDocuments({ student: userId }),
+    //   StudentSkill.countDocuments({ student: userId }),
+    //   StudentProject.countDocuments({ student: userId }),
+    //   StudentCV.countDocuments({ student: userId, status: 'completed' }),
+    //   StudentCL.countDocuments({ student: userId, status: 'completed' }),
+    //   StudentAgent.countDocuments({ student: userId }),
+    // ]);
     if (!user) {
       res.status(404);
       throw new Error('User not found');
@@ -1983,6 +2085,7 @@ export const getCreditsSummary = async (req, res) => {
           return '/dashboard/search-jobs';
 
         case 'PROFILE_COMPLETE_PERSONAL':
+        // return '/dashboard/profile';
 
         case 'PROFILE_COMPLETE_EDUCATION':
           return '/dashboard/profile?tab=education';
@@ -2009,6 +2112,126 @@ export const getCreditsSummary = async (req, res) => {
     };
 
     const pending = [];
+
+    // const firstTimeChecks = [
+    //   {
+    //     kind: 'FIRST_CV',
+    //     done: cvCount > 0,
+    //     pendingReason: 'Generate your first CV to claim these credits.',
+    //   },
+    //   {
+    //     kind: 'FIRST_CL',
+    //     done: clCount > 0,
+    //     pendingReason: 'Generate your first cover letter to claim these credits.',
+    //   },
+    //   {
+    //     kind: 'FIRST_AUTO_AGENT_SETUP',
+    //     done: agentCount > 0,
+    //     pendingReason: 'Set up your first Auto-Apply agent.',
+    //   },
+    // ];
+
+    // for (const check of firstTimeChecks) {
+    //   if (hasClaimedKind(check.kind)) continue;
+
+    //   if (check.done) {
+    //     try {
+    //       await addCredits(userId, CREDIT_EARN[check.kind] || 10, check.kind, {
+    //         redirectUrl: redirectForAction(check.kind),
+    //         autoClaimed: true,
+    //       });
+    //     } catch (e) {
+    //       console.error(`Auto-claim ${check.kind} failed:`, e);
+    //     }
+    //   } else {
+    //     pending.push({
+    //       action: check.kind,
+    //       credits: CREDIT_EARN[check.kind] || 0,
+    //       reason: check.pendingReason,
+    //       url: redirectForAction(check.kind),
+    //     });
+    //   }
+    // }
+
+    // if (!hasClaimedKind('FIRST_AUTO_APPLICATION_SENT')) {
+    //   const appliedCount = await JobInteraction.countDocuments({
+    //     user: userId,
+    //     type: 'APPLIED',
+    //   });
+    //   if (appliedCount > 0) {
+    //     try {
+    //       await addCredits(
+    //         userId,
+    //         CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 10,
+    //         'FIRST_AUTO_APPLICATION_SENT',
+    //         {
+    //           redirectUrl: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
+    //           autoClaimed: true,
+    //         },
+    //       );
+    //     } catch (e) {
+    //       console.error('Auto-claim FIRST_AUTO_APPLICATION_SENT failed:', e);
+    //     }
+    //   } else {
+    //     pending.push({
+    //       action: 'FIRST_AUTO_APPLICATION_SENT',
+    //       credits: CREDIT_EARN.FIRST_AUTO_APPLICATION_SENT || 0,
+    //       reason: 'Send your first auto-application to claim credits.',
+    //       url: redirectForAction('FIRST_AUTO_APPLICATION_SENT'),
+    //     });
+    //   }
+    // }
+
+    // const profileChecks = [
+    //   {
+    //     kind: 'PROFILE_COMPLETE_PERSONAL',
+    //     done: !!(student?.phone || student?.profileImage),
+    //     pendingReason:
+    //       'Add phone number or profile image to complete personal details.',
+    //   },
+    //   {
+    //     kind: 'PROFILE_COMPLETE_EDUCATION',
+    //     done: eduCount > 0,
+    //     pendingReason: 'Add education details to claim credits.',
+    //   },
+    //   {
+    //     kind: 'PROFILE_COMPLETE_EXPERIENCE',
+    //     done: expCount > 0,
+    //     pendingReason: 'Add work experience to claim credits.',
+    //   },
+    //   {
+    //     kind: 'PROFILE_COMPLETE_PROJECT',
+    //     done: projCount > 0,
+    //     pendingReason: 'Add project details to claim credits.',
+    //   },
+    //   {
+    //     kind: 'PROFILE_COMPLETE_SKILL',
+    //     done: skillCount > 0,
+    //     pendingReason: 'Add skills to claim credits.',
+    //   },
+    // ];
+
+    // for (const check of profileChecks) {
+    //   if (hasClaimedKind(check.kind)) continue;
+
+    //   if (check.done) {
+    //     try {
+    //       await addCredits(userId, CREDIT_EARN[check.kind] || 10, check.kind, {
+    //         redirectUrl: redirectForAction(check.kind),
+    //         autoClaimed: true,
+    //       });
+    //     } catch (e) {
+    //       console.error(`Auto-claim ${check.kind} failed:`, e);
+    //     }
+    //   } else {
+    //     pending.push({
+    //       action: check.kind,
+    //       credits: CREDIT_EARN[check.kind] || 0,
+    //       reason: check.pendingReason,
+    //       url: redirectForAction(check.kind),
+    //     });
+    //   }
+    // }
 
     // FIRST_CV: keep your original logic but add url (client decides whether to show claim button)
     if (
@@ -2179,6 +2402,44 @@ export const getCreditsSummary = async (req, res) => {
     //   }
     // }
 
+    // Re-fetch user to get updated creditTransactions and balance after auto-claims
+    const updatedUser = await User.findById(userId).select('credits creditTransactions').lean();
+    const updatedTxs = updatedUser?.creditTransactions || [];
+    const claimedKinds = new Set(
+      updatedTxs.filter((t) => t?.kind && t?.type === 'EARN').map((t) => t.kind),
+    );
+    // Filter out any pending items that have been claimed (safety net for edge cases)
+    const oneTimeClaimKinds = [
+      'FIRST_CV',
+      'FIRST_CL',
+      'FIRST_AUTO_AGENT_SETUP',
+      'FIRST_AUTO_APPLICATION_SENT',
+      'PROFILE_COMPLETE_PERSONAL',
+      'PROFILE_COMPLETE_EDUCATION',
+      'PROFILE_COMPLETE_EXPERIENCE',
+      'PROFILE_COMPLETE_PROJECT',
+      'PROFILE_COMPLETE_SKILL',
+    ];
+    const completionByAction = {
+      FIRST_CV: Array.isArray(user.htmlCV) && user.htmlCV.length > 0,
+      FIRST_CL: Array.isArray(user.coverLetter) && user.coverLetter.length > 0,
+      FIRST_AUTO_AGENT_SETUP: Array.isArray(user.autopilotAgent) && user.autopilotAgent.length > 0,
+      FIRST_AUTO_APPLICATION_SENT: Array.isArray(user.appliedJobs) && user.appliedJobs.length > 0,
+      PROFILE_COMPLETE_PERSONAL: !!(user.phone || user.profileImage),
+      PROFILE_COMPLETE_EDUCATION: Array.isArray(user.education) && user.education.length > 0,
+      PROFILE_COMPLETE_EXPERIENCE: Array.isArray(user.experience) && user.experience.length > 0,
+      PROFILE_COMPLETE_PROJECT: Array.isArray(user.projects) && user.projects.length > 0,
+      PROFILE_COMPLETE_SKILL: Array.isArray(user.skills) && user.skills.length > 0,
+    };
+    const filteredPending = pending.filter((p) => {
+      if (oneTimeClaimKinds.includes(p.action)) {
+        if (claimedKinds.has(p.action)) return false;
+        if (completionByAction[p.action]) return false;
+        return true;
+      }
+      return true;
+    });
+
     const socialPlatforms = [
       { action: 'FOLLOW_LINKEDIN', label: 'LinkedIn' },
       { action: 'FOLLOW_INSTAGRAM', label: 'Instagram' },
@@ -2187,8 +2448,8 @@ export const getCreditsSummary = async (req, res) => {
       // { action: 'FOLLOW_TIKTOK', label: 'TikTok' },
     ];
     socialPlatforms.forEach((p) => {
-      if (!hasClaimedKind(p.action)) {
-        pending.push({
+      if (!claimedKinds.has(p.action)) {
+        filteredPending.push({
           action: p.action,
           credits: CREDIT_EARN.FOLLOW_SOCIAL || 0,
           reason: `Follow us on ${p.label} and then claim this credit (server verification recommended).`,
@@ -2198,7 +2459,7 @@ export const getCreditsSummary = async (req, res) => {
     });
 
     // generic job visit / apply pending items (no specific jobId available here)
-    pending.push({
+    filteredPending.push({
       action: 'VISITJOB_SITE',
       credits: CREDIT_EARN.VISITJOB_SITE || 0,
       reason:
@@ -2214,7 +2475,13 @@ export const getCreditsSummary = async (req, res) => {
     //   url: redirectForAction('APPLY_ON_COMPANY_SITE'),
     // });
 
-    const lastDaily = lastTxOfKind('DAILY_CHECKIN');
+    const lastTxOfKindFromTxs = (txList, kind) => {
+      const filtered = (txList || [])
+        .filter((t) => t?.kind === kind)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return filtered.length ? filtered[0] : null;
+    };
+    const lastDaily = lastTxOfKindFromTxs(updatedTxs, 'DAILY_CHECKIN');
     let dailyEligible = true;
     let lastDailyAt = null;
     if (lastDaily) {
@@ -2222,7 +2489,7 @@ export const getCreditsSummary = async (req, res) => {
       const elapsed = Date.now() - new Date(lastDailyAt).getTime();
       if (elapsed < 24 * 60 * 60 * 1000) dailyEligible = false;
     }
-    pending.push({
+    filteredPending.push({
       action: 'DAILY_CHECKIN',
       credits: CREDIT_EARN.DAILY_CHECKIN || 0,
       reason: dailyEligible
@@ -2237,8 +2504,8 @@ export const getCreditsSummary = async (req, res) => {
       url: redirectForAction('DAILY_CHECKIN'),
     });
 
-    // Prepare response: include redirectUrl on each tx (if present in tx.meta)
-    const recentTxs = txs
+    // Prepare response: use updated transactions to include newly auto-claimed credits
+    const recentTxs = updatedTxs
       .slice()
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 50)
@@ -2256,12 +2523,12 @@ export const getCreditsSummary = async (req, res) => {
       success: true,
       data: {
         userId: user._id,
-        balance: Number(user.credits || 0),
-        totalEarned,
-        totalSpent,
-        transactionsCount: txs.length,
+        balance: Number(updatedUser?.credits ?? user.credits ?? 0),
+        totalEarned: updatedTxs.reduce((sum, t) => (t?.type === 'EARN' ? sum + (t?.amount || 0) : sum), 0),
+        totalSpent: updatedTxs.reduce((sum, t) => (t?.type === 'SPEND' ? sum + (t?.amount || 0) : sum), 0),
+        transactionsCount: updatedTxs.length,
         transactions: recentTxs,
-        pendingClaims: pending,
+        pendingClaims: filteredPending,
       },
     });
   } catch (error) {

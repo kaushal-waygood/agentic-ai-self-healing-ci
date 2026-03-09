@@ -280,6 +280,29 @@ const JobPreferencesForm = () => {
     type: 'primary' | 'advanced',
   ) => {
     e.preventDefault();
+
+    // Salary validation
+    const minSalary = Number(formData.preferredSalary.min);
+    const maxSalary = Number(formData.preferredSalary.max);
+
+    if (minSalary < 0 || maxSalary < 0) {
+      toast({
+        title: 'Invalid salary',
+        description: 'Salary cannot be negative',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (minSalary > 0 && maxSalary > 0 && maxSalary < minSalary) {
+      toast({
+        title: 'Invalid salary range',
+        description: 'Maximum salary must be greater than minimum salary',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     updateJobPreferences(buildPayload(formData));
     toast({
       title:
@@ -431,6 +454,12 @@ const JobPreferencesForm = () => {
                     placeholder="50,000"
                     value={formData.preferredSalary.min}
                     onChange={(e) => handleSalaryChange('min', e.target.value)}
+                    min="0"
+                    onKeyDown={(e) => {
+                      if (e.key === '-' || e.key === 'e') {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
 
@@ -444,6 +473,12 @@ const JobPreferencesForm = () => {
                     placeholder="80,000"
                     value={formData.preferredSalary.max}
                     onChange={(e) => handleSalaryChange('max', e.target.value)}
+                    min="0"
+                    onKeyDown={(e) => {
+                      if (e.key === '-' || e.key === 'e') {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
               </div>

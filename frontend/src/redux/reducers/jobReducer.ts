@@ -221,15 +221,13 @@ const jobSlice = createSlice({
         education?: string[];
       }>,
     ) => {
-      // Only show loading spinner if we don't expect a cache hit.
-      // The saga will dispatch setCacheHit(true) before the success action
-      // when returning cached data, so `loading` will be immediately
-      // overridden to false by the success reducer.
       if (!state.cacheHit) {
         state.loading = true;
       }
       state.error = null;
+      state.notification = null;
       if (!action.payload.append) {
+        state.jobs = [];
         state.filters = {
           query: action.payload.query ?? state.filters.query,
           country: action.payload.country ?? state.filters.country,
@@ -252,8 +250,13 @@ const jobSlice = createSlice({
       }>,
     ) => {
       state.loading = false;
-      state.cacheHit = false; // reset for next request
-      state.pagination = action.payload.pagination;
+      state.cacheHit = false;
+      state.pagination = {
+        ...action.payload.pagination,
+        hasNextPage:
+          action.payload.jobs.length > 0 &&
+          action.payload.pagination.hasNextPage,
+      };
       if (action.payload.append) {
         const jobsMap = new Map(
           state.jobs.map((job) => [job._id || (job as any).jobId, job]),
@@ -281,6 +284,10 @@ const jobSlice = createSlice({
         state.loading = true;
       }
       state.error = null;
+      state.notification = null;
+      if (!action.payload.append) {
+        state.jobs = [];
+      }
     },
     getRecommendJobsSuccess: (
       state,
@@ -291,8 +298,13 @@ const jobSlice = createSlice({
       }>,
     ) => {
       state.loading = false;
-      state.cacheHit = false; // reset for next request
-      state.pagination = action.payload.pagination;
+      state.cacheHit = false;
+      state.pagination = {
+        ...action.payload.pagination,
+        hasNextPage:
+          action.payload.jobs.length > 0 &&
+          action.payload.pagination.hasNextPage,
+      };
       if (action.payload.append) {
         const jobsMap = new Map(
           state.jobs.map((job) => [job._id || (job as any).jobId, job]),

@@ -3,6 +3,7 @@ import { Purchase } from '../models/Purchase.js';
 import { Plan } from '../models/Plans.model.js';
 import { User } from '../models/User.model.js';
 import { calculateEndDate } from './plan.controller.js';
+import redisClient from '../config/redis.js';
 
 const setUserUsageLimits = async (userId, plan, period) => {
   // Find the variant corresponding to the purchased period
@@ -153,6 +154,9 @@ export const createPurchase = async (req, res) => {
 
     await purchase.save();
 
+    // Invalidate dashboard purchases cache
+    await redisClient.del(`dashboard:${userId}:purchases`);
+
     // 5. Update User
     user.currentPlan = planId;
     user.currentPurchase = purchase._id;
@@ -182,13 +186,24 @@ export const createPurchase = async (req, res) => {
   }
 };
 
+const DASHBOARD_PURCHASES_TTL = 300; // 5 min
+
 export const getUserPurchases = async (req, res) => {
   try {
     const userId = req.user._id;
+    const cacheKey = `dashboard:${userId}:purchases`;
 
-    const purchases = await Purchase.find({ user: userId })
-      .populate('plan', 'planType')
-      .sort({ createdAt: -1 });
+    const purchases = await redisClient.withCache(
+      cacheKey,
+      DASHBOARD_PURCHASES_TTL,
+      async () => {
+        const docs = await Purchase.find({ user: userId })
+          .populate('plan', 'planType')
+          .sort({ createdAt: -1 })
+          .lean();
+        return docs;
+      },
+    );
 
     res.status(200).json({
       success: true,

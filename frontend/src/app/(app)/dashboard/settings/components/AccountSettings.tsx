@@ -145,6 +145,9 @@ export const AccountSetting = () => {
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const studentWrapper = useSelector(
+    (state: RootState) => state.student.students?.[0],
+  );
   // on mount, check if we were redirected from Google OAuth
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -331,7 +334,8 @@ export const AccountSetting = () => {
             </label>
             <Input
               type="text"
-              defaultValue={user?.fullName || ''}
+              // defaultValue={user?.fullName || ''}
+              defaultValue={studentWrapper?.student.fullName || ''}
               className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
               readOnly
             />
@@ -341,11 +345,39 @@ export const AccountSetting = () => {
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Email Address
             </label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {/* <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   type="email"
+                  value={newEmail}
+                  required
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="pl-9"
+                />
+              </div>
+              <Button
+                type="submit"
+                onClick={handleSendOtp}
+                disabled={isLoading || newEmail === user?.email}
+                className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+              >
+                {isLoading ? 'Sending...' : 'Verify'}
+              </Button>
+            </div> */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault(); // Prevents page reload
+                handleSendOtp();
+              }}
+              className="flex flex-col gap-2 sm:flex-row sm:items-center"
+            >
+              <div className="relative flex-1">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="email"
+                  required // <--- This is key
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="Enter your email"
@@ -353,13 +385,12 @@ export const AccountSetting = () => {
                 />
               </div>
               <Button
-                onClick={handleSendOtp}
+                type="submit" // <--- Change this to submit
                 disabled={isLoading || newEmail === user?.email}
-                className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
               >
                 {isLoading ? 'Sending...' : 'Verify'}
               </Button>
-            </div>
+            </form>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               To change your email, enter a new address and verify it with OTP.
             </p>

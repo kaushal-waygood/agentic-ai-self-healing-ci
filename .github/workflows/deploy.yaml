@@ -11,7 +11,39 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Required by config.js; unit tests mock these, dummy values suffice
+      MONGO_URL: mongodb://localhost:27017/test
+      ACCESS_TOKEN_SECRET: test-secret-for-ci
+      RAPID_API_KEY: test-rapid-key
+      GOOGLE_GENERATIVE_AI_KEY: test-gemini-key
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_test_dummy
+      EMAIL_USER: test@test.com
+      EMAIL_PASSWORD: test-password
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend dependencies
+        run: npm install
+        working-directory: ./backend
+
+      - name: Run backend unit tests
+        run: npm run test:unit
+        working-directory: ./backend
+
   build-and-deploy:
+    needs: test
     runs-on: ubuntu-latest
 
     permissions:

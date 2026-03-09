@@ -10,6 +10,7 @@ export interface AuthState {
   };
   message: string;
   token: string | null;
+  refreshToken: string | null;
   loading: boolean;
   error: string | null;
 }

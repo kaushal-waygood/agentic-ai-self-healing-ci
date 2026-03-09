@@ -22,6 +22,9 @@ import { Feedback } from '../models/feedback.model.js';
 
 import { v4 as uuidv4 } from 'uuid';
 import { LoginHistory } from '../models/analyics/loginHistory.model.js';
+import {
+  prefetchRecommendedJobsForUser,
+} from '../utils/prefetchRecommendedJobs.js';
 
 /* -------------------------
    Initialization
@@ -35,6 +38,7 @@ await tm.init();
    Constants & Configuration
    ------------------------- */
 const DEFAULT_OTP_EXP_MS = 15 * 60 * 1000; // 15 minutes
+const EMAIL_CHANGE_OTP_EXP_MS = 10 * 60 * 1000; // 10 minutes
 const DEFAULT_RESET_EXP_MS = 60 * 60 * 1000; // 1 hour
 
 const BACKEND_API_BASE_URL =
@@ -172,10 +176,9 @@ const oauth2Client = new google.auth.OAuth2(
 
 const redirectURI = '/api/v1/user/google/auth/redirect/callback';
 const oauth2ClientRedirect = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID_REDIRECT ||
-    '433624775795-fjule3uk4anaebdvvacrgura5j6m5e5n.apps.googleusercontent.com',
+  process.env.GOOGLE_CLIENT_ID_REDIRECT || process.env.GOOGLE_AUTH_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET_REDIRECT ||
-    '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',
+    process.env.GOOGLE_AUTH_CLIENT_SECRET,
   `${BACKEND_API_BASE_URL}${redirectURI}`,
 );
 
@@ -320,8 +323,8 @@ export const firebaseAuth = async (req, res) => {
         fullName: name || 'Anonymous',
         avatar: picture || '',
         isEmailVerified: true,
-        role: 'student',
-        accountType: 'individual',
+        role: 'user',
+        accountType: 'user',
         referralCode: generateReferralCode(email.toLowerCase()),
         usageLimits: {
           cvCreation: 1,
@@ -403,7 +406,7 @@ export const firebaseGoogleSignup = async (req, res) => {
         fullName: name || 'Anonymous',
         avatar: picture || '',
         isEmailVerified: true,
-        role: 'student',
+        role: 'user',
         accountType: 'individual',
         referralCode: generateReferralCode(emailLower),
         usageLimits: {
@@ -425,11 +428,13 @@ export const firebaseGoogleSignup = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     return res.status(201).json({
       success: true,
       accessToken,
+      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -483,11 +488,13 @@ export const firebaseGoogleLogin = async (req, res) => {
 
     // Success
     const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       success: true,
       accessToken,
+      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -517,23 +524,19 @@ export const linkedInCallback = async (req, res) => {
     const { sub: uid, email, name, picture } = userData;
 
     let user = await User.findOne({ email: email.toLowerCase() });
-
-    if (user && !user.linkedInUid && user.email === email.toLowerCase()) {
-      return res.redirect(
-        `${FRONTEND_URL}/login?token=failed&error=account_exists&email=${email}`,
-      );
-    }
+    let isNewUser = false;
 
     if (!user) {
+      isNewUser = true;
       user = await User.create({
-        firebaseUid: uid, // storing as generic UID
+        firebaseUid: uid,
         linkedInUid: uid,
         authMethod: 'linkedin',
         email: email.toLowerCase(),
         fullName: name || 'Anonymous',
         avatar: picture || '',
         isEmailVerified: true,
-        role: 'student',
+        role: 'user',
         accountType: 'individual',
         referralCode: generateReferralCode(email.toLowerCase()),
         usageLimits: {
@@ -546,19 +549,44 @@ export const linkedInCallback = async (req, res) => {
           atsScore: 1,
           jobMatching: 1,
         },
+        freeCreditsGranted: true,
+      });
+
+      await sendTemplatedEmail({
+        to: user.email,
+        templateName: 'welcome_zobsai',
+        templateVars: {
+          name: user.fullName,
+          dashboardUrl: process.env.DASHBOARD_URL,
+        },
       });
     } else if (!user.linkedInUid) {
       user.linkedInUid = uid;
-      user.authMethod = 'linkedin';
       await user.save();
     }
 
-    const accessToken = user.generateAccessToken();
-    // Redirect to frontend with token
-    res.redirect(`${FRONTEND_URL}/auth/google/callback?token=${accessToken}`);
+    const sessionId = uuidv4();
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      config.accessTokenSecret,
+      { expiresIn: '7d' },
+    );
+
+    await LoginHistory.create({
+      userId: user._id,
+      sessionId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      loginMethod: 'linkedin',
+      status: 'SUCCESS',
+    });
+
+    return res.redirect(
+      `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,
+    );
   } catch (error) {
     console.error('LinkedIn callback error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).redirect(`${FRONTEND_URL}/login?error=auth_failed`);
   }
 };
 
@@ -683,6 +711,7 @@ export const verifyEmail = async (req, res) => {
     await user.save();
 
     const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     // Send Welcome Email
@@ -705,6 +734,7 @@ export const verifyEmail = async (req, res) => {
     return res.status(200).json({
       message: 'Email verified successfully',
       accessToken,
+      refreshToken,
       user,
     });
   } catch (error) {
@@ -745,12 +775,12 @@ export const resendVerificationEmail = async (req, res) => {
 
     const otp = generateOtp();
     user.otp = otp;
-    user.tempEmail = newEmail.toLowerCase(); // SECURE: Store pending email in DB
-    user.otpExpires = new Date(Date.now() + DEFAULT_OTP_EXP_MS);
+    user.tempEmail = newEmail.toLowerCase();
+    user.otpExpires = new Date(Date.now() + EMAIL_CHANGE_OTP_EXP_MS);
     await user.save();
 
     await sendTemplatedEmail({
-      to: newEmail, // Send to new email
+      to: newEmail,
       templateName: 'verify',
       templateVars: {
         name: user.fullName,
@@ -788,10 +818,18 @@ export const verifyUpdateEmail = async (req, res) => {
         .json({ message: 'No pending email change request found.' });
     }
 
+    if (user.otpExpires < new Date()) {
+      user.tempEmail = undefined;
+      user.otp = undefined;
+      user.otpExpires = undefined;
+      await user.save();
+      return res.status(400).json({
+        message: 'OTP expired. Please request a new email change.',
+      });
+    }
+
     if (user.otp !== otp)
       return res.status(400).json({ message: 'Invalid OTP' });
-    if (user.otpExpires < new Date())
-      return res.status(400).json({ message: 'OTP expired' });
 
     // Commit Change
     user.email = user.tempEmail;
@@ -914,6 +952,7 @@ export const signInUser = async (req, res) => {
     const sessionId = uuidv4();
 
     const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
 
     const userObject = user.toObject();
     delete userObject.password;
@@ -931,10 +970,14 @@ export const signInUser = async (req, res) => {
       status: 'SUCCESS',
     });
 
+    // Prefetch recommended jobs in background for instant load on jobs-search
+    void prefetchRecommendedJobsForUser(user._id);
+
     return res.status(200).json({
       message: 'Signed in successfully',
       user: userObject,
       accessToken,
+      refreshToken,
       sessionId,
     });
   } catch (error) {
@@ -1031,6 +1074,46 @@ export const resetPassword = async (req, res) => {
   } catch (error) {
     console.error('Reset password error:', error);
     return res.status(500).json({ message: 'Failed to reset password' });
+  }
+};
+
+export const refreshTokens = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token is required' });
+    }
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET || process.env.ACCESS_TOKEN_SECRET,
+    );
+    if (decoded.type !== 'refresh') {
+      return res.status(403).json({ message: 'Invalid refresh token' });
+    }
+
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    const accessToken = user.generateAccessToken();
+    const newRefreshToken = user.generateRefreshToken();
+
+    return res.status(200).json({
+      accessToken,
+      refreshToken: newRefreshToken,
+      expiresIn: 3600,
+    });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(403).json({ message: 'Refresh token expired' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(403).json({ message: 'Invalid refresh token' });
+    }
+    console.error('Refresh token error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -1364,11 +1447,24 @@ export const handleGoogleCallback = async (req, res) => {
       });
     }
 
+    const sessionId = uuidv4();
     const token = jwt.sign(
       { id: user._id, email: user.email },
       config.accessTokenSecret,
       { expiresIn: '7d' },
     );
+
+    await LoginHistory.create({
+      userId: user._id,
+      sessionId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      loginMethod: 'google',
+      status: 'SUCCESS',
+    });
+
+    // Prefetch recommended jobs in background for instant load on jobs-search
+    void prefetchRecommendedJobsForUser(user._id);
 
     return res.redirect(
       `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,

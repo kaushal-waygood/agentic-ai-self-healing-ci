@@ -1,15 +1,12 @@
 import constants from '../../config/constants.js';
 import axios from '../../utils/axiosConfig.js';
-import { User } from '../../../src/models/User.model.js';
+import User from '../../../src/models/User.model.js';
 import { Student } from '../../../src/models/student.model.js';
 import connectDB, { disconnectDB } from '../../../src/config/db.js';
 
-// Mock the gemini config BEFORE imports that use it if possible,
-// using jest.mock. However, ES modules are hoisted.
-// We will use jest.unstable_mockModule if needed or simply spyOn if it was an object method.
-// Since it's a default export function, jest.mock is the way.
-// But we need to use __mocks__ or do inline mock with factory.
-// Since we are adding this file now, let's try jest.mock with factory.
+// #region agent log
+fetch('http://127.0.0.1:7620/ingest/69725dc7-e916-4c2c-a5ae-15f1acf3d3af',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'71136c'},body:JSON.stringify({sessionId:'71136c',runId:'pre-fix',hypothesisId:'H3',location:'tests/api/autofill/autofill.test.js:7',message:'Autofill test imported model bindings',data:{userType:typeof User,userIsFunction:typeof User==='function',studentType:typeof Student,userKeys:User&&typeof User==='object'?Object.keys(User).slice(0,8):[]},timestamp:Date.now()})}).catch(()=>{});
+// #endregion
 
 jest.mock('../../../src/config/gemini.js', () => {
   return {
@@ -44,15 +41,18 @@ describe('Autofill Module Tests', () => {
     authMethod: 'local',
     isEmailVerified: true,
     accountType: 'student',
+    role: 'user',
   };
   let studentId;
 
   beforeAll(async () => {
     await connectDB();
+    // #region agent log
+    fetch('http://127.0.0.1:7620/ingest/69725dc7-e916-4c2c-a5ae-15f1acf3d3af',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'71136c'},body:JSON.stringify({sessionId:'71136c',runId:'pre-fix',hypothesisId:'H3',location:'tests/api/autofill/autofill.test.js:49',message:'Autofill beforeAll using User binding',data:{type:typeof User,isFunction:typeof User==='function',hasDeleteOne:typeof User?.deleteOne==='function'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     const user = new User(testStudentUser);
     await user.save();
 
-    // Create associated student profile
     const student = await Student.create({
       _id: user._id,
       email: testStudentUser.email,
@@ -63,7 +63,6 @@ describe('Autofill Module Tests', () => {
     });
     studentId = student._id;
 
-    // Login as this student
     constants.ACCESS_TOKEN = user.generateAccessToken();
   });
 
@@ -92,13 +91,10 @@ describe('Autofill Module Tests', () => {
     expect(res.data.outputs).toBeDefined();
     const nameOutput = res.data.outputs.find((o) => o.inputKey === 'name');
     expect(nameOutput).toBeDefined();
-    // Since mocking ESM default export is tricky, we accept the deterministic fallback unique to our test user
     expect(nameOutput.value).toBe(testStudentUser.fullName);
   });
 
-  it('should handle deterministic fallback if no AI response (simulated by non-matching key)', async () => {
-    // The mock returns "name". If we ask for "email" and mock doesn't provide it,
-    // the code falls back to deterministic mapping from student data.
+  it('should handle deterministic fallback for email field', async () => {
     const inputs = [
       {
         inputKey: 'email',
@@ -116,7 +112,6 @@ describe('Autofill Module Tests', () => {
     expect(res.status).toBe(200);
     const emailOutput = res.data.outputs.find((o) => o.inputKey === 'email');
     expect(emailOutput).toBeDefined();
-    // Should match the student's email from DB
     expect(emailOutput.value).toBe(testStudentUser.email);
   });
 });

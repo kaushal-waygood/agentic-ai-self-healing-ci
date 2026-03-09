@@ -18,7 +18,7 @@ export const config = {
   mongoUrl: getEnv('MONGO_URL'),
   nodeEnv: process.env.NODE_ENV,
   accessTokenSecret: getEnv('ACCESS_TOKEN_SECRET'),
-  accessTokenExpiry: '7d',
+  accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY || '1h',
   refreshTokenExpiry: '7d',
 
   // External APIs
@@ -38,4 +38,11 @@ export const config = {
   // Email
   emailUser: getEnv('EMAIL_USER'),
   emailPassword: getEnv('EMAIL_PASSWORD'),
+
+  // Admin alert for repeated 500 errors
+  adminAlertEmail: process.env.ADMIN_ALERT_EMAIL || process.env.EMAIL_USER,
+  errorAlertThreshold: parseInt(process.env.ERROR_ALERT_THRESHOLD) || 3,
+  errorAlertCooldownMs:
+    parseInt(process.env.ERROR_ALERT_COOLDOWN_MIN) * 60 * 1000 ||
+    30 * 60 * 1000,
 };

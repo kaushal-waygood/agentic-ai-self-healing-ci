@@ -55,6 +55,8 @@ export function ApplicationWizardClient() {
   // 1. Define when the user is "active" in the process
   const isDeepInWizard = wizardStep !== 'job' || isLoading;
 
+  const backTrapActive = wizardStep === 'generate' && isLoading;
+
   useEffect(() => {
     const handleInternalNavigation = (e: MouseEvent) => {
       if (!isDeepInWizard) return;
@@ -100,13 +102,15 @@ export function ApplicationWizardClient() {
   }, [isDeepInWizard]);
 
   useEffect(() => {
-    if (!isDeepInWizard) return;
+    // if (!isDeepInWizard) return;
+    if (!backTrapActive) return;
 
     // Push a dummy state to the history stack to "trap" the back button
     window.history.pushState(null, '', window.location.href);
 
     const handlePopState = () => {
-      if (isDeepInWizard) {
+      // if (isDeepInWizard) {
+      if (backTrapActive) {
         // Re-push the state to stay on the page
         window.history.pushState(null, '', window.location.href);
 
@@ -116,7 +120,8 @@ export function ApplicationWizardClient() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isDeepInWizard]);
+    // }, [isDeepInWizard]);
+  }, [backTrapActive]);
 
   const renderStep = () => {
     // Loading card when initializing

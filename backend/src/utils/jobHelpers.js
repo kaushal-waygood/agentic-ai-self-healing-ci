@@ -41,15 +41,18 @@ export function normalizeSet(arr = []) {
 }
 
 export function dedupeByTitleCompany(jobs) {
-  const seen = new Set();
-  const out = [];
+  const seen = new Map();
   for (const j of jobs) {
     const key = `${(j.title || '').toLowerCase()}|${(j.company || '').toLowerCase()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(j);
+    const existing = seen.get(key);
+    if (
+      !existing ||
+      (j.score && (!existing.score || j.score > existing.score))
+    ) {
+      seen.set(key, j);
+    }
   }
-  return out;
+  return Array.from(seen.values());
 }
 
 // --------------------
@@ -64,6 +67,11 @@ const EMPLOYMENT_TYPE_MAP = {
   INTERNSHIP: 'INTERN',
   FREELANCE: 'CONTRACTOR', // JSearch doesn't have freelance, so map to contractor
 };
+
+function freshnessScore(date, halfLifeDays = 14) {
+  const ageDays = (Date.now() - new Date(date)) / 86400000;
+  return Math.pow(0.5, ageDays / halfLifeDays);
+}
 
 export function normalizeEmploymentTypeForApi(employmentType) {
   if (!employmentType) return undefined;
@@ -98,7 +106,7 @@ export async function retrieveLocalCandidates(context, limit = 100) {
   return await redisClient.withCache(cacheKey, 600, async () => {
     const tasks = [];
 
-    const maxAgeDays = contextType === 'recommendation' ? 30 : 10;
+    const maxAgeDays = 90;
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
     const dateFilter = { jobPostedAt: { $gte: cutoffDate } };
@@ -134,8 +142,6 @@ export async function upsertExternalJobs(externalJobs) {
   const startTime = Date.now();
   const jobIds = externalJobs.map((j) => j.jobId);
 
-  // 1. Quick check for existing jobs to avoid unnecessary overrides
-  // We fetch jobId, slug and _id to preserve their DB links
   const existingJobs = await Job.find(
     { jobId: { $in: jobIds }, origin: 'EXTERNAL' },
     { jobId: 1, slug: 1, _id: 1 },
@@ -179,8 +185,6 @@ export async function upsertExternalJobs(externalJobs) {
       jobPosted: j.jobPosted,
       jobPostedAt: j.jobPostedAt,
       embeddingHash,
-      // 🚀 SPEED TRICK: Don't generate vector here.
-      // Mark it as "pending" so a background job can find and vectorize it.
       needsEmbedding: !existingMap.has(j.jobId),
     };
 
@@ -468,6 +472,68 @@ export function transformRapidApiJob(apiJob, searchQuery) {
 // --------------------
 // 4. EXTERNAL FETCH (IN-DEFAULTED)
 // --------------------
+let _rapidApiDownSince = 0;
+const RAPID_API_COOLDOWN_MS = 5 * 60 * 1000;
+
+const ISO2_TO_NAME = {
+  IN: 'India',
+  US: 'USA',
+  GB: 'United Kingdom',
+  JP: 'Japan',
+  DE: 'Germany',
+  FR: 'France',
+  CA: 'Canada',
+  AU: 'Australia',
+  BR: 'Brazil',
+  CN: 'China',
+  KR: 'South Korea',
+  SG: 'Singapore',
+  AE: 'UAE',
+  SA: 'Saudi Arabia',
+  NL: 'Netherlands',
+  ES: 'Spain',
+  IT: 'Italy',
+  CH: 'Switzerland',
+  SE: 'Sweden',
+  NO: 'Norway',
+  DK: 'Denmark',
+  FI: 'Finland',
+  IE: 'Ireland',
+  NZ: 'New Zealand',
+  ZA: 'South Africa',
+  MX: 'Mexico',
+  AR: 'Argentina',
+  CO: 'Colombia',
+  CL: 'Chile',
+  PH: 'Philippines',
+  MY: 'Malaysia',
+  ID: 'Indonesia',
+  TH: 'Thailand',
+  VN: 'Vietnam',
+  PL: 'Poland',
+  RO: 'Romania',
+  PT: 'Portugal',
+  AT: 'Austria',
+  BE: 'Belgium',
+  IL: 'Israel',
+  TR: 'Turkey',
+  RU: 'Russia',
+  UA: 'Ukraine',
+  EG: 'Egypt',
+  NG: 'Nigeria',
+  KE: 'Kenya',
+  PK: 'Pakistan',
+  BD: 'Bangladesh',
+  LK: 'Sri Lanka',
+  NP: 'Nepal',
+  HK: 'Hong Kong',
+  TW: 'Taiwan',
+  QA: 'Qatar',
+  KW: 'Kuwait',
+  OM: 'Oman',
+  BH: 'Bahrain',
+};
+
 export async function fetchExternalJobs(
   apiQuery,
   country = 'IN',
@@ -478,6 +544,13 @@ export async function fetchExternalJobs(
   experience,
   page = 1,
 ) {
+  if (
+    _rapidApiDownSince &&
+    Date.now() - _rapidApiDownSince < RAPID_API_COOLDOWN_MS
+  ) {
+    return [];
+  }
+
   const cacheKeyStr = `${apiQuery || 'jobs'}:${country}:${state || 'none'}:${city || 'none'}:${datePosted || 'none'}:${employmentType || 'none'}:${experience || 'none'}:${page}`;
   const cacheKey = `jobs:rapid:${crypto.createHash('md5').update(cacheKeyStr).digest('hex')}`;
 
@@ -485,86 +558,27 @@ export async function fetchExternalJobs(
     try {
       let query = apiQuery;
 
-      // Inject location with full country name (RapidAPI needs names, not ISO codes)
-      const ISO2_TO_NAME = {
-        IN: 'India',
-        US: 'USA',
-        GB: 'United Kingdom',
-        JP: 'Japan',
-        DE: 'Germany',
-        FR: 'France',
-        CA: 'Canada',
-        AU: 'Australia',
-        BR: 'Brazil',
-        CN: 'China',
-        KR: 'South Korea',
-        SG: 'Singapore',
-        AE: 'UAE',
-        SA: 'Saudi Arabia',
-        NL: 'Netherlands',
-        ES: 'Spain',
-        IT: 'Italy',
-        CH: 'Switzerland',
-        SE: 'Sweden',
-        NO: 'Norway',
-        DK: 'Denmark',
-        FI: 'Finland',
-        IE: 'Ireland',
-        NZ: 'New Zealand',
-        ZA: 'South Africa',
-        MX: 'Mexico',
-        AR: 'Argentina',
-        CO: 'Colombia',
-        CL: 'Chile',
-        PH: 'Philippines',
-        MY: 'Malaysia',
-        ID: 'Indonesia',
-        TH: 'Thailand',
-        VN: 'Vietnam',
-        PL: 'Poland',
-        RO: 'Romania',
-        PT: 'Portugal',
-        AT: 'Austria',
-        BE: 'Belgium',
-        IL: 'Israel',
-        TR: 'Turkey',
-        RU: 'Russia',
-        UA: 'Ukraine',
-        EG: 'Egypt',
-        NG: 'Nigeria',
-        KE: 'Kenya',
-        PK: 'Pakistan',
-        BD: 'Bangladesh',
-        LK: 'Sri Lanka',
-        NP: 'Nepal',
-        HK: 'Hong Kong',
-        TW: 'Taiwan',
-        QA: 'Qatar',
-        KW: 'Kuwait',
-        OM: 'Oman',
-        BH: 'Bahrain',
-      };
-      const countryName = ISO2_TO_NAME[country?.toUpperCase()] || country;
-      const locParts = [city, state, countryName].filter(Boolean);
-
+      const locParts = [city, state].filter(Boolean);
       if (locParts.length > 0) {
         query += ` in ${locParts.join(', ')}`;
       }
 
-      const params = { query, page: String(page), num_pages: '1' };
+      const params = {
+        query,
+        page: String(page),
+        num_pages: '1',
+        country: country?.toLowerCase() || 'us',
+      };
 
       if (employmentType) {
-        // RapidAPI JSearch accepts format: FULLTIME, CONTRACTOR, PARTTIME, INTERNSHIP
         params.employment_types = employmentType;
       }
 
       if (experience) {
-        // e.g. "under_3_years_experience,more_than_3_years_experience,no_experience"
         params.job_requirements = experience;
       }
 
       if (datePosted) {
-        // e.g. "today", "3days", "week", "month"
         params.date_posted = datePosted;
       }
 
@@ -576,9 +590,18 @@ export async function fetchExternalJobs(
         },
       });
 
+      _rapidApiDownSince = 0;
       return response?.data?.data || [];
     } catch (e) {
-      console.error('RapidAPI error:', e.message);
+      const status = e.response?.status;
+      if (status === 403 || status === 429) {
+        _rapidApiDownSince = Date.now();
+        console.error(
+          `RapidAPI circuit open (${status}) — skipping for ${RAPID_API_COOLDOWN_MS / 1000}s`,
+        );
+      } else {
+        console.error('RapidAPI error:', e.message);
+      }
       return [];
     }
   });
@@ -613,9 +636,9 @@ export function applyFilters(jobs, context) {
     }
 
     // Filter out jobs heavily viewed but not acted upon (>5 recent decayed views)
-    if (job._id && views[jobIdStr] && views[jobIdStr] > 5) {
-      return false;
-    }
+    // if (job._id && views[jobIdStr] && views[jobIdStr] > 5) {
+    //   return false;
+    // }
 
     if (targetType) {
       const targetTypesClean = targetType
@@ -721,9 +744,7 @@ export async function buildInteractionContext(userId) {
 
     if (i.type === 'VIEW') {
       // time decay (recent views matter more)
-      const decay = Math.exp(
-        -(Date.now() - new Date(i.createdAt)) / (30 * 86400000),
-      );
+      const decay = freshnessScore(i.createdAt, 30);
 
       views[id] = (views[id] || 0) + decay;
     }
@@ -736,16 +757,27 @@ export async function buildInteractionContext(userId) {
 // 6. CONTEXT BUILDERS (INDIA DEFAULT)
 // --------------------
 export async function buildSearchContext(req) {
-  // Default to IN if no country provided in query
-  let country = req.query.country || 'IN';
-  let state = req.query.state;
-  let city = req.query.city;
+  let country = (req.query.country || 'IN').toUpperCase().trim();
+  let state = req.query.state?.trim() || undefined;
+  let city = req.query.city?.trim() || undefined;
 
   const interactions = await buildInteractionContext(req.user?._id);
 
+  let rawQuery = req.query.q || '';
+  if (typeof rawQuery === 'string') {
+    try {
+      rawQuery = decodeURIComponent(rawQuery);
+    } catch (e) {
+      // ignore if it's not encoded
+    }
+    // '+' should be treated as space as well
+    rawQuery = rawQuery.replace(/\+/g, ' ');
+  }
+
   return {
     type: 'search',
-    query: req.query.q?.toLowerCase().trim() || '',
+    // query: req.query.q?.toLowerCase().trim() || '',
+    query: rawQuery.toLowerCase().trim() || '',
     filters: { country, state, city, employmentType: req.query.employmentType },
     userId: req.user?._id,
     interactions,
@@ -765,76 +797,118 @@ export async function retrieveCandidates(context, limit = 300) {
     if (cached) return JSON.parse(cached);
   }
 
-  // A. Local Search
   const tasks = [keywordSearch(context), vectorSearch(context)];
+
   const results = await Promise.allSettled(tasks);
+
   let jobs = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 
   let finalPool = dedupeByTitleCompany(jobs);
 
-  // B. Refill loop - Hard-wired to current filters (Default IN)
   const MIN_POOL = 40;
-  let page = 1;
 
-  while (finalPool.length < MIN_POOL && page <= 20) {
-    const externalRaw = await fetchExternalJobs(
-      context.query,
-      context.filters?.country,
-      context.filters?.state,
-      context.filters?.city,
-      null,
-      context.filters?.employmentType,
-      null,
-      page,
-    );
+  // Only fetch external if local pool is too small
+  if (finalPool.length < MIN_POOL) {
+    const MAX_PAGES = 5; // fetch multiple pages in parallel
+    const pagePromises = [];
 
-    if (!externalRaw.length) break;
+    for (let p = 1; p <= MAX_PAGES; p++) {
+      pagePromises.push(
+        fetchExternalJobs(
+          context.query,
+          context.filters?.country,
+          context.filters?.state,
+          context.filters?.city,
+          null,
+          context.filters?.employmentType,
+          null,
+          p,
+        ),
+      );
+    }
 
-    const formatted = externalRaw.map((j) =>
-      transformRapidApiJob(j, context.query),
-    );
+    const pages = await Promise.allSettled(pagePromises);
 
-    // FIX: MUST UPSERT HERE to ensure jobs are fundamentally written and correct _id/slug mappings are hydrated!
-    // Without this, user clicks on search UI will 404 because these are "ghost" objects never placed into MongoDB.
-    await upsertExternalJobs(formatted).catch((e) =>
-      console.error('retrieveCandidates Upsert Error:', e.message),
-    );
+    const externalRaw = pages
+      .filter((p) => p.status === 'fulfilled')
+      .flatMap((p) => p.value);
 
-    const validExternal = applyFilters(formatted, context);
+    if (externalRaw.length) {
+      const formatted = externalRaw.map((j) =>
+        transformRapidApiJob(j, context.query),
+      );
 
-    finalPool = dedupeByTitleCompany([...finalPool, ...validExternal]);
-    page++;
+      // NON-BLOCKING DB WRITE
+      upsertExternalJobs(formatted).catch((e) =>
+        console.error('retrieveCandidates Upsert Error:', e.message),
+      );
+
+      const validExternal = applyFilters(formatted, context);
+
+      finalPool = dedupeByTitleCompany([...finalPool, ...validExternal]);
+    }
   }
 
   const output = finalPool.slice(0, limit);
-  if (cacheKey && output.length > 0)
+
+  if (cacheKey && output.length > 0) {
     await redisClient.set(cacheKey, JSON.stringify(output), 600);
+  }
 
   return output;
 }
 
-// --------------------
-// 8. SEARCH DRIVERS & SCORING
-// --------------------
+const SEARCH_STOP_WORDS = new Set([
+  'in',
+  'at',
+  'on',
+  'to',
+  'for',
+  'the',
+  'and',
+  'or',
+  'of',
+  'is',
+  'it',
+  'an',
+  'as',
+  'by',
+  'be',
+  'near',
+  'from',
+  'with',
+]);
+
+const YEAR_PATTERN = /^(20\d{2}|19\d{2})$/;
+
+function isYearToken(token) {
+  return YEAR_PATTERN.test(token);
+}
+
+export function stripYearTokens(query) {
+  if (!query) return query;
+  return query
+    .split(/\s+/)
+    .filter((t) => !isYearToken(t.trim()))
+    .join(' ')
+    .trim();
+}
+
 async function keywordSearch(context, limit = 100, dateFilter = {}) {
   if (!context.query) return [];
 
-  // Tokenize the query into individual keywords (handles both short search
-  // queries like "react" AND long recommendation queries like
-  // "software engineer react nodejs express").
-  // Match ANY individual keyword so we actually find results.
   const tokens = context.query
     .split(/\s+/)
     .map((t) => t.trim())
-    .filter((t) => t.length >= 2); // ignore single-char noise
+    .filter((t) => t.length >= 2 && !SEARCH_STOP_WORDS.has(t.toLowerCase()));
 
   if (!tokens.length) return [];
 
-  // Build $and conditions: each token must match at least one field (title, tags, company)
+  const meaningfulTokens = tokens.filter((t) => !isYearToken(t));
+  if (!meaningfulTokens.length) return [];
+
   const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const andConditions = tokens.map((token) => {
-    // For short tokens (like "HR" or "IT") or standard words, use word boundaries
-    // so we don't match "hr" inside "chrome", "threads", "three", etc.
+  const andConditions = meaningfulTokens.map((token) => {
     const pattern = `\\b${escapeRegex(token)}`;
     const regex = new RegExp(pattern, 'i');
     return {
@@ -842,40 +916,47 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
         { title: regex },
         { tags: regex },
         { company: regex },
-        // intentionally omitting `queries` because previous garbage API results
-        // might have permanently saved irrelevant queries into the DB
+        { description: regex },
+        { queries: regex },
       ],
     };
   });
 
-  return Job.find({
+  const filter = {
     $and: andConditions,
     isActive: true,
     ...dateFilter,
-  })
-    .sort({ jobPostedAt: -1 })
-    .limit(limit)
-    .lean();
+  };
+
+  if (context.filters?.country) {
+    filter.country = context.filters.country.toUpperCase();
+  }
+
+  return Job.find(filter).sort({ jobPostedAt: -1 }).limit(limit).lean();
 }
 
 async function vectorSearch(context, limit = 100, dateFilter = {}) {
   const titles = context.profile?.titles?.join(' ') || '';
   const skills = context.profile?.skills?.join(' ') || '';
-  const input = context.query || `${titles} ${skills}`.trim();
+  const rawInput = context.query || `${titles} ${skills}`.trim();
+  const input = stripYearTokens(rawInput) || rawInput;
 
   if (!input) return [];
 
   const queryVector = await generateEmbedding(input);
   if (!queryVector) return [];
 
-  const filterParam = {
-    $and: [{ score: { $gte: 0.935 } }],
+  const preFilter = [{ isActive: true }];
+  if (context.filters?.country) {
+    preFilter.push({ country: context.filters.country.toUpperCase() });
+  }
+
+  const postMatch = {
+    $and: [{ score: { $gte: 0.55 } }],
   };
 
-  // Vector Search inside MongoDB Atlas doesn't play perfectly with standard Aggregation Match sometimes,
-  // But we'll enforce the date filter inside vectorSearch as part of the pipeline Match phase.
   if (dateFilter.jobPostedAt) {
-    filterParam.$and.push({ jobPostedAt: dateFilter.jobPostedAt });
+    postMatch.$and.push({ jobPostedAt: dateFilter.jobPostedAt });
   }
 
   return Job.aggregate([
@@ -884,16 +965,16 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
         index: 'vector_index',
         path: 'job_embedding',
         queryVector,
-        // MongoDB Atlas hard limit: limit ∈ [1, 10000], numCandidates ∈ [limit, 10000]
         limit: Math.min(limit, 10000),
-        numCandidates: Math.min(Math.max(limit * 2, 200), 10000),
+        numCandidates: Math.min(Math.max(limit * 3, 300), 10000),
+        filter: { $and: preFilter },
       },
     },
     {
       $project: { job_embedding: 0, score: { $meta: 'vectorSearchScore' } },
     },
     {
-      $match: filterParam,
+      $match: postMatch,
     },
     {
       $sort: { jobPostedAt: -1 },
@@ -903,44 +984,67 @@ async function vectorSearch(context, limit = 100, dateFilter = {}) {
 
 export function rankJobs(jobs, context) {
   const query = context.query?.toLowerCase().trim() || '';
-  const queryTokens = query.split(/\s+/).filter((t) => t.length > 2);
+  const cleanedQuery = stripYearTokens(query) || query;
+  const queryTokens = cleanedQuery.split(/\s+/).filter((t) => t.length >= 2);
+  const targetCountry = context.filters?.country?.toUpperCase();
 
   return jobs
     .map((job) => {
-      // More aggressive decay: score drops off rapidly if it's over a few days old
-      const freshness = Math.exp(
-        -(Date.now() - new Date(job.jobPostedAt)) / (86400000 * 5),
-      );
-      const isTargetCountry =
-        job.country === (context.filters?.country || 'IN');
-      const geo = job.remote || isTargetCountry ? 1 : 0.1;
+      const freshness = freshnessScore(job.jobPostedAt, 14);
 
-      // Add a tiny bit of vector score correlation if available, otherwise just rely on freshness
-      const vectorBonus = job.score && job.score > 0.9 ? job.score * 0.2 : 0;
+      const isTargetCountry = !targetCountry || job.country === targetCountry;
+      const geo = job.remote || isTargetCountry ? 1 : 0.2;
 
-      // RELEVANCE BONUS
-      let relevanceBonus = 0;
-      if (query && job.title) {
+      const rawVectorScore = job.score || 0;
+
+      let titleMatchScore = 0;
+
+      if (cleanedQuery && job.title) {
         const titleLower = job.title.toLowerCase();
-        if (titleLower === query) {
-          relevanceBonus = 1.0; // Exact title match
-        } else if (titleLower.includes(query)) {
-          relevanceBonus = 0.5; // Title contains query exactly
+
+        if (titleLower === cleanedQuery) {
+          titleMatchScore = 1;
+        } else if (titleLower.includes(cleanedQuery)) {
+          titleMatchScore = 0.8;
         } else if (queryTokens.length > 0) {
           const matchCount = queryTokens.filter((token) =>
             titleLower.includes(token),
           ).length;
-          relevanceBonus = (matchCount / queryTokens.length) * 0.3; // Partial match
+
+          titleMatchScore = matchCount / queryTokens.length;
         }
       }
 
+      // Keyword-matched results lack a vector score — impute a baseline
+      // proportional to their title relevance so they aren't penalised.
+      const vectorScore =
+        rawVectorScore > 0 ? rawVectorScore : titleMatchScore * 0.75;
+
+      const relevance = vectorScore * 0.5 + titleMatchScore * 0.5;
+
+      const rankScore = relevance * 0.6 + freshness * 0.25 + geo * 0.15;
+
       return {
         ...job,
-        rankScore: freshness * 0.6 + geo * 0.4 + vectorBonus + relevanceBonus,
+        rankScore,
       };
     })
-    .sort((a, b) => b.rankScore - a.rankScore);
+    .sort((a, b) => {
+      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+      const dateA = new Date(a.jobPostedAt || 0).getTime();
+      const dateB = new Date(b.jobPostedAt || 0).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      return String(a._id || a.jobId || '').localeCompare(
+        String(b._id || b.jobId || ''),
+      );
+    });
 }
+
+const processPool = (jobsPool, ctx) => {
+  const filtered = applyFilters(jobsPool, ctx);
+  const ranked = rankJobs(filtered, ctx);
+  return ranked; // remove diversify for testing
+};
 
 export function diversify(jobs) {
   const companyCounts = {};
@@ -948,4 +1052,108 @@ export function diversify(jobs) {
     companyCounts[j.company] = (companyCounts[j.company] || 0) + 1;
     return companyCounts[j.company] <= 3;
   });
+}
+
+export function rankJobsWithIntentBoost(jobs, context) {
+  const primaryTitles = normalizeSet(context.profile?.titles || []);
+  const targetCountry = context.filters?.country?.toUpperCase();
+
+  return jobs
+    .map((job) => {
+      const freshness = freshnessScore(job.jobPostedAt, 14);
+      const geo =
+        job.remote || !targetCountry || job.country === targetCountry ? 1 : 0.2;
+
+      let primaryBoost = 0;
+      const isRelevantDomain = primaryTitles.some((t) => {
+        const match = job.title?.toLowerCase().includes(t.toLowerCase());
+        if (match) primaryBoost = 1;
+        return match;
+      });
+
+      // Impute baseline for keyword results that lack a vector score
+      const rawVectorScore = job.score || 0;
+      const vectorScore =
+        rawVectorScore > 0 ? rawVectorScore : primaryBoost > 0 ? 0.7 : 0;
+
+      const domainPenalty = isRelevantDomain ? 1 : 0.3;
+
+      const rankScore =
+        (vectorScore * 0.4 + freshness * 0.2 + geo * 0.1 + primaryBoost * 0.3) *
+        domainPenalty;
+
+      return { ...job, rankScore };
+    })
+    .sort((a, b) => {
+      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+      const dateA = new Date(a.jobPostedAt || 0).getTime();
+      const dateB = new Date(b.jobPostedAt || 0).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      return String(a._id || a.jobId || '').localeCompare(
+        String(b._id || b.jobId || ''),
+      );
+    });
+}
+
+export async function fetchExternalDeep({
+  apiTerm,
+  country,
+  state,
+  city,
+  minRequired = 1500,
+  maxPages = 30,
+}) {
+  const pagePromises = [];
+
+  for (let page = 1; page <= maxPages; page++) {
+    pagePromises.push(
+      fetchExternalJobs(apiTerm, country, state, city, null, null, null, page),
+    );
+  }
+
+  const results = await Promise.allSettled(pagePromises);
+
+  const externalRaw = results
+    .filter((r) => r.status === 'fulfilled')
+    .flatMap((r) => r.value);
+
+  return externalRaw.slice(0, minRequired);
+}
+
+export const fetchExternal = async (extCountry, extState, extCity) => {
+  const externalRaw = await fetchExternalDeep({
+    apiTerm,
+    country: extCountry || 'IN',
+    state: extState,
+    city: extCity,
+    minRequired: 2000,
+    maxPages: 40,
+  });
+
+  return externalRaw;
+};
+
+/**
+ * Batch-attach jobViews (VIEW count) to an array of job objects.
+ * Mutates nothing — returns a new array with `jobViews` set on each job.
+ */
+export async function attachJobViews(jobs) {
+  if (!jobs.length) return jobs;
+
+  const jobIds = jobs.map((j) => j._id).filter(Boolean);
+  if (!jobIds.length) return jobs;
+
+  const counts = await JobInteraction.aggregate([
+    { $match: { job: { $in: jobIds }, type: 'VIEW' } },
+    { $group: { _id: '$job', count: { $sum: 1 } } },
+  ]);
+
+  const viewMap = Object.fromEntries(
+    counts.map((r) => [String(r._id), r.count]),
+  );
+
+  return jobs.map((job) => ({
+    ...job,
+    jobViews: viewMap[String(job._id)] || 0,
+  }));
 }

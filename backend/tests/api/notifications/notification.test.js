@@ -1,6 +1,6 @@
 import constants from "../../config/constants.js";
 import axios from "../../utils/axiosConfig.js";
-import { User } from "../../../src/models/User.model.js";
+import User from "../../../src/models/User.model.js";
 import { Notification } from "../../../src/models/notification.model.js";
 import connectDB, { disconnectDB } from "../../../src/config/db.js";
 
@@ -12,7 +12,7 @@ describe("Notification Module Tests", () => {
         fullName: "Notification User",
         authMethod: 'local',
         isEmailVerified: true,
-        role: "user" // Correct role for isStudent middleware
+        role: "user"
     };
 
     let notifId;
@@ -25,7 +25,6 @@ describe("Notification Module Tests", () => {
         constants.ACCESS_TOKEN = user.generateAccessToken();
         testUser._id = user._id;
 
-        // Create a test notification
         const notif = await Notification.create({
             userId: user._id,
             title: "Test Notification",
@@ -61,7 +60,6 @@ describe("Notification Module Tests", () => {
     });
 
     it("should mark all as read", async () => {
-        // Create another one
         await Notification.create({
             userId: testUser._id,
             title: "Another one",

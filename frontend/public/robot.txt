@@ -32,6 +32,9 @@ Allow: /
 User-agent: PoeCrawler
 Allow: /
 
+User-agent: OAI-SearchBot
+Allow: /
+
 # Sitemaps
 Sitemap: https://zobsai.com/sitemap.xml
 Sitemap: https://zobsai.com/sitemap_index.xml

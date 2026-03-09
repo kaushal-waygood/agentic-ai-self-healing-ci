@@ -11,14 +11,18 @@ import { useToast } from '@/hooks/use-toast';
 
 import { getAutopilotRequest } from '@/redux/reducers/autopilotReducer';
 
-import AgentPreviewModal from './AgentPreviewModal'; // NEW FILE (see below)
+import AgentPreviewModal from './AgentPreviewModal';
 import GeneratingAgent from './step5GeneratingAgent';
+import FinalResultView from '../cover-letter/components/FinalResultView';
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(0);
   const [agents, setAgents] = useState([]);
   const [editingAgentId, setEditingAgentId] = useState(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false); // NEW
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isRateLimited, setRateLimited] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState(null);
+  const [incompleteProfile, setIncompleteProfile] = useState(null);
 
   const dispatch = useDispatch();
   const { toast } = useToast();
@@ -98,14 +102,91 @@ const MultiStepForm = () => {
   const cancelDelete = () => {
     setDeletePopup({ open: false, agentId: null });
   };
+  const isUsageLimitError = (error) => {
+    const status = error?.response?.status;
+    const data = error?.response?.data;
 
-  // 🔸 Instead of immediately saving, open preview modal
+    return (
+      status === 429 || (status === 403 && data?.error === 'LIMIT_REACHED')
+    );
+  };
+
   const handlePreview = () => {
     setIsPreviewOpen(true);
   };
 
+  // const confirmSubmit = async () => {
+  //   setIsPreviewOpen(false);
+
+  //   try {
+  //     const submissionData = new FormData();
+
+  //     // 1. Basic Info
+  //     submissionData.append('agentName', formData.agentName);
+  //     submissionData.append('jobTitle', formData.jobTitle);
+  //     submissionData.append('country', formData.country);
+  //     submissionData.append('isRemote', String(formData.isRemote));
+
+  //     // 2. Cover Letter Strategy (This was likely the missing part)
+  //     submissionData.append(
+  //       'coverLetterStrategy',
+  //       formData.coverLetterStrategy || 'generate',
+  //     );
+  //     submissionData.append(
+  //       'coverLetterInstructions',
+  //       formData.coverLetterInstructions || '',
+  //     );
+
+  //     submissionData.append(
+  //       'employmentTypes',
+  //       JSON.stringify(formData.employmentTypes),
+  //     );
+
+  //     submissionData.append(
+  //       'keywords',
+  //       JSON.stringify(formData.keywords || []),
+  //     );
+
+  //     // 4. Numbers
+  //     submissionData.append(
+  //       'maxApplications',
+  //       String(formData.maxApplications),
+  //     );
+
+  //     // 5. File
+  //     if (formData.cvFile instanceof File) {
+  //       submissionData.append('cv', formData.cvFile);
+  //     }
+
+  //     await apiInstance.post('/pilotagent/create', submissionData, {
+  //       headers: { 'Content-Type': 'multipart/form-data' },
+  //     });
+
+  //     dispatch(getAutopilotRequest());
+  //     setFormData(initialFormData);
+  //     setStep(0);
+
+  //     toast({
+  //       variant: 'success',
+  //       title: 'Success',
+  //       description: 'Agent created successfully!',
+  //     });
+  //   } catch (err) {
+  //     console.error(err);
+  //     toast({
+  //       variant: 'destructive',
+  //       title: 'Error',
+  //       description: 'Failed to create agent. Please try again.',
+  //     });
+  //   }
+  // };
+
   const confirmSubmit = async () => {
     setIsPreviewOpen(false);
+
+    setRateLimited(false);
+    setRateLimitMessage(null);
+    setIncompleteProfile(null);
 
     try {
       const submissionData = new FormData();
@@ -116,7 +197,7 @@ const MultiStepForm = () => {
       submissionData.append('country', formData.country);
       submissionData.append('isRemote', String(formData.isRemote));
 
-      // 2. Cover Letter Strategy (This was likely the missing part)
+      // 2. Cover Letter Strategy
       submissionData.append(
         'coverLetterStrategy',
         formData.coverLetterStrategy || 'generate',
@@ -126,11 +207,11 @@ const MultiStepForm = () => {
         formData.coverLetterInstructions || '',
       );
 
+      // 3. Arrays/JSON
       submissionData.append(
         'employmentTypes',
         JSON.stringify(formData.employmentTypes),
       );
-
       submissionData.append(
         'keywords',
         JSON.stringify(formData.keywords || []),
@@ -160,13 +241,39 @@ const MultiStepForm = () => {
         title: 'Success',
         description: 'Agent created successfully!',
       });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
+      // 1. Handle Incomplete Profile (403)
+      if (
+        error?.response?.status === 403 &&
+        error?.response?.data?.message === 'Profile incomplete'
+      ) {
+        setIncompleteProfile(
+          error?.response?.data?.reasons?.join(', ') ||
+            'Please complete your profile to continue.',
+        );
+        // If you are using a wizard, you might want to move to a result/error step here:
+        // setStep(FINAL_STEP);
+        return;
+      }
+      // 2. Handle Rate Limit (429)
+      if (isUsageLimitError(error)) {
+        setRateLimited(true);
+        setRateLimitMessage(
+          error?.response?.data?.message ||
+            'You have exhausted your cover letter limit.',
+        );
+        return;
+      }
+      // 3. Fallback Generic Error
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to create agent. Please try again.',
+        description:
+          error?.response?.data?.message ||
+          'Failed to create agent. Please try again.',
       });
+    } finally {
     }
   };
 
@@ -215,6 +322,7 @@ const MultiStepForm = () => {
             values={formData}
           />
         );
+
       case 3:
         return (
           <Step3CoverLetter
@@ -225,7 +333,21 @@ const MultiStepForm = () => {
             values={formData}
           />
         );
+
       case 4:
+        return (
+          <FinalResultView
+            incompleteProfile={incompleteProfile}
+            cvlink={undefined}
+            rateLimited={isRateLimited}
+            rateLimitMessage={rateLimitMessage}
+            planPath="/dashboard/subscriptions"
+            title="AI Agent"
+            targetLink="/dashboard/ai-auto-apply"
+          />
+        );
+
+      case 5:
         return <GeneratingAgent />;
 
       default:

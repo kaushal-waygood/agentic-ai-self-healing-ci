@@ -7,6 +7,7 @@ import {
   sendRealTimeUserNotification,
 } from './notification.utils.js';
 import { wrapCoverLetterHtml } from './coverletterTemplate.js';
+import redisClient from '../config/redis.js';
 
 export const processCoverLetterGeneration = async (
   userId,
@@ -113,6 +114,8 @@ export const processCoverLetterGeneration = async (
     } catch (incErr) {
       console.error(`Failed to increment usage for user ${userId}:`, incErr);
     }
+
+    await redisClient.del(`dashboard:${userId}:ai-activity`);
 
     // 7. Send Notification
     await sendRealTimeUserNotification(

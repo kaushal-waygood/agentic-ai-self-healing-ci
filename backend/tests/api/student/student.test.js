@@ -1,6 +1,8 @@
 import constants from '../../config/constants.js';
 import axios from '../../utils/axiosConfig.js';
-import { User } from '../../../src/models/User.model.js';
+import User from '../../../src/models/User.model.js';
+import { Student } from '../../../src/models/student.model.js';
+import { StudentSkill } from '../../../src/models/students/studentSkill.model.js';
 import connectDB, { disconnectDB } from '../../../src/config/db.js';
 
 describe('Student Tests', () => {
@@ -11,6 +13,7 @@ describe('Student Tests', () => {
     fullName: 'Student Test',
     authMethod: 'local',
     isEmailVerified: true,
+    role: 'user',
   };
   let skillId;
   let experienceId;
@@ -25,6 +28,11 @@ describe('Student Tests', () => {
   });
 
   afterAll(async () => {
+    const user = await User.findOne({ email: testUser.email });
+    if (user) {
+      await StudentSkill.deleteMany({ student: user._id });
+      await Student.deleteOne({ _id: user._id });
+    }
     await User.deleteOne({ email: testUser.email });
     await disconnectDB();
   });
@@ -32,42 +40,41 @@ describe('Student Tests', () => {
   it('should get student details', async () => {
     const res = await axios.get('/api/v1/students/details');
     expect(res.status).toBe(200);
-    expect(res.data.studentDetails.email).toBe(testUser.email);
+    expect(res.data.student.email).toBe(testUser.email);
   });
 
   it('should update student profile', async () => {
     const updateData = {
       jobRole: 'Software Engineer',
+      phone: '+1234567890',
     };
     const res = await axios.patch(
       '/api/v1/students/profile/update',
       updateData,
     );
     expect(res.status).toBe(200);
-    expect(res.data.updatedStudent.jobRole).toBe(updateData.jobRole);
+    expect(res.data.student.jobRole).toBe(updateData.jobRole);
   });
 
   // SKILLS
   it('should add a skill', async () => {
     const skillData = {
       skill: 'JavaScript',
-      level: 'Intermediate',
+      level: 'INTERMEDIATE',
     };
-    const res = await axios.post('/api/v1/students/skill/add', skillData);
-    expect(res.status).toBe(200);
-    const skills = res.data.skills;
-    const addedSkill = skills.find((s) => s.skill === skillData.skill);
-    expect(addedSkill).toBeDefined();
-    skillId = addedSkill._id;
+    const res = await axios.post('/api/v1/students/skills', skillData);
+    expect(res.status).toBe(201);
+    expect(res.data.success).toBe(true);
+    expect(res.data.skill).toBeDefined();
+    expect(res.data.skill.skill).toBe(skillData.skill);
+    skillId = res.data.skill._id;
   });
 
   it('should remove a skill', async () => {
     if (!skillId) return;
-    const res = await axios.delete(`/api/v1/students/skill/remove/${skillId}`);
+    const res = await axios.delete(`/api/v1/students/skills/${skillId}`);
     expect(res.status).toBe(200);
-    const skills = res.data.skills || [];
-    const removedSkill = skills.find((s) => s._id === skillId);
-    expect(removedSkill).toBeUndefined();
+    expect(res.data.success).toBe(true);
   });
 
   // EXPERIENCE
@@ -79,23 +86,21 @@ describe('Student Tests', () => {
       currentlyWorking: true,
       location: 'Remote',
     };
-    const res = await axios.post('/api/v1/students/experience/add', expData);
-    expect(res.status).toBe(200);
-    const experiences = res.data.experience;
-    const addedExp = experiences.find((e) => e.company === expData.company);
-    expect(addedExp).toBeDefined();
-    experienceId = addedExp.experienceId; // Using slug ID as per controller
+    const res = await axios.post('/api/v1/students/experiences', expData);
+    expect(res.status).toBe(201);
+    expect(res.data.success).toBe(true);
+    expect(res.data.experience).toBeDefined();
+    expect(res.data.experience.company).toBe(expData.company);
+    experienceId = res.data.experience._id;
   });
 
   it('should remove experience', async () => {
     if (!experienceId) return;
     const res = await axios.delete(
-      `/api/v1/students/experience/remove/${experienceId}`,
+      `/api/v1/students/experiences/${experienceId}`,
     );
     expect(res.status).toBe(200);
-    const experiences = res.data.experience || [];
-    const removedExp = experiences.find((e) => e.experienceId === experienceId);
-    expect(removedExp).toBeUndefined();
+    expect(res.data.success).toBe(true);
   });
 
   // EDUCATION
@@ -108,23 +113,21 @@ describe('Student Tests', () => {
       institution: 'University of Tech',
       gpa: 3.8,
     };
-    const res = await axios.post('/api/v1/students/education/add', eduData);
-    expect(res.status).toBe(200);
-    const education = res.data.education;
-    const addedEdu = education.find((e) => e.degree === eduData.degree);
-    expect(addedEdu).toBeDefined();
-    educationId = addedEdu.educationId; // Using slug ID
+    const res = await axios.post('/api/v1/students/educations', eduData);
+    expect(res.status).toBe(201);
+    expect(res.data.success).toBe(true);
+    expect(res.data.education).toBeDefined();
+    expect(res.data.education.degree).toBe(eduData.degree);
+    educationId = res.data.education._id;
   });
 
   it('should remove education', async () => {
     if (!educationId) return;
     const res = await axios.delete(
-      `/api/v1/students/education/remove/${educationId}`,
+      `/api/v1/students/educations/${educationId}`,
     );
     expect(res.status).toBe(200);
-    const education = res.data.education || [];
-    const removedEdu = education.find((e) => e.educationId === educationId);
-    expect(removedEdu).toBeUndefined();
+    expect(res.data.success).toBe(true);
   });
 
   // PROJECTS
@@ -135,27 +138,20 @@ describe('Student Tests', () => {
       technologies: ['React', 'Node'],
       isWorkingActive: true,
     };
-    const res = await axios.post('/api/v1/students/project/add', projData);
-    expect(res.status).toBe(200);
-    const projects = res.data.projects;
-    const addedProj = projects.find(
-      (p) => p.projectName === projData.projectName,
-    );
-    expect(addedProj).toBeDefined();
-    projectId = addedProj._id; // Assuming _id is used
+    const res = await axios.post('/api/v1/students/projects', projData);
+    expect(res.status).toBe(201);
+    expect(res.data.success).toBe(true);
+    expect(res.data.project).toBeDefined();
+    expect(res.data.project.projectName).toBe(projData.projectName);
+    projectId = res.data.project._id;
   });
 
   it('should remove project', async () => {
     if (!projectId) return;
     const res = await axios.delete(
-      `/api/v1/students/project/remove/${projectId}`,
+      `/api/v1/students/projects/${projectId}`,
     );
     expect(res.status).toBe(200);
-    const projects = res.data.projects || [];
-    const removedProj = projects.find((p) => p._id === projectId);
-    if (projects.length > 0) {
-      // Check if verification logic needs to be adjusted based on actual return behavior
-      expect(removedProj).toBeUndefined();
-    }
+    expect(res.data.success).toBe(true);
   });
 });

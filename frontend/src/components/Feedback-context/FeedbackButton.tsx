@@ -185,6 +185,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import apiInstance from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 // 1. Constants
 const FEEDBACK_CATEGORIES = [
@@ -202,6 +203,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB Limit
 
 const FeedbackButton = () => {
   const pathname = usePathname();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 2. States
@@ -271,12 +273,25 @@ const FeedbackButton = () => {
     try {
       const res = await apiInstance.post('/user/feedback', dataToSend);
 
+      // show success toast
+      toast({
+        title: 'Feedback submitted',
+        description: 'Thank you for your feedback! We really appreciate it.',
+      });
+
       // Reset Form
       setIsOpen(false);
       setFormData({ category: FEEDBACK_CATEGORIES[0], message: '' });
       setAttachment(null);
     } catch (error) {
       console.error('Failed to send feedback', error);
+      toast({
+        variant: 'destructive',
+        title: 'Submission failed',
+        description:
+          error?.response?.data?.message ||
+          'Could not submit your feedback. Please try again later.',
+      });
     } finally {
       setIsSubmitting(false);
     }

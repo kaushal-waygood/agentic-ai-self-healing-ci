@@ -17,6 +17,7 @@ export function useNotifications() {
   const socketRef = useRef<Socket | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(false); // Add this state
   const [connectionStatus, setConnectionStatus] = useState<
     'connected' | 'disconnected' | 'error'
   >('disconnected');
@@ -82,21 +83,6 @@ export function useNotifications() {
       socketRef.current = null;
     };
   }, [prependNotification]);
-
-  // --- API calls ---
-  const fetchNotifications = useCallback(async (page = 1, limit = 20) => {
-    try {
-      const res = await apiInstance.get(
-        `/notifications?page=${page}&limit=${limit}`,
-      );
-      if (res.data?.success) {
-        setNotifications(res.data.data.notifications || []);
-      }
-    } catch (err) {
-      console.error('fetchNotifications failed', err);
-    }
-  }, []);
-
   const fetchUnreadCount = useCallback(async () => {
     try {
       const res = await apiInstance.get('/notifications/unread-count');
@@ -105,6 +91,26 @@ export function useNotifications() {
       console.error('fetchUnreadCount failed', err);
     }
   }, []);
+  // --- API calls ---
+  const fetchNotifications = useCallback(
+    async (page = 1, limit = 20) => {
+      setIsLoading(true);
+      try {
+        const res = await apiInstance.get(
+          `/notifications?page=${page}&limit=${limit}`,
+        );
+        if (res.data?.success) {
+          setNotifications(res.data.data.notifications || []);
+          await fetchUnreadCount();
+        }
+      } catch (err) {
+        console.error('fetchNotifications failed', err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchUnreadCount],
+  );
 
   const markAsRead = useCallback(async (notificationId: string) => {
     // optimistic UI update
@@ -166,6 +172,7 @@ export function useNotifications() {
     notifications,
     unreadCount,
     markAsRead,
+    isLoading,
     markAllAsRead,
     fetchNotifications,
     fetchUnreadCount,

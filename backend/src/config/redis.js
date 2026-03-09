@@ -227,15 +227,19 @@ class RedisClient {
   async invalidateStudentCache(studentId) {
     if (!studentId) return;
 
+    const id = studentId.toString?.() || studentId;
     const patterns = [
-      `student:${studentId}`,
-      `student:${studentId}:*`,
-      `jobs:recommended:${studentId}:*`,
-      `jobs:applied:${studentId}:*`,
-      `jobs:saved:${studentId}:*`,
-      `jobs:viewed:${studentId}:*`,
-      `jobs:visited:${studentId}:*`,
-      `stats:${studentId}:*`,
+      `student:${id}`,
+      `student:${id}:*`,
+      `dashboard:${id}:*`,
+      `jobs:recommended:${id}:*`,
+      `jobs:applied:${id}:*`,
+      `jobs:saved:${id}:*`,
+      `jobs:viewed:${id}:*`,
+      `jobs:visited:${id}:*`,
+      `stats:${id}:*`,
+      `autofill:student:${id}`,
+      `autofill:ai:${id}:*`,
     ];
 
     try {
@@ -308,6 +312,17 @@ class RedisClient {
       }
     } catch (err) {
       console.error('invalidateAllJobsCache error:', err);
+    }
+  }
+
+  /** Gracefully disconnect (for test teardown) */
+  async disconnect() {
+    try {
+      if (this.client?.isReady) {
+        await this.client.quit();
+      }
+    } catch (err) {
+      console.error('Redis disconnect error:', err);
     }
   }
 }
