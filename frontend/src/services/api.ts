@@ -96,6 +96,15 @@ apiInstance.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
+
+    // Logout only when token is invalid/expired (401 or 403)
+    const shouldLogout = status === 402;
+
+    if (!shouldLogout) {
+      return Promise.reject(error);
+    }
+
     const refreshToken = getRefreshToken();
 
     if (!refreshToken) {
