@@ -13,8 +13,7 @@ import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
 import { buildJobContextString } from '../utils/jobContext.js';
 import { processTailoredApplication } from '../utils/tailored.autopilot.js';
 
-export const toBool = (v) =>
-  v === true || String(v).toLowerCase() === 'true';
+export const toBool = (v) => v === true || String(v).toLowerCase() === 'true';
 export const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
 export const toInt = (v, fallback) => {
   const n = parseInt(v, 10);
@@ -23,7 +22,11 @@ export const toInt = (v, fallback) => {
 export const normalizeLimit = (v, fallback, { min = 0, max = 200 } = {}) =>
   clamp(toInt(v, fallback), min, max);
 
-export const buildApplicationData = (job, effectiveStudent, finalTouch = '') => {
+export const buildApplicationData = (
+  job,
+  effectiveStudent,
+  finalTouch = '',
+) => {
   return {
     job: {
       title: job.title || '',
@@ -34,7 +37,7 @@ export const buildApplicationData = (job, effectiveStudent, finalTouch = '') => 
         city: job.location?.city || '',
         state: job.location?.state || '',
       },
-      isRemote: !!job.isRemote,
+      isRemote: !!(job.remote ?? job.isRemote),
       jobTypes: Array.isArray(job.jobTypes) ? job.jobTypes : [],
       qualifications: Array.isArray(job.qualifications)
         ? job.qualifications
@@ -53,11 +56,7 @@ export const buildApplicationData = (job, effectiveStudent, finalTouch = '') => 
   };
 };
 
-export const runWithConcurrency = async (
-  items,
-  handler,
-  concurrency = 3,
-) => {
+export const runWithConcurrency = async (items, handler, concurrency = 3) => {
   const queue = [...items];
   const runners = Array.from(
     { length: Math.min(concurrency, queue.length) },
@@ -95,6 +94,7 @@ export const findAndProcessJobs = async () => {
   }
 
   let totalProcessed = 0;
+  const totalStudents = agentsByStudent.size;
 
   for (const [studentIdStr, agents] of agentsByStudent) {
     const studentId = new mongoose.Types.ObjectId(studentIdStr);
@@ -136,7 +136,9 @@ export const findAndProcessJobs = async () => {
         const appliedJobIds = [
           ...new Set([
             ...appliedJobs.map((j) => j.job?.toString()).filter(Boolean),
-            ...pendingApplications.map((j) => j.job?.toString()).filter(Boolean),
+            ...pendingApplications
+              .map((j) => j.job?.toString())
+              .filter(Boolean),
           ]),
         ].map((id) => new mongoose.Types.ObjectId(id));
 
@@ -151,11 +153,10 @@ export const findAndProcessJobs = async () => {
           agent,
         );
 
-        const agentCap = normalizeLimit(
-          agent.agentDailyLimit,
-          3,
-          { min: 0, max: 50 },
-        );
+        const agentCap = normalizeLimit(agent.agentDailyLimit, 3, {
+          min: 0,
+          max: 50,
+        });
         const batchSize = Math.min(remainingForStudent, agentCap);
 
         if (batchSize <= 0) continue;
@@ -166,6 +167,7 @@ export const findAndProcessJobs = async () => {
           studentProfile: effectiveStudent,
           appliedJobIds,
           limit: batchSize,
+          skipExternalFetch: true, // avoid RapidAPI 429 when processing many students
         });
 
         if (!recommendedJobs.length) continue;
@@ -250,5 +252,5 @@ export const findAndProcessJobs = async () => {
     }
   }
 
-  return { processed: totalProcessed };
+  return { processed: totalProcessed, studentsChecked: totalStudents };
 };
