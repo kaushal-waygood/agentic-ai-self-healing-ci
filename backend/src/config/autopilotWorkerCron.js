@@ -26,7 +26,7 @@ const runAutopilotWorker = async () => {
     console.log('🚀 [AutopilotCron] Starting autopilot job-finding cycle...');
     const result = await findAndProcessJobs();
     console.log(
-      `✅ [AutopilotCron] Cycle complete. Processed: ${result?.processed ?? 0}`,
+      `✅ [AutopilotCron] Cycle complete. Students checked: ${result?.studentsChecked ?? 0}, Processed: ${result?.processed ?? 0}`,
     );
   } catch (err) {
     console.error('❌ [AutopilotCron] Error:', err?.message || err);
@@ -39,7 +39,7 @@ const runAutopilotWorker = async () => {
  * Schedule the autopilot worker to run periodically.
  * @param {string} schedule - Cron expression (default: every 15 minutes)
  */
-export const startAutopilotWorkerCron = (schedule = '*/15 * * * *') => {
+export const startAutopilotWorkerCron = (schedule = '* * * * *') => {
   if (process.env.AUTOPILOT_CRON_ENABLED === 'false') {
     console.log('[AutopilotCron] Disabled via AUTOPILOT_CRON_ENABLED=false');
     return null;
