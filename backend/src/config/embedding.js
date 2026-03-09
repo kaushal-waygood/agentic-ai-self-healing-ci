@@ -9,7 +9,7 @@ async function getModel() {
   if (!model) {
     console.log('Downloading/Initializing local model...');
     model = await FlagEmbedding.init({
-      model: EmbeddingModel.BGEBaseEN, // 768 dimensions
+      model: EmbeddingModel.BGESmallENV15, // 384 dimensions, ~3x lighter than BGEBaseEN
     });
   }
   return model;
