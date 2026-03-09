@@ -1,26 +1,32 @@
 import express from 'express';
 import { countJobs } from '../controllers/job.controller.js';
 import { Job } from '../models/jobs.model.js';
+
 const router = express.Router();
 
-export async function fetchJobsPage({ page = 1, limit = 5000 } = {}) {
-  const projection = {};
+const SITEMAP_BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? process.env.FRONTEND_URL || 'https://zobsai.com'
+    : process.env.NODE_ENV === 'development'
+      ? 'https://dev.zobsai.com'
+      : 'http://localhost:3000';
 
+export async function fetchJobsPage({ page = 1, limit = 5000 } = {}) {
   const skip = (page - 1) * limit;
 
-  return Job.find({ published: true }) // Added filter to match your route logic
-    .select(projection)
-    .sort({ updatedAt: -1 }) // This is what triggers the memory error
+  return Job.find({ isActive: { $ne: false } })
+    .select('slug updatedAt')
+    .sort({ updatedAt: -1 })
     .skip(skip)
     .limit(limit)
-    .allowDiskUse(true) // <--- CRITICAL: Allows MongoDB to use temp files for sorting
-    .lean() // Good: keeps memory usage low by returning POJOs
+    .allowDiskUse(true)
+    .lean()
     .exec();
 }
 
 router.get('/sitemap-count', async (req, res) => {
   try {
-    const count = await countJobs({ published: true });
+    const count = await countJobs({ isActive: { $ne: false } });
     return res.json({ count });
   } catch (err) {
     console.error(err);
@@ -28,36 +34,50 @@ router.get('/sitemap-count', async (req, res) => {
   }
 });
 
-router.get('/sitemap-enteries', async (req, res) => {
+router.get('/sitemap', async (req, res) => {
+  const staticPaths = [
+    '',
+    '/search-jobs',
+    '/privacy-policy',
+    '/terms-of-service',
+    '/cancellation-refundpolicy',
+    '/cookie-policy',
+    '/bug-report',
+    '/dashboard',
+    '/dashboard/profile',
+    '/dashboard/my-docs',
+  ];
+
+  const staticEntries = staticPaths.map((path) => ({
+    url: `${SITEMAP_BASE_URL}${path}`,
+    lastModified: new Date().toISOString(),
+    changeFrequency: 'daily',
+    priority: path === '' ? 1 : 0.8,
+  }));
+
   try {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 5000, 5000);
-    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const jobs = await Job.find({ isActive: { $ne: false } })
+      .select('slug updatedAt')
+      .sort({ updatedAt: -1 })
+      .allowDiskUse(true)
+      .lean()
+      .exec();
 
-    // Ensure fetchJobsPage is using .select('slug updatedAt')
-    // and .lean() for maximum performance.
-    const jobs = await fetchJobsPage(
-      { published: true },
-      {
-        page,
-        limit,
-      },
-    );
+    const jobEntries = jobs
+      .filter((j) => j.slug)
+      .map((j) => ({
+        url: `${SITEMAP_BASE_URL}/jobs/${j.slug}`,
+        lastModified: j.updatedAt
+          ? new Date(j.updatedAt).toISOString()
+          : undefined,
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      }));
 
-    console.log(jobs);
-
-    const entries = jobs.map((j) => ({
-      url: `https://www.zobsai.com/jobs/${j.slug}`,
-      lastModified: j.updatedAt
-        ? new Date(j.updatedAt).toISOString()
-        : undefined,
-    }));
-
-    console.log(entries);
-
-    res.json(entries);
+    res.json([...staticEntries, ...jobEntries]);
   } catch (err) {
-    console.error('Error getting sitemap entries', err);
-    res.status(500).json([]);
+    console.error('Error getting sitemap', err);
+    res.json(staticEntries);
   }
 });
 

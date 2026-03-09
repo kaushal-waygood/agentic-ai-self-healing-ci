@@ -11,6 +11,7 @@ import {
 import { calculateATSScore } from '../utils/atsScore.js';
 import { logToFile } from './logFile.js';
 import { Student } from '../models/student.model.js';
+import redisClient from '../config/redis.js';
 
 // Constants for retry logic
 const MAX_RETRIES = 5;
@@ -225,6 +226,8 @@ export const processCVGeneration = async (
     } catch (incErr) {
       console.error(`Failed to increment usage for user ${userId}:`, incErr);
     }
+
+    await redisClient.del(`dashboard:${userId}:ai-activity`);
 
     // 7. Send Success Notification
     await sendRealTimeUserNotification(

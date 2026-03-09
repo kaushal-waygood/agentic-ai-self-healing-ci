@@ -33,6 +33,7 @@ import {
 } from '../utils/credits.js';
 import { generateEmbedding } from '../config/embedding.js';
 import { getCachedReco, makeRecoKey } from '../utils/recoCache.js';
+import { getPrefetchedJobs } from '../utils/prefetchCache.js';
 import { StudentSkill } from '../models/students/studentSkill.model.js';
 import { makeTop4Key } from '../utils/dashboardKeys.js';
 
@@ -154,7 +155,7 @@ export async function claimProfileCompletionCreditsForUser(userId) {
   };
 }
 
-async function buildUserProfileFromStudent(userId) {
+export async function buildUserProfileFromStudent(userId) {
   const student = await Student.findById(userId)
     .select('location jobRole jobPreferences')
     .lean();
@@ -1985,6 +1986,18 @@ export async function getProfileBasedRecommendedJobs(req, res) {
   const skip = (pageNum - 1) * limitNum;
 
   try {
+    // Return prefetched jobs instantly when available (page 1, limit ≤ 10)
+    if (pageNum === 1 && limitNum <= 10) {
+      const prefetched = await getPrefetchedJobs(req.user._id);
+      if (prefetched?.jobs?.length) {
+        return res.status(200).json({
+          success: true,
+          pagination: prefetched.pagination,
+          jobs: prefetched.jobs,
+        });
+      }
+    }
+
     const profile = await buildUserProfileFromStudent(req.user._id);
     const interactions = await buildInteractionContext(req.user._id);
 
