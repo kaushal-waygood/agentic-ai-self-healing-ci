@@ -22,6 +22,9 @@ import { Feedback } from '../models/feedback.model.js';
 
 import { v4 as uuidv4 } from 'uuid';
 import { LoginHistory } from '../models/analyics/loginHistory.model.js';
+import {
+  prefetchRecommendedJobsForUser,
+} from '../utils/prefetchRecommendedJobs.js';
 
 /* -------------------------
    Initialization
@@ -967,6 +970,9 @@ export const signInUser = async (req, res) => {
       status: 'SUCCESS',
     });
 
+    // Prefetch recommended jobs in background for instant load on jobs-search
+    void prefetchRecommendedJobsForUser(user._id);
+
     return res.status(200).json({
       message: 'Signed in successfully',
       user: userObject,
@@ -1456,6 +1462,9 @@ export const handleGoogleCallback = async (req, res) => {
       loginMethod: 'google',
       status: 'SUCCESS',
     });
+
+    // Prefetch recommended jobs in background for instant load on jobs-search
+    void prefetchRecommendedJobsForUser(user._id);
 
     return res.redirect(
       `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,
