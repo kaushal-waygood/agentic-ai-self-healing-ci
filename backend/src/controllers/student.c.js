@@ -1525,12 +1525,19 @@ export const checkoutCredits = async (req, res) => {
   }
 };
 
-export const getRecentAIActivity = async (req, res) => {
-  try {
-    const studentId = req.user._id;
+const DASHBOARD_AI_ACTIVITY_TTL = 300; // 5 min
 
-    const [latestCV, latestCoverLetter, latestTailoredApplication] =
-      await Promise.all([
+export const getRecentAIActivity = async (req, res) => {
+  const studentId = req.user._id;
+  const cacheKey = `dashboard:${studentId}:ai-activity`;
+
+  try {
+    const cached = await redisClient.withCache(
+      cacheKey,
+      DASHBOARD_AI_ACTIVITY_TTL,
+      async () => {
+        const [latestCV, latestCoverLetter, latestTailoredApplication] =
+          await Promise.all([
         StudentCV.findOne({
           student: studentId,
           status: 'completed',
@@ -1553,40 +1560,44 @@ export const getRecentAIActivity = async (req, res) => {
           .lean(),
       ]);
 
+        return {
+          cv: latestCV
+            ? {
+                id: latestCV._id,
+                title: latestCV.cvTitle,
+                status: latestCV.status,
+                createdAt: latestCV.createdAt,
+                completedAt: latestCV.completedAt,
+              }
+            : null,
+
+          coverLetter: latestCoverLetter
+            ? {
+                id: latestCoverLetter._id,
+                title: latestCoverLetter.clTitle,
+                status: latestCoverLetter.status,
+                createdAt: latestCoverLetter.createdAt,
+                completedAt: latestCoverLetter.completedAt,
+              }
+            : null,
+
+          tailoredApplication: latestTailoredApplication
+            ? {
+                id: latestTailoredApplication._id,
+                jobTitle: latestTailoredApplication.jobTitle,
+                companyName: latestTailoredApplication.companyName,
+                status: latestTailoredApplication.status,
+                createdAt: latestTailoredApplication.createdAt,
+                completedAt: latestTailoredApplication.completedAt,
+              }
+            : null,
+        };
+      },
+    );
+
     return res.json({
       success: true,
-      data: {
-        cv: latestCV
-          ? {
-              id: latestCV._id,
-              title: latestCV.cvTitle,
-              status: latestCV.status,
-              createdAt: latestCV.createdAt,
-              completedAt: latestCV.completedAt,
-            }
-          : null,
-
-        coverLetter: latestCoverLetter
-          ? {
-              id: latestCoverLetter._id,
-              title: latestCoverLetter.clTitle,
-              status: latestCoverLetter.status,
-              createdAt: latestCoverLetter.createdAt,
-              completedAt: latestCoverLetter.completedAt,
-            }
-          : null,
-
-        tailoredApplication: latestTailoredApplication
-          ? {
-              id: latestTailoredApplication._id,
-              jobTitle: latestTailoredApplication.jobTitle,
-              companyName: latestTailoredApplication.companyName,
-              status: latestTailoredApplication.status,
-              createdAt: latestTailoredApplication.createdAt,
-              completedAt: latestTailoredApplication.completedAt,
-            }
-          : null,
-      },
+      data: cached,
     });
   } catch (error) {
     console.error('Recent AI Activity Error:', error);

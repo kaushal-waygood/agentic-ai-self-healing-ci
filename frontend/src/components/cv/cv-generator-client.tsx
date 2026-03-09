@@ -96,7 +96,6 @@ export function CvGeneratorClient() {
   const [incompleteProfile, setIncompleteProfile] = useState<string | null>(
     null,
   );
-  console.log('ratelimts cv ', rateLimited);
   const {
     students: student,
     loading: studentLoading,
@@ -361,7 +360,7 @@ export function CvGeneratorClient() {
         description: 'Your new CV draft has been added to your saved list.',
       });
     } catch (error: any) {
-      console.log('error triggerd', error);
+      console.error('error triggerd', error);
       if (
         error?.response?.status === 403 &&
         error?.response?.data?.message === 'Profile incomplete'

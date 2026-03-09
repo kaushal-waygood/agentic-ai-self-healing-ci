@@ -23,7 +23,7 @@ const GoogleAuthCallback = () => {
 
     if (token) {
       try {
-        dispatch(googleLoginSuccess(token));
+        dispatch(googleLoginSuccess({ token }));
         dispatch(getGetMeRequest(token));
 
         if (isNew === 'true') {

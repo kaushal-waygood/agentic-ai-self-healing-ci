@@ -5,6 +5,7 @@ import { Plan } from '../models/Plans.model.js'; // keep the path you used
 import { Purchase } from '../models/Purchase.js';
 import { User } from '../models/User.model.js';
 import { config } from '../config/config.js';
+import redisClient from '../config/redis.js';
 import { Coupon } from '../models/coupon.model.js';
 import { razorpay } from '../config/razorpay.js';
 import crypto from 'crypto';
@@ -634,6 +635,8 @@ export const handleStripeWebhook = async (req, res) => {
 
     await newPurchase.save({ session });
 
+    await redisClient.del(`dashboard:${userId}:purchases`);
+
     // ---------------- UPDATE USER ----------------
     const user = await User.findById(userId).session(session);
     if (!user) {
@@ -1050,6 +1053,8 @@ export const verifyRazorpayPayment = async (req, res) => {
 
     await newPurchase.save({ session });
 
+    await redisClient.del(`dashboard:${userId}:purchases`);
+
     /* ---------------- UPDATE USER ---------------- */
     const user = await User.findById(userId).session(session);
     if (!user) {
@@ -1306,6 +1311,8 @@ export const createSimplePurchaseDev = async (req, res) => {
       });
 
       await newPurchase.save({ session });
+
+      await redisClient.del(`dashboard:${userId}:purchases`);
 
       const newUsageLimits = buildUsageLimitsFromFeatures(
         variant.features || [],
