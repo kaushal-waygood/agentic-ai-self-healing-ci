@@ -46,7 +46,8 @@ interface PreferredSalary {
   period: string;
 }
 
-interface JobPreferencesFormData {
+// interface JobPreferencesFormData {
+export interface JobPreferencesFormData {
   preferredCountries: string[];
   preferredCities: string[];
   isRemote: boolean;
@@ -195,6 +196,13 @@ const buildPayload = (fd: JobPreferencesFormData) => ({
   preferredIndustries: splitToArray(fd.preferredIndustries),
   preferredCertifications: splitToArray(fd.preferredCertifications),
 
+  preferredSalary: {
+    min: Number(fd.preferredSalary.min),
+    max: Number(fd.preferredSalary.max),
+    currency: fd.preferredSalary.currency,
+    period: fd.preferredSalary.period,
+  },
+
   mustHaveSkills:
     typeof fd.mustHaveSkills === 'string'
       ? splitToArray(fd.mustHaveSkills)
@@ -303,7 +311,8 @@ const JobPreferencesForm = () => {
       return;
     }
 
-    updateJobPreferences(buildPayload(formData));
+    // updateJobPreferences(buildPayload(formData));
+    updateJobPreferences(buildPayload(formData) as any);
     toast({
       title:
         type === 'primary' ? 'Primary details saved' : 'Advanced details saved',
