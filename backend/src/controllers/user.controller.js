@@ -566,11 +566,8 @@ export const linkedInCallback = async (req, res) => {
     }
 
     const sessionId = uuidv4();
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      config.accessTokenSecret,
-      { expiresIn: '7d' },
-    );
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
 
     await LoginHistory.create({
       userId: user._id,
@@ -581,8 +578,13 @@ export const linkedInCallback = async (req, res) => {
       status: 'SUCCESS',
     });
 
+    const params = new URLSearchParams({
+      token: accessToken,
+      refreshToken,
+      new: isNewUser,
+    });
     return res.redirect(
-      `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,
+      `${FRONTEND_URL}/auth/google/callback?${params.toString()}`,
     );
   } catch (error) {
     console.error('LinkedIn callback error:', error);
@@ -1448,11 +1450,8 @@ export const handleGoogleCallback = async (req, res) => {
     }
 
     const sessionId = uuidv4();
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      config.accessTokenSecret,
-      { expiresIn: '7d' },
-    );
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
 
     await LoginHistory.create({
       userId: user._id,
@@ -1466,8 +1465,13 @@ export const handleGoogleCallback = async (req, res) => {
     // Prefetch recommended jobs in background for instant load on jobs-search
     void prefetchRecommendedJobsForUser(user._id);
 
+    const params = new URLSearchParams({
+      token: accessToken,
+      refreshToken,
+      new: isNewUser,
+    });
     return res.redirect(
-      `${FRONTEND_URL}/auth/google/callback?token=${token}&new=${isNewUser}`,
+      `${FRONTEND_URL}/auth/google/callback?${params.toString()}`,
     );
   } catch (error) {
     console.error('Google callback error:', error);
