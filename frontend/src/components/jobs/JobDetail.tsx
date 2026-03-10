@@ -31,12 +31,29 @@ import {
   Star,
   Zap,
   Share2,
+  ChevronDown,
+  ChevronUp,
+  Briefcase as BriefcaseIcon,
+  BarChart3,
+  Lightbulb,
+  Target,
+  FileText,
+  FileSignature,
 } from 'lucide-react';
 
 import { JobListing } from '@/lib/data/jobs';
 import { postStudentEventsRequest } from '@/redux/reducers/studentReducer';
 
 import { getToken } from '@/hooks/useToken';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface JobDetailClientProps {
   job: JobListing;
@@ -44,7 +61,17 @@ interface JobDetailClientProps {
 
 interface MatchScore {
   matchScore: number;
+  skillsFitPercent?: number;
+  experienceFitPercent?: number;
+  seniorityFitPercent?: number;
+  techFitPercent?: number;
+  roleFitPercent?: number;
+  breakdown?: { skills: string; experience: string; seniority: string };
+  skillsMatched?: { skill: string }[];
+  skillsMissing?: string[];
+  suggestions?: string[];
   recommendation: string;
+  improvedSummary?: string;
 }
 
 interface AtsScore {
@@ -78,6 +105,10 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const [isApplying, setIsApplying] = useState(false);
   const [openCard, setOpenCard] = useState<'match' | 'ats' | null>('match');
   const [token, setToken] = useState<string | undefined>(undefined);
+  const [savedCvs, setSavedCvs] = useState<
+    { _id: string; htmlCVTitle?: string }[]
+  >([]);
+  const [cvForMatch, setCvForMatch] = useState<string>('profile');
 
   const MATCH_SCORE_KEY = (jobId?: string) =>
     jobId ? `matchScore_${jobId}` : '';
@@ -94,23 +125,41 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   }, []);
 
   useEffect(() => {
+    if (!token) return;
+    const fetchCvs = async () => {
+      try {
+        const res = await apiInstance.get('/students/resume/saved');
+        const list = res.data?.html || res.data || [];
+        setSavedCvs(Array.isArray(list) ? list : []);
+      } catch {
+        setSavedCvs([]);
+      }
+    };
+    fetchCvs();
+  }, [token]);
+
+  useEffect(() => {
     if (!job?._id) return;
 
     const controller = new AbortController();
+    const matchCacheKey =
+      cvForMatch && cvForMatch !== 'profile'
+        ? `matchScore_${job._id}_${cvForMatch}`
+        : MATCH_SCORE_KEY(job._id);
 
     try {
-      const rawMatch = localStorage.getItem(MATCH_SCORE_KEY(job._id));
+      const rawMatch = localStorage.getItem(matchCacheKey);
       const parsedMatch = rawMatch ? JSON.parse(rawMatch) : null;
 
       if (parsedMatch && typeof parsedMatch.matchScore === 'number') {
         setMatchScore(parsedMatch);
       } else {
         setMatchScore(null);
-        localStorage.removeItem(MATCH_SCORE_KEY(job._id));
+        localStorage.removeItem(matchCacheKey);
       }
     } catch {
       setMatchScore(null);
-      localStorage.removeItem(MATCH_SCORE_KEY(job._id));
+      localStorage.removeItem(matchCacheKey);
     }
 
     setIsLoadingScore(false);
@@ -137,7 +186,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     setProgress(0);
 
     return () => controller.abort();
-  }, [job?._id]);
+  }, [job?._id, cvForMatch]);
 
   // token lookup (SSR-safe)
   // useEffect(() => {
@@ -159,7 +208,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
     const controller = new AbortController();
     const { signal } = controller;
 
-    const savedScore = localStorage.getItem(`matchScore_${job._id}`);
+    const cacheKey =
+      cvForMatch && cvForMatch !== 'profile'
+        ? `matchScore_${job._id}_${cvForMatch}`
+        : `matchScore_${job._id}`;
+    const savedScore = localStorage.getItem(cacheKey);
     setMatchScore(savedScore ? (JSON.parse(savedScore) as MatchScore) : null);
     setIsLoadingScore(false);
     setProgress(0);
@@ -184,7 +237,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
 
     checkJobStatus();
     return () => controller.abort();
-  }, [job?._id]);
+  }, [job?._id, cvForMatch]);
 
   const handleToggleSavedJob = useCallback(async () => {
     try {
@@ -222,10 +275,18 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       setProgress((prev) => (prev < 90 ? prev + 5 : prev));
     }, 1000);
 
+    const payload: Record<string, string> = {
+      jobDescription: job.description,
+      jobTitle: job.title || '',
+    };
+    if (cvForMatch && cvForMatch !== 'profile') {
+      payload.savedCVId = cvForMatch;
+    }
+
     try {
       const response = await apiInstance.post(
         '/students/calculate-match',
-        { jobDescription: job.description },
+        payload,
         { signal },
       );
 
@@ -234,7 +295,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       const data = response.data as MatchScore;
       setMatchScore(data);
       if (job._id) {
-        localStorage.setItem(`matchScore_${job._id}`, JSON.stringify(data));
+        const cacheKey =
+          cvForMatch && cvForMatch !== 'profile'
+            ? `matchScore_${job._id}_${cvForMatch}`
+            : `matchScore_${job._id}`;
+        localStorage.setItem(cacheKey, JSON.stringify(data));
       }
 
       if (!response.success) {
@@ -261,7 +326,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       if (interval) window.clearInterval(interval);
       setIsLoadingScore(false);
     }
-  }, [job?._id, job?.description]);
+  }, [job?._id, job?.description, cvForMatch]);
 
   const handleApplyOnSite = useCallback(async () => {
     try {
@@ -656,15 +721,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {job.applyMethod?.url === 'email' ? (
                 <Button
                   asChild
-                  className="group relative overflow-hidden px-6 py-4  rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0"
+                  className="px-6 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
                       job._id ?? '',
                     )}&step=cv`}
                   >
-                    <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                    <div className="relative flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <FilePlus2 className="w-5 h-5" />
                       <span>Tailor & Apply</span>
                     </div>
@@ -673,14 +737,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               ) : (
                 <Button
                   asChild
-                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                 >
                   <Link
                     href={`/dashboard/apply?slug=${encodeURIComponent(
                       job._id ?? '',
                     )}&step=cv`}
                   >
-                    <div className="relative flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <FilePlus2 className="w-5 h-5" />
                       <span>Tailor My Docs</span>
                     </div>
@@ -695,14 +759,15 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <Button
                   onClick={handleApplyOnSite}
                   asChild
-                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  variant="outline"
+                  className="px-5 py-3 rounded-lg font-semibold border-2 border-primary text-primary bg-white transition-all duration-300"
                 >
                   <Link
                     href={job.applyMethod.url}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <div className="relative flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <ExternalLink className="w-5 h-5" />
                       <span>Apply on Company Site</span>
                     </div>
@@ -722,13 +787,13 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 <Button
                   onClick={handleApplyNow}
                   asChild
-                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 bg-buttonPrimary hover:from-blue-700 hover:to-cyan-700 text-white flex items-center justify-center"
+                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                 >
                   <Link
                     href={`/dashboard/jobs/${job._id}/apply`}
                     rel="noopener noreferrer"
                   >
-                    <div className="relative flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <span>Apply Now</span>
                     </div>
                   </Link>
@@ -739,9 +804,9 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {!atsScore && !isLoadingAtsScore && (
                 <Button
                   onClick={handleGetATSScore}
-                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-orange-500  text-white border-0"
+                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="relative flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     <Sparkles className="w-5 h-5" />
                     <span>AI ATS Score</span>
                   </div>
@@ -749,92 +814,54 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               )}
 
               {isLoadingAtsScore && (
-                <div
-                  className="relative overflow-hidden px-6 py-2 rounded-lg
-      bg-gradient-to-r from-blue-500 to-green-500 text-white
-      w-[100px]" // 🔒 lock button width
-                >
-                  {/* Progress bar */}
+                <div className="relative overflow-hidden px-6 py-2 rounded-lg bg-buttonPrimary text-white w-[100px]">
                   <div
-                    className="absolute inset-y-0 left-0
-        bg-gradient-to-r from-purple-400/50 to-blue-400/50
-        transition-all duration-300"
+                    className="absolute inset-y-0 left-0 bg-white/30 transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
-
-                  {/* Content */}
                   <div className="relative flex items-center justify-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
-
-                    {/* Fixed-width number */}
                     <span className="font-semibold tabular-nums w-[3ch] text-center">
                       {progress}%
                     </span>
                   </div>
                 </div>
               )}
+
               {atsScore && !isLoadingAtsScore && (
                 <button
                   onClick={handleGetATSScore}
-                  className="group relative overflow-hidden px-6  rounded-lg
-    bg-gradient-to-r from-blue-500 to-green-500 text-white
-      font-bold transition-all duration-300
-    
-      animate-in fade-in zoom-in"
+                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                 >
-                  {/* Normal content */}
-                  <div className="flex items-center justify-center gap-2 py-1.5 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95">
+                  <div className="flex items-center justify-center gap-2">
                     <TrendingUp className="w-4 h-4" />
-                    <span className="text-lg">{atsScore?.atsScore}/100</span>
-                  </div>
-
-                  {/* Hover content */}
-                  <div
-                    className="absolute inset-0 flex items-center justify-center gap-2
-      opacity-0 scale-105
-      transition-all duration-200
-      group-hover:opacity-100 group-hover:scale-100"
-                  >
-                    {/* <Sparkles className="w-4 h-4" /> */}
-                    <span className="text-sm tracking-wide">
-                      Recalculate ATS Score
-                    </span>
+                    <span>{atsScore?.atsScore}/100</span>
                   </div>
                 </button>
               )}
 
               {isLoadingScore && (
-                <div
-                  className="relative overflow-hidden px-6 py-2 rounded-lg
-      bg-gradient-to-r from-blue-500 to-green-500 text-white
-      w-[100px]" // 🔒 lock button width
-                >
-                  {/* Progress bar */}
+                <div className="relative overflow-hidden px-6 py-2 rounded-lg bg-buttonPrimary text-white w-[100px]">
                   <div
-                    className="absolute inset-y-0 left-0
-        bg-gradient-to-r from-purple-400/50 to-blue-400/50
-        transition-all duration-300"
+                    className="absolute inset-y-0 left-0 bg-white/30 transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
-
-                  {/* Content */}
                   <div className="relative flex items-center justify-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
-
-                    {/* Fixed-width number */}
                     <span className="font-semibold tabular-nums w-[3ch] text-center">
                       {progress}%
                     </span>
                   </div>
                 </div>
               )}
+
               {/* Match Score */}
               {!matchScore && !isLoadingScore && (
                 <Button
                   onClick={handleGetMatchScore}
-                  className="group relative overflow-hidden px-5 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105  bg-gradient-to-r from-blue-500 to-green-500  text-white border-0"
+                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="relative flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     <Sparkles className="w-5 h-5" />
                     <span>AI Match Score</span>
                   </div>
@@ -844,31 +871,29 @@ export default function JobDetail({ job }: JobDetailClientProps) {
               {matchScore && !isLoadingScore && (
                 <button
                   onClick={handleGetMatchScore}
-                  className="group relative overflow-hidden px-6 rounded-lg
-    bg-gradient-to-r from-blue-500 to-green-500 text-white
-      font-bold transition-all duration-300
-    
-      animate-in fade-in zoom-in"
+                  className="px-5 py-3 rounded-lg font-semibold bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                 >
-                  {/* Normal content */}
-                  <div className="flex items-center justify-center gap-2 transition-all duration-200 group-hover:opacity-0 group-hover:scale-95 py-1.5">
+                  <div className="flex items-center justify-center gap-2">
                     <TrendingUp className="w-4 h-4" />
-                    <span className="text-lg">{matchScore.matchScore}/10</span>
-                  </div>
-
-                  {/* Hover content */}
-                  <div
-                    className="absolute inset-0 flex items-center justify-center gap-2
-      opacity-0 scale-105
-      transition-all duration-200
-      group-hover:opacity-100 group-hover:scale-100"
-                  >
-                    {/* <Sparkles className="w-4 h-4" /> */}
-                    <span className="text-sm tracking-wide">
-                      Recalculate Match Score
-                    </span>
+                    <span>{matchScore.matchScore}/10</span>
                   </div>
                 </button>
+              )}
+
+              {savedCvs.length > 0 && (
+                <Select value={cvForMatch} onValueChange={setCvForMatch}>
+                  <SelectTrigger className="w-[180px] h-10 border border-input bg-background-white text-sm">
+                    <SelectValue placeholder="Match against" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="profile">My Profile</SelectItem>
+                    {savedCvs.map((cv) => (
+                      <SelectItem key={cv._id} value={cv._id}>
+                        {cv.htmlCVTitle || 'Untitled CV'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
 
               {/* {scoreError && !isLoadingScore && (
@@ -885,7 +910,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
             <div className="flex flex-col justify-end md:flex-row gap-2 items-center flex-1 md:gap-4">
               <Button
                 onClick={() => router.push('/login')}
-                className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-700 hover:via-indigo-700 hover:to-cyan-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm rounded-lg px-6 py-3 font-semibold text-sm border border-white/20"
+                className="bg-buttonPrimary hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-lg px-6 py-3 font-semibold text-sm"
               >
                 Sign up
                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
@@ -896,20 +921,18 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       </div>
 
       <div className="flex items-center justify-end ">
-        <div className="flex items-center bg-gray-100 rounded-lg  border border-gray-200 shadow-sm">
+        <div className="flex items-center bg-muted rounded-lg border border-border shadow-sm">
           {atsScore?.atsScore && (
             <button
               onClick={() => {
                 setActiveView('ats');
                 setOpenCard(null);
               }}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg
-          text-sm font-semibold transition-all duration-200
-          ${
-            activeView === 'ats'
-              ? 'bg-white text-purple-700 shadow'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
-          }`}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                activeView === 'ats'
+                  ? 'bg-background text-primary shadow'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
             >
               <Zap className="w-4 h-4" />
               <span>ATS Score :</span>
@@ -923,13 +946,11 @@ export default function JobDetail({ job }: JobDetailClientProps) {
                 setActiveView('match');
                 setOpenCard(null);
               }}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg
-          text-sm font-semibold transition-all duration-200
-          ${
-            activeView === 'match'
-              ? 'bg-white text-purple-700 shadow'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
-          }`}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                activeView === 'match'
+                  ? 'bg-background text-primary shadow'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
             >
               <Star className="w-4 h-4" />
               <span>Match Score :</span>
@@ -940,73 +961,315 @@ export default function JobDetail({ job }: JobDetailClientProps) {
       </div>
 
       {activeView === 'match' && matchScore && !isLoadingScore && (
-        <div className="rounded-lg border border-purple-200/50 overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden bg-card">
+          {/* Header with main score */}
           <button
             onClick={() => setOpenCard(openCard === 'match' ? null : 'match')}
-            className="w-full px-3 py-3 flex items-center justify-between hover:bg-white/50"
+            className="w-full px-4 py-4 flex items-center justify-between hover:bg-white/60 transition-colors"
           >
             <div className="flex items-center gap-4">
-              <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg">
-                <Star className="w-4 h-4 text-white" />
-              </div>
-              <div className="text-sm text-gray-600 flex gap-2">
-                <span>Match Score:</span>
-                <span className="font-semibold text-purple-700">
-                  {matchScore.matchScore}/10
+              <div className="relative w-14 h-14 rounded-full bg-buttonPrimary flex items-center justify-center shadow-lg">
+                <span className="text-xl font-bold text-white">
+                  {matchScore.matchScore}
+                </span>
+                <span className="absolute -bottom-1 -right-1 text-xs font-medium text-primary bg-background px-1.5 py-0.5 rounded">
+                  /10
                 </span>
               </div>
-            </div>
-
-            {/* {openCard === 'match' ? (
-              <ChevronUp className="w-5 h-5 text-purple-700" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-purple-700" />
-            )} */}
-          </button>
-
-          {/* {openCard === 'match' && (
-            <div className="px-3 pb-3">
-              <div className="bg-white/80 rounded-xl p-3 border">
-                <h2 className="font-semibold mb-1">AI Recommendation</h2>
-                <p className="text-sm text-gray-700">
-                  {matchScore.recommendation}
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  AI Match Score
+                </p>
+                <p className="text-xs text-gray-500">
+                  {matchScore.matchScore >= 7
+                    ? 'Strong match'
+                    : matchScore.matchScore >= 4
+                      ? 'Moderate match'
+                      : 'Consider upskilling'}
                 </p>
               </div>
             </div>
-          )} */}
-          <div className="px-3 pb-3">
-            <div className="bg-white/80 rounded-xl p-3 border">
-              <h2 className="font-semibold mb-1">AI Recommendation</h2>
-              <p className="text-sm text-gray-700">
+            {openCard === 'match' ? (
+              <ChevronUp className="w-5 h-5 text-primary" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-primary" />
+            )}
+          </button>
+
+          {/* Expandable content */}
+          {openCard === 'match' && (
+            <div className="px-4 pb-4 space-y-4 border-t border-border">
+              {/* Fit breakdown - matches job description against CV for any job type */}
+              {((matchScore.skillsFitPercent ?? matchScore.techFitPercent) !==
+                undefined ||
+                (matchScore.experienceFitPercent ??
+                  matchScore.roleFitPercent) !== undefined ||
+                matchScore.seniorityFitPercent !== undefined) && (
+                <div className="pt-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    Match breakdown
+                  </h3>
+                  <div className="grid gap-3">
+                    {(matchScore.skillsFitPercent ??
+                      matchScore.techFitPercent) !== undefined && (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <Target className="w-3.5 h-3.5 text-blue-600" />
+                            Skills match
+                          </span>
+                          <span className="font-medium">
+                            {matchScore.skillsFitPercent ??
+                              matchScore.techFitPercent}
+                            %
+                          </span>
+                        </div>
+                        <Progress
+                          value={
+                            matchScore.skillsFitPercent ??
+                            matchScore.techFitPercent
+                          }
+                          className="h-2"
+                        />
+                      </div>
+                    )}
+                    {(matchScore.experienceFitPercent ??
+                      matchScore.roleFitPercent) !== undefined && (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <BriefcaseIcon className="w-3.5 h-3.5 text-emerald-600" />
+                            Experience match
+                          </span>
+                          <span className="font-medium">
+                            {matchScore.experienceFitPercent ??
+                              matchScore.roleFitPercent}
+                            %
+                          </span>
+                        </div>
+                        <Progress
+                          value={
+                            matchScore.experienceFitPercent ??
+                            matchScore.roleFitPercent
+                          }
+                          className="h-2"
+                        />
+                      </div>
+                    )}
+                    {matchScore.seniorityFitPercent !== undefined && (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
+                            Experience level
+                          </span>
+                          <span className="font-medium">
+                            {matchScore.seniorityFitPercent}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={matchScore.seniorityFitPercent}
+                          className="h-2"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Skills matched */}
+              {matchScore.skillsMatched &&
+                matchScore.skillsMatched.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                      <Target className="w-4 h-4 text-green-600" />
+                      Skills matched ({matchScore.skillsMatched.length})
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {matchScore.skillsMatched.slice(0, 12).map((s, i) => (
+                        <Badge
+                          key={i}
+                          variant="secondary"
+                          className="bg-green-100 text-green-800 border-green-200"
+                        >
+                          {typeof s === 'object' && 'skill' in s
+                            ? s.skill
+                            : String(s)}
+                        </Badge>
+                      ))}
+                      {matchScore.skillsMatched.length > 12 && (
+                        <Badge variant="outline" className="text-gray-500">
+                          +{matchScore.skillsMatched.length - 12} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              {/* Suggestions */}
+              {matchScore.suggestions && matchScore.suggestions.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                    <Lightbulb className="w-4 h-4 text-amber-600" />
+                    Suggestions
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {matchScore.suggestions.map((s, i) => (
+                      <li
+                        key={i}
+                        className="text-sm text-gray-600 flex items-start gap-2"
+                      >
+                        <span className="text-amber-500 mt-0.5">•</span>
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Recommendation */}
+              <div className="bg-card rounded-lg p-3 border border-border">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                  Recommendation
+                </h3>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {matchScore.recommendation}
+                </p>
+              </div>
+
+              {matchScore.improvedSummary && (
+                <details className="group">
+                  <summary className="text-sm font-semibold text-foreground cursor-pointer list-none flex items-center gap-2 hover:text-primary">
+                    <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
+                    Improved resume summary
+                  </summary>
+                  <p className="mt-2 text-sm text-gray-600 pl-6 leading-relaxed">
+                    {matchScore.improvedSummary}
+                  </p>
+                </details>
+              )}
+
+              {/* Generate Tailored Docs */}
+              <div className="pt-4 border-t border-border">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <FilePlus2 className="w-4 h-4 text-primary" />
+                  Generate tailored docs
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="border-border hover:bg-muted"
+                  >
+                    <Link
+                      href={`/dashboard/cv-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cv`}
+                    >
+                      <FileText className="w-4 h-4 mr-1.5" />
+                      CV
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="border-border hover:bg-muted"
+                  >
+                    <Link
+                      href={`/dashboard/cover-letter-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cl`}
+                    >
+                      <FileSignature className="w-4 h-4 mr-1.5" />
+                      Cover Letter
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="sm"
+                    className="bg-buttonPrimary hover:bg-blue-700 text-white"
+                  >
+                    <Link
+                      href={`/dashboard/apply?slug=${encodeURIComponent(job._id ?? '')}&step=cv`}
+                    >
+                      <FilePlus2 className="w-4 h-4 mr-1.5" />
+                      Both
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Always show recommendation and generate CTA when collapsed */}
+          {openCard !== 'match' && (
+            <div className="px-4 pb-4 pt-2 border-t border-border space-y-3">
+              <p className="text-sm text-gray-700 line-clamp-2">
                 {matchScore.recommendation}
               </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="border-border hover:bg-muted text-xs h-8"
+                >
+                  <Link
+                    href={`/dashboard/cv-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cv`}
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-1" /> CV
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="border-border hover:bg-muted text-xs h-8"
+                >
+                  <Link
+                    href={`/dashboard/cover-letter-generator?slug=${encodeURIComponent(job._id ?? '')}&step=cv&docType=cl`}
+                  >
+                    <FileSignature className="w-3.5 h-3.5 mr-1" /> Cover Letter
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-buttonPrimary hover:bg-blue-700 text-white text-xs h-8"
+                >
+                  <Link
+                    href={`/dashboard/apply?slug=${encodeURIComponent(job._id ?? '')}&step=cv`}
+                  >
+                    <FilePlus2 className="w-3.5 h-3.5 mr-1" /> Generate Both
+                  </Link>
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {activeView === 'ats' && atsScore && !isLoadingAtsScore && (
-        <div className="rounded-lg border border-purple-200/50 overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden">
           <button
             onClick={() => setOpenCard(openCard === 'ats' ? null : 'ats')}
             className="w-full px-3 py-3 flex items-center justify-between hover:bg-white/50"
           >
             <div className="flex items-center gap-4">
-              <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg">
+              <div className="p-2 bg-buttonPrimary rounded-lg">
                 <Zap className="w-4 h-4 text-white" />
               </div>
               <div className="text-sm text-gray-600 flex gap-2">
                 <span>ATS Score:</span>
-                <span className="font-semibold text-purple-700">
+                <span className="font-semibold text-primary">
                   {atsScore.atsScore}/100
                 </span>
               </div>
             </div>
 
             {/* {openCard === 'ats' ? (
-              <ChevronUp className="w-5 h-5 text-purple-700" />
+              <ChevronUp className="w-5 h-5 text-primary" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-purple-700" />
+              <ChevronDown className="w-5 h-5 text-primary" />
             )} */}
           </button>
           {/* 
