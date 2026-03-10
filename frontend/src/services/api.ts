@@ -97,11 +97,17 @@ apiInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
+    const message = (error.response?.data?.message || '').toLowerCase();
 
-    // Logout only when token is invalid/expired (401 or 403)
-    const shouldLogout = status === 402;
+    // Attempt refresh on auth-related errors: 401, 402, or 403 (token expired/invalid)
+    // For 403, only refresh when it's a token error (not role-based "Access denied")
+    const isTokenError =
+      status === 401 ||
+      status === 402 ||
+      (status === 403 &&
+        (message.includes('expired') || message.includes('invalid or expired')));
 
-    if (!shouldLogout) {
+    if (!isTokenError) {
       return Promise.reject(error);
     }
 

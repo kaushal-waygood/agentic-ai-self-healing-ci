@@ -29,6 +29,7 @@ import orgAnalyticsRoutes from './routes/orgAnalytics.route.js';
 import loginHistoryRoutes from './routes/loginHistory.route.js';
 import chatRoutes from './routes/chatRoutes.js';
 import devRoutes from './routes/dev.route.js';
+import blogRoutes from './routes/blogs/index.js';
 
 import { startCronsRenew } from './config/renew-cron/cron.js';
 import { startPrefetchCron } from './config/cron-prefetch.js';
@@ -143,6 +144,7 @@ app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/org-analytics', orgAnalyticsRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/dev', devRoutes);
+app.use('/api/v1', blogRoutes);
 
 /* ---------------- ERRORS ---------------- */
 
