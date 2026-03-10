@@ -101,11 +101,7 @@ apiInstance.interceptors.response.use(
 
     // Attempt refresh on auth-related errors: 401, 402, or 403 (token expired/invalid)
     // For 403, only refresh when it's a token error (not role-based "Access denied")
-    const isTokenError =
-      status === 401 ||
-      status === 402 ||
-      (status === 403 &&
-        (message.includes('expired') || message.includes('invalid or expired')));
+    const isTokenError = status === 401;
 
     if (!isTokenError) {
       return Promise.reject(error);
