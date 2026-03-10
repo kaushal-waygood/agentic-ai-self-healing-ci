@@ -18,7 +18,7 @@ export const config = {
   mongoUrl: getEnv('MONGO_URL'),
   nodeEnv: process.env.NODE_ENV,
   accessTokenSecret: getEnv('ACCESS_TOKEN_SECRET'),
-  accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY || '7d',
+  accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY || '15s',
   refreshTokenExpiry: '7d',
 
   // External APIs
