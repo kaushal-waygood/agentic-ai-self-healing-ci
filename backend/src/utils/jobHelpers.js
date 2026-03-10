@@ -811,21 +811,28 @@ export async function retrieveCandidates(context, limit = 300) {
 
   const MIN_POOL = 40;
 
-  // Only fetch external if local pool is too small (skip when batch/autopilot to avoid 429)
-  if (!context.skipExternalFetch && finalPool.length < MIN_POOL) {
-    const MAX_PAGES = 5; // fetch multiple pages in parallel
-    const pagePromises = [];
+  // Fetch from RapidAPI when local pool is too small (or empty when skipExternalFetch)
+  const needsExternalFetch =
+    !context.skipExternalFetch && finalPool.length < MIN_POOL;
+  const fallbackWhenEmpty =
+    context.skipExternalFetch && finalPool.length === 0;
 
+  if (needsExternalFetch || fallbackWhenEmpty) {
     const employmentType = normalizeEmploymentTypeForApi(
       context.filters?.employmentType,
     );
     const apiQuery = (context.query || 'Software Engineer').slice(0, 200);
+    const country = context.filters?.country || 'IN';
 
-    for (let p = 1; p <= MAX_PAGES; p++) {
+    // When skipExternalFetch (autopilot): limit to 1 page to avoid 429
+    const pagesToFetch = fallbackWhenEmpty ? 1 : 5;
+    const pagePromises = [];
+
+    for (let p = 1; p <= pagesToFetch; p++) {
       pagePromises.push(
         fetchExternalJobs(
           apiQuery,
-          context.filters?.country,
+          country,
           context.filters?.state,
           context.filters?.city,
           null,
@@ -917,25 +924,54 @@ async function keywordSearch(context, limit = 100, dateFilter = {}) {
   if (!meaningfulTokens.length) return [];
 
   const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const andConditions = meaningfulTokens.map((token) => {
-    const pattern = `\\b${escapeRegex(token)}`;
-    const regex = new RegExp(pattern, 'i');
-    return {
-      $or: [
+
+  // For recommendation/autopilot: long profile queries make $and impossible (e.g. "sd" in every job).
+  // Use $or with first 12 tokens so jobs matching ANY key term are found; ranking refines later.
+  const isRecommendation = context.type === 'recommendation';
+  const MAX_TOKENS = isRecommendation ? 12 : 50;
+  const tokensToUse =
+    meaningfulTokens.length > MAX_TOKENS
+      ? meaningfulTokens.slice(0, MAX_TOKENS)
+      : meaningfulTokens;
+
+  let filter;
+  if (isRecommendation && tokensToUse.length > 3) {
+    // Match jobs containing ANY of the key terms (software, engineer, intern, etc.)
+    const allFieldMatches = tokensToUse.flatMap((token) => {
+      const regex = new RegExp(`\\b${escapeRegex(token)}`, 'i');
+      return [
         { title: regex },
         { tags: regex },
         { company: regex },
         { description: regex },
         { queries: regex },
-      ],
+      ];
+    });
+    filter = {
+      $or: allFieldMatches,
+      isActive: true,
+      ...dateFilter,
     };
-  });
-
-  const filter = {
-    $and: andConditions,
-    isActive: true,
-    ...dateFilter,
-  };
+  } else {
+    const andConditions = tokensToUse.map((token) => {
+      const pattern = `\\b${escapeRegex(token)}`;
+      const regex = new RegExp(pattern, 'i');
+      return {
+        $or: [
+          { title: regex },
+          { tags: regex },
+          { company: regex },
+          { description: regex },
+          { queries: regex },
+        ],
+      };
+    });
+    filter = {
+      $and: andConditions,
+      isActive: true,
+      ...dateFilter,
+    };
+  }
 
   if (context.filters?.country) {
     filter.country = context.filters.country.toUpperCase();
