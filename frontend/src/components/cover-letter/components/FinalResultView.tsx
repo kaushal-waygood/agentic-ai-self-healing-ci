@@ -83,15 +83,16 @@ export default function FinalResultView({
           setIsGenerating(false);
           setShowNotification(true);
           onStatusCompleted?.();
+          // Trigger notification refresh so bell updates instantly (ZOB-116)
+          window.dispatchEvent(new CustomEvent('document-generation-complete'));
         }
       } catch (error) {
         console.error('Error polling document status:', error);
       }
     };
 
-    const timer = setTimeout(checkStatus, 1500);
-
-    const interval = setInterval(checkStatus, 6000);
+    const timer = setTimeout(checkStatus, 1000);
+    const interval = setInterval(checkStatus, 3000);
 
     return () => {
       clearTimeout(timer);

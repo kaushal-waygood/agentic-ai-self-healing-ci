@@ -168,6 +168,27 @@ export function useNotifications() {
     fetchNotifications();
   }, [fetchNotifications, fetchUnreadCount]);
 
+  // Listen for document generation complete - refresh notifications immediately
+  useEffect(() => {
+    const onDocComplete = () => {
+      fetchNotifications();
+      fetchUnreadCount();
+    };
+    window.addEventListener('document-generation-complete', onDocComplete);
+    return () =>
+      window.removeEventListener('document-generation-complete', onDocComplete);
+  }, [fetchNotifications, fetchUnreadCount]);
+
+  // Polling fallback when socket disconnected - ensures notifications appear within ~15s
+  useEffect(() => {
+    if (connectionStatus !== 'disconnected') return;
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchUnreadCount();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [connectionStatus, fetchNotifications, fetchUnreadCount]);
+
   return {
     notifications,
     unreadCount,
