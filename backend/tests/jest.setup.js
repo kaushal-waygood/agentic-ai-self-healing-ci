@@ -25,7 +25,6 @@ jest.mock('../src/config/redis.js', () => {
 
 beforeAll(() => {
   constants.ACCESS_TOKEN = 'some-valid-token';
-  constants.REFRESH_TOKEN = 'some-refresh-token';
 });
 
 afterAll(async () => {

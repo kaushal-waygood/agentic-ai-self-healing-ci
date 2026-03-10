@@ -22,9 +22,7 @@ import { Feedback } from '../models/feedback.model.js';
 
 import { v4 as uuidv4 } from 'uuid';
 import { LoginHistory } from '../models/analyics/loginHistory.model.js';
-import {
-  prefetchRecommendedJobsForUser,
-} from '../utils/prefetchRecommendedJobs.js';
+import { prefetchRecommendedJobsForUser } from '../utils/prefetchRecommendedJobs.js';
 
 /* -------------------------
    Initialization
@@ -428,13 +426,11 @@ export const firebaseGoogleSignup = async (req, res) => {
     }
 
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     return res.status(201).json({
       success: true,
       accessToken,
-      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -488,13 +484,11 @@ export const firebaseGoogleLogin = async (req, res) => {
 
     // Success
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     return res.status(200).json({
       success: true,
       accessToken,
-      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -567,7 +561,6 @@ export const linkedInCallback = async (req, res) => {
 
     const sessionId = uuidv4();
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
 
     await LoginHistory.create({
       userId: user._id,
@@ -580,7 +573,6 @@ export const linkedInCallback = async (req, res) => {
 
     const params = new URLSearchParams({
       token: accessToken,
-      refreshToken,
       new: isNewUser,
     });
     return res.redirect(
@@ -713,7 +705,6 @@ export const verifyEmail = async (req, res) => {
     await user.save();
 
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
     // setAccessTokenCookie(res, accessToken);
 
     // Send Welcome Email
@@ -736,7 +727,6 @@ export const verifyEmail = async (req, res) => {
     return res.status(200).json({
       message: 'Email verified successfully',
       accessToken,
-      refreshToken,
       user,
     });
   } catch (error) {
@@ -954,7 +944,6 @@ export const signInUser = async (req, res) => {
     const sessionId = uuidv4();
 
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
 
     const userObject = user.toObject();
     delete userObject.password;
@@ -979,7 +968,6 @@ export const signInUser = async (req, res) => {
       message: 'Signed in successfully',
       user: userObject,
       accessToken,
-      refreshToken,
       sessionId,
     });
   } catch (error) {
@@ -1079,44 +1067,12 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const refreshTokens = async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      return res.status(400).json({ message: 'Refresh token is required' });
-    }
-
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.REFRESH_TOKEN_SECRET || process.env.ACCESS_TOKEN_SECRET,
-    );
-    if (decoded.type !== 'refresh') {
-      return res.status(403).json({ message: 'Invalid refresh token' });
-    }
-
-    const user = await User.findById(decoded._id);
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
-    }
-
-    const accessToken = user.generateAccessToken();
-    const newRefreshToken = user.generateRefreshToken();
-
-    return res.status(200).json({
-      accessToken,
-      refreshToken: newRefreshToken,
-      expiresIn: 3600,
-    });
-  } catch (err) {
-    if (err.name === 'TokenExpiredError') {
-      return res.status(403).json({ message: 'Refresh token expired' });
-    }
-    if (err.name === 'JsonWebTokenError') {
-      return res.status(403).json({ message: 'Invalid refresh token' });
-    }
-    console.error('Refresh token error:', err);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
+/** @deprecated Refresh tokens are no longer used. */
+export const refreshTokens = async (_req, res) => {
+  return res.status(410).json({
+    message:
+      'Refresh tokens are no longer supported. Please sign in again to get a new access token.',
+  });
 };
 
 export const signout = async (req, res) => {

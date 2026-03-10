@@ -6,7 +6,11 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/config.js';
 import { User } from '../models/User.model.js';
-import { addCredits, CREDIT_EARN } from '../utils/credits.js';
+import {
+  addCredits,
+  CREDIT_EARN,
+  earnCreditsForAction,
+} from '../utils/credits.js';
 import { extractTextFromCV, parseCVData } from './rough.js';
 import { processAutopilotAgent } from '../utils/autopilot.background.js';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
@@ -332,6 +336,11 @@ export const createAutopilotAgent = async (req, res) => {
 
     const agentId = `agent_${uuidv4()}`;
 
+    const existingAgentCount = await StudentAgent.countDocuments({
+      student: studentId,
+    });
+    const isFirstAgent = existingAgentCount === 0;
+
     const agent = await StudentAgent.create({
       student: studentId,
       agentId,
@@ -353,6 +362,14 @@ export const createAutopilotAgent = async (req, res) => {
     await User.findByIdAndUpdate(studentId, {
       $inc: { 'usageCounters.aiAutoApply': 1 },
     });
+
+    if (isFirstAgent) {
+      earnCreditsForAction(studentId, 'FIRST_AUTO_AGENT_SETUP', {
+        agentId,
+      }).catch((err) =>
+        console.error('FIRST_AUTO_AGENT_SETUP credit failed:', err?.message),
+      );
+    }
 
     const io = req.app.get('io');
 

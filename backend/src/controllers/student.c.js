@@ -11,7 +11,7 @@ import { StudentHtmlCV } from '../models/students/studentHtmlCV.model.js';
 import { StudentCL } from '../models/students/studentCL.model.js';
 import { Student } from '../models/students/student.model.js';
 import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
-// import { StudentAgent } from '../models/students/studentAgent.model.js';
+import { StudentAgent } from '../models/students/studentAgent.model.js';
 
 // User Models
 import { User } from '../models/User.model.js';
@@ -1992,7 +1992,10 @@ export const getCreditsSummary = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const user = await User.findById(userId).lean();
+    const [user, agentCount] = await Promise.all([
+      User.findById(userId).lean(),
+      StudentAgent.countDocuments({ student: userId }),
+    ]);
     // const [
     //   user,
     //   student,
@@ -2258,10 +2261,7 @@ export const getCreditsSummary = async (req, res) => {
       });
     }
 
-    if (
-      !hasClaimedKind('FIRST_AUTO_AGENT_SETUP') &&
-      (!Array.isArray(user.autopilotAgent) || user.autopilotAgent.length === 0)
-    ) {
+    if (!hasClaimedKind('FIRST_AUTO_AGENT_SETUP') && agentCount === 0) {
       pending.push({
         action: 'FIRST_AUTO_AGENT_SETUP',
         credits: CREDIT_EARN.FIRST_AUTO_AGENT_SETUP || 0,
@@ -2423,7 +2423,7 @@ export const getCreditsSummary = async (req, res) => {
     const completionByAction = {
       FIRST_CV: Array.isArray(user.htmlCV) && user.htmlCV.length > 0,
       FIRST_CL: Array.isArray(user.coverLetter) && user.coverLetter.length > 0,
-      FIRST_AUTO_AGENT_SETUP: Array.isArray(user.autopilotAgent) && user.autopilotAgent.length > 0,
+      FIRST_AUTO_AGENT_SETUP: agentCount > 0,
       FIRST_AUTO_APPLICATION_SENT: Array.isArray(user.appliedJobs) && user.appliedJobs.length > 0,
       PROFILE_COMPLETE_PERSONAL: !!(user.phone || user.profileImage),
       PROFILE_COMPLETE_EDUCATION: Array.isArray(user.education) && user.education.length > 0,

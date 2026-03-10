@@ -1,7 +1,7 @@
 'use client';
 
-import { getToken, getRefreshToken } from '@/hooks/useToken';
-import { logoutRequest, setTokens } from '@/redux/reducers/authReducer';
+import { getToken } from '@/hooks/useToken';
+import { logoutRequest } from '@/redux/reducers/authReducer';
 import store from '@/redux/store';
 import axios from 'axios';
 
@@ -18,13 +18,6 @@ export const FRONTEND_URL =
     : process.env.NEXT_PUBLIC_NODE_ENV === 'development'
       ? 'https://api.zobsai.com'
       : 'http://127.0.0.1:3000';
-
-const refreshTokensApi = async (refreshToken: string) => {
-  const response = await axios.post(`${API_BASE_URL}/api/v1/user/refresh`, {
-    refreshToken,
-  });
-  return response.data;
-};
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -77,17 +70,6 @@ apiInstance.interceptors.request.use((config) => {
 });
 
 let isLoggingOut = false;
-let isRefreshing = false;
-let refreshSubscribers: Array<(token: string | null) => void> = [];
-
-const subscribeTokenRefresh = (cb: (token: string | null) => void) => {
-  refreshSubscribers.push(cb);
-};
-
-const onRefreshed = (token: string | null) => {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
-};
 
 apiInstance.interceptors.response.use(
   (response) => {
@@ -95,82 +77,24 @@ apiInstance.interceptors.response.use(
     return response;
   },
   async (error) => {
-    const originalRequest = error.config;
     const status = error.response?.status;
     const message = (error.response?.data?.message || '').toLowerCase();
 
-    // Attempt refresh on auth-related errors: 401, 402, or 403 (token expired/invalid)
-    // For 403, only refresh when it's a token error (not role-based "Access denied")
-    const isTokenError = status === 401;
+    // On 401 or Token expired 403, simply logout immediately.
+    const isTokenError =
+      status === 401 ||
+      status === 402 ||
+      (status === 403 &&
+        (message.includes('expired') ||
+          message.includes('invalid or expired')));
 
-    if (!isTokenError) {
-      return Promise.reject(error);
+    if (isTokenError && !isLoggingOut) {
+      isLoggingOut = true;
+      delete apiInstance.defaults.headers.common['Authorization'];
+      store.dispatch(logoutRequest());
     }
 
-    const refreshToken = getRefreshToken();
-
-    if (!refreshToken) {
-      if (!isLoggingOut) {
-        isLoggingOut = true;
-        delete apiInstance.defaults.headers.common['Authorization'];
-        store.dispatch(logoutRequest());
-      }
-      return Promise.reject(error);
-    }
-
-    if (originalRequest._retry) {
-      if (!isLoggingOut) {
-        isLoggingOut = true;
-        delete apiInstance.defaults.headers.common['Authorization'];
-        store.dispatch(logoutRequest());
-      }
-      return Promise.reject(error);
-    }
-
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        subscribeTokenRefresh((token) => {
-          if (token) {
-            originalRequest.headers['Authorization'] = `Bearer ${token}`;
-            resolve(apiInstance(originalRequest));
-          } else {
-            reject(error);
-          }
-        });
-      });
-    }
-
-    isRefreshing = true;
-    originalRequest._retry = true;
-
-    try {
-      const data = await refreshTokensApi(refreshToken);
-
-      store.dispatch(
-        setTokens({
-          token: data.accessToken,
-          refreshToken: data.refreshToken,
-        }),
-      );
-
-      isRefreshing = false;
-      onRefreshed(data.accessToken);
-
-      originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
-
-      return apiInstance(originalRequest);
-    } catch (refreshError) {
-      isRefreshing = false;
-      onRefreshed(null);
-
-      if (!isLoggingOut) {
-        isLoggingOut = true;
-        delete apiInstance.defaults.headers.common['Authorization'];
-        store.dispatch(logoutRequest());
-      }
-
-      return Promise.reject(refreshError);
-    }
+    return Promise.reject(error);
   },
 );
 
