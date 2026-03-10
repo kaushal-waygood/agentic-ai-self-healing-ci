@@ -110,19 +110,6 @@ export default function JobsPage() {
     }
   }, [searchParams, fetchJobDetails, filters?.q, trackJobClick]);
 
-  // const handleCardClick = (job: any) => {
-  //   if (selectedJob?._id === job._id) return;
-
-  //   trackJobClick(job._id, filters?.q);
-
-  //   if (isMobile) {
-  //     router.push(`/jobs/${job.slug}`);
-  //   } else {
-  //     setSelectedJob(job);
-
-  //     fetchJobDetails(job.slug);
-  //   }
-  // };
   const handleCardClick = useCallback(
     (job: any) => {
       if (selectedJob?._id === job._id) return;
@@ -217,38 +204,8 @@ export default function JobsPage() {
     }
   }, [jobs, isMobile, loading, searchParams, handleCardClick]);
 
-  // const removeFilter = (key: string, value?: any) => {
-  //   const newFilters = { ...filters };
-
-  //   if (key === 'clearAll') {
-  //     handleFilterChange({
-  //       ...filters,
-  //       country: '',
-  //       state: '',
-  //       datePosted: '',
-  //       employmentType: [],
-  //       experience: [],
-  //     });
-  //     return;
-  //   }
-
-  //   if (key === 'employmentType') {
-  //     newFilters.employmentType = newFilters.employmentType.filter(
-  //       (t: string) => t !== value,
-  //     );
-  //   } else if (key === 'country') {
-  //     newFilters.country = '';
-  //     newFilters.state = '';
-  //   } else {
-  //     newFilters[key ] = '';
-  //   }
-
-  //   handleFilterChange(newFilters);
-  // };
   const removeFilter = (key: string, value?: any) => {
     if (key === 'clearAll') {
-      // We create an object that keeps the search query 'q'
-      // but resets all other specific filters
       handleFilterChange({
         ...filters, // Keep existing values (including 'q')
         country: '',

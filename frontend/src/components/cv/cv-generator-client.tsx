@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -64,6 +65,7 @@ export function CvGeneratorClient() {
   const { toast } = useToast();
   const dispatch = useDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams();
 
   /* wizard state */
   const [wizardStep, setWizardStep] = useState<WizardStep>('job');
@@ -123,6 +125,42 @@ export function CvGeneratorClient() {
       });
     }
   }, [studentError, toast]);
+
+  /* ---------- URL query: slug, step, docType (consistent with apply flow) ---------- */
+  useEffect(() => {
+    const slug = searchParams.get('slug');
+    if (!slug) return;
+
+    const initFromSlug = async () => {
+      try {
+        setIsLoading(true);
+        setLoadingMessage('Loading job details...');
+        const response = await apiInstance.get(`/jobs/job-desc/${slug}`);
+        const job = response.data?.singleJob ?? response.data?.job ?? response.data;
+        if (!job) return;
+
+        setJobContext({
+          mode: 'select',
+          value: slug,
+          title: job.title ?? '',
+          description: job.description ?? '',
+        });
+        setWizardStep('cv');
+      } catch (err) {
+        console.error('Failed to load job from slug:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Could not load job',
+          description: 'The job may no longer be available. Try selecting a job manually.',
+        });
+      } finally {
+        setIsLoading(false);
+        setLoadingMessage('');
+      }
+    };
+
+    initFromSlug();
+  }, [searchParams, toast]);
 
   /* ---------- handlers ---------- */
 

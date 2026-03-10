@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { CoverLetterGeneratorClient } from '@/components/cover-letter/cover-letter-client';
 import { coverLetterGeneratorMetadata } from '@/metadata/metadata';
 
@@ -9,8 +10,10 @@ export const metadata = {
 
 export default function CoverLetterGeneratorPage() {
   return (
-    <div className="flex flex-col">
-      <CoverLetterGeneratorClient />
-    </div>
+    <Suspense fallback={<div className="flex justify-center py-24"><div className="animate-spin w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full" /></div>}>
+      <div className="flex flex-col">
+        <CoverLetterGeneratorClient />
+      </div>
+    </Suspense>
   );
 }
