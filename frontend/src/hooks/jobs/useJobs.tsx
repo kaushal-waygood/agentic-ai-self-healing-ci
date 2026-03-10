@@ -51,7 +51,7 @@ export const useJobs = () => {
   const loadingRef = useRef(loading);
   useEffect(() => {
     loadingRef.current = loading;
-  }, [loading]);
+  }, [loading, jobs, pagination]);
 
   // ─── Helper: extract all URL search params into a consistent object ──────────
   const extractFiltersFromUrl = useCallback(() => {

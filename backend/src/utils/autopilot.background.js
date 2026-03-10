@@ -54,8 +54,6 @@ export const processAutopilotAgent = async (studentId, agentId, file, io) => {
       { status: 'completed', uploadedCVData, updatedAt: new Date() },
     );
 
-    console.log('Autopilot completed', updated);
-
     if (io) {
       await sendRealTimeUserNotification(
         io,

@@ -113,10 +113,26 @@ export const findAndProcessJobs = async () => {
       { min: 0, max: 200 },
     );
 
-    const effectiveMaxLimit = Math.min(userPlanLimit, studentPrefLimit);
-    let remainingForStudent = Math.max(0, effectiveMaxLimit - userUsageCount);
+    const effectiveMaxLimit =
+      userPlanLimit === -1
+        ? studentPrefLimit
+        : Math.min(userPlanLimit, studentPrefLimit);
 
-    if (remainingForStudent <= 0) continue;
+    let remainingForStudent;
+    if (userPlanLimit === -1) {
+      // If unlimited plan limit, rely solely on the student preference
+      remainingForStudent = Math.max(0, studentPrefLimit - userUsageCount);
+    } else {
+      // Otherwise, pick whichever constraint is stricter
+      remainingForStudent = Math.max(0, effectiveMaxLimit - userUsageCount);
+    }
+
+    if (remainingForStudent <= 0) {
+      console.log(
+        `[AutopilotWorker] Skipping student ${studentIdStr}: Limit reached. Plan Limit: ${userPlanLimit}, Pref Limit: ${studentPrefLimit}, Usage: ${userUsageCount}`,
+      );
+      continue;
+    }
 
     for (const agent of agents) {
       if (remainingForStudent <= 0) break;

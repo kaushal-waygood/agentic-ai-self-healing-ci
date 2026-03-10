@@ -120,7 +120,7 @@ app.get('/health-check', (req, res) => {
 startCronsRenew();
 startPrefetchCron();
 clearExpiredEmailChangeRequests();
-// startAutopilotWorkerCron(); // Autopilot: find & process jobs for active agents (requires AUTOGEN_TAILORED=true)
+startAutopilotWorkerCron(); // Autopilot: find & process jobs for active agents (requires AUTOGEN_TAILORED=true)
 
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/bring-zobs', bringZobsRoutes);
