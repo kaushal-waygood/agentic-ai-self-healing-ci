@@ -35,7 +35,6 @@ const authSlice = createSlice({
         googleAuth,
       } = action.payload.user;
 
-      console.log('action.payload.user', action.payload.user);
       state.user = {
         _id,
         fullName,

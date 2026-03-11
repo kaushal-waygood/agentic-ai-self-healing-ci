@@ -402,22 +402,80 @@ export const createAutopilotAgent = async (req, res) => {
 export const getAllPilotAgents = async (req, res) => {
   const studentId = req.user._id;
 
-  
-
   try {
-    const activeAgents = await StudentAgent.find({ student: studentId });
+    const [activeAgents, user, appliedStats] = await Promise.all([
+      StudentAgent.find({ student: studentId }).lean(),
+      User.findById(studentId).select('usageLimits usageCounters').lean(),
+      AppliedJob.aggregate([
+        {
+          $match: {
+            student: new mongoose.Types.ObjectId(studentId),
+            applicationMethod: 'AUTOPILOT',
+          },
+        },
+        {
+          $facet: {
+            today: [
+              {
+                $match: {
+                  applicationDate: {
+                    $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+                  },
+                },
+              },
+              { $count: 'count' },
+            ],
+            total: [{ $count: 'count' }],
+          },
+        },
+      ]),
+    ]);
+
+    const applicationsToday =
+      appliedStats[0]?.today?.[0]?.count ??
+      user?.usageCounters?.aiAutoApplyDailyLimit ??
+      0;
+    const totalApplied =
+      appliedStats[0]?.total?.[0]?.count ??
+      user?.usageCounters?.aiAutoApply ??
+      0;
+    const dailyLimit = user?.usageLimits?.aiAutoApplyDailyLimit ?? 5;
+    const totalLimit = user?.usageLimits?.aiAutoApply ?? -1;
+
+    const planUsage = {
+      applicationsToday,
+      dailyLimit: dailyLimit === -1 ? '∞' : dailyLimit,
+      totalApplied,
+      totalLimit: totalLimit === -1 ? '∞' : totalLimit,
+    };
+
+    const enrichedAgents = activeAgents.map((agent) => {
+      const agentCap = Math.min(
+        Number(agent.agentDailyLimit) || 5,
+        dailyLimit === -1 ? 999 : dailyLimit,
+      );
+      return {
+        ...agent,
+        applicationsToday,
+        maxApplications:
+          dailyLimit === -1 ? agent.agentDailyLimit || 5 : agentCap,
+        totalApplications: totalApplied,
+      };
+    });
 
     if (activeAgents.length === 0) {
       return res.status(200).json({
-        count: activeAgents.length,
-        data: activeAgents,
+        count: 0,
+        data: [],
+        meta: { planUsage },
       });
     }
 
     return res.status(200).json({
       success: true,
-      count: activeAgents.length,
-      data: activeAgents,
+      count: enrichedAgents.length,
+      data: enrichedAgents,
+      meta: { planUsage },
     });
   } catch (error) {
     console.error(
@@ -521,7 +579,9 @@ export const getAgentJobs = async (req, res) => {
       });
     }
 
-    const isMongoId = mongoose.Types.ObjectId.isValid(agentIdParam) && String(agentIdParam).length === 24;
+    const isMongoId =
+      mongoose.Types.ObjectId.isValid(agentIdParam) &&
+      String(agentIdParam).length === 24;
     const agent = await StudentAgent.findOne(
       isMongoId
         ? { _id: agentIdParam, student: studentId }
@@ -545,10 +605,14 @@ export const getAgentJobs = async (req, res) => {
       });
     }
 
-    const effectiveProfile = buildEffectiveStudentProfile(studentProfile, agent);
+    const effectiveProfile = buildEffectiveStudentProfile(
+      studentProfile,
+      agent,
+    );
     const appliedJobIds = (
       await AppliedJob.find({ student: studentId }).distinct('job')
     ).map((id) => id.toString());
+    const appliedSet = new Set(appliedJobIds);
 
     const agentConfig = {
       jobTitle: agent.jobTitle,
@@ -564,23 +628,28 @@ export const getAgentJobs = async (req, res) => {
       appliedJobIds,
       limit,
       skipExternalFetch: true,
+      includeAppliedInResults: true, // Show all matching jobs including applied (don't drop after find)
     });
 
-    const sanitized = jobs.map((j) => ({
-      _id: j._id,
-      id: j._id?.toString(),
-      title: j.title,
-      company: j.company,
-      country: j.country,
-      remote: j.remote,
-      location: j.location,
-      jobTypes: j.jobTypes,
-      jobPosted: j.jobPosted,
-      jobPostedAt: j.jobPostedAt,
-      rankScore: j.rankScore,
-      slug: j.slug,
-      applyMethod: j.applyMethod,
-    }));
+    const sanitized = jobs.map((j) => {
+      const jobIdStr = j._id?.toString?.() || String(j._id);
+      return {
+        _id: j._id,
+        id: jobIdStr,
+        title: j.title,
+        company: j.company,
+        country: j.country,
+        remote: j.remote,
+        location: j.location,
+        jobTypes: j.jobTypes,
+        jobPosted: j.jobPosted,
+        jobPostedAt: j.jobPostedAt,
+        rankScore: j.rankScore,
+        slug: j.slug,
+        applyMethod: j.applyMethod,
+        applied: appliedSet.has(jobIdStr),
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -591,10 +660,7 @@ export const getAgentJobs = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(
-      `Error fetching jobs for agent ${agentIdParam}:`,
-      error,
-    );
+    console.error(`Error fetching jobs for agent ${agentIdParam}:`, error);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch jobs for agent',
@@ -694,7 +760,10 @@ export const startAgentJobTailoredGeneration = async (req, res) => {
       });
     }
 
-    const effectiveStudent = buildEffectiveStudentProfile(studentProfile, agent);
+    const effectiveStudent = buildEffectiveStudentProfile(
+      studentProfile,
+      agent,
+    );
     const applicationData = buildApplicationData(job, effectiveStudent, '');
 
     const application = await StudentTailoredApplication.create({

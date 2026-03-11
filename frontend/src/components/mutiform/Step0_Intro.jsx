@@ -1,9 +1,24 @@
 // Step0_SimpleIntroSlim.jsx
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bot, Plus, Trash2, ChevronDown, ChevronUp, MapPin, Building2, Loader2, FileText, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Bot,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Building2,
+  Loader2,
+  FileText,
+  ExternalLink,
+} from 'lucide-react';
 import apiInstance from '@/services/api';
-import { getAgentJobs, startAgentJobTailoredGeneration } from '@/services/api/autopilot';
+import {
+  getAgentJobs,
+  startAgentJobTailoredGeneration,
+} from '@/services/api/autopilot';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 
@@ -19,30 +34,30 @@ const Step0_SimpleIntroSlim = ({
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
 
   // ===================== 1. ROBUST DATA EXTRACTION ===================== //
-  // Fix: Check if 'agents' is the array itself, or if it's inside a property like .autopilot or .autoPilot
   const getAgentList = () => {
     if (Array.isArray(agents)) return agents;
+    if (Array.isArray(agents?.agents)) return agents.agents;
     if (Array.isArray(agents?.autopilot)) return agents.autopilot;
     if (Array.isArray(agents?.autoPilot)) return agents.autoPilot;
     return [];
   };
 
   const list = getAgentList();
+  const planUsage = agents?.planUsage ?? null;
 
-  // ===================== 2. STATS CALCULATION ===================== //
+  // ===================== 2. STATS CALCULATION (from plan usage when available) ===================== //
   const totalAgents = list.length;
-  // Check for 'active' status (case-insensitive safe check)
   const activeAgents = list.filter(
     (a) => a?.status?.toLowerCase() === 'active',
   ).length;
-  const todayApps = list.reduce(
-    (s, a) => s + (Number(a.applicationsToday) || 0),
-    0,
-  );
-  const totalApplied = list.reduce(
-    (s, a) => s + (Number(a.totalApplications) || 0),
-    0,
-  );
+  const todayApps = planUsage
+    ? Number(planUsage.applicationsToday) || 0
+    : list.reduce((s, a) => s + (Number(a.applicationsToday) || 0), 0);
+  const totalApplied = planUsage
+    ? Number(planUsage.totalApplied) || 0
+    : list.reduce((s, a) => s + (Number(a.totalApplications) || 0), 0);
+  const dailyLimit = planUsage?.dailyLimit ?? 5;
+  const totalLimit = planUsage?.totalLimit ?? '∞';
   const avgSuccess = list.length
     ? Math.round(
         list.reduce((s, a) => s + (Number(a.successRate) || 0), 0) /
@@ -159,10 +174,24 @@ const Step0_SimpleIntroSlim = ({
           <MiniStat label="Active" value={activeAgents} />
         </div>
         <div className="flex-1 min-w-[120px]">
-          <MiniStat label="Applications Today" value={todayApps} />
+          <MiniStat
+            label="Applications Today"
+            value={
+              dailyLimit === '∞' || dailyLimit === -1
+                ? `${todayApps}`
+                : `${todayApps}/${dailyLimit}`
+            }
+          />
         </div>
         <div className="flex-1 min-w-[120px]">
-          <MiniStat label="Total Applied" value={totalApplied} />
+          <MiniStat
+            label="Total Applied"
+            value={
+              totalLimit === '∞' || totalLimit === -1
+                ? `${totalApplied}`
+                : `${totalApplied}/${totalLimit}`
+            }
+          />
         </div>
         <div className="flex-1 min-w-[120px]">
           <MiniStat label="Success Rate" value={`${avgSuccess}%`} />
@@ -227,11 +256,24 @@ const EmptyState = ({ nextStep }) => (
   </div>
 );
 
+const DATE_LABELS = {
+  today: 'Today',
+  yesterday: 'Yesterday',
+  lastWeek: 'Last 7 days',
+  older: 'Older',
+};
+
 const AgentRow = ({ agent, onEdit, onDelete }) => {
   const router = useRouter();
-  const id = agent.agentId;
+  const id = agent.agentId || agent._id;
   const [expanded, setExpanded] = useState(false);
   const [jobs, setJobs] = useState([]);
+  const [jobsByDate, setJobsByDate] = useState({
+    today: [],
+    yesterday: [],
+    lastWeek: [],
+    older: [],
+  });
   const [jobsLoading, setJobsLoading] = useState(false);
   const [jobsError, setJobsError] = useState(null);
   const [generatingJobIds, setGeneratingJobIds] = useState(new Set());
@@ -240,14 +282,32 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
     if (!expanded || !id) return;
     setJobsLoading(true);
     setJobsError(null);
-    getAgentJobs(id, 20)
+    getAgentJobs(id, 30)
       .then((res) => {
-        const list = res?.data?.data?.jobs ?? [];
+        const data = res?.data?.data ?? {};
+        const list = data.jobs ?? [];
+        let byDate = data.byDate ?? {
+          today: [],
+          yesterday: [],
+          lastWeek: [],
+          older: [],
+        };
+        if (
+          list.length > 0 &&
+          byDate.today?.length === 0 &&
+          byDate.yesterday?.length === 0 &&
+          byDate.lastWeek?.length === 0 &&
+          byDate.older?.length === 0
+        ) {
+          byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
+        }
         setJobs(list);
+        setJobsByDate(byDate);
       })
       .catch((err) => {
         setJobsError(err?.response?.data?.message || 'Failed to load jobs');
         setJobs([]);
+        setJobsByDate({ today: [], yesterday: [], lastWeek: [], older: [] });
       })
       .finally(() => setJobsLoading(false));
   }, [expanded, id]);
@@ -303,7 +363,8 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
       >
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 font-bold text-lg shadow-inner border border-white">
-            {(agent.agentName && agent.agentName.charAt(0).toUpperCase()) || 'A'}
+            {(agent.agentName && agent.agentName.charAt(0).toUpperCase()) ||
+              'A'}
           </div>
 
           <div className="min-w-0 flex-1">
@@ -328,7 +389,11 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
             className="p-2 rounded-lg text-gray-500 hover:text-purple-600 hover:bg-purple-50 transition-all shrink-0"
             aria-label={expanded ? 'Collapse' : 'Expand'}
           >
-            {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {expanded ? (
+              <ChevronUp className="w-5 h-5" />
+            ) : (
+              <ChevronDown className="w-5 h-5" />
+            )}
           </button>
         </div>
 
@@ -338,9 +403,9 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
         >
           <div className="text-right">
             <p className="font-bold text-gray-800 text-sm">
-              {agent.applicationsToday || 0}{' '}
+              {agent.applicationsToday ?? 0}{' '}
               <span className="text-gray-400 font-normal">
-                / {agent.maxApplications || agent.agentDailyLimit || 5}
+                / {agent.maxApplications ?? agent.agentDailyLimit ?? 5}
               </span>
             </p>
             <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
@@ -364,7 +429,9 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
       {expanded && (
         <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">Jobs for this agent</h3>
+            <h3 className="text-sm font-semibold text-gray-700">
+              Jobs for this agent
+            </h3>
             <button
               onClick={() => router.push('/dashboard/my-docs?tab=applications')}
               className="flex items-center gap-1.5 text-xs font-medium text-purple-600 hover:text-purple-700 hover:underline"
@@ -381,56 +448,88 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
           ) : jobsError ? (
             <p className="text-sm text-red-600 py-4">{jobsError}</p>
           ) : jobs.length === 0 ? (
-            <p className="text-sm text-gray-500 py-4">No matching jobs found.</p>
+            <p className="text-sm text-gray-500 py-4">
+              No matching jobs found.
+            </p>
           ) : (
-            <ul className="space-y-2 max-h-64 overflow-y-auto">
-              {jobs.map((job) => {
-                const jobId = job._id || job.id;
-                const isGenerating = generatingJobIds.has(jobId);
+            <div className="space-y-4 max-h-80 overflow-y-auto">
+              {['today', 'yesterday', 'lastWeek', 'older'].map((key) => {
+                const list = jobsByDate[key] ?? [];
+                if (list.length === 0) return null;
                 return (
-                  <li
-                    key={jobId}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-800 truncate">{job.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                        <Building2 className="w-3 h-3 shrink-0" />
-                        <span className="truncate">{job.company}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                        <MapPin className="w-3 h-3 shrink-0" />
-                        <span>{formatLocation(job)}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {job.remote && (
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                          Remote
-                        </span>
-                      )}
-                      <button
-                        onClick={() => handleGenerateDocs(jobId)}
-                        disabled={isGenerating}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
-                      >
-                        {isGenerating ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            Generating…
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="w-3.5 h-3.5" />
-                            Generate
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </li>
+                  <div key={key}>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      {DATE_LABELS[key]} ({list.length})
+                    </p>
+                    <ul className="space-y-2">
+                      {list.map((job) => {
+                        const jobId = job._id || job.id;
+                        const isGenerating = generatingJobIds.has(jobId);
+                        return (
+                          <li
+                            key={jobId}
+                            className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all group"
+                          >
+                            <Link
+                              href={`/dashboard/jobs/${jobId}`}
+                              className="flex-1 min-w-0 cursor-pointer block"
+                            >
+                              <p className="font-medium text-gray-800 truncate group-hover:text-purple-700">
+                                {job.title}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                <Building2 className="w-3 h-3 shrink-0" />
+                                <span className="truncate">{job.company}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span>{formatLocation(job)}</span>
+                              </div>
+                            </Link>
+                            <div
+                              className="flex items-center gap-2 shrink-0"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              {job.remote && (
+                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                  Remote
+                                </span>
+                              )}
+                              {job.applied ? (
+                                <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-green-100 text-green-700 border border-green-200">
+                                  Applied
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGenerateDocs(jobId);
+                                  }}
+                                  disabled={isGenerating}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                                >
+                                  {isGenerating ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      Generating…
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FileText className="w-3.5 h-3.5" />
+                                      Generate
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           )}
         </div>
       )}
