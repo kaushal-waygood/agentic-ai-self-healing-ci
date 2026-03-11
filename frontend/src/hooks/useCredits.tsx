@@ -59,9 +59,8 @@ export function useCredits() {
   /* ------------------ fetch ------------------ */
 
   useEffect(() => {
-    dispatch(getTotalCreditRequest());
     dispatch(getCreditRequest());
-    // dispatch(earnCreditRequest());
+    // getTotalCreditRequest is fetched once in layout-client to avoid duplication
   }, [dispatch]);
   // console.log('error from useCredits ', error);
   // useEffect(() => {

@@ -388,7 +388,10 @@ export const sendOrganizationInvite = async (req, res) => {
         name: newMember.fullName,
         actionUrl: actionUrl,
         brandName: 'ZobsAI',
-        invitedBy: req.user.fullName, // Name of the admin who invited them
+        invitedBy: req.user.fullName,
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
       },
       subjectOverride: existingUser
         ? 'You have been invited to join an Organization on ZobsAI'

@@ -2063,6 +2063,10 @@ export const applyJob = async (req, res) => {
         name: student.fullName,
         dashboardUrl: process.env.DASHBOARD_URL,
         brandName: 'ZobsAI',
+        supportEmail: 'support@zobsai.com',
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
       },
       subjectOverride: 'Application Submitted Successfully | ZobsAI',
     });

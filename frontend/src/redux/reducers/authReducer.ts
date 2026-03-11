@@ -7,7 +7,6 @@ const initialState: AuthState = {
   isAuthenticated: false,
   user: null,
   token: null,
-  refreshToken: null,
   message: '',
   loading: false,
   error: null,
@@ -25,7 +24,6 @@ const authSlice = createSlice({
       state.loading = false;
       state.isAuthenticated = true;
       state.token = action.payload.token;
-      state.refreshToken = action.payload.refreshToken ?? null;
       const {
         _id,
         fullName,
@@ -37,7 +35,6 @@ const authSlice = createSlice({
         googleAuth,
       } = action.payload.user;
 
-      console.log('action.payload.user', action.payload.user);
       state.user = {
         _id,
         fullName,
@@ -57,13 +54,12 @@ const authSlice = createSlice({
 
     googleLoginSuccess: (
       state,
-      action: PayloadAction<{ user?: any; token: string; refreshToken?: string }>,
+      action: PayloadAction<{ user?: any; token: string }>,
     ) => {
       state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user ?? state.user;
       state.token = action.payload.token;
-      state.refreshToken = action.payload.refreshToken ?? null;
       state.error = null;
     },
 
@@ -76,14 +72,12 @@ const authSlice = createSlice({
       action: PayloadAction<{
         user: AuthState['user'];
         token: string;
-        refreshToken?: string;
       }>,
     ) => {
       state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user;
       state.token = action.payload.token;
-      state.refreshToken = action.payload.refreshToken ?? null;
     },
     signupFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -95,7 +89,7 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    getProfileSuccess: (state, action: PayloadAction<User>) => {
+    getProfileSuccess: (state, action: PayloadAction<any>) => {
       state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload;
@@ -133,7 +127,6 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.user = null;
       state.token = null;
-      state.refreshToken = null;
       state.error = null;
     },
     logoutFailure: (state, action: PayloadAction<string>) => {
@@ -141,7 +134,7 @@ const authSlice = createSlice({
       state.error = action.payload;
     },
 
-    getGetMeRequest: (state) => {
+    getGetMeRequest: (state, action: PayloadAction<string>) => {
       state.loading = true;
       state.error = null;
     },
@@ -150,7 +143,6 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.user = action.payload.user;
       state.token = action.payload.token ?? state.token;
-      state.refreshToken = action.payload.refreshToken ?? state.refreshToken;
       state.error = null;
     },
     getGetMeFailure: (state, action: PayloadAction<string>) => {
@@ -168,13 +160,12 @@ const authSlice = createSlice({
     },
     verifyEmailSuccess: (
       state,
-      action: PayloadAction<{ user: User; token: string; refreshToken?: string }>,
+      action: PayloadAction<{ user: any; token: string }>,
     ) => {
       state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user;
       state.token = action.payload.token;
-      state.refreshToken = action.payload.refreshToken ?? null;
       state.error = null;
     },
     verifyEmailFailure: (state, action: PayloadAction<string>) => {
@@ -189,14 +180,8 @@ const authSlice = createSlice({
       }
     },
 
-    setTokens: (
-      state,
-      action: PayloadAction<{ token: string; refreshToken?: string }>,
-    ) => {
+    setTokens: (state, action: PayloadAction<{ token: string }>) => {
       state.token = action.payload.token;
-      if (action.payload.refreshToken !== undefined) {
-        state.refreshToken = action.payload.refreshToken;
-      }
     },
 
     loginHistoryRequest: (state) => {

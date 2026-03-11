@@ -1,52 +1,61 @@
-<table role="presentation" width="100%" style="border-collapse: collapse">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
   <tr>
-    <td class="body" style="padding: 28px">
-      <h2 style="margin-top: 0">Hello {{name}},</h2>
+    <td class="body" style="padding: 32px 32px; font-size: 15px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; color: #0f172a;">Hello {{name}},</h2>
 
-      <p>
-        Fantastic choice — your upgrade to <strong>{{planName}}</strong> is now
-        live!
+      <p style="margin: 0 0 20px 0; color: #475569;">
+        Fantastic choice — your upgrade to <strong style="color: #0f172a;">{{planName}}</strong> is now
+        live! 🚀
       </p>
 
-      <p>
-        You’ve just unlocked more power for your job hunt: unlimited document
+      <p style="margin: 0 0 24px 0; color: #475569;">
+        You've just unlocked more power for your job hunt: unlimited document
         generations, premium analytics access, and automated applications to
         <strong>500+ jobs weekly</strong>.
       </p>
 
-      <h3 style="margin-top: 18px">What’s Unlocked?</h3>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 24px 0; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; border: 1px solid #bae6fd;">
+        <tr>
+          <td style="padding: 28px;">
+            <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 800; color: #0f172a;">What's Unlocked?</h3>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
+              <tr>
+                <td style="padding: 12px 0; border-bottom: 1px solid #bae6fd;">
+                  <strong style="color: #0f172a;">Unlimited Tailoring:</strong> Customize CVs and cover letters for every job, without limits.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 0; border-bottom: 1px solid #bae6fd;">
+                  <strong style="color: #0f172a;">Priority Matches:</strong> Get first access to high-match opportunities from top job boards like LinkedIn and Indeed.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 0;">
+                  <strong style="color: #0f172a;">Advanced Insights:</strong> Track your success rates and optimize your job strategy with detailed analytics reports.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
 
-      <ul>
-        <li>
-          <strong>Unlimited Tailoring:</strong> Customize CVs and cover letters
-          for every job, without limits.
-        </li>
-        <li>
-          <strong>Priority Matches:</strong> Get first access to high-match
-          opportunities from top job boards like LinkedIn and Indeed.
-        </li>
-        <li>
-          <strong>Advanced Insights:</strong> Track your success rates and
-          optimize your job strategy with detailed analytics reports.
-        </li>
-      </ul>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 28px 0;">
+        <tr>
+          <td style="text-align: center;">
+            <a href="{{billingUrl}}" style="display: inline-block; padding: 12px 24px; margin-right: 12px; border-radius: 10px; border: 2px solid #0ea5e9; color: #0ea5e9; text-decoration: none; font-weight: 600;">View Billing</a>
+            <a href="{{managePlanUrl}}" class="btn">Manage Plan</a>
+          </td>
+        </tr>
+      </table>
 
-      <div style="text-align: center; margin: 24px 0">
-        <a
-          href="{{billingUrl}}"
-          style="margin-right: 12px; color: #0b74de; text-decoration: underline"
-          >View Billing Details</a
-        >
-        <a href="{{managePlanUrl}}" class="btn">Manage Plan</a>
-      </div>
-
-      <p>
+      <p style="margin: 0 0 20px 0; color: #64748b;">
         Have questions about your new features or billing? Reply to this email —
         our support team is happy to help.
       </p>
 
-      <p style="margin-top: 18px">
-        Cheers,<br /><strong>The ZobsAI Team</strong>
+      <p style="margin: 24px 0 0 0; color: #475569;">
+        Cheers,<br />
+        <strong style="color: #0f172a;">The ZobsAI Team</strong>
       </p>
     </td>
   </tr>

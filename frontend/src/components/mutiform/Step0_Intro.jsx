@@ -1,8 +1,27 @@
 // Step0_SimpleIntroSlim.jsx
 import React, { useEffect, useState } from 'react';
-import { Bot, Plus, Trash2, Edit } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Bot,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Building2,
+  Loader2,
+  FileText,
+  ExternalLink,
+  Search,
+} from 'lucide-react';
 import apiInstance from '@/services/api';
-import { toast } from '@/hooks/use-toast'; // Ensure you import your toast hook
+import {
+  getAgentJobs,
+  startAgentJobTailoredGeneration,
+} from '@/services/api/autopilot';
+import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 const Step0_SimpleIntroSlim = ({
   nextStep = () => {},
@@ -16,30 +35,30 @@ const Step0_SimpleIntroSlim = ({
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
 
   // ===================== 1. ROBUST DATA EXTRACTION ===================== //
-  // Fix: Check if 'agents' is the array itself, or if it's inside a property like .autopilot or .autoPilot
   const getAgentList = () => {
     if (Array.isArray(agents)) return agents;
+    if (Array.isArray(agents?.agents)) return agents.agents;
     if (Array.isArray(agents?.autopilot)) return agents.autopilot;
     if (Array.isArray(agents?.autoPilot)) return agents.autoPilot;
     return [];
   };
 
   const list = getAgentList();
+  const planUsage = agents?.planUsage ?? null;
 
-  // ===================== 2. STATS CALCULATION ===================== //
+  // ===================== 2. STATS CALCULATION (from plan usage when available) ===================== //
   const totalAgents = list.length;
-  // Check for 'active' status (case-insensitive safe check)
   const activeAgents = list.filter(
     (a) => a?.status?.toLowerCase() === 'active',
   ).length;
-  const todayApps = list.reduce(
-    (s, a) => s + (Number(a.applicationsToday) || 0),
-    0,
-  );
-  const totalApplied = list.reduce(
-    (s, a) => s + (Number(a.totalApplications) || 0),
-    0,
-  );
+  const todayApps = planUsage
+    ? Number(planUsage.applicationsToday) || 0
+    : list.reduce((s, a) => s + (Number(a.applicationsToday) || 0), 0);
+  const totalApplied = planUsage
+    ? Number(planUsage.totalApplied) || 0
+    : list.reduce((s, a) => s + (Number(a.totalApplications) || 0), 0);
+  const dailyLimit = planUsage?.dailyLimit ?? 5;
+  const totalLimit = planUsage?.totalLimit ?? '∞';
   const avgSuccess = list.length
     ? Math.round(
         list.reduce((s, a) => s + (Number(a.successRate) || 0), 0) /
@@ -156,10 +175,24 @@ const Step0_SimpleIntroSlim = ({
           <MiniStat label="Active" value={activeAgents} />
         </div>
         <div className="flex-1 min-w-[120px]">
-          <MiniStat label="Applications Today" value={todayApps} />
+          <MiniStat
+            label="Applications Today"
+            value={
+              dailyLimit === '∞' || dailyLimit === -1
+                ? `${todayApps}`
+                : `${todayApps}/${dailyLimit}`
+            }
+          />
         </div>
         <div className="flex-1 min-w-[120px]">
-          <MiniStat label="Total Applied" value={totalApplied} />
+          <MiniStat
+            label="Total Applied"
+            value={
+              totalLimit === '∞' || totalLimit === -1
+                ? `${totalApplied}`
+                : `${totalApplied}/${totalLimit}`
+            }
+          />
         </div>
         <div className="flex-1 min-w-[120px]">
           <MiniStat label="Success Rate" value={`${avgSuccess}%`} />
@@ -224,66 +257,317 @@ const EmptyState = ({ nextStep }) => (
   </div>
 );
 
+const DATE_LABELS = {
+  today: 'Today',
+  yesterday: 'Yesterday',
+  lastWeek: 'Last 7 days',
+  older: 'Older',
+};
+
 const AgentRow = ({ agent, onEdit, onDelete }) => {
-  const id = agent.agentId;
+  const router = useRouter();
+  const id = agent.agentId || agent._id;
+  const [expanded, setExpanded] = useState(false);
+  const [jobs, setJobs] = useState([]);
+  const [jobsByDate, setJobsByDate] = useState({
+    today: [],
+    yesterday: [],
+    lastWeek: [],
+    older: [],
+  });
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [jobsError, setJobsError] = useState(null);
+  const [generatingJobIds, setGeneratingJobIds] = useState(new Set());
+  const [findingJobs, setFindingJobs] = useState(false);
+
+  const fetchJobs = (userFeedback) => {
+    if (!id) return;
+    setJobsLoading(true);
+    setJobsError(null);
+    getAgentJobs(id, 30, userFeedback)
+      .then((res) => {
+        const data = res?.data?.data ?? {};
+        const list = data.jobs ?? [];
+        let byDate = data.byDate ?? { today: [], yesterday: [], lastWeek: [], older: [] };
+        if (list.length > 0 && byDate.today?.length === 0 && byDate.yesterday?.length === 0 && byDate.lastWeek?.length === 0 && byDate.older?.length === 0) {
+          byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
+        }
+        setJobs(list);
+        setJobsByDate(byDate);
+      })
+      .catch((err) => {
+        setJobsError(err?.response?.data?.message || 'Failed to load jobs');
+        setJobs([]);
+        setJobsByDate({ today: [], yesterday: [], lastWeek: [], older: [] });
+      })
+      .finally(() => setJobsLoading(false));
+  };
+
+  const handleFindAnotherJob = () => {
+    setFindingJobs(true);
+    toast({ title: 'Refreshing jobs…' });
+    getAgentJobs(id, 30)
+      .then((res) => {
+        const data = res?.data?.data ?? {};
+        const list = data.jobs ?? [];
+        let byDate = data.byDate ?? { today: [], yesterday: [], lastWeek: [], older: [] };
+        if (list.length > 0 && byDate.today?.length === 0 && byDate.yesterday?.length === 0 && byDate.lastWeek?.length === 0 && byDate.older?.length === 0) {
+          byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
+        }
+        setJobs(list);
+        setJobsByDate(byDate);
+      })
+      .catch((err) => {
+        setJobsError(err?.response?.data?.message || 'Failed to load jobs');
+        toast({ variant: 'destructive', title: 'Failed to find jobs' });
+      })
+      .finally(() => setFindingJobs(false));
+  };
+
+  useEffect(() => {
+    if (!expanded || !id) return;
+    fetchJobs();
+  }, [expanded, id]);
+
+  const handleGenerateDocs = async (jobId) => {
+    if (!id || !jobId) return;
+    setGeneratingJobIds((prev) => new Set(prev).add(jobId));
+    try {
+      await startAgentJobTailoredGeneration(id, jobId);
+      toast({
+        title: 'Tailored docs generation started',
+        description: 'You will be notified when ready.',
+        action: (
+          <ToastAction
+            altText="View in My Docs"
+            onClick={() => router.push('/dashboard/my-docs?tab=applications')}
+          >
+            View in My Docs
+          </ToastAction>
+        ),
+      });
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Failed to start generation';
+      toast({ variant: 'destructive', title: 'Error', description: msg });
+    } finally {
+      setGeneratingJobIds((prev) => {
+        const next = new Set(prev);
+        next.delete(jobId);
+        return next;
+      });
+    }
+  };
+
+  const formatLocation = (job) => {
+    const city = job?.location?.city?.trim();
+    const state = job?.location?.state?.trim();
+    const country = (job?.country || job?.location?.country)?.trim();
+    const parts = [];
+    if (city) parts.push(city);
+    if (state && state !== city) parts.push(state);
+    if (country && parts.length === 0) parts.push(country);
+    if (parts.length > 0) return parts.join(', ');
+    if (job?.remote) return 'Remote';
+    return 'Location N/A';
+  };
 
   return (
-    <div className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all shadow-sm hover:shadow-md bg-white">
-      {/* Left Section: Icon + Text */}
-      <div className="flex items-center gap-4 w-full sm:w-auto">
-        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 font-bold text-lg shadow-inner border border-white">
-          {(agent.agentName && agent.agentName.charAt(0).toUpperCase()) || 'A'}
+    <div className="rounded-xl border border-gray-100 hover:border-purple-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all">
+      {/* Header */}
+      <div
+        className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 hover:bg-purple-50/30 transition-all cursor-pointer"
+        onClick={() => setExpanded((e) => !e)}
+      >
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 font-bold text-lg shadow-inner border border-white">
+            {(agent.agentName && agent.agentName.charAt(0).toUpperCase()) ||
+              'A'}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-bold text-gray-800 break-all ">
+              {agent.agentName || 'Untitled Agent'}
+            </p>
+            <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
+              <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
+                {agent.jobTitle || 'General'}
+              </span>
+              {agent.country && (
+                <span className="text-xs text-gray-400">• {agent.country}</span>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((e) => !e);
+            }}
+            className="p-2 rounded-lg text-gray-500 hover:text-purple-600 hover:bg-purple-50 transition-all shrink-0"
+            aria-label={expanded ? 'Collapse' : 'Expand'}
+          >
+            {expanded ? (
+              <ChevronUp className="w-5 h-5" />
+            ) : (
+              <ChevronDown className="w-5 h-5" />
+            )}
+          </button>
         </div>
 
-        <div className="min-w-0">
-          <p className="text-base font-bold text-gray-800 break-all ">
-            {agent.agentName || 'Untitled Agent'}
-          </p>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
-            <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
-              {agent.jobTitle || 'General'}
-            </span>
-            {agent.country && (
-              <span className="text-xs text-gray-400">• {agent.country}</span>
-            )}
+        <div
+          className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-right">
+            <p className="font-bold text-gray-800 text-sm">
+              {agent.applicationsToday ?? 0}{' '}
+              <span className="text-gray-400 font-normal">
+                / {agent.maxApplications ?? agent.agentDailyLimit ?? 5}
+              </span>
+            </p>
+            <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
+              Today
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onDelete(id)}
+              className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all"
+              title="Delete Agent"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Right Section: Stats + Buttons */}
-      <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
-        {/* Applications Counter */}
-        <div className="text-right">
-          <p className="font-bold text-gray-800 text-sm">
-            {agent.applicationsToday || 0}{' '}
-            <span className="text-gray-400 font-normal">
-              / {agent.maxApplications || agent.agentDailyLimit || 5}
-            </span>
-          </p>
-          <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
-            Today
-          </p>
+      {/* Accordion: Jobs list */}
+      {expanded && (
+        <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">
+              Jobs for this agent
+            </h3>
+            <button
+              onClick={() => router.push('/dashboard/my-docs?tab=applications')}
+              className="flex items-center gap-1.5 text-xs font-medium text-purple-600 hover:text-purple-700 hover:underline"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              View in My Docs
+            </button>
+          </div>
+          {jobsLoading ? (
+            <div className="flex items-center gap-2 py-6 text-gray-500">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Loading jobs…</span>
+            </div>
+          ) : jobsError ? (
+            <p className="text-sm text-red-600 py-4">{jobsError}</p>
+          ) : jobs.length === 0 ? (
+            <p className="text-sm text-gray-500 py-4">
+              No matching jobs found.
+            </p>
+          ) : (
+            <div className="space-y-4 max-h-80 overflow-y-auto">
+              {['today', 'yesterday', 'lastWeek', 'older'].map((key) => {
+                const list = jobsByDate[key] ?? [];
+                if (list.length === 0) return null;
+                return (
+                  <div key={key}>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      {DATE_LABELS[key]} ({list.length})
+                    </p>
+                    <ul className="space-y-2">
+                      {list.map((job) => {
+                        const jobId = job._id || job.id;
+                        const isGenerating = generatingJobIds.has(jobId);
+                        return (
+                          <li
+                            key={jobId}
+                            className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all group"
+                          >
+                            <Link
+                              href={`/dashboard/jobs/${jobId}`}
+                              className="flex-1 min-w-0 cursor-pointer block"
+                            >
+                              <p className="font-medium text-gray-800 truncate group-hover:text-purple-700">
+                                {job.title}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                <Building2 className="w-3 h-3 shrink-0" />
+                                <span className="truncate">{job.company}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span>{formatLocation(job)}</span>
+                              </div>
+                            </Link>
+                            <div
+                              className="flex items-center gap-2 shrink-0"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <span
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                                  job.tailoredGenerated
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                }`}
+                              >
+                                {job.tailoredGenerated
+                                  ? 'Tailored generated'
+                                  : 'Tailored not generated'}
+                              </span>
+                              {job.remote && (
+                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                  Remote
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleFindAnotherJob();
+                                }}
+                                disabled={findingJobs || jobsLoading}
+                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 transition-all"
+                              >
+                                <Search className="w-3.5 h-3.5" />
+                                Find other job
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleGenerateDocs(jobId);
+                                }}
+                                disabled={isGenerating}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                              >
+                                {isGenerating ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Generating…
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileText className="w-3.5 h-3.5" />
+                                    Generate Tailored
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          {/* <button
-            onClick={() => onEdit(id)}
-            className="p-2 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-            title="Edit Agent"
-          >
-            <Edit className="w-4 h-4" />
-          </button> */}
-
-          <button
-            onClick={() => onDelete(id)}
-            className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all"
-            title="Delete Agent"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

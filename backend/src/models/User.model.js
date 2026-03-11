@@ -249,14 +249,10 @@ const userSchema = new Schema(
 );
 
 userSchema.pre('save', async function (next) {
-  if (
-    !this.isModified('password') ||
-    !this.password ||
-    this.authMethod !== 'local'
-  ) {
+  if (!this.isModified('password') || !this.password) {
     return next();
   }
-
+  // Hash password for both local and OAuth users (OAuth users can set a password for email/password login)
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();

@@ -32,10 +32,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   changePasswordRequest,
   clearAuthMessages,
+  getProfileRequest,
 } from '@/redux/reducers/authReducer';
 import { RootState } from '@/redux/rootReducer';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { deleteAccount } from '@/services/api/auth';
+import apiInstance from '@/services/api';
 
 /* ===========================
    SECURITY SETTINGS (self-contained)
@@ -44,9 +47,10 @@ import { Loader2 } from 'lucide-react';
 export const SecuritySetting = () => {
   const dispatch = useDispatch();
   const { toast } = useToast();
-  const { message, error, isLoading } = useSelector(
+  const { message, error, loading: isLoading, user } = useSelector(
     (state: RootState) => state.auth,
   );
+  const canSetPassword = !!user?.canSetPassword;
 
   const [showPassword, setShowPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -75,6 +79,8 @@ export const SecuritySetting = () => {
       setNewPassword('');
       setConfirmNewPassword('');
       setIsSubmitting(false);
+      // Refresh profile so canSetPassword updates (OAuth user who just set password)
+      dispatch(getProfileRequest());
       // Clear the message from Redux store
       dispatch(clearAuthMessages());
     }
@@ -96,10 +102,18 @@ export const SecuritySetting = () => {
   }, [isLoading]);
 
   const handleChangePassword = () => {
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
+    if (!newPassword || !confirmNewPassword) {
       toast({
         title: 'Error',
-        description: 'Please fill all password fields.',
+        description: 'Please fill new password and confirmation.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!canSetPassword && !currentPassword) {
+      toast({
+        title: 'Error',
+        description: 'Please enter your current password.',
         variant: 'destructive',
       });
       return;
@@ -124,7 +138,7 @@ export const SecuritySetting = () => {
     setIsSubmitting(true);
     dispatch(
       changePasswordRequest({
-        currentPassword,
+        currentPassword: canSetPassword ? '' : currentPassword,
         newPassword,
         confirmNewPassword,
       }),
@@ -142,10 +156,12 @@ export const SecuritySetting = () => {
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                  Change Password
+                  {canSetPassword ? 'Set Password' : 'Change Password'}
                 </h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Use a strong, unique password to keep your account secure.
+                  {canSetPassword
+                    ? 'You signed up with Google or LinkedIn. Set a password to also log in with email and password.'
+                    : 'Use a strong, unique password to keep your account secure.'}
                 </p>
               </div>
             </div>
@@ -155,32 +171,34 @@ export const SecuritySetting = () => {
           </div>
 
           <div className="space-y-4">
-            {/* Current password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Current Password
-              </label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
+            {/* Current password - only for users who have one */}
+            {!canSetPassword && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* New password */}
             <div>
@@ -275,6 +293,8 @@ export const SecuritySetting = () => {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Updating...
                 </span>
+              ) : canSetPassword ? (
+                'Set Password'
               ) : (
                 'Update Password'
               )}
@@ -532,8 +552,10 @@ export const AppearanceSettings = () => {
 export const DangerSettings = () => {
   const { toast } = useToast();
 
-  const handleDeleteAccount = () => {
-    // For now, just scream into the void
+  const handleDeleteAccount = async () => {
+    const response = await await apiInstance.delete('/user/me');
+    console.log(response.data);
+
     toast({
       title: 'Feature In Development',
       description: 'Account deletion is not yet implemented.',

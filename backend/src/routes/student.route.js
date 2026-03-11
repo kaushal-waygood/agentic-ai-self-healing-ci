@@ -265,44 +265,40 @@ router.post(
   activateStudentPlan,
 );
 
-router.post(
-  '/pdf/generate-pdf',
-  authMiddleware, // assuming you have this
-  isUserOrUniStudent, // assuming you have this
-  async (req, res) => {
-    const { html, title, isShowImage } = req.body;
+router.post('/pdf/generate-pdf', async (req, res) => {
+  const { html, title, isShowImage } = req.body;
 
-    if (!html) {
-      return res.status(400).json({ message: 'HTML content is required.' });
-    }
+  if (!html) {
+    return res.status(400).json({ message: 'HTML content is required.' });
+  }
 
-    let browser;
-    try {
-      browser = await puppeteer.launch({
-        headless: 'new',
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-        ],
-        protocolTimeout: 120000,
-      });
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
+      protocolTimeout: 120000,
+    });
 
-      const page = await browser.newPage();
-      page.setDefaultTimeout(60000);
+    const page = await browser.newPage();
+    page.setDefaultTimeout(60000);
 
-      await page.emulateMediaType('screen');
+    await page.emulateMediaType('screen');
 
-      // FIX 2: Better wait strategy
-      await page.setContent(html, {
-        waitUntil: ['load', 'networkidle0'],
-        timeout: 60000,
-      });
+    // FIX 2: Better wait strategy
+    await page.setContent(html, {
+      waitUntil: ['load', 'networkidle0'],
+      timeout: 60000,
+    });
 
-      // FIX 3: Inject CSS to prevent content clipping
-      await page.addStyleTag({
-        content: `
+    // FIX 3: Inject CSS to prevent content clipping
+    await page.addStyleTag({
+      content: `
           * {
             box-sizing: border-box;
             margin: 0;
@@ -320,53 +316,52 @@ router.post(
               : '.resume-container .profile-image { display: none; }'
           }
         `,
-      });
+    });
 
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '10mm',
-          right: '15mm',
-          bottom: '15mm',
-          left: '15mm',
-        },
-        timeout: 60000,
-      });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '10mm',
+        right: '15mm',
+        bottom: '15mm',
+        left: '15mm',
+      },
+      timeout: 60000,
+    });
 
-      await browser.close();
+    await browser.close();
 
-      res.setHeader('Content-Type', 'application/pdf');
-      // Sanitize filename to remove characters that might break headers
-      const safeTitle = title.replace(/[^a-zA-Z0-9-_]/g, '_');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="zobsai_${safeTitle}.pdf"`,
-      );
+    res.setHeader('Content-Type', 'application/pdf');
+    // Sanitize filename to remove characters that might break headers
+    const safeTitle = title.replace(/[^a-zA-Z0-9-_]/g, '_');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="zobsai_${safeTitle}.pdf"`,
+    );
 
-      logToFile(html, 'pdf.txt');
+    logToFile(html, 'pdf.txt');
 
-      console.log('PDF generated successfully');
+    console.log('PDF generated successfully');
 
-      res.send(pdfBuffer);
-    } catch (error) {
-      console.error('PDF Generation Error:', error);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
 
-      if (browser) {
-        try {
-          await browser.close();
-        } catch (closeError) {
-          console.error('Error closing browser:', closeError);
-        }
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
       }
-
-      res.status(500).json({
-        message: 'Failed to generate PDF.',
-        error: error.message,
-      });
     }
-  },
-);
+
+    res.status(500).json({
+      message: 'Failed to generate PDF.',
+      error: error.message,
+    });
+  }
+});
 
 router.post(
   '/docx/generate-docx',

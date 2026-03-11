@@ -4,6 +4,7 @@ import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot
 import { User } from '../models/User.model.js';
 import { StudentApplication } from '../models/students/studentApplication.model.js';
 import { AppliedJob } from '../models/AppliedJob.js';
+import { AgentFoundJob } from '../models/AgentFoundJob.js';
 import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
 import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
 import { buildJobContextString } from '../utils/jobContext.js';
@@ -113,10 +114,26 @@ export const findAndProcessJobs = async () => {
       { min: 0, max: 200 },
     );
 
-    const effectiveMaxLimit = Math.min(userPlanLimit, studentPrefLimit);
-    let remainingForStudent = Math.max(0, effectiveMaxLimit - userUsageCount);
+    const effectiveMaxLimit =
+      userPlanLimit === -1
+        ? studentPrefLimit
+        : Math.min(userPlanLimit, studentPrefLimit);
 
-    if (remainingForStudent <= 0) continue;
+    let remainingForStudent;
+    if (userPlanLimit === -1) {
+      // If unlimited plan limit, rely solely on the student preference
+      remainingForStudent = Math.max(0, studentPrefLimit - userUsageCount);
+    } else {
+      // Otherwise, pick whichever constraint is stricter
+      remainingForStudent = Math.max(0, effectiveMaxLimit - userUsageCount);
+    }
+
+    if (remainingForStudent <= 0) {
+      console.log(
+        `[AutopilotWorker] Skipping student ${studentIdStr}: Limit reached. Plan Limit: ${userPlanLimit}, Pref Limit: ${studentPrefLimit}, Usage: ${userUsageCount}`,
+      );
+      continue;
+    }
 
     for (const agent of agents) {
       if (remainingForStudent <= 0) break;
@@ -162,11 +179,31 @@ export const findAndProcessJobs = async () => {
           agentConfig,
           studentProfile: effectiveStudent,
           appliedJobIds,
-          limit: batchSize,
+          limit: Math.max(batchSize, 20), // Find more jobs for user to review (min 20)
           skipExternalFetch: true, // avoid RapidAPI 429 when processing many students
         });
 
         if (!recommendedJobs.length) continue;
+
+        // Find-only mode: store jobs by date (don't overwrite), don't auto-apply.
+        // Set AUTOPILOT_AUTO_APPLY=true to restore automatic application.
+        if (!toBool(process.env.AUTOPILOT_AUTO_APPLY || 'false')) {
+          if (agent._id) {
+            for (const job of recommendedJobs) {
+              await AgentFoundJob.findOneAndUpdate(
+                { student: studentId, agent: agent._id, job: job._id },
+                { $setOnInsert: { foundAt: new Date() } },
+                { upsert: true },
+              ).catch(() => {});
+            }
+          }
+          if (process.env.DEBUG_AUTOPILOT === '1') {
+            console.log(
+              `[AutopilotWorker] Stored ${recommendedJobs.length} jobs for agent "${agent.agentName}" (find-only, categorized by date)`,
+            );
+          }
+          continue;
+        }
 
         if (!toBool(process.env.AUTOGEN_TAILORED || 'false')) continue;
 
