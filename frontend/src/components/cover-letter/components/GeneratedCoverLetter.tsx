@@ -45,6 +45,8 @@ const GeneratedCoverLetter = ({
   setCvNameForSavingInput,
   confirmSaveNamedCv,
   onSendEmail,
+  defaultSubject = '',
+  defaultBodyHtml = '',
 }: any) => {
   return (
     <div className="min-h-screen  p-2 md:p-3 lg:p-4">
@@ -92,6 +94,8 @@ const GeneratedCoverLetter = ({
                   type="coverletter"
                   onSendEmail={onSendEmail}
                   sendEmailHint="Cover letter only"
+                  defaultSubject={defaultSubject}
+                  defaultBodyHtml={defaultBodyHtml}
                 />
               </CardContent>
             </Card>

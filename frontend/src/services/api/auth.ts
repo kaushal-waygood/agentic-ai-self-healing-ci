@@ -66,6 +66,16 @@ export const verifyEmail = async (data: any) => {
   return response;
 };
 
+export const getSentRecruiterEmails = async (params?: {
+  page?: number;
+  limit?: number;
+}) => {
+  const response = await apiInstance.get('/user/sent-recruiter-emails', {
+    params,
+  });
+  return response.data;
+};
+
 export const getMe = async (token: string) => {
   const response = await apiInstance.get('/user/getme', {
     headers: {
@@ -77,5 +87,10 @@ export const getMe = async (token: string) => {
 
 export const loginHistory = async (payload: any) => {
   const response = await apiInstance.post('/analytics/login-history', payload);
+  return response;
+};
+
+export const deleteAccount = async () => {
+  const response = await apiInstance.delete('/user/me');
   return response;
 };

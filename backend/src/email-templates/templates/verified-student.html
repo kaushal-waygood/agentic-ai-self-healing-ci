@@ -1,73 +1,59 @@
-<table
-  role="presentation"
-  width="100%"
-  style="
-    border-collapse: collapse;
-    font-family: Arial, sans-serif;
-    color: #333333;
-  "
->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
   <tr>
-    <td class="body" style="padding: 28px">
-      <h2 style="margin-top: 0; color: #1a1a1a">
-        Welcome to the Student Program, {{name}}!
-      </h2>
+    <td class="body" style="padding: 32px 32px; font-size: 15px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; color: #0f172a;">Welcome to the Student Program, {{name}}! 🎓</h2>
 
-      <p>
-        Great news! Your student status has been **successfully verified**. You
+      <p style="margin: 0 0 20px 0; color: #475569;">
+        Great news! Your student status has been <strong style="color: #059669;">successfully verified</strong>. You
         now have full access to specialized student tools on
-        <strong>{{brandName}}</strong>.
+        <strong style="color: #0f172a;">{{brandName}}</strong>.
       </p>
 
-      <p>
-        Your account has been upgraded to a <strong>Student Account</strong>,
+      <p style="margin: 0 0 24px 0; color: #475569;">
+        Your account has been upgraded to a <strong style="color: #0f172a;">Student Account</strong>,
         giving you a competitive edge in your internship and job search.
       </p>
 
-      <h3 style="margin-top: 24px">What can you do now?</h3>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 24px 0; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; border: 1px solid #bae6fd;">
+        <tr>
+          <td style="padding: 28px;">
+            <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 800; color: #0f172a;">What can you do now?</h3>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
+              <tr>
+                <td style="padding: 12px 0; border-bottom: 1px solid #bae6fd;">
+                  <strong style="color: #0f172a;">Student-Only Pricing:</strong> Access premium features at a fraction of the cost.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 0; border-bottom: 1px solid #bae6fd;">
+                  <strong style="color: #0f172a;">Internship Matching:</strong> Get prioritized for roles specifically looking for university talent.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 0; border-bottom: 1px solid #bae6fd;">
+                  <strong style="color: #0f172a;">AI Resume Builder:</strong> Use our AI to highlight your coursework and projects for recruiters.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 0;">
+                  <strong style="color: #0f172a;">AI Tailored Applications:</strong> Generate customized CVs and cover letters for every job application.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
 
-      <ul style="padding-left: 20px; line-height: 1.6">
-        <li>
-          <strong>Student-Only Pricing:</strong> Access premium features at a
-          fraction of the cost.
-        </li>
-        <li>
-          <strong>Internship Matching:</strong> Get prioritized for roles
-          specifically looking for university talent.
-        </li>
-        <li>
-          <strong>AI Resume Builder:</strong> Use our AI to highlight your
-          coursework and projects for recruiters.
-        </li>
-        <li>
-          <strong>AI Resume Builder:</strong> Use our AI to highlight your
-          coursework and projects for recruiters.
-        </li>
-        <li>
-          <strong>AI Cover Letter:</strong> Use our AI to highlight your
-          coursework and projects for recruiters.
-        </li>
-        <li>
-          <strong>AI Tailored Application:</strong> Use our AI to highlight your
-          coursework and projects for recruiters.
-        </li>
-      </ul>
-
-      <p>
+      <p style="margin: 0 0 20px 0; color: #64748b;">
         Need help getting started? Visit our
-        <a href="{{companyUrl}}" style="color: #0b74de">Help Center</a> or
+        <a href="{{companyUrl}}" style="color: #0ea5e9; text-decoration: none;">Help Center</a> or
         simply reply to this email at
-        <a href="mailto:{{supportEmail}}" style="color: #0b74de"
-          >{{supportEmail}}</a
-        >.
+        <a href="mailto:{{supportEmail}}" style="color: #0ea5e9; text-decoration: none;">{{supportEmail}}</a>.
       </p>
 
-      <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 30px 0" />
-
-      <p style="font-size: 12px; color: #888888; text-align: center">
-        <strong>{{brandName}}</strong><br />
-        {{companyAddress}}<br />
-        <a href="{{unsubscribeUrl}}" style="color: #888888">Unsubscribe</a>
+      <p style="margin: 24px 0 0 0; color: #475569;">
+        Best of luck with your job search!<br />
+        <strong style="color: #0f172a;">The {{brandName}} Team</strong>
       </p>
     </td>
   </tr>

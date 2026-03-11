@@ -12,6 +12,7 @@ import {
   resetPassword,
   authGoogle,
   sendEmails,
+  getSentRecruiterEmails,
   oAuth2Callback,
   disconnectGoogle,
   testSendEmail,
@@ -27,6 +28,7 @@ import {
   getVerifiedUser,
   firebaseGoogleLogin,
   submitFeedback,
+  deleteUserAccount,
 } from '../controllers/user.controller.js';
 import {
   authMiddleware,
@@ -72,9 +74,11 @@ router.post('/change-email', authMiddleware, resendVerificationEmail);
 router.patch('/verify-email-otp', authMiddleware, isStudent, verifyUpdateEmail);
 router.post('/signin', signInUser);
 router.post('/send-email', authMiddleware, sendEmails);
+router.get('/sent-recruiter-emails', authMiddleware, getSentRecruiterEmails);
 router.get('/signout', authMiddleware, signout);
 router.get('/me', authMiddleware, isUserOrUniStudent, getUserProfile);
 router.patch('/me/password/change', authMiddleware, changePassword);
+router.delete('/me', authMiddleware, isUserOrUniStudent, deleteUserAccount);
 router.post('/resend-otp', resendOtp);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);

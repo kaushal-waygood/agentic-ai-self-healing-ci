@@ -793,10 +793,17 @@ export const useApplicationWizard = () => {
   const handleSendEmail = useCallback(
     async (
       recruiterEmail: string,
-      options?: { documentId?: string; mode?: 'cv' | 'cl' | 'tailored' },
+      options?: {
+        documentId?: string;
+        mode?: 'cv' | 'cl' | 'tailored';
+        subject?: string;
+        bodyHtml?: string;
+      },
     ) => {
       const mode = options?.mode ?? 'tailored';
       const documentId = options?.documentId;
+      const userSubject = options?.subject;
+      const userBodyHtml = options?.bodyHtml;
 
       try {
         let subject = '';
@@ -804,11 +811,13 @@ export const useApplicationWizard = () => {
         let htmlResume = '';
         let htmlCoverLetter = '';
 
+        let fetchedApp: { savedCVId?: string; savedCoverLetterId?: string } | null = null;
         if (documentId) {
           const { data } = await apiInstance.get(
             `/students/tailored-application/${documentId}`,
           );
           const app = data?.application;
+          fetchedApp = app;
           if (!app) {
             toast({
               variant: 'destructive',
@@ -818,9 +827,11 @@ export const useApplicationWizard = () => {
             return;
           }
           subject =
+            userSubject ||
             app.applicationEmail?.subject ||
             `Job Application - ${app.jobTitle} at ${app.companyName}`;
           bodyHtml =
+            userBodyHtml ||
             app.applicationEmail?.html ||
             app.applicationEmail?.body ||
             'Please find my CV and cover letter attached.';
@@ -828,19 +839,24 @@ export const useApplicationWizard = () => {
           htmlCoverLetter = app.tailoredCoverLetter?.html || '';
         } else {
           subject =
+            userSubject ||
             (jobContext && 'jobTitle' in jobContext
               ? jobContext.jobTitle
-              : 'Job Application') || 'Job Application';
+              : 'Job Application') ||
+            'Job Application';
           htmlResume = generatedData.refinedCv;
           htmlCoverLetter = generatedData.tailoredCl;
           if (mode === 'cv') {
-            bodyHtml = 'Please find my CV attached.';
+            bodyHtml = userBodyHtml || 'Please find my CV attached.';
             htmlCoverLetter = '';
           } else if (mode === 'cl') {
-            bodyHtml = 'Please find my cover letter attached.';
+            bodyHtml = userBodyHtml || 'Please find my cover letter attached.';
             htmlResume = '';
           } else {
-            bodyHtml = generatedData.emailDraft || 'Please find my CV and cover letter attached.';
+            bodyHtml =
+              userBodyHtml ||
+              generatedData.emailDraft ||
+              'Please find my CV and cover letter attached.';
           }
         }
 
@@ -857,12 +873,19 @@ export const useApplicationWizard = () => {
           bodyHtml = 'Please find my CV and cover letter attached.';
         }
 
+        const appId = documentId || applicationId || undefined;
+
         await apiInstance.post('/user/send-email', {
           subject,
           bodyHtml,
           htmlResume,
           htmlCoverLetter,
           recruiterEmail,
+          jobTitle: jobContext?.jobTitle,
+          companyName: jobContext?.companyName,
+          applicationId: appId,
+          cvId: fetchedApp?.savedCVId,
+          clId: fetchedApp?.savedCoverLetterId,
         });
 
         toast({
@@ -880,7 +903,7 @@ export const useApplicationWizard = () => {
         throw error;
       }
     },
-    [student, jobContext, generatedData, toast],
+    [student, jobContext, generatedData, applicationId, toast],
   );
 
   // Inside your useApplicationWizard hook...

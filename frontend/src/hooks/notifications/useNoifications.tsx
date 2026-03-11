@@ -101,7 +101,7 @@ export function useNotifications() {
         );
         if (res.data?.success) {
           setNotifications(res.data.data.notifications || []);
-          await fetchUnreadCount();
+          // fetchUnreadCount moved to initial useEffect to avoid duplicate API calls
         }
       } catch (err) {
         console.error('fetchNotifications failed', err);
@@ -109,7 +109,7 @@ export function useNotifications() {
         setIsLoading(false);
       }
     },
-    [fetchUnreadCount],
+    [],
   );
 
   const markAsRead = useCallback(async (notificationId: string) => {
@@ -162,7 +162,7 @@ export function useNotifications() {
     }
   }, [unreadCount]);
 
-  // initial fetch once
+  // initial fetch once - run both in parallel (fetchNotifications no longer calls fetchUnreadCount to avoid 2x)
   useEffect(() => {
     fetchUnreadCount();
     fetchNotifications();

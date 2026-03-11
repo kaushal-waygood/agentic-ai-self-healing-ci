@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 import EditorToolbar from './EditorToolbar';
 import { useEditableMaterial } from './useEditableMat';
 
@@ -35,10 +36,17 @@ interface EditableMaterialProps {
   className?: string;
   type?: 'resume' | 'coverletter';
   editorId?: string;
-  /** When provided, shows "Send Email to Recruiter" button. Called with recruiter email when user confirms. */
-  onSendEmail?: (recruiterEmail: string) => void | Promise<void>;
+  /** When provided, shows "Send Email to Recruiter" button. Called with recruiter email, subject, and body when user confirms. */
+  onSendEmail?: (
+    recruiterEmail: string,
+    options: { subject: string; bodyHtml: string },
+  ) => void | Promise<void>;
   /** Hint for what will be sent (e.g. "CV only", "Cover Letter only", "CV + Cover Letter + Email") */
   sendEmailHint?: string;
+  /** Default subject for the send-email dialog */
+  defaultSubject?: string;
+  /** Default email body (plain text or HTML) for the send-email dialog */
+  defaultBodyHtml?: string;
 }
 
 const EditableMaterial: FC<EditableMaterialProps> = ({
@@ -50,9 +58,13 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
   className = '',
   onSendEmail,
   sendEmailHint,
+  defaultSubject = '',
+  defaultBodyHtml = '',
 }) => {
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false);
   const [recruiterEmailInput, setRecruiterEmailInput] = useState('');
+  const [subjectInput, setSubjectInput] = useState('');
+  const [bodyInput, setBodyInput] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const { editorRef, containerRef, state, actions } = useEditableMaterial({
@@ -69,8 +81,17 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
     toast({ title: 'Copied plain text' });
   };
 
+  const stripHtml = (html: string) => {
+    if (typeof document === 'undefined') return html;
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || html;
+  };
+
   const handleSendEmailClick = () => {
     setRecruiterEmailInput('');
+    setSubjectInput(defaultSubject);
+    setBodyInput(defaultBodyHtml ? stripHtml(defaultBodyHtml) : '');
     setIsSendEmailDialogOpen(true);
   };
 
@@ -84,10 +105,14 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
       toast({ variant: 'destructive', title: 'Please enter a valid email address' });
       return;
     }
+    const subject = subjectInput.trim() || 'Job Application';
+    const bodyHtml = bodyInput.trim()
+      ? bodyInput.replace(/\n/g, '<br/>')
+      : 'Please find my application attached.';
     if (!onSendEmail) return;
     setIsSendingEmail(true);
     try {
-      await onSendEmail(email);
+      await onSendEmail(email, { subject, bodyHtml });
       toast({ title: 'Email sent successfully' });
       setIsSendEmailDialogOpen(false);
     } catch (err) {
@@ -266,21 +291,45 @@ const EditableMaterial: FC<EditableMaterialProps> = ({
 
       {/* Send Email Dialog */}
       <AlertDialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <AlertDialogContent className="rounded-xl">
+        <AlertDialogContent className="rounded-xl max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Send Email to Recruiter</AlertDialogTitle>
             <AlertDialogDescription>
-              Enter the recruiter&apos;s email address. {sendEmailHint && `(${sendEmailHint})`}
+              Enter the recruiter&apos;s email and edit the draft. {sendEmailHint && `(${sendEmailHint})`}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <Input
-            type="email"
-            placeholder="recruiter@company.com"
-            value={recruiterEmailInput}
-            onChange={(e) => setRecruiterEmailInput(e.target.value)}
-            className="my-2"
-            disabled={isSendingEmail}
-          />
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">To</label>
+              <Input
+                type="email"
+                placeholder="recruiter@company.com"
+                value={recruiterEmailInput}
+                onChange={(e) => setRecruiterEmailInput(e.target.value)}
+                disabled={isSendingEmail}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">Subject</label>
+              <Input
+                placeholder="Job Application"
+                value={subjectInput}
+                onChange={(e) => setSubjectInput(e.target.value)}
+                disabled={isSendingEmail}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">Message</label>
+              <Textarea
+                placeholder="Please find my application attached."
+                value={bodyInput}
+                onChange={(e) => setBodyInput(e.target.value)}
+                disabled={isSendingEmail}
+                rows={5}
+                className="resize-y min-h-[100px]"
+              />
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-lg" disabled={isSendingEmail}>
               Cancel

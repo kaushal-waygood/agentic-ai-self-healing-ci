@@ -19,10 +19,12 @@ import axios from 'axios';
 import qs from 'querystring';
 import { addCredits, CREDIT_EARN } from '../utils/credits.js';
 import { Feedback } from '../models/feedback.model.js';
+import { RecruiterEmailSent } from '../models/RecruiterEmailSent.model.js';
 
 import { v4 as uuidv4 } from 'uuid';
 import { LoginHistory } from '../models/analyics/loginHistory.model.js';
 import { prefetchRecommendedJobsForUser } from '../utils/prefetchRecommendedJobs.js';
+import { deleteUserCascade } from '../services/deleteUserCascade.js';
 
 /* -------------------------
    Initialization
@@ -1095,14 +1097,23 @@ export const signout = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const { _id: userId } = req.user;
-    const cacheKey = `user:profile:${userId}`;
 
     const userData = await User.findById(userId).populate(
       'organization',
       '-__v -apiKey',
     );
     if (!userData) throw new Error('User not found');
-    return res.status(200).json(userData);
+
+    const obj = userData.toObject ? userData.toObject() : userData;
+    const isOAuth =
+      obj.authMethod === 'google' ||
+      obj.authMethod === 'linkedin' ||
+      obj.authMethod === 'firebase';
+    const u = await User.findById(userId).select('+password').lean();
+    const hasPassword = !!u?.password;
+    obj.canSetPassword = isOAuth && !hasPassword;
+
+    return res.status(200).json(obj);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return res.status(500).json({ message: error.message });
@@ -1110,21 +1121,63 @@ export const getUserProfile = async (req, res) => {
 };
 
 export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword, confirmNewPassword } = req.body;
+  const {
+    currentPassword,
+    oldPassword,
+    newPassword,
+    confirmNewPassword,
+    confirmPassword,
+  } = req.body;
   const { _id } = req.user;
 
+  const currPwd = currentPassword || oldPassword;
+  const confirmPwd = confirmNewPassword || confirmPassword;
+
   try {
-    const user = await User.findById(_id).select('+password');
+    const user = await User.findById(_id).select('+password authMethod');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
-    if (!isPasswordCorrect)
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const isOAuthUser =
+      user.authMethod === 'google' ||
+      user.authMethod === 'linkedin' ||
+      user.authMethod === 'firebase';
 
-    if (currentPassword === newPassword)
-      return res.status(400).json({ message: 'New password cannot be same' });
-    if (newPassword !== confirmNewPassword)
-      return res.status(400).json({ message: 'Passwords do not match' });
+    if (isOAuthUser && !user.password) {
+      // OAuth user has no password yet — allow "Set password" (no current password required)
+      if (!newPassword || !confirmPwd) {
+        return res
+          .status(400)
+          .json({ message: 'New password and confirmation are required' });
+      }
+      if (newPassword !== confirmPwd) {
+        return res.status(400).json({ message: 'Passwords do not match' });
+      }
+    } else {
+      // Local user or OAuth user who already has a password — require current password
+      if (!currPwd) {
+        return res
+          .status(400)
+          .json({ message: 'Current password is required' });
+      }
+      const isPasswordCorrect = await user.isPasswordCorrect(currPwd);
+      if (!isPasswordCorrect) {
+        return res.status(401).json({ message: 'Invalid current password' });
+      }
+      if (currPwd === newPassword) {
+        return res
+          .status(400)
+          .json({ message: 'New password cannot be the same as current' });
+      }
+      if (newPassword !== confirmPwd) {
+        return res.status(400).json({ message: 'Passwords do not match' });
+      }
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ message: 'Password must be at least 8 characters' });
+    }
 
     user.password = newPassword;
     await user.save();
@@ -1136,12 +1189,16 @@ export const changePassword = async (req, res) => {
         name: user.fullName,
         dateTime: new Date().toISOString(),
         loginUrl: process.env.DASHBOARD_URL,
+        companyUrl: 'https://zobsai.com',
+        companyAddress: 'ZobsAI Pvt Ltd',
+        unsubscribeUrl: 'https://zobsai.com/unsubscribe',
       },
       subjectOverride: 'Password Updated',
     });
 
     return res.status(200).json({ message: 'Password changed successfully' });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -1153,6 +1210,11 @@ export const sendEmails = async (req, res) => {
     htmlResume: resumeHtml,
     htmlCoverLetter: coverLetterHtml,
     recruiterEmail,
+    jobTitle,
+    companyName,
+    applicationId,
+    cvId,
+    clId,
   } = req.body;
 
   if (!req.user)
@@ -1174,12 +1236,19 @@ export const sendEmails = async (req, res) => {
     return res.status(400).json({ message: 'Subject and Body required.' });
   }
 
-  if (recruiterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recruiterEmail.trim())) {
-    return res.status(400).json({ message: 'Invalid recruiter email address.' });
+  if (
+    recruiterEmail &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recruiterEmail.trim())
+  ) {
+    return res
+      .status(400)
+      .json({ message: 'Invalid recruiter email address.' });
   }
 
   try {
-    const user = await User.findById(req.user._id).select('+googleAuth.refreshToken');
+    const user = await User.findById(req.user._id).select(
+      '+googleAuth.refreshToken',
+    );
     if (!user || !user.googleAuth?.refreshToken) {
       return res
         .status(400)
@@ -1212,6 +1281,22 @@ export const sendEmails = async (req, res) => {
       to: receiverEmails,
     });
 
+    if (recruiterEmail) {
+      await RecruiterEmailSent.create({
+        user: user._id,
+        recruiterEmail: recruiterEmail.trim(),
+        subject,
+        sentCv: !!resumeHtml,
+        sentCoverLetter: !!coverLetterHtml,
+        sentEmailDraft: !!bodyHtml,
+        jobTitle: jobTitle || null,
+        companyName: companyName || null,
+        applicationId: applicationId || null,
+        cvId: cvId || null,
+        clId: clId || null,
+      });
+    }
+
     return res.status(200).json({ message: 'Emails sent successfully!' });
   } catch (error) {
     console.error('Failed to send email:', error);
@@ -1221,6 +1306,33 @@ export const sendEmails = async (req, res) => {
         .json({ message: 'Please re-authenticate Google.' });
     }
     return res.status(500).json({ message: 'Error sending email.' });
+  }
+};
+
+export const getSentRecruiterEmails = async (req, res) => {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized.' });
+
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      RecruiterEmailSent.find({ user: req.user._id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      RecruiterEmailSent.countDocuments({ user: req.user._id }),
+    ]);
+
+    return res.status(200).json({
+      items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    console.error('getSentRecruiterEmails error:', error);
+    return res.status(500).json({ message: 'Failed to fetch sent emails.' });
   }
 };
 
@@ -1257,7 +1369,9 @@ export const oAuth2Callback = async (req, res) => {
     oauth2Client.setCredentials(tokens);
 
     if (!tokens.refresh_token) {
-      console.warn('[OAuth] No refresh_token in response - Gmail send may not work. User may need to revoke app access and reconnect.');
+      console.warn(
+        '[OAuth] No refresh_token in response - Gmail send may not work. User may need to revoke app access and reconnect.',
+      );
     }
 
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
@@ -1289,7 +1403,10 @@ export const oAuth2Callback = async (req, res) => {
   } catch (err) {
     console.error('[OAuth] Callback error:', err?.message || err);
     if (err?.response?.data) {
-      console.error('[OAuth] Google API error:', JSON.stringify(err.response.data));
+      console.error(
+        '[OAuth] Google API error:',
+        JSON.stringify(err.response.data),
+      );
     }
     const errorCode =
       err?.response?.data?.error === 'invalid_grant'
@@ -1355,7 +1472,9 @@ export const testSendEmail = async (req, res) => {
   const bodyHtml = '<h1>Works!</h1><p>Gmail API integration active.</p>';
 
   try {
-    const user = await User.findById(req.user._id).select('+googleAuth.refreshToken');
+    const user = await User.findById(req.user._id).select(
+      '+googleAuth.refreshToken',
+    );
     if (!user || !user.googleAuth?.refreshToken) {
       return res.status(400).json({ message: 'Google account not linked.' });
     }
@@ -1534,6 +1653,34 @@ export const getVerifiedUser = async (req, res) => {
     return res.status(200).json(user);
   } catch (error) {
     return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const deleteUserAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    await deleteUserCascade(userId);
+
+    // Clear auth cookies
+    res.clearCookie('accessToken', { path: '/' });
+    res.clearCookie('refreshToken', { path: '/' });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Account and all associated data deleted successfully',
+    });
+  } catch (error) {
+    console.error('deleteUserAccount error:', error);
+    if (error.message === 'User not found') {
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
+    }
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete account',
+    });
   }
 };
 

@@ -145,8 +145,11 @@ const DocumentPage = () => {
               atsScore: app.tailoredCV?.atsScore || 0,
               atsScoreReasoning: app.tailoredCV?.atsScoreReasoning || '',
 
-              coverLetter: app.tailoredCoverLetter.html || '',
-              email: app.applicationEmail.html || '',
+              coverLetter: app.tailoredCoverLetter?.html || '',
+              email: app.applicationEmail?.html || '',
+
+              savedCVId: app.savedCVId,
+              savedCoverLetterId: app.savedCoverLetterId,
             };
 
             setRefinedCv(transformed.cv);
@@ -157,10 +160,13 @@ const DocumentPage = () => {
         }
 
         setDocumentData(transformed);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error(err);
+        const msg = err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+          : undefined;
         setError(
-          `${err?.response?.data?.error}\nUnable to load the document. Please try again later.`,
+          `${msg ?? ''}\nUnable to load the document. Please try again later.`,
         );
       } finally {
         setIsLoading(false);
@@ -237,31 +243,52 @@ const DocumentPage = () => {
 
   const handleSendEmail = async (
     recruiterEmail: string,
-    options?: { mode?: 'cv' | 'cl' | 'tailored' },
+    options?: {
+      mode?: 'cv' | 'cl' | 'tailored';
+      subject?: string;
+      bodyHtml?: string;
+    },
   ) => {
     const mode = options?.mode ?? 'tailored';
-    let bodyHtml = '';
+    let bodyHtml = options?.bodyHtml ?? '';
     let htmlResume = '';
     let htmlCoverLetter = '';
 
     if (mode === 'cv') {
-      bodyHtml = 'Please find my CV attached.';
+      bodyHtml = bodyHtml || 'Please find my CV attached.';
       htmlResume = documentData?.cv || '';
     } else if (mode === 'cl') {
-      bodyHtml = 'Please find my cover letter attached.';
+      bodyHtml = bodyHtml || 'Please find my cover letter attached.';
       htmlCoverLetter = documentData?.content || '';
     } else {
-      bodyHtml = documentData?.email || 'Please find my CV and cover letter attached.';
+      bodyHtml = bodyHtml || documentData?.email || 'Please find my CV and cover letter attached.';
       htmlResume = documentData?.cv || '';
       htmlCoverLetter = documentData?.coverLetter || '';
     }
 
+    const subject = options?.subject || documentData?.jobTitle || 'Job Application';
+
     await apiInstance.post('/user/send-email', {
-      subject: documentData?.jobTitle || 'Job Application',
+      subject,
       bodyHtml,
       htmlResume,
       htmlCoverLetter,
       recruiterEmail,
+      jobTitle: documentData?.jobTitle,
+      companyName: documentData?.companyName,
+      applicationId: type === 'application' ? id : undefined,
+      cvId:
+        mode === 'cv'
+          ? id
+          : mode === 'tailored' && documentData?.savedCVId
+            ? documentData.savedCVId
+            : undefined,
+      clId:
+        mode === 'cl'
+          ? id
+          : mode === 'tailored' && documentData?.savedCoverLetterId
+            ? documentData.savedCoverLetterId
+            : undefined,
     });
 
     toast({ title: 'Email sent successfully' });
@@ -405,7 +432,11 @@ const DocumentPage = () => {
       return (
         <GeneratedCV
           generatedCvOutput={documentData}
-          onSendEmail={(email: string) => handleSendEmail(email, { mode: 'cv' })}
+          onSendEmail={(email: string, opts: { subject: string; bodyHtml: string }) =>
+            handleSendEmail(email, { mode: 'cv', subject: opts.subject, bodyHtml: opts.bodyHtml })
+          }
+          defaultSubject={documentData?.jobTitle ? `Job Application - ${documentData.jobTitle}` : 'Job Application'}
+          defaultBodyHtml="Please find my CV attached."
           handleInitiateSave={() => {
             setSaveType('cv');
             setCvNameForSavingInput(`CV for ${documentData.jobTitle || 'Job'}`);
@@ -424,7 +455,11 @@ const DocumentPage = () => {
         <GeneratedCoverLetter
           generatedLetter={documentData.content}
           setGeneratedLetter={() => {}}
-          onSendEmail={(email: string) => handleSendEmail(email, { mode: 'cl' })}
+          onSendEmail={(email: string, opts: { subject: string; bodyHtml: string }) =>
+            handleSendEmail(email, { mode: 'cl', subject: opts.subject, bodyHtml: opts.bodyHtml })
+          }
+          defaultSubject={documentData?.jobTitle ? `Job Application - ${documentData.jobTitle}` : 'Job Application'}
+          defaultBodyHtml="Please find my cover letter attached."
           handleInitiateSave={() => {
             setSaveType('cl');
             setLetterNameForSavingInput(

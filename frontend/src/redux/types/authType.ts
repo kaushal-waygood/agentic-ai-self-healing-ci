@@ -10,6 +10,7 @@ export interface AuthState {
     dailyStreak?: number;
     role?: string;
     googleAuth?: any;
+    canSetPassword?: boolean;
   };
   message: string;
   token: string | null;

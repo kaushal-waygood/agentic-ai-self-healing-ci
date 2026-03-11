@@ -1,31 +1,35 @@
-<table role="presentation" width="100%" style="border-collapse: collapse">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
   <tr>
-    <td class="body">
-      <h2 style="margin-top: 0">Hi {{name}},</h2>
+    <td class="body" style="padding: 32px 32px; font-size: 15px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; color: #0f172a;">Hi {{name}}, ✅</h2>
 
-      <p>
+      <p style="margin: 0 0 20px 0; color: #475569;">
         Your application has been successfully submitted on
-        <strong>{{brandName}}</strong>.
+        <strong style="color: #0f172a;">{{brandName}}</strong>.
       </p>
 
-      <p>
-        We’ve shared your profile with the employer. You can track the status of
+      <p style="margin: 0 0 24px 0; color: #475569;">
+        We've shared your profile with the employer. You can track the status of
         your application anytime from your dashboard.
       </p>
 
-      <div style="text-align: center; margin: 22px 0">
-        <p>We Connect Very Soon</p>
-      </div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 28px 0; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; border: 1px solid #a7f3d0;">
+        <tr>
+          <td style="padding: 24px; text-align: center;">
+            <span style="font-size: 18px; font-weight: 700; color: #065f46;">We'll connect very soon! 🤝</span>
+          </td>
+        </tr>
+      </table>
 
-      <p>
-        If you didn’t apply for this job or believe this was a mistake, contact
+      <p style="margin: 0 0 20px 0; color: #64748b; font-size: 14px;">
+        If you didn't apply for this job or believe this was a mistake, contact
         us at
-        <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.
+        <a href="mailto:{{supportEmail}}" style="color: #0ea5e9; text-decoration: none;">{{supportEmail}}</a>.
       </p>
 
-      <p style="margin-top: 18px">
+      <p style="margin: 24px 0 0 0; color: #475569;">
         Best,<br />
-        {{brandName}} Team
+        <strong style="color: #0f172a;">{{brandName}} Team</strong>
       </p>
     </td>
   </tr>

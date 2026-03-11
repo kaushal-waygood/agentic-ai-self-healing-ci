@@ -8,7 +8,15 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useDispatch, useSelector } from 'react-redux';
 import apiInstance, { API_BASE_URL } from '@/services/api';
-import { Loader2, Mail, User2, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Loader2,
+  Mail,
+  User2,
+  CheckCircle2,
+  AlertCircle,
+  Send,
+  ChevronRight,
+} from 'lucide-react';
 
 import { X, ShieldCheck } from 'lucide-react';
 import React from 'react';
@@ -135,8 +143,21 @@ const GoogleLoginButton = () => {
 };
 
 /** Google is connected if accessToken or refreshToken exists. refreshToken has select:false in DB so API returns accessToken/expiryDate only. */
-const isGoogleConnected = (user: { googleAuth?: { accessToken?: string; refreshToken?: string; expiryDate?: number } } | null) =>
-  !!(user?.googleAuth && (user.googleAuth.accessToken || user.googleAuth.refreshToken || user.googleAuth.expiryDate));
+const isGoogleConnected = (
+  user: {
+    googleAuth?: {
+      accessToken?: string;
+      refreshToken?: string;
+      expiryDate?: number;
+    };
+  } | null,
+) =>
+  !!(
+    user?.googleAuth &&
+    (user.googleAuth.accessToken ||
+      user.googleAuth.refreshToken ||
+      user.googleAuth.expiryDate)
+  );
 
 export const AccountSetting = () => {
   const dispatch = useDispatch();
@@ -498,6 +519,31 @@ export const AccountSetting = () => {
               ? 'Use the test email to verify that Gmail permissions are working correctly.'
               : 'We only request the minimum access needed to send emails on your behalf.'}
           </p>
+        </div>
+      </div>
+
+      {/* Sent Emails to Recruiters */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+              <Send className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                Sent Emails to Recruiters
+              </h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Track emails you&apos;ve sent to recruiters from the platform.
+              </p>
+            </div>
+          </div>
+          <Link href="/dashboard/sent-emails">
+            <Button variant="outline" className="flex items-center gap-2">
+              View Sent Emails
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </div>
 
