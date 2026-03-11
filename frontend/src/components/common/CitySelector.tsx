@@ -1,62 +1,22 @@
-// import React from 'react';
-// import { countries } from 'countries-list';
-// const countryOptions = Object.entries(countries).map(([code, country]) => ({
-//   value: code, // e.g., 'US'
-//   label: country.name, // e.g., 'United States'
-// }));
-
-// interface CountrySelectorProps {
-//   value: string;
-//   onChange: (value: string) => void;
-//   className?: string;
-// }
-
-// const CountrySelector = ({
-//   value,
-//   onChange,
-//   className,
-// }: CountrySelectorProps) => {
-//   return (
-//     <select
-//       value={value}
-//       onChange={(e) => onChange(e.target.value)}
-//       className={className}
-//     >
-//       <option value="">Select a country</option>
-//       {countryOptions.map((option) => (
-//         <option key={option.value} value={option.value}>
-//           {option.label}
-//         </option>
-//       ))}
-//     </select>
-//   );
-// };
-
-// export default CountrySelector;
 'use client';
 
-import * as React from 'react';
-import { countries } from 'countries-list';
+import React, { useMemo } from 'react';
+import { City } from 'country-state-city';
 import { ChevronDown, Check } from 'lucide-react';
 
-export const countryOptions = Object.entries(countries).map(
-  ([code, country]) => ({
-    value: code,
-    label: country.name,
-  }),
-);
-
-interface CountrySelectorProps {
-  value: string; // country code (e.g. "IN")
+interface CitySelectorProps {
+  countryCode: string;
+  value: string;
   onChange: (value: string) => void;
   className?: string;
 }
 
-export function CountrySelector({
+const CitySelector = ({
+  countryCode,
   value,
   onChange,
   className,
-}: CountrySelectorProps) {
+}: CitySelectorProps) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const itemRefs = React.useRef<(HTMLLIElement | null)[]>([]);
@@ -65,13 +25,28 @@ export function CountrySelector({
   const [search, setSearch] = React.useState('');
   const [highlightedIndex, setHighlightedIndex] = React.useState(0);
 
-  const selectedCountry = countryOptions.find((c) => c.value === value);
+  const cityOptions = useMemo(() => {
+    if (!countryCode) return [];
 
-  const filteredCountries = countryOptions.filter((country) =>
-    country.label.toLowerCase().includes(search.toLowerCase()),
-  );
+    return (
+      City.getCitiesOfCountry(countryCode)?.map((city) => ({
+        value: city.name,
+        label: city.name,
+      })) || []
+    );
+  }, [countryCode]);
 
-  /* ---------------- Click outside ---------------- */
+  const filteredCities = useMemo(() => {
+    if (!search) return cityOptions;
+    return cityOptions.filter((c) =>
+      c.label.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [cityOptions, search]);
+
+  const hasCities = cityOptions.length > 0;
+  const isDisabled = !countryCode || !hasCities;
+
+  // click outside
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -87,56 +62,52 @@ export function CountrySelector({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /* ---------------- Keyboard navigation ---------------- */
+  // keyboard nav
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!open) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightedIndex((i) => Math.min(i + 1, filteredCountries.length - 1));
+      setHighlightedIndex((i) => Math.min(i + 1, filteredCities.length - 1));
     }
-
     if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightedIndex((i) => Math.max(i - 1, 0));
     }
-
-    //  if (e.key === 'Enter') {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      const selected = filteredCountries[highlightedIndex];
-      if (selected) {
-        onChange(selected.value); // ✅ send country code
+      const sel = filteredCities[highlightedIndex];
+      if (sel) {
+        onChange(sel.value);
         setOpen(false);
         setSearch('');
       }
     }
-
     if (e.key === 'Escape') {
       setOpen(false);
       setSearch('');
     }
   };
 
-  /* ---------------- Auto scroll highlighted item ---------------- */
-  React.useEffect(() => {
-    const el = itemRefs.current[highlightedIndex];
-    if (el) {
-      el.scrollIntoView({
-        block: 'nearest',
-        behavior: 'smooth',
-      });
-    }
-  }, [highlightedIndex]);
-
-  /* Reset highlight when search changes */
   React.useEffect(() => {
     setHighlightedIndex(0);
   }, [search]);
 
+  React.useEffect(() => {
+    const el = itemRefs.current[highlightedIndex];
+    if (el) {
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [highlightedIndex]);
+
+  const selectedCity = cityOptions.find((c) => c.value === value);
+
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      {/* Trigger */}
+      {/* trigger */}
       <button
         type="button"
         onClick={() => {
@@ -146,54 +117,53 @@ export function CountrySelector({
         className="w-full flex items-center justify-between rounded-lg
        border bg-white px-3 py-2 text-sm
        focus:outline-none focus:ring-2 focus:ring-blue-500"
+        disabled={isDisabled}
       >
-        <span className={selectedCountry ? '' : 'text-gray-400'}>
-          {selectedCountry ? selectedCountry.label : 'Select a country'}
+        <span className={selectedCity ? '' : 'text-gray-400'}>
+          {isDisabled
+            ? !countryCode
+              ? 'Select country first'
+              : 'No cities found'
+            : selectedCity
+              ? selectedCity.label
+              : 'Select a city'}
         </span>
         <ChevronDown className="h-4 w-4 text-gray-500" />
       </button>
 
-      {/* Dropdown */}
-      {open && (
+      {open && !isDisabled && (
         <div
           className="absolute z-50 mt-1 w-full rounded-lg border bg-white shadow-lg"
           onKeyDown={handleKeyDown}
         >
-          {/* Search */}
           <input
             ref={inputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Type country name..."
+            placeholder="Type city name..."
             className="w-full border-b px-3 py-2 text-sm focus:outline-none"
           />
-
-          {/* Options */}
           <ul className="max-h-60 overflow-auto">
-            {filteredCountries.length === 0 && (
-              <li className="px-3 py-2 text-sm text-gray-500">
-                No country found
-              </li>
+            {filteredCities.length === 0 && (
+              <li className="px-3 py-2 text-sm text-gray-500">No city found</li>
             )}
-
-            {filteredCountries.map((country, index) => (
+            {filteredCities.map((city, index) => (
               <li
-                key={country.value}
+                key={city.value + '-' + index}
                 ref={(el) => (itemRefs.current[index] = el)}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 onClick={() => {
-                  onChange(country.value); // ✅ send code
+                  onChange(city.value);
                   setOpen(false);
                   setSearch('');
                 }}
-                className={`cursor-pointer px-3 py-2 text-sm
-               flex items-center justify-between
+                className={`cursor-pointer px-3 py-2 text-sm flex items-center justify-between
                ${
                  index === highlightedIndex ? 'bg-blue-100' : 'hover:bg-blue-50'
                }`}
               >
-                {country.label}
-                {country.value === value && (
+                {city.label}
+                {city.value === value && (
                   <Check className="h-4 w-4 text-purple-600" />
                 )}
               </li>
@@ -203,6 +173,6 @@ export function CountrySelector({
       )}
     </div>
   );
-}
+};
 
-export default CountrySelector;
+export default CitySelector;

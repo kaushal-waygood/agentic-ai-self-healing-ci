@@ -7,6 +7,8 @@ import {
   X,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchGeneratedCVsRequest } from '../../redux/reducers/aiReducer';
 
 const Step2ChooseCV = ({
   nextStep,
@@ -15,10 +17,14 @@ const Step2ChooseCV = ({
   values = {},
 }) => {
   const [dragActive, setDragActive] = useState(false);
+  const [manuallySavedCvs, setManuallySavedCvs] = useState([]); // New state for API-fetched CVs
   const [cvs, setCvs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingApi, setLoadingApi] = useState(true); // Separate loading for API
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
+
+  const dispatch = useDispatch();
+  const { generatedCVs, loading: aiLoading } = useSelector((state) => state.ai);
 
   // Configuration for valid formats
   const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx'];
@@ -28,25 +34,53 @@ const Step2ChooseCV = ({
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ];
 
+  // Effect to fetch manually saved CVs and dispatch AI CVs request
   useEffect(() => {
     let cancelled = false;
-    const fetchCvs = async () => {
-      setLoading(true);
+    const fetchInitialData = async () => {
+      setLoadingApi(true);
       try {
         const response = await apiInstance.get('/students/resume/saved');
-        if (!cancelled) setCvs(response.data?.html || []);
+        if (!cancelled) {
+          setManuallySavedCvs(response.data?.html || []);
+        }
       } catch (err) {
-        console.error('Failed to fetch CVs:', err);
-        if (!cancelled) setCvs([]);
+        console.error('Failed to fetch manually saved CVs:', err);
+        if (!cancelled) setManuallySavedCvs([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoadingApi(false);
       }
     };
-    fetchCvs();
+
+    fetchInitialData();
+    dispatch(fetchGeneratedCVsRequest());
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [dispatch]);
+
+  // Effect to combine CVs when either source changes
+  useEffect(() => {
+    const combinedCvs = [
+      ...manuallySavedCvs,
+      ...generatedCVs.map((cv) => ({
+        _id: cv._id,
+        htmlCVTitle: cv.cvTitle,
+        createdAt: cv.createdAt,
+        isAIGenerated: true,
+      })),
+    ];
+
+    // Remove duplicates based on _id
+    const uniqueCvs = Array.from(
+      new Map(combinedCvs.map((cv) => [cv._id, cv])).values(),
+    );
+
+    setCvs(uniqueCvs);
+  }, [manuallySavedCvs, generatedCVs]);
+
+  const overallLoading = loadingApi || aiLoading;
 
   // Centralized Validation Function
   const validateFile = (file) => {
@@ -140,12 +174,12 @@ const Step2ChooseCV = ({
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-semibold text-gray-700">Saved CVs</div>
             <div className="text-xs text-gray-500">
-              {loading ? 'Loading...' : `${cvs.length} available`}
+              {overallLoading ? 'Loading...' : `${cvs.length} available`}
             </div>
           </div>
 
           <div className="max-h-56 overflow-auto space-y-2">
-            {loading ? (
+            {overallLoading ? (
               <div className="py-8 text-center text-slate-500">
                 Loading saved CVs...
               </div>

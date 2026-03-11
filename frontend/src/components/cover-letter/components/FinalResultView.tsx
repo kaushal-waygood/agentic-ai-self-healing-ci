@@ -108,7 +108,8 @@ export default function FinalResultView({
   };
 
   const handleGoToPlans = () => {
-    router.push(planPath);
+    // router.push(planPath);
+    router.replace(planPath);
   };
 
   return (

@@ -533,15 +533,8 @@ const AppHeader = ({
                       markAsRead={markAsRead}
                       fetchNotifications={fetchNotifications}
                       // connectionStatus={connectionStatus}
+                      onClose={() => setIsNotificationOpen(false)}
                     />
-                  </div>
-                  <div className="p-4 border-t border-slate-100">
-                    <button
-                      className="w-full text-center text-sm text-purple-600 hover:text-purple-700 font-medium"
-                      onClick={handleViewAllNotifications}
-                    >
-                      View All Notifications
-                    </button>
                   </div>
                 </div>
               )}

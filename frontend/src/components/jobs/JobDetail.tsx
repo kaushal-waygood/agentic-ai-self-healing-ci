@@ -92,6 +92,7 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const dispatch = useDispatch();
+  const { profile } = useProfile();
 
   const [matchScore, setMatchScore] = useState<MatchScore | null>(null);
   const [atsScore, setAtsScore] = useState<AtsScore | null>(null);
@@ -466,6 +467,14 @@ export default function JobDetail({ job }: JobDetailClientProps) {
   };
 
   const handleGetATSScore = useCallback(async () => {
+    if (!profile.uploadedCV) {
+      toast({
+        title: 'CV not found',
+        description: 'Please upload or select a CV to calculate ATS Score.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!job?.description) return;
 
     setIsLoadingAtsScore(true);
