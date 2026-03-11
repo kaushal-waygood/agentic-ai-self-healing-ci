@@ -14,6 +14,15 @@ import {
 import { extractTextFromCV, parseCVData } from './rough.js';
 import { processAutopilotAgent } from '../utils/autopilot.background.js';
 import { StudentAgent } from '../models/students/studentAgent.model.js';
+import { AppliedJob } from '../models/AppliedJob.js';
+import { StudentApplication } from '../models/students/studentApplication.model.js';
+import { StudentTailoredApplication } from '../models/students/studentTailoredApplication.model.js';
+import { Job } from '../models/jobs.model.js';
+import { getStudentProfileSnapshot } from '../services/getStudentProfileSnapshot.js';
+import { buildEffectiveStudentProfile } from '../utils/profileHydration.js';
+import { getRecommendedJobs } from '../utils/getRecommendedJobs.js';
+import { buildApplicationData } from '../worker/autopilotWorker.js';
+import { processTailoredApplication } from '../utils/tailoredApply.background.js';
 
 // ----------------- helpers -----------------
 const toBool = (v) => {
@@ -488,6 +497,247 @@ export const getSinglePilotAgent = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'An unexpected error occurred while retrieving pilot agent',
+      errorCode: 'SERVER_ERROR',
+      systemMessage: config.nodeEnv === 'local' ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Get recommended jobs for an agent (matches agent's criteria).
+ * Used by the AI Job Agents dashboard accordion.
+ */
+export const getAgentJobs = async (req, res) => {
+  const studentId = req.user._id;
+  const { id: agentIdParam } = req.params;
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid student ID',
+        errorCode: 'INVALID_STUDENT_ID',
+      });
+    }
+
+    const isMongoId = mongoose.Types.ObjectId.isValid(agentIdParam) && String(agentIdParam).length === 24;
+    const agent = await StudentAgent.findOne(
+      isMongoId
+        ? { _id: agentIdParam, student: studentId }
+        : { agentId: agentIdParam, student: studentId },
+    ).lean();
+
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent not found',
+        errorCode: 'AGENT_NOT_FOUND',
+      });
+    }
+
+    const studentProfile = await getStudentProfileSnapshot(studentId);
+    if (!studentProfile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found',
+        errorCode: 'PROFILE_NOT_FOUND',
+      });
+    }
+
+    const effectiveProfile = buildEffectiveStudentProfile(studentProfile, agent);
+    const appliedJobIds = (
+      await AppliedJob.find({ student: studentId }).distinct('job')
+    ).map((id) => id.toString());
+
+    const agentConfig = {
+      jobTitle: agent.jobTitle,
+      country: agent.country,
+      isRemote: agent.isRemote,
+      employmentType: agent.employmentType,
+    };
+
+    const jobs = await getRecommendedJobs({
+      studentId,
+      agentConfig,
+      studentProfile: effectiveProfile,
+      appliedJobIds,
+      limit,
+      skipExternalFetch: true,
+    });
+
+    const sanitized = jobs.map((j) => ({
+      _id: j._id,
+      id: j._id?.toString(),
+      title: j.title,
+      company: j.company,
+      country: j.country,
+      remote: j.remote,
+      location: j.location,
+      jobTypes: j.jobTypes,
+      jobPosted: j.jobPosted,
+      jobPostedAt: j.jobPostedAt,
+      rankScore: j.rankScore,
+      slug: j.slug,
+      applyMethod: j.applyMethod,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: { jobs: sanitized },
+      meta: {
+        agentId: agent.agentId,
+        count: sanitized.length,
+      },
+    });
+  } catch (error) {
+    console.error(
+      `Error fetching jobs for agent ${agentIdParam}:`,
+      error,
+    );
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch jobs for agent',
+      errorCode: 'SERVER_ERROR',
+      systemMessage: config.nodeEnv === 'local' ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Start tailored doc generation for a job found by an agent.
+ * First find (jobs in accordion) -> user clicks Generate -> this endpoint.
+ */
+export const startAgentJobTailoredGeneration = async (req, res) => {
+  const studentId = req.user._id;
+  const { agentId: agentIdParam, jobId } = req.params;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid student ID',
+        errorCode: 'INVALID_STUDENT_ID',
+      });
+    }
+    if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid job ID',
+        errorCode: 'INVALID_JOB_ID',
+      });
+    }
+
+    const isMongoId =
+      mongoose.Types.ObjectId.isValid(agentIdParam) &&
+      String(agentIdParam).length === 24;
+    const agent = await StudentAgent.findOne(
+      isMongoId
+        ? { _id: agentIdParam, student: studentId }
+        : { agentId: agentIdParam, student: studentId },
+    ).lean();
+
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent not found',
+        errorCode: 'AGENT_NOT_FOUND',
+      });
+    }
+
+    const job = await Job.findById(jobId).lean();
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found',
+        errorCode: 'JOB_NOT_FOUND',
+      });
+    }
+
+    const alreadyApplied = await AppliedJob.exists({
+      student: studentId,
+      job: jobId,
+    });
+    if (alreadyApplied) {
+      return res.status(400).json({
+        success: false,
+        message: 'Already applied to this job',
+        errorCode: 'ALREADY_APPLIED',
+      });
+    }
+
+    const existingDraft = await StudentTailoredApplication.findOne({
+      student: studentId,
+      jobId: job._id,
+    });
+    if (existingDraft) {
+      if (existingDraft.status === 'completed') {
+        return res.status(400).json({
+          success: false,
+          message: 'Tailored docs already generated for this job',
+          errorCode: 'ALREADY_GENERATED',
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Generation already in progress for this job',
+        errorCode: 'GENERATION_IN_PROGRESS',
+      });
+    }
+
+    const studentProfile = await getStudentProfileSnapshot(studentId);
+    if (!studentProfile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found',
+        errorCode: 'PROFILE_NOT_FOUND',
+      });
+    }
+
+    const effectiveStudent = buildEffectiveStudentProfile(studentProfile, agent);
+    const applicationData = buildApplicationData(job, effectiveStudent, '');
+
+    const application = await StudentTailoredApplication.create({
+      student: studentId,
+      jobId: job._id,
+      jobTitle: job.title,
+      companyName: job.company,
+      jobDescription: job.description,
+      useProfile: true,
+      status: 'pending',
+      flag: 'agent',
+    });
+
+    const io = req.app.get('io');
+    processTailoredApplication(
+      studentId,
+      application._id,
+      applicationData,
+      io,
+    ).catch((err) =>
+      console.error(
+        `[AgentJobTailored] Failed for job ${jobId} agent ${agent.agentId}:`,
+        err,
+      ),
+    );
+
+    return res.status(202).json({
+      success: true,
+      message: 'Tailored doc generation started',
+      data: {
+        applicationId: application._id,
+        jobTitle: job.title,
+        company: job.company,
+      },
+    });
+  } catch (error) {
+    console.error(
+      `Error starting tailored generation agent=${agentIdParam} job=${jobId}:`,
+      error,
+    );
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to start tailored doc generation',
       errorCode: 'SERVER_ERROR',
       systemMessage: config.nodeEnv === 'local' ? error.message : undefined,
     });

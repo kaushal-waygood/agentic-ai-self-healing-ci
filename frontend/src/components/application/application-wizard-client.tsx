@@ -47,8 +47,9 @@ export function ApplicationWizardClient() {
     generatedData,
     jobs,
     selectedCvId,
+    applicationId,
   } = state;
-  const { navigateToStep, setGeneratedData } = actions;
+  const { navigateToStep, handleSendEmail } = actions;
 
   /* ---------- Navigation Guards ---------- */
 
@@ -219,6 +220,10 @@ export function ApplicationWizardClient() {
             planPath="/dashboard/subscriptions"
             title="Application"
             targetLink="/dashboard/my-docs?tab=applications"
+            documentId={applicationId ?? undefined}
+            documentType="application"
+            showSendEmail={!!applicationId}
+            onSendEmail={handleSendEmail}
           />
         );
 

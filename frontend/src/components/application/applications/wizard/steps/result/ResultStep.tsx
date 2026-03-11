@@ -14,6 +14,7 @@ import {
   Eye,
   Sparkles,
   X,
+  Loader2,
 } from 'lucide-react';
 import EditableMaterial from '@/components/application/editable-material';
 import { useSelector } from 'react-redux';
@@ -399,6 +400,25 @@ const ResultStep = ({
                 setContent={setEmailDraft}
                 isHtml={true}
               />
+              <div className="p-4 border-t border-slate-200 bg-slate-50/50">
+                <Button
+                  onClick={handleSendEmailWithLoading}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg disabled:opacity-50"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      Send Email to Recruiter (Draft + CV & Cover Letter PDFs)
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         )}

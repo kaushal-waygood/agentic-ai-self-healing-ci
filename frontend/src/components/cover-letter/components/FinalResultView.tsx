@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, FileText, ListRestart, Loader2 } from 'lucide-react';
+import { CheckCircle, FileText, Loader2, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import apiInstance from '@/services/api';
 
@@ -16,6 +16,8 @@ type Props = {
   documentId?: string;
   documentType?: 'cv' | 'cl' | 'application';
   onStatusCompleted?: () => void;
+  showSendEmail?: boolean;
+  onSendEmail?: (documentId?: string) => Promise<void>;
 };
 
 export default function FinalResultView({
@@ -29,10 +31,13 @@ export default function FinalResultView({
   documentId,
   documentType = 'cv',
   onStatusCompleted,
+  showSendEmail = false,
+  onSendEmail,
 }: Props) {
   const [isGenerating, setIsGenerating] = useState(true);
   const [showNotification, setShowNotification] = useState(false);
   const [statusCompleted, setStatusCompleted] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -111,6 +116,16 @@ export default function FinalResultView({
   const handleGoToPlans = () => {
     // router.push(planPath);
     router.replace(planPath);
+  };
+
+  const handleSendEmailClick = async () => {
+    if (!onSendEmail) return;
+    setIsSendingEmail(true);
+    try {
+      await onSendEmail(documentId);
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   return (
@@ -252,6 +267,26 @@ export default function FinalResultView({
               </div>
 
               <div className="flex gap-3 flex-col">
+                {showSendEmail && statusCompleted && onSendEmail && (
+                  <button
+                    onClick={handleSendEmailClick}
+                    disabled={isSendingEmail}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSendingEmail ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4" />
+                        Send Email (Draft + CV & Cover Letter PDFs)
+                      </>
+                    )}
+                  </button>
+                )}
+
                 <button
                   onClick={handleRedirectDocs}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
