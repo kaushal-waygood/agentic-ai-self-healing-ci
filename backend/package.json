@@ -16,6 +16,8 @@
     "test:open": "node tests/reports/open-jest-report.cjs",
     "seed:jobs": "node scripts/seedExternalJobs.js",
     "delete:pending-tailor-docs": "node scripts/deletePendingTailorDocs.js",
+    "delete:google-auth": "node scripts/deleteGoogleAuth.js",
+    "delete:google-auth:run": "node scripts/deleteGoogleAuth.js --delete",
     "reembed:jobs": "node scripts/reembedJobs.js",
     "k6": "k6 run --iterations 1 --vus 1 tests/k6/register_users.js",
     "k6:search": "k6 run --iterations 10 --vus 1 tests/k6/job_search.js",

@@ -40,18 +40,20 @@ const EMAIL_CHANGE_OTP_EXP_MS = 10 * 60 * 1000; // 10 minutes
 const DEFAULT_RESET_EXP_MS = 60 * 60 * 1000; // 1 hour
 
 const BACKEND_API_BASE_URL =
-  process.env.NODE_ENV === 'production'
+  process.env.BACKEND_URL ||
+  (process.env.NODE_ENV === 'production'
     ? 'https://api.zobsai.com'
     : process.env.NODE_ENV === 'development'
       ? 'https://api.dev.zobsai.com'
-      : 'http://127.0.0.1:8080';
+      : `http://127.0.0.1:${process.env.PORT || 8080}`);
 
 const FRONTEND_URL =
-  process.env.NODE_ENV === 'production'
+  process.env.FRONTEND_URL ||
+  (process.env.NODE_ENV === 'production'
     ? 'https://zobsai.com'
     : process.env.NODE_ENV === 'development'
       ? 'https://dev.zobsai.com'
-      : 'http://127.0.0.1:3000';
+      : 'http://127.0.0.1:3000');
 
 /* -------------------------
    Helper Utilities
@@ -1150,12 +1152,13 @@ export const sendEmails = async (req, res) => {
     bodyHtml,
     htmlResume: resumeHtml,
     htmlCoverLetter: coverLetterHtml,
+    recruiterEmail,
   } = req.body;
 
   if (!req.user)
     return res.status(401).json({ message: 'Unauthorized session.' });
 
-  const receiverEmails = [
+  const defaultReceivers = [
     req.user.email,
     'infozobsai@gmail.com',
     'prakhar@zobsai.com',
@@ -1163,12 +1166,20 @@ export const sendEmails = async (req, res) => {
     'rahul@zobsai.com',
   ];
 
+  const receiverEmails = recruiterEmail
+    ? [recruiterEmail.trim(), req.user.email]
+    : defaultReceivers;
+
   if (!subject || !bodyHtml) {
     return res.status(400).json({ message: 'Subject and Body required.' });
   }
 
+  if (recruiterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recruiterEmail.trim())) {
+    return res.status(400).json({ message: 'Invalid recruiter email address.' });
+  }
+
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('+googleAuth.refreshToken');
     if (!user || !user.googleAuth?.refreshToken) {
       return res
         .status(400)
@@ -1219,15 +1230,35 @@ export const sendEmails = async (req, res) => {
 
 export const oAuth2Callback = async (req, res) => {
   const { code, state: userId } = req.query;
+  const redirectUri = oauth2Client.redirect_uri;
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[OAuth] Callback received', {
+      hasCode: !!code,
+      userId,
+      redirectUri,
+      backendUrl: BACKEND_API_BASE_URL,
+      frontendUrl: FRONTEND_URL,
+    });
+  }
+
   if (!code || !userId) {
+    console.warn('[OAuth] Missing code or userId');
     return res.redirect(
       `${FRONTEND_URL}/dashboard/settings?error=auth_failed_param`,
     );
   }
 
   try {
-    const { tokens } = await oauth2Client.getToken(code);
+    const { tokens } = await oauth2Client.getToken({
+      code: typeof code === 'string' ? code : code[0],
+      redirect_uri: redirectUri,
+    });
     oauth2Client.setCredentials(tokens);
+
+    if (!tokens.refresh_token) {
+      console.warn('[OAuth] No refresh_token in response - Gmail send may not work. User may need to revoke app access and reconnect.');
+    }
 
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     const { data: userInfo } = await oauth2.userinfo.get();
@@ -1236,25 +1267,36 @@ export const oAuth2Callback = async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) {
+      console.warn('[OAuth] User not found:', userId);
       return res.redirect(
         `${FRONTEND_URL}/dashboard/settings?error=user_not_found`,
       );
     }
 
     user.googleAuth = {
-      refreshToken: tokens.refresh_token,
+      refreshToken: tokens.refresh_token || user.googleAuth?.refreshToken,
       accessToken: tokens.access_token,
       expiryDate: tokens.expiry_date,
     };
     await user.save();
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[OAuth] Success - Google connected for user:', user.email);
+    }
     return res.redirect(
       `${FRONTEND_URL}/dashboard/settings?success=google_connected`,
     );
   } catch (err) {
-    console.error('OAuth callback error:', err);
+    console.error('[OAuth] Callback error:', err?.message || err);
+    if (err?.response?.data) {
+      console.error('[OAuth] Google API error:', JSON.stringify(err.response.data));
+    }
+    const errorCode =
+      err?.response?.data?.error === 'invalid_grant'
+        ? 'invalid_grant'
+        : err?.code || 'auth_failed_internal';
     return res.redirect(
-      `${FRONTEND_URL}/dashboard/settings?error=auth_failed_internal`,
+      `${FRONTEND_URL}/dashboard/settings?error=${errorCode}`,
     );
   }
 };
@@ -1313,7 +1355,7 @@ export const testSendEmail = async (req, res) => {
   const bodyHtml = '<h1>Works!</h1><p>Gmail API integration active.</p>';
 
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('+googleAuth.refreshToken');
     if (!user || !user.googleAuth?.refreshToken) {
       return res.status(400).json({ message: 'Google account not linked.' });
     }

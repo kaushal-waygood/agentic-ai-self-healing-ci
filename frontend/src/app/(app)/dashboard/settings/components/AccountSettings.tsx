@@ -134,9 +134,14 @@ const GoogleLoginButton = () => {
   );
 };
 
+/** Google is connected if accessToken or refreshToken exists. refreshToken has select:false in DB so API returns accessToken/expiryDate only. */
+const isGoogleConnected = (user: { googleAuth?: { accessToken?: string; refreshToken?: string; expiryDate?: number } } | null) =>
+  !!(user?.googleAuth && (user.googleAuth.accessToken || user.googleAuth.refreshToken || user.googleAuth.expiryDate));
+
 export const AccountSetting = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const googleConnected = isGoogleConnected(user);
 
   const [newEmail, setNewEmail] = useState(user?.email || '');
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
@@ -152,6 +157,7 @@ export const AccountSetting = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
+    const error = urlParams.get('error');
 
     if (success === 'google_connected') {
       setStatusMessage(
@@ -164,6 +170,18 @@ export const AccountSetting = () => {
       setTimeout(() => {
         dispatch(getProfileRequest());
       }, 1000);
+    } else if (error) {
+      const messages: Record<string, string> = {
+        auth_failed_param: 'Invalid OAuth response. Please try again.',
+        user_not_found: 'User not found. Please sign in again.',
+        invalid_grant:
+          'Google authorization expired or was revoked. Please try connecting again.',
+        auth_failed_internal:
+          'Google connection failed. Check that redirect URI in Google Cloud Console matches your backend URL.',
+      };
+      setStatusMessage(messages[error] || 'Failed to connect Google account.');
+      setIsError(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [dispatch]);
 
@@ -423,14 +441,14 @@ export const AccountSetting = () => {
                   Gmail Integration
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user?.googleAuth?.refreshToken
+                  {googleConnected
                     ? 'Connected: emails will be sent using your Gmail account.'
                     : 'Connect your Google account to enable sending emails.'}
                 </p>
               </div>
             </div>
 
-            {user?.googleAuth?.refreshToken ? (
+            {googleConnected ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
                 <CheckCircle2 className="h-3 w-3" />
                 Connected
@@ -440,7 +458,7 @@ export const AccountSetting = () => {
             )}
           </div>
 
-          {user?.googleAuth?.refreshToken && (
+          {googleConnected && (
             <div className="mb-4 rounded-md bg-blue-50 p-3 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">
               Emails will be sent from your primary address (
               <span className="font-medium">{user?.email}</span>) using Gmail’s
@@ -452,7 +470,7 @@ export const AccountSetting = () => {
             <Button
               variant="outline"
               onClick={handleSendTestEmail}
-              disabled={!user?.googleAuth?.refreshToken || isLoading}
+              disabled={!googleConnected || isLoading}
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
@@ -464,7 +482,7 @@ export const AccountSetting = () => {
               )}
             </Button>
 
-            {user?.googleAuth?.refreshToken && (
+            {googleConnected && (
               <Button
                 variant="destructive"
                 onClick={handleDisconnectGoogle}
@@ -476,7 +494,7 @@ export const AccountSetting = () => {
           </div>
 
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {user?.googleAuth?.refreshToken
+            {googleConnected
               ? 'Use the test email to verify that Gmail permissions are working correctly.'
               : 'We only request the minimum access needed to send emails on your behalf.'}
           </p>

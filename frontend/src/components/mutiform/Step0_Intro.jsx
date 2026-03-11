@@ -13,6 +13,7 @@ import {
   Loader2,
   FileText,
   ExternalLink,
+  Search,
 } from 'lucide-react';
 import apiInstance from '@/services/api';
 import {
@@ -277,28 +278,18 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
   const [jobsLoading, setJobsLoading] = useState(false);
   const [jobsError, setJobsError] = useState(null);
   const [generatingJobIds, setGeneratingJobIds] = useState(new Set());
+  const [findingJobs, setFindingJobs] = useState(false);
 
-  useEffect(() => {
-    if (!expanded || !id) return;
+  const fetchJobs = (userFeedback) => {
+    if (!id) return;
     setJobsLoading(true);
     setJobsError(null);
-    getAgentJobs(id, 30)
+    getAgentJobs(id, 30, userFeedback)
       .then((res) => {
         const data = res?.data?.data ?? {};
         const list = data.jobs ?? [];
-        let byDate = data.byDate ?? {
-          today: [],
-          yesterday: [],
-          lastWeek: [],
-          older: [],
-        };
-        if (
-          list.length > 0 &&
-          byDate.today?.length === 0 &&
-          byDate.yesterday?.length === 0 &&
-          byDate.lastWeek?.length === 0 &&
-          byDate.older?.length === 0
-        ) {
+        let byDate = data.byDate ?? { today: [], yesterday: [], lastWeek: [], older: [] };
+        if (list.length > 0 && byDate.today?.length === 0 && byDate.yesterday?.length === 0 && byDate.lastWeek?.length === 0 && byDate.older?.length === 0) {
           byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
         }
         setJobs(list);
@@ -310,6 +301,32 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
         setJobsByDate({ today: [], yesterday: [], lastWeek: [], older: [] });
       })
       .finally(() => setJobsLoading(false));
+  };
+
+  const handleFindAnotherJob = () => {
+    setFindingJobs(true);
+    toast({ title: 'Refreshing jobs…' });
+    getAgentJobs(id, 30)
+      .then((res) => {
+        const data = res?.data?.data ?? {};
+        const list = data.jobs ?? [];
+        let byDate = data.byDate ?? { today: [], yesterday: [], lastWeek: [], older: [] };
+        if (list.length > 0 && byDate.today?.length === 0 && byDate.yesterday?.length === 0 && byDate.lastWeek?.length === 0 && byDate.older?.length === 0) {
+          byDate = { today: list, yesterday: [], lastWeek: [], older: [] };
+        }
+        setJobs(list);
+        setJobsByDate(byDate);
+      })
+      .catch((err) => {
+        setJobsError(err?.response?.data?.message || 'Failed to load jobs');
+        toast({ variant: 'destructive', title: 'Failed to find jobs' });
+      })
+      .finally(() => setFindingJobs(false));
+  };
+
+  useEffect(() => {
+    if (!expanded || !id) return;
+    fetchJobs();
   }, [expanded, id]);
 
   const handleGenerateDocs = async (jobId) => {
@@ -490,37 +507,55 @@ const AgentRow = ({ agent, onEdit, onDelete }) => {
                               className="flex items-center gap-2 shrink-0"
                               onClick={(e) => e.preventDefault()}
                             >
+                              <span
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                                  job.tailoredGenerated
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                }`}
+                              >
+                                {job.tailoredGenerated
+                                  ? 'Tailored generated'
+                                  : 'Tailored not generated'}
+                              </span>
                               {job.remote && (
                                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                                   Remote
                                 </span>
                               )}
-                              {job.applied ? (
-                                <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-green-100 text-green-700 border border-green-200">
-                                  Applied
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleGenerateDocs(jobId);
-                                  }}
-                                  disabled={isGenerating}
-                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
-                                >
-                                  {isGenerating ? (
-                                    <>
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                      Generating…
-                                    </>
-                                  ) : (
-                                    <>
-                                      <FileText className="w-3.5 h-3.5" />
-                                      Generate
-                                    </>
-                                  )}
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleFindAnotherJob();
+                                }}
+                                disabled={findingJobs || jobsLoading}
+                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 transition-all"
+                              >
+                                <Search className="w-3.5 h-3.5" />
+                                Find other job
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleGenerateDocs(jobId);
+                                }}
+                                disabled={isGenerating}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                              >
+                                {isGenerating ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Generating…
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileText className="w-3.5 h-3.5" />
+                                    Generate Tailored
+                                  </>
+                                )}
+                              </button>
                             </div>
                           </li>
                         );

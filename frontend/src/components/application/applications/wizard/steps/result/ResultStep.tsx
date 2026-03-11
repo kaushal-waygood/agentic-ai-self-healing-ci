@@ -63,7 +63,10 @@ interface ResultStepProps {
   emailDraft: string;
   setEmailDraft: (content: string) => void;
   setWizardStep: (step: string) => void;
-  handleSendEmail: () => void;
+  handleSendEmail: (
+    recruiterEmail: string,
+    options?: { mode?: 'cv' | 'cl' | 'tailored' },
+  ) => void | Promise<void>;
   handleStartNew: () => void;
   handleSaveAndFinish: () => void;
 }
@@ -191,16 +194,6 @@ const ResultStep = ({
     }, 2000);
   };
 
-  const handleSendEmailWithLoading = async () => {
-    setIsProcessing(true);
-    try {
-      await handleSendEmail();
-    } catch (error) {
-      console.error('Error sending email:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   return (
     <div className="max-w-6xl mx-auto sm:p-6 p-1 space-y-4 font-sans">
@@ -321,6 +314,8 @@ const ResultStep = ({
                   setContent={setRefinedCv}
                   isHtml={true}
                   template={selectedTemplate}
+                  onSendEmail={(email) => handleSendEmail(email, { mode: 'cv' })}
+                  sendEmailHint="CV only"
                 />
               </div>
             </div>
@@ -350,7 +345,10 @@ const ResultStep = ({
                 title="Cover Letter"
                 content={tailoredCl}
                 setContent={setTailoredCl}
+                template={null}
                 isHtml={true}
+                onSendEmail={(email) => handleSendEmail(email, { mode: 'cl' })}
+                sendEmailHint="Cover letter only"
               />
             </div>
           </div>
@@ -398,27 +396,11 @@ const ResultStep = ({
                 title="Email Draft"
                 content={emailDraft}
                 setContent={setEmailDraft}
+                template={null}
                 isHtml={true}
+                onSendEmail={(email) => handleSendEmail(email, { mode: 'tailored' })}
+                sendEmailHint="CV + Cover Letter + Email draft"
               />
-              <div className="p-4 border-t border-slate-200 bg-slate-50/50">
-                <Button
-                  onClick={handleSendEmailWithLoading}
-                  disabled={isProcessing}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg disabled:opacity-50"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="w-4 h-4" />
-                      Send Email to Recruiter (Draft + CV & Cover Letter PDFs)
-                    </>
-                  )}
-                </Button>
-              </div>
             </div>
           </div>
         )}

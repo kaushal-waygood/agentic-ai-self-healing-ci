@@ -791,7 +791,13 @@ export const useApplicationWizard = () => {
   }, [router, toast]);
 
   const handleSendEmail = useCallback(
-    async (documentId?: string) => {
+    async (
+      recruiterEmail: string,
+      options?: { documentId?: string; mode?: 'cv' | 'cl' | 'tailored' },
+    ) => {
+      const mode = options?.mode ?? 'tailored';
+      const documentId = options?.documentId;
+
       try {
         let subject = '';
         let bodyHtml = '';
@@ -825,9 +831,17 @@ export const useApplicationWizard = () => {
             (jobContext && 'jobTitle' in jobContext
               ? jobContext.jobTitle
               : 'Job Application') || 'Job Application';
-          bodyHtml = generatedData.emailDraft;
           htmlResume = generatedData.refinedCv;
           htmlCoverLetter = generatedData.tailoredCl;
+          if (mode === 'cv') {
+            bodyHtml = 'Please find my CV attached.';
+            htmlCoverLetter = '';
+          } else if (mode === 'cl') {
+            bodyHtml = 'Please find my cover letter attached.';
+            htmlResume = '';
+          } else {
+            bodyHtml = generatedData.emailDraft || 'Please find my CV and cover letter attached.';
+          }
         }
 
         if (!bodyHtml && !htmlResume && !htmlCoverLetter) {
@@ -848,11 +862,12 @@ export const useApplicationWizard = () => {
           bodyHtml,
           htmlResume,
           htmlCoverLetter,
+          recruiterEmail,
         });
 
         toast({
           title: 'Email Sent',
-          description: 'Your application has been sent with CV and cover letter PDFs.',
+          description: 'Your application has been sent to the recruiter.',
         });
       } catch (error: any) {
         const msg =
@@ -862,6 +877,7 @@ export const useApplicationWizard = () => {
           title: 'Send Failed',
           description: msg,
         });
+        throw error;
       }
     },
     [student, jobContext, generatedData, toast],

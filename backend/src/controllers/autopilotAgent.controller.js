@@ -612,7 +612,14 @@ export const getAgentJobs = async (req, res) => {
     const appliedJobIds = (
       await AppliedJob.find({ student: studentId }).distinct('job')
     ).map((id) => id.toString());
-    const appliedSet = new Set(appliedJobIds);
+
+    const tailoredJobIds = (
+      await StudentTailoredApplication.distinct('jobId', {
+        student: studentId,
+        status: { $in: ['pending', 'completed'] },
+      })
+    ).map((id) => id?.toString?.() || String(id));
+    const tailoredSet = new Set(tailoredJobIds);
 
     const agentConfig = {
       jobTitle: agent.jobTitle,
@@ -647,7 +654,7 @@ export const getAgentJobs = async (req, res) => {
         rankScore: j.rankScore,
         slug: j.slug,
         applyMethod: j.applyMethod,
-        applied: appliedSet.has(jobIdStr),
+        tailoredGenerated: tailoredSet.has(jobIdStr),
       };
     });
 
@@ -717,18 +724,6 @@ export const startAgentJobTailoredGeneration = async (req, res) => {
         success: false,
         message: 'Job not found',
         errorCode: 'JOB_NOT_FOUND',
-      });
-    }
-
-    const alreadyApplied = await AppliedJob.exists({
-      student: studentId,
-      job: jobId,
-    });
-    if (alreadyApplied) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already applied to this job',
-        errorCode: 'ALREADY_APPLIED',
       });
     }
 

@@ -235,19 +235,36 @@ const DocumentPage = () => {
     if (saveType === 'cl') confirmSaveNamedCl();
   };
 
-  const handleSendEmail = async () => {
+  const handleSendEmail = async (
+    recruiterEmail: string,
+    options?: { mode?: 'cv' | 'cl' | 'tailored' },
+  ) => {
+    const mode = options?.mode ?? 'tailored';
+    let bodyHtml = '';
+    let htmlResume = '';
+    let htmlCoverLetter = '';
+
+    if (mode === 'cv') {
+      bodyHtml = 'Please find my CV attached.';
+      htmlResume = documentData?.cv || '';
+    } else if (mode === 'cl') {
+      bodyHtml = 'Please find my cover letter attached.';
+      htmlCoverLetter = documentData?.content || '';
+    } else {
+      bodyHtml = documentData?.email || 'Please find my CV and cover letter attached.';
+      htmlResume = documentData?.cv || '';
+      htmlCoverLetter = documentData?.coverLetter || '';
+    }
+
     await apiInstance.post('/user/send-email', {
-      senderEmail: user?.email,
-      recieverEmail: 'infozobsai@gmail.com',
-      subject: documentData.jobTitle,
-      bodyHtml: documentData.email,
-      htmlResume: documentData.cv,
-      htmlCoverLetter: documentData.coverLetter,
+      subject: documentData?.jobTitle || 'Job Application',
+      bodyHtml,
+      htmlResume,
+      htmlCoverLetter,
+      recruiterEmail,
     });
 
-    toast({
-      title: 'Email sent successfully',
-    });
+    toast({ title: 'Email sent successfully' });
   };
 
   // --- Modal UI ---
@@ -388,6 +405,7 @@ const DocumentPage = () => {
       return (
         <GeneratedCV
           generatedCvOutput={documentData}
+          onSendEmail={(email: string) => handleSendEmail(email, { mode: 'cv' })}
           handleInitiateSave={() => {
             setSaveType('cv');
             setCvNameForSavingInput(`CV for ${documentData.jobTitle || 'Job'}`);
@@ -406,6 +424,7 @@ const DocumentPage = () => {
         <GeneratedCoverLetter
           generatedLetter={documentData.content}
           setGeneratedLetter={() => {}}
+          onSendEmail={(email: string) => handleSendEmail(email, { mode: 'cl' })}
           handleInitiateSave={() => {
             setSaveType('cl');
             setLetterNameForSavingInput(

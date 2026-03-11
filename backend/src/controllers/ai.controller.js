@@ -1266,7 +1266,7 @@ export const createTailoredApply = async (req, res) => {
       preferences: finalTouch || '',
     };
 
-    const io = req.app.get('io');
+    const io = req.app?.get?.('io') ?? null;
 
     // Trigger background process
     processTailoredApplication(
