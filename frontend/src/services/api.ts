@@ -103,6 +103,10 @@ apiInstance.interceptors.response.use(
     // For 403, only refresh when it's a token error (not role-based "Access denied")
     const isTokenError = status === 401;
 
+    if (originalRequest.url === '/user/me/password/change' && status === 401) {
+      return Promise.reject(error);
+    }
+
     if (!isTokenError) {
       return Promise.reject(error);
     }
