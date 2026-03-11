@@ -15,6 +15,7 @@ import {
   savedStudentJobsRequest,
   visitedJobsRequest,
 } from '@/redux/reducers/jobReducer';
+import { useProfile } from '@/hooks/useProfile';
 
 import {
   FilePlus2,
